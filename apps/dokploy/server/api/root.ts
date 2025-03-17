@@ -1,6 +1,5 @@
 import { authRouter } from "@/server/api/routers/auth";
 import { createTRPCRouter } from "../api/trpc";
-import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
 import { backupRouter } from "./routers/backup";
@@ -42,7 +41,6 @@ import { userRouter } from "./routers/user";
  */
 
 export const appRouter = createTRPCRouter({
-	admin: adminRouter,
 	docker: dockerRouter,
 	auth: authRouter,
 	project: projectRouter,

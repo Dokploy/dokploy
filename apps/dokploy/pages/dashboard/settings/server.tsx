@@ -1,5 +1,6 @@
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
+import { EnablePaidFeatures } from "@/components/dashboard/settings/enable-paid-features";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
@@ -8,56 +9,16 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { api } from "@/utils/api";
 
 const Page = () => {
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
-				{/* <Card className="h-full bg-sidebar  p-2.5 rounded-xl ">
-					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="">
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<LayoutDashboardIcon className="size-6 text-muted-foreground self-center" />
-								Paid Features
-							</CardTitle>
-							<CardDescription>
-								Enable or disable paid features like monitoring
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="flex flex-row gap-2 items-center">
-								<span className="text-sm font-medium text-muted-foreground">
-									Enable Paid Features:
-								</span>
-
-								<Switch
-									checked={data?.enablePaidFeatures}
-									onCheckedChange={() => {
-										update({
-											enablePaidFeatures: !data?.enablePaidFeatures,
-										})
-											.then(() => {
-												toast.success(
-													`Paid features ${
-														data?.enablePaidFeatures ? "disabled" : "enabled"
-													} successfully`,
-												);
-												refetch();
-											})
-											.catch(() => {
-												toast.error("Error updating paid features");
-											});
-									}}
-								/>
-							</div>
-						</CardContent>
-						{data?.enablePaidFeatures && <SetupMonitoring />}
-					</div>
-				</Card> */}
-
-				{/* */}
+				{!isCloud && <EnablePaidFeatures />}
 			</div>
 		</div>
 	);

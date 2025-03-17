@@ -6,6 +6,7 @@ import {
 	removeUserById,
 	updateUser,
 	createApiKey,
+	setupWebMonitoring,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -16,6 +17,7 @@ import {
 	invitation,
 	member,
 	apikey,
+	apiUpdateWebServerMonitoring,
 } from "@dokploy/server/db/schema";
 import * as bcrypt from "bcrypt";
 import { TRPCError } from "@trpc/server";
@@ -27,7 +29,7 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-
+import { validateLicense } from "@/server/utils/validate-license";
 const apiCreateApiKey = z.object({
 	name: z.string().min(1),
 	prefix: z.string().optional(),
@@ -137,6 +139,26 @@ export const userRouter = createTRPCRouter({
 					.where(eq(account.userId, ctx.user.id));
 			}
 			return await updateUser(ctx.user.id, input);
+		}),
+	validateLicense: protectedProcedure
+		.input(
+			z.object({
+				licenseKey: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const isValid = await validateLicense(input.licenseKey);
+			if (!isValid) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Invalid license key",
+				});
+			}
+
+			await updateUser(ctx.user.id, {
+				licenseKey: input.licenseKey,
+			});
+			return isValid;
 		}),
 	getUserByToken: publicProcedure
 		.input(apiFindOneToken)
@@ -326,5 +348,63 @@ export const userRouter = createTRPCRouter({
 			});
 
 			return organizations.length;
+		}),
+
+	setupMonitoring: adminProcedure
+		.input(apiUpdateWebServerMonitoring)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				if (IS_CLOUD) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Feature disabled on cloud",
+					});
+				}
+
+				const user = await findUserById(ctx.user.id);
+
+				if (!validateLicense(user?.licenseKey || "")) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Invalid license key",
+					});
+				}
+				if (user.id !== ctx.user.ownerId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to setup the monitoring",
+					});
+				}
+
+				await updateUser(user.id, {
+					metricsConfig: {
+						server: {
+							type: "Dokploy",
+							refreshRate: input.metricsConfig.server.refreshRate,
+							port: input.metricsConfig.server.port,
+							token: input.metricsConfig.server.token,
+							cronJob: input.metricsConfig.server.cronJob,
+							urlCallback: input.metricsConfig.server.urlCallback,
+							retentionDays: input.metricsConfig.server.retentionDays,
+							thresholds: {
+								cpu: input.metricsConfig.server.thresholds.cpu,
+								memory: input.metricsConfig.server.thresholds.memory,
+							},
+						},
+						containers: {
+							refreshRate: input.metricsConfig.containers.refreshRate,
+							services: {
+								include: input.metricsConfig.containers.services.include || [],
+								exclude: input.metricsConfig.containers.services.exclude || [],
+							},
+						},
+					},
+				});
+
+				const currentServer = await setupWebMonitoring(user.id);
+				return currentServer;
+			} catch (error) {
+				throw error;
+			}
 		}),
 });

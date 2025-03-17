@@ -528,6 +528,58 @@ importers:
         specifier: ^1.6.0
         version: 1.6.0(@types/node@18.19.42)(terser@5.31.3)
 
+  apps/licenses:
+    dependencies:
+      '@dokploy/server':
+        specifier: workspace:*
+        version: link:../../packages/server
+      '@hono/node-server':
+        specifier: ^1.12.1
+        version: 1.12.1
+      '@hono/zod-validator':
+        specifier: 0.3.0
+        version: 0.3.0(hono@4.5.8)(zod@3.24.1)
+      dotenv:
+        specifier: ^16.3.1
+        version: 16.4.5
+      hono:
+        specifier: ^4.5.8
+        version: 4.5.8
+      pino:
+        specifier: 9.4.0
+        version: 9.4.0
+      pino-pretty:
+        specifier: 11.2.2
+        version: 11.2.2
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-dom:
+        specifier: 18.2.0
+        version: 18.2.0(react@18.2.0)
+      stripe:
+        specifier: 17.2.0
+        version: 17.2.0
+      zod:
+        specifier: ^3.23.4
+        version: 3.24.1
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.17
+        version: 20.14.10
+      '@types/react':
+        specifier: 18.3.5
+        version: 18.3.5
+      '@types/react-dom':
+        specifier: 18.3.0
+        version: 18.3.0
+      tsx:
+        specifier: ^4.7.1
+        version: 4.16.2
+      typescript:
+        specifier: ^5.4.2
+        version: 5.7.2
+
   apps/schedules:
     dependencies:
       '@dokploy/server':
@@ -8353,6 +8405,11 @@ snapshots:
     dependencies:
       hono: 4.5.8
       zod: 3.23.8
+
+  '@hono/zod-validator@0.3.0(hono@4.5.8)(zod@3.24.1)':
+    dependencies:
+      hono: 4.5.8
+      zod: 3.24.1
 
   '@hookform/resolvers@3.9.0(react-hook-form@7.52.1(react@18.2.0))':
     dependencies:

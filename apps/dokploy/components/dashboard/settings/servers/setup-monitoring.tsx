@@ -202,7 +202,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	const { mutateAsync } = serverId
 		? api.server.setupMonitoring.useMutation()
-		: api.admin.setupMonitoring.useMutation();
+		: api.user.setupMonitoring.useMutation();
 
 	const generateToken = () => {
 		const array = new Uint8Array(64);
