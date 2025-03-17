@@ -1,11 +1,11 @@
+import { createHash } from "node:crypto";
 import type { WriteStream } from "node:fs";
+import { nanoid } from "nanoid";
 import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
-import { spawnAsync } from "../process/spawnAsync";
 import { execAsync } from "../process/execAsync";
-import { nanoid } from "nanoid";
-import { createHash } from "node:crypto";
+import { spawnAsync } from "../process/spawnAsync";
 
 const calculateSecretsHash = (envVariables: string[]): string => {
 	const hash = createHash("sha256");

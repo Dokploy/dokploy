@@ -1,11 +1,11 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduleJob, scheduledJobs } from "node-schedule";
+import { keepLatestNBackups } from ".";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { keepLatestNBackups } from ".";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =

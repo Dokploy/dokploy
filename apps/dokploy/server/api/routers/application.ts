@@ -14,9 +14,9 @@ import {
 	apiSaveDockerProvider,
 	apiSaveEnvironmentVariables,
 	apiSaveGitProvider,
+	apiSaveGiteaProvider,
 	apiSaveGithubProvider,
 	apiSaveGitlabProvider,
-	apiSaveGiteaProvider,
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
@@ -425,7 +425,7 @@ export const applicationRouter = createTRPCRouter({
 				giteaProjectId: input.giteaProjectId,
 				giteaPathNamespace: input.giteaPathNamespace,
 			});
-	
+
 			return true;
 		}),
 	saveDockerProvider: protectedProcedure

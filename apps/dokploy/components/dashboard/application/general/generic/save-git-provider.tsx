@@ -26,15 +26,15 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRoundIcon, LockIcon, X } from "lucide-react";
-import { useRouter } from "next/router";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
+import { GitIcon } from "@/components/icons/data-tools-icons";
+import { Badge } from "@/components/ui/badge";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Badge } from "@/components/ui/badge";
-import { GitIcon } from "@/components/icons/data-tools-icons";
 
 const GitProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),

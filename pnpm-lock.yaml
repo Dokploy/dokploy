@@ -242,7 +242,7 @@ importers:
         specifier: ^10.43.6
         version: 10.45.2(@tanstack/react-query@4.36.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@trpc/server':
-        specifier: ^10.43.6
+        specifier: ^10.45.2
         version: 10.45.2
       '@uiw/codemirror-theme-github':
         specifier: ^4.22.1
@@ -471,7 +471,7 @@ importers:
         specifier: 4.0.9
         version: 4.0.9
       '@types/node':
-        specifier: ^18.17.0
+        specifier: ^18.19.42
         version: 18.19.42
       '@types/node-os-utils':
         specifier: 1.3.4

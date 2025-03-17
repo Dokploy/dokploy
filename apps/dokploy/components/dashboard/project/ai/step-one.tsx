@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
-import { useState } from "react";
 
 const examples = [
 	"Make a personal blog",

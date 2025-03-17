@@ -235,7 +235,8 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 														? "Loading...."
 														: field.value.owner
 															? repositories?.find(
-																	(repo: GiteaRepository) => repo.name === field.value.repo,
+																	(repo: GiteaRepository) =>
+																		repo.name === field.value.repo,
 																)?.name
 															: "Select repository"}
 
@@ -327,7 +328,8 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 														? "Loading...."
 														: field.value
 															? branches?.find(
-																	(branch: GiteaBranch) => branch.name === field.value,
+																	(branch: GiteaBranch) =>
+																		branch.name === field.value,
 																)?.name
 															: "Select branch"}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

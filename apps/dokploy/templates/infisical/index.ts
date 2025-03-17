@@ -77,7 +77,7 @@ export function generate(schema: Schema): Template {
 		"CLIENT_SECRET_GITLAB_LOGIN=",
 		"",
 		"CLIENT_ID_GITEA_LOGIN=",
-    	"CLIENT_SECRET_GITEA_LOGIN=",
+		"CLIENT_SECRET_GITEA_LOGIN=",
 		"",
 		"CAPTCHA_SECRET=",
 		"",

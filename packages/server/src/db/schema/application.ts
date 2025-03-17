@@ -13,9 +13,9 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
-import { gitea } from "./gitea";
 import { mounts } from "./mount";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
@@ -395,7 +395,9 @@ const createSchema = createInsertSchema(applications, {
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
 	projectId: z.string(),
-	sourceType: z.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"]).optional(),
+	sourceType: z
+		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
+		.optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	buildType: z.enum([
 		"dockerfile",

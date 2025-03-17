@@ -544,22 +544,8 @@
     {
       "idx": 77,
       "version": "7",
-      "when": 1742241730000,
-      "tag": "0076_young_sharon_ventura",
-      "breakpoints": true
-    },
-    {
-      "idx": 78,
-      "version": "7",
-      "when": 1742241730001,
-      "tag": "0077_chemical_dreadnoughts",
-      "breakpoints": true
-    },
-    {
-      "idx": 79,
-      "version": "7",
-      "when": 17422417300002,
-      "tag": "0078_uneven_omega_sentinel",
+      "when": 1742238314349,
+      "tag": "0077_mature_tomorrow_man",
       "breakpoints": true
     }
   ]

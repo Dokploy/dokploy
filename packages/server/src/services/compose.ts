@@ -30,6 +30,10 @@ import {
 	getCustomGitCloneCommand,
 } from "@dokploy/server/utils/providers/git";
 import {
+	cloneGiteaRepository,
+	getGiteaCloneCommand,
+} from "@dokploy/server/utils/providers/gitea";
+import {
 	cloneGithubRepository,
 	getGithubCloneCommand,
 } from "@dokploy/server/utils/providers/github";
@@ -37,10 +41,6 @@ import {
 	cloneGitlabRepository,
 	getGitlabCloneCommand,
 } from "@dokploy/server/utils/providers/gitlab";
-import {
-	cloneGiteaRepository,
-	getGiteaCloneCommand,
-} from "@dokploy/server/utils/providers/gitea";
 import {
 	createComposeFile,
 	getCreateComposeFileCommand,
@@ -237,7 +237,7 @@ export const deployCompose = async ({
 			await cloneGiteaRepository(compose, deployment.logPath, true);
 		} else if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
-		} 
+		}
 		await buildCompose(compose, deployment.logPath);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
@@ -360,9 +360,9 @@ export const deployRemoteCompose = async ({
 				command += getCreateComposeFileCommand(compose, deployment.logPath);
 			} else if (compose.sourceType === "gitea") {
 				command += await getGiteaCloneCommand(
-				  compose,
-				  deployment.logPath,
-				  true
+					compose,
+					deployment.logPath,
+					true,
 				);
 			}
 

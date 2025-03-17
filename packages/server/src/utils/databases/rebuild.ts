@@ -1,20 +1,20 @@
-import { deployPostgres } from "@dokploy/server/services/postgres";
-import { execAsyncRemote } from "../process/execAsync";
-import { execAsync } from "../process/execAsync";
-import { deployMySql } from "@dokploy/server/services/mysql";
-import { deployMariadb } from "@dokploy/server/services/mariadb";
-import { deployMongo } from "@dokploy/server/services/mongo";
-import { deployRedis } from "@dokploy/server/services/redis";
-import { removeService } from "../docker/utils";
 import { db } from "@dokploy/server/db";
 import {
-	postgres,
-	mysql,
 	mariadb,
 	mongo,
+	mysql,
+	postgres,
 	redis,
 } from "@dokploy/server/db/schema";
+import { deployMariadb } from "@dokploy/server/services/mariadb";
+import { deployMongo } from "@dokploy/server/services/mongo";
+import { deployMySql } from "@dokploy/server/services/mysql";
+import { deployPostgres } from "@dokploy/server/services/postgres";
+import { deployRedis } from "@dokploy/server/services/redis";
 import { eq } from "drizzle-orm";
+import { removeService } from "../docker/utils";
+import { execAsyncRemote } from "../process/execAsync";
+import { execAsync } from "../process/execAsync";
 
 type DatabaseType = "postgres" | "mysql" | "mariadb" | "mongo" | "redis";
 

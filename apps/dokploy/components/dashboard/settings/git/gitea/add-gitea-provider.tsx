@@ -45,7 +45,7 @@ const Schema = z.object({
 	redirectUri: z.string().min(1, {
 		message: "Redirect URI is required",
 	}),
-	organizationName: z.string().optional(),  // Added organizationName to the schema
+	organizationName: z.string().optional(), // Added organizationName to the schema
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -54,7 +54,6 @@ export const AddGiteaProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const url = useUrl();
-	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync, error, isError } = api.gitea.create.useMutation(); // Updated API call for Gitea
 	const webhookUrl = `${url}/api/providers/gitea/callback`; // Updated webhook URL for Gitea
 
@@ -149,12 +148,15 @@ export const AddGiteaProvider = () => {
 												Redirect URI:{" "}
 												<span className="text-primary">{webhookUrl}</span>{" "}
 											</li>
-											<li>Select Permissions - organization: read, user: read, repository: read/write</li>
+											<li>
+												Select Permissions - organization: read, user: read,
+												repository: read/write
+											</li>
 										</ul>
 									</li>
 									<li>
-										After creating, you'll receive an ID and Secret,
-										copy them and paste them below.
+										After creating, you'll receive an ID and Secret, copy them
+										and paste them below.
 									</li>
 								</ol>
 								<FormField

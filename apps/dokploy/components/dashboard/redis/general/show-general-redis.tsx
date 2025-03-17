@@ -8,8 +8,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { api } from "@/utils/api";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
 	Ban,
 	CheckCircle2,

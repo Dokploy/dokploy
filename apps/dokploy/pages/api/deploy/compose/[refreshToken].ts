@@ -8,8 +8,8 @@ import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
 	extractBranchName,
-	extractCommitedPaths,
 	extractCommitMessage,
+	extractCommitedPaths,
 	extractHash,
 } from "../[refreshToken]";
 

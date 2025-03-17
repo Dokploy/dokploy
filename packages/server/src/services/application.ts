@@ -27,6 +27,10 @@ import {
 	getCustomGitCloneCommand,
 } from "@dokploy/server/utils/providers/git";
 import {
+	cloneGiteaRepository,
+	getGiteaCloneCommand,
+} from "@dokploy/server/utils/providers/gitea";
+import {
 	cloneGithubRepository,
 	getGithubCloneCommand,
 } from "@dokploy/server/utils/providers/github";
@@ -34,10 +38,6 @@ import {
 	cloneGitlabRepository,
 	getGitlabCloneCommand,
 } from "@dokploy/server/utils/providers/gitlab";
-import {
-	cloneGiteaRepository,
-	getGiteaCloneCommand,
-} from "@dokploy/server/utils/providers/gitea";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -318,10 +318,7 @@ export const deployRemoteApplication = async ({
 					deployment.logPath,
 				);
 			} else if (application.sourceType === "gitea") {
-				command += await getGiteaCloneCommand(
-					application,
-					deployment.logPath,
-				);
+				command += await getGiteaCloneCommand(application, deployment.logPath);
 			} else if (application.sourceType === "git") {
 				command += await getCustomGitCloneCommand(
 					application,

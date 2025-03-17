@@ -112,13 +112,6 @@ export default async function handler(
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
-<<<<<<< HEAD
-		} else if (sourceType === "gitea") {
-			const branchName = extractBranchName(req.headers, req.body);
-			if (!branchName || branchName !== application.giteaBranch) {
-			  res.status(301).json({ message: "Branch Not Match" });
-			  return;
-=======
 
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
@@ -134,7 +127,12 @@ export default async function handler(
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
 				return;
->>>>>>> fork/canary
+			}
+		} else if (sourceType === "gitea") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== application.giteaBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
 			}
 		}
 

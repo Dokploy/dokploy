@@ -5,9 +5,9 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { bitbucket } from "./bitbucket";
+import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
-import { gitea } from "./gitea";
 
 export const gitProviderType = pgEnum("gitProviderType", [
 	"github",

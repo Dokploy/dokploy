@@ -14,6 +14,7 @@ import {
 	cloneGitRawRepository,
 	cloneRawGitRepositoryRemote,
 } from "../providers/git";
+import { cloneRawGiteaRepository } from "../providers/gitea";
 import {
 	cloneRawGithubRepository,
 	cloneRawGithubRepositoryRemote,
@@ -22,10 +23,6 @@ import {
 	cloneRawGitlabRepository,
 	cloneRawGitlabRepositoryRemote,
 } from "../providers/gitlab";
-import {
-	cloneRawGiteaRepository,
-	cloneRawGiteaRepositoryRemote,
-} from "../providers/gitea";
 import {
 	createComposeFileRaw,
 	createComposeFileRawRemote,
