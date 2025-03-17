@@ -48,6 +48,7 @@ import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 type TabState =
 	| "projects"
@@ -356,6 +357,7 @@ export async function getServerSideProps(
 	}>,
 ) {
 	const { query, params, req, res } = ctx;
+	const locale = getLocale(req.cookies);
 
 	const activeTab = query.tab;
 	const { user, session } = await validateRequest(req);
@@ -392,6 +394,7 @@ export async function getServerSideProps(
 					trpcState: helpers.dehydrate(),
 					composeId: params?.composeId,
 					activeTab: (activeTab || "general") as TabState,
+					...(await serverSideTranslations(locale)),
 				},
 			};
 		} catch (_error) {

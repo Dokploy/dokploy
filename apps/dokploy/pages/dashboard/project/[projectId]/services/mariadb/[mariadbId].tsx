@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { HelpCircle, ServerOff } from "lucide-react";
@@ -301,6 +302,7 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ mariadbId: string; activeTab: TabState }>,
 ) {
 	const { query, params, req, res } = ctx;
+	const locale = getLocale(req.cookies);
 	const activeTab = query.tab;
 
 	const { user, session } = await validateRequest(req);
@@ -336,6 +338,7 @@ export async function getServerSideProps(
 					trpcState: helpers.dehydrate(),
 					mariadbId: params?.mariadbId,
 					activeTab: (activeTab || "general") as TabState,
+					...(await serverSideTranslations(locale)),
 				},
 			};
 		} catch (_error) {
