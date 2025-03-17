@@ -76,25 +76,27 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									});
 							}}
 						>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="default"
-										isLoading={data?.applicationStatus === "running"}
-										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-									>
-										<Rocket className="size-4 mr-1" />
-										Deploy
-									</Button>
-								</TooltipTrigger>
-								<TooltipPrimitive.Portal>
-									<TooltipContent sideOffset={5} className="z-[60]">
-										<p>
-											Downloads the source code and performs a complete build
-										</p>
-									</TooltipContent>
-								</TooltipPrimitive.Portal>
-							</Tooltip>
+							<Button
+								variant="default"
+								isLoading={data?.applicationStatus === "running"}
+								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+							>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div className="flex items-center">
+											<Rocket className="size-4 mr-1" />
+											Deploy
+										</div>
+									</TooltipTrigger>
+									<TooltipPrimitive.Portal>
+										<TooltipContent sideOffset={5} className="z-[60]">
+											<p>
+												Downloads the source code and performs a complete build
+											</p>
+										</TooltipContent>
+									</TooltipPrimitive.Portal>
+								</Tooltip>
+							</Button>
 						</DialogAction>
 						<DialogAction
 							title="Reload Application"
@@ -114,23 +116,25 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									});
 							}}
 						>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="secondary"
-										isLoading={isReloading}
-										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-									>
-										<RefreshCcw className="size-4 mr-1" />
-										Reload
-									</Button>
-								</TooltipTrigger>
-								<TooltipPrimitive.Portal>
-									<TooltipContent sideOffset={5} className="z-[60]">
-										<p>Reload the application without rebuilding it</p>
-									</TooltipContent>
-								</TooltipPrimitive.Portal>
-							</Tooltip>
+							<Button
+								variant="secondary"
+								isLoading={isReloading}
+								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+							>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div className="flex items-center">
+											<RefreshCcw className="size-4 mr-1" />
+											Reload
+										</div>
+									</TooltipTrigger>
+									<TooltipPrimitive.Portal>
+										<TooltipContent sideOffset={5} className="z-[60]">
+											<p>Reload the application without rebuilding it</p>
+										</TooltipContent>
+									</TooltipPrimitive.Portal>
+								</Tooltip>
+							</Button>
 						</DialogAction>
 						<DialogAction
 							title="Rebuild Application"
@@ -149,25 +153,28 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									});
 							}}
 						>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="secondary"
-										isLoading={data?.applicationStatus === "running"}
-										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-									>
-										<Hammer className="size-4 mr-1" />
-										Rebuild
-									</Button>
-								</TooltipTrigger>
-								<TooltipPrimitive.Portal>
-									<TooltipContent sideOffset={5} className="z-[60]">
-										<p>
-											Only rebuilds the application without downloading new code
-										</p>
-									</TooltipContent>
-								</TooltipPrimitive.Portal>
-							</Tooltip>
+							<Button
+								variant="secondary"
+								isLoading={data?.applicationStatus === "running"}
+								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+							>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div className="flex items-center">
+											<Hammer className="size-4 mr-1" />
+											Rebuild
+										</div>
+									</TooltipTrigger>
+									<TooltipPrimitive.Portal>
+										<TooltipContent sideOffset={5} className="z-[60]">
+											<p>
+												Only rebuilds the application without downloading new
+												code
+											</p>
+										</TooltipContent>
+									</TooltipPrimitive.Portal>
+								</Tooltip>
+							</Button>
 						</DialogAction>
 
 						{data?.applicationStatus === "idle" ? (
@@ -188,26 +195,28 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										});
 								}}
 							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="secondary"
-											isLoading={isStarting}
-											className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-										>
-											<CheckCircle2 className="size-4 mr-1" />
-											Start
-										</Button>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Start the application (requires a previous successful
-												build)
-											</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
+								<Button
+									variant="secondary"
+									isLoading={isStarting}
+									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+								>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="flex items-center">
+												<CheckCircle2 className="size-4 mr-1" />
+												Start
+											</div>
+										</TooltipTrigger>
+										<TooltipPrimitive.Portal>
+											<TooltipContent sideOffset={5} className="z-[60]">
+												<p>
+													Start the application (requires a previous successful
+													build)
+												</p>
+											</TooltipContent>
+										</TooltipPrimitive.Portal>
+									</Tooltip>
+								</Button>
 							</DialogAction>
 						) : (
 							<DialogAction
@@ -226,23 +235,25 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										});
 								}}
 							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Button
-											variant="destructive"
-											isLoading={isStopping}
-											className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-										>
-											<Ban className="size-4 mr-1" />
-											Stop
-										</Button>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Stop the currently running application</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
+								<Button
+									variant="destructive"
+									isLoading={isStopping}
+									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+								>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="flex items-center">
+												<Ban className="size-4 mr-1" />
+												Stop
+											</div>
+										</TooltipTrigger>
+										<TooltipPrimitive.Portal>
+											<TooltipContent sideOffset={5} className="z-[60]">
+												<p>Stop the currently running application</p>
+											</TooltipContent>
+										</TooltipPrimitive.Portal>
+									</Tooltip>
+								</Button>
 							</DialogAction>
 						)}
 					</TooltipProvider>
