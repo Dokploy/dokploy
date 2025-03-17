@@ -10,14 +10,14 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { api } from "@/utils/api";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
 	Ban,
 	CheckCircle2,
 	Hammer,
-	HelpCircle,
 	RefreshCcw,
+	Rocket,
 	Terminal,
 } from "lucide-react";
 import { useRouter } from "next/router";
@@ -55,7 +55,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					<CardTitle className="text-xl">Deploy Settings</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-row gap-4 flex-wrap">
-					<TooltipProvider delayDuration={0}>
+					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 						<DialogAction
 							title="Deploy Application"
 							description="Are you sure you want to deploy this application?"
@@ -76,25 +76,25 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									});
 							}}
 						>
-							<Button
-								variant="default"
-								isLoading={data?.applicationStatus === "running"}
-								className="flex items-center gap-1.5"
-							>
-								Deploy
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Downloads the source code and performs a complete build
-											</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="default"
+										isLoading={data?.applicationStatus === "running"}
+										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<Rocket className="size-4 mr-1" />
+										Deploy
+									</Button>
+								</TooltipTrigger>
+								<TooltipPrimitive.Portal>
+									<TooltipContent sideOffset={5} className="z-[60]">
+										<p>
+											Downloads the source code and performs a complete build
+										</p>
+									</TooltipContent>
+								</TooltipPrimitive.Portal>
+							</Tooltip>
 						</DialogAction>
 						<DialogAction
 							title="Reload Application"
@@ -114,10 +114,23 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									});
 							}}
 						>
-							<Button variant="secondary" isLoading={isReloading}>
-								Reload
-								<RefreshCcw className="size-4" />
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="secondary"
+										isLoading={isReloading}
+										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<RefreshCcw className="size-4 mr-1" />
+										Reload
+									</Button>
+								</TooltipTrigger>
+								<TooltipPrimitive.Portal>
+									<TooltipContent sideOffset={5} className="z-[60]">
+										<p>Reload the application without rebuilding it</p>
+									</TooltipContent>
+								</TooltipPrimitive.Portal>
+							</Tooltip>
 						</DialogAction>
 						<DialogAction
 							title="Rebuild Application"
@@ -136,27 +149,25 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 									});
 							}}
 						>
-							<Button
-								variant="secondary"
-								isLoading={data?.applicationStatus === "running"}
-								className="flex items-center gap-1.5"
-							>
-								Rebuild
-								<Hammer className="size-4" />
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Only rebuilds the application without downloading new
-												code
-											</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="secondary"
+										isLoading={data?.applicationStatus === "running"}
+										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<Hammer className="size-4 mr-1" />
+										Rebuild
+									</Button>
+								</TooltipTrigger>
+								<TooltipPrimitive.Portal>
+									<TooltipContent sideOffset={5} className="z-[60]">
+										<p>
+											Only rebuilds the application without downloading new code
+										</p>
+									</TooltipContent>
+								</TooltipPrimitive.Portal>
+							</Tooltip>
 						</DialogAction>
 
 						{data?.applicationStatus === "idle" ? (
@@ -177,27 +188,26 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										});
 								}}
 							>
-								<Button
-									variant="secondary"
-									isLoading={isStarting}
-									className="flex items-center gap-1.5"
-								>
-									Start
-									<CheckCircle2 className="size-4" />
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-										</TooltipTrigger>
-										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>
-													Start the application (requires a previous successful
-													build)
-												</p>
-											</TooltipContent>
-										</TooltipPrimitive.Portal>
-									</Tooltip>
-								</Button>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="secondary"
+											isLoading={isStarting}
+											className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+										>
+											<CheckCircle2 className="size-4 mr-1" />
+											Start
+										</Button>
+									</TooltipTrigger>
+									<TooltipPrimitive.Portal>
+										<TooltipContent sideOffset={5} className="z-[60]">
+											<p>
+												Start the application (requires a previous successful
+												build)
+											</p>
+										</TooltipContent>
+									</TooltipPrimitive.Portal>
+								</Tooltip>
 							</DialogAction>
 						) : (
 							<DialogAction
@@ -216,24 +226,23 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										});
 								}}
 							>
-								<Button
-									variant="destructive"
-									isLoading={isStopping}
-									className="flex items-center gap-1.5"
-								>
-									Stop
-									<Ban className="size-4" />
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-										</TooltipTrigger>
-										<TooltipPrimitive.Portal>
-											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Stop the currently running application</p>
-											</TooltipContent>
-										</TooltipPrimitive.Portal>
-									</Tooltip>
-								</Button>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="destructive"
+											isLoading={isStopping}
+											className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+										>
+											<Ban className="size-4 mr-1" />
+											Stop
+										</Button>
+									</TooltipTrigger>
+									<TooltipPrimitive.Portal>
+										<TooltipContent sideOffset={5} className="z-[60]">
+											<p>Stop the currently running application</p>
+										</TooltipContent>
+									</TooltipPrimitive.Portal>
+								</Tooltip>
 							</DialogAction>
 						)}
 					</TooltipProvider>
@@ -241,15 +250,18 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						appName={data?.appName || ""}
 						serverId={data?.serverId || ""}
 					>
-						<Button variant="outline">
-							<Terminal />
+						<Button
+							variant="outline"
+							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+						>
+							<Terminal className="size-4 mr-1" />
 							Open Terminal
 						</Button>
 					</DockerTerminalModal>
 					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
 						<span className="text-sm font-medium">Autodeploy</span>
 						<Switch
-							aria-label="Toggle italic"
+							aria-label="Toggle autodeploy"
 							checked={data?.autoDeploy || false}
 							onCheckedChange={async (enabled) => {
 								await update({
@@ -264,14 +276,14 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										toast.error("Error updating Auto Deploy");
 									});
 							}}
-							className="flex flex-row gap-2 items-center"
+							className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
 						/>
 					</div>
 
 					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
 						<span className="text-sm font-medium">Clean Cache</span>
 						<Switch
-							aria-label="Toggle italic"
+							aria-label="Toggle clean cache"
 							checked={data?.cleanCache || false}
 							onCheckedChange={async (enabled) => {
 								await update({
@@ -286,7 +298,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										toast.error("Error updating Clean Cache");
 									});
 							}}
-							className="flex flex-row gap-2 items-center"
+							className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
 						/>
 					</div>
 				</CardContent>

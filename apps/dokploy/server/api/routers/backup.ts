@@ -11,9 +11,13 @@ import {
 	createBackup,
 	findBackupById,
 	findMariadbByBackupId,
+	findMariadbById,
 	findMongoByBackupId,
+	findMongoById,
 	findMySqlByBackupId,
+	findMySqlById,
 	findPostgresByBackupId,
+	findPostgresById,
 	findServerById,
 	removeBackupById,
 	removeScheduleBackup,
@@ -26,6 +30,17 @@ import {
 } from "@dokploy/server";
 
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { execAsync } from "@dokploy/server/utils/process/execAsync";
+import { getS3Credentials } from "@dokploy/server/utils/backups/utils";
+import { findDestinationById } from "@dokploy/server/services/destination";
+import {
+	restoreMariadbBackup,
+	restoreMongoBackup,
+	restoreMySqlBackup,
+	restorePostgresBackup,
+} from "@dokploy/server/utils/restore";
+import { observable } from "@trpc/server/observable";
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -209,27 +224,136 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	listBackupFiles: protectedProcedure
+		.input(
+			z.object({
+				destinationId: z.string(),
+				search: z.string(),
+			}),
+		)
+		.query(async ({ input }) => {
+			try {
+				const destination = await findDestinationById(input.destinationId);
+				const rcloneFlags = getS3Credentials(destination);
+				const bucketPath = `:s3:${destination.bucket}`;
+
+				const lastSlashIndex = input.search.lastIndexOf("/");
+				const baseDir =
+					lastSlashIndex !== -1
+						? input.search.slice(0, lastSlashIndex + 1)
+						: "";
+				const searchTerm =
+					lastSlashIndex !== -1
+						? input.search.slice(lastSlashIndex + 1)
+						: input.search;
+
+				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
+				const listCommand = `rclone lsf ${rcloneFlags.join(" ")} "${searchPath}" | head -n 100`;
+
+				const { stdout } = await execAsync(listCommand);
+				const files = stdout.split("\n").filter(Boolean);
+
+				const results = baseDir
+					? files.map((file) => `${baseDir}${file}`)
+					: files;
+
+				if (searchTerm) {
+					return results.filter((file) =>
+						file.toLowerCase().includes(searchTerm.toLowerCase()),
+					);
+				}
+
+				return results;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error listing backup files",
+					cause: error,
+				});
+			}
+		}),
+
+	restoreBackupWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				enabled: false,
+				path: "/restore-backup-with-logs",
+				method: "POST",
+				override: true,
+			},
+		})
+		.input(
+			z.object({
+				databaseId: z.string(),
+				databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo"]),
+				databaseName: z.string().min(1),
+				backupFile: z.string().min(1),
+				destinationId: z.string().min(1),
+			}),
+		)
+		.subscription(async ({ input }) => {
+			const destination = await findDestinationById(input.destinationId);
+			if (input.databaseType === "postgres") {
+				const postgres = await findPostgresById(input.databaseId);
+
+				return observable<string>((emit) => {
+					restorePostgresBackup(
+						postgres,
+						destination,
+						input.databaseName,
+						input.backupFile,
+						(log) => {
+							emit.next(log);
+						},
+					);
+				});
+			}
+			if (input.databaseType === "mysql") {
+				const mysql = await findMySqlById(input.databaseId);
+				return observable<string>((emit) => {
+					restoreMySqlBackup(
+						mysql,
+						destination,
+						input.databaseName,
+						input.backupFile,
+						(log) => {
+							emit.next(log);
+						},
+					);
+				});
+			}
+			if (input.databaseType === "mariadb") {
+				const mariadb = await findMariadbById(input.databaseId);
+				return observable<string>((emit) => {
+					restoreMariadbBackup(
+						mariadb,
+						destination,
+						input.databaseName,
+						input.backupFile,
+						(log) => {
+							emit.next(log);
+						},
+					);
+				});
+			}
+			if (input.databaseType === "mongo") {
+				const mongo = await findMongoById(input.databaseId);
+				return observable<string>((emit) => {
+					restoreMongoBackup(
+						mongo,
+						destination,
+						input.databaseName,
+						input.backupFile,
+						(log) => {
+							emit.next(log);
+						},
+					);
+				});
+			}
+
+			return true;
+		}),
 });
-
-// export const getAdminId = async (backupId: string) => {
-// 	const backup = await findBackupById(backupId);
-
-// 	if (backup.databaseType === "postgres" && backup.postgresId) {
-// 		const postgres = await findPostgresById(backup.postgresId);
-// 		return postgres.project.adminId;
-// 	}
-// 	if (backup.databaseType === "mariadb" && backup.mariadbId) {
-// 		const mariadb = await findMariadbById(backup.mariadbId);
-// 		return mariadb.project.adminId;
-// 	}
-// 	if (backup.databaseType === "mysql" && backup.mysqlId) {
-// 		const mysql = await findMySqlById(backup.mysqlId);
-// 		return mysql.project.adminId;
-// 	}
-// 	if (backup.databaseType === "mongo" && backup.mongoId) {
-// 		const mongo = await findMongoById(backup.mongoId);
-// 		return mongo.project.adminId;
-// 	}
-
-// 	return null;
-// };
