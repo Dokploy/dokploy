@@ -226,15 +226,6 @@ export const ShowBackups = ({ id, type }: Props) => {
 										</div>
 									))}
 								</div>
-								{/* <div className="mt-8 border-t pt-6">
-									<div className="flex flex-col gap-2 mb-4">
-										<h3 className="font-medium text-lg">Restore Backup</h3>
-										<p className="text-sm text-muted-foreground">
-											Restore a backup from your configured destination.
-										</p>
-									</div>
-									<RestoreBackup databaseId={id} databaseType={type} />
-								</div> */}
 							</div>
 						)}
 					</div>
