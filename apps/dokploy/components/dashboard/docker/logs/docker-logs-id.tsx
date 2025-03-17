@@ -119,7 +119,6 @@ export const DockerLogsId: React.FC<Props> = ({
 		const wsUrl = `${protocol}//${
 			window.location.host
 		}/docker-container-logs?${params.toString()}`;
-		console.log("Connecting to WebSocket:", wsUrl);
 		const ws = new WebSocket(wsUrl);
 
 		const resetNoDataTimeout = () => {
@@ -136,7 +135,6 @@ export const DockerLogsId: React.FC<Props> = ({
 				ws.close();
 				return;
 			}
-			console.log("WebSocket connected");
 			resetNoDataTimeout();
 		};
 

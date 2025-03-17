@@ -11,11 +11,12 @@ import {
 import { api } from "@/utils/api";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
-	Ban,
-	CheckCircle2,
-	HelpCircle,
-	RefreshCcw,
-	Terminal,
+   Ban,
+   CheckCircle2,
+   HelpCircle,
+   RefreshCcw,
+   Rocket,
+   Terminal,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -91,12 +92,14 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 								<Button
 									variant="default"
 									isLoading={data?.applicationStatus === "running"}
-									className="flex items-center gap-1.5"
+									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
-									Deploy
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+											<div className="flex items-center">
+												<Rocket className="size-4 mr-1" />
+												Deploy
+											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
@@ -127,13 +130,14 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 								<Button
 									variant="secondary"
 									isLoading={isReloading}
-									className="flex items-center gap-1.5"
+									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
-									Reload
-									<RefreshCcw className="size-4" />
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+											<div className="flex items-center">
+												<RefreshCcw className="size-4 mr-1" />
+												Reload
+											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
@@ -164,13 +168,14 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 									<Button
 										variant="secondary"
 										isLoading={isStarting}
-										className="flex items-center gap-1.5"
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
-										Start
-										<CheckCircle2 className="size-4" />
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												<div className="flex items-center">
+													<CheckCircle2 className="size-4 mr-1" />
+													Start
+												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
@@ -203,13 +208,14 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 									<Button
 										variant="destructive"
 										isLoading={isStopping}
-										className="flex items-center gap-1.5"
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
-										Stop
-										<Ban className="size-4" />
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												<div className="flex items-center">
+													<Ban className="size-4 mr-1" />
+													Stop
+												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
@@ -225,9 +231,23 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 							appName={data?.appName || ""}
 							serverId={data?.serverId || ""}
 						>
-							<Button variant="outline">
-								<Terminal />
-								Open Terminal
+							<Button
+								variant="outline"
+								className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+							>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div className="flex items-center">
+											<Terminal className="size-4 mr-1" />
+											Open Terminal
+										</div>
+									</TooltipTrigger>
+									<TooltipPrimitive.Portal>
+										<TooltipContent sideOffset={5} className="z-[60]">
+											<p>Open a terminal to the Redis container</p>
+										</TooltipContent>
+									</TooltipPrimitive.Portal>
+								</Tooltip>
 							</Button>
 						</DockerTerminalModal>
 					</CardContent>

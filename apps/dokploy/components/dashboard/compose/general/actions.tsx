@@ -8,8 +8,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { Ban, CheckCircle2, Hammer, HelpCircle, Terminal } from "lucide-react";
+import { Ban, CheckCircle2, Hammer, HelpCircle, Terminal, RefreshCcw, Rocket } from "lucide-react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
@@ -34,7 +33,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 		api.compose.stop.useMutation();
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
-			<TooltipProvider delayDuration={0}>
+			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 				<DialogAction
 					title="Deploy Compose"
 					description="Are you sure you want to deploy this compose?"
@@ -58,12 +57,14 @@ export const ComposeActions = ({ composeId }: Props) => {
 					<Button
 						variant="default"
 						isLoading={data?.composeStatus === "running"}
-						className="flex items-center gap-1.5"
+						className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 					>
-						Deploy
 						<Tooltip>
 							<TooltipTrigger asChild>
-								<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+								<div className="flex items-center">
+									<Rocket className="size-4 mr-1" />
+									Deploy
+								</div>
 							</TooltipTrigger>
 							<TooltipPrimitive.Portal>
 								<TooltipContent sideOffset={5} className="z-[60]">
@@ -74,36 +75,37 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</Button>
 				</DialogAction>
 				<DialogAction
-					title="Rebuild Compose"
-					description="Are you sure you want to rebuild this compose?"
+					title="Reload Compose"
+					description="Are you sure you want to reload this compose?"
 					type="default"
 					onClick={async () => {
 						await redeploy({
 							composeId: composeId,
 						})
 							.then(() => {
-								toast.success("Compose rebuilt successfully");
+								toast.success("Compose reloaded successfully");
 								refetch();
 							})
 							.catch(() => {
-								toast.error("Error rebuilding compose");
+								toast.error("Error reloading compose");
 							});
 					}}
 				>
 					<Button
 						variant="secondary"
 						isLoading={data?.composeStatus === "running"}
-						className="flex items-center gap-1.5"
+						className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 					>
-						Rebuild
-						<Hammer className="size-4" />
 						<Tooltip>
 							<TooltipTrigger asChild>
-								<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+								<div className="flex items-center">
+									<RefreshCcw className="size-4 mr-1" />
+									Reload
+								</div>
 							</TooltipTrigger>
 							<TooltipPrimitive.Portal>
 								<TooltipContent sideOffset={5} className="z-[60]">
-									<p>Only rebuilds the compose without downloading new code</p>
+									<p>Reload the compose without rebuilding it</p>
 								</TooltipContent>
 							</TooltipPrimitive.Portal>
 						</Tooltip>
@@ -131,13 +133,14 @@ export const ComposeActions = ({ composeId }: Props) => {
 						<Button
 							variant="secondary"
 							isLoading={isStarting}
-							className="flex items-center gap-1.5"
+							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 						>
-							Start
-							<CheckCircle2 className="size-4" />
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+									<div className="flex items-center">
+										<CheckCircle2 className="size-4 mr-1" />
+										Start
+									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
 									<TooltipContent sideOffset={5} className="z-[60]">
@@ -169,13 +172,14 @@ export const ComposeActions = ({ composeId }: Props) => {
 						<Button
 							variant="destructive"
 							isLoading={isStopping}
-							className="flex items-center gap-1.5"
+							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 						>
-							Stop
-							<Ban className="size-4" />
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+									<div className="flex items-center">
+										<Ban className="size-4 mr-1" />
+										Stop
+									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
 									<TooltipContent sideOffset={5} className="z-[60]">
@@ -191,15 +195,18 @@ export const ComposeActions = ({ composeId }: Props) => {
 				appName={data?.appName || ""}
 				serverId={data?.serverId || ""}
 			>
-				<Button variant="outline">
-					<Terminal />
+				<Button
+					variant="outline"
+					className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+				>
+					<Terminal className="size-4 mr-1" />
 					Open Terminal
 				</Button>
 			</DockerTerminalModal>
 			<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
 				<span className="text-sm font-medium">Autodeploy</span>
 				<Switch
-					aria-label="Toggle italic"
+					aria-label="Toggle autodeploy"
 					checked={data?.autoDeploy || false}
 					onCheckedChange={async (enabled) => {
 						await update({
@@ -214,7 +221,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 								toast.error("Error updating Auto Deploy");
 							});
 					}}
-					className="flex flex-row gap-2 items-center"
+					className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
 				/>
 			</div>
 		</div>
