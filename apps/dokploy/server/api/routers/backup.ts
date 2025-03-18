@@ -31,7 +31,10 @@ import {
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { execAsync } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { getS3Credentials } from "@dokploy/server/utils/backups/utils";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import {
@@ -229,6 +232,7 @@ export const backupRouter = createTRPCRouter({
 			z.object({
 				destinationId: z.string(),
 				search: z.string(),
+				serverId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -250,7 +254,16 @@ export const backupRouter = createTRPCRouter({
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
 				const listCommand = `rclone lsf ${rcloneFlags.join(" ")} "${searchPath}" | head -n 100`;
 
-				const { stdout } = await execAsync(listCommand);
+				let stdout = "";
+
+				if (input.serverId) {
+					const result = await execAsyncRemote(listCommand, input.serverId);
+					stdout = result.stdout;
+				} else {
+					const result = await execAsync(listCommand);
+					stdout = result.stdout;
+				}
+
 				const files = stdout.split("\n").filter(Boolean);
 
 				const results = baseDir
