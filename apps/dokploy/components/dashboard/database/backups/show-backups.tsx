@@ -75,7 +75,11 @@ export const ShowBackups = ({ id, type }: Props) => {
 				{postgres && postgres?.backups?.length > 0 && (
 					<div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
 						<AddBackup databaseId={id} databaseType={type} refetch={refetch} />
-						<RestoreBackup databaseId={id} databaseType={type} />
+						<RestoreBackup
+							databaseId={id}
+							databaseType={type}
+							serverId={postgres.serverId}
+						/>
 					</div>
 				)}
 			</CardHeader>
@@ -109,7 +113,11 @@ export const ShowBackups = ({ id, type }: Props) => {
 										databaseType={type}
 										refetch={refetch}
 									/>
-									<RestoreBackup databaseId={id} databaseType={type} />
+									<RestoreBackup
+										databaseId={id}
+										databaseType={type}
+										serverId={postgres.serverId}
+									/>
 								</div>
 							</div>
 						) : (
