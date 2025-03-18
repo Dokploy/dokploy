@@ -48,6 +48,7 @@ import { toast } from "sonner";
 interface Props {
 	databaseId: string;
 	databaseType: Exclude<ServiceType, "application" | "redis">;
+	serverId: string | null;
 }
 
 const RestoreBackupSchema = z.object({
@@ -76,7 +77,11 @@ const RestoreBackupSchema = z.object({
 
 type RestoreBackup = z.infer<typeof RestoreBackupSchema>;
 
-export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
+export const RestoreBackup = ({
+	databaseId,
+	databaseType,
+	serverId,
+}: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -101,6 +106,7 @@ export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
 		{
 			destinationId: destionationId,
 			search,
+			serverId: serverId ?? "",
 		},
 		{
 			enabled: isOpen && !!destionationId,
@@ -304,7 +310,9 @@ export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
 																		form.setValue("backupFile", file);
 																	}}
 																>
-																	{file}
+																	<div className="flex w-full justify-between">
+																		<span>{file}</span>
+																	</div>
 																	<CheckIcon
 																		className={cn(
 																			"ml-auto h-4 w-4",
