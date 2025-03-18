@@ -42,6 +42,7 @@ import { domain } from "@/server/db/validations/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dices } from "lucide-react";
 import type z from "zod";
+import Link from "next/link";
 
 type Domain = z.infer<typeof domain>;
 
@@ -82,6 +83,13 @@ export const AddDomain = ({
 
 	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
+
+	const { data: canGenerateTraefikMeDomains } =
+		api.domain.canGenerateTraefikMeDomains.useQuery({
+			serverId: application?.serverId || "",
+		});
+
+	console.log("canGenerateTraefikMeDomains", canGenerateTraefikMeDomains);
 
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
@@ -186,6 +194,21 @@ export const AddDomain = ({
 									name="host"
 									render={({ field }) => (
 										<FormItem>
+											{!canGenerateTraefikMeDomains &&
+												field.value.includes("traefik.me") && (
+													<AlertBlock type="warning">
+														You need to set an IP address in your{" "}
+														<Link
+															href="/dashboard/settings/server"
+															className="text-primary"
+														>
+															{application?.serverId
+																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
+																: "Web Server -> Server -> Update Server IP"}
+														</Link>{" "}
+														to make your traefik.me domain work.
+													</AlertBlock>
+												)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
