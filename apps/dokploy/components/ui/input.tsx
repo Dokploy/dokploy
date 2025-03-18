@@ -39,7 +39,11 @@ const NumberInput = React.forwardRef<HTMLInputElement, InputProps>(
 				className={cn("text-left", className)}
 				ref={ref}
 				{...props}
-				value={props.value === undefined || props.value === "" ? "" : String(props.value)}
+				value={
+					props.value === undefined || props.value === ""
+						? ""
+						: String(props.value)
+				}
 				onChange={(e) => {
 					const value = e.target.value;
 					if (value === "") {

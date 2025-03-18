@@ -20,9 +20,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
-import { UpdateBackup } from "./update-backup";
 import { RestoreBackup } from "./restore-backup";
-import { useState } from "react";
+import { UpdateBackup } from "./update-backup";
 
 interface Props {
 	id: string;

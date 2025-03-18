@@ -22,7 +22,7 @@ const examples = [
 	"Sendgrid service opensource analogue",
 ];
 
-export const StepOne = ({ nextStep, setTemplateInfo, templateInfo }: any) => {
+export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 	// Get servers from the API
 	const { data: servers } = api.server.withSSHKey.useQuery();
 

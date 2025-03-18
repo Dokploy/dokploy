@@ -124,10 +124,10 @@ export const ShowGitProviders = () => {
 													gitProvider.gitlab?.accessToken &&
 													gitProvider.gitlab?.refreshToken;
 
-												const haveGiteaRequirements =
-													isGitea &&
-													gitProvider.gitea?.accessToken &&
-													gitProvider.gitea?.refreshToken;
+												// const haveGiteaRequirements =
+												// 	isGitea &&
+												// 	gitProvider.gitea?.accessToken &&
+												// 	gitProvider.gitea?.refreshToken;
 
 												return (
 													<div

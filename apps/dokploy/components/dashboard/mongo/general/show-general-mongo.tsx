@@ -10,14 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import {
-    Ban,
-    CheckCircle2,
-    HelpCircle,
-    RefreshCcw,
-    Rocket,
-    Terminal,
-} from "lucide-react";
+import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";

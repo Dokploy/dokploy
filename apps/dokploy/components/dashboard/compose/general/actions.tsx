@@ -8,7 +8,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Ban, CheckCircle2, Hammer, HelpCircle, Terminal, RefreshCcw, Rocket } from "lucide-react";
+import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
