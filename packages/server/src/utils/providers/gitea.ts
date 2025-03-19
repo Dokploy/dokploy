@@ -1,5 +1,5 @@
 import { createWriteStream } from "node:fs";
-import fs from "node:fs/promises";
+import * as fs from "node:fs/promises";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findGiteaById, updateGitea } from "@dokploy/server/services/gitea";

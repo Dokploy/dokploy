@@ -6,23 +6,24 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+
 export type Gitea = typeof gitea.$inferSelect;
 
 export const createGitea = async (
 	input: typeof apiCreateGitea._type,
 	organizationId: string,
 ) => {
+	// @ts-ignore - Complex transaction type - Added because proper typing in Drizzle in not sufficient
 	return await db.transaction(async (tx) => {
-		// Insert new Git provider (Gitea)
 		const newGitProvider = await tx
 			.insert(gitProvider)
 			.values({
-				providerType: "gitea", // Set providerType to 'gitea'
+				providerType: "gitea",
 				organizationId: organizationId,
 				name: input.name,
 			})
 			.returning()
-			.then((response) => response[0]);
+			.then((response: typeof gitProvider.$inferSelect[]) => response[0]);
 
 		if (!newGitProvider) {
 			throw new TRPCError({
@@ -31,7 +32,6 @@ export const createGitea = async (
 			});
 		}
 
-		// Insert the Gitea data into the `gitea` table
 		await tx
 			.insert(gitea)
 			.values({
@@ -39,7 +39,7 @@ export const createGitea = async (
 				gitProviderId: newGitProvider?.gitProviderId,
 			})
 			.returning()
-			.then((response) => response[0]);
+			.then((response: typeof gitea.$inferSelect[]) => response[0]);
 	});
 };
 
@@ -84,7 +84,6 @@ export const updateGitea = async (giteaId: string, input: Partial<Gitea>) => {
 			.where(eq(gitea.giteaId, giteaId))
 			.returning();
 
-		// Explicitly type the result and handle potential undefined
 		const result = updateResult[0] as Gitea | undefined;
 
 		if (!result) {
