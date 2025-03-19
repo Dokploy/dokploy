@@ -663,13 +663,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 																{...field}
 																onChange={(e) => {
 																	const value = e.target.value;
-																	if (value) {
+																	if (value === "") {
+																		field.onChange(undefined);
+																	} else {
 																		const port = Number.parseInt(value);
 																		if (port > 0 && port < 65536) {
 																			field.onChange(port);
 																		}
 																	}
 																}}
+																value={field.value || ""}
 																type="number"
 															/>
 														</FormControl>
