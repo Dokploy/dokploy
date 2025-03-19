@@ -56,10 +56,10 @@ export const AddNode = ({ serverId }: Props) => {
 							<TabsTrigger value="worker">Worker</TabsTrigger>
 							<TabsTrigger value="manager">Manager</TabsTrigger>
 						</TabsList>
-						<TabsContent value="worker" className="pt-4">
+						<TabsContent value="worker" className="pt-4 overflow-hidden">
 							<AddWorker serverId={serverId} />
 						</TabsContent>
-						<TabsContent value="manager" className="pt-4">
+						<TabsContent value="manager" className="pt-4 overflow-hidden">
 							<AddManager serverId={serverId} />
 						</TabsContent>
 					</Tabs>

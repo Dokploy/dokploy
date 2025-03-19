@@ -361,7 +361,7 @@ const installUtilities = () => `
 	alpine)
 		sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
 		apk update >/dev/null
-		apk add curl wget git jq openssl >/dev/null
+		apk add curl wget git jq openssl sudo unzip tar >/dev/null
 		;;
 	ubuntu | debian | raspbian)
 		DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null

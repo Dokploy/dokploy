@@ -40,7 +40,7 @@ interface Props {
 }
 
 const AddRedirectchema = z.object({
-	replicas: z.number(),
+	replicas: z.number().min(1, "Replicas must be at least 1"),
 	registryId: z.string(),
 });
 
@@ -130,9 +130,11 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 												placeholder="1"
 												{...field}
 												onChange={(e) => {
-													field.onChange(Number(e.target.value));
+													const value = e.target.value;
+													field.onChange(value === "" ? 0 : Number(value));
 												}}
 												type="number"
+												value={field.value || ""}
 											/>
 										</FormControl>
 
