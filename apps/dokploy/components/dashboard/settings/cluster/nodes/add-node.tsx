@@ -12,6 +12,7 @@ import { ExternalLink, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { AddManager } from "./manager/add-manager";
 import { AddWorker } from "./workers/add-worker";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	serverId?: string;
@@ -48,6 +49,10 @@ export const AddNode = ({ serverId }: Props) => {
 							Architecture
 							<ExternalLink className="h-4 w-4" />
 						</Link>
+						<AlertBlock type="warning">
+							Make sure you use the same architecture as the node you are
+							adding.
+						</AlertBlock>
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-2">
