@@ -1,82 +1,70 @@
-import {
-	deployRemoteApplication,
-	deployRemoteCompose,
-	deployRemotePreviewApplication,
-	rebuildRemoteApplication,
-	rebuildRemoteCompose,
-	updateApplicationStatus,
-	updateCompose,
-	updatePreviewDeployment,
-} from "@dokploy/server";
-import type { DeployJob } from "./schema";
+export const getLicenseFeatures = (type: string): string[] => {
+	const baseFeatures = [
+		"Unlimited deployments",
+		"Basic monitoring",
+		"Email support",
+	];
 
-export const deploy = async (job: DeployJob) => {
-	try {
-		if (job.applicationType === "application") {
-			await updateApplicationStatus(job.applicationId, "running");
-			if (job.server) {
-				if (job.type === "redeploy") {
-					await rebuildRemoteApplication({
-						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				} else if (job.type === "deploy") {
-					await deployRemoteApplication({
-						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				}
-			}
-		} else if (job.applicationType === "compose") {
-			await updateCompose(job.composeId, {
-				composeStatus: "running",
-			});
+	const premiumFeatures = [
+		...baseFeatures,
+		"Priority support",
+		"Advanced monitoring",
+		"Custom domains",
+		"Team collaboration",
+	];
 
-			if (job.server) {
-				if (job.type === "redeploy") {
-					await rebuildRemoteCompose({
-						composeId: job.composeId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				} else if (job.type === "deploy") {
-					await deployRemoteCompose({
-						composeId: job.composeId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-					});
-				}
-			}
-		} else if (job.applicationType === "application-preview") {
-			await updatePreviewDeployment(job.previewDeploymentId, {
-				previewStatus: "running",
-			});
-			if (job.server) {
-				if (job.type === "deploy") {
-					await deployRemotePreviewApplication({
-						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
-						previewDeploymentId: job.previewDeploymentId,
-					});
-				}
-			}
-		}
-	} catch (_) {
-		if (job.applicationType === "application") {
-			await updateApplicationStatus(job.applicationId, "error");
-		} else if (job.applicationType === "compose") {
-			await updateCompose(job.composeId, {
-				composeStatus: "error",
-			});
-		} else if (job.applicationType === "application-preview") {
-			await updatePreviewDeployment(job.previewDeploymentId, {
-				previewStatus: "error",
-			});
-		}
+	const businessFeatures = [
+		...premiumFeatures,
+		"24/7 support",
+		"Custom integrations",
+		"SLA guarantees",
+		"Dedicated account manager",
+	];
+
+	switch (type) {
+		case "basic":
+			return baseFeatures;
+		case "premium":
+			return premiumFeatures;
+		case "business":
+			return businessFeatures;
+		default:
+			return baseFeatures;
 	}
+};
 
-	return true;
+export const getLicenseTypeFromPriceId = (
+	priceId: string,
+): {
+	type: "basic" | "premium" | "business";
+	billingType: "monthly" | "annual";
+} => {
+	const priceMap = {
+		[process.env.SELF_HOSTED_BASIC_PRICE_MONTHLY_ID!]: {
+			type: "basic",
+			billingType: "monthly",
+		},
+		[process.env.SELF_HOSTED_BASIC_PRICE_ANNUAL_ID!]: {
+			type: "basic",
+			billingType: "annual",
+		},
+		[process.env.SELF_HOSTED_PREMIUM_PRICE_MONTHLY_ID!]: {
+			type: "premium",
+			billingType: "monthly",
+		},
+		[process.env.SELF_HOSTED_PREMIUM_PRICE_ANNUAL_ID!]: {
+			type: "premium",
+			billingType: "annual",
+		},
+		[process.env.SELF_HOSTED_BUSINESS_PRICE_MONTHLY_ID!]: {
+			type: "business",
+			billingType: "monthly",
+		},
+		[process.env.SELF_HOSTED_BUSINESS_PRICE_ANNUAL_ID!]: {
+			type: "business",
+			billingType: "annual",
+		},
+	} as const;
+
+	return priceMap[priceId] || { type: "basic", billingType: "monthly" };
 };

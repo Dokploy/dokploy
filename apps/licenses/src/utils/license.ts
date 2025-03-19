@@ -20,7 +20,7 @@ export const createLicense = async ({
 	billingType: "monthly" | "annual";
 	email: string;
 }) => {
-	const licenseKey = generateLicenseKey();
+	const licenseKey = `dokploy-${generateLicenseKey()}`;
 	const expiresAt = new Date();
 	expiresAt.setMonth(
 		expiresAt.getMonth() + (billingType === "annual" ? 12 : 1),
