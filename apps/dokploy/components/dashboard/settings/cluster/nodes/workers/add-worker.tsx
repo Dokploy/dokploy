@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { CardContent } from "@/components/ui/card";
 import {
 	DialogDescription,
@@ -14,7 +15,9 @@ interface Props {
 }
 
 export const AddWorker = ({ serverId }: Props) => {
-	const { data, isLoading } = api.cluster.addWorker.useQuery({ serverId });
+	const { data, isLoading, error, isError } = api.cluster.addWorker.useQuery({
+		serverId,
+	});
 
 	return (
 		<CardContent className="sm:max-w-4xl   flex flex-col gap-4 px-0">
@@ -22,6 +25,7 @@ export const AddWorker = ({ serverId }: Props) => {
 				<DialogTitle>Add a new worker</DialogTitle>
 				<DialogDescription>Add a new worker</DialogDescription>
 			</DialogHeader>
+			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 			{isLoading ? (
 				<Loader2 className="w-full animate-spin text-muted-foreground" />
 			) : (

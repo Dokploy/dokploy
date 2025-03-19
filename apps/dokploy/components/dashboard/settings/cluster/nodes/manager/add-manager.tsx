@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { CardContent } from "@/components/ui/card";
 import {
 	DialogDescription,
@@ -14,7 +15,9 @@ interface Props {
 }
 
 export const AddManager = ({ serverId }: Props) => {
-	const { data, isLoading } = api.cluster.addManager.useQuery({ serverId });
+	const { data, isLoading, error, isError } = api.cluster.addManager.useQuery({
+		serverId,
+	});
 
 	return (
 		<>
@@ -23,6 +26,7 @@ export const AddManager = ({ serverId }: Props) => {
 					<DialogTitle>Add a new manager</DialogTitle>
 					<DialogDescription>Add a new manager</DialogDescription>
 				</DialogHeader>
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				{isLoading ? (
 					<Loader2 className="w-full animate-spin text-muted-foreground" />
 				) : (
