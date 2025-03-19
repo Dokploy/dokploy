@@ -17,7 +17,7 @@ export const ShowNodesModal = ({ serverId }: Props) => {
 					className="w-full cursor-pointer "
 					onSelect={(e) => e.preventDefault()}
 				>
-					Show Nodes
+					Show Swarm Nodes
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-5xl  overflow-y-auto max-h-screen ">

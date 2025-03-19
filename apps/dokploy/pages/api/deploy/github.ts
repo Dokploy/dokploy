@@ -93,6 +93,7 @@ export default async function handler(
 		try {
 			const branchName = githubBody?.ref?.replace("refs/heads/", "");
 			const repository = githubBody?.repository?.name;
+
 			const deploymentTitle = extractCommitMessage(req.headers, req.body);
 			const deploymentHash = extractHash(req.headers, req.body);
 			const owner = githubBody?.repository?.owner?.name;
@@ -107,6 +108,7 @@ export default async function handler(
 					eq(applications.branch, branchName),
 					eq(applications.repository, repository),
 					eq(applications.owner, owner),
+					eq(applications.githubId, githubResult.githubId),
 				),
 			});
 
@@ -151,6 +153,7 @@ export default async function handler(
 					eq(compose.branch, branchName),
 					eq(compose.repository, repository),
 					eq(compose.owner, owner),
+					eq(compose.githubId, githubResult.githubId),
 				),
 			});
 
@@ -240,6 +243,7 @@ export default async function handler(
 					eq(applications.branch, branch),
 					eq(applications.isPreviewDeploymentsActive, true),
 					eq(applications.owner, owner),
+					eq(applications.githubId, githubResult.githubId),
 				),
 				with: {
 					previewDeployments: true,

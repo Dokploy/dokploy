@@ -124,10 +124,10 @@ export const ShowGitProviders = () => {
 													gitProvider.gitlab?.accessToken &&
 													gitProvider.gitlab?.refreshToken;
 
-												const haveGiteaRequirements =
-													isGitea &&
-													gitProvider.gitea?.accessToken &&
-													gitProvider.gitea?.refreshToken;
+												// const haveGiteaRequirements =
+												// 	isGitea &&
+												// 	gitProvider.gitea?.accessToken &&
+												// 	gitProvider.gitea?.refreshToken;
 
 												return (
 													<div
@@ -207,6 +207,7 @@ export const ShowGitProviders = () => {
 																		</Link>
 																	</div>
 																)}
+
 																{isGithub && haveGithubRequirements && (
 																	<EditGithubProvider
 																		githubId={gitProvider.github?.githubId}

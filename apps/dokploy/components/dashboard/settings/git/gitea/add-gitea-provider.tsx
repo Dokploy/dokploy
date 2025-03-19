@@ -139,7 +139,10 @@ export const AddGiteaProvider = () => {
 											<ExternalLink className="w-fit text-primary size-4" />
 										</Link>
 									</li>
-									<li>Navigate to Applications</li>
+									<li>
+										Navigate to Applications {"->"} Create new OAuth2
+										Application
+									</li>
 									<li>
 										Create a new application with the following details:
 										<ul className="list-disc list-inside ml-4">
@@ -147,10 +150,6 @@ export const AddGiteaProvider = () => {
 											<li>
 												Redirect URI:{" "}
 												<span className="text-primary">{webhookUrl}</span>{" "}
-											</li>
-											<li>
-												Select Permissions - organization: read, user: read,
-												repository: read/write
 											</li>
 										</ul>
 									</li>

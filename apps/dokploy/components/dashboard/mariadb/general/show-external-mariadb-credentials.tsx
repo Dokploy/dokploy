@@ -111,7 +111,10 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 						{!getIp && (
 							<AlertBlock type="warning">
 								You need to set an IP address in your{" "}
-								<Link href="/dashboard/settings" className="text-primary">
+								<Link
+									href="/dashboard/settings/server"
+									className="text-primary"
+								>
 									{data?.serverId
 										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
 										: "Web Server -> Server -> Update Server IP"}

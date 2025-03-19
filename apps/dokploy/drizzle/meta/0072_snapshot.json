@@ -1,6 +1,6 @@
 {
-  "id": "4360a233-2c88-4d6c-834f-eef562e079e3",
-  "prevId": "436368c7-e9a2-4df0-8c8f-863a69c9432d",
+  "id": "ad43c733-01c3-4841-b600-252421350fb9",
+  "prevId": "44cb886c-d31a-4b3d-b70e-da306c74dcf5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -235,43 +235,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "giteaProjectId": {
-          "name": "giteaProjectId",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "giteaRepository": {
-          "name": "giteaRepository",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "giteaOwner": {
-          "name": "giteaOwner",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "giteaBranch": {
-          "name": "giteaBranch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "giteaBuildPath": {
-          "name": "giteaBuildPath",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'/'"
-        },
-        "giteaPathNamespace": {
-          "name": "giteaPathNamespace",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "bitbucketRepository": {
           "name": "bitbucketRepository",
           "type": "text",
@@ -483,12 +446,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "giteaId": {
-          "name": "giteaId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "bitbucketId": {
           "name": "bitbucketId",
           "type": "text",
@@ -565,19 +522,6 @@
           ],
           "columnsTo": [
             "gitlabId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "application_giteaId_gitea_giteaId_fk": {
-          "name": "application_giteaId_gitea_giteaId_fk",
-          "tableFrom": "application",
-          "tableTo": "gitea",
-          "columnsFrom": [
-            "giteaId"
-          ],
-          "columnsTo": [
-            "giteaId"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
@@ -917,13 +861,6 @@
           "notNull": true,
           "default": false
         },
-        "enableLogRotation": {
-          "name": "enableLogRotation",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "logCleanupCron": {
           "name": "logCleanupCron",
           "type": "text",
@@ -1153,6 +1090,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
+        },
+        "customCertResolver": {
+          "name": "customCertResolver",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -3976,100 +3919,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.gitea": {
-      "name": "gitea",
-      "schema": "",
-      "columns": {
-        "giteaId": {
-          "name": "giteaId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "giteaUrl": {
-          "name": "giteaUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'https://gitea.com'"
-        },
-        "application_id": {
-          "name": "application_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "redirect_uri": {
-          "name": "redirect_uri",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "secret": {
-          "name": "secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "access_token": {
-          "name": "access_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "refresh_token": {
-          "name": "refresh_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organization_name": {
-          "name": "organization_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gitProviderId": {
-          "name": "gitProviderId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "gitea_username": {
-          "name": "gitea_username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "gitea_gitProviderId_git_provider_gitProviderId_fk": {
-          "name": "gitea_gitProviderId_git_provider_gitProviderId_fk",
-          "tableFrom": "gitea",
-          "tableTo": "git_provider",
-          "columnsFrom": [
-            "gitProviderId"
-          ],
-          "columnsTo": [
-            "gitProviderId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.server": {
       "name": "server",
       "schema": "",
@@ -5134,7 +4983,6 @@
         "github",
         "gitlab",
         "bitbucket",
-        "gitea",
         "drop"
       ]
     },
@@ -5259,8 +5107,7 @@
       "values": [
         "github",
         "gitlab",
-        "bitbucket",
-        "gitea"
+        "bitbucket"
       ]
     },
     "public.serverStatus": {

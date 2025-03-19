@@ -10,13 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import {
-	Ban,
-	CheckCircle2,
-	HelpCircle,
-	RefreshCcw,
-	Terminal,
-} from "lucide-react";
+import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
@@ -78,9 +72,9 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
-						<TooltipProvider delayDuration={0}>
+						<TooltipProvider disableHoverableContent={false}>
 							<DialogAction
-								title="Deploy Postgres"
+								title="Deploy PostgreSQL"
 								description="Are you sure you want to deploy this postgres?"
 								type="default"
 								onClick={async () => {
@@ -92,12 +86,14 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 								<Button
 									variant="default"
 									isLoading={data?.applicationStatus === "running"}
-									className="flex items-center gap-1.5"
+									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
-									Deploy
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+											<div className="flex items-center">
+												<Rocket className="size-4 mr-1" />
+												Deploy
+											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
@@ -108,7 +104,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 								</Button>
 							</DialogAction>
 							<DialogAction
-								title="Reload Postgres"
+								title="Reload PostgreSQL"
 								description="Are you sure you want to reload this postgres?"
 								type="default"
 								onClick={async () => {
@@ -117,24 +113,25 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 										appName: data?.appName || "",
 									})
 										.then(() => {
-											toast.success("Postgres reloaded successfully");
+											toast.success("PostgreSQL reloaded successfully");
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error reloading Postgres");
+											toast.error("Error reloading PostgreSQL");
 										});
 								}}
 							>
 								<Button
 									variant="secondary"
 									isLoading={isReloading}
-									className="flex items-center gap-1.5"
+									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
-									Reload
-									<RefreshCcw className="size-4" />
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+											<div className="flex items-center">
+												<RefreshCcw className="size-4 mr-1" />
+												Reload
+											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
@@ -146,7 +143,7 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 							</DialogAction>
 							{data?.applicationStatus === "idle" ? (
 								<DialogAction
-									title="Start Postgres"
+									title="Start PostgreSQL"
 									description="Are you sure you want to start this postgres?"
 									type="default"
 									onClick={async () => {
@@ -154,24 +151,25 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 											postgresId: postgresId,
 										})
 											.then(() => {
-												toast.success("Postgres started successfully");
+												toast.success("PostgreSQL started successfully");
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting Postgres");
+												toast.error("Error starting PostgreSQL");
 											});
 									}}
 								>
 									<Button
 										variant="secondary"
 										isLoading={isStarting}
-										className="flex items-center gap-1.5"
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
-										Start
-										<CheckCircle2 className="size-4" />
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												<div className="flex items-center">
+													<CheckCircle2 className="size-4 mr-1" />
+													Start
+												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
@@ -186,31 +184,32 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 								</DialogAction>
 							) : (
 								<DialogAction
-									title="Stop Postgres"
+									title="Stop PostgreSQL"
 									description="Are you sure you want to stop this postgres?"
 									onClick={async () => {
 										await stop({
 											postgresId: postgresId,
 										})
 											.then(() => {
-												toast.success("Postgres stopped successfully");
+												toast.success("PostgreSQL stopped successfully");
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping Postgres");
+												toast.error("Error stopping PostgreSQL");
 											});
 									}}
 								>
 									<Button
 										variant="destructive"
 										isLoading={isStopping}
-										className="flex items-center gap-1.5"
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
-										Stop
-										<Ban className="size-4" />
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												<div className="flex items-center">
+													<Ban className="size-4 mr-1" />
+													Stop
+												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
@@ -226,9 +225,23 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 							appName={data?.appName || ""}
 							serverId={data?.serverId || ""}
 						>
-							<Button variant="outline">
-								<Terminal />
-								Open Terminal
+							<Button
+								variant="outline"
+								className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+							>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<div className="flex items-center">
+											<Terminal className="size-4 mr-1" />
+											Open Terminal
+										</div>
+									</TooltipTrigger>
+									<TooltipPrimitive.Portal>
+										<TooltipContent sideOffset={5} className="z-[60]">
+											<p>Open a terminal to the PostgreSQL container</p>
+										</TooltipContent>
+									</TooltipPrimitive.Portal>
+								</Tooltip>
 							</Button>
 						</DockerTerminalModal>
 					</CardContent>

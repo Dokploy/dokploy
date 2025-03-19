@@ -20,6 +20,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
+import { RestoreBackup } from "./restore-backup";
 import { UpdateBackup } from "./update-backup";
 
 interface Props {
@@ -71,7 +72,14 @@ export const ShowBackups = ({ id, type }: Props) => {
 				</div>
 
 				{postgres && postgres?.backups?.length > 0 && (
-					<AddBackup databaseId={id} databaseType={type} refetch={refetch} />
+					<div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
+						<AddBackup databaseId={id} databaseType={type} refetch={refetch} />
+						<RestoreBackup
+							databaseId={id}
+							databaseType={type}
+							serverId={postgres.serverId}
+						/>
+					</div>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
@@ -98,11 +106,18 @@ export const ShowBackups = ({ id, type }: Props) => {
 								<span className="text-base text-muted-foreground">
 									No backups configured
 								</span>
-								<AddBackup
-									databaseId={id}
-									databaseType={type}
-									refetch={refetch}
-								/>
+								<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+									<AddBackup
+										databaseId={id}
+										databaseType={type}
+										refetch={refetch}
+									/>
+									<RestoreBackup
+										databaseId={id}
+										databaseType={type}
+										serverId={postgres.serverId}
+									/>
+								</div>
 							</div>
 						) : (
 							<div className="flex flex-col pt-2">
@@ -183,6 +198,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 															<TooltipContent>Run Manual Backup</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
+
 													<UpdateBackup
 														backupId={backup.backupId}
 														refetch={refetch}
