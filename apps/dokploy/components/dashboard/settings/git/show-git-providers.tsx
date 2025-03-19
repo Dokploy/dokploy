@@ -207,6 +207,7 @@ export const ShowGitProviders = () => {
 																		</Link>
 																	</div>
 																)}
+
 																{isGithub && haveGithubRequirements && (
 																	<EditGithubProvider
 																		githubId={gitProvider.github?.githubId}
