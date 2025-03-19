@@ -6,27 +6,41 @@
 		"dev": "PORT=4000 tsx watch src/index.ts",
 		"build": "tsc --project tsconfig.json",
 		"start": "node dist/index.js",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"generate": "drizzle-kit generate",
+		"drop": "drizzle-kit drop",
+		"migrate": "tsx src/migrate.ts",
+		"truncate": "tsx src/truncate.ts",
+		"reset:all": "tsx src/truncate.ts && tsx src/migrate.ts",
+		"studio": "drizzle-kit studio"
 	},
 	"dependencies": {
+		"@react-email/components": "^0.0.21",
+		"@hono/node-server": "^1.12.1",
+		"@hono/zod-validator": "0.3.0",
+		"@react-email/render": "^1.0.5",
+		"@types/pg": "^8.11.11",
+		"dotenv": "^16.3.1",
+		"drizzle-orm": "^0.39.1",
+		"hono": "^4.5.8",
+		"nodemailer": "6.9.14",
+		"pg": "^8.14.1",
 		"pino": "9.4.0",
 		"pino-pretty": "11.2.2",
-		"@hono/zod-validator": "0.3.0",
-		"zod": "^3.23.4",
+		"postgres": "3.4.4",
 		"react": "18.2.0",
 		"react-dom": "18.2.0",
-		"@dokploy/server": "workspace:*",
-		"@hono/node-server": "^1.12.1",
-		"hono": "^4.5.8",
-		"dotenv": "^16.3.1",
-		"stripe": "17.2.0"
+		"stripe": "17.2.0",
+		"zod": "^3.23.4"
 	},
 	"devDependencies": {
-		"typescript": "^5.4.2",
+		"@types/node": "^20.11.17",
+		"@types/nodemailer": "^6.4.16",
 		"@types/react": "^18.2.37",
 		"@types/react-dom": "^18.2.15",
-		"@types/node": "^20.11.17",
-		"tsx": "^4.7.1"
+		"drizzle-kit": "^0.30.4",
+		"tsx": "^4.7.1",
+		"typescript": "^5.4.2"
 	},
 	"packageManager": "pnpm@9.5.0"
 }
