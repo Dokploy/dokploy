@@ -13,7 +13,9 @@ import {
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
+	findOrganizationById,
 	findPreviewDeploymentById,
+	findServerById,
 	generateTraefikMeDomain,
 	manageDomain,
 	removeDomain,
@@ -93,6 +95,19 @@ export const domainRouter = createTRPCRouter({
 				ctx.user.ownerId,
 				input.serverId,
 			);
+		}),
+	canGenerateTraefikMeDomains: protectedProcedure
+		.input(z.object({ serverId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const organization = await findOrganizationById(
+				ctx.session.activeOrganizationId,
+			);
+
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				return server.ipAddress;
+			}
+			return organization?.owner.serverIp;
 		}),
 
 	update: protectedProcedure
