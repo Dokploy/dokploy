@@ -1,8 +1,9 @@
 import { getPublicIpWithFallback } from "@/server/wss/terminal";
 import {
 	type DockerNode,
-	IS_CLOUD,
 	execAsync,
+	execAsyncRemote,
+	findServerById,
 	getRemoteDocker,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -16,10 +17,6 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (IS_CLOUD) {
-				return [];
-			}
-
 			const docker = await getRemoteDocker(input.serverId);
 			const workers: DockerNode[] = await docker.listNodes();
 
@@ -33,17 +30,17 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			if (IS_CLOUD) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "Functionality not available in cloud version",
-				});
-			}
 			try {
-				await execAsync(
-					`docker node update --availability drain ${input.nodeId}`,
-				);
-				await execAsync(`docker node rm ${input.nodeId} --force`);
+				const drainCommand = `docker node update --availability drain ${input.nodeId}`;
+				const removeCommand = `docker node rm ${input.nodeId} --force`;
+
+				if (input.serverId) {
+					await execAsyncRemote(input.serverId, drainCommand);
+					await execAsyncRemote(input.serverId, removeCommand);
+				} else {
+					await execAsync(drainCommand);
+					await execAsync(removeCommand);
+				}
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -60,20 +57,20 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (IS_CLOUD) {
-				return {
-					command: "",
-					version: "",
-				};
-			}
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
 
+			let ip = await getPublicIpWithFallback();
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				ip = server?.ipAddress;
+			}
+
 			return {
 				command: `docker swarm join --token ${
 					result.JoinTokens.Worker
-				} ${await getPublicIpWithFallback()}:2377`,
+				} ${ip}:2377`,
 				version: docker_version.Version,
 			};
 		}),
@@ -84,19 +81,19 @@ export const clusterRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			if (IS_CLOUD) {
-				return {
-					command: "",
-					version: "",
-				};
-			}
 			const docker = await getRemoteDocker(input.serverId);
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
+
+			let ip = await getPublicIpWithFallback();
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				ip = server?.ipAddress;
+			}
 			return {
 				command: `docker swarm join --token ${
 					result.JoinTokens.Manager
-				} ${await getPublicIpWithFallback()}:2377`,
+				} ${ip}:2377`,
 				version: docker_version.Version,
 			};
 		}),
