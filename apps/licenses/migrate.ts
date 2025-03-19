@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import "dotenv/config";
-import * as schema from "./schema";
+import * as schema from "./src/schema";
 
 const connectionString = process.env.DATABASE_URL!;
 const sql = postgres(connectionString, { max: 1 });

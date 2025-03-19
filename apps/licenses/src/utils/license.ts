@@ -1,25 +1,29 @@
 import { randomBytes } from "node:crypto";
 import { db } from "../db";
-import { licenses } from "../schema";
+import { type License, licenses } from "../schema";
 import { eq } from "drizzle-orm";
 
 export const generateLicenseKey = () => {
 	return randomBytes(32).toString("hex");
 };
 
-export const createLicense = async ({
-	customerId,
-	productId,
-	type,
-	billingType,
-	email,
-}: {
-	customerId: string;
+interface CreateLicenseProps {
 	productId: string;
 	type: "basic" | "premium" | "business";
 	billingType: "monthly" | "annual";
 	email: string;
-}) => {
+	stripeCustomerId: string;
+	stripeSubscriptionId: string;
+}
+
+export const createLicense = async ({
+	productId,
+	type,
+	billingType,
+	email,
+	stripeCustomerId,
+	stripeSubscriptionId,
+}: CreateLicenseProps) => {
 	const licenseKey = `dokploy-${generateLicenseKey()}`;
 	const expiresAt = new Date();
 	expiresAt.setMonth(
@@ -29,13 +33,14 @@ export const createLicense = async ({
 	const license = await db
 		.insert(licenses)
 		.values({
-			customerId,
 			productId,
 			licenseKey,
 			type,
 			billingType,
 			expiresAt,
 			email,
+			stripeCustomerId,
+			stripeSubscriptionId,
 		})
 		.returning();
 
@@ -55,7 +60,10 @@ export const validateLicense = async (
 	}
 
 	if (license.status !== "active") {
-		return { isValid: false, error: "License is not active" };
+		return {
+			isValid: false,
+			error: `License is ${getLicenseStatus(license)}`,
+		};
 	}
 
 	if (new Date() > license.expiresAt) {
@@ -116,4 +124,37 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 		.returning();
 
 	return updatedLicense[0];
+};
+
+export const deactivateLicense = async (stripeSubscriptionId: string) => {
+	const license = await db.query.licenses.findFirst({
+		where: eq(licenses.stripeSubscriptionId, stripeSubscriptionId),
+	});
+
+	if (!license) {
+		throw new Error("License not found");
+	}
+
+	await db
+		.update(licenses)
+		.set({ status: "cancelled" })
+		.where(eq(licenses.id, license.id));
+};
+
+export const getLicenseStatus = (license: License) => {
+	if (license.status === "active") {
+		return "active";
+	}
+
+	if (license.status === "expired") {
+		return "expired";
+	}
+
+	if (license.status === "cancelled") {
+		return "cancelled";
+	}
+
+	if (license.status === "payment_pending") {
+		return "pending payment";
+	}
 };

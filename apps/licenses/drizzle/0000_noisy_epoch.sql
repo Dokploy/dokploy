@@ -1,9 +1,8 @@
 CREATE TYPE "public"."billing_type" AS ENUM('monthly', 'annual');--> statement-breakpoint
-CREATE TYPE "public"."license_status" AS ENUM('active', 'expired', 'cancelled');--> statement-breakpoint
+CREATE TYPE "public"."license_status" AS ENUM('active', 'expired', 'cancelled', 'payment_pending');--> statement-breakpoint
 CREATE TYPE "public"."license_type" AS ENUM('basic', 'premium', 'business');--> statement-breakpoint
 CREATE TABLE "licenses" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"customer_id" text NOT NULL,
 	"product_id" text NOT NULL,
 	"license_key" text NOT NULL,
 	"status" "license_status" DEFAULT 'active' NOT NULL,
@@ -13,6 +12,8 @@ CREATE TABLE "licenses" (
 	"activated_at" timestamp,
 	"last_verified_at" timestamp,
 	"expires_at" timestamp NOT NULL,
+	"stripeCustomerId" text NOT NULL,
+	"stripeSubscriptionId" text NOT NULL,
 	"created_at" timestamp DEFAULT CURRENT_TIMESTAMP,
 	"updated_at" timestamp DEFAULT CURRENT_TIMESTAMP,
 	"metadata" text,

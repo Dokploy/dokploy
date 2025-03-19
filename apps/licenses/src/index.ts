@@ -11,9 +11,10 @@ import {
 	createLicense,
 	validateLicense,
 	activateLicense,
+	deactivateLicense,
 } from "./utils/license";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { licenses } from "./schema";
 import "dotenv/config";
 import { getLicenseFeatures, getLicenseTypeFromPriceId } from "./utils";
@@ -31,6 +32,16 @@ const validateSchema = z.object({
 
 const resendSchema = z.object({
 	licenseKey: z.string(),
+});
+
+app.get("/health", async (c) => {
+	try {
+		await db.execute(sql`SELECT 1`);
+		return c.json({ status: "ok" });
+	} catch (error) {
+		logger.error("Database connection error:", error);
+		return c.json({ status: "error" }, 500);
+	}
 });
 
 app.post("/validate", zValidator("json", validateSchema), async (c) => {
@@ -72,18 +83,16 @@ app.post("/resend-license", zValidator("json", resendSchema), async (c) => {
 			return c.json({ success: false, error: "License not found" }, 404);
 		}
 
-		// Generar el email
 		const emailHtml = await render(
 			ResendLicenseEmail({
-				customerName: license.customerId,
 				licenseKey: license.licenseKey,
 				productName: `Dokploy Self Hosted ${license.type}`,
 				expirationDate: new Date(license.expiresAt),
 				requestDate: new Date(),
+				customerName: license.email,
 			}),
 		);
 
-		// Enviar el email
 		await transporter.sendMail({
 			from: process.env.SMTP_FROM,
 			to: license.email,
@@ -136,11 +145,12 @@ app.post("/stripe/webhook", async (c) => {
 				const { type, billingType } = getLicenseTypeFromPriceId(priceId!);
 
 				const license = await createLicense({
-					customerId: customerResponse.id,
 					productId: session.id,
 					type,
 					billingType,
 					email: session.customer_details?.email!,
+					stripeCustomerId: customerResponse.id,
+					stripeSubscriptionId: session.id,
 				});
 
 				const features = getLicenseFeatures(type);
@@ -160,6 +170,110 @@ app.post("/stripe/webhook", async (c) => {
 					subject: "Your Dokploy License Key",
 					html: emailHtml,
 				});
+
+				break;
+			}
+
+			case "customer.subscription.updated": {
+				const subscription = event.data.object as Stripe.Subscription;
+
+				const customerResponse = await stripe.customers.retrieve(
+					subscription.customer as string,
+				);
+
+				if (subscription.status !== "active" || customerResponse.deleted) {
+					await deactivateLicense(subscription.id);
+				}
+
+				break;
+			}
+
+			case "invoice.payment_succeeded": {
+				const invoice = event.data.object as Stripe.Invoice;
+
+				if (!invoice.subscription) break;
+
+				const suscription = await stripe.subscriptions.retrieve(
+					invoice.subscription as string,
+				);
+
+				const customerResponse = await stripe.customers.retrieve(
+					invoice.customer as string,
+				);
+				if (suscription.status !== "active" || customerResponse.deleted) break;
+
+				const existingLicense = await db.query.licenses.findFirst({
+					where: eq(licenses.stripeCustomerId, invoice.customer as string),
+				});
+
+				if (!existingLicense) break;
+
+				const newExpirationDate = new Date();
+				newExpirationDate.setMonth(
+					newExpirationDate.getMonth() +
+						(existingLicense.billingType === "annual" ? 12 : 1),
+				);
+
+				await db
+					.update(licenses)
+					.set({
+						expiresAt: newExpirationDate,
+						status: "active",
+					})
+					.where(eq(licenses.id, existingLicense.id));
+
+				const features = getLicenseFeatures(existingLicense.type);
+				const emailHtml = await render(
+					LicenseEmail({
+						customerName: customerResponse.name || "Customer",
+						licenseKey: existingLicense.licenseKey,
+						productName: `Dokploy Self Hosted ${existingLicense.type}`,
+						expirationDate: new Date(newExpirationDate),
+						features: features,
+					}),
+				);
+
+				await transporter.sendMail({
+					from: process.env.SMTP_FROM,
+					to: existingLicense.email,
+					subject: "Your Dokploy License Has Been Renewed",
+					html: emailHtml,
+				});
+
+				break;
+			}
+
+			case "invoice.payment_failed": {
+				const invoice = event.data.object as Stripe.Invoice;
+
+				if (!invoice.subscription) break;
+
+				const subscription = await stripe.subscriptions.retrieve(
+					invoice.subscription as string,
+				);
+
+				if (subscription.status !== "active") {
+					await deactivateLicense(subscription.id);
+				}
+
+				break;
+			}
+
+			case "customer.subscription.deleted": {
+				const subscription = event.data.object as Stripe.Subscription;
+
+				const existingLicense = await db.query.licenses.findFirst({
+					where: eq(licenses.stripeCustomerId, subscription.customer as string),
+				});
+
+				if (!existingLicense) break;
+
+				await db
+					.update(licenses)
+					.set({
+						status: "cancelled",
+					})
+					.where(eq(licenses.id, existingLicense.id));
 
 				break;
 			}

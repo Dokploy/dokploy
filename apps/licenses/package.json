@@ -9,9 +9,9 @@
 		"typecheck": "tsc --noEmit",
 		"generate": "drizzle-kit generate",
 		"drop": "drizzle-kit drop",
-		"migrate": "tsx migrate.ts",
-		"truncate": "tsx truncate.ts",
-		"reset:all": "tsx truncate.ts && tsx migrate.ts",
+		"migrate": "tsx ./migrate.ts",
+		"truncate": "tsx ./truncate.ts",
+		"reset:all": "tsx ./truncate.ts && tsx ./migrate.ts",
 		"studio": "drizzle-kit studio"
 	},
 	"dependencies": {

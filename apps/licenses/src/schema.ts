@@ -5,6 +5,7 @@ export const licenseStatusEnum = pgEnum("license_status", [
 	"active",
 	"expired",
 	"cancelled",
+	"payment_pending",
 ]);
 
 export const licenseTypeEnum = pgEnum("license_type", [
@@ -17,7 +18,6 @@ export const billingTypeEnum = pgEnum("billing_type", ["monthly", "annual"]);
 
 export const licenses = pgTable("licenses", {
 	id: uuid("id").defaultRandom().primaryKey(),
-	customerId: text("customer_id").notNull(),
 	productId: text("product_id").notNull(),
 	licenseKey: text("license_key").notNull().unique(),
 	status: licenseStatusEnum("status").notNull().default("active"),
@@ -27,6 +27,8 @@ export const licenses = pgTable("licenses", {
 	activatedAt: timestamp("activated_at"),
 	lastVerifiedAt: timestamp("last_verified_at"),
 	expiresAt: timestamp("expires_at").notNull(),
+	stripeCustomerId: text("stripeCustomerId").notNull(),
+	stripeSubscriptionId: text("stripeSubscriptionId").notNull(),
 	createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 	metadata: text("metadata"),

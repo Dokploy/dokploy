@@ -1,5 +1,5 @@
 {
-  "id": "41745f43-6627-49f6-afa3-ab192559b5a7",
+  "id": "5a996744-b11f-4f1a-b4b0-91f6bf5c2bed",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -14,12 +14,6 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
-        },
-        "customer_id": {
-          "name": "customer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
         },
         "product_id": {
           "name": "product_id",
@@ -76,6 +70,18 @@
         "expires_at": {
           "name": "expires_at",
           "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripeCustomerId": {
+          "name": "stripeCustomerId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stripeSubscriptionId": {
+          "name": "stripeSubscriptionId",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -138,7 +144,8 @@
       "values": [
         "active",
         "expired",
-        "cancelled"
+        "cancelled",
+        "payment_pending"
       ]
     },
     "public.license_type": {
