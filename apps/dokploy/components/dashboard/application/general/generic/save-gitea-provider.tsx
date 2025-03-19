@@ -29,16 +29,22 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-// Define types for repository and branch objects
 interface GiteaRepository {
 	name: string;
 	url: string;
@@ -63,6 +69,7 @@ const GiteaProviderSchema = z.object({
 			owner: z.string().min(1, "Owner is required"),
 			giteaPathNamespace: z.string().min(1),
 			id: z.number().nullable(),
+			watchPaths: z.array(z.string()).default([]),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -90,6 +97,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 				repo: "",
 				giteaPathNamespace: "",
 				id: null,
+				watchPaths: [],
 			},
 			giteaId: "",
 			branch: "",
@@ -138,6 +146,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 					owner: data.giteaOwner || "",
 					giteaPathNamespace: data.giteaPathNamespace || "",
 					id: data.giteaProjectId,
+					watchPaths: data.watchPaths || [],
 				},
 				buildPath: data.giteaBuildPath || "/",
 				giteaId: data.giteaId || "",
@@ -155,6 +164,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			applicationId,
 			giteaProjectId: data.repository.id,
 			giteaPathNamespace: data.repository.giteaPathNamespace,
+			watchPaths: data.repository.watchPaths,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -188,6 +198,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												repo: "",
 												id: null,
 												giteaPathNamespace: "",
+												watchPaths: [],
 											});
 											form.setValue("branch", "");
 										}}
@@ -274,6 +285,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 																			repo: repo.name,
 																			id: repo.id,
 																			giteaPathNamespace: repo.name,
+																			watchPaths: [],
 																		});
 																		form.setValue("branch", "");
 																	}}
@@ -395,6 +407,85 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 										<Input placeholder="/" {...field} />
 									</FormControl>
 
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="repository.watchPaths"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Watch Paths</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Add paths to watch for changes. When files in these
+														paths change, a new deployment will be triggered.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<div className="flex flex-wrap gap-2 mb-2">
+										{field.value && field.value.map((path: string, index: number) => (
+											<Badge
+												key={index}
+												variant="secondary"
+												className="flex items-center gap-1"
+											>
+												{path}
+												<X
+													className="size-3 cursor-pointer hover:text-destructive"
+													onClick={() => {
+														const newPaths = [...field.value];
+														newPaths.splice(index, 1);
+														field.onChange(newPaths);
+													}}
+												/>
+											</Badge>
+										))}
+									</div>
+									<div className="flex gap-2">
+										<FormControl>
+											<Input
+												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														e.preventDefault();
+														const input = e.currentTarget;
+														const path = input.value.trim();
+														if (path) {
+															field.onChange([...field.value, path]);
+															input.value = "";
+														}
+													}
+												}}
+											/>
+										</FormControl>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() => {
+												const input = document.querySelector(
+													'input[placeholder*="Enter a path"]',
+												) as HTMLInputElement;
+												const path = input.value.trim();
+												if (path) {
+													field.onChange([...field.value, path]);
+													input.value = "";
+												}
+											}}
+										>
+											<Plus className="size-4" />
+										</Button>
+									</div>
 									<FormMessage />
 								</FormItem>
 							)}

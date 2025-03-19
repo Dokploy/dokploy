@@ -511,6 +511,7 @@ export const apiSaveGiteaProvider = createSchema
 		giteaId: true,
 		giteaProjectId: true,
 		giteaPathNamespace: true,
+		watchPaths: true,
 	})
 	.required();
 

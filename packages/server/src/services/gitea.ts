@@ -23,7 +23,7 @@ export const createGitea = async (
 				name: input.name,
 			})
 			.returning()
-			.then((response: typeof gitProvider.$inferSelect[]) => response[0]);
+			.then((response: (typeof gitProvider.$inferSelect)[]) => response[0]);
 
 		if (!newGitProvider) {
 			throw new TRPCError({
@@ -39,7 +39,7 @@ export const createGitea = async (
 				gitProviderId: newGitProvider?.gitProviderId,
 			})
 			.returning()
-			.then((response: typeof gitea.$inferSelect[]) => response[0]);
+			.then((response: (typeof gitea.$inferSelect)[]) => response[0]);
 	});
 };
 

@@ -424,6 +424,7 @@ export const applicationRouter = createTRPCRouter({
 				giteaId: input.giteaId,
 				giteaProjectId: input.giteaProjectId,
 				giteaPathNamespace: input.giteaPathNamespace,
+				watchPaths: input.watchPaths,
 			});
 
 			return true;

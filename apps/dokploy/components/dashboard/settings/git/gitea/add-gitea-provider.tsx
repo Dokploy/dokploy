@@ -45,7 +45,7 @@ const Schema = z.object({
 	redirectUri: z.string().min(1, {
 		message: "Redirect URI is required",
 	}),
-	organizationName: z.string().optional(), // Added organizationName to the schema
+	organizationName: z.string().optional(),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -54,8 +54,8 @@ export const AddGiteaProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const url = useUrl();
-	const { mutateAsync, error, isError } = api.gitea.create.useMutation(); // Updated API call for Gitea
-	const webhookUrl = `${url}/api/providers/gitea/callback`; // Updated webhook URL for Gitea
+	const { mutateAsync, error, isError } = api.gitea.create.useMutation();
+	const webhookUrl = `${url}/api/providers/gitea/callback`;
 
 	const form = useForm<Schema>({
 		defaultValues: {
@@ -86,7 +86,7 @@ export const AddGiteaProvider = () => {
 			clientSecret: data.clientSecret || "",
 			name: data.name || "",
 			redirectUri: data.redirectUri || "",
-			giteaUrl: data.giteaUrl || "https://gitea.com", // Use Gitea URL
+			giteaUrl: data.giteaUrl || "https://gitea.com",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -177,7 +177,7 @@ export const AddGiteaProvider = () => {
 
 								<FormField
 									control={form.control}
-									name="giteaUrl" // Ensure consistent name for Gitea URL
+									name="giteaUrl"
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>Gitea URL</FormLabel>
@@ -240,7 +240,7 @@ export const AddGiteaProvider = () => {
 								/>
 
 								<Button isLoading={form.formState.isSubmitting}>
-									Configure Gitea App {/* Ensured consistency with Gitea */}
+									Configure Gitea App
 								</Button>
 							</div>
 						</CardContent>

@@ -1,26 +1,25 @@
 import {
 	BitbucketIcon,
-	GitIcon,
+	GiteaIcon,
 	GithubIcon,
 	GitlabIcon,
-	GiteaIcon,
+	GitIcon,
   } from "@/components/icons/data-tools-icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 import { CodeIcon, GitBranch } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ComposeFileEditor } from "../compose-file-editor";
 import { ShowConvertedCompose } from "../show-converted-compose";
 import { SaveBitbucketProviderCompose } from "./save-bitbucket-provider-compose";
 import { SaveGitProviderCompose } from "./save-git-provider-compose";
+import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 import { SaveGitlabProviderCompose } from "./save-gitlab-provider-compose";
-import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
   
-  
-  type TabState = "github" | "git" | "raw" | "gitlab" | "bitbucket" | "gitea";
+  type TabState = "github" | "git" | "raw" | "gitlab" | "bitbucket" | "gitea"; // Adding gitea to the TabState
   interface Props {
 	composeId: string;
   }
@@ -29,10 +28,39 @@ import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 	const { data: githubProviders } = api.github.githubProviders.useQuery();
 	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
 	const { data: bitbucketProviders } = api.bitbucket.bitbucketProviders.useQuery();
-	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
+	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery(); // Fetching Gitea providers
   
 	const { data: compose } = api.compose.one.useQuery({ composeId });
 	const [tab, setSab] = useState<TabState>(compose?.sourceType || "github");
+  
+	// Ensure we fall back to empty arrays if the data is undefined
+	const safeGithubProviders = githubProviders || [];
+	const safeGitlabProviders = gitlabProviders || [];
+	const safeBitbucketProviders = bitbucketProviders || [];
+	const safeGiteaProviders = giteaProviders || [];
+  
+	const renderProviderContent = (providers: any[], providerType: string, ProviderComponent: React.ComponentType<any>) => {
+	  if (providers.length > 0) {
+		return <ProviderComponent composeId={composeId} />;
+	  } else {
+		return (
+		  <div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+			{providerType === "github" && <GithubIcon className="size-8 text-muted-foreground" />}
+			{providerType === "gitlab" && <GitlabIcon className="size-8 text-muted-foreground" />}
+			{providerType === "bitbucket" && <BitbucketIcon className="size-8 text-muted-foreground" />}
+			{providerType === "gitea" && <GiteaIcon className="size-8 text-muted-foreground" />}
+			<span className="text-base text-muted-foreground">
+			  To deploy using {providerType.charAt(0).toUpperCase() + providerType.slice(1)}, you need to configure your account first.
+			  Please, go to{" "}
+			  <Link href="/dashboard/settings/git-providers" className="text-foreground">
+				Settings
+			  </Link>{" "}
+			  to do so.
+			</span>
+		  </div>
+		);
+	  }
+	};
   
 	return (
 	  <Card className="group relative w-full bg-transparent">
@@ -82,11 +110,10 @@ import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 				  Bitbucket
 				</TabsTrigger>
 				<TabsTrigger
-				  value="gitea"
+				  value="gitea" // Added Gitea tab
 				  className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 				>
-				  <GiteaIcon className="size-4 text-current fill-current" /> {/* Add Gitea Icon */}
-				  Gitea
+				  <GiteaIcon className="size-4 text-current fill-current" /> Gitea
 				</TabsTrigger>
 				<TabsTrigger
 				  value="git"
@@ -104,41 +131,28 @@ import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 				</TabsTrigger>
 			  </TabsList>
 			</div>
+  
 			<TabsContent value="github" className="w-full p-2">
-			  {githubProviders && githubProviders?.length > 0 ? (
-				<SaveGithubProviderCompose composeId={composeId} />
-			  ) : (
-				<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
-				  <GithubIcon className="size-8 text-muted-foreground" />
-				  <span className="text-base text-muted-foreground">
-					To deploy using GitHub, you need to configure your account first. Please, go to{" "}
-					<Link href="/dashboard/settings/git-providers" className="text-foreground">
-					  Settings
-					</Link>{" "}
-					to do so.
-				  </span>
-				</div>
-			  )}
+			  {renderProviderContent(safeGithubProviders, "github", SaveGithubProviderCompose)}
 			</TabsContent>
-			<TabsContent value="gitea" className="w-full p-2"> {/* Added Gitea tab */}
-			  {giteaProviders && giteaProviders?.length > 0 ? (
-				<SaveGiteaProviderCompose composeId={composeId} />
-			  ) : (
-				<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
-				  <GiteaIcon className="size-8 text-muted-foreground" />
-				  <span className="text-base text-muted-foreground">
-					To deploy using Gitea, you need to configure your account first. Please, go to{" "}
-					<Link href="/dashboard/settings/git-providers" className="text-foreground">
-					  Settings
-					</Link>{" "}
-					to do so.
-				  </span>
-				</div>
-			  )}
+			<TabsContent value="gitea" className="w-full p-2">
+			  {renderProviderContent(safeGiteaProviders, "gitea", SaveGiteaProviderCompose)}
 			</TabsContent>
-			{/* Other tabs remain unchanged */}
+			<TabsContent value="gitlab" className="w-full p-2">
+			  {renderProviderContent(safeGitlabProviders, "gitlab", SaveGitlabProviderCompose)}
+			</TabsContent>
+			<TabsContent value="bitbucket" className="w-full p-2">
+			  {renderProviderContent(safeBitbucketProviders, "bitbucket", SaveBitbucketProviderCompose)}
+			</TabsContent>
+			<TabsContent value="git" className="w-full p-2">
+			  <SaveGitProviderCompose composeId={composeId} />
+			</TabsContent>
+  
+			<TabsContent value="raw" className="w-full p-2 flex flex-col gap-4">
+			  <ComposeFileEditor composeId={composeId} />
+			</TabsContent>
 		  </Tabs>
 		</CardContent>
 	  </Card>
 	);
-  };  
+  };
