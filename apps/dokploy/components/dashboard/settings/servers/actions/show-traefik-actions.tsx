@@ -20,7 +20,7 @@ interface Props {
 	serverId?: string;
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
 		api.settings.reloadTraefik.useMutation();
 

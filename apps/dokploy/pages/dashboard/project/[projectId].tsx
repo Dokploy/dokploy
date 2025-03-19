@@ -92,6 +92,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 export type Services = {
 	appName: string;
@@ -993,6 +994,7 @@ export async function getServerSideProps(
 	const { params } = ctx;
 
 	const { req, res } = ctx;
+	const locale = getLocale(req.cookies);
 	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
@@ -1025,6 +1027,7 @@ export async function getServerSideProps(
 				props: {
 					trpcState: helpers.dehydrate(),
 					projectId: params?.projectId,
+					...(await serverSideTranslations(locale)),
 				},
 			};
 		} catch (_error) {

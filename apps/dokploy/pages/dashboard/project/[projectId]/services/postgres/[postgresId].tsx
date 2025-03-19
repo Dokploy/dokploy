@@ -44,6 +44,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import superjson from "superjson";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
@@ -281,6 +282,7 @@ export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ postgresId: string; activeTab: TabState }>,
 ) {
 	const { query, params, req, res } = ctx;
+	const locale = getLocale(req.cookies);
 	const activeTab = query.tab;
 	const { user, session } = await validateRequest(req);
 	if (!user) {
@@ -315,6 +317,7 @@ export async function getServerSideProps(
 					trpcState: helpers.dehydrate(),
 					postgresId: params?.postgresId,
 					activeTab: (activeTab || "general") as TabState,
+					...(await serverSideTranslations(locale)),
 				},
 			};
 		} catch (_error) {

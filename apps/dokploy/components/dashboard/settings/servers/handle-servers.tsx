@@ -61,7 +61,7 @@ interface Props {
 }
 
 export const HandleServers = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
