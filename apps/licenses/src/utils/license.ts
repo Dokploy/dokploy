@@ -158,3 +158,38 @@ export const getLicenseStatus = (license: License) => {
 		return "pending payment";
 	}
 };
+
+export const getStripeItems = (
+	type: "basic" | "premium" | "business",
+	serverQuantity: number,
+	isAnnual: boolean,
+) => {
+	const items = [];
+
+	if (type === "basic") {
+		items.push({
+			price: isAnnual
+				? process.env.SELF_HOSTED_BASIC_PRICE_ANNUAL_ID
+				: process.env.SELF_HOSTED_BASIC_PRICE_MONTHLY_ID,
+			quantity: serverQuantity,
+		});
+	} else if (type === "premium") {
+		items.push({
+			price: isAnnual
+				? process.env.SELF_HOSTED_PREMIUM_PRICE_ANNUAL_ID
+				: process.env.SELF_HOSTED_PREMIUM_PRICE_MONTHLY_ID,
+			quantity: serverQuantity,
+		});
+	} else if (type === "business") {
+		items.push({
+			price: isAnnual
+				? process.env.SELF_HOSTED_BUSINESS_PRICE_ANNUAL_ID
+				: process.env.SELF_HOSTED_BUSINESS_PRICE_MONTHLY_ID,
+			quantity: serverQuantity,
+		});
+
+		return items;
+	}
+
+	return items;
+};

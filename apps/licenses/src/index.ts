@@ -5,13 +5,14 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { logger } from "./logger";
 import { render } from "@react-email/render";
-import { LicenseEmail } from "../templates/emails/license-email";
-import { ResendLicenseEmail } from "../templates/emails/resend-license-email";
+import LicenseEmail from "../templates/emails/license-email";
+import ResendLicenseEmail from "../templates/emails/resend-license-email";
 import {
 	createLicense,
 	validateLicense,
 	activateLicense,
 	deactivateLicense,
+	getStripeItems,
 } from "./utils/license";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
@@ -21,9 +22,17 @@ import { getLicenseFeatures, getLicenseTypeFromPriceId } from "./utils";
 import { transporter } from "./email";
 import type Stripe from "stripe";
 import { stripe } from "./stripe";
+import { WEBSITE_URL } from "./constants";
+import { createCheckoutSessionSchema } from "./validators/stripe";
 
 const app = new Hono();
-app.use("/*", cors());
+const router = new Hono();
+router.use(
+	"/*",
+	cors({
+		origin: ["http://localhost:3001"],
+	}),
+);
 
 const validateSchema = z.object({
 	licenseKey: z.string(),
@@ -34,7 +43,7 @@ const resendSchema = z.object({
 	licenseKey: z.string(),
 });
 
-app.get("/health", async (c) => {
+router.get("/health", async (c) => {
 	try {
 		await db.execute(sql`SELECT 1`);
 		return c.json({ status: "ok" });
@@ -44,7 +53,7 @@ app.get("/health", async (c) => {
 	}
 });
 
-app.post("/validate", zValidator("json", validateSchema), async (c) => {
+router.post("/validate", zValidator("json", validateSchema), async (c) => {
 	const { licenseKey, serverIp } = c.req.valid("json");
 
 	try {
@@ -56,7 +65,7 @@ app.post("/validate", zValidator("json", validateSchema), async (c) => {
 	}
 });
 
-app.post("/activate", zValidator("json", validateSchema), async (c) => {
+router.post("/activate", zValidator("json", validateSchema), async (c) => {
 	const { licenseKey, serverIp } = c.req.valid("json");
 
 	try {
@@ -71,7 +80,26 @@ app.post("/activate", zValidator("json", validateSchema), async (c) => {
 	}
 });
 
-app.post("/resend-license", zValidator("json", resendSchema), async (c) => {
+router.post(
+	"/create-checkout-session",
+	zValidator("json", createCheckoutSessionSchema),
+	async (c) => {
+		const { type, serverQuantity, isAnnual } = c.req.valid("json");
+
+		const items = getStripeItems(type, serverQuantity, isAnnual);
+		const session = await stripe.checkout.sessions.create({
+			mode: "subscription",
+			line_items: items,
+			allow_promotion_codes: true,
+			success_url: `${WEBSITE_URL}/license/success`,
+			cancel_url: `${WEBSITE_URL}#pricing`,
+		});
+
+		return c.json({ sessionId: session.id });
+	},
+);
+
+router.post("/resend-license", zValidator("json", resendSchema), async (c) => {
 	const { licenseKey } = c.req.valid("json");
 
 	try {
@@ -107,7 +135,7 @@ app.post("/resend-license", zValidator("json", resendSchema), async (c) => {
 	}
 });
 
-app.post("/stripe/webhook", async (c) => {
+router.post("/stripe/webhook", async (c) => {
 	const sig = c.req.header("stripe-signature");
 	const body = await c.req.json();
 
@@ -289,7 +317,8 @@ app.post("/stripe/webhook", async (c) => {
 	}
 });
 
-const port = process.env.PORT || 4000;
+app.route("/api", router);
+const port = process.env.PORT || 4002;
 console.log(`Server is running on port ${port}`);
 
 serve({
