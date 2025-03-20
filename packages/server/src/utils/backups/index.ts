@@ -80,7 +80,8 @@ export const initCronJobs = async () => {
 					console.log(
 						`PG-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
 					);
-					runPostgresBackup(pg, backup);
+					await runPostgresBackup(pg, backup);
+					await keepLatestNBackups(backup, pg.serverId);
 				});
 			}
 		}
@@ -112,6 +113,7 @@ export const initCronJobs = async () => {
 						`MARIADB-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
 					);
 					await runMariadbBackup(maria, backup);
+					await keepLatestNBackups(backup, maria.serverId);
 				});
 			}
 		}
@@ -141,6 +143,7 @@ export const initCronJobs = async () => {
 						`MONGO-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
 					);
 					await runMongoBackup(mongo, backup);
+					await keepLatestNBackups(backup, mongo.serverId);
 				});
 			}
 		}
@@ -170,6 +173,7 @@ export const initCronJobs = async () => {
 						`MYSQL-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
 					);
 					await runMySqlBackup(mysql, backup);
+					await keepLatestNBackups(backup, mysql.serverId);
 				});
 			}
 		}
