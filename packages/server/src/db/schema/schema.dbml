@@ -46,6 +46,7 @@ enum gitProviderType {
   github
   gitlab
   bitbucket
+  gitea
 }
 
 enum mountType {
@@ -98,6 +99,7 @@ enum sourceType {
   github
   gitlab
   bitbucket
+  gitea
   drop
 }
 
@@ -106,6 +108,7 @@ enum sourceTypeCompose {
   github
   gitlab
   bitbucket
+  gitea
   raw
 }
 
@@ -206,6 +209,7 @@ table application {
   githubId text
   gitlabId text
   bitbucketId text
+  giteaId text
   serverId text
 }
 
@@ -280,6 +284,9 @@ table compose {
   bitbucketRepository text
   bitbucketOwner text
   bitbucketBranch text
+  giteaRepository text
+  giteaOwner text
+  giteaBranch text
   customGitUrl text
   customGitBranch text
   customGitSSHKeyId text
@@ -294,6 +301,7 @@ table compose {
   githubId text
   gitlabId text
   bitbucketId text
+  giteaId text
   serverId text
 }
 
@@ -387,6 +395,20 @@ table gitlab {
   group_name text
   expires_at integer
   gitProviderId text [not null]
+}
+
+table gitea {
+  giteaId text [pk, not null]
+  giteaUrl text [not null, default: 'https://gitea.com']
+  redirect_uri text
+  client_id text [not null]
+  client_secret text [not null]
+  access_token text
+  refresh_token text
+  expires_at integer
+  gitProviderId text [not null]
+  scopes text [default: 'repo,repo:status,read:user,read:org']
+  last_authenticated_at integer
 }
 
 table gotify {
@@ -819,6 +841,8 @@ ref: preview_deployments.domainId - domain.domainId
 ref: github.gitProviderId - git_provider.gitProviderId
 
 ref: gitlab.gitProviderId - git_provider.gitProviderId
+
+ref: gitea.gitProviderId - git_provider.gitProviderId
 
 ref: git_provider.userId - user.id
 

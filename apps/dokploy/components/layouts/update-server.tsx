@@ -1,10 +1,10 @@
 import { api } from "@/utils/api";
 import type { IUpdateData } from "@dokploy/server/index";
+import { Download } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import UpdateServer from "../dashboard/settings/web-server/update-server";
 import { Button } from "../ui/button";
-import { Download } from "lucide-react";
 import {
 	Tooltip,
 	TooltipContent,

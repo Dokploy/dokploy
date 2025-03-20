@@ -1,3 +1,5 @@
+import { DrawerLogs } from "@/components/shared/drawer-logs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -23,6 +25,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
@@ -32,18 +35,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
+import { debounce } from "lodash";
 import { CheckIcon, ChevronsUpDown, Copy, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 import type { ServiceType } from "../../application/advanced/show-resources";
-import { debounce } from "lodash";
-import { Input } from "@/components/ui/input";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
-import { DrawerLogs } from "@/components/shared/drawer-logs";
-import { Badge } from "@/components/ui/badge";
-import copy from "copy-to-clipboard";
-import { toast } from "sonner";
 
 interface Props {
 	databaseId: string;

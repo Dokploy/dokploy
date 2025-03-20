@@ -128,6 +128,27 @@ export default async function handler(
 				res.status(301).json({ message: "Watch Paths Not Match" });
 				return;
 			}
+		} else if (sourceType === "gitea") {
+			const branchName = extractBranchName(req.headers, req.body);
+
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+
+			if (!branchName || branchName !== application.giteaBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
 		}
 
 		try {
@@ -222,12 +243,6 @@ export const extractCommitMessage = (headers: any, body: any) => {
 		return body.commits && body.commits.length > 0
 			? body.commits[0].message
 			: "NEW COMMIT";
-	}
-
-	if (headers["user-agent"]?.includes("Go-http-client")) {
-		if (body.push_data && body.repository) {
-			return `Docker image pushed: ${body.repository.repo_name}:${body.push_data.tag} by ${body.push_data.pusher}`;
-		}
 	}
 
 	return "NEW CHANGES";

@@ -1,11 +1,11 @@
-import type { Postgres } from "@dokploy/server/services/postgres";
 import type { Destination } from "@dokploy/server/services/destination";
+import type { Postgres } from "@dokploy/server/services/postgres";
+import { getS3Credentials } from "../backups/utils";
 import {
 	getRemoteServiceContainer,
 	getServiceContainer,
 } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials } from "../backups/utils";
 
 export const restorePostgresBackup = async (
 	postgres: Postgres,

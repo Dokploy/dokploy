@@ -67,7 +67,7 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";

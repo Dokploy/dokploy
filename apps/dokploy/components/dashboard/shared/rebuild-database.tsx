@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { DatabaseIcon, AlertTriangle } from "lucide-react";
+import { AlertTriangle, DatabaseIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {

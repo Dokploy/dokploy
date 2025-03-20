@@ -10,7 +10,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { account, organization, apikey } from "./account";
+import { account, apikey, organization } from "./account";
 import { projects } from "./project";
 import { certificateType } from "./shared";
 /**

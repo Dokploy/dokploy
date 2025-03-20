@@ -1,3 +1,4 @@
+import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
@@ -47,7 +48,6 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 
 type TabState =
 	| "projects"

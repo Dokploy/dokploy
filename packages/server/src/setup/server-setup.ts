@@ -6,10 +6,10 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findServerById } from "@dokploy/server/services/server";
 import {
+	TRAEFIK_HTTP3_PORT,
 	TRAEFIK_PORT,
 	TRAEFIK_SSL_PORT,
 	TRAEFIK_VERSION,
-	TRAEFIK_HTTP3_PORT,
 	getDefaultMiddlewares,
 	getDefaultServerTraefikConfig,
 } from "@dokploy/server/setup/traefik-setup";

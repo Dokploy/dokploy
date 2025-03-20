@@ -147,7 +147,9 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 										<div className="space-y-0.5">
-											<FormLabel>Enable Isolated Deployment ({data?.appName})</FormLabel>
+											<FormLabel>
+												Enable Isolated Deployment ({data?.appName})
+											</FormLabel>
 											<FormDescription>
 												Enable isolated deployment to the compose file.
 											</FormDescription>

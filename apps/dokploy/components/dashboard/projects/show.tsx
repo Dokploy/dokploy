@@ -186,7 +186,9 @@ export const ShowProjects = () => {
 																										target="_blank"
 																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
 																									>
-																										<span className="truncate">{domain.host}</span>
+																										<span className="truncate">
+																											{domain.host}
+																										</span>
 																										<ExternalLinkIcon className="size-4 shrink-0" />
 																									</Link>
 																								</DropdownMenuItem>
@@ -222,7 +224,9 @@ export const ShowProjects = () => {
 																										target="_blank"
 																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
 																									>
-																										<span className="truncate">{domain.host}</span>
+																										<span className="truncate">
+																											{domain.host}
+																										</span>
 																										<ExternalLinkIcon className="size-4 shrink-0" />
 																									</Link>
 																								</DropdownMenuItem>

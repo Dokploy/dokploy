@@ -92,7 +92,9 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 				enabled: backup.enabled || false,
 				prefix: backup.prefix,
 				schedule: backup.schedule,
-				keepLatestCount: backup.keepLatestCount ? Number(backup.keepLatestCount) : undefined,
+				keepLatestCount: backup.keepLatestCount
+					? Number(backup.keepLatestCount)
+					: undefined,
 			});
 		}
 	}, [form, form.reset, backup]);
@@ -274,10 +276,15 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 										<FormItem>
 											<FormLabel>Keep the latest</FormLabel>
 											<FormControl>
-												<Input type="number" placeholder={"keeps all the backups if left empty"} {...field} />
+												<Input
+													type="number"
+													placeholder={"keeps all the backups if left empty"}
+													{...field}
+												/>
 											</FormControl>
 											<FormDescription>
-												Optional. If provided, only keeps the latest N backups in the cloud.
+												Optional. If provided, only keeps the latest N backups
+												in the cloud.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
