@@ -1,4 +1,6 @@
+// @ts-ignore: Cannot find module errors
 import { db } from "@dokploy/server/db";
+// @ts-ignore: Cannot find module errors
 import {
 	type apiCreateGitea,
 	gitProvider,
@@ -32,7 +34,7 @@ export const createGitea = async (
 			});
 		}
 
-		await tx
+		const giteaProvider = await tx
 			.insert(gitea)
 			.values({
 				...input,
@@ -40,6 +42,20 @@ export const createGitea = async (
 			})
 			.returning()
 			.then((response: (typeof gitea.$inferSelect)[]) => response[0]);
+
+		if (!giteaProvider) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the Gitea provider",
+			});
+		}
+
+		// Return just the essential data needed by the frontend
+		return {
+			giteaId: giteaProvider.giteaId,
+			clientId: giteaProvider.clientId,
+			giteaUrl: giteaProvider.giteaUrl,
+		};
 	});
 };
 

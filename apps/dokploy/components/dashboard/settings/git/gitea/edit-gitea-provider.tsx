@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import { getGiteaOAuthUrl } from "@/utils/gitea-utils";
 import { useUrl } from "@/utils/hooks/use-url";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
@@ -55,7 +56,6 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 	useEffect(() => {
 		const { connected, error } = router.query;
 
-		// Only process if router is ready and query parameters exist
 		if (!router.isReady) return;
 
 		if (connected) {
@@ -64,7 +64,6 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 				id: "gitea-connection-success",
 			});
 			refetch();
-			// Clear the query parameters to prevent re-triggering
 			router.replace(
 				{
 					pathname: router.pathname,
@@ -80,7 +79,6 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 				description: decodeURIComponent(error as string),
 				id: "gitea-connection-error",
 			});
-			// Clear the query parameters to prevent re-triggering
 			router.replace(
 				{
 					pathname: router.pathname,
@@ -102,7 +100,6 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		},
 	});
 
-	// Update form values when data is loaded
 	useEffect(() => {
 		if (gitea) {
 			form.reset({
@@ -141,7 +138,15 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 				description: result,
 			});
 		} catch (error: any) {
-			const authUrl = error.authorizationUrl || getGiteaOAuthUrl();
+			const formValues = form.getValues();
+			const authUrl =
+				error.authorizationUrl ||
+				getGiteaOAuthUrl(
+					giteaId,
+					formValues.clientId,
+					formValues.giteaUrl,
+					typeof url === "string" ? url : (url as any).url || "",
+				);
 
 			toast.error("Gitea Not Connected", {
 				description:
@@ -157,32 +162,6 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		}
 	};
 
-	// Generate Gitea OAuth URL with state parameter
-	const getGiteaOAuthUrl = () => {
-		const clientId = form.getValues().clientId;
-		const giteaUrl = form.getValues().giteaUrl;
-
-		if (!clientId || !giteaUrl) {
-			toast.error("Configuration Incomplete", {
-				description: "Please fill in Client ID and Gitea URL first.",
-			});
-			return "#";
-		}
-
-		const redirectUri = `${url}/api/providers/gitea/callback`;
-
-		// Use the scopes from the gitea data (if available), else fallback to default scopes
-		const scopes =
-			gitea?.scopes?.split(",").join(" ") ||
-			"repo repo:status read:user read:org";
-		//const scopes = gitea?.scopes || 'repo,repo:status,read:user,read:org';
-
-		const state = giteaId;
-
-		return `${giteaUrl}/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`;
-	};
-
-	// Show loading state if data is being fetched
 	if (isLoading) {
 		return (
 			<Button variant="ghost" size="icon" disabled>
@@ -282,7 +261,13 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 								type="button"
 								variant="outline"
 								onClick={() => {
-									const authUrl = getGiteaOAuthUrl();
+									const formValues = form.getValues();
+									const authUrl = getGiteaOAuthUrl(
+										giteaId,
+										formValues.clientId,
+										formValues.giteaUrl,
+										typeof url === "string" ? url : (url as any).url || "",
+									);
 									if (authUrl !== "#") {
 										window.open(authUrl, "_blank");
 									}

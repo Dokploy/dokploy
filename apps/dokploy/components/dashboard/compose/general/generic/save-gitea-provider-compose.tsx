@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import type { Branch, Repository } from "@/utils/gitea-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
@@ -46,31 +47,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-
-interface Repository {
-	name: string;
-	url: string;
-	id: number;
-	owner: {
-		username: string;
-	};
-}
-
-interface Branch {
-	name: string;
-}
-
-interface GiteaProviderType {
-	giteaId: string;
-	gitProvider: {
-		name: string;
-		gitProviderId: string;
-		providerType: "github" | "gitlab" | "bitbucket" | "gitea";
-		createdAt: string;
-		organizationId: string;
-	};
-	name: string;
-}
 
 const GiteaProviderSchema = z.object({
 	composePath: z.string().min(1),

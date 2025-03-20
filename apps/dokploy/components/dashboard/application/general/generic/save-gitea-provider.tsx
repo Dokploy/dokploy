@@ -1,4 +1,5 @@
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -35,7 +36,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -433,7 +433,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 										</TooltipProvider>
 									</div>
 									<div className="flex flex-wrap gap-2 mb-2">
-										{field.value && field.value.map((path: string, index: number) => (
+										{field.value?.map((path: string, index: number) => (
 											<Badge
 												key={index}
 												variant="secondary"

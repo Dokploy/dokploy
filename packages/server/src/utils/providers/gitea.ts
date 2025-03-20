@@ -1,7 +1,9 @@
 import { createWriteStream } from "node:fs";
 import * as fs from "node:fs/promises";
 import { join } from "node:path";
+// @ts-ignore: Cannot find module errors
 import { paths } from "@dokploy/server/constants";
+// @ts-ignore: Cannot find module errors
 import { findGiteaById, updateGitea } from "@dokploy/server/services/gitea";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";

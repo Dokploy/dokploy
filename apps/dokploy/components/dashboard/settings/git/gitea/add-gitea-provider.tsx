@@ -1,4 +1,4 @@
-import { GiteaIcon } from "@/components/icons/data-tools-icons"; // Use GiteaIcon for Gitea
+import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -19,9 +19,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
+import {
+	type GiteaProviderResponse,
+	getGiteaOAuthUrl,
+} from "@/utils/gitea-utils";
 import { useUrl } from "@/utils/hooks/use-url";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -51,11 +54,14 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const AddGiteaProvider = () => {
-	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const url = useUrl();
+
+	const urlObj = useUrl();
+	const baseUrl =
+		typeof urlObj === "string" ? urlObj : (urlObj as any)?.url || "";
+
 	const { mutateAsync, error, isError } = api.gitea.create.useMutation();
-	const webhookUrl = `${url}/api/providers/gitea/callback`;
+	const webhookUrl = `${baseUrl}/api/providers/gitea/callback`;
 
 	const form = useForm<Schema>({
 		defaultValues: {
@@ -78,24 +84,52 @@ export const AddGiteaProvider = () => {
 			name: "",
 			giteaUrl: "https://gitea.com",
 		});
-	}, [form, isOpen]);
+	}, [form, webhookUrl, isOpen]);
 
 	const onSubmit = async (data: Schema) => {
-		await mutateAsync({
-			clientId: data.clientId || "",
-			clientSecret: data.clientSecret || "",
-			name: data.name || "",
-			redirectUri: data.redirectUri || "",
-			giteaUrl: data.giteaUrl || "https://gitea.com",
-		})
-			.then(async () => {
-				await utils.gitProvider.getAll.invalidate();
-				toast.success("Gitea provider created successfully");
-				setIsOpen(false);
-			})
-			.catch(() => {
-				toast.error("Error configuring Gitea");
-			});
+		try {
+			// Send the form data to create the Gitea provider
+			const result = (await mutateAsync({
+				clientId: data.clientId,
+				clientSecret: data.clientSecret,
+				name: data.name,
+				redirectUri: data.redirectUri,
+				giteaUrl: data.giteaUrl,
+				organizationName: data.organizationName,
+			})) as unknown as GiteaProviderResponse;
+
+			// Check if we have a giteaId from the response
+			if (!result || !result.giteaId) {
+				toast.error("Failed to get Gitea ID from response");
+				return;
+			}
+
+			// Generate OAuth URL using the shared utility
+			const authUrl = getGiteaOAuthUrl(
+				result.giteaId,
+				data.clientId,
+				data.giteaUrl,
+				baseUrl,
+			);
+
+			// Open the Gitea OAuth URL
+			if (authUrl !== "#") {
+				window.open(authUrl, "_blank");
+			} else {
+				toast.error("Configuration Incomplete", {
+					description: "Please fill in Client ID and Gitea URL first.",
+				});
+			}
+
+			toast.success("Gitea provider created successfully");
+			setIsOpen(false);
+		} catch (error: unknown) {
+			if (error instanceof Error) {
+				toast.error(`Error configuring Gitea: ${error.message}`);
+			} else {
+				toast.error("An unknown error occurred.");
+			}
+		}
 	};
 
 	return (
@@ -109,7 +143,7 @@ export const AddGiteaProvider = () => {
 					<span>Gitea</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-2xl overflow-y-auto max-h-screen">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Gitea Provider <GiteaIcon className="size-5" />
