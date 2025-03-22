@@ -52,7 +52,6 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 	const url = useUrl();
 	const utils = api.useUtils();
 
-	// Handle OAuth redirect results
 	useEffect(() => {
 		const { connected, error } = router.query;
 
@@ -109,7 +108,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 				clientSecret: gitea.clientSecret || "",
 			});
 		}
-	}, [gitea, form.reset]);
+	}, [gitea, form]);
 
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
 		await mutateAsync({
@@ -170,8 +169,13 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		);
 	}
 
+	// Function to handle dialog open state
+	const handleOpenChange = (newOpen: boolean) => {
+		setOpen(newOpen);
+	};
+
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>
 				<Button
 					variant="ghost"
@@ -181,7 +185,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 					<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent>
+			<DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
 				<DialogHeader>
 					<DialogTitle>Edit Gitea Provider</DialogTitle>
 					<DialogDescription>
@@ -197,7 +201,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 								<FormItem>
 									<FormLabel>Name</FormLabel>
 									<FormControl>
-										<Input placeholder="My Gitea" {...field} />
+										<Input placeholder="My Gitea" {...field} autoFocus={false} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
