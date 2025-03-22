@@ -11,6 +11,7 @@ import {
 	initializeTraefik,
 	setupDirectories
 } from "@dokploy/server";
+import { sendDokployRestartNotifications } from "@dokploy/server/utils/notifications/dokploy-restart";
 import { config } from "dotenv";
 import next from "next";
 import http from "node:http";
@@ -57,7 +58,7 @@ void app.prepare().then(async () => {
 			// Timeout to wait for the database to be ready
 			await new Promise((resolve) => setTimeout(resolve, 10000));
 			await migration();
-			// await sendDokployRestartNotifications();
+			await sendDokployRestartNotifications();
 		}
 
 		if (IS_CLOUD && process.env.NODE_ENV === "production") {
