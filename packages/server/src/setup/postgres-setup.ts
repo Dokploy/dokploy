@@ -32,18 +32,16 @@ export const initializePostgres = async () => {
 				Replicas: 1,
 			},
 		},
-		...(process.env.NODE_ENV === "development" && {
-			EndpointSpec: {
-				Ports: [
-					{
-						TargetPort: 5432,
-						PublishedPort: 5432,
-						Protocol: "tcp",
-						PublishMode: "host",
-					},
-				],
-			},
-		}),
+		EndpointSpec: {
+			Ports: [
+				{
+					TargetPort: 5432,
+					PublishedPort: 5432,
+					Protocol: "tcp",
+					PublishMode: "host",
+				},
+			],
+		},
 	};
 	try {
 		await pullImage(imageName);
