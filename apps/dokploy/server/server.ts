@@ -1,4 +1,3 @@
-import http from "node:http";
 import { migration } from "@/server/db/migration";
 import {
 	IS_CLOUD,
@@ -10,11 +9,11 @@ import {
 	initializePostgres,
 	initializeRedis,
 	initializeTraefik,
-	sendDokployRestartNotifications,
-	setupDirectories,
+	setupDirectories
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
+import http from "node:http";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -56,9 +55,9 @@ void app.prepare().then(async () => {
 			initCronJobs();
 
 			// Timeout to wait for the database to be ready
-			await new Promise((resolve) => setTimeout(resolve, 7000));
+			await new Promise((resolve) => setTimeout(resolve, 10000));
 			await migration();
-			await sendDokployRestartNotifications();
+			// await sendDokployRestartNotifications();
 		}
 
 		if (IS_CLOUD && process.env.NODE_ENV === "production") {

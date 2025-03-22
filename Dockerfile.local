@@ -1,0 +1,36 @@
+FROM dokploy-containerized:latest
+
+# Install Docker CLI and prepare for Docker installation
+RUN for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do apt-get remove -y $pkg; done && \
+    apt-get update && \
+    apt-get install -y ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    install -m 0755 -d /etc/apt/keyrings
+
+# Add Docker's GPG key using ADD instruction
+ADD https://download.docker.com/linux/debian/gpg /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources and install dependencies
+RUN chmod a+r /etc/apt/keyrings/docker.asc && \
+  echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+  apt-get update && \
+  apt install fuse-overlayfs -y && \
+  rm -rf /var/lib/apt/lists/*
+
+# Create the startup script for Docker
+RUN echo "#!/bin/bash\n \
+rm -rf /var/run/docker.pid\n \
+dockerd &\n \
+while ! docker info > /dev/null 2>&1; do\n \
+    echo 'Waiting for Docker to start...'\n \
+    sleep 1\n \
+done\n \
+docker swarm init\n \
+pnpm start" > /app/dockerd-entrypoint.sh && chmod +x /app/dockerd-entrypoint.sh
+
+# Start Docker daemon (for full DinD)
+CMD ["/bin/bash", "/app/dockerd-entrypoint.sh"]
+
