@@ -26,7 +26,6 @@ export const licenses = pgTable("licenses", {
 	serverIp: text("server_ip"),
 	activatedAt: timestamp("activated_at"),
 	lastVerifiedAt: timestamp("last_verified_at"),
-	expiresAt: timestamp("expires_at").notNull(),
 	stripeCustomerId: text("stripeCustomerId").notNull(),
 	stripeSubscriptionId: text("stripeSubscriptionId").notNull(),
 	createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),

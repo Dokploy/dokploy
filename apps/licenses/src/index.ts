@@ -5,8 +5,8 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { logger } from "./logger";
 import { render } from "@react-email/render";
-import LicenseEmail from "../templates/emails/license-email";
-import ResendLicenseEmail from "../templates/emails/resend-license-email";
+import { LicenseEmail } from "../templates/emails/license-email";
+import { ResendLicenseEmail } from "../templates/emails/resend-license-email";
 import {
 	createLicense,
 	validateLicense,
@@ -33,6 +33,8 @@ router.use(
 		origin: ["http://localhost:3001"],
 	}),
 );
+
+console.log(process.env.DATABASE_URL);
 
 const validateSchema = z.object({
 	licenseKey: z.string(),
@@ -117,14 +119,20 @@ router.post("/resend-license", zValidator("json", resendSchema), async (c) => {
 			ResendLicenseEmail({
 				licenseKey: license.licenseKey,
 				productName: `Dokploy Self Hosted ${license.type}`,
-				expirationDate: new Date(license.expiresAt),
+				// TODO: Add expiration date
+				expirationDate: new Date(),
 				requestDate: new Date(),
 				customerName: license.email,
 			}),
 		);
-
+		// await transporter.sendMail({
+		// 	from: fromAddress,
+		// 	to: toAddresses.join(", "),
+		// 	subject,
+		// 	html: htmlContent,
+		// });
 		await transporter.sendMail({
-			from: process.env.SMTP_FROM,
+			from: process.env.SMTP_FROM_ADDRESS,
 			to: license.email,
 			subject: "Your Dokploy License Key",
 			html: emailHtml,
@@ -136,22 +144,33 @@ router.post("/resend-license", zValidator("json", resendSchema), async (c) => {
 		return c.json({ success: false, error: "Error resending license" }, 500);
 	}
 });
-
 router.post("/stripe/webhook", async (c) => {
+	const rawBody = await c.req.raw.text();
 	const sig = c.req.header("stripe-signature");
-	const body = await c.req.json();
 
 	let event: Stripe.Event;
 
 	try {
 		event = stripe.webhooks.constructEvent(
-			JSON.stringify(body),
+			rawBody,
 			sig!,
 			process.env.STRIPE_WEBHOOK_SECRET!,
 		);
 	} catch (err) {
 		logger.error("Webhook signature verification failed:", err);
 		return c.json({ error: "Webhook signature verification failed" }, 400);
+	}
+
+	const allowedEvents = [
+		"checkout.session.completed",
+		"customer.subscription.updated",
+		"invoice.payment_succeeded",
+		"invoice.payment_failed",
+		"customer.subscription.deleted",
+	];
+
+	if (!allowedEvents.includes(event.type)) {
+		return c.json({ error: "Event not allowed" }, 400);
 	}
 
 	try {
@@ -183,19 +202,23 @@ router.post("/stripe/webhook", async (c) => {
 					stripeSubscriptionId: session.id,
 				});
 
+				console.log("License created", license);
+
 				const features = getLicenseFeatures(type);
+				console.log("Features", features);
 				const emailHtml = await render(
 					LicenseEmail({
 						customerName: customerResponse.name || "Customer",
 						licenseKey: license.licenseKey,
 						productName: `Dokploy Self Hosted ${type}`,
-						expirationDate: new Date(license.expiresAt),
+						// TODO: Add expiration date
+						expirationDate: new Date(),
 						features: features,
 					}),
 				);
 
 				await transporter.sendMail({
-					from: process.env.SMTP_FROM,
+					from: process.env.SMTP_FROM_ADDRESS,
 					to: license.email,
 					subject: "Your Dokploy License Key",
 					html: emailHtml,
@@ -230,7 +253,10 @@ router.post("/stripe/webhook", async (c) => {
 				const customerResponse = await stripe.customers.retrieve(
 					invoice.customer as string,
 				);
-				if (suscription.status !== "active" || customerResponse.deleted) break;
+				if (suscription.status !== "active" || customerResponse.deleted) {
+					await deactivateLicense(invoice.subscription as string);
+					break;
+				}
 
 				const existingLicense = await db.query.licenses.findFirst({
 					where: eq(licenses.stripeCustomerId, invoice.customer as string),
@@ -238,37 +264,12 @@ router.post("/stripe/webhook", async (c) => {
 
 				if (!existingLicense) break;
 
-				const newExpirationDate = new Date();
-				newExpirationDate.setMonth(
-					newExpirationDate.getMonth() +
-						(existingLicense.billingType === "annual" ? 12 : 1),
-				);
-
 				await db
 					.update(licenses)
 					.set({
-						expiresAt: newExpirationDate,
 						status: "active",
 					})
 					.where(eq(licenses.id, existingLicense.id));
-
-				const features = getLicenseFeatures(existingLicense.type);
-				const emailHtml = await render(
-					LicenseEmail({
-						customerName: customerResponse.name || "Customer",
-						licenseKey: existingLicense.licenseKey,
-						productName: `Dokploy Self Hosted ${existingLicense.type}`,
-						expirationDate: new Date(newExpirationDate),
-						features: features,
-					}),
-				);
-
-				await transporter.sendMail({
-					from: process.env.SMTP_FROM,
-					to: existingLicense.email,
-					subject: "Your Dokploy License Has Been Renewed",
-					html: emailHtml,
-				});
 
 				break;
 			}
@@ -311,7 +312,7 @@ router.post("/stripe/webhook", async (c) => {
 
 		return c.json({ received: true });
 	} catch (error) {
-		logger.error("Error processing webhook:", error);
+		console.error("Error processing webhook:", error);
 		if (error instanceof Error) {
 			return c.json({ error: error.message }, 500);
 		}
@@ -321,7 +322,7 @@ router.post("/stripe/webhook", async (c) => {
 
 app.route("/api", router);
 const port = process.env.PORT || 4002;
-console.log(`Server is running on port ${port}`);
+console.log(`Server is running on port http://localhost:${port}`);
 
 serve({
 	fetch: app.fetch,

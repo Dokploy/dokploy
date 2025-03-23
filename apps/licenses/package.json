@@ -3,7 +3,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "PORT=4002 tsx watch src/index.ts",
+		"dev": "PORT=4002 tsx watch -r dotenv/config src/index.ts",
 		"build": "tsc --project tsconfig.json",
 		"start": "node dist/index.js",
 		"typecheck": "tsc --noEmit",

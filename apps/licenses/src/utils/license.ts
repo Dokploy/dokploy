@@ -1,7 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { db } from "../db";
-import { type License, licenses } from "../schema";
+import { licenses } from "../schema";
 import { eq } from "drizzle-orm";
+import { stripe } from "../stripe";
+import type Stripe from "stripe";
 
 export const generateLicenseKey = () => {
 	return randomBytes(32).toString("hex");
@@ -25,10 +27,6 @@ export const createLicense = async ({
 	stripeSubscriptionId,
 }: CreateLicenseProps) => {
 	const licenseKey = `dokploy-${generateLicenseKey()}`;
-	const expiresAt = new Date();
-	expiresAt.setMonth(
-		expiresAt.getMonth() + (billingType === "annual" ? 12 : 1),
-	);
 
 	const license = await db
 		.insert(licenses)
@@ -37,7 +35,6 @@ export const createLicense = async ({
 			licenseKey,
 			type,
 			billingType,
-			expiresAt,
 			email,
 			stripeCustomerId,
 			stripeSubscriptionId,
@@ -59,26 +56,21 @@ export const validateLicense = async (
 		return { isValid: false, error: "License not found" };
 	}
 
-	if (license.status !== "active") {
+	const suscription = await stripe.subscriptions.retrieve(
+		license.stripeSubscriptionId,
+	);
+
+	if (suscription.status !== "active") {
 		return {
 			isValid: false,
-			error: `License is ${getLicenseStatus(license)}`,
+			error: `License is ${getLicenseStatus(suscription)}`,
 		};
-	}
-
-	if (new Date() > license.expiresAt) {
-		await db
-			.update(licenses)
-			.set({ status: "expired" })
-			.where(eq(licenses.id, license.id));
-		return { isValid: false, error: "License has expired" };
 	}
 
 	if (license.serverIp && serverIp && license.serverIp !== serverIp) {
 		return { isValid: false, error: "Invalid server IP" };
 	}
 
-	// Update last verified timestamp
 	await db
 		.update(licenses)
 		.set({ lastVerifiedAt: new Date() })
@@ -96,16 +88,12 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 		throw new Error("License not found");
 	}
 
-	if (license.status !== "active") {
-		throw new Error("License is not active");
-	}
+	const suscription = await stripe.subscriptions.retrieve(
+		license.stripeSubscriptionId,
+	);
 
-	if (new Date() > license.expiresAt) {
-		await db
-			.update(licenses)
-			.set({ status: "expired" })
-			.where(eq(licenses.id, license.id));
-		throw new Error("License has expired");
+	if (suscription.status !== "active") {
+		throw new Error(`License is ${getLicenseStatus(suscription)}`);
 	}
 
 	if (license.serverIp && license.serverIp !== serverIp) {
@@ -141,22 +129,40 @@ export const deactivateLicense = async (stripeSubscriptionId: string) => {
 		.where(eq(licenses.id, license.id));
 };
 
-export const getLicenseStatus = (license: License) => {
+export const getLicenseStatus = async (license: Stripe.Subscription) => {
 	if (license.status === "active") {
 		return "active";
 	}
 
-	if (license.status === "expired") {
-		return "expired";
+	if (license.status === "canceled") {
+		return "canceled";
 	}
 
-	if (license.status === "cancelled") {
-		return "cancelled";
+	if (license.status === "incomplete") {
+		return "incomplete";
 	}
 
-	if (license.status === "payment_pending") {
-		return "pending payment";
+	if (license.status === "incomplete_expired") {
+		return "incomplete expired";
 	}
+
+	if (license.status === "past_due") {
+		return "past due";
+	}
+
+	if (license.status === "paused") {
+		return "paused";
+	}
+
+	if (license.status === "trialing") {
+		return "trialing";
+	}
+
+	if (license.status === "unpaid") {
+		return "unpaid";
+	}
+
+	return "unknown";
 };
 
 export const getStripeItems = (
