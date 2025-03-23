@@ -113,10 +113,6 @@ export const getBuildCommand = (
 export const mechanizeDockerContainer = async (
 	application: ApplicationNested,
 ) => {
-	console.log(
-		`Starting to mechanize Docker container for ${application.appName}`,
-	);
-
 	const {
 		appName,
 		env,
@@ -197,10 +193,8 @@ export const mechanizeDockerContainer = async (
 	};
 
 	try {
-		console.log(`Attempting to find existing service: ${appName}`);
 		const service = docker.getService(appName);
 		const inspect = await service.inspect();
-		console.log(`Found existing service, updating: ${appName}`);
 
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
@@ -210,22 +204,8 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-		console.log(`Service updated successfully: ${appName}`);
-	} catch (error: unknown) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
-		console.log(`Service not found or error: ${errorMessage}`);
-		console.log(`Creating new service: ${appName}`);
-
-		try {
-			await docker.createService(settings);
-			console.log(`Service created successfully: ${appName}`);
-		} catch (createError: unknown) {
-			const createErrorMessage =
-				createError instanceof Error ? createError.message : "Unknown error";
-			console.error(`Failed to create service: ${createErrorMessage}`);
-			throw createError;
-		}
+	} catch (_error: unknown) {
+		await docker.createService(settings);
 	}
 };
 

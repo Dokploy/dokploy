@@ -85,19 +85,7 @@ export const buildNixpacks = async (
 		}
 		return true;
 	} catch (e) {
-		// Only try to remove the container if it might exist
-		try {
-			await spawnAsync("docker", ["rm", buildContainerId], writeToStream);
-		} catch (rmError) {
-			// Ignore errors from container removal
-			const errorMessage =
-				rmError instanceof Error
-					? rmError.message
-					: "Unknown container cleanup error";
-
-			// Just log it but don't let it cause another error
-			writeToStream(`Container cleanup attempt: ${errorMessage}\n`);
-		}
+		await spawnAsync("docker", ["rm", buildContainerId], writeToStream);
 
 		throw e;
 	}
