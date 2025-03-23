@@ -1,7 +1,6 @@
 import { findGiteaById } from "@dokploy/server";
 import type { NextApiResponse } from "next";
 
-// Shared Gitea interface
 export interface Gitea {
 	giteaId: string;
 	gitProviderId: string;
@@ -22,7 +21,6 @@ export interface Gitea {
 	};
 }
 
-// Shared function to find Gitea by ID
 export const findGitea = async (giteaId: string): Promise<Gitea | null> => {
 	try {
 		const gitea = await findGiteaById(giteaId);
@@ -33,7 +31,6 @@ export const findGitea = async (giteaId: string): Promise<Gitea | null> => {
 	}
 };
 
-// Helper for redirecting with error message
 export const redirectWithError = (res: NextApiResponse, error: string) => {
 	return res.redirect(
 		307,

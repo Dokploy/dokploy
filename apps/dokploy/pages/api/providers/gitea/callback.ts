@@ -73,7 +73,7 @@ export default async function handler(
 		: null;
 
 	try {
-		const updatedGitea = await updateGitea(gitea.giteaId, {
+		await updateGitea(gitea.giteaId, {
 			accessToken: result.access_token,
 			refreshToken: result.refresh_token,
 			expiresAt,
@@ -82,7 +82,6 @@ export default async function handler(
 				: {}),
 		});
 
-		console.log("Gitea provider updated successfully:", updatedGitea);
 		return res.redirect(
 			307,
 			"/dashboard/settings/git-providers?connected=true",
