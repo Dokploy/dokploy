@@ -67,8 +67,8 @@ const GiteaProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
-			giteaPathNamespace: z.string(),
-			id: z.number().nullable(),
+			giteaPathNamespace: z.string().min(1),
+			id: z.number().nullable().optional(),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -129,7 +129,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 		{
 			owner: repository?.owner,
 			repositoryName: repository?.repo,
-			id: repository?.id || 0,
+			id: repository?.id ?? 0, // Use nullish coalescing to provide 0 as a fallback
 			giteaId: giteaId,
 		},
 		{
@@ -145,7 +145,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 					repo: data.giteaRepository || "",
 					owner: data.giteaOwner || "",
 					giteaPathNamespace: data.giteaPathNamespace || "",
-					id: data.giteaProjectId,
+					id: data.giteaProjectId || null, // Handle null case explicitly
 				},
 				buildPath: data.giteaBuildPath || "/",
 				giteaId: data.giteaId || "",
@@ -162,7 +162,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			giteaBuildPath: data.buildPath,
 			giteaId: data.giteaId,
 			applicationId,
-			giteaProjectId: data.repository.id,
+			giteaProjectId: data.repository.id || null, // Handle null case explicitly
 			giteaPathNamespace: data.repository.giteaPathNamespace,
 			watchPaths: data.watchPaths,
 		})
