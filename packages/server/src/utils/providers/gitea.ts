@@ -31,16 +31,8 @@ export const getErrorCloneRequirements = (entity: {
 	return reasons;
 };
 
-/**
- * Function to refresh the Gitea token if expired
- */
 export const refreshGiteaToken = async (giteaProviderId: string) => {
 	try {
-		console.log("Attempting to refresh Gitea token:", {
-			giteaProviderId,
-			timestamp: new Date().toISOString(),
-		});
-
 		const giteaProvider = await findGiteaById(giteaProviderId);
 
 		if (
@@ -48,7 +40,6 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 			!giteaProvider?.clientSecret ||
 			!giteaProvider?.refreshToken
 		) {
-			console.warn("Missing credentials for token refresh");
 			return giteaProvider?.accessToken || null;
 		}
 
@@ -60,9 +51,6 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 			client_secret: giteaProvider.clientSecret,
 		});
 
-		console.log("Token Endpoint:", tokenEndpoint);
-		console.log("Request Parameters:", params.toString());
-
 		const response = await fetch(tokenEndpoint, {
 			method: "POST",
 			headers: {
@@ -72,14 +60,7 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 			body: params.toString(),
 		});
 
-		console.log("Token Refresh Response:", {
-			status: response.status,
-			statusText: response.statusText,
-		});
-
 		if (!response.ok) {
-			const errorText = await response.text();
-			console.error("Token Refresh Failed:", errorText);
 			return giteaProvider?.accessToken || null;
 		}
 
@@ -87,7 +68,6 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 		const { access_token, refresh_token, expires_in } = data;
 
 		if (!access_token) {
-			console.error("Missing access token in refresh response");
 			return giteaProvider?.accessToken || null;
 		}
 
@@ -100,11 +80,9 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 			expiresAt: expiresAtSeconds,
 		});
 
-		console.log("Gitea token refreshed successfully.");
 		return access_token;
 	} catch (error) {
-		console.error("Token Refresh Error:", error);
-		// Return the existing token if refresh fails
+		console.error("Error refreshing Gitea token:", error);
 		const giteaProvider = await findGiteaById(giteaProviderId);
 		return giteaProvider?.accessToken || null;
 	}
@@ -177,15 +155,8 @@ export const getGiteaCloneCommand = async (
 	return cloneCommand;
 };
 
-interface CloneGiteaRepository {
-	appName: string;
-	giteaBranch: string;
-	giteaId: string;
-	giteaOwner: string;
-	giteaRepository: string;
-}
 export const cloneGiteaRepository = async (
-	entity: CloneGiteaRepository,
+	entity: ApplicationWithGitea | ComposeWithGitea,
 	logPath: string,
 	isCompose = false,
 ) => {
@@ -226,7 +197,7 @@ export const cloneGiteaRepository = async (
 			[
 				"clone",
 				"--branch",
-				giteaBranch,
+				giteaBranch!,
 				"--depth",
 				"1",
 				"--recurse-submodules",

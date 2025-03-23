@@ -14,7 +14,10 @@ import {
 	cloneGitRawRepository,
 	cloneRawGitRepositoryRemote,
 } from "../providers/git";
-import { cloneRawGiteaRepository } from "../providers/gitea";
+import {
+	cloneRawGiteaRepository,
+	cloneRawGiteaRepositoryRemote,
+} from "../providers/gitea";
 import {
 	cloneRawGithubRepository,
 	cloneRawGithubRepositoryRemote,
@@ -62,7 +65,7 @@ export const cloneComposeRemote = async (compose: Compose) => {
 	} else if (compose.sourceType === "git") {
 		await cloneRawGitRepositoryRemote(compose);
 	} else if (compose.sourceType === "gitea") {
-		await cloneRawGiteaRepository(compose);
+		await cloneRawGiteaRepositoryRemote(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRawRemote(compose);
 	}
