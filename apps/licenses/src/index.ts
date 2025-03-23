@@ -34,8 +34,6 @@ router.use(
 	}),
 );
 
-console.log(process.env.DATABASE_URL);
-
 const validateSchema = z.object({
 	licenseKey: z.string(),
 	serverIp: z.string(),
@@ -161,6 +159,7 @@ router.post("/stripe/webhook", async (c) => {
 		"invoice.payment_succeeded",
 		"invoice.payment_failed",
 		"customer.subscription.deleted",
+		"invoice.paid",
 	];
 
 	if (!allowedEvents.includes(event.type)) {
@@ -169,58 +168,6 @@ router.post("/stripe/webhook", async (c) => {
 
 	try {
 		switch (event.type) {
-			case "checkout.session.completed": {
-				const session = event.data.object as Stripe.Checkout.Session;
-
-				const customerResponse = await stripe.customers.retrieve(
-					session.customer as string,
-				);
-
-				if (customerResponse.deleted) {
-					throw new Error("Customer was deleted");
-				}
-
-				const lineItems = await stripe.checkout.sessions.listLineItems(
-					session.id,
-				);
-				const priceId = lineItems.data[0].price?.id;
-
-				const { type, billingType } = getLicenseTypeFromPriceId(priceId!);
-
-				const license = await createLicense({
-					productId: session.id,
-					type,
-					billingType,
-					email: session.customer_details?.email!,
-					stripeCustomerId: customerResponse.id,
-					stripeSubscriptionId: session.subscription as string,
-				});
-
-				console.log("License created", license);
-
-				const features = getLicenseFeatures(type);
-				console.log("Features", features);
-				const emailHtml = await render(
-					LicenseEmail({
-						customerName: customerResponse.name || "Customer",
-						licenseKey: license.licenseKey,
-						productName: `Dokploy Self Hosted ${type}`,
-						// TODO: Add expiration date
-						expirationDate: new Date(),
-						features: features,
-					}),
-				);
-
-				await transporter.sendMail({
-					from: process.env.SMTP_FROM_ADDRESS,
-					to: license.email,
-					subject: "Your Dokploy License Key",
-					html: emailHtml,
-				});
-
-				break;
-			}
-
 			case "customer.subscription.updated": {
 				const subscription = event.data.object as Stripe.Subscription;
 
@@ -230,6 +177,55 @@ router.post("/stripe/webhook", async (c) => {
 
 				if (subscription.status !== "active" || customerResponse.deleted) {
 					await deactivateLicense(subscription.id);
+				}
+				break;
+			}
+
+			case "invoice.paid": {
+				const invoice = event.data.object as Stripe.Invoice;
+
+				if (!invoice.subscription) break;
+
+				if (invoice.billing_reason === "subscription_create") {
+					const customerResponse = await stripe.customers.retrieve(
+						invoice.customer as string,
+					);
+
+					if (customerResponse.deleted) {
+						throw new Error("Customer was deleted");
+					}
+
+					const subscriptionId = invoice.subscription as string;
+					const subscription =
+						await stripe.subscriptions.retrieve(subscriptionId);
+					const priceId = subscription.items.data[0].price.id;
+					const { type, billingType } = getLicenseTypeFromPriceId(priceId);
+
+					const license = await createLicense({
+						productId: subscriptionId,
+						type,
+						billingType,
+						email: customerResponse.email!,
+						stripeCustomerId: customerResponse.id,
+						stripeSubscriptionId: subscriptionId,
+					});
+
+					const features = getLicenseFeatures(type);
+					const emailHtml = await render(
+						LicenseEmail({
+							customerName: customerResponse.name || "Customer",
+							licenseKey: license.licenseKey,
+							productName: `Dokploy Self Hosted ${type}`,
+							features: features,
+						}),
+					);
+
+					await transporter.sendMail({
+						from: process.env.SMTP_FROM_ADDRESS,
+						to: license.email,
+						subject: "Your Dokploy License Key ",
+						html: emailHtml,
+					});
 				}
 
 				break;

@@ -18,7 +18,6 @@ interface LicenseEmailProps {
 	customerName: string;
 	licenseKey: string;
 	productName: string;
-	expirationDate: Date;
 	features: string[];
 }
 
@@ -28,15 +27,8 @@ export const LicenseEmail = ({
 	customerName = "John Doe",
 	licenseKey = "1234567890",
 	productName = "Dokploy",
-	expirationDate = new Date(),
 	features = ["Feature 1", "Feature 2", "Feature 3"],
 }: LicenseEmailProps): React.ReactElement => {
-	const formattedDate = expirationDate.toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-
 	return (
 		<Html>
 			<Head />
@@ -67,12 +59,6 @@ export const LicenseEmail = ({
 						<Section style={licenseContainer}>
 							<Text style={licenseLabel}>Your License Key</Text>
 							<Text style={licenseKeyStyle}>{licenseKey}</Text>
-						</Section>
-
-						<Section style={validitySection}>
-							<Text style={validityText}>
-								🗓️ Next billing date: <strong>{formattedDate}</strong>
-							</Text>
 						</Section>
 
 						<Section style={featuresContainer}>
