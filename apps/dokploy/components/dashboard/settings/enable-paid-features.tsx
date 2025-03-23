@@ -12,7 +12,7 @@ import { api } from "@/utils/api";
 import { SetupMonitoring } from "./servers/setup-monitoring";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export const EnablePaidFeatures = () => {
 	const { data, refetch } = api.user.get.useQuery();
@@ -21,14 +21,25 @@ export const EnablePaidFeatures = () => {
 	const { mutateAsync: update } = api.user.update.useMutation();
 	const [licenseKey, setLicenseKey] = useState("");
 
+	useEffect(() => {
+		if (data?.user?.enablePaidFeatures) {
+			setLicenseKey(data.user.licenseKey || "");
+		}
+	}, [data?.user?.enablePaidFeatures]);
+
 	const handleValidateLicense = async () => {
+		if (!licenseKey) {
+			toast.error("Please enter a license key");
+			return;
+		}
 		await validateLicense({
 			licenseKey,
 		})
 			.then(() => {
 				toast.success("License validated successfully");
 			})
-			.catch(() => {
+			.catch((e) => {
+				console.error(e);
 				toast.error("Error validating license");
 			});
 	};

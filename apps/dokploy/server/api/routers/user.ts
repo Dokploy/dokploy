@@ -140,14 +140,18 @@ export const userRouter = createTRPCRouter({
 			}
 			return await updateUser(ctx.user.id, input);
 		}),
-	validateLicense: protectedProcedure
+	validateLicense: adminProcedure
 		.input(
 			z.object({
 				licenseKey: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const isValid = await validateLicense(input.licenseKey);
+			const owner = await findUserById(ctx.user.ownerId);
+			const isValid = await validateLicense(
+				input.licenseKey,
+				owner?.serverIp || "",
+			);
 			if (!isValid) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -363,7 +367,7 @@ export const userRouter = createTRPCRouter({
 
 				const user = await findUserById(ctx.user.id);
 
-				if (!validateLicense(user?.licenseKey || "")) {
+				if (!validateLicense(user?.licenseKey || "", user?.serverIp || "")) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "Invalid license key",

@@ -56,6 +56,8 @@ router.get("/health", async (c) => {
 router.post("/validate", zValidator("json", validateSchema), async (c) => {
 	const { licenseKey, serverIp } = c.req.valid("json");
 
+	console.log("Validating license", licenseKey, serverIp);
+
 	try {
 		const result = await validateLicense(licenseKey, serverIp);
 		return c.json(result);
