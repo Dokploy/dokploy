@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 
 export const EnablePaidFeatures = () => {
 	const { data, refetch } = api.user.get.useQuery();
+	const [isLoading, setIsLoading] = useState(false);
 	const { mutateAsync: validateLicense } =
 		api.user.validateLicense.useMutation();
 	const { mutateAsync: update } = api.user.update.useMutation();
@@ -32,6 +33,7 @@ export const EnablePaidFeatures = () => {
 			toast.error("Please enter a license key");
 			return;
 		}
+		setIsLoading(true);
 		await validateLicense({
 			licenseKey,
 		})
@@ -40,7 +42,12 @@ export const EnablePaidFeatures = () => {
 			})
 			.catch((e) => {
 				console.error(e);
-				toast.error("Error validating license");
+				toast.error("Error validating license", {
+					description: e.message,
+				});
+			})
+			.finally(() => {
+				setIsLoading(false);
 			});
 	};
 
@@ -102,8 +109,12 @@ export const EnablePaidFeatures = () => {
 										className="w-full"
 									/>
 								</div>
-								<Button onClick={handleValidateLicense} variant="secondary">
-									Validate
+								<Button
+									onClick={handleValidateLicense}
+									variant="secondary"
+									disabled={isLoading}
+								>
+									{isLoading ? "Validating..." : "Validate"}
 								</Button>
 							</div>
 						)}

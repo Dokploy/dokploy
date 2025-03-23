@@ -9,6 +9,7 @@
 		"typecheck": "tsc --noEmit",
 		"generate": "drizzle-kit generate",
 		"drop": "drizzle-kit drop",
+		"push": "drizzle-kit push",
 		"migrate": "tsx ./migrate.ts",
 		"truncate": "tsx ./truncate.ts",
 		"reset:all": "tsx ./truncate.ts && tsx ./migrate.ts",

@@ -58,13 +58,12 @@ router.get("/health", async (c) => {
 router.post("/validate", zValidator("json", validateSchema), async (c) => {
 	const { licenseKey, serverIp } = c.req.valid("json");
 
-	console.log("Validating license", licenseKey, serverIp);
-
 	try {
 		const result = await validateLicense(licenseKey, serverIp);
+		console.log("Result", result);
 		return c.json(result);
 	} catch (error) {
-		logger.error("Error validating license:", error);
+		logger.error("Error validating license:", { error });
 		return c.json({ isValid: false, error: "Error validating license" }, 500);
 	}
 });
@@ -125,12 +124,7 @@ router.post("/resend-license", zValidator("json", resendSchema), async (c) => {
 				customerName: license.email,
 			}),
 		);
-		// await transporter.sendMail({
-		// 	from: fromAddress,
-		// 	to: toAddresses.join(", "),
-		// 	subject,
-		// 	html: htmlContent,
-		// });
+
 		await transporter.sendMail({
 			from: process.env.SMTP_FROM_ADDRESS,
 			to: license.email,
@@ -199,7 +193,7 @@ router.post("/stripe/webhook", async (c) => {
 					billingType,
 					email: session.customer_details?.email!,
 					stripeCustomerId: customerResponse.id,
-					stripeSubscriptionId: session.id,
+					stripeSubscriptionId: session.subscription as string,
 				});
 
 				console.log("License created", license);

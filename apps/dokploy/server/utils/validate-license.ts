@@ -1,9 +1,6 @@
 const licensesUrl = process.env.LICENSES_URL || "http://localhost:4002";
 
-export const validateLicense = async (
-	licenseKey: string,
-	serverIp: string,
-): Promise<boolean> => {
+export const validateLicense = async (licenseKey: string, serverIp: string) => {
 	const response = await fetch(`${licensesUrl}/api/validate`, {
 		method: "POST",
 		headers: {
@@ -17,5 +14,5 @@ export const validateLicense = async (
 		console.log("Validation errors:", data.error.issues);
 	}
 
-	return response.ok;
+	return data;
 };

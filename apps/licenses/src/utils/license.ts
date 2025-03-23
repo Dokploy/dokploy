@@ -60,6 +60,8 @@ export const validateLicense = async (
 		license.stripeSubscriptionId,
 	);
 
+	console.log("Suscription", suscription);
+
 	if (suscription.status !== "active") {
 		return {
 			isValid: false,

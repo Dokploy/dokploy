@@ -148,21 +148,21 @@ export const userRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const owner = await findUserById(ctx.user.ownerId);
-			const isValid = await validateLicense(
+			const result = await validateLicense(
 				input.licenseKey,
 				owner?.serverIp || "",
 			);
-			if (!isValid) {
+			if (!result.isValid) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "Invalid license key",
+					message: result.error,
 				});
 			}
 
 			await updateUser(ctx.user.id, {
 				licenseKey: input.licenseKey,
 			});
-			return isValid;
+			return result;
 		}),
 	getUserByToken: publicProcedure
 		.input(apiFindOneToken)
