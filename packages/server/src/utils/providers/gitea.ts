@@ -1,46 +1,18 @@
 import { createWriteStream } from "node:fs";
-import * as fs from "node:fs/promises";
 import { join } from "node:path";
-// @ts-ignore: Cannot find module errors
 import { paths } from "@dokploy/server/constants";
-// @ts-ignore: Cannot find module errors
-import { findGiteaById, updateGitea } from "@dokploy/server/services/gitea";
+import {
+	findGiteaById,
+	type Gitea,
+	updateGitea,
+} from "@dokploy/server/services/gitea";
 import { TRPCError } from "@trpc/server";
 import { recreateDirectory } from "../filesystem/directory";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
+import type { Compose } from "@dokploy/server/services/compose";
+import type { InferResultType } from "@dokploy/server/types/with";
 
-/**
- * Wrapper function to maintain compatibility with the existing implementation
- */
-export const fetchGiteaBranches = async (
-	giteaId: string,
-	repoFullName: string,
-) => {
-	// Ensure owner and repo are non-empty strings
-	const parts = repoFullName.split("/");
-
-	// Validate that we have exactly two parts
-	if (parts.length !== 2 || !parts[0] || !parts[1]) {
-		throw new Error(
-			`Invalid repository name format: ${repoFullName}. Expected format: owner/repo`,
-		);
-	}
-
-	const [owner, repo] = parts;
-
-	// Call the existing getGiteaBranches function with the correct object structure
-	return await getGiteaBranches({
-		giteaId,
-		owner,
-		repo,
-		id: 0, // Provide a default value for optional id
-	});
-};
-
-/**
- * Helper function to check if the required fields are filled for Gitea repository operations
- */
 export const getErrorCloneRequirements = (entity: {
 	giteaRepository?: string | null;
 	giteaOwner?: string | null;
@@ -138,11 +110,15 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 	}
 };
 
-/**
- * Generate a secure Git clone command with proper validation
- */
+export type ApplicationWithGitea = InferResultType<
+	"applications",
+	{ gitea: true }
+>;
+
+export type ComposeWithGitea = InferResultType<"compose", { gitea: true }>;
+
 export const getGiteaCloneCommand = async (
-	entity: any,
+	entity: ApplicationWithGitea | ComposeWithGitea,
 	logPath: string,
 	isCompose = false,
 ) => {
@@ -153,6 +129,7 @@ export const getGiteaCloneCommand = async (
 		giteaOwner,
 		giteaRepository,
 		serverId,
+		gitea,
 	} = entity;
 
 	if (!serverId) {
@@ -163,6 +140,12 @@ export const getGiteaCloneCommand = async (
 	}
 
 	if (!giteaId) {
+		const command = `
+		echo  "Error: ❌ Gitlab Provider not found" >> ${logPath};
+		exit 1;
+	`;
+
+		await execAsyncRemote(serverId, command);
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Gitea Provider not found",
@@ -171,34 +154,20 @@ export const getGiteaCloneCommand = async (
 
 	// Use paths(true) for remote operations
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
+	await refreshGiteaToken(giteaId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 
-	const giteaProvider = await findGiteaById(giteaId);
-	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
+	const baseUrl = gitea?.giteaUrl.replace(/^https?:\/\//, "");
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = `https://oauth2:${gitea?.accessToken}@${baseUrl}/${repoClone}`;
 
 	const cloneCommand = `
-    # Ensure output directory exists and is empty
     rm -rf ${outputPath};
     mkdir -p ${outputPath};
-
-    # Clone with detailed logging
-    echo "Cloning repository to ${outputPath}" >> ${logPath};
-    echo "Repository: ${repoClone}" >> ${logPath};
     
     if ! git clone --branch ${giteaBranch} --depth 1 --recurse-submodules ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
       echo "❌ [ERROR] Failed to clone the repository ${repoClone}" >> ${logPath};
-      exit 1;
-    fi
-
-    # Verify clone
-    CLONE_COUNT=$(find ${outputPath} -type f | wc -l)
-    echo "Files cloned: $CLONE_COUNT" >> ${logPath};
-
-    if [ "$CLONE_COUNT" -eq 0 ]; then
-      echo "⚠️ WARNING: No files cloned" >> ${logPath};
       exit 1;
     fi
 
@@ -208,245 +177,166 @@ export const getGiteaCloneCommand = async (
 	return cloneCommand;
 };
 
-/**
- * Main function to clone a Gitea repository with improved validation and robust directory handling
- */
+interface CloneGiteaRepository {
+	appName: string;
+	giteaBranch: string;
+	giteaId: string;
+	giteaOwner: string;
+	giteaRepository: string;
+}
 export const cloneGiteaRepository = async (
-	entity: any,
-	logPath?: string,
+	entity: CloneGiteaRepository,
+	logPath: string,
 	isCompose = false,
 ) => {
-	// If logPath is not provided, generate a default log path
-	const actualLogPath =
-		logPath ||
-		join(
-			paths()[isCompose ? "COMPOSE_PATH" : "APPLICATIONS_PATH"],
-			entity.appName,
-			"clone.log",
-		);
+	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths();
 
-	const writeStream = createWriteStream(actualLogPath, { flags: "a" });
+	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const { appName, giteaBranch, giteaId, giteaOwner, giteaRepository } = entity;
 
+	if (!giteaId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitea Provider not found",
+		});
+	}
+
+	await refreshGiteaToken(giteaId);
+	const giteaProvider = await findGiteaById(giteaId);
+	if (!giteaProvider) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitea provider not found in the database",
+		});
+	}
+
+	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+
+	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
+	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
+	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+
+	writeStream.write(`\nCloning Repo ${repoClone} to ${outputPath}...\n`);
+
 	try {
-		if (!giteaId) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Gitea Provider not found",
-			});
-		}
-
-		// Refresh the access token
-		await refreshGiteaToken(giteaId);
-
-		// Fetch the Gitea provider
-		const giteaProvider = await findGiteaById(giteaId);
-		if (!giteaProvider) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Gitea provider not found in the database",
-			});
-		}
-
-		const { COMPOSE_PATH, APPLICATIONS_PATH } = paths();
-		const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-		const outputPath = join(basePath, appName, "code");
-
-		// Log path information
-		writeStream.write("\nPath Information:\n");
-		writeStream.write(`Base Path: ${basePath}\n`);
-		writeStream.write(`Output Path: ${outputPath}\n`);
-
-		writeStream.write(`\nRecreating directory: ${outputPath}\n`);
-		await recreateDirectory(outputPath);
-
-		// Additional step - verify directory exists and is empty
-		try {
-			const filesCheck = await fs.readdir(outputPath);
-			writeStream.write(
-				`Directory after cleanup - files: ${filesCheck.length}\n`,
-			);
-
-			if (filesCheck.length > 0) {
-				writeStream.write("WARNING: Directory not empty after cleanup!\n");
-
-				// Force remove with shell command if recreateDirectory didn't work
-				if (entity.serverId) {
-					writeStream.write("Attempting forceful cleanup via shell command\n");
-					await execAsyncRemote(
-						entity.serverId,
-						`rm -rf "${outputPath}" && mkdir -p "${outputPath}"`,
-						(data) => writeStream.write(`Cleanup output: ${data}\n`),
-					);
-				} else {
-					// Fallback to direct fs operations if serverId not available
-					writeStream.write("Attempting direct fs removal\n");
-					await fs.rm(outputPath, { recursive: true, force: true });
-					await fs.mkdir(outputPath, { recursive: true });
+		await spawnAsync(
+			"git",
+			[
+				"clone",
+				"--branch",
+				giteaBranch,
+				"--depth",
+				"1",
+				"--recurse-submodules",
+				cloneUrl,
+				outputPath,
+				"--progress",
+			],
+			(data) => {
+				if (writeStream.writable) {
+					writeStream.write(data);
 				}
-			}
-		} catch (verifyError) {
-			writeStream.write(`Error verifying directory: ${verifyError}\n`);
-			// Continue anyway - the clone operation might handle this
-		}
-
-		const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-		const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
-		const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
-
-		writeStream.write(`\nCloning Repo ${repoClone} to ${outputPath}...\n`);
-		writeStream.write(
-			`Clone URL (masked): https://oauth2:***@${baseUrl}/${repoClone}\n`,
+			},
 		);
-
-		// First try standard git clone
-		try {
-			await spawnAsync(
-				"git",
-				[
-					"clone",
-					"--branch",
-					giteaBranch,
-					"--depth",
-					"1",
-					"--recurse-submodules",
-					cloneUrl,
-					outputPath,
-					"--progress",
-				],
-				(data) => {
-					if (writeStream.writable) {
-						writeStream.write(data);
-					}
-				},
-			);
-			writeStream.write("\nStandard git clone succeeded\n");
-		} catch (cloneError) {
-			writeStream.write(`\nStandard git clone failed: ${cloneError}\n`);
-			writeStream.write("Falling back to git init + fetch approach...\n");
-
-			// Retry cleanup one more time
-			if (entity.serverId) {
-				await execAsyncRemote(
-					entity.serverId,
-					`rm -rf "${outputPath}" && mkdir -p "${outputPath}"`,
-					(data) => writeStream.write(`Cleanup retry: ${data}\n`),
-				);
-			} else {
-				await fs.rm(outputPath, { recursive: true, force: true });
-				await fs.mkdir(outputPath, { recursive: true });
-			}
-
-			// Initialize git repo
-			writeStream.write("Initializing git repository...\n");
-			await spawnAsync("git", ["init", outputPath], (data) =>
-				writeStream.write(data),
-			);
-
-			// Set remote origin
-			writeStream.write("Setting remote origin...\n");
-			await spawnAsync(
-				"git",
-				["-C", outputPath, "remote", "add", "origin", cloneUrl],
-				(data) => writeStream.write(data),
-			);
-
-			// Fetch branch
-			writeStream.write(`Fetching branch: ${giteaBranch}...\n`);
-			await spawnAsync(
-				"git",
-				["-C", outputPath, "fetch", "--depth", "1", "origin", giteaBranch],
-				(data) => writeStream.write(data),
-			);
-
-			// Checkout branch
-			writeStream.write(`Checking out branch: ${giteaBranch}...\n`);
-			await spawnAsync(
-				"git",
-				["-C", outputPath, "checkout", "FETCH_HEAD"],
-				(data) => writeStream.write(data),
-			);
-
-			writeStream.write("Git init and fetch completed successfully\n");
-		}
-
-		// Verify clone
-		const files = await fs.readdir(outputPath);
-		writeStream.write("\nClone Verification:\n");
-		writeStream.write(`Files found: ${files.length}\n`);
-		if (files.length > 0) {
-			// Using a for loop instead of forEach
-			for (let i = 0; i < Math.min(files.length, 10); i++) {
-				writeStream.write(`- ${files[i]}\n`);
-			}
-		}
-
-		if (files.length === 0) {
-			throw new Error("Repository clone failed - directory is empty");
-		}
-
-		writeStream.write(`\nCloned ${repoClone} successfully: ✅\n`);
+		writeStream.write(`\nCloned ${repoClone}: ✅\n`);
 	} catch (error) {
-		writeStream.write(`\nClone Error: ${error}\n`);
+		writeStream.write(`ERROR Clonning: ${error}: ❌`);
 		throw error;
 	} finally {
 		writeStream.end();
 	}
 };
 
-/**
- * Clone a Gitea repository locally for a Compose configuration
- * Leverages the existing comprehensive cloneGiteaRepository function
- */
-export const cloneRawGiteaRepository = async (entity: any) => {
-	// Merge the existing entity with compose-specific properties
-	const composeEntity = {
-		...entity,
-		sourceType: "compose",
-		isCompose: true,
-	};
+export const cloneRawGiteaRepository = async (entity: Compose) => {
+	const { appName, giteaRepository, giteaOwner, giteaBranch, giteaId } = entity;
+	const { COMPOSE_PATH } = paths();
 
-	// Call cloneGiteaRepository with the modified entity
-	await cloneGiteaRepository(composeEntity);
+	if (!giteaId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitea Provider not found",
+		});
+	}
+	await refreshGiteaToken(giteaId);
+	const giteaProvider = await findGiteaById(giteaId);
+	if (!giteaProvider) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitea provider not found in the database",
+		});
+	}
+
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	await recreateDirectory(outputPath);
+
+	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
+	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
+	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+
+	try {
+		await spawnAsync("git", [
+			"clone",
+			"--branch",
+			giteaBranch!,
+			"--depth",
+			"1",
+			"--recurse-submodules",
+			cloneUrl,
+			outputPath,
+			"--progress",
+		]);
+	} catch (error) {
+		throw error;
+	}
 };
 
-/**
- * Clone a Gitea repository remotely for a Compose configuration
- * Uses the existing getGiteaCloneCommand function for remote cloning
- */
-export const cloneRawGiteaRepositoryRemote = async (compose: any) => {
-	const { COMPOSE_PATH } = paths(true);
-	const logPath = join(COMPOSE_PATH, compose.appName, "clone.log");
+export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
+	const {
+		appName,
+		giteaRepository,
+		giteaOwner,
+		giteaBranch,
+		giteaId,
+		serverId,
+	} = compose;
 
-	// Reuse the existing getGiteaCloneCommand function
-	const command = await getGiteaCloneCommand(
-		{
-			...compose,
-			isCompose: true,
-		},
-		logPath,
-		true,
-	);
-
-	if (!compose.serverId) {
+	if (!serverId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Server not found",
 		});
 	}
-
-	// Execute the clone command on the remote server
-	await execAsyncRemote(compose.serverId, command);
+	if (!giteaId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Gitea Provider not found",
+		});
+	}
+	const { COMPOSE_PATH } = paths(true);
+	const giteaProvider = await findGiteaById(giteaId);
+	const basePath = COMPOSE_PATH;
+	const outputPath = join(basePath, appName, "code");
+	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
+	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
+	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	try {
+		const command = `
+			rm -rf ${outputPath};
+			git clone --branch ${giteaBranch} --depth 1 ${cloneUrl} ${outputPath}
+		`;
+		await execAsyncRemote(serverId, command);
+	} catch (error) {
+		throw error;
+	}
 };
 
-// Helper function to check if a Gitea provider meets the necessary requirements
-export const haveGiteaRequirements = (giteaProvider: any) => {
+export const haveGiteaRequirements = (giteaProvider: Gitea) => {
 	return !!(giteaProvider?.clientId && giteaProvider?.clientSecret);
 };
 
-/**
- * Function to test the connection to a Gitea provider
- */
 export const testGiteaConnection = async (input: { giteaId: string }) => {
 	try {
 		const { giteaId } = input;
@@ -455,7 +345,6 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 			throw new Error("Gitea provider not found");
 		}
 
-		// Fetch the Gitea provider from the database
 		const giteaProvider = await findGiteaById(giteaId);
 		if (!giteaProvider) {
 			throw new TRPCError({
@@ -464,16 +353,8 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 			});
 		}
 
-		console.log("Gitea Provider Found:", {
-			id: giteaProvider.giteaId,
-			url: giteaProvider.giteaUrl,
-			hasAccessToken: !!giteaProvider.accessToken,
-		});
-
-		// Refresh the token if needed
 		await refreshGiteaToken(giteaId);
 
-		// Fetch the provider again in case the token was refreshed
 		const provider = await findGiteaById(giteaId);
 		if (!provider || !provider.accessToken) {
 			throw new TRPCError({
@@ -482,14 +363,8 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 			});
 		}
 
-		// Make API request to test connection
-		console.log("Making API request to test connection...");
-
-		// Construct proper URL for the API request
-		const baseUrl = provider.giteaUrl.replace(/\/+$/, ""); // Remove trailing slashes
+		const baseUrl = provider.giteaUrl.replace(/\/+$/, "");
 		const url = `${baseUrl}/api/v1/user/repos`;
-
-		console.log(`Testing connection to: ${url}`);
 
 		const response = await fetch(url, {
 			headers: {
@@ -499,45 +374,31 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 		});
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			console.error("Repository API failed:", errorText);
 			throw new Error(
 				`Failed to connect to Gitea API: ${response.status} ${response.statusText}`,
 			);
 		}
 
 		const repos = await response.json();
-		console.log(
-			`Successfully connected to Gitea API. Found ${repos.length} repositories.`,
-		);
-
-		// Update lastAuthenticatedAt
 		await updateGitea(giteaId, {
 			lastAuthenticatedAt: Math.floor(Date.now() / 1000),
 		});
 
 		return repos.length;
 	} catch (error) {
-		console.error("Gitea Connection Test Error:", error);
 		throw error;
 	}
 };
 
-/**
- * Function to fetch repositories from a Gitea provider
- */
 export const getGiteaRepositories = async (giteaId?: string) => {
 	if (!giteaId) {
 		return [];
 	}
 
-	// Refresh the token
 	await refreshGiteaToken(giteaId);
 
-	// Fetch the Gitea provider
 	const giteaProvider = await findGiteaById(giteaId);
 
-	// Construct the URL for fetching repositories
 	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
 	const url = `${baseUrl}/api/v1/user/repos`;
 
@@ -557,7 +418,6 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 
 	const repositories = await response.json();
 
-	// Map repositories to a consistent format
 	const mappedRepositories = repositories.map((repo: any) => ({
 		id: repo.id,
 		name: repo.name,
@@ -570,9 +430,6 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	return mappedRepositories;
 };
 
-/**
- * Function to fetch branches for a specific Gitea repository
- */
 export const getGiteaBranches = async (input: {
 	id?: number;
 	giteaId?: string;
@@ -583,10 +440,8 @@ export const getGiteaBranches = async (input: {
 		return [];
 	}
 
-	// Fetch the Gitea provider
 	const giteaProvider = await findGiteaById(input.giteaId);
 
-	// Construct the URL for fetching branches
 	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
 	const url = `${baseUrl}/api/v1/repos/${input.owner}/${input.repo}/branches`;
 
@@ -603,7 +458,6 @@ export const getGiteaBranches = async (input: {
 
 	const branches = await response.json();
 
-	// Map branches to a consistent format
 	return branches.map((branch: any) => ({
 		id: branch.name,
 		name: branch.name,
@@ -611,16 +465,4 @@ export const getGiteaBranches = async (input: {
 			id: branch.commit.id,
 		},
 	}));
-};
-
-export default {
-	cloneGiteaRepository,
-	cloneRawGiteaRepository,
-	cloneRawGiteaRepositoryRemote,
-	refreshGiteaToken,
-	haveGiteaRequirements,
-	testGiteaConnection,
-	getGiteaRepositories,
-	getGiteaBranches,
-	fetchGiteaBranches,
 };

@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { Branch, Repository } from "@/utils/gitea-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -55,7 +55,7 @@ const GiteaProviderSchema = z.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
 			id: z.number().nullable(),
-			giteaPathNamespace: z.string().min(1),
+			giteaPathNamespace: z.string(),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -95,6 +95,8 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 	const repository = form.watch("repository");
 	const giteaId = form.watch("giteaId");
 
+	console.log(repository);
+
 	const {
 		data: repositories,
 		isLoading: isLoadingRepositories,
@@ -126,6 +128,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 
 	useEffect(() => {
 		if (data) {
+			console.log(data.giteaRepository);
 			form.reset({
 				branch: data.giteaBranch || "",
 				repository: {
@@ -452,20 +455,20 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 											/>
 											<Button
 												type="button"
-												variant="secondary"
+												variant="outline"
+												size="icon"
 												onClick={() => {
 													const input = document.querySelector(
-														'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+														'input[placeholder*="Enter a path"]',
 													) as HTMLInputElement;
-													const value = input.value.trim();
-													if (value) {
-														const newPaths = [...(field.value || []), value];
-														form.setValue("watchPaths", newPaths);
+													const path = input.value.trim();
+													if (path) {
+														field.onChange([...field.value, path]);
 														input.value = "";
 													}
 												}}
 											>
-												Add
+												<Plus className="size-4" />
 											</Button>
 										</div>
 									</FormControl>
@@ -475,13 +478,11 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 						/>
 					</div>
 
-					<Button
-						type="submit"
-						className="w-full"
-						disabled={isSavingGiteaProvider || !form.formState.isDirty}
-					>
-						{isSavingGiteaProvider ? "Saving..." : "Save Gitea Provider"}
-					</Button>
+					<div className="flex justify-end">
+						<Button type="submit" isLoading={isSavingGiteaProvider}>
+							Save
+						</Button>
+					</div>
 				</form>
 			</Form>
 		</div>

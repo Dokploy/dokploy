@@ -1,6 +1,4 @@
-// @ts-ignore: Cannot find module errors
 import { db } from "@dokploy/server/db";
-// @ts-ignore: Cannot find module errors
 import {
 	type apiCreateGitea,
 	gitProvider,
@@ -15,7 +13,6 @@ export const createGitea = async (
 	input: typeof apiCreateGitea._type,
 	organizationId: string,
 ) => {
-	// @ts-ignore - Complex transaction type - Added because proper typing in Drizzle in not sufficient
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
@@ -25,7 +22,7 @@ export const createGitea = async (
 				name: input.name,
 			})
 			.returning()
-			.then((response: (typeof gitProvider.$inferSelect)[]) => response[0]);
+			.then((response) => response[0]);
 
 		if (!newGitProvider) {
 			throw new TRPCError({
@@ -50,7 +47,6 @@ export const createGitea = async (
 			});
 		}
 
-		// Return just the essential data needed by the frontend
 		return {
 			giteaId: giteaProvider.giteaId,
 			clientId: giteaProvider.clientId,
@@ -69,7 +65,6 @@ export const findGiteaById = async (giteaId: string) => {
 		});
 
 		if (!giteaProviderResult) {
-			console.error("No Gitea Provider found:", { giteaId });
 			throw new TRPCError({
 				code: "NOT_FOUND",
 				message: "Gitea Provider not found",
@@ -78,21 +73,11 @@ export const findGiteaById = async (giteaId: string) => {
 
 		return giteaProviderResult;
 	} catch (error) {
-		console.error("Error finding Gitea Provider:", error);
 		throw error;
 	}
 };
 
 export const updateGitea = async (giteaId: string, input: Partial<Gitea>) => {
-	console.log("Updating Gitea Provider:", {
-		giteaId,
-		updateData: {
-			accessTokenPresent: !!input.accessToken,
-			refreshTokenPresent: !!input.refreshToken,
-			expiresAt: input.expiresAt,
-		},
-	});
-
 	try {
 		const updateResult = await db
 			.update(gitea)
@@ -103,13 +88,11 @@ export const updateGitea = async (giteaId: string, input: Partial<Gitea>) => {
 		const result = updateResult[0] as Gitea | undefined;
 
 		if (!result) {
-			console.error("No rows were updated", { giteaId, input });
 			throw new Error(`Failed to update Gitea provider with ID ${giteaId}`);
 		}
 
 		return result;
 	} catch (error) {
-		console.error("Error updating Gitea provider:", error);
 		throw error;
 	}
 };

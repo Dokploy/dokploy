@@ -67,13 +67,13 @@ const GiteaProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
-			giteaPathNamespace: z.string().min(1),
+			giteaPathNamespace: z.string(),
 			id: z.number().nullable(),
-			watchPaths: z.array(z.string()).default([]),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
 	giteaId: z.string().min(1, "Gitea Provider is required"),
+	watchPaths: z.array(z.string()).default([]),
 });
 
 type GiteaProvider = z.infer<typeof GiteaProviderSchema>;
@@ -97,10 +97,10 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 				repo: "",
 				giteaPathNamespace: "",
 				id: null,
-				watchPaths: [],
 			},
 			giteaId: "",
 			branch: "",
+			watchPaths: [],
 		},
 		resolver: zodResolver(GiteaProviderSchema),
 	});
@@ -146,10 +146,10 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 					owner: data.giteaOwner || "",
 					giteaPathNamespace: data.giteaPathNamespace || "",
 					id: data.giteaProjectId,
-					watchPaths: data.watchPaths || [],
 				},
 				buildPath: data.giteaBuildPath || "/",
 				giteaId: data.giteaId || "",
+				watchPaths: data.watchPaths || [],
 			});
 		}
 	}, [form.reset, data, form]);
@@ -164,7 +164,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			applicationId,
 			giteaProjectId: data.repository.id,
 			giteaPathNamespace: data.repository.giteaPathNamespace,
-			watchPaths: data.repository.watchPaths,
+			watchPaths: data.watchPaths,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -198,7 +198,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												repo: "",
 												id: null,
 												giteaPathNamespace: "",
-												watchPaths: [],
 											});
 											form.setValue("branch", "");
 										}}
@@ -285,7 +284,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 																			repo: repo.name,
 																			id: repo.id,
 																			giteaPathNamespace: repo.name,
-																			watchPaths: [],
 																		});
 																		form.setValue("branch", "");
 																	}}
@@ -413,7 +411,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 						/>
 						<FormField
 							control={form.control}
-							name="repository.watchPaths"
+							name="watchPaths"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
