@@ -216,4 +216,31 @@ export const giteaRouter = createTRPCRouter({
 
 			return { success: true };
 		}),
+
+	getGiteaUrl: protectedProcedure
+		.input(apiFindOneGitea)
+		.query(async ({ input, ctx }) => {
+		  const { giteaId } = input;
+	  
+		  if (!giteaId) {
+			throw new TRPCError({
+			  code: "BAD_REQUEST",
+			  message: "Gitea provider ID is required.",
+			});
+		  }
+	  
+		  const giteaProvider = await findGiteaById(giteaId);
+		  if (
+			giteaProvider.gitProvider.organizationId !==
+			ctx.session.activeOrganizationId
+		  ) {
+			throw new TRPCError({
+			  code: "UNAUTHORIZED",
+			  message: "You are not allowed to access this Gitea provider",
+			});
+		  }
+	  
+		  // Return the base URL of the Gitea instance
+		  return giteaProvider.giteaUrl;
+		}),
 });

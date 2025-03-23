@@ -95,6 +95,13 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 	const repository = form.watch("repository");
 	const giteaId = form.watch("giteaId");
 
+	const { data: giteaUrl } = api.gitea.getGiteaUrl.useQuery(
+		{ giteaId },
+		{
+			enabled: !!giteaId,
+		}
+	);
+
 	console.log(repository);
 
 	const {
@@ -128,21 +135,25 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 
 	useEffect(() => {
 		if (data) {
-			console.log(data.giteaRepository);
-			form.reset({
-				branch: data.giteaBranch || "",
-				repository: {
-					repo: data.giteaRepository || "",
-					owner: data.giteaOwner || "",
-					id: null,
-					giteaPathNamespace: "",
-				},
-				composePath: data.composePath,
-				giteaId: data.giteaId || "",
-				watchPaths: data.watchPaths || [],
-			});
+		  // Find the repository in the repositories list to get the correct ID
+		  const currentRepo = repositories?.find(
+			(repo) => repo.name === data.giteaRepository && repo.owner.username === data.giteaOwner
+		  );
+		  
+		  form.reset({
+			branch: data.giteaBranch || "",
+			repository: {
+			  repo: data.giteaRepository || "",
+			  owner: data.giteaOwner || "",
+			  id: currentRepo?.id || null,
+			  giteaPathNamespace: currentRepo?.url || "",
+			},
+			composePath: data.composePath,
+			giteaId: data.giteaId || "",
+			watchPaths: data.watchPaths || [],
+		  });
 		}
-	}, [data, form]);
+	}, [data, form, repositories]);
 
 	const onSubmit = async (data: GiteaProvider) => {
 		await mutateAsync({
@@ -224,7 +235,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 										<FormLabel>Repository</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
-												href={`https://gitea.com/${field.value.owner}/${field.value.repo}`}
+												href={`${giteaUrl}/${field.value.owner}/${field.value.repo}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -463,7 +474,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													) as HTMLInputElement;
 													const path = input.value.trim();
 													if (path) {
-														field.onChange([...field.value, path]);
+														field.onChange([...(field.value || []), path]);
 														input.value = "";
 													}
 												}}
