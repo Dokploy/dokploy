@@ -201,7 +201,11 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 								<FormItem>
 									<FormLabel>Name</FormLabel>
 									<FormControl>
-										<Input placeholder="My Gitea" {...field} autoFocus={false} />
+										<Input
+											placeholder="My Gitea"
+											{...field}
+											autoFocus={false}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

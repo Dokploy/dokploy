@@ -2,16 +2,16 @@ import type { IncomingMessage } from "node:http";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
-import { apiKey, organization, twoFactor } from "better-auth/plugins";
+import { organization, twoFactor, apiKey } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
-import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
-import { getUserByToken } from "../services/admin";
-import { updateUser } from "../services/user";
 import { sendEmail } from "../verification/send-verification-email";
+import { IS_CLOUD } from "../constants";
 import { getPublicIpWithFallback } from "../wss/utils";
+import { updateUser } from "../services/user";
+import { getUserByToken } from "../services/admin";
+import { APIError } from "better-auth/api";
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -32,26 +32,26 @@ const { handler, api } = betterAuth({
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
 		},
 	},
-	// ...(!IS_CLOUD && {
-	// 	async trustedOrigins() {
-	// 		const admin = await db.query.member.findFirst({
-	// 			where: eq(schema.member.role, "owner"),
-	// 			with: {
-	// 				user: true,
-	// 			},
-	// 		});
+	...(!IS_CLOUD && {
+		async trustedOrigins() {
+			const admin = await db.query.member.findFirst({
+				where: eq(schema.member.role, "owner"),
+				with: {
+					user: true,
+				},
+			});
 
-	// 		if (admin) {
-	// 			return [
-	// 				...(admin.user.serverIp
-	// 					? [`http://${admin.user.serverIp}:3000`]
-	// 					: []),
-	// 				...(admin.user.host ? [`https://${admin.user.host}`] : []),
-	// 			];
-	// 		}
-	// 		return [];
-	// 	},
-	// }),
+			if (admin) {
+				return [
+					...(admin.user.serverIp
+						? [`http://${admin.user.serverIp}:3000`]
+						: []),
+					...(admin.user.host ? [`https://${admin.user.host}`] : []),
+				];
+			}
+			return [];
+		},
+	}),
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,

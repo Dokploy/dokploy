@@ -26,16 +26,21 @@ export const SecurityAudit = ({ serverId }: Props) => {
 			},
 		);
 	const _utils = api.useUtils();
-	
+
 	// Helper function to check if root login is securely configured
 	const isRootLoginSecure = () => {
 		if (!data?.ssh?.permitRootLogin) return false;
-		
+
 		// These are secure options for PermitRootLogin
-		const secureOptions = ['no', 'prohibit-password', 'without-password', 'forced-commands-only'];
+		const secureOptions = [
+			"no",
+			"prohibit-password",
+			"without-password",
+			"forced-commands-only",
+		];
 		return secureOptions.includes(data.ssh.permitRootLogin);
 	};
-	
+
 	return (
 		<CardContent className="p-0">
 			<div className="flex flex-col gap-4">
@@ -49,7 +54,9 @@ export const SecurityAudit = ({ serverId }: Props) => {
 										Setup Security Suggestions
 									</CardTitle>
 								</div>
-								<CardDescription>Check the security suggestions</CardDescription>
+								<CardDescription>
+									Check the security suggestions
+								</CardDescription>
 							</div>
 							<Button
 								isLoading={isRefreshing}
