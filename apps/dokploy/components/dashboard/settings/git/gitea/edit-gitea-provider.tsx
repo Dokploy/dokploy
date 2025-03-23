@@ -185,7 +185,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 					<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
+			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Edit Gitea Provider</DialogTitle>
 					<DialogDescription>
