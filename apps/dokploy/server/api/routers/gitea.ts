@@ -104,7 +104,6 @@ export const giteaRouter = createTRPCRouter({
 
 			try {
 				const repositories = await getGiteaRepositories(giteaId);
-				console.log(repositories);
 				return repositories;
 			} catch (error) {
 				console.error("Error fetching Gitea repositories:", error);
