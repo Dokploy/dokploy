@@ -272,6 +272,12 @@ export const extractCommitMessage = (headers: any, body: any) => {
 			: "NEW COMMIT";
 	}
 
+	if (headers["user-agent"]?.includes("Go-http-client")) {
+		if (body.push_data && body.repository) {
+			return `Docker image pushed: ${body.repository.repo_name}:${body.push_data.tag} by ${body.push_data.pusher}`;
+		}
+	}
+
 	return "NEW CHANGES";
 };
 
