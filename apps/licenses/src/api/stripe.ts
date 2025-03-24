@@ -164,10 +164,9 @@ stripeRouter.post(
 		try {
 			const { customerId } = c.req.valid("json");
 
-			console.log("Customer ID", customerId);
-
 			const session = await stripe.billingPortal.sessions.create({
 				customer: customerId,
+				configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID,
 				return_url: `${WEBSITE_URL}/dashboard/settings/billing`,
 			});
 
@@ -178,3 +177,44 @@ stripeRouter.post(
 		}
 	},
 );
+// Execute 1 time to create the configuration
+// const configuration = await stripe.billingPortal.configurations.create({
+// 	business_profile: {
+// 		headline: "Manage your Dokploy subscription",
+// 	},
+// 	features: {
+// 		subscription_update: {
+// 			enabled: true,
+// 			products: [
+// 				{
+// 					product: "prod_RxSOzNrwlfVWmv",
+// 					prices: [
+// 						"price_1R3XTqF3cxQuHeOzZjgaG262",
+// 						"price_1R3XmmF3cxQuHeOzCEjz0HFz",
+// 					],
+// 				},
+// 				{
+// 					product: "prod_RxSVDolGpUy97g",
+// 					prices: [
+// 						"price_1R3XanF3cxQuHeOzh7VdbbUs",
+// 						"price_1R3Xp4F3cxQuHeOzUTNYDC9I",
+// 					],
+// 				},
+// 				{
+// 					product: "prod_RxSaEQpbsiPFgv",
+// 					prices: [
+// 						"price_1R3XfOF3cxQuHeOzYFUa0eNy",
+// 						"price_1R3XptF3cxQuHeOzZEBGMsEm",
+// 					],
+// 				},
+// 			],
+// 			default_allowed_updates: ["price", "quantity"],
+// 		},
+// 		subscription_cancel: {
+// 			enabled: true,
+// 		},
+// 		payment_method_update: {
+// 			enabled: true,
+// 		},
+// 	},
+// });

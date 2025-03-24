@@ -44,8 +44,6 @@ export const createLicense = async ({
 			user = result;
 		}
 
-		console.log("User", user);
-
 		const license = await tx
 			.insert(licenses)
 			.values({
