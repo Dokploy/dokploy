@@ -1,38 +1,43 @@
 import { sql } from "drizzle-orm";
-import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+export const users = pgTable("user", {
+	id: uuid("id").defaultRandom().primaryKey(),
+	email: text("email").notNull().unique(),
+	createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+	updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+	otpCode: text("otp_code"),
+	otpCodeExpiresAt: timestamp("otp_code_expires_at"),
+	temporalId: text("temporal_id"),
+	temporalIdExpiresAt: timestamp("temporal_id_expires_at"),
+});
 
-export const licenseStatusEnum = pgEnum("license_status", [
-	"active",
-	"expired",
-	"cancelled",
-	"payment_pending",
-]);
-
-export const licenseTypeEnum = pgEnum("license_type", [
-	"basic",
-	"premium",
-	"business",
-]);
-
-export const billingTypeEnum = pgEnum("billing_type", ["monthly", "annual"]);
+export const usersRelations = relations(users, ({ many }) => ({
+	licenses: many(licenses),
+}));
 
 export const licenses = pgTable("licenses", {
 	id: uuid("id").defaultRandom().primaryKey(),
 	productId: text("product_id").notNull(),
 	licenseKey: text("license_key").notNull().unique(),
-	status: licenseStatusEnum("status").notNull().default("active"),
-	type: licenseTypeEnum("type").notNull(),
-	billingType: billingTypeEnum("billing_type").notNull(),
-	serverIp: text("server_ip"),
+	serverIps: text("server_ips").array(),
 	activatedAt: timestamp("activated_at"),
 	lastVerifiedAt: timestamp("last_verified_at"),
 	stripeCustomerId: text("stripeCustomerId").notNull(),
+
 	stripeSubscriptionId: text("stripeSubscriptionId").notNull(),
 	createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 	metadata: text("metadata"),
-	email: text("email").notNull(),
+	userId: uuid("user_id").references(() => users.id),
 });
+
+export const licensesRelations = relations(licenses, ({ one }) => ({
+	user: one(users, {
+		fields: [licenses.userId],
+		references: [users.id],
+	}),
+}));
 
 export type License = typeof licenses.$inferSelect;
 export type NewLicense = typeof licenses.$inferInsert;

@@ -16,6 +16,7 @@
 		"studio": "drizzle-kit studio"
 	},
 	"dependencies": {
+		"nanoid": "5.1.5",
 		"@react-email/components": "^0.0.21",
 		"@hono/node-server": "^1.12.1",
 		"@hono/zod-validator": "0.3.0",

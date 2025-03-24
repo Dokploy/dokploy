@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { db } from "../db";
-import { licenses } from "../schema";
+import { licenses, users } from "../schema";
 import { eq } from "drizzle-orm";
 import { stripe } from "../stripe";
 import type Stripe from "stripe";
@@ -11,8 +11,6 @@ export const generateLicenseKey = () => {
 
 interface CreateLicenseProps {
 	productId: string;
-	type: "basic" | "premium" | "business";
-	billingType: "monthly" | "annual";
 	email: string;
 	stripeCustomerId: string;
 	stripeSubscriptionId: string;
@@ -20,34 +18,54 @@ interface CreateLicenseProps {
 
 export const createLicense = async ({
 	productId,
-	type,
-	billingType,
 	email,
 	stripeCustomerId,
 	stripeSubscriptionId,
 }: CreateLicenseProps) => {
 	const licenseKey = `dokploy-${generateLicenseKey()}`;
 
-	const license = await db
-		.insert(licenses)
-		.values({
-			productId,
-			licenseKey,
-			type,
-			billingType,
-			email,
-			stripeCustomerId,
-			stripeSubscriptionId,
-		})
-		.returning();
+	return await db.transaction(async (tx) => {
+		let user = await tx
+			.insert(users)
+			.values({ email })
+			.onConflictDoNothing()
+			.returning()
+			.then((res) => res[0]);
 
-	return license[0];
+		if (!user) {
+			const result = await tx.query.users.findFirst({
+				where: eq(users.email, email),
+			});
+
+			if (!result) {
+				throw new Error("User not found");
+			}
+
+			user = result;
+		}
+
+		console.log("User", user);
+
+		const license = await tx
+			.insert(licenses)
+			.values({
+				productId,
+				licenseKey,
+				stripeCustomerId,
+				stripeSubscriptionId,
+				userId: user.id,
+			})
+			.returning()
+			.then((res) => res[0]);
+
+		return {
+			license,
+			user,
+		};
+	});
 };
 
-export const validateLicense = async (
-	licenseKey: string,
-	serverIp?: string,
-) => {
+export const validateLicense = async (licenseKey: string, serverIp: string) => {
 	const license = await db.query.licenses.findFirst({
 		where: eq(licenses.licenseKey, licenseKey),
 	});
@@ -60,8 +78,6 @@ export const validateLicense = async (
 		license.stripeSubscriptionId,
 	);
 
-	console.log("Suscription", suscription);
-
 	if (suscription.status !== "active") {
 		return {
 			isValid: false,
@@ -69,7 +85,7 @@ export const validateLicense = async (
 		};
 	}
 
-	if (license.serverIp && serverIp && license.serverIp !== serverIp) {
+	if (license.serverIps && !license.serverIps.includes(serverIp)) {
 		return { isValid: false, error: "Invalid server IP" };
 	}
 
@@ -97,8 +113,16 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 	if (suscription.status !== "active") {
 		throw new Error(`License is ${getLicenseStatus(suscription)}`);
 	}
+	const currentServerQuantity = license.serverIps?.length || 0;
+	const serversQuantity = suscription.items.data[0].quantity || 0;
 
-	if (license.serverIp && license.serverIp !== serverIp) {
+	if (currentServerQuantity >= serversQuantity) {
+		throw new Error(
+			"You have reached the maximum number of servers, please upgrade your license to add more servers",
+		);
+	}
+
+	if (license.serverIps && !license.serverIps.includes(serverIp)) {
 		throw new Error("License is already activated on a different server");
 	}
 
@@ -106,7 +130,7 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 	const updatedLicense = await db
 		.update(licenses)
 		.set({
-			serverIp,
+			serverIps: [...(license.serverIps || []), serverIp],
 			activatedAt: new Date(),
 			lastVerifiedAt: new Date(),
 		})
@@ -114,21 +138,6 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 		.returning();
 
 	return updatedLicense[0];
-};
-
-export const deactivateLicense = async (stripeSubscriptionId: string) => {
-	const license = await db.query.licenses.findFirst({
-		where: eq(licenses.stripeSubscriptionId, stripeSubscriptionId),
-	});
-
-	if (!license) {
-		throw new Error("License not found");
-	}
-
-	await db
-		.update(licenses)
-		.set({ status: "cancelled" })
-		.where(eq(licenses.id, license.id));
 };
 
 export const getLicenseStatus = async (license: Stripe.Subscription) => {

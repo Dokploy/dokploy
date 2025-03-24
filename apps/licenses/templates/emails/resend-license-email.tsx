@@ -18,7 +18,6 @@ interface ResendLicenseEmailProps {
 	customerName: string;
 	licenseKey: string;
 	productName: string;
-	expirationDate: Date;
 	requestDate?: Date;
 }
 
@@ -28,15 +27,8 @@ export const ResendLicenseEmail = ({
 	customerName = "John Doe",
 	licenseKey = "1234567890",
 	productName = "Dokploy",
-	expirationDate = new Date(),
 	requestDate = new Date(),
 }: ResendLicenseEmailProps): React.ReactElement => {
-	const formattedDate = expirationDate.toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-
 	const formattedRequestDate = requestDate.toLocaleDateString("en-US", {
 		year: "numeric",
 		month: "long",
@@ -73,12 +65,6 @@ export const ResendLicenseEmail = ({
 						<Section style={licenseContainer}>
 							<Text style={licenseLabel}>Your Active License Key</Text>
 							<Text style={licenseKeyStyle}>{licenseKey}</Text>
-						</Section>
-
-						<Section style={validitySection}>
-							<Text style={validityText}>
-								🗓️ Valid until: <strong>{formattedDate}</strong>
-							</Text>
 						</Section>
 
 						<Section style={activationSection}>
