@@ -7,9 +7,6 @@ import {
 	createDefaultTraefikConfig,
 	initCronJobs,
 	initializeNetwork,
-	initializePostgres,
-	initializeRedis,
-	initializeTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -49,14 +46,7 @@ void app.prepare().then(async () => {
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
-			await initializePostgres();
-			await initializeTraefik();
-			await initializeRedis();
-
 			initCronJobs();
-
-			// Timeout to wait for the database to be ready
-			await new Promise((resolve) => setTimeout(resolve, 7000));
 			await migration();
 			await sendDokployRestartNotifications();
 		}
