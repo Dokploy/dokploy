@@ -29,7 +29,10 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
-import { validateLicense } from "@/server/utils/validate-license";
+import {
+	validateLicense,
+	activateLicense,
+} from "@/server/utils/validate-license";
 const apiCreateApiKey = z.object({
 	name: z.string().min(1),
 	prefix: z.string().optional(),
@@ -140,7 +143,7 @@ export const userRouter = createTRPCRouter({
 			}
 			return await updateUser(ctx.user.id, input);
 		}),
-	validateLicense: adminProcedure
+	saveLicense: adminProcedure
 		.input(
 			z.object({
 				licenseKey: z.string(),
@@ -159,9 +162,12 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
+			await activateLicense(input.licenseKey, owner?.serverIp || "");
+
 			await updateUser(ctx.user.id, {
 				licenseKey: input.licenseKey,
 			});
+
 			return result;
 		}),
 	getUserByToken: publicProcedure

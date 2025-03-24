@@ -75,6 +75,16 @@ export const validateLicense = async (licenseKey: string, serverIp: string) => {
 	const suscription = await stripe.subscriptions.retrieve(
 		license.stripeSubscriptionId,
 	);
+	const currentServerQuantity = license.serverIps?.length || 0;
+	const serversQuantity = suscription.items.data[0].quantity || 0;
+
+	if (currentServerQuantity >= serversQuantity) {
+		return {
+			isValid: false,
+			error:
+				"You have reached the maximum number of servers, please upgrade your license to add more servers",
+		};
+	}
 
 	if (suscription.status !== "active") {
 		return {
@@ -119,6 +129,8 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 			"You have reached the maximum number of servers, please upgrade your license to add more servers",
 		);
 	}
+
+	console.log("License", license.serverIps?.includes(serverIp));
 
 	if (license.serverIps && !license.serverIps.includes(serverIp)) {
 		throw new Error("License is already activated on a different server");

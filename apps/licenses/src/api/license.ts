@@ -25,7 +25,6 @@ licenseRouter.post(
 
 		try {
 			const result = await validateLicense(licenseKey, serverIp);
-			console.log("Result", result);
 			return c.json(result);
 		} catch (error) {
 			logger.error("Error validating license:", { error });
