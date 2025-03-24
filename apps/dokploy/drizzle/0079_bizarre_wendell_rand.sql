@@ -21,7 +21,6 @@ ALTER TABLE "application" ADD COLUMN "giteaRepository" text;--> statement-breakp
 ALTER TABLE "application" ADD COLUMN "giteaOwner" text;--> statement-breakpoint
 ALTER TABLE "application" ADD COLUMN "giteaBranch" text;--> statement-breakpoint
 ALTER TABLE "application" ADD COLUMN "giteaBuildPath" text DEFAULT '/';--> statement-breakpoint
-ALTER TABLE "application" ADD COLUMN "giteaPathNamespace" text;--> statement-breakpoint
 ALTER TABLE "application" ADD COLUMN "giteaId" text;--> statement-breakpoint
 ALTER TABLE "compose" ADD COLUMN "giteaRepository" text;--> statement-breakpoint
 ALTER TABLE "compose" ADD COLUMN "giteaOwner" text;--> statement-breakpoint

@@ -67,7 +67,6 @@ const GiteaProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
-			giteaPathNamespace: z.string().min(1),
 			id: z.number().nullable().optional(),
 		})
 		.required(),
@@ -95,7 +94,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			repository: {
 				owner: "",
 				repo: "",
-				giteaPathNamespace: "",
 				id: null,
 			},
 			giteaId: "",
@@ -144,7 +142,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 				repository: {
 					repo: data.giteaRepository || "",
 					owner: data.giteaOwner || "",
-					giteaPathNamespace: data.giteaPathNamespace || "",
 					id: data.giteaProjectId || null, // Handle null case explicitly
 				},
 				buildPath: data.giteaBuildPath || "/",
@@ -163,7 +160,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			giteaId: data.giteaId,
 			applicationId,
 			giteaProjectId: data.repository.id || null, // Handle null case explicitly
-			giteaPathNamespace: data.repository.giteaPathNamespace,
 			watchPaths: data.watchPaths,
 		})
 			.then(async () => {
@@ -197,7 +193,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												owner: "",
 												repo: "",
 												id: null,
-												giteaPathNamespace: "",
 											});
 											form.setValue("branch", "");
 										}}
@@ -283,7 +278,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 																			owner: repo.owner.username as string,
 																			repo: repo.name,
 																			id: repo.id,
-																			giteaPathNamespace: repo.name,
 																		});
 																		form.setValue("branch", "");
 																	}}

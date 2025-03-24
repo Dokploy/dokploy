@@ -55,7 +55,6 @@ const GiteaProviderSchema = z.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
 			id: z.number().nullable(),
-			giteaPathNamespace: z.string(),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -82,7 +81,6 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			repository: {
 				owner: "",
 				repo: "",
-				giteaPathNamespace: "",
 				id: null,
 			},
 			giteaId: "",
@@ -146,7 +144,6 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			  repo: data.giteaRepository || "",
 			  owner: data.giteaOwner || "",
 			  id: currentRepo?.id || null,
-			  giteaPathNamespace: currentRepo?.url || "",
 			},
 			composePath: data.composePath,
 			giteaId: data.giteaId || "",
@@ -198,7 +195,6 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 											form.setValue("repository", {
 												owner: "",
 												repo: "",
-												giteaPathNamespace: "",
 												id: null,
 											});
 											form.setValue("branch", "");
@@ -289,7 +285,6 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 																		owner: repo.owner.username,
 																		repo: repo.name,
 																		id: repo.id,
-																		giteaPathNamespace: repo.url,
 																	});
 																	form.setValue("branch", "");
 																}}

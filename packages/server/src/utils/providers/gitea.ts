@@ -17,16 +17,14 @@ export const getErrorCloneRequirements = (entity: {
 	giteaRepository?: string | null;
 	giteaOwner?: string | null;
 	giteaBranch?: string | null;
-	giteaPathNamespace?: string | null;
 }) => {
 	const reasons: string[] = [];
-	const { giteaBranch, giteaOwner, giteaRepository, giteaPathNamespace } =
+	const { giteaBranch, giteaOwner, giteaRepository } =
 		entity;
 
 	if (!giteaRepository) reasons.push("1. Repository not assigned.");
 	if (!giteaOwner) reasons.push("2. Owner not specified.");
 	if (!giteaBranch) reasons.push("3. Branch not defined.");
-	if (!giteaPathNamespace) reasons.push("4. Path namespace not defined.");
 
 	return reasons;
 };

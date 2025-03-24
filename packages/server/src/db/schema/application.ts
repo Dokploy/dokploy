@@ -163,7 +163,6 @@ export const applications = pgTable("application", {
 	giteaOwner: text("giteaOwner"),
 	giteaBranch: text("giteaBranch"),
 	giteaBuildPath: text("giteaBuildPath").default("/"),
-	giteaPathNamespace: text("giteaPathNamespace"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
 	bitbucketOwner: text("bitbucketOwner"),
@@ -510,7 +509,6 @@ export const apiSaveGiteaProvider = createSchema
 		giteaRepository: true,
 		giteaId: true,
 		giteaProjectId: true,
-		giteaPathNamespace: true,
 		watchPaths: true,
 	})
 	.required();

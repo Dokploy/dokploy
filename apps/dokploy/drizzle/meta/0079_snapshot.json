@@ -285,12 +285,6 @@
           "notNull": false,
           "default": "'/'"
         },
-        "giteaPathNamespace": {
-          "name": "giteaPathNamespace",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "bitbucketRepository": {
           "name": "bitbucketRepository",
           "type": "text",
