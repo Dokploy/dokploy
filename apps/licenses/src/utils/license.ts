@@ -69,7 +69,7 @@ export const validateLicense = async (licenseKey: string, serverIp: string) => {
 	});
 
 	if (!license) {
-		return { isValid: false, error: "License not found" };
+		return { success: false, error: "License not found" };
 	}
 
 	const suscription = await stripe.subscriptions.retrieve(
@@ -80,7 +80,7 @@ export const validateLicense = async (licenseKey: string, serverIp: string) => {
 
 	if (currentServerQuantity >= serversQuantity) {
 		return {
-			isValid: false,
+			success: false,
 			error:
 				"You have reached the maximum number of servers, please upgrade your license to add more servers",
 		};
@@ -88,13 +88,17 @@ export const validateLicense = async (licenseKey: string, serverIp: string) => {
 
 	if (suscription.status !== "active") {
 		return {
-			isValid: false,
+			success: false,
 			error: `License is ${getLicenseStatus(suscription)}`,
 		};
 	}
 
 	if (license.serverIps && !license.serverIps.includes(serverIp)) {
-		return { isValid: false, error: "Invalid server IP" };
+		return {
+			success: false,
+			error:
+				"This server is not authorized to use this license, please remove the current license from the UI, and activate a new one",
+		};
 	}
 
 	await db
@@ -102,7 +106,7 @@ export const validateLicense = async (licenseKey: string, serverIp: string) => {
 		.set({ lastVerifiedAt: new Date() })
 		.where(eq(licenses.id, license.id));
 
-	return { isValid: true, license };
+	return { success: true, license };
 };
 
 export const activateLicense = async (licenseKey: string, serverIp: string) => {
@@ -130,10 +134,8 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 		);
 	}
 
-	console.log("License", license.serverIps?.includes(serverIp));
-
-	if (license.serverIps && !license.serverIps.includes(serverIp)) {
-		throw new Error("License is already activated on a different server");
+	if (license.serverIps?.includes(serverIp)) {
+		return license;
 	}
 
 	// Activate the license with the server IP
@@ -144,6 +146,45 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 			activatedAt: new Date(),
 			lastVerifiedAt: new Date(),
 		})
+		.where(eq(licenses.id, license.id))
+		.returning();
+
+	return updatedLicense[0];
+};
+
+export const deactivateLicense = async (
+	licenseKey: string,
+	serverIp: string,
+) => {
+	const license = await db.query.licenses.findFirst({
+		where: eq(licenses.licenseKey, licenseKey),
+	});
+
+	if (!license) {
+		throw new Error("License not found");
+	}
+
+	const updatedLicense = await db
+		.update(licenses)
+		.set({ serverIps: license.serverIps?.filter((ip) => ip !== serverIp) })
+		.where(eq(licenses.id, license.id))
+		.returning();
+
+	return updatedLicense[0];
+};
+
+export const cleanLicense = async (licenseKey: string, serverIp: string) => {
+	const license = await db.query.licenses.findFirst({
+		where: eq(licenses.licenseKey, licenseKey),
+	});
+
+	if (!license) {
+		throw new Error("License not found");
+	}
+
+	const updatedLicense = await db
+		.update(licenses)
+		.set({ serverIps: license.serverIps?.filter((ip) => ip !== serverIp) })
 		.where(eq(licenses.id, license.id))
 		.returning();
 

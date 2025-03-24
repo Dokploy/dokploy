@@ -1,15 +1,21 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { activateLicense, validateLicense } from "../utils/license";
+import {
+	activateLicense,
+	deactivateLicense,
+	validateLicense,
+	cleanLicense,
+} from "../utils/license";
 import { logger } from "../logger";
-import { eq } from "drizzle-orm";
-import { users } from "../schema";
+import { eq, desc } from "drizzle-orm";
+import { users, licenses } from "../schema";
 import { db } from "../db";
 import { transporter } from "../email";
 import { nanoid } from "nanoid";
 import { stripe } from "../stripe";
 import type Stripe from "stripe";
+import { getLicenseTypeFromPriceId } from "../utils";
 const validateSchema = z.object({
 	licenseKey: z.string(),
 	serverIp: z.string(),
@@ -28,7 +34,7 @@ licenseRouter.post(
 			return c.json(result);
 		} catch (error) {
 			logger.error("Error validating license:", { error });
-			return c.json({ isValid: false, error: "Error validating license" }, 500);
+			return c.json({ success: false, error: "Error validating license" }, 500);
 		}
 	},
 );
@@ -52,6 +58,43 @@ licenseRouter.post(
 	},
 );
 
+licenseRouter.post(
+	"/deactivate",
+	zValidator("json", validateSchema),
+	async (c) => {
+		const { licenseKey, serverIp } = c.req.valid("json");
+
+		try {
+			const license = await deactivateLicense(licenseKey, serverIp);
+			return c.json({ success: true, license });
+		} catch (error) {
+			logger.error("Error deactivating license:", error);
+			return c.json(
+				{ success: false, error: "Error deactivating license" },
+				500,
+			);
+		}
+	},
+);
+
+licenseRouter.post(
+	"/remove-server",
+	zValidator(
+		"json",
+		z.object({ licenseKey: z.string().min(1), serverIp: z.string().min(1) }),
+	),
+	async (c) => {
+		const { licenseKey, serverIp } = c.req.valid("json");
+
+		try {
+			const license = await cleanLicense(licenseKey, serverIp);
+			return c.json({ success: true, license });
+		} catch (error) {
+			logger.error("Error cleaning license:", error);
+			return c.json({ success: false, error: "Error cleaning license" }, 500);
+		}
+	},
+);
 // router.post("/resend-license", zValidator("json", resendSchema), async (c) => {
 // 	const { licenseKey } = c.req.valid("json");
 
@@ -178,6 +221,7 @@ licenseRouter.get(
 			with: {
 				licenses: true,
 			},
+			orderBy: desc(licenses.createdAt),
 		});
 
 		if (!user) {
@@ -202,11 +246,16 @@ licenseRouter.get(
 				(suscription) => suscription.id === license.stripeSubscriptionId,
 			);
 
+			const { type } = getLicenseTypeFromPriceId(
+				suscription?.items.data[0].price.id || "",
+			);
+
 			return {
 				license: license,
 				stripeSuscription: {
 					quantity: suscription?.items.data[0].quantity,
 					billingType: suscription?.items.data[0].price.recurring?.interval,
+					type: type,
 				},
 			};
 		});

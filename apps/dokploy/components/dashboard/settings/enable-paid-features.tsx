@@ -18,6 +18,10 @@ export const EnablePaidFeatures = () => {
 	const { data, refetch } = api.user.get.useQuery();
 	const [isLoading, setIsLoading] = useState(false);
 	const { mutateAsync: saveLicense } = api.user.saveLicense.useMutation();
+	const { mutateAsync: deactivateLicense } =
+		api.user.deactivateLicense.useMutation();
+	const { mutateAsync: validateLicense } =
+		api.user.validateLicense.useMutation();
 	const { mutateAsync: update } = api.user.update.useMutation();
 	const [licenseKey, setLicenseKey] = useState("");
 
@@ -27,13 +31,37 @@ export const EnablePaidFeatures = () => {
 		}
 	}, [data?.user?.enablePaidFeatures]);
 
-	const handleValidateLicense = async () => {
+	const handleSaveLicense = async () => {
 		if (!licenseKey) {
 			toast.error("Please enter a license key");
 			return;
 		}
 		setIsLoading(true);
 		await saveLicense({
+			licenseKey,
+		})
+			.then(() => {
+				toast.success("License validated successfully");
+			})
+			.catch((e) => {
+				toast.error("Error validating license", {
+					description: e.message,
+				});
+			})
+			.finally(() => {
+				setIsLoading(false);
+			});
+
+		refetch();
+	};
+
+	const handleValidateLicense = async () => {
+		if (!licenseKey) {
+			toast.error("Please enter a license key");
+			return;
+		}
+		setIsLoading(true);
+		await validateLicense({
 			licenseKey,
 		})
 			.then(() => {
@@ -103,17 +131,55 @@ export const EnablePaidFeatures = () => {
 									<Input
 										placeholder="Enter your license key"
 										value={licenseKey}
+										disabled={data?.user?.licenseKey !== null}
 										onChange={(e) => setLicenseKey(e.target.value)}
 										className="w-full"
 									/>
 								</div>
-								<Button
-									onClick={handleValidateLicense}
-									variant="secondary"
-									disabled={isLoading}
-								>
-									{isLoading ? "Validating..." : "Validate"}
-								</Button>
+								{!data?.user?.licenseKey ? (
+									<Button
+										onClick={handleSaveLicense}
+										variant="secondary"
+										disabled={isLoading}
+									>
+										{isLoading ? "Saving..." : "Save License"}
+									</Button>
+								) : (
+									<div className="flex gap-2">
+										<Button
+											onClick={handleValidateLicense}
+											variant="secondary"
+											disabled={isLoading}
+										>
+											{isLoading ? "Validating..." : "Validate"}
+										</Button>
+										<Button
+											onClick={() => {
+												setIsLoading(true);
+												deactivateLicense({
+													licenseKey,
+												})
+													.then(() => {
+														setLicenseKey("");
+														toast.success("License removed successfully");
+														refetch();
+													})
+													.catch((e) => {
+														toast.error("Error removing license", {
+															description: e.message,
+														});
+													})
+													.finally(() => {
+														setIsLoading(false);
+													});
+											}}
+											variant="destructive"
+											disabled={isLoading}
+										>
+											Remove
+										</Button>
+									</div>
+								)}
 							</div>
 						)}
 					</div>

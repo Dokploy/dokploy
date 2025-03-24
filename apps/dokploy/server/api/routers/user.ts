@@ -32,6 +32,7 @@ import {
 import {
 	validateLicense,
 	activateLicense,
+	deactivateLicense,
 } from "@/server/utils/validate-license";
 const apiCreateApiKey = z.object({
 	name: z.string().min(1),
@@ -151,22 +152,62 @@ export const userRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input, ctx }) => {
 			const owner = await findUserById(ctx.user.ownerId);
-			const result = await validateLicense(
+
+			const result = await activateLicense(
 				input.licenseKey,
 				owner?.serverIp || "",
 			);
-			if (!result.isValid) {
+
+			if (!result.success) {
 				throw new TRPCError({
-					code: "UNAUTHORIZED",
+					code: "BAD_REQUEST",
 					message: result.error,
 				});
 			}
 
-			await activateLicense(input.licenseKey, owner?.serverIp || "");
-
 			await updateUser(ctx.user.id, {
 				licenseKey: input.licenseKey,
 			});
+
+			return result;
+		}),
+	deactivateLicense: adminProcedure
+		.input(z.object({ licenseKey: z.string().min(1) }))
+		.mutation(async ({ input, ctx }) => {
+			const owner = await findUserById(ctx.user.ownerId);
+			const result = await deactivateLicense(
+				input.licenseKey,
+				owner?.serverIp || "",
+			);
+
+			if (!result.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: result.error,
+				});
+			}
+
+			await updateUser(ctx.user.id, {
+				licenseKey: null,
+			});
+
+			return result;
+		}),
+	validateLicense: adminProcedure
+		.input(z.object({ licenseKey: z.string().min(1) }))
+		.mutation(async ({ input, ctx }) => {
+			const owner = await findUserById(ctx.user.ownerId);
+			const result = await validateLicense(
+				input.licenseKey,
+				owner?.serverIp || "",
+			);
+
+			if (!result.success) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: result.error,
+				});
+			}
 
 			return result;
 		}),

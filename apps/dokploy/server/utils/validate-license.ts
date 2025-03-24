@@ -29,3 +29,19 @@ export const activateLicense = async (licenseKey: string, serverIp: string) => {
 
 	return data;
 };
+
+export const deactivateLicense = async (
+	licenseKey: string,
+	serverIp: string,
+) => {
+	const response = await fetch(`${licensesUrl}/api/license/deactivate`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ licenseKey, serverIp }),
+	});
+	const data = await response.json();
+
+	return data;
+};
