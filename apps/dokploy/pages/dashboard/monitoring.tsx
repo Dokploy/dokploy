@@ -1,7 +1,10 @@
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server/constants";
@@ -23,7 +26,7 @@ const Dashboard = () => {
 	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
 	return (
 		<div className="space-y-4 pb-10">
-			{/* <AlertBlock>
+			<AlertBlock>
 				You are watching the <strong>Free</strong> plan.{" "}
 				<a
 					href="https://dokploy.com#pricing"
@@ -34,7 +37,7 @@ const Dashboard = () => {
 					Upgrade
 				</a>{" "}
 				to get more features.
-			</AlertBlock> */}
+			</AlertBlock>
 			{isLoading ? (
 				<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto  items-center">
 					<div className="rounded-xl bg-background flex shadow-md px-4 min-h-[50vh] justify-center items-center text-muted-foreground">
@@ -44,15 +47,15 @@ const Dashboard = () => {
 				</Card>
 			) : (
 				<>
-					{/* {monitoring?.enabledFeatures && (
+					{monitoring?.enabledFeatures && (
 						<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
 							<Label className="text-muted-foreground">Change Monitoring</Label>
 							<Switch
 								checked={toggleMonitoring}
-								onCheckedChange={setToggleMonitoring}
+								onCheckedChange={_setToggleMonitoring}
 							/>
 						</div>
-					)} */}
+					)}
 					{toggleMonitoring ? (
 						<Card className="bg-sidebar  p-2.5 rounded-xl  mx-auto">
 							<div className="rounded-xl bg-background shadow-md">

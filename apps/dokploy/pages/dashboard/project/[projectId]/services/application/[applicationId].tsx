@@ -28,6 +28,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
@@ -65,7 +66,7 @@ type TabState =
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
-	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(true);
 	const { applicationId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
@@ -86,6 +87,7 @@ const Service = (
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
+	const { data: monitoring } = api.user.getMetricsToken.useQuery();
 
 	return (
 		<div className="pb-10">
@@ -265,21 +267,19 @@ const Service = (
 													/>
 												) : (
 													<>
-														{/* {monitoring?.enabledFeatures &&
-															isCloud &&
-															data?.serverId && (
-																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
-																	<Label className="text-muted-foreground">
-																		Change Monitoring
-																	</Label>
-																	<Switch
-																		checked={toggleMonitoring}
-																		onCheckedChange={setToggleMonitoring}
-																	/>
-																</div>
-															)} */}
+														{monitoring?.enabledFeatures && (
+															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																<Label className="text-muted-foreground">
+																	Change Monitoring
+																</Label>
+																<Switch
+																	checked={_toggleMonitoring}
+																	onCheckedChange={_setToggleMonitoring}
+																/>
+															</div>
+														)}
 
-														{/* {toggleMonitoring ? (
+														{_toggleMonitoring ? (
 															<ContainerPaidMonitoring
 																appName={data?.appName || ""}
 																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
@@ -287,13 +287,13 @@ const Service = (
 																	monitoring?.metricsConfig?.server?.token || ""
 																}
 															/>
-														) : ( */}
-														<div>
-															<ContainerFreeMonitoring
-																appName={data?.appName || ""}
-															/>
-														</div>
-														{/* )} */}
+														) : (
+															<div>
+																<ContainerFreeMonitoring
+																	appName={data?.appName || ""}
+																/>
+															</div>
+														)}
 													</>
 												)}
 											</div>
