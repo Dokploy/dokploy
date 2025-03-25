@@ -60,6 +60,7 @@ const GitlabProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	recurseSubmodules: z.boolean().default(true),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -86,6 +87,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			},
 			gitlabId: "",
 			branch: "",
+			recurseSubmodules: true,
 		},
 		resolver: zodResolver(GitlabProviderSchema),
 	});
@@ -135,6 +137,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				buildPath: data.gitlabBuildPath || "/",
 				gitlabId: data.gitlabId || "",
 				watchPaths: data.watchPaths || [],
+				recurseSubmodules: data.recurseSubmodules ?? true,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -150,6 +153,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			gitlabProjectId: data.repository.id,
 			gitlabPathNamespace: data.repository.gitlabPathNamespace,
 			watchPaths: data.watchPaths || [],
+			recurseSubmodules: data.recurseSubmodules,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -480,6 +484,23 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 										</Button>
 									</div>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="recurseSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<input
+											type="checkbox"
+											checked={field.value}
+											onChange={field.onChange}
+											className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+										/>
+									</FormControl>
+									<FormLabel>Recurse Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>
