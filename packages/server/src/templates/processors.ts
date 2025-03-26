@@ -205,12 +205,13 @@ export function processEnvVars(
 	}
 
 	// Handle object of env vars
-	return Object.entries(template.config.env).map(
-		([key, value]: [string, string]) => {
+	return Object.entries(template.config.env).map(([key, value]) => {
+		if (typeof value === "string") {
 			const processedValue = processValue(value, variables, schema);
 			return `${key}=${processedValue}`;
-		},
-	);
+		}
+		return `${key}=${value}`;
+	});
 }
 
 /**
