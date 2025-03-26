@@ -78,6 +78,13 @@ export const validateLicense = async (licenseKey: string, serverIp: string) => {
 	const currentServerQuantity = license.serverIps?.length || 0;
 	const serversQuantity = suscription.items.data[0].quantity || 0;
 
+	if (license.serverIps?.includes(serverIp)) {
+		return {
+			success: true,
+			license,
+		};
+	}
+
 	if (currentServerQuantity >= serversQuantity) {
 		return {
 			success: false,
