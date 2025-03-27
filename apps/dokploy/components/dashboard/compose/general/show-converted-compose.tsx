@@ -66,7 +66,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					Preview your docker-compose file with added domains. Note: At least
 					one domain must be specified for this conversion to take effect.
 				</AlertBlock>
-				
+
 				<div className="flex flex-row gap-2 justify-end">
 					<Button
 						variant="secondary"
@@ -89,18 +89,19 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 				</div>
 
 				{compose !== null ? (
-				<pre>
-					<CodeEditor
-						value={compose || ""}
-						language="yaml"
-						readOnly
-						height="50rem"
-					/>
-				</pre>
+					<pre>
+						<CodeEditor
+							value={compose || ""}
+							language="yaml"
+							readOnly
+							height="50rem"
+						/>
+					</pre>
 				) : (
-				<div className="py-4 text-center text-muted-foreground">
-					No compose file available. Make sure at least one domain is configured for this project.
-				</div>
+					<div className="py-4 text-center text-muted-foreground">
+						No compose file available. Make sure at least one domain is
+						configured for this project.
+					</div>
 				)}
 			</DialogContent>
 		</Dialog>

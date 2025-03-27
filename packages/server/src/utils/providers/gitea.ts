@@ -19,8 +19,7 @@ export const getErrorCloneRequirements = (entity: {
 	giteaBranch?: string | null;
 }) => {
 	const reasons: string[] = [];
-	const { giteaBranch, giteaOwner, giteaRepository } =
-		entity;
+	const { giteaBranch, giteaOwner, giteaRepository } = entity;
 
 	if (!giteaRepository) reasons.push("1. Repository not assigned.");
 	if (!giteaOwner) reasons.push("2. Owner not specified.");
@@ -41,6 +40,20 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 			return giteaProvider?.accessToken || null;
 		}
 
+		// Check if token is still valid (add some buffer time, e.g., 5 minutes)
+		const currentTimeSeconds = Math.floor(Date.now() / 1000);
+		const bufferTimeSeconds = 300; // 5 minutes
+
+		if (
+			giteaProvider.expiresAt &&
+			giteaProvider.expiresAt > currentTimeSeconds + bufferTimeSeconds &&
+			giteaProvider.accessToken
+		) {
+			// Token is still valid, no need to refresh
+			return giteaProvider.accessToken;
+		}
+
+		// Token is expired or about to expire, refresh it
 		const tokenEndpoint = `${giteaProvider.giteaUrl}/login/oauth/access_token`;
 		const params = new URLSearchParams({
 			grant_type: "refresh_token",
@@ -408,6 +421,8 @@ export const getGiteaBranches = async (input: {
 	if (!input.giteaId) {
 		return [];
 	}
+
+	await refreshGiteaToken(input.giteaId);
 
 	const giteaProvider = await findGiteaById(input.giteaId);
 
