@@ -62,6 +62,11 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
+				<AlertBlock type="info">
+					Preview your docker-compose file with added domains. Note: At least
+					one domain must be specified for this conversion to take effect.
+				</AlertBlock>
+				
 				<div className="flex flex-row gap-2 justify-end">
 					<Button
 						variant="secondary"
