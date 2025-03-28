@@ -1,0 +1,9 @@
+node_modules
+.next
+.docker
+coverage
+.prettierignore
+.stylelintignore
+.eslintignore
+*.log
+docs

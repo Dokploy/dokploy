@@ -176,6 +176,8 @@
 		"esbuild": "0.20.2",
 		"lint-staged": "^15.2.7",
 		"memfs": "^4.11.0",
+		"prettier": "^3.5.3",
+		"prettier-plugin-tailwindcss": "^0.6.11",
 		"tailwindcss": "^3.4.1",
 		"tsx": "^4.7.0",
 		"typescript": "^5.4.2",
@@ -196,6 +198,8 @@
 		]
 	},
 	"commitlint": {
-		"extends": ["@commitlint/config-conventional"]
+		"extends": [
+			"@commitlint/config-conventional"
+		]
 	}
 }
