@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, PenBoxIcon, SquarePen } from "lucide-react";
+import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -121,7 +121,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input placeholder="Tesla" {...field} />
+												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
 
 											<FormMessage />

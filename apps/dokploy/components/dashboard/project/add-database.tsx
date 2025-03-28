@@ -18,7 +18,6 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -49,7 +48,6 @@ import { z } from "zod";
 
 type DbType = typeof mySchema._type.type;
 
-// TODO: Change to a real docker images
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mongo: "mongo:6",
 	mariadb: "mariadb:11",
@@ -89,7 +87,7 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("postgres"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z.string().default("postgres"),
 			databaseUser: z.string().default("postgres"),
 		})
 		.merge(baseDatabaseSchema),
@@ -110,7 +108,7 @@ const mySchema = z.discriminatedUnion("type", [
 			type: z.literal("mysql"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mysql"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z.string().default("mysql"),
 		})
 		.merge(baseDatabaseSchema),
 	z
@@ -119,7 +117,7 @@ const mySchema = z.discriminatedUnion("type", [
 			dockerImage: z.string().default("mariadb:4"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mariadb"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z.string().default("mariadb"),
 		})
 		.merge(baseDatabaseSchema),
 ]);
@@ -206,7 +204,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			promise = postgresMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "postgres",
 
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
@@ -233,7 +231,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseRootPassword: data.databaseRootPassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId,
@@ -242,7 +240,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			promise = mysqlMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "mysql",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				databaseRootPassword: data.databaseRootPassword,
@@ -496,7 +494,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<Input
 													type="password"
 													placeholder="******************"
-													autoComplete="off"
+													autoComplete="one-time-code"
 													{...field}
 												/>
 											</FormControl>

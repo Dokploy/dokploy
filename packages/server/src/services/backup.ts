@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 export type Backup = typeof backups.$inferSelect;
 
 export type BackupSchedule = Awaited<ReturnType<typeof findBackupById>>;
-
+export type BackupScheduleList = Awaited<ReturnType<typeof findBackupsByDbId>>;
 export const createBackup = async (input: typeof apiCreateBackup._type) => {
 	const newBackup = await db
 		.insert(backups)
@@ -68,4 +68,21 @@ export const removeBackupById = async (backupId: string) => {
 		.returning();
 
 	return result[0];
+};
+
+export const findBackupsByDbId = async (
+	id: string,
+	type: "postgres" | "mysql" | "mariadb" | "mongo",
+) => {
+	const result = await db.query.backups.findMany({
+		where: eq(backups[`${type}Id`], id),
+		with: {
+			postgres: true,
+			mysql: true,
+			mariadb: true,
+			mongo: true,
+			destination: true,
+		},
+	});
+	return result || [];
 };

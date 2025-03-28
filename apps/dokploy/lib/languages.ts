@@ -1,6 +1,7 @@
 export const Languages = {
 	english: { code: "en", name: "English" },
 	polish: { code: "pl", name: "Polski" },
+	ukrainian: { code: "uk", name: "Українська" },
 	russian: { code: "ru", name: "Русский" },
 	french: { code: "fr", name: "Français" },
 	german: { code: "de", name: "Deutsch" },
@@ -17,6 +18,7 @@ export const Languages = {
 	norwegian: { code: "no", name: "Norsk" },
 	azerbaijani: { code: "az", name: "Azərbaycan" },
 	indonesian: { code: "id", name: "Bahasa Indonesia" },
+	malayalam: { code: "ml", name: "മലയാളം" },
 };
 
 export type Language = keyof typeof Languages;

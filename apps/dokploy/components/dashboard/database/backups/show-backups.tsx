@@ -16,17 +16,21 @@ import {
 import { api } from "@/utils/api";
 import { DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
-import React from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
 import { UpdateBackup } from "./update-backup";
+import { RestoreBackup } from "./restore-backup";
+import { useState } from "react";
 
 interface Props {
 	id: string;
 	type: Exclude<ServiceType, "application" | "redis">;
 }
 export const ShowBackups = ({ id, type }: Props) => {
+	const [activeManualBackup, setActiveManualBackup] = useState<
+		string | undefined
+	>();
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -68,21 +72,28 @@ export const ShowBackups = ({ id, type }: Props) => {
 				</div>
 
 				{postgres && postgres?.backups?.length > 0 && (
-					<AddBackup databaseId={id} databaseType={type} refetch={refetch} />
+					<div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
+						<AddBackup databaseId={id} databaseType={type} refetch={refetch} />
+						<RestoreBackup
+							databaseId={id}
+							databaseType={type}
+							serverId={postgres.serverId}
+						/>
+					</div>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{data?.length === 0 ? (
 					<div className="flex flex-col items-center gap-3">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
-						<span className="text-base text-muted-foreground">
+						<span className="text-base text-muted-foreground text-center">
 							To create a backup it is required to set at least 1 provider.
 							Please, go to{" "}
 							<Link
-								href="/dashboard/settings/server"
+								href="/dashboard/settings/destinations"
 								className="text-foreground"
 							>
-								Settings
+								S3 Destinations
 							</Link>{" "}
 							to do so.
 						</span>
@@ -95,11 +106,18 @@ export const ShowBackups = ({ id, type }: Props) => {
 								<span className="text-base text-muted-foreground">
 									No backups configured
 								</span>
-								<AddBackup
-									databaseId={id}
-									databaseType={type}
-									refetch={refetch}
-								/>
+								<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+									<AddBackup
+										databaseId={id}
+										databaseType={type}
+										refetch={refetch}
+									/>
+									<RestoreBackup
+										databaseId={id}
+										databaseType={type}
+										serverId={postgres.serverId}
+									/>
+								</div>
 							</div>
 						) : (
 							<div className="flex flex-col pt-2">
@@ -107,7 +125,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 									{postgres?.backups.map((backup) => (
 										<div key={backup.backupId}>
 											<div className="flex w-full flex-col md:flex-row md:items-center justify-between gap-4 md:gap-10 border rounded-lg p-4">
-												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 flex-col gap-8">
+												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 flex-col gap-8">
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Destination</span>
 														<span className="text-sm text-muted-foreground">
@@ -138,6 +156,12 @@ export const ShowBackups = ({ id, type }: Props) => {
 															{backup.enabled ? "Yes" : "No"}
 														</span>
 													</div>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">Keep Latest</span>
+														<span className="text-sm text-muted-foreground">
+															{backup.keepLatestCount || "All"}
+														</span>
+													</div>
 												</div>
 												<div className="flex flex-row gap-4">
 													<TooltipProvider delayDuration={0}>
@@ -146,8 +170,12 @@ export const ShowBackups = ({ id, type }: Props) => {
 																<Button
 																	type="button"
 																	variant="ghost"
-																	isLoading={isManualBackup}
+																	isLoading={
+																		isManualBackup &&
+																		activeManualBackup === backup.backupId
+																	}
 																	onClick={async () => {
+																		setActiveManualBackup(backup.backupId);
 																		await manualBackup({
 																			backupId: backup.backupId as string,
 																		})
@@ -161,6 +189,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 																					"Error creating the manual backup",
 																				);
 																			});
+																		setActiveManualBackup(undefined);
 																	}}
 																>
 																	<Play className="size-5  text-muted-foreground" />
@@ -169,6 +198,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 															<TooltipContent>Run Manual Backup</TooltipContent>
 														</Tooltip>
 													</TooltipProvider>
+
 													<UpdateBackup
 														backupId={backup.backupId}
 														refetch={refetch}

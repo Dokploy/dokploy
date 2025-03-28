@@ -72,7 +72,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 	return (
 		<Card className="h-full bg-sidebar  p-2.5 rounded-xl mx-auto w-full">
 			<div className="rounded-xl bg-background shadow-md p-6 flex flex-col gap-4">
-				<header className="flex items-center justify-between">
+				<header className="flex items-center flex-wrap gap-4 justify-between">
 					<div className="space-y-1">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<WorkflowIcon className="size-6 text-muted-foreground self-center" />
@@ -176,7 +176,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					</Card>
 				</div>
 
-				<div className="flex flex-row gap-4">
+				<div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
 					{nodes.map((node) => (
 						<NodeCard key={node.ID} node={node} serverId={serverId} />
 					))}

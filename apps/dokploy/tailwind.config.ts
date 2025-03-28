@@ -22,6 +22,9 @@ const config = {
 			fontFamily: {
 				sans: ["var(--font-inter)", ...defaultTheme.fontFamily.sans],
 			},
+			screens: {
+				"3xl": "120rem",
+			},
 			maxWidth: {
 				"2xl": "40rem",
 				"8xl": "85rem",
@@ -111,7 +114,11 @@ const config = {
 			},
 		},
 	},
-	plugins: [require("tailwindcss-animate"), require("fancy-ansi/plugin")],
+	plugins: [
+		require("tailwindcss-animate"),
+		require("fancy-ansi/plugin"),
+		require("@tailwindcss/typography"),
+	],
 } satisfies Config;
 
 export default config;

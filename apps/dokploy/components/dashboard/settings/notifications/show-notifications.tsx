@@ -13,7 +13,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Bell, Loader2, Mail, Trash2 } from "lucide-react";
+import { Bell, Loader2, Mail, MessageCircleMore, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HandleNotifications } from "./handle-notifications";
 
@@ -47,7 +47,7 @@ export const ShowNotifications = () => {
 								{data?.length === 0 ? (
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Bell />
-										<span className="text-base text-muted-foreground">
+										<span className="text-base text-muted-foreground text-center">
 											To send notifications it is required to set at least 1
 											provider.
 										</span>
@@ -56,7 +56,7 @@ export const ShowNotifications = () => {
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<div className="flex flex-col gap-4 rounded-lg ">
-											{data?.map((notification, index) => (
+											{data?.map((notification, _index) => (
 												<div
 													key={notification.notificationId}
 													className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
@@ -81,6 +81,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "email" && (
 																<div className="flex  items-center justify-center rounded-lg ">
 																	<Mail className="size-6 text-muted-foreground" />
+																</div>
+															)}
+															{notification.notificationType === "gotify" && (
+																<div className="flex  items-center justify-center rounded-lg ">
+																	<MessageCircleMore className="size-6 text-muted-foreground" />
 																</div>
 															)}
 

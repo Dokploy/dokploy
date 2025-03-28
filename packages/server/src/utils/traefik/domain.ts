@@ -122,13 +122,25 @@ export const createRouterConfig = async (
 	if ((entryPoint === "websecure" && https) || !https) {
 		// redirects
 		for (const redirect of redirects) {
-			const middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
+			let middlewareName = `redirect-${appName}-${redirect.uniqueConfigKey}`;
+			if (domain.domainType === "preview") {
+				middlewareName = `redirect-${appName.replace(
+					/^preview-(.+)-[^-]+$/,
+					"$1",
+				)}-${redirect.uniqueConfigKey}`;
+			}
 			routerConfig.middlewares?.push(middlewareName);
 		}
 
 		// security
 		if (security.length > 0) {
-			const middlewareName = `auth-${appName}`;
+			let middlewareName = `auth-${appName}`;
+			if (domain.domainType === "preview") {
+				middlewareName = `auth-${appName.replace(
+					/^preview-(.+)-[^-]+$/,
+					"$1",
+				)}`;
+			}
 			routerConfig.middlewares?.push(middlewareName);
 		}
 	}
@@ -136,6 +148,8 @@ export const createRouterConfig = async (
 	if (entryPoint === "websecure") {
 		if (certificateType === "letsencrypt") {
 			routerConfig.tls = { certResolver: "letsencrypt" };
+		} else if (certificateType === "custom" && domain.customCertResolver) {
+			routerConfig.tls = { certResolver: domain.customCertResolver };
 		} else if (certificateType === "none") {
 			routerConfig.tls = undefined;
 		}

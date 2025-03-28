@@ -85,7 +85,7 @@ const Tree = React.forwardRef<HTMLDivElement, TreeProps>(
 			return ids;
 		}, [data, initialSlelectedItemId]);
 
-		const { ref: refRoot, width, height } = useResizeObserver();
+		const { ref: refRoot } = useResizeObserver();
 
 		return (
 			<div ref={refRoot} className={cn("overflow-y-auto", className)}>

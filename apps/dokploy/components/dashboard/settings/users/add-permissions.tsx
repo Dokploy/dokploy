@@ -30,8 +30,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const addPermissions = z.object({
-	accesedProjects: z.array(z.string()).optional(),
-	accesedServices: z.array(z.string()).optional(),
+	accessedProjects: z.array(z.string()).optional(),
+	accessedServices: z.array(z.string()).optional(),
 	canCreateProjects: z.boolean().optional().default(false),
 	canCreateServices: z.boolean().optional().default(false),
 	canDeleteProjects: z.boolean().optional().default(false),
@@ -52,7 +52,7 @@ interface Props {
 export const AddUserPermissions = ({ userId }: Props) => {
 	const { data: projects } = api.project.all.useQuery();
 
-	const { data, refetch } = api.user.byUserId.useQuery(
+	const { data, refetch } = api.user.one.useQuery(
 		{
 			userId,
 		},
@@ -62,12 +62,12 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	);
 
 	const { mutateAsync, isError, error, isLoading } =
-		api.admin.assignPermissions.useMutation();
+		api.user.assignPermissions.useMutation();
 
 	const form = useForm<AddPermissions>({
 		defaultValues: {
-			accesedProjects: [],
-			accesedServices: [],
+			accessedProjects: [],
+			accessedServices: [],
 		},
 		resolver: zodResolver(addPermissions),
 	});
@@ -75,8 +75,8 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				accesedProjects: data.accesedProjects || [],
-				accesedServices: data.accesedServices || [],
+				accessedProjects: data.accessedProjects || [],
+				accessedServices: data.accessedServices || [],
 				canCreateProjects: data.canCreateProjects,
 				canCreateServices: data.canCreateServices,
 				canDeleteProjects: data.canDeleteProjects,
@@ -92,14 +92,14 @@ export const AddUserPermissions = ({ userId }: Props) => {
 
 	const onSubmit = async (data: AddPermissions) => {
 		await mutateAsync({
-			userId,
+			id: userId,
 			canCreateServices: data.canCreateServices,
 			canCreateProjects: data.canCreateProjects,
 			canDeleteServices: data.canDeleteServices,
 			canDeleteProjects: data.canDeleteProjects,
 			canAccessToTraefikFiles: data.canAccessToTraefikFiles,
-			accesedProjects: data.accesedProjects || [],
-			accesedServices: data.accesedServices || [],
+			accessedProjects: data.accessedProjects || [],
+			accessedServices: data.accessedServices || [],
 			canAccessToDocker: data.canAccessToDocker,
 			canAccessToAPI: data.canAccessToAPI,
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
@@ -318,7 +318,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 						/>
 						<FormField
 							control={form.control}
-							name="accesedProjects"
+							name="accessedProjects"
 							render={() => (
 								<FormItem className="md:col-span-2">
 									<div className="mb-4">
@@ -339,7 +339,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 												<FormField
 													key={`project-${index}`}
 													control={form.control}
-													name="accesedProjects"
+													name="accessedProjects"
 													render={({ field }) => {
 														return (
 															<FormItem
@@ -380,7 +380,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																	<FormField
 																		key={`project-${index}`}
 																		control={form.control}
-																		name="accesedServices"
+																		name="accessedServices"
 																		render={({ field }) => {
 																			return (
 																				<FormItem

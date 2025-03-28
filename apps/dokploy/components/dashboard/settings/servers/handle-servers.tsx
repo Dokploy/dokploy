@@ -118,7 +118,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			sshKeyId: data.sshKeyId || "",
 			serverId: serverId || "",
 		})
-			.then(async (data) => {
+			.then(async (_data) => {
 				await utils.server.all.invalidate();
 				refetchServer();
 				toast.success(serverId ? "Server Updated" : "Server Created");

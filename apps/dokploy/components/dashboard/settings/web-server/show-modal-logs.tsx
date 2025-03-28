@@ -6,7 +6,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -22,6 +21,8 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { badgeStateColor } from "../../application/logs/show";
+import { Badge } from "@/components/ui/badge";
 
 export const DockerLogsId = dynamic(
 	() =>
@@ -37,13 +38,20 @@ interface Props {
 	appName: string;
 	children?: React.ReactNode;
 	serverId?: string;
+	type?: "standalone" | "swarm";
 }
 
-export const ShowModalLogs = ({ appName, children, serverId }: Props) => {
+export const ShowModalLogs = ({
+	appName,
+	children,
+	serverId,
+	type = "swarm",
+}: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppLabel.useQuery(
 		{
 			appName,
 			serverId,
+			type,
 		},
 		{
 			enabled: !!appName,
@@ -84,7 +92,10 @@ export const ShowModalLogs = ({ appName, children, serverId }: Props) => {
 										key={container.containerId}
 										value={container.containerId}
 									>
-										{container.name} ({container.containerId}) {container.state}
+										{container.name} ({container.containerId}){" "}
+										<Badge variant={badgeStateColor(container.state)}>
+											{container.state}
+										</Badge>
 									</SelectItem>
 								))}
 								<SelectLabel>Containers ({data?.length})</SelectLabel>

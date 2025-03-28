@@ -1,50 +1,59 @@
 "use client";
-
 import {
 	Activity,
-	AudioWaveform,
 	BarChartHorizontalBigIcon,
 	Bell,
 	BlocksIcon,
 	BookIcon,
+	BotIcon,
 	Boxes,
 	ChevronRight,
+	ChevronsUpDown,
 	CircleHelp,
-	Command,
 	CreditCard,
 	Database,
 	Folder,
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
-	Heart,
+	HeartIcon,
 	KeyRound,
+	Loader2,
 	type LucideIcon,
 	Package,
 	PieChart,
 	Server,
 	ShieldCheck,
+	Trash2,
 	User,
 	Users,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type * as React from "react";
+import { useEffect, useState } from "react";
 
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import {
+	SIDEBAR_COOKIE_NAME,
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
@@ -63,262 +72,297 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import type { inferRouterOutputs } from "@trpc/server";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { toast } from "sonner";
+import { AddOrganization } from "../dashboard/organization/handle-organization";
+import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
+import { Button } from "../ui/button";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
-// This is sample data.
-interface NavItem {
+
+// The types of the queries we are going to use
+type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
+
+type SingleNavItem = {
+	isSingle?: true;
 	title: string;
 	url: string;
-	icon: LucideIcon;
-	isSingle: boolean;
-	isActive: boolean;
-	items?: {
-		title: string;
-		url: string;
-		icon?: LucideIcon;
-	}[];
-}
+	icon?: LucideIcon;
+	isEnabled?: (opts: {
+		auth?: AuthQueryOutput;
+		isCloud: boolean;
+	}) => boolean;
+};
 
-interface ExternalLink {
+// NavItem type
+// Consists of a single item or a group of items
+// If `isSingle` is true or undefined, the item is a single item
+// If `isSingle` is false, the item is a group of items
+type NavItem =
+	| SingleNavItem
+	| {
+			isSingle: false;
+			title: string;
+			icon: LucideIcon;
+			items: SingleNavItem[];
+			isEnabled?: (opts: {
+				auth?: AuthQueryOutput;
+				isCloud: boolean;
+			}) => boolean;
+	  };
+
+// ExternalLink type
+// Represents an external link item (used for the help section)
+type ExternalLink = {
 	name: string;
 	url: string;
-	icon: LucideIcon;
-}
+	icon: React.ComponentType<{ className?: string }>;
+	isEnabled?: (opts: {
+		auth?: AuthQueryOutput;
+		isCloud: boolean;
+	}) => boolean;
+};
 
-const data = {
-	user: {
-		name: "shadcn",
-		email: "m@example.com",
-		avatar: "/avatars/shadcn.jpg",
-	},
-	teams: [
-		{
-			name: "Dokploy",
-			logo: Logo,
-			plan: "Enterprise",
-		},
-		{
-			name: "Acme Corp.",
-			logo: AudioWaveform,
-			plan: "Startup",
-		},
-		{
-			name: "Evil Corp.",
-			logo: Command,
-			plan: "Free",
-		},
-	],
+// Menu type
+// Consists of home, settings, and help items
+type Menu = {
+	home: NavItem[];
+	settings: NavItem[];
+	help: ExternalLink[];
+};
+
+// Menu items
+// Consists of unfiltered home, settings, and help items
+// The items are filtered based on the user's role and permissions
+// The `isEnabled` function is called to determine if the item should be displayed
+const MENU: Menu = {
 	home: [
 		{
+			isSingle: true,
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
-			isSingle: true,
-			isActive: false,
 		},
 		{
+			isSingle: true,
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
-			isSingle: true,
-			isActive: false,
+			// Only enabled in non-cloud environments
+			isEnabled: ({ isCloud }) => !isCloud,
 		},
 		{
+			isSingle: true,
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Traefik files in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!(
+					(auth?.role === "owner" || auth?.canAccessToTraefikFiles) &&
+					!isCloud
+				),
 		},
 		{
+			isSingle: true,
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Docker in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Docker in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Docker in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 
+		// Legacy unused menu, adjusted to the new structure
 		// {
+		// 	isSingle: true,
 		// 	title: "Projects",
 		// 	url: "/dashboard/projects",
 		// 	icon: Folder,
-		// 	isSingle: true,
 		// },
 		// {
+		// 	isSingle: true,
 		// 	title: "Monitoring",
 		// 	icon: BarChartHorizontalBigIcon,
 		// 	url: "/dashboard/settings/monitoring",
-		// 	isSingle: true,
 		// },
+		// {
+		//   isSingle: false,
+		//   title: "Settings",
+		//   icon: Settings2,
+		//   items: [
+		//     {
+		//       title: "Profile",
+		//       url: "/dashboard/settings/profile",
+		//     },
+		//     {
+		//       title: "Users",
+		//       url: "/dashboard/settings/users",
+		//     },
+		//     {
+		//       title: "SSH Key",
+		//       url: "/dashboard/settings/ssh-keys",
+		//     },
+		//     {
+		//       title: "Git",
+		//       url: "/dashboard/settings/git-providers",
+		//     },
+		//   ],
+		// },
+		// {
+		//   isSingle: false,
+		//   title: "Integrations",
+		//   icon: BlocksIcon,
+		//   items: [
+		//     {
+		//       title: "S3 Destinations",
+		//       url: "/dashboard/settings/destinations",
+		//     },
+		//     {
+		//       title: "Registry",
+		//       url: "/dashboard/settings/registry",
+		//     },
+		//     {
+		//       title: "Notifications",
+		//       url: "/dashboard/settings/notifications",
+		//     },
+		//   ],
+		// },
+	],
 
-		// {
-		// 	title: "Settings",
-		// 	url: "#",
-		// 	icon: Settings2,
-		// 	isActive: true,
-		// 	items: [
-		// 		{
-		// 			title: "Profile",
-		// 			url: "/dashboard/settings/profile",
-		// 		},
-		// 		{
-		// 			title: "Users",
-		// 			url: "/dashboard/settings/users",
-		// 		},
-		// 		{
-		// 			title: "SSH Key",
-		// 			url: "/dashboard/settings/ssh-keys",
-		// 		},
-		// 		{
-		// 			title: "Git",
-		// 			url: "/dashboard/settings/git-providers",
-		// 		},
-		// 	],
-		// },
-
-		// {
-		// 	title: "Integrations",
-		// 	icon: BlocksIcon,
-		// 	items: [
-		// 		{
-		// 			title: "S3 Destinations",
-		// 			url: "/dashboard/settings/destinations",
-		// 		},
-		// 		{
-		// 			title: "Registry",
-		// 			url: "/dashboard/settings/registry",
-		// 		},
-		// 		{
-		// 			title: "Notifications",
-		// 			url: "/dashboard/settings/notifications",
-		// 		},
-		// 	],
-		// },
-		// {
-		// 	title: "Appearance",
-		// 	icon: Frame,
-		// 	items: [
-		// 		{
-		// 			title: "Theme",
-		// 			url: "/dashboard/settings/appearance",
-		// 		},
-		// 	],
-		// },
-	] as NavItem[],
 	settings: [
 		{
-			title: "Server",
+			isSingle: true,
+			title: "Web Server",
 			url: "/dashboard/settings/server",
 			icon: Activity,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins in non-cloud environments
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
-			isSingle: true,
-			isActive: false,
 		},
 		{
-			title: "Servers",
+			isSingle: true,
+			title: "Remote Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
+			isSingle: true,
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
+			isSingle: true,
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to SSH keys
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
 		},
-
 		{
+			title: "AI",
+			icon: BotIcon,
+			url: "/dashboard/settings/ai",
+			isSingle: true,
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+		},
+		{
+			isSingle: true,
 			title: "Git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins and users with access to Git providers
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.canAccessToGitProviders),
 		},
 		{
+			isSingle: true,
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
+			isSingle: true,
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 
 		{
+			isSingle: true,
 			title: "Certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
+			isSingle: true,
 			title: "Cluster",
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins in non-cloud environments
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 		{
+			isSingle: true,
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
+			isSingle: true,
 			title: "Billing",
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
-			isSingle: true,
-			isActive: false,
+			// Only enabled for admins in cloud environments
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
 		},
+	],
 
-		// {
-		// 	title: "Appearance",
-		// 	url: "/dashboard/settings/appearance",
-		// 	icon: Frame,
-		// },
-	] as NavItem[],
-	projects: [
+	help: [
 		{
 			name: "Documentation",
 			url: "https://docs.dokploy.com/docs/core",
@@ -332,21 +376,113 @@ const data = {
 		{
 			name: "Sponsor",
 			url: "https://opencollective.com/dokploy",
-			icon: Heart,
+			icon: ({ className }) => (
+				<HeartIcon
+					className={cn(
+						"text-red-500 fill-red-600 animate-heartbeat",
+						className,
+					)}
+				/>
+			),
 		},
+	],
+} as const;
 
-		// {
-		// 	name: "Sales & Marketing",
-		// 	url: "#",
-		// 	icon: PieChart,
-		// },
-		// {
-		// 	name: "Travel",
-		// 	url: "#",
-		// 	icon: Map,
-		// },
-	] as ExternalLink[],
-};
+/**
+ * Creates a menu based on the current user's role and permissions
+ * @returns a menu object with the home, settings, and help items
+ */
+function createMenuForAuthUser(opts: {
+	auth?: AuthQueryOutput;
+	isCloud: boolean;
+}): Menu {
+	return {
+		// Filter the home items based on the user's role and permissions
+		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
+		home: MENU.home.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({
+						auth: opts.auth,
+						isCloud: opts.isCloud,
+					}),
+		),
+		// Filter the settings items based on the user's role and permissions
+		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
+		settings: MENU.settings.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({
+						auth: opts.auth,
+						isCloud: opts.isCloud,
+					}),
+		),
+		// Filter the help items based on the user's role and permissions
+		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
+		help: MENU.help.filter((item) =>
+			!item.isEnabled
+				? true
+				: item.isEnabled({
+						auth: opts.auth,
+						isCloud: opts.isCloud,
+					}),
+		),
+	};
+}
+
+/**
+ * Determines if an item url is active based on the current pathname
+ * @returns true if the item url is active, false otherwise
+ */
+function isActiveRoute(opts: {
+	/** The url of the item. Usually obtained from `item.url` */
+	itemUrl: string;
+	/** The current pathname. Usually obtained from `usePathname()` */
+	pathname: string;
+}): boolean {
+	const normalizedItemUrl = opts.itemUrl?.replace("/projects", "/project");
+	const normalizedPathname = opts.pathname?.replace("/projects", "/project");
+
+	if (!normalizedPathname) return false;
+
+	if (normalizedPathname === normalizedItemUrl) return true;
+
+	if (normalizedPathname.startsWith(normalizedItemUrl)) {
+		const nextChar = normalizedPathname.charAt(normalizedItemUrl.length);
+		return nextChar === "/";
+	}
+
+	return false;
+}
+
+/**
+ * Finds the active nav item based on the current pathname
+ * @returns the active nav item with `SingleNavItem` type or undefined if none is active
+ */
+function findActiveNavItem(
+	navItems: NavItem[],
+	pathname: string,
+): SingleNavItem | undefined {
+	const found = navItems.find((item) =>
+		item.isSingle !== false
+			? // The current item is single, so check if the item url is active
+				isActiveRoute({ itemUrl: item.url, pathname })
+			: // The current item is not single, so check if any of the sub items are active
+				item.items.some((item) =>
+					isActiveRoute({ itemUrl: item.url, pathname }),
+				),
+	);
+
+	if (found?.isSingle !== false) {
+		// The found item is single, so return it
+		return found;
+	}
+
+	// The found item is not single, so find the active sub item
+	return found?.items.find((item) =>
+		isActiveRoute({ itemUrl: item.url, pathname }),
+	);
+}
 
 interface Props {
 	children: React.ReactNode;
@@ -358,114 +494,312 @@ function LogoWrapper() {
 
 function SidebarLogo() {
 	const { state } = useSidebar();
-	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: user } = api.user.get.useQuery();
+	const { data: session } = authClient.useSession();
+
+	const {
+		data: organizations,
+		refetch,
+		isLoading,
+	} = api.organization.all.useQuery();
+	const { mutateAsync: deleteOrganization, isLoading: isRemoving } =
+		api.organization.delete.useMutation();
+	const { isMobile } = useSidebar();
+	const { data: activeOrganization } = authClient.useActiveOrganization();
+	const _utils = api.useUtils();
+
+	const { data: invitations, refetch: refetchInvitations } =
+		api.user.getInvitations.useQuery();
+
+	const [_activeTeam, setActiveTeam] = useState<
+		typeof activeOrganization | null
+	>(null);
+
+	useEffect(() => {
+		if (activeOrganization) {
+			setActiveTeam(activeOrganization);
+		}
+	}, [activeOrganization]);
 
 	return (
-		<Link
-			href="/dashboard/projects"
-			className="flex items-center gap-2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]/35 rounded-lg "
-		>
-			<div
-				className={cn(
-					"flex aspect-square items-center justify-center rounded-lg transition-all",
-					state === "collapsed" ? "size-6" : "size-10",
-				)}
-			>
-				<Logo
+		<>
+			{isLoading ? (
+				<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[5vh] pt-4">
+					<Loader2 className="animate-spin size-4" />
+				</div>
+			) : (
+				<SidebarMenu
 					className={cn(
-						"transition-all",
-						state === "collapsed" ? "size-6" : "size-10",
+						"flex gap-2",
+						state === "collapsed"
+							? "flex-col"
+							: "flex-row justify-between items-center",
 					)}
-				/>
-			</div>
+				>
+					{/* Organization Logo and Selector */}
+					<SidebarMenuItem className={"w-full"}>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<SidebarMenuButton
+									size={state === "collapsed" ? "sm" : "lg"}
+									className={cn(
+										"data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+										state === "collapsed" &&
+											"flex justify-center items-center p-2 h-10 w-10 mx-auto",
+									)}
+								>
+									<div
+										className={cn(
+											"flex items-center gap-2",
+											state === "collapsed" && "justify-center",
+										)}
+									>
+										<div
+											className={cn(
+												"flex items-center justify-center rounded-sm border",
+												"size-6",
+											)}
+										>
+											<Logo
+												className={cn(
+													"transition-all",
+													state === "collapsed" ? "size-4" : "size-5",
+												)}
+												logoUrl={activeOrganization?.logo || undefined}
+											/>
+										</div>
+										<div
+											className={cn(
+												"flex flex-col items-start",
+												state === "collapsed" && "hidden",
+											)}
+										>
+											<p className="text-sm font-medium leading-none">
+												{activeOrganization?.name ?? "Select Organization"}
+											</p>
+										</div>
+									</div>
+									<ChevronsUpDown
+										className={cn("ml-auto", state === "collapsed" && "hidden")}
+									/>
+								</SidebarMenuButton>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								className="rounded-lg"
+								align="start"
+								side={isMobile ? "bottom" : "right"}
+								sideOffset={4}
+							>
+								<DropdownMenuLabel className="text-xs text-muted-foreground">
+									Organizations
+								</DropdownMenuLabel>
+								{organizations?.map((org) => (
+									<div className="flex flex-row justify-between" key={org.name}>
+										<DropdownMenuItem
+											onClick={async () => {
+												await authClient.organization.setActive({
+													organizationId: org.id,
+												});
+												window.location.reload();
+											}}
+											className="w-full gap-2 p-2"
+										>
+											<div className="flex flex-col gap-4">{org.name}</div>
+											<div className="flex size-6 items-center justify-center rounded-sm border">
+												<Logo
+													className={cn(
+														"transition-all",
+														state === "collapsed" ? "size-6" : "size-10",
+													)}
+													logoUrl={org.logo ?? undefined}
+												/>
+											</div>
+										</DropdownMenuItem>
+										{org.ownerId === session?.user?.id && (
+											<div className="flex items-center gap-2">
+												<AddOrganization organizationId={org.id} />
+												<DialogAction
+													title="Delete Organization"
+													description="Are you sure you want to delete this organization?"
+													type="destructive"
+													onClick={async () => {
+														await deleteOrganization({
+															organizationId: org.id,
+														})
+															.then(() => {
+																refetch();
+																toast.success(
+																	"Organization deleted successfully",
+																);
+															})
+															.catch((error) => {
+																toast.error(
+																	error?.message ||
+																		"Error deleting organization",
+																);
+															});
+													}}
+												>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="group hover:bg-red-500/10"
+														isLoading={isRemoving}
+													>
+														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+													</Button>
+												</DialogAction>
+											</div>
+										)}
+									</div>
+								))}
+								{(user?.role === "owner" || isCloud) && (
+									<>
+										<DropdownMenuSeparator />
+										<AddOrganization />
+									</>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</SidebarMenuItem>
 
-			<div className="text-left text-sm leading-tight group-data-[state=open]/collapsible:rotate-90">
-				<p className="truncate font-semibold">Dokploy</p>
-				<p className="truncate text-xs text-muted-foreground">
-					{dokployVersion}
-				</p>
-			</div>
-		</Link>
+					{/* Notification Bell */}
+					<SidebarMenuItem className={cn(state === "collapsed" && "mt-2")}>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className={cn(
+										"relative",
+										state === "collapsed" && "h-8 w-8 p-1.5 mx-auto",
+									)}
+								>
+									<Bell className="size-4" />
+									{invitations && invitations.length > 0 && (
+										<span className="absolute -top-0 -right-0 flex size-4 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+											{invitations.length}
+										</span>
+									)}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="start"
+								side={"right"}
+								className="w-80"
+							>
+								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
+								<div className="flex flex-col gap-2">
+									{invitations && invitations.length > 0 ? (
+										invitations.map((invitation) => (
+											<div key={invitation.id} className="flex flex-col gap-2">
+												<DropdownMenuItem
+													className="flex flex-col items-start gap-1 p-3"
+													onSelect={(e) => e.preventDefault()}
+												>
+													<div className="font-medium">
+														{invitation?.organization?.name}
+													</div>
+													<div className="text-xs text-muted-foreground">
+														Expires:{" "}
+														{new Date(invitation.expiresAt).toLocaleString()}
+													</div>
+													<div className="text-xs text-muted-foreground">
+														Role: {invitation.role}
+													</div>
+												</DropdownMenuItem>
+												<DialogAction
+													title="Accept Invitation"
+													description="Are you sure you want to accept this invitation?"
+													type="default"
+													onClick={async () => {
+														const { error } =
+															await authClient.organization.acceptInvitation({
+																invitationId: invitation.id,
+															});
+
+														if (error) {
+															toast.error(
+																error.message || "Error accepting invitation",
+															);
+														} else {
+															toast.success("Invitation accepted successfully");
+															await refetchInvitations();
+															await refetch();
+														}
+													}}
+												>
+													<Button size="sm" variant="secondary">
+														Accept Invitation
+													</Button>
+												</DialogAction>
+											</div>
+										))
+									) : (
+										<DropdownMenuItem disabled>
+											No pending invitations
+										</DropdownMenuItem>
+									)}
+								</div>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</SidebarMenuItem>
+				</SidebarMenu>
+			)}
+		</>
 	);
 }
 
 export default function Page({ children }: Props) {
+	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
+		undefined,
+	);
+	const [isLoaded, setIsLoaded] = useState(false);
+
+	useEffect(() => {
+		const cookieValue = document.cookie
+			.split("; ")
+			.find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+			?.split("=")[1];
+
+		setDefaultOpen(cookieValue === undefined ? true : cookieValue === "true");
+		setIsLoaded(true);
+	}, []);
+
 	const router = useRouter();
 	const pathname = usePathname();
-	const currentPath = router.pathname;
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.rol === "user",
-		},
-	);
+	const _currentPath = router.pathname;
+	const { data: auth } = api.user.get.useQuery();
+	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
-	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
-	const isActiveRoute = (itemUrl: string) => {
-		const normalizedItemUrl = itemUrl?.replace("/projects", "/project");
-		const normalizedPathname = pathname?.replace("/projects", "/project");
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-		if (!normalizedPathname) return false;
+	const {
+		home: filteredHome,
+		settings: filteredSettings,
+		help,
+	} = createMenuForAuthUser({ auth, isCloud: !!isCloud });
 
-		if (normalizedPathname === normalizedItemUrl) return true;
+	const activeItem = findActiveNavItem(
+		[...filteredHome, ...filteredSettings],
+		pathname,
+	);
 
-		if (normalizedPathname.startsWith(normalizedItemUrl)) {
-			const nextChar = normalizedPathname.charAt(normalizedItemUrl.length);
-			return nextChar === "/";
-		}
-
-		return false;
-	};
-
-	let filteredHome = isCloud
-		? data.home.filter(
-				(item) =>
-					![
-						"/dashboard/monitoring",
-						"/dashboard/traefik",
-						"/dashboard/docker",
-						"/dashboard/swarm",
-						"/dashboard/requests",
-					].includes(item.url),
-			)
-		: data.home;
-
-	let filteredSettings = isCloud
-		? data.settings.filter(
-				(item) =>
-					![
-						"/dashboard/settings/server",
-						"/dashboard/settings/cluster",
-					].includes(item.url),
-			)
-		: data.settings.filter(
-				(item) => !["/dashboard/settings/billing"].includes(item.url),
-			);
-
-	filteredHome = filteredHome.map((item) => ({
-		...item,
-		isActive: isActiveRoute(item.url),
-	}));
-
-	filteredSettings = filteredSettings.map((item) => ({
-		...item,
-		isActive: isActiveRoute(item.url),
-	}));
-
-	const activeItem =
-		filteredHome.find((item) => item.isActive) ||
-		filteredSettings.find((item) => item.isActive);
-
-	const showProjectsButton =
-		currentPath === "/dashboard/projects" &&
-		(auth?.rol === "admin" || user?.canCreateProjects);
+	if (!isLoaded) {
+		return <div className="w-full h-screen bg-background" />; // Placeholder mientras se carga
+	}
 
 	return (
 		<SidebarProvider
+			defaultOpen={defaultOpen}
+			open={defaultOpen}
+			onOpenChange={(open) => {
+				setDefaultOpen(open);
+
+				document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}`;
+			}}
 			style={
 				{
 					"--sidebar-width": "19.5rem",
@@ -475,208 +809,235 @@ export default function Page({ children }: Props) {
 		>
 			<Sidebar collapsible="icon" variant="floating">
 				<SidebarHeader>
-					<SidebarMenuButton
+					{/* <SidebarMenuButton
 						className="group-data-[collapsible=icon]:!p-0"
 						size="lg"
-					>
-						<LogoWrapper />
-					</SidebarMenuButton>
+					> */}
+					<LogoWrapper />
+					{/* </SidebarMenuButton> */}
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
 						<SidebarGroupLabel>Home</SidebarGroupLabel>
 						<SidebarMenu>
-							{filteredHome.map((item) => (
-								<Collapsible
-									key={item.title}
-									asChild
-									defaultOpen={item.isActive}
-									className="group/collapsible"
-								>
-									<SidebarMenuItem>
-										{item.isSingle ? (
-											<SidebarMenuButton
-												asChild
-												tooltip={item.title}
-												className={cn(isActiveRoute(item.url) && "bg-border")}
-											>
-												<Link
-													href={item.url}
-													className="flex w-full items-center gap-2"
-												>
-													<item.icon
-														className={cn(
-															isActiveRoute(item.url) && "text-primary",
-														)}
-													/>
-													<span>{item.title}</span>
-												</Link>
-											</SidebarMenuButton>
-										) : (
-											<>
-												<CollapsibleTrigger asChild>
-													<SidebarMenuButton
-														tooltip={item.title}
-														isActive={item.isActive}
-													>
-														{item.icon && <item.icon />}
+							{filteredHome.map((item) => {
+								const isSingle = item.isSingle !== false;
+								const isActive = isSingle
+									? isActiveRoute({ itemUrl: item.url, pathname })
+									: item.items.some((item) =>
+											isActiveRoute({ itemUrl: item.url, pathname }),
+										);
 
-														<span>{item.title}</span>
-														{item.items?.length && (
-															<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+								return (
+									<Collapsible
+										key={item.title}
+										asChild
+										defaultOpen={isActive}
+										className="group/collapsible"
+									>
+										<SidebarMenuItem>
+											{isSingle ? (
+												<SidebarMenuButton
+													asChild
+													tooltip={item.title}
+													className={cn(isActive && "bg-border")}
+												>
+													<Link
+														href={item.url}
+														className="flex w-full items-center gap-2"
+													>
+														{item.icon && (
+															<item.icon
+																className={cn(isActive && "text-primary")}
+															/>
 														)}
-													</SidebarMenuButton>
-												</CollapsibleTrigger>
-												<CollapsibleContent>
-													<SidebarMenuSub>
-														{item.items?.map((subItem) => (
-															<SidebarMenuSubItem key={subItem.title}>
-																<SidebarMenuSubButton
-																	asChild
-																	className={cn(
-																		isActiveRoute(subItem.url) && "bg-border",
-																	)}
-																>
-																	<Link
-																		href={subItem.url}
-																		className="flex w-full items-center"
+														<span>{item.title}</span>
+													</Link>
+												</SidebarMenuButton>
+											) : (
+												<>
+													<CollapsibleTrigger asChild>
+														<SidebarMenuButton
+															tooltip={item.title}
+															isActive={isActive}
+														>
+															{item.icon && <item.icon />}
+
+															<span>{item.title}</span>
+															{item.items?.length && (
+																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+															)}
+														</SidebarMenuButton>
+													</CollapsibleTrigger>
+													<CollapsibleContent>
+														<SidebarMenuSub>
+															{item.items?.map((subItem) => (
+																<SidebarMenuSubItem key={subItem.title}>
+																	<SidebarMenuSubButton
+																		asChild
+																		className={cn(isActive && "bg-border")}
 																	>
-																		{subItem.icon && (
-																			<span className="mr-2">
-																				<subItem.icon
-																					className={cn(
-																						"h-4 w-4 text-muted-foreground",
-																						isActiveRoute(subItem.url) &&
-																							"text-primary",
-																					)}
-																				/>
-																			</span>
-																		)}
-																		<span>{subItem.title}</span>
-																	</Link>
-																</SidebarMenuSubButton>
-															</SidebarMenuSubItem>
-														))}
-													</SidebarMenuSub>
-												</CollapsibleContent>
-											</>
-										)}
-									</SidebarMenuItem>
-								</Collapsible>
-							))}
+																		<Link
+																			href={subItem.url}
+																			className="flex w-full items-center"
+																		>
+																			{subItem.icon && (
+																				<span className="mr-2">
+																					<subItem.icon
+																						className={cn(
+																							"h-4 w-4 text-muted-foreground",
+																							isActive && "text-primary",
+																						)}
+																					/>
+																				</span>
+																			)}
+																			<span>{subItem.title}</span>
+																		</Link>
+																	</SidebarMenuSubButton>
+																</SidebarMenuSubItem>
+															))}
+														</SidebarMenuSub>
+													</CollapsibleContent>
+												</>
+											)}
+										</SidebarMenuItem>
+									</Collapsible>
+								);
+							})}
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup>
 						<SidebarGroupLabel>Settings</SidebarGroupLabel>
-						<SidebarMenu className="gap-2">
-							{filteredSettings.map((item) => (
-								<Collapsible
-									key={item.title}
-									asChild
-									defaultOpen={item.isActive}
-									className="group/collapsible"
-								>
-									<SidebarMenuItem>
-										{item.isSingle ? (
-											<SidebarMenuButton
-												asChild
-												tooltip={item.title}
-												className={cn(isActiveRoute(item.url) && "bg-border")}
-											>
-												<Link
-													href={item.url}
-													className="flex w-full items-center gap-2"
-												>
-													<item.icon
-														className={cn(
-															isActiveRoute(item.url) && "text-primary",
-														)}
-													/>
-													<span>{item.title}</span>
-												</Link>
-											</SidebarMenuButton>
-										) : (
-											<>
-												<CollapsibleTrigger asChild>
-													<SidebarMenuButton
-														tooltip={item.title}
-														isActive={item.isActive}
-													>
-														{item.icon && <item.icon />}
+						<SidebarMenu className="gap-1">
+							{filteredSettings.map((item) => {
+								const isSingle = item.isSingle !== false;
+								const isActive = isSingle
+									? isActiveRoute({ itemUrl: item.url, pathname })
+									: item.items.some((item) =>
+											isActiveRoute({ itemUrl: item.url, pathname }),
+										);
 
-														<span>{item.title}</span>
-														{item.items?.length && (
-															<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+								return (
+									<Collapsible
+										key={item.title}
+										asChild
+										defaultOpen={isActive}
+										className="group/collapsible"
+									>
+										<SidebarMenuItem>
+											{isSingle ? (
+												<SidebarMenuButton
+													asChild
+													tooltip={item.title}
+													className={cn(isActive && "bg-border")}
+												>
+													<Link
+														href={item.url}
+														className="flex w-full items-center gap-2"
+													>
+														{item.icon && (
+															<item.icon
+																className={cn(isActive && "text-primary")}
+															/>
 														)}
-													</SidebarMenuButton>
-												</CollapsibleTrigger>
-												<CollapsibleContent>
-													<SidebarMenuSub>
-														{item.items?.map((subItem) => (
-															<SidebarMenuSubItem key={subItem.title}>
-																<SidebarMenuSubButton
-																	asChild
-																	className={cn(
-																		isActiveRoute(subItem.url) && "bg-border",
-																	)}
-																>
-																	<Link
-																		href={subItem.url}
-																		className="flex w-full items-center"
+														<span>{item.title}</span>
+													</Link>
+												</SidebarMenuButton>
+											) : (
+												<>
+													<CollapsibleTrigger asChild>
+														<SidebarMenuButton
+															tooltip={item.title}
+															isActive={isActive}
+														>
+															{item.icon && <item.icon />}
+
+															<span>{item.title}</span>
+															{item.items?.length && (
+																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+															)}
+														</SidebarMenuButton>
+													</CollapsibleTrigger>
+													<CollapsibleContent>
+														<SidebarMenuSub>
+															{item.items?.map((subItem) => (
+																<SidebarMenuSubItem key={subItem.title}>
+																	<SidebarMenuSubButton
+																		asChild
+																		className={cn(isActive && "bg-border")}
 																	>
-																		{subItem.icon && (
-																			<span className="mr-2">
-																				<subItem.icon
-																					className={cn(
-																						"h-4 w-4 text-muted-foreground",
-																						isActiveRoute(subItem.url) &&
-																							"text-primary",
-																					)}
-																				/>
-																			</span>
-																		)}
-																		<span>{subItem.title}</span>
-																	</Link>
-																</SidebarMenuSubButton>
-															</SidebarMenuSubItem>
-														))}
-													</SidebarMenuSub>
-												</CollapsibleContent>
-											</>
-										)}
-									</SidebarMenuItem>
-								</Collapsible>
-							))}
+																		<Link
+																			href={subItem.url}
+																			className="flex w-full items-center"
+																		>
+																			{subItem.icon && (
+																				<span className="mr-2">
+																					<subItem.icon
+																						className={cn(
+																							"h-4 w-4 text-muted-foreground",
+																							isActive && "text-primary",
+																						)}
+																					/>
+																				</span>
+																			)}
+																			<span>{subItem.title}</span>
+																		</Link>
+																	</SidebarMenuSubButton>
+																</SidebarMenuSubItem>
+															))}
+														</SidebarMenuSub>
+													</CollapsibleContent>
+												</>
+											)}
+										</SidebarMenuItem>
+									</Collapsible>
+								);
+							})}
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 						<SidebarGroupLabel>Extra</SidebarGroupLabel>
 						<SidebarMenu>
-							{data.projects.map((item) => (
+							{help.map((item: ExternalLink) => (
 								<SidebarMenuItem key={item.name}>
 									<SidebarMenuButton asChild>
-										<Link href={item.url}>
-											<item.icon />
+										<a
+											href={item.url}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="flex w-full items-center gap-2"
+										>
+											<span className="mr-2">
+												<item.icon className="h-4 w-4" />
+											</span>
 											<span>{item.name}</span>
-										</Link>
+										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
-							{!isCloud && (
-								<SidebarMenuItem>
-									<SidebarMenuButton asChild>
-										<UpdateServerButton />
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							)}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
 				<SidebarFooter>
-					<SidebarMenu>
+					<SidebarMenu className="flex flex-col gap-2">
+						{!isCloud && auth?.role === "owner" && (
+							<SidebarMenuItem>
+								<UpdateServerButton />
+							</SidebarMenuItem>
+						)}
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>
+						{dokployVersion && (
+							<>
+								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+									Version {dokployVersion}
+								</div>
+								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
+									{dokployVersion}
+								</div>
+							</>
+						)}
 					</SidebarMenu>
 				</SidebarFooter>
 				<SidebarRail />
@@ -690,7 +1051,7 @@ export default function Page({ children }: Props) {
 								<Separator orientation="vertical" className="mr-2 h-4" />
 								<Breadcrumb>
 									<BreadcrumbList>
-										<BreadcrumbItem className="hidden md:block">
+										<BreadcrumbItem className="block">
 											<BreadcrumbLink asChild>
 												<Link
 													href={activeItem?.url || "/"}
@@ -700,10 +1061,6 @@ export default function Page({ children }: Props) {
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>
-										<BreadcrumbSeparator className="hidden md:block" />
-										<BreadcrumbItem>
-											<BreadcrumbPage>{activeItem?.title}</BreadcrumbPage>
-										</BreadcrumbItem>
 									</BreadcrumbList>
 								</Breadcrumb>
 							</div>
@@ -711,7 +1068,7 @@ export default function Page({ children }: Props) {
 					</header>
 				)}
 
-				<div className="flex flex-col w-full gap-4 p-4 pt-0">{children}</div>
+				<div className="flex flex-col w-full p-4 pt-0">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

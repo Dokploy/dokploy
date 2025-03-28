@@ -8,7 +8,7 @@ export const buildPaketo = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { env, appName } = application;
+	const { env, appName, cleanCache } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
@@ -23,6 +23,10 @@ export const buildPaketo = async (
 			"--builder",
 			"paketobuildpacks/builder-jammy-full",
 		];
+
+		if (cleanCache) {
+			args.push("--clear-cache");
+		}
 
 		for (const env of envVariables) {
 			args.push("--env", env);
@@ -43,7 +47,7 @@ export const getPaketoCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { env, appName } = application;
+	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
@@ -59,6 +63,10 @@ export const getPaketoCommand = (
 		"--builder",
 		"paketobuildpacks/builder-jammy-full",
 	];
+
+	if (cleanCache) {
+		args.push("--clear-cache");
+	}
 
 	for (const env of envVariables) {
 		args.push("--env", `'${env}'`);

@@ -7,9 +7,7 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { Badge } from "@/components/ui/badge";
 import {
-	Command,
 	CommandDialog,
 	CommandEmpty,
 	CommandGroup,
@@ -18,26 +16,26 @@ import {
 	CommandList,
 	CommandSeparator,
 } from "@/components/ui/command";
+import { authClient } from "@/lib/auth-client";
 import {
 	type Services,
 	extractServices,
 } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
-import type { findProjectById } from "@dokploy/server/services/project";
 import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
 
-type Project = Awaited<ReturnType<typeof findProjectById>>;
-
 export const SearchCommand = () => {
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
-
-	const { data } = api.project.all.useQuery();
-	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
+	const { data: session } = authClient.useSession();
+	const { data } = api.project.all.useQuery(undefined, {
+		enabled: !!session,
+	});
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	React.useEffect(() => {
 		const down = (e: KeyboardEvent) => {

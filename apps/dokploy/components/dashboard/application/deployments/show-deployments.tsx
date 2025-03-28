@@ -8,7 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { api } from "@/utils/api";
+import { type RouterOutputs, api } from "@/utils/api";
 import { RocketIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueues } from "./cancel-queues";
@@ -18,8 +18,11 @@ import { ShowDeployment } from "./show-deployment";
 interface Props {
 	applicationId: string;
 }
+
 export const ShowDeployments = ({ applicationId }: Props) => {
-	const [activeLog, setActiveLog] = useState<string | null>(null);
+	const [activeLog, setActiveLog] = useState<
+		RouterOutputs["deployment"]["all"][number] | null
+	>(null);
 	const { data } = api.application.one.useQuery({ applicationId });
 	const { data: deployments } = api.deployment.all.useQuery(
 		{ applicationId },
@@ -70,15 +73,14 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 					</div>
 				) : (
 					<div className="flex flex-col gap-4">
-						{deployments?.map((deployment) => (
+						{deployments?.map((deployment, index) => (
 							<div
 								key={deployment.deploymentId}
 								className="flex items-center justify-between rounded-lg border p-4 gap-2"
 							>
 								<div className="flex flex-col">
 									<span className="flex items-center gap-4 font-medium capitalize text-foreground">
-										{deployment.status}
-
+										{index + 1}. {deployment.status}
 										<StatusTooltip
 											status={deployment?.status}
 											className="size-2.5"
@@ -100,7 +102,7 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 
 									<Button
 										onClick={() => {
-											setActiveLog(deployment.logPath);
+											setActiveLog(deployment);
 										}}
 									>
 										View
@@ -112,9 +114,10 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 				)}
 				<ShowDeployment
 					serverId={data?.serverId || ""}
-					open={activeLog !== null}
+					open={Boolean(activeLog && activeLog.logPath !== null)}
 					onClose={() => setActiveLog(null)}
-					logPath={activeLog}
+					logPath={activeLog?.logPath || ""}
+					errorMessage={activeLog?.errorMessage || ""}
 				/>
 			</CardContent>
 		</Card>

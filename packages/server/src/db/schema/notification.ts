@@ -3,13 +3,14 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { admins } from "./admin";
+import { organization } from "./account";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
 	"telegram",
 	"discord",
 	"email",
+	"gotify",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -23,6 +24,7 @@ export const notifications = pgTable("notification", {
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
+	serverThreshold: boolean("serverThreshold").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -39,9 +41,12 @@ export const notifications = pgTable("notification", {
 	emailId: text("emailId").references(() => email.emailId, {
 		onDelete: "cascade",
 	}),
-	adminId: text("adminId").references(() => admins.adminId, {
+	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
 		onDelete: "cascade",
 	}),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const slack = pgTable("slack", {
@@ -60,6 +65,7 @@ export const telegram = pgTable("telegram", {
 		.$defaultFn(() => nanoid()),
 	botToken: text("botToken").notNull(),
 	chatId: text("chatId").notNull(),
+	messageThreadId: text("messageThreadId"),
 });
 
 export const discord = pgTable("discord", {
@@ -84,6 +90,17 @@ export const email = pgTable("email", {
 	toAddresses: text("toAddress").array().notNull(),
 });
 
+export const gotify = pgTable("gotify", {
+	gotifyId: text("gotifyId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	serverUrl: text("serverUrl").notNull(),
+	appToken: text("appToken").notNull(),
+	priority: integer("priority").notNull().default(5),
+	decoration: boolean("decoration"),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -101,9 +118,13 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.emailId],
 		references: [email.emailId],
 	}),
-	admin: one(admins, {
-		fields: [notifications.adminId],
-		references: [admins.adminId],
+	gotify: one(gotify, {
+		fields: [notifications.gotifyId],
+		references: [gotify.gotifyId],
+	}),
+	organization: one(organization, {
+		fields: [notifications.organizationId],
+		references: [organization.id],
 	}),
 }));
 
@@ -117,6 +138,7 @@ export const apiCreateSlack = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -127,7 +149,7 @@ export const apiCreateSlack = notificationsSchema
 export const apiUpdateSlack = apiCreateSlack.partial().extend({
 	notificationId: z.string().min(1),
 	slackId: z.string(),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestSlackConnection = apiCreateSlack.pick({
@@ -143,22 +165,25 @@ export const apiCreateTelegram = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		botToken: z.string().min(1),
 		chatId: z.string().min(1),
+		messageThreadId: z.string(),
 	})
 	.required();
 
 export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
 	notificationId: z.string().min(1),
 	telegramId: z.string().min(1),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestTelegramConnection = apiCreateTelegram.pick({
 	botToken: true,
 	chatId: true,
+	messageThreadId: true,
 });
 
 export const apiCreateDiscord = notificationsSchema
@@ -169,6 +194,7 @@ export const apiCreateDiscord = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		webhookUrl: z.string().min(1),
@@ -179,7 +205,7 @@ export const apiCreateDiscord = notificationsSchema
 export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
 	notificationId: z.string().min(1),
 	discordId: z.string().min(1),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestDiscordConnection = apiCreateDiscord
@@ -198,6 +224,7 @@ export const apiCreateEmail = notificationsSchema
 		name: true,
 		appDeploy: true,
 		dockerCleanup: true,
+		serverThreshold: true,
 	})
 	.extend({
 		smtpServer: z.string().min(1),
@@ -212,7 +239,7 @@ export const apiCreateEmail = notificationsSchema
 export const apiUpdateEmail = apiCreateEmail.partial().extend({
 	notificationId: z.string().min(1),
 	emailId: z.string().min(1),
-	adminId: z.string().optional(),
+	organizationId: z.string().optional(),
 });
 
 export const apiTestEmailConnection = apiCreateEmail.pick({
@@ -223,6 +250,39 @@ export const apiTestEmailConnection = apiCreateEmail.pick({
 	toAddresses: true,
 	fromAddress: true,
 });
+
+export const apiCreateGotify = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+	})
+	.extend({
+		serverUrl: z.string().min(1),
+		appToken: z.string().min(1),
+		priority: z.number().min(1),
+		decoration: z.boolean(),
+	})
+	.required();
+
+export const apiUpdateGotify = apiCreateGotify.partial().extend({
+	notificationId: z.string().min(1),
+	gotifyId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestGotifyConnection = apiCreateGotify
+	.pick({
+		serverUrl: true,
+		appToken: true,
+		priority: true,
+	})
+	.extend({
+		decoration: z.boolean().optional(),
+	});
 
 export const apiFindOneNotification = notificationsSchema
 	.pick({
@@ -242,5 +302,8 @@ export const apiSendTest = notificationsSchema
 		username: z.string(),
 		password: z.string(),
 		toAddresses: z.array(z.string()),
+		serverUrl: z.string(),
+		appToken: z.string(),
+		priority: z.number(),
 	})
 	.partial();

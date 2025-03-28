@@ -3,7 +3,6 @@ import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import { type apiCreateCompose, compose } from "@dokploy/server/db/schema";
 import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
-import { generatePassword } from "@dokploy/server/templates/utils";
 import {
 	buildCompose,
 	getBuildComposeCommand,
@@ -206,6 +205,7 @@ export const deployCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
@@ -242,7 +242,8 @@ export const deployCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -256,7 +257,7 @@ export const deployCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
 		});
 		throw error;
 	}
@@ -272,6 +273,7 @@ export const rebuildCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -279,11 +281,10 @@ export const rebuildCompose = async ({
 	});
 
 	try {
-		if (compose.serverId) {
-			await getBuildComposeCommand(compose, deployment.logPath);
-		} else {
-			await buildCompose(compose, deployment.logPath);
+		if (compose.sourceType === "raw") {
+			await createComposeFile(compose, deployment.logPath);
 		}
+		await buildCompose(compose, deployment.logPath);
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
@@ -310,6 +311,7 @@ export const deployRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
@@ -365,7 +367,8 @@ export const deployRemoteCompose = async ({
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
+			domains: compose.domains,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -389,7 +392,7 @@ export const deployRemoteCompose = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: compose.project.adminId,
+			organizationId: compose.project.organizationId,
 		});
 		throw error;
 	}
@@ -405,6 +408,7 @@ export const rebuildRemoteCompose = async ({
 	descriptionLog: string;
 }) => {
 	const compose = await findComposeById(composeId);
+
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -412,6 +416,10 @@ export const rebuildRemoteCompose = async ({
 	});
 
 	try {
+		if (compose.sourceType === "raw") {
+			const command = getCreateComposeFileCommand(compose, deployment.logPath);
+			await execAsyncRemote(compose.serverId, command);
+		}
 		if (compose.serverId) {
 			await getBuildComposeCommand(compose, deployment.logPath);
 		}
@@ -533,6 +541,17 @@ export const stopCompose = async (composeId: string) => {
 				await execAsync(`docker compose -p ${compose.appName} stop`, {
 					cwd: join(COMPOSE_PATH, compose.appName),
 				});
+			}
+		}
+
+		if (compose.composeType === "stack") {
+			if (compose.serverId) {
+				await execAsyncRemote(
+					compose.serverId,
+					`docker stack rm ${compose.appName}`,
+				);
+			} else {
+				await execAsync(`docker stack rm ${compose.appName}`);
 			}
 		}
 

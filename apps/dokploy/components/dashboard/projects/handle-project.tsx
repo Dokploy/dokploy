@@ -97,6 +97,18 @@ export const HandleProject = ({ projectId }: Props) => {
 				);
 			});
 	};
+	// useEffect(() => {
+	// 	const getUsers = async () => {
+	// 		const users = await authClient.admin.listUsers({
+	// 			query: {
+	// 				limit: 100,
+	// 			},
+	// 		});
+	// 		console.log(users);
+	// 	};
+
+	// 	getUsers();
+	// });
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -118,7 +130,7 @@ export const HandleProject = ({ projectId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>Add a project</DialogTitle>
+					<DialogTitle>{projectId ? "Update" : "Add a"} project</DialogTitle>
 					<DialogDescription>The home of something big!</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -136,7 +148,7 @@ export const HandleProject = ({ projectId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder="Tesla" {...field} />
+											<Input placeholder="Vandelay Industries" {...field} />
 										</FormControl>
 
 										<FormMessage />

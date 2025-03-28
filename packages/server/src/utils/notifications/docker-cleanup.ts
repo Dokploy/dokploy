@@ -2,16 +2,18 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
 import { renderAsync } from "@react-email/components";
+import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
 
 export const sendDockerCleanupNotifications = async (
-	adminId: string,
+	organizationId: string,
 	message = "Docker cleanup for dokploy",
 ) => {
 	const date = new Date();
@@ -19,18 +21,19 @@ export const sendDockerCleanupNotifications = async (
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.dockerCleanup, true),
-			eq(notifications.adminId, adminId),
+			eq(notifications.organizationId, organizationId),
 		),
 		with: {
 			email: true,
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -79,14 +82,21 @@ export const sendDockerCleanupNotifications = async (
 			});
 		}
 
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
+			await sendGotifyNotification(
+				gotify,
+				decorate("✅", "Docker Cleanup"),
+				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${decorate("📜", `Message:\n${message}`)}`,
+			);
+		}
+
 		if (telegram) {
 			await sendTelegramNotification(
 				telegram,
-				`
-				<b>✅ Docker Cleanup</b>
-				<b>Message:</b> ${message}
-				<b>Time:</b> ${date.toLocaleString()}
-			`,
+				`<b>✅ Docker Cleanup</b>\n\n<b>Message:</b> ${message}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 			);
 		}
 

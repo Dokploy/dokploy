@@ -67,7 +67,7 @@ export const removeTraefikConfig = async (
 		if (fs.existsSync(configPath)) {
 			await fs.promises.unlink(configPath);
 		}
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const removeTraefikConfigRemote = async (
@@ -78,7 +78,7 @@ export const removeTraefikConfigRemote = async (
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		await execAsyncRemote(serverId, `rm ${configPath}`);
-	} catch (error) {}
+	} catch (_error) {}
 };
 
 export const loadOrCreateConfig = (appName: string): FileConfig => {
@@ -110,7 +110,7 @@ export const loadOrCreateConfigRemote = async (
 			http: { routers: {}, services: {} },
 		};
 		return parsedConfig;
-	} catch (err) {
+	} catch (_err) {
 		return fileConfig;
 	}
 };
@@ -132,17 +132,49 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
 		if (!stdout) return null;
 		return stdout;
-	} catch (err) {
+	} catch (_err) {
 		return null;
 	}
 };
 
-export const readMonitoringConfig = () => {
+export const readMonitoringConfig = (readAll = false) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (fs.existsSync(configPath)) {
-		const yamlStr = fs.readFileSync(configPath, "utf8");
-		return yamlStr;
+		if (!readAll) {
+			// Read first 500 lines
+			let content = "";
+			let chunk = "";
+			let validCount = 0;
+
+			for (const char of fs.readFileSync(configPath, "utf8")) {
+				chunk += char;
+				if (char === "\n") {
+					try {
+						const trimmed = chunk.trim();
+						if (
+							trimmed !== "" &&
+							trimmed.startsWith("{") &&
+							trimmed.endsWith("}")
+						) {
+							const log = JSON.parse(trimmed);
+							if (log.ServiceName !== "dokploy-service-app@file") {
+								content += chunk;
+								validCount++;
+								if (validCount >= 500) {
+									break;
+								}
+							}
+						}
+					} catch {
+						// Ignore invalid JSON
+					}
+					chunk = "";
+				}
+			}
+			return content;
+		}
+		return fs.readFileSync(configPath, "utf8");
 	}
 	return null;
 };

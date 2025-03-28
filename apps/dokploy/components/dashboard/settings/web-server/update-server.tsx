@@ -1,4 +1,3 @@
-import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -6,6 +5,12 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import type { IUpdateData } from "@dokploy/server/index";
 import {
@@ -14,7 +19,6 @@ import {
 	Info,
 	RefreshCcw,
 	Server,
-	ServerCrash,
 	Sparkles,
 	Stars,
 } from "lucide-react";
@@ -26,9 +30,17 @@ import { UpdateWebServer } from "./update-webserver";
 
 interface Props {
 	updateData?: IUpdateData;
+	children?: React.ReactNode;
+	isOpen?: boolean;
+	onOpenChange?: (open: boolean) => void;
 }
 
-export const UpdateServer = ({ updateData }: Props) => {
+export const UpdateServer = ({
+	updateData,
+	children,
+	isOpen: isOpenProp,
+	onOpenChange: onOpenChangeProp,
+}: Props) => {
 	const [hasCheckedUpdate, setHasCheckedUpdate] = useState(!!updateData);
 	const [isUpdateAvailable, setIsUpdateAvailable] = useState(
 		!!updateData?.updateAvailable,
@@ -37,10 +49,10 @@ export const UpdateServer = ({ updateData }: Props) => {
 		api.settings.getUpdateData.useMutation();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: releaseTag } = api.settings.getReleaseTag.useQuery();
-	const [isOpen, setIsOpen] = useState(false);
 	const [latestVersion, setLatestVersion] = useState(
 		updateData?.latestVersion ?? "",
 	);
+	const [isOpenInternal, setIsOpenInternal] = useState(false);
 
 	const handleCheckUpdates = async () => {
 		try {
@@ -67,28 +79,52 @@ export const UpdateServer = ({ updateData }: Props) => {
 		}
 	};
 
+	const isOpen = isOpenInternal || isOpenProp;
+	const onOpenChange = (open: boolean) => {
+		setIsOpenInternal(open);
+		onOpenChangeProp?.(open);
+	};
+
 	return (
-		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+		<Dialog open={isOpen} onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>
-				<Button
-					variant={updateData ? "outline" : "secondary"}
-					className="gap-2"
-				>
-					{updateData ? (
-						<>
-							<span className="flex h-2 w-2">
-								<span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75" />
-								<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-							</span>
-							Update available
-						</>
-					) : (
-						<>
-							<Sparkles className="h-4 w-4" />
-							Updates
-						</>
-					)}
-				</Button>
+				{children ? (
+					children
+				) : (
+					<TooltipProvider delayDuration={0}>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant={updateData ? "outline" : "secondary"}
+									size="sm"
+									onClick={() => onOpenChange?.(true)}
+								>
+									<Download className="h-4 w-4 flex-shrink-0" />
+									{updateData ? (
+										<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
+											Update Available
+										</span>
+									) : (
+										<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
+											Check for updates
+										</span>
+									)}
+									{updateData && (
+										<span className="absolute right-2 flex h-2 w-2 group-data-[collapsible=icon]:hidden">
+											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+											<span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+										</span>
+									)}
+								</Button>
+							</TooltipTrigger>
+							{updateData && (
+								<TooltipContent side="right" sideOffset={10}>
+									<p>Update Available</p>
+								</TooltipContent>
+							)}
+						</Tooltip>
+					</TooltipProvider>
+				)}
 			</DialogTrigger>
 			<DialogContent className="max-w-lg p-6">
 				<div className="flex items-center justify-between mb-8">
@@ -219,7 +255,7 @@ export const UpdateServer = ({ updateData }: Props) => {
 
 				<div className="space-y-4 flex items-center justify-end">
 					<div className="flex items-center gap-2">
-						<Button variant="outline" onClick={() => setIsOpen(false)}>
+						<Button variant="outline" onClick={() => onOpenChange?.(false)}>
 							Cancel
 						</Button>
 						{isUpdateAvailable ? (

@@ -9,7 +9,7 @@
 
 // import { getServerAuthSession } from "@/server/auth";
 import { db } from "@/server/db";
-import { validateBearerToken, validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
@@ -18,7 +18,7 @@ import {
 	experimental_isMultipartFormDataRequest,
 	experimental_parseMultipartFormData,
 } from "@trpc/server/adapters/node-http/content-type/form-data";
-import type { Session, User } from "lucia";
+import type { Session, User } from "better-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
 /**
@@ -30,8 +30,8 @@ import { ZodError } from "zod";
  */
 
 interface CreateContextOptions {
-	user: (User & { authId: string; adminId: string }) | null;
-	session: Session | null;
+	user: (User & { rol: "member" | "admin" | "owner"; ownerId: string }) | null;
+	session: (Session & { activeOrganizationId: string }) | null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
 }
@@ -65,30 +65,29 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 	const { req, res } = opts;
 
-	let { session, user } = await validateBearerToken(req);
-
-	if (!session) {
-		const cookieResult = await validateRequest(req, res);
-		session = cookieResult.session;
-		user = cookieResult.user;
-	}
+	// Get from the request
+	const { session, user } = await validateRequest(req);
 
 	return createInnerTRPCContext({
 		req,
 		res,
-		session: session,
-		...((user && {
-			user: {
-				authId: user.id,
-				email: user.email,
-				rol: user.rol,
-				id: user.id,
-				secret: user.secret,
-				adminId: user.adminId,
-			},
-		}) || {
-			user: null,
-		}),
+		// @ts-ignore
+		session: session
+			? {
+					...session,
+					activeOrganizationId: session.activeOrganizationId || "",
+				}
+			: null,
+		// @ts-ignore
+		user: user
+			? {
+					...user,
+					email: user.email,
+					rol: user.role as "owner" | "member" | "admin",
+					id: user.id,
+					ownerId: user.ownerId,
+				}
+			: null,
 	});
 };
 
@@ -181,7 +180,7 @@ export const uploadProcedure = async (opts: any) => {
 };
 
 export const cliProcedure = t.procedure.use(({ ctx, next }) => {
-	if (!ctx.session || !ctx.user || ctx.user.rol !== "admin") {
+	if (!ctx.session || !ctx.user || ctx.user.rol !== "owner") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({
@@ -195,7 +194,7 @@ export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-	if (!ctx.session || !ctx.user || ctx.user.rol !== "admin") {
+	if (!ctx.session || !ctx.user || ctx.user.rol !== "owner") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({

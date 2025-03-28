@@ -1,5 +1,6 @@
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -23,8 +24,10 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -48,15 +51,7 @@ import { ProjectEnvironment } from "./project-environment";
 export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const { data, isLoading } = api.project.all.useQuery();
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.rol === "user",
-		},
-	);
+	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -77,8 +72,8 @@ export const ShowProjects = () => {
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
-						<div className="flex justify-between gap-4 w-full items-center">
-							<CardHeader className="">
+						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
+							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
 									Projects
@@ -87,9 +82,12 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-							<div className=" px-4 ">
-								<HandleProject />
-							</div>
+
+							{(auth?.role === "owner" || auth?.canCreateProjects) && (
+								<div className="">
+									<HandleProject />
+								</div>
+							)}
 						</div>
 
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
@@ -117,7 +115,7 @@ export const ShowProjects = () => {
 											</span>
 										</div>
 									)}
-									<div className="w-full  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 flex-wrap gap-5">
+									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
 											const emptyServices =
 												project?.mariadb.length === 0 &&
@@ -146,14 +144,97 @@ export const ShowProjects = () => {
 														href={`/dashboard/project/${project.projectId}`}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
-															<Button
-																className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
-																size="sm"
-																variant="default"
-															>
-																<ExternalLinkIcon className="size-3.5" />
-															</Button>
-
+															{project.applications.length > 0 ||
+															project.compose.length > 0 ? (
+																<DropdownMenu>
+																	<DropdownMenuTrigger asChild>
+																		<Button
+																			className="absolute -right-3 -top-3 size-9 translate-y-1 rounded-full p-0 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
+																			size="sm"
+																			variant="default"
+																		>
+																			<ExternalLinkIcon className="size-3.5" />
+																		</Button>
+																	</DropdownMenuTrigger>
+																	<DropdownMenuContent
+																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
+																		onClick={(e) => e.stopPropagation()}
+																	>
+																		{project.applications.length > 0 && (
+																			<DropdownMenuGroup>
+																				<DropdownMenuLabel>
+																					Applications
+																				</DropdownMenuLabel>
+																				{project.applications.map((app) => (
+																					<div key={app.applicationId}>
+																						<DropdownMenuSeparator />
+																						<DropdownMenuGroup>
+																							<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
+																								{app.name}
+																								<StatusTooltip
+																									status={app.applicationStatus}
+																								/>
+																							</DropdownMenuLabel>
+																							<DropdownMenuSeparator />
+																							{app.domains.map((domain) => (
+																								<DropdownMenuItem
+																									key={domain.domainId}
+																									asChild
+																								>
+																									<Link
+																										className="space-x-4 text-xs cursor-pointer justify-between"
+																										target="_blank"
+																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																									>
+																										<span className="truncate">{domain.host}</span>
+																										<ExternalLinkIcon className="size-4 shrink-0" />
+																									</Link>
+																								</DropdownMenuItem>
+																							))}
+																						</DropdownMenuGroup>
+																					</div>
+																				))}
+																			</DropdownMenuGroup>
+																		)}
+																		{project.compose.length > 0 && (
+																			<DropdownMenuGroup>
+																				<DropdownMenuLabel>
+																					Compose
+																				</DropdownMenuLabel>
+																				{project.compose.map((comp) => (
+																					<div key={comp.composeId}>
+																						<DropdownMenuSeparator />
+																						<DropdownMenuGroup>
+																							<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
+																								{comp.name}
+																								<StatusTooltip
+																									status={comp.composeStatus}
+																								/>
+																							</DropdownMenuLabel>
+																							<DropdownMenuSeparator />
+																							{comp.domains.map((domain) => (
+																								<DropdownMenuItem
+																									key={domain.domainId}
+																									asChild
+																								>
+																									<Link
+																										className="space-x-4 text-xs cursor-pointer justify-between"
+																										target="_blank"
+																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																									>
+																										<span className="truncate">{domain.host}</span>
+																										<ExternalLinkIcon className="size-4 shrink-0" />
+																									</Link>
+																								</DropdownMenuItem>
+																							))}
+																						</DropdownMenuGroup>
+																					</div>
+																				))}
+																			</DropdownMenuGroup>
+																		)}
+																	</DropdownMenuContent>
+																</DropdownMenu>
+															) : null}
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2">
 																	<span className="flex flex-col gap-1.5">
@@ -179,7 +260,10 @@ export const ShowProjects = () => {
 																					<MoreHorizontalIcon className="size-5" />
 																				</Button>
 																			</DropdownMenuTrigger>
-																			<DropdownMenuContent className="w-[200px] space-y-2">
+																			<DropdownMenuContent
+																				className="w-[200px] space-y-2 overflow-y-auto max-h-[280px]"
+																				onClick={(e) => e.stopPropagation()}
+																			>
 																				<DropdownMenuLabel className="font-normal">
 																					Actions
 																				</DropdownMenuLabel>
@@ -201,8 +285,8 @@ export const ShowProjects = () => {
 																				<div
 																					onClick={(e) => e.stopPropagation()}
 																				>
-																					{(auth?.rol === "admin" ||
-																						user?.canDeleteProjects) && (
+																					{(auth?.role === "owner" ||
+																						auth?.canDeleteProjects) && (
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">
 																								<DropdownMenuItem

@@ -2,10 +2,12 @@ import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
 import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
 import { renderAsync } from "@react-email/components";
+import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGotifyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -16,13 +18,13 @@ export const sendDatabaseBackupNotifications = async ({
 	databaseType,
 	type,
 	errorMessage,
-	adminId,
+	organizationId,
 }: {
 	projectName: string;
 	applicationName: string;
 	databaseType: "postgres" | "mysql" | "mongodb" | "mariadb";
 	type: "error" | "success";
-	adminId: string;
+	organizationId: string;
 	errorMessage?: string;
 }) => {
 	const date = new Date();
@@ -30,18 +32,19 @@ export const sendDatabaseBackupNotifications = async ({
 	const notificationList = await db.query.notifications.findMany({
 		where: and(
 			eq(notifications.databaseBackup, true),
-			eq(notifications.adminId, adminId),
+			eq(notifications.organizationId, organizationId),
 		),
 		with: {
 			email: true,
 			discord: true,
 			telegram: true,
 			slack: true,
+			gotify: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack } = notification;
+		const { email, discord, telegram, slack, gotify } = notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -120,19 +123,35 @@ export const sendDatabaseBackupNotifications = async ({
 			});
 		}
 
+		if (gotify) {
+			const decorate = (decoration: string, text: string) =>
+				`${gotify.decoration ? decoration : ""} ${text}\n`;
+
+			await sendGotifyNotification(
+				gotify,
+				decorate(
+					type === "success" ? "✅" : "❌",
+					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+				),
+				`${decorate("🛠️", `Project: ${projectName}`)}` +
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${databaseType}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
+			);
+		}
+
 		if (telegram) {
+			const isError = type === "error" && errorMessage;
+
 			const statusEmoji = type === "success" ? "✅" : "❌";
-			const messageText = `
-				<b>${statusEmoji} Database Backup ${type === "success" ? "Successful" : "Failed"}</b>
+			const typeStatus = type === "success" ? "Successful" : "Failed";
+			const errorMsg = isError
+				? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
+				: "";
 
-			<b>Project:</b> ${projectName}
-			<b>Application:</b> ${applicationName}
-			<b>Type:</b> ${databaseType}
-			<b>Time:</b> ${date.toLocaleString()}
+			const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
 
-			<b>Status:</b> ${type === "success" ? "Successful" : "Failed"}
-			${type === "error" && errorMessage ? `<b>Error:</b> ${errorMessage}` : ""}
-			`;
 			await sendTelegramNotification(telegram, messageText);
 		}
 

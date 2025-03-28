@@ -35,7 +35,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, PenBoxIcon, Pencil } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -47,6 +47,7 @@ const UpdateBackupSchema = z.object({
 	prefix: z.string().min(1, "Prefix required"),
 	enabled: z.boolean(),
 	database: z.string().min(1, "Database required"),
+	keepLatestCount: z.coerce.number().optional(),
 });
 
 type UpdateBackup = z.infer<typeof UpdateBackupSchema>;
@@ -78,6 +79,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			enabled: true,
 			prefix: "/",
 			schedule: "",
+			keepLatestCount: undefined,
 		},
 		resolver: zodResolver(UpdateBackupSchema),
 	});
@@ -90,6 +92,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 				enabled: backup.enabled || false,
 				prefix: backup.prefix,
 				schedule: backup.schedule,
+				keepLatestCount: backup.keepLatestCount ? Number(backup.keepLatestCount) : undefined,
 			});
 		}
 	}, [form, form.reset, backup]);
@@ -102,6 +105,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			schedule: data.schedule,
 			enabled: data.enabled,
 			database: data.database,
+			keepLatestCount: data.keepLatestCount as number | null,
 		})
 			.then(async () => {
 				toast.success("Backup Updated");
@@ -253,10 +257,28 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 												<Input placeholder={"dokploy/"} {...field} />
 											</FormControl>
 											<FormDescription>
-												Use if you want to storage in a specific path of your
+												Use if you want to back up in a specific path of your
 												destination/bucket
 											</FormDescription>
 
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="keepLatestCount"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Keep the latest</FormLabel>
+											<FormControl>
+												<Input type="number" placeholder={"keeps all the backups if left empty"} {...field} />
+											</FormControl>
+											<FormDescription>
+												Optional. If provided, only keeps the latest N backups in the cloud.
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									);

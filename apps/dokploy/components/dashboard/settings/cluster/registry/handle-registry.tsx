@@ -131,7 +131,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			serverId: data.serverId,
 			registryId: registryId || "",
 		})
-			.then(async (data) => {
+			.then(async (_data) => {
 				await utils.registry.all.invalidate();
 				toast.success(registryId ? "Registry updated" : "Registry added");
 				setIsOpen(false);
@@ -207,7 +207,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Username"
-												autoComplete="off"
+												autoComplete="username"
 												{...field}
 											/>
 										</FormControl>
@@ -227,7 +227,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Password"
-												autoComplete="off"
+												autoComplete="one-time-code"
 												{...field}
 												type="password"
 											/>

@@ -5,7 +5,6 @@ import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -26,7 +25,9 @@ export const ShowPreviewBuilds = ({
 	serverId,
 	trigger,
 }: Props) => {
-	const [activeLog, setActiveLog] = useState<string | null>(null);
+	const [activeLog, setActiveLog] = useState<
+		RouterOutputs["deployment"]["all"][number] | null
+	>(null);
 	const [isOpen, setIsOpen] = useState(false);
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -77,7 +78,7 @@ export const ShowPreviewBuilds = ({
 
 								<Button
 									onClick={() => {
-										setActiveLog(deployment.logPath);
+										setActiveLog(deployment);
 									}}
 								>
 									View
@@ -89,9 +90,10 @@ export const ShowPreviewBuilds = ({
 			</DialogContent>
 			<ShowDeployment
 				serverId={serverId || ""}
-				open={activeLog !== null}
+				open={Boolean(activeLog && activeLog.logPath !== null)}
 				onClose={() => setActiveLog(null)}
-				logPath={activeLog}
+				logPath={activeLog?.logPath || ""}
+				errorMessage={activeLog?.errorMessage || ""}
 			/>
 		</Dialog>
 	);

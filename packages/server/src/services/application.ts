@@ -4,9 +4,8 @@ import {
 	type apiCreateApplication,
 	applications,
 	buildAppName,
-	cleanAppName,
 } from "@dokploy/server/db/schema";
-import { getAdvancedStats } from "@dokploy/server/monitoring/utilts";
+import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
 	buildApplication,
 	getBuildCommand,
@@ -28,7 +27,6 @@ import {
 	getCustomGitCloneCommand,
 } from "@dokploy/server/utils/providers/git";
 import {
-	authGithub,
 	cloneGithubRepository,
 	getGithubCloneCommand,
 } from "@dokploy/server/utils/providers/github";
@@ -175,6 +173,7 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -212,7 +211,8 @@ export const deployApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
+			domains: application.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -224,7 +224,7 @@ export const deployApplication = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
 		});
 
 		throw error;
@@ -243,6 +243,7 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -284,6 +285,7 @@ export const deployRemoteApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -331,7 +333,8 @@ export const deployRemoteApplication = async ({
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
+			domains: application.domains,
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -354,16 +357,8 @@ export const deployRemoteApplication = async ({
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
 		});
-
-		console.log(
-			"Error on ",
-			application.buildType,
-			"/",
-			application.sourceType,
-			error,
-		);
 
 		throw error;
 	}
@@ -383,6 +378,7 @@ export const deployPreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
 		description: descriptionLog,
@@ -436,7 +432,7 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = application.previewEnv;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.sourceType === "github") {
@@ -448,7 +444,6 @@ export const deployPreviewApplication = async ({
 			});
 			await buildApplication(application, deployment.logPath);
 		}
-		// 4eef09efc46009187d668cf1c25f768d0bde4f91
 		const successComment = getIssueComment(
 			application.name,
 			"success",
@@ -490,6 +485,7 @@ export const deployRemotePreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
 		description: descriptionLog,
@@ -543,7 +539,7 @@ export const deployRemotePreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = application.previewEnv;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.serverId) {
@@ -551,6 +547,8 @@ export const deployRemotePreviewApplication = async ({
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
 					...application,
+					appName: previewDeployment.appName,
+					branch: previewDeployment.branch,
 					serverId: application.serverId,
 					logPath: deployment.logPath,
 				});
@@ -600,6 +598,7 @@ export const rebuildRemoteApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,

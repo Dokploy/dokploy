@@ -28,7 +28,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Mail, PenBoxIcon, PlusIcon } from "lucide-react";
+import {
+	AlertTriangle,
+	Mail,
+	MessageCircleMore,
+	PenBoxIcon,
+	PlusIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -43,6 +49,7 @@ const notificationBaseSchema = z.object({
 	databaseBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
+	serverThreshold: z.boolean().default(false),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
@@ -58,6 +65,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("telegram"),
 			botToken: z.string().min(1, { message: "Bot Token is required" }),
 			chatId: z.string().min(1, { message: "Chat ID is required" }),
+			messageThreadId: z.string().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -84,6 +92,15 @@ export const notificationSchema = z.discriminatedUnion("type", [
 				.min(1, { message: "At least one email is required" }),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("gotify"),
+			serverUrl: z.string().min(1, { message: "Server URL is required" }),
+			appToken: z.string().min(1, { message: "App Token is required" }),
+			priority: z.number().min(1).max(10).default(5),
+			decoration: z.boolean().default(true),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -103,6 +120,10 @@ export const notificationsMap = {
 		icon: <Mail size={29} className="text-muted-foreground" />,
 		label: "Email",
 	},
+	gotify: {
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		label: "Gotify",
+	},
 };
 
 export type NotificationSchema = z.infer<typeof notificationSchema>;
@@ -116,7 +137,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const [visible, setVisible] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
-	const { data: notification, refetch } = api.notification.one.useQuery(
+	const { data: notification } = api.notification.one.useQuery(
 		{
 			notificationId: notificationId || "",
 		},
@@ -126,13 +147,14 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	);
 	const { mutateAsync: testSlackConnection, isLoading: isLoadingSlack } =
 		api.notification.testSlackConnection.useMutation();
-
 	const { mutateAsync: testTelegramConnection, isLoading: isLoadingTelegram } =
 		api.notification.testTelegramConnection.useMutation();
 	const { mutateAsync: testDiscordConnection, isLoading: isLoadingDiscord } =
 		api.notification.testDiscordConnection.useMutation();
 	const { mutateAsync: testEmailConnection, isLoading: isLoadingEmail } =
 		api.notification.testEmailConnection.useMutation();
+	const { mutateAsync: testGotifyConnection, isLoading: isLoadingGotify } =
+		api.notification.testGotifyConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -145,6 +167,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const emailMutation = notificationId
 		? api.notification.updateEmail.useMutation()
 		: api.notification.createEmail.useMutation();
+	const gotifyMutation = notificationId
+		? api.notification.updateGotify.useMutation()
+		: api.notification.createGotify.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -181,6 +206,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					channel: notification.slack?.channel || "",
 					name: notification.name,
 					type: notification.notificationType,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "telegram") {
 				form.reset({
@@ -189,10 +215,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					botToken: notification.telegram?.botToken,
+					messageThreadId: notification.telegram?.messageThreadId || "",
 					chatId: notification.telegram?.chatId,
 					type: notification.notificationType,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "discord") {
 				form.reset({
@@ -205,6 +233,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					decoration: notification.discord?.decoration || undefined,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "email") {
 				form.reset({
@@ -221,6 +250,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					fromAddress: notification.email?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
+			} else if (notification.notificationType === "gotify") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					appToken: notification.gotify?.appToken,
+					decoration: notification.gotify?.decoration || undefined,
+					priority: notification.gotify?.priority,
+					serverUrl: notification.gotify?.serverUrl,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
 				});
 			}
 		} else {
@@ -233,6 +277,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		telegram: telegramMutation,
 		discord: discordMutation,
 		email: emailMutation,
+		gotify: gotifyMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -242,6 +287,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			dokployRestart,
 			databaseBackup,
 			dockerCleanup,
+			serverThreshold,
 		} = data;
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
@@ -256,6 +302,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
 				notificationId: notificationId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "telegram") {
 			promise = telegramMutation.mutateAsync({
@@ -264,11 +311,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				botToken: data.botToken,
+				messageThreadId: data.messageThreadId || "",
 				chatId: data.chatId,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "discord") {
 			promise = discordMutation.mutateAsync({
@@ -282,6 +331,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
+				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "email") {
 			promise = emailMutation.mutateAsync({
@@ -299,6 +349,22 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
+				serverThreshold: serverThreshold,
+			});
+		} else if (data.type === "gotify") {
+			promise = gotifyMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				serverUrl: data.serverUrl,
+				appToken: data.appToken,
+				priority: data.priority,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				decoration: data.decoration,
+				notificationId: notificationId || "",
+				gotifyId: notification?.gotifyId || "",
 			});
 		}
 
@@ -498,8 +564,26 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormControl>
 														<Input placeholder="431231869" {...field} />
 													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="messageThreadId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Message Thread ID</FormLabel>
+													<FormControl>
+														<Input placeholder="11" {...field} />
+													</FormControl>
 
 													<FormMessage />
+													<FormDescription>
+														Optional. Use it when you want to send notifications
+														to a specific topic in a group.
+													</FormDescription>
 												</FormItem>
 											)}
 										/>
@@ -579,13 +663,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 																{...field}
 																onChange={(e) => {
 																	const value = e.target.value;
-																	if (value) {
+																	if (value === "") {
+																		field.onChange(undefined);
+																	} else {
 																		const port = Number.parseInt(value);
 																		if (port > 0 && port < 65536) {
 																			field.onChange(port);
 																		}
 																	}
 																}}
+																value={field.value || ""}
 																type="number"
 															/>
 														</FormControl>
@@ -698,6 +785,94 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										>
 											Add
 										</Button>
+									</>
+								)}
+
+								{type === "gotify" && (
+									<>
+										<FormField
+											control={form.control}
+											name="serverUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Server URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://gotify.example.com"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="appToken"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>App Token</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="AzxcvbnmKjhgfdsa..."
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="priority"
+											defaultValue={5}
+											render={({ field }) => (
+												<FormItem className="w-full">
+													<FormLabel>Priority</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="5"
+															{...field}
+															onChange={(e) => {
+																const value = e.target.value;
+																if (value) {
+																	const port = Number.parseInt(value);
+																	if (port > 0 && port < 10) {
+																		field.onChange(port);
+																	}
+																}
+															}}
+															type="number"
+														/>
+													</FormControl>
+													<FormDescription>
+														Message priority (1-10, default: 5)
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
 									</>
 								)}
 							</div>
@@ -814,6 +989,30 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										)}
 									/>
 								)}
+
+								{isCloud && (
+									<FormField
+										control={form.control}
+										name="serverThreshold"
+										render={({ field }) => (
+											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+												<div className="space-y-0.5">
+													<FormLabel>Server Threshold</FormLabel>
+													<FormDescription>
+														Trigger the action when the server threshold is
+														reached.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								)}
 							</div>
 						</div>
 					</form>
@@ -824,7 +1023,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingSlack ||
 								isLoadingTelegram ||
 								isLoadingDiscord ||
-								isLoadingEmail
+								isLoadingEmail ||
+								isLoadingGotify
 							}
 							variant="secondary"
 							onClick={async () => {
@@ -838,6 +1038,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testTelegramConnection({
 											botToken: form.getValues("botToken"),
 											chatId: form.getValues("chatId"),
+											messageThreadId: form.getValues("messageThreadId") || "",
 										});
 									} else if (type === "discord") {
 										await testDiscordConnection({
@@ -853,9 +1054,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											toAddresses: form.getValues("toAddresses"),
 											fromAddress: form.getValues("fromAddress"),
 										});
+									} else if (type === "gotify") {
+										await testGotifyConnection({
+											serverUrl: form.getValues("serverUrl"),
+											appToken: form.getValues("appToken"),
+											priority: form.getValues("priority"),
+											decoration: form.getValues("decoration"),
+										});
 									}
 									toast.success("Connection Success");
-								} catch (err) {
+								} catch (_err) {
 									toast.error("Error testing the provider");
 								}
 							}}

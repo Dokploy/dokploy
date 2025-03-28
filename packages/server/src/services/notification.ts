@@ -2,14 +2,17 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
+	type apiCreateGotify,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
+	type apiUpdateGotify,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	discord,
 	email,
+	gotify,
 	notifications,
 	slack,
 	telegram,
@@ -21,7 +24,7 @@ export type Notification = typeof notifications.$inferSelect;
 
 export const createSlackNotification = async (
 	input: typeof apiCreateSlack._type,
-	adminId: string,
+	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newSlack = await tx
@@ -51,7 +54,8 @@ export const createSlackNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "slack",
-				adminId: adminId,
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -80,7 +84,8 @@ export const updateSlackNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
-				adminId: input.adminId,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -109,7 +114,7 @@ export const updateSlackNotification = async (
 
 export const createTelegramNotification = async (
 	input: typeof apiCreateTelegram._type,
-	adminId: string,
+	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newTelegram = await tx
@@ -117,6 +122,7 @@ export const createTelegramNotification = async (
 			.values({
 				botToken: input.botToken,
 				chatId: input.chatId,
+				messageThreadId: input.messageThreadId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -139,7 +145,8 @@ export const createTelegramNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "telegram",
-				adminId: adminId,
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -168,7 +175,8 @@ export const updateTelegramNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
-				adminId: input.adminId,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -186,6 +194,7 @@ export const updateTelegramNotification = async (
 			.set({
 				botToken: input.botToken,
 				chatId: input.chatId,
+				messageThreadId: input.messageThreadId,
 			})
 			.where(eq(telegram.telegramId, input.telegramId))
 			.returning()
@@ -197,7 +206,7 @@ export const updateTelegramNotification = async (
 
 export const createDiscordNotification = async (
 	input: typeof apiCreateDiscord._type,
-	adminId: string,
+	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newDiscord = await tx
@@ -227,7 +236,8 @@ export const createDiscordNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "discord",
-				adminId: adminId,
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -256,7 +266,8 @@ export const updateDiscordNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
-				adminId: input.adminId,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -285,7 +296,7 @@ export const updateDiscordNotification = async (
 
 export const createEmailNotification = async (
 	input: typeof apiCreateEmail._type,
-	adminId: string,
+	organizationId: string,
 ) => {
 	await db.transaction(async (tx) => {
 		const newEmail = await tx
@@ -319,7 +330,8 @@ export const createEmailNotification = async (
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				notificationType: "email",
-				adminId: adminId,
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -348,7 +360,8 @@ export const updateEmailNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
-				adminId: input.adminId,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
 			.returning()
@@ -379,6 +392,96 @@ export const updateEmailNotification = async (
 	});
 };
 
+export const createGotifyNotification = async (
+	input: typeof apiCreateGotify._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newGotify = await tx
+			.insert(gotify)
+			.values({
+				serverUrl: input.serverUrl,
+				appToken: input.appToken,
+				priority: input.priority,
+				decoration: input.decoration,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newGotify) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting gotify",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				gotifyId: newGotify.gotifyId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "gotify",
+				organizationId: organizationId,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateGotifyNotification = async (
+	input: typeof apiUpdateGotify._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(gotify)
+			.set({
+				serverUrl: input.serverUrl,
+				appToken: input.appToken,
+				priority: input.priority,
+				decoration: input.decoration,
+			})
+			.where(eq(gotify.gotifyId, input.gotifyId));
+
+		return newDestination;
+	});
+};
+
 export const findNotificationById = async (notificationId: string) => {
 	const notification = await db.query.notifications.findFirst({
 		where: eq(notifications.notificationId, notificationId),
@@ -387,6 +490,7 @@ export const findNotificationById = async (notificationId: string) => {
 			telegram: true,
 			discord: true,
 			email: true,
+			gotify: true,
 		},
 	});
 	if (!notification) {

@@ -121,7 +121,7 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input placeholder="Tesla" {...field} />
+												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
 
 											<FormMessage />

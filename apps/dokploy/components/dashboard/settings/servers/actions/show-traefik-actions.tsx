@@ -1,14 +1,4 @@
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import React from "react";
 
 import {
 	DropdownMenu,
@@ -20,10 +10,8 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
-import { toast } from "sonner";
-
-import { cn } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
+import { toast } from "sonner";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
@@ -71,15 +59,17 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 								.then(async () => {
 									toast.success("Traefik Reloaded");
 								})
-								.catch(() => {
-									toast.error("Error reloading Traefik");
-								});
+								.catch(() => {});
 						}}
 						className="cursor-pointer"
 					>
 						<span>{t("settings.server.webServer.reload")}</span>
 					</DropdownMenuItem>
-					<ShowModalLogs appName="dokploy-traefik" serverId={serverId}>
+					<ShowModalLogs
+						appName="dokploy-traefik"
+						serverId={serverId}
+						type="standalone"
+					>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}
 							className="cursor-pointer"
@@ -120,15 +110,6 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"} Dashboard
 						</span>
 					</DropdownMenuItem>
-					{/* 
-								<DockerTerminalModal appName="dokploy-traefik">
-									<DropdownMenuItem
-										className="w-full cursor-pointer space-x-3"
-										onSelect={(e) => e.preventDefault()}
-									>
-										<span>Enter the terminal</span>
-									</DropdownMenuItem>
-								</DockerTerminalModal> */}
 					<ManageTraefikPorts serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}

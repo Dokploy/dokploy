@@ -1,12 +1,5 @@
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { ContainerIcon } from "lucide-react";
 import { useState } from "react";
 import SwarmMonitorCard from "../../swarm/monitoring-card";
 

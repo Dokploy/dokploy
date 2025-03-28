@@ -25,7 +25,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 				enabled: !!serverId,
 			},
 		);
-	const utils = api.useUtils();
+	const _utils = api.useUtils();
 	return (
 		<CardContent className="p-0">
 			<div className="flex flex-col gap-4">
@@ -137,6 +137,15 @@ export const ValidateServer = ({ serverId }: Props) => {
 												data?.isMainDirectoryInstalled
 													? "Created"
 													: "Not Created"
+											}
+										/>
+										<StatusRow
+											label="Railpack Installed"
+											isEnabled={data?.railpack?.enabled}
+											description={
+												data?.railpack?.enabled
+													? `Installed: ${data?.railpack?.version}`
+													: undefined
 											}
 										/>
 									</div>

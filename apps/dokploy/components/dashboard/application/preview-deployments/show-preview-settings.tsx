@@ -35,16 +35,30 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const schema = z.object({
-	env: z.string(),
-	buildArgs: z.string(),
-	wildcardDomain: z.string(),
-	port: z.number(),
-	previewLimit: z.number(),
-	previewHttps: z.boolean(),
-	previewPath: z.string(),
-	previewCertificateType: z.enum(["letsencrypt", "none"]),
-});
+const schema = z
+	.object({
+		env: z.string(),
+		buildArgs: z.string(),
+		wildcardDomain: z.string(),
+		port: z.number(),
+		previewLimit: z.number(),
+		previewHttps: z.boolean(),
+		previewPath: z.string(),
+		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
+		previewCustomCertResolver: z.string().optional(),
+	})
+	.superRefine((input, ctx) => {
+		if (
+			input.previewCertificateType === "custom" &&
+			!input.previewCustomCertResolver
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["previewCustomCertResolver"],
+				message: "Required",
+			});
+		}
+	});
 
 type Schema = z.infer<typeof schema>;
 
@@ -90,6 +104,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewHttps: data.previewHttps || false,
 				previewPath: data.previewPath || "/",
 				previewCertificateType: data.previewCertificateType || "none",
+				previewCustomCertResolver: data.previewCustomCertResolver || "",
 			});
 		}
 	}, [data]);
@@ -105,6 +120,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewHttps: formData.previewHttps,
 			previewPath: formData.previewPath,
 			previewCertificateType: formData.previewCertificateType,
+			previewCustomCertResolver: formData.previewCustomCertResolver,
 		})
 			.then(() => {
 				toast.success("Preview Deployments settings updated");
@@ -184,10 +200,6 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 										render={({ field }) => (
 											<FormItem>
 												<FormLabel>Preview Limit</FormLabel>
-												{/* <FormDescription>
-													Set the limit of preview deployments that can be
-													created for this app.
-												</FormDescription> */}
 												<FormControl>
 													<NumberInput placeholder="3000" {...field} />
 												</FormControl>
@@ -238,8 +250,28 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 															<SelectItem value={"letsencrypt"}>
 																Let's Encrypt
 															</SelectItem>
+															<SelectItem value={"custom"}>Custom</SelectItem>
 														</SelectContent>
 													</Select>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+
+									{form.watch("previewCertificateType") === "custom" && (
+										<FormField
+											control={form.control}
+											name="previewCustomCertResolver"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Certificate Provider</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="my-custom-resolver"
+															{...field}
+														/>
+													</FormControl>
 													<FormMessage />
 												</FormItem>
 											)}
@@ -279,7 +311,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								<FormField
 									control={form.control}
 									name="env"
-									render={({ field }) => (
+									render={() => (
 										<FormItem>
 											<FormControl>
 												<Secrets

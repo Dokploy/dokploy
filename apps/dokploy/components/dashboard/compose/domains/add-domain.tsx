@@ -42,6 +42,7 @@ import { domainCompose } from "@/server/db/validations/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import type z from "zod";
+import Link from "next/link";
 
 type Domain = z.infer<typeof domainCompose>;
 
@@ -102,8 +103,22 @@ export const AddDomainCompose = ({
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
+	const { data: canGenerateTraefikMeDomains } =
+		api.domain.canGenerateTraefikMeDomains.useQuery({
+			serverId: compose?.serverId || "",
+		});
+
 	const form = useForm<Domain>({
 		resolver: zodResolver(domainCompose),
+		defaultValues: {
+			host: "",
+			path: undefined,
+			port: undefined,
+			https: false,
+			certificateType: undefined,
+			customCertResolver: undefined,
+			serviceName: "",
+		},
 	});
 
 	const https = form.watch("https");
@@ -116,11 +131,21 @@ export const AddDomainCompose = ({
 				path: data?.path || undefined,
 				port: data?.port || undefined,
 				serviceName: data?.serviceName || undefined,
+				certificateType: data?.certificateType || undefined,
+				customCertResolver: data?.customCertResolver || undefined,
 			});
 		}
 
 		if (!domainId) {
-			form.reset({});
+			form.reset({
+				host: "",
+				path: undefined,
+				port: undefined,
+				https: false,
+				certificateType: undefined,
+				customCertResolver: undefined,
+				serviceName: "",
+			});
 		}
 	}, [form, form.reset, data, isLoading]);
 
@@ -294,6 +319,21 @@ export const AddDomainCompose = ({
 									name="host"
 									render={({ field }) => (
 										<FormItem>
+											{!canGenerateTraefikMeDomains &&
+												field.value.includes("traefik.me") && (
+													<AlertBlock type="warning">
+														You need to set an IP address in your{" "}
+														<Link
+															href="/dashboard/settings/server"
+															className="text-primary"
+														>
+															{compose?.serverId
+																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
+																: "Web Server -> Server -> Update Server IP"}
+														</Link>{" "}
+														to make your traefik.me domain work.
+													</AlertBlock>
+												)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
@@ -393,33 +433,55 @@ export const AddDomainCompose = ({
 								/>
 
 								{https && (
-									<FormField
-										control={form.control}
-										name="certificateType"
-										render={({ field }) => (
-											<FormItem className="col-span-2">
-												<FormLabel>Certificate Provider</FormLabel>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value || ""}
-												>
-													<FormControl>
-														<SelectTrigger>
-															<SelectValue placeholder="Select a certificate provider" />
-														</SelectTrigger>
-													</FormControl>
+									<>
+										<FormField
+											control={form.control}
+											name="certificateType"
+											render={({ field }) => (
+												<FormItem className="col-span-2">
+													<FormLabel>Certificate Provider</FormLabel>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value || ""}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a certificate provider" />
+															</SelectTrigger>
+														</FormControl>
 
-													<SelectContent>
-														<SelectItem value="none">None</SelectItem>
-														<SelectItem value={"letsencrypt"}>
-															Let's Encrypt
-														</SelectItem>
-													</SelectContent>
-												</Select>
-												<FormMessage />
-											</FormItem>
+														<SelectContent>
+															<SelectItem value="none">None</SelectItem>
+															<SelectItem value={"letsencrypt"}>
+																Let's Encrypt
+															</SelectItem>
+															<SelectItem value={"custom"}>Custom</SelectItem>
+														</SelectContent>
+													</Select>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										{form.getValues().certificateType === "custom" && (
+											<FormField
+												control={form.control}
+												name="customCertResolver"
+												render={({ field }) => (
+													<FormItem className="col-span-2">
+														<FormLabel>Custom Certificate Resolver</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="Enter your custom certificate resolver"
+																{...field}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 										)}
-									/>
+									</>
 								)}
 							</div>
 						</div>
