@@ -65,7 +65,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 		buildType: z.literal(BuildType.static),
 	}),
 	z.object({
-		buildType: z.literal("railpack"),
+		buildType: z.literal(BuildType.railpack),
 	}),
 ]);
 
@@ -75,7 +75,20 @@ interface Props {
 	applicationId: string;
 }
 
-const resetData = (data: any): AddTemplate => {
+interface ApplicationData {
+	buildType: BuildType;
+	dockerfile?: string | null;
+	dockerContextPath?: string | null;
+	dockerBuildStage?: string | null;
+	herokuVersion?: string | null;
+	publishDirectory?: string | null;
+}
+
+function isValidBuildType(value: string): value is BuildType {
+	return Object.values(BuildType).includes(value as BuildType);
+}
+
+const resetData = (data: ApplicationData): AddTemplate => {
 	switch (data.buildType) {
 		case BuildType.dockerfile:
 			return {
@@ -89,11 +102,28 @@ const resetData = (data: any): AddTemplate => {
 				buildType: BuildType.heroku_buildpacks,
 				herokuVersion: data.herokuVersion || "",
 			};
-		default:
+		case BuildType.nixpacks:
 			return {
-				buildType: data.buildType,
+				buildType: BuildType.nixpacks,
 				publishDirectory: data.publishDirectory || undefined,
 			};
+		case BuildType.paketo_buildpacks:
+			return {
+				buildType: BuildType.paketo_buildpacks,
+			};
+		case BuildType.static:
+			return {
+				buildType: BuildType.static,
+			};
+		case BuildType.railpack:
+			return {
+				buildType: BuildType.railpack,
+			};
+		default:
+			const buildType = data.buildType as BuildType;
+			return {
+				buildType,
+			} as AddTemplate;
 	}
 };
 
@@ -102,7 +132,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		api.application.saveBuildType.useMutation();
 	const { data, refetch } = api.application.one.useQuery(
 		{ applicationId },
-		{ enabled: !!applicationId },
+		{ enabled: !!applicationId }
 	);
 
 	const form = useForm<AddTemplate>({
@@ -116,7 +146,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 
 	useEffect(() => {
 		if (data) {
-			form.reset(resetData(data));
+			const typedData: ApplicationData = {
+				...data,
+				buildType: isValidBuildType(data.buildType)
+					? (data.buildType as BuildType)
+					: BuildType.nixpacks, // fallback
+			};
+
+			form.reset(resetData(typedData));
 		}
 	}, [data, form]);
 
@@ -196,7 +233,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 															)}
 														</FormLabel>
 													</FormItem>
-												),
+												)
 											)}
 										</RadioGroup>
 									</FormControl>
