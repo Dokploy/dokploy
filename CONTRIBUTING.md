@@ -64,7 +64,6 @@ cp apps/dokploy/.env.example apps/dokploy/.env
 ## Requirements
 
 - [Docker](/GUIDES.md#docker)
-- [Radis](/GUIDES.md#redis)
 
 ### Setup
 
