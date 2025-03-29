@@ -38,6 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
@@ -358,6 +359,7 @@ export async function getServerSideProps(
 	}>,
 ) {
 	const { query, params, req, res } = ctx;
+	const locale = getLocale(req.cookies);
 
 	const activeTab = query.tab;
 	const { user, session } = await validateRequest(req);
@@ -396,6 +398,7 @@ export async function getServerSideProps(
 					trpcState: helpers.dehydrate(),
 					applicationId: params?.applicationId,
 					activeTab: (activeTab || "general") as TabState,
+					...(await serverSideTranslations(locale)),
 				},
 			};
 		} catch (_error) {

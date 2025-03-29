@@ -52,7 +52,7 @@ interface Props {
 }
 
 const LocalServerConfig = ({ onSave }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation();
 
 	const form = useForm<Schema>({
 		defaultValues: getLocalServerData(),
