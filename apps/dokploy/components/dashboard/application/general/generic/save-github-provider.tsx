@@ -57,6 +57,7 @@ const GithubProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	recurseSubmodules: z.boolean().default(true),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -81,6 +82,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			},
 			githubId: "",
 			branch: "",
+			recurseSubmodules: true,
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
@@ -124,6 +126,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				buildPath: data.buildPath || "/",
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
+				recurseSubmodules: data.recurseSubmodules ?? true,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -137,6 +140,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			buildPath: data.buildPath,
 			githubId: data.githubId,
 			watchPaths: data.watchPaths || [],
+			recurseSubmodules: data.recurseSubmodules,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -455,6 +459,23 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										</Button>
 									</div>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="recurseSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<input
+											type="checkbox"
+											checked={field.value}
+											onChange={field.onChange}
+											className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+										/>
+									</FormControl>
+									<FormLabel>Recurse Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>
