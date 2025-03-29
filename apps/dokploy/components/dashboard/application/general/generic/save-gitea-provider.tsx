@@ -1,3 +1,4 @@
+import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -103,6 +105,13 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 
 	const repository = form.watch("repository");
 	const giteaId = form.watch("giteaId");
+
+	const { data: giteaUrl } = api.gitea.getGiteaUrl.useQuery(
+		{ giteaId },
+		{
+			enabled: !!giteaId,
+		},
+	);
 
 	const {
 		data: repositories,
@@ -219,7 +228,21 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							name="repository"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Repository</FormLabel>
+									<div className="flex items-center justify-between">
+										<FormLabel>Repository</FormLabel>
+										{field.value.owner && field.value.repo && (
+											<Link
+												href={`${giteaUrl}/${field.value.owner}/${field.value.repo}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+											>
+												<GiteaIcon className="h-4 w-4" />
+												<span>View Repository</span>
+											</Link>
+										)}
+									</div>
+
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
