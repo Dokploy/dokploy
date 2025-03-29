@@ -19,6 +19,7 @@ import {
 	findPostgresByBackupId,
 	findPostgresById,
 	findServerById,
+	paths,
 	removeBackupById,
 	removeScheduleBackup,
 	runMariadbBackup,
@@ -85,9 +86,13 @@ export const backupRouter = createTRPCRouter({
 					}
 				}
 			} catch (error) {
+				console.error(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error creating the Backup",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error creating the Backup",
 					cause: error,
 				});
 			}
@@ -227,6 +232,35 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	manualBackupWebServer: protectedProcedure
+		.input(apiFindOneBackup)
+		.mutation(async ({ input }) => {
+			try {
+				const backup = await findBackupById(input.backupId);
+				const destination = await findDestinationById(backup.destinationId);
+				const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+				const { BASE_PATH } = paths();
+				const tempDir = `${BASE_PATH}`;
+
+				try {
+					const postgresCommand = `docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_dump -v -Fc -U dokploy -d dokploy > ${tempDir}/${timestamp}.sql`;
+
+					console.log("Executing backup command:", postgresCommand);
+					await execAsync(postgresCommand);
+
+					return true;
+				} finally {
+					// Keep files for inspection
+				}
+			} catch (error) {
+				console.error("Backup error:", error);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error running manual Web Server backup",
+					cause: error,
+				});
+			}
+		}),
 	listBackupFiles: protectedProcedure
 		.input(
 			z.object({
@@ -301,7 +335,13 @@ export const backupRouter = createTRPCRouter({
 		.input(
 			z.object({
 				databaseId: z.string(),
-				databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo"]),
+				databaseType: z.enum([
+					"postgres",
+					"mysql",
+					"mariadb",
+					"mongo",
+					"web-server",
+				]),
 				databaseName: z.string().min(1),
 				backupFile: z.string().min(1),
 				destinationId: z.string().min(1),

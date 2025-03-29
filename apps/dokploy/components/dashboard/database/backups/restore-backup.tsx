@@ -47,8 +47,8 @@ import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
 	databaseId: string;
-	databaseType: Exclude<ServiceType, "application" | "redis">;
-	serverId: string | null;
+	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	serverId?: string | null;
 }
 
 const RestoreBackupSchema = z.object({

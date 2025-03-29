@@ -23,6 +23,9 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 		} else if (databaseType === "mariadb" && mariadb) {
 			await runMariadbBackup(mariadb, backup);
 			await keepLatestNBackups(backup, mariadb.serverId);
+		} else if (databaseType === "web-server") {
+			// await runWebServerBackup(user, backup);
+			await keepLatestNBackups(backup);
 		}
 	});
 };

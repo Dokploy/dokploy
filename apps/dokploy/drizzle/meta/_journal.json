@@ -575,6 +575,20 @@
       "when": 1743281254393,
       "tag": "0081_lovely_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1743287689974,
+      "tag": "0082_clean_mandarin",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1743288371413,
+      "tag": "0083_parallel_stranger",
+      "breakpoints": true
     }
   ]
 }
