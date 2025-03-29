@@ -1,3 +1,5 @@
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -7,13 +9,11 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { ExternalLinkIcon, KeyIcon, Trash2, Clock, Tag } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Clock, ExternalLinkIcon, KeyIcon, Tag, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
-import { DialogAction } from "@/components/shared/dialog-action";
 import { AddApiKey } from "./add-api-key";
-import { Badge } from "@/components/ui/badge";
 
 export const ShowApiKeys = () => {
 	const { data, refetch } = api.user.get.useQuery();

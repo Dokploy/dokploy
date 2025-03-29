@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
 	DialogContent,
@@ -22,7 +23,6 @@ import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { badgeStateColor } from "../../application/logs/show";
-import { Badge } from "@/components/ui/badge";
 
 export const DockerLogsId = dynamic(
 	() =>

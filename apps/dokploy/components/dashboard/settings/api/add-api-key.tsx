@@ -1,14 +1,22 @@
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
-import { api } from "@/utils/api";
-import { toast } from "sonner";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-	DialogDescription,
 } from "@/components/ui/dialog";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -17,22 +25,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { z } from "zod";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-	FormDescription,
-} from "@/components/ui/form";
-import { Switch } from "@/components/ui/switch";
-import copy from "copy-to-clipboard";
-import { CodeEditor } from "@/components/shared/code-editor";
 
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),

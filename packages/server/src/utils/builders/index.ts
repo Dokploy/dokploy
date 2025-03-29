@@ -195,6 +195,7 @@ export const mechanizeDockerContainer = async (
 	try {
 		const service = docker.getService(appName);
 		const inspect = await service.inspect();
+
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
@@ -203,7 +204,7 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch (_error) {
+	} catch (_error: unknown) {
 		await docker.createService(settings);
 	}
 };

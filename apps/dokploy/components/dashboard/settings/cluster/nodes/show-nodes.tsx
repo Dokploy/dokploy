@@ -35,9 +35,9 @@ import { api } from "@/utils/api";
 import {
 	Boxes,
 	HelpCircle,
+	Loader2,
 	LockIcon,
 	MoreHorizontal,
-	Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddNode } from "./add-node";

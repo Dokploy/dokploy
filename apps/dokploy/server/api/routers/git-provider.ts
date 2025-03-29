@@ -12,6 +12,7 @@ export const gitProviderRouter = createTRPCRouter({
 				gitlab: true,
 				bitbucket: true,
 				github: true,
+				gitea: true,
 			},
 			orderBy: desc(gitProvider.createdAt),
 			where: eq(gitProvider.organizationId, ctx.session.activeOrganizationId),

@@ -41,8 +41,8 @@ import {
 import { domainCompose } from "@/server/db/validations/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
-import type z from "zod";
 import Link from "next/link";
+import type z from "zod";
 
 type Domain = z.infer<typeof domainCompose>;
 

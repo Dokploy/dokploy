@@ -1,5 +1,6 @@
 import {
 	BitbucketIcon,
+	GiteaIcon,
 	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
@@ -26,6 +27,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
+import { AddGiteaProvider } from "./gitea/add-gitea-provider";
+import { EditGiteaProvider } from "./gitea/edit-gitea-provider";
 import { AddGithubProvider } from "./github/add-github-provider";
 import { EditGithubProvider } from "./github/edit-github-provider";
 import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
@@ -36,19 +39,18 @@ export const ShowGitProviders = () => {
 	const { mutateAsync, isLoading: isRemoving } =
 		api.gitProvider.remove.useMutation();
 	const url = useUrl();
+
 	const getGitlabUrl = (
 		clientId: string,
 		gitlabId: string,
 		gitlabUrl: string,
 	) => {
 		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
-
 		const scope = "api read_user read_repository";
-
 		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
-
 		return authUrl;
 	};
+
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
@@ -82,6 +84,7 @@ export const ShowGitProviders = () => {
 													<AddGithubProvider />
 													<AddGitlabProvider />
 													<AddBitbucketProvider />
+													<AddGiteaProvider />
 												</div>
 											</div>
 										</div>
@@ -97,6 +100,7 @@ export const ShowGitProviders = () => {
 													<AddGithubProvider />
 													<AddGitlabProvider />
 													<AddBitbucketProvider />
+													<AddGiteaProvider />
 												</div>
 											</div>
 										</div>
@@ -107,13 +111,16 @@ export const ShowGitProviders = () => {
 												const isGitlab = gitProvider.providerType === "gitlab";
 												const isBitbucket =
 													gitProvider.providerType === "bitbucket";
+												const isGitea = gitProvider.providerType === "gitea";
+
 												const haveGithubRequirements =
-													gitProvider.providerType === "github" &&
+													isGithub &&
 													gitProvider.github?.githubPrivateKey &&
 													gitProvider.github?.githubAppId &&
 													gitProvider.github?.githubInstallationId;
 
 												const haveGitlabRequirements =
+													isGitlab &&
 													gitProvider.gitlab?.accessToken &&
 													gitProvider.gitlab?.refreshToken;
 
@@ -122,18 +129,19 @@ export const ShowGitProviders = () => {
 														key={gitProvider.gitProviderId}
 														className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
 													>
-														<div className="flex items-center justify-between  p-3.5 rounded-lg bg-background border  w-full">
+														<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border w-full">
 															<div className="flex flex-col items-center justify-between">
 																<div className="flex gap-2 flex-row items-center">
-																	{gitProvider.providerType === "github" && (
+																	{isGithub && (
 																		<GithubIcon className="size-5" />
 																	)}
-																	{gitProvider.providerType === "gitlab" && (
+																	{isGitlab && (
 																		<GitlabIcon className="size-5" />
 																	)}
-																	{gitProvider.providerType === "bitbucket" && (
+																	{isBitbucket && (
 																		<BitbucketIcon className="size-5" />
 																	)}
+																	{isGitea && <GiteaIcon className="size-5" />}
 																	<div className="flex flex-col gap-1">
 																		<span className="text-sm font-medium">
 																			{gitProvider.name}
@@ -194,23 +202,30 @@ export const ShowGitProviders = () => {
 																		</Link>
 																	</div>
 																)}
+
 																{isGithub && haveGithubRequirements && (
 																	<EditGithubProvider
-																		githubId={gitProvider.github.githubId}
+																		githubId={gitProvider.github?.githubId}
 																	/>
 																)}
 
 																{isGitlab && (
 																	<EditGitlabProvider
-																		gitlabId={gitProvider.gitlab.gitlabId}
+																		gitlabId={gitProvider.gitlab?.gitlabId}
 																	/>
 																)}
 
 																{isBitbucket && (
 																	<EditBitbucketProvider
 																		bitbucketId={
-																			gitProvider.bitbucket.bitbucketId
+																			gitProvider.bitbucket?.bitbucketId
 																		}
+																	/>
+																)}
+
+																{isGitea && (
+																	<EditGiteaProvider
+																		giteaId={gitProvider.gitea?.giteaId}
 																	/>
 																)}
 
@@ -238,7 +253,7 @@ export const ShowGitProviders = () => {
 																	<Button
 																		variant="ghost"
 																		size="icon"
-																		className="group hover:bg-red-500/10 "
+																		className="group hover:bg-red-500/10"
 																		isLoading={isRemoving}
 																	>
 																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />

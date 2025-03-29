@@ -84,6 +84,33 @@ export default async function handler(
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
+
+			const provider = getProviderByHeader(req.headers);
+			let normalizedCommits: string[] = [];
+
+			if (provider === "github") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			} else if (provider === "gitlab") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			} else if (provider === "gitea") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			}
+
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
 		} else if (sourceType === "gitlab") {
 			const branchName = extractBranchName(req.headers, req.body);
 
@@ -126,6 +153,27 @@ export default async function handler(
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+		} else if (sourceType === "gitea") {
+			const branchName = extractBranchName(req.headers, req.body);
+
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+
+			if (!branchName || branchName !== application.giteaBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
 		}
@@ -275,6 +323,26 @@ export const extractBranchName = (headers: any, body: any) => {
 
 	if (headers["x-event-key"]?.includes("repo:push")) {
 		return body?.push?.changes[0]?.new?.name;
+	}
+
+	return null;
+};
+
+export const getProviderByHeader = (headers: any) => {
+	if (headers["x-github-event"]) {
+		return "github";
+	}
+
+	if (headers["x-gitea-event"]) {
+		return "gitea";
+	}
+
+	if (headers["x-gitlab-event"]) {
+		return "gitlab";
+	}
+
+	if (headers["x-event-key"]?.includes("repo:push")) {
+		return "bitbucket";
 	}
 
 	return null;

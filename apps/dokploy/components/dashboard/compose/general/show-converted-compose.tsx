@@ -88,14 +88,21 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					</Button>
 				</div>
 
-				<pre>
-					<CodeEditor
-						value={compose || ""}
-						language="yaml"
-						readOnly
-						height="50rem"
-					/>
-				</pre>
+				{compose !== null ? (
+					<pre>
+						<CodeEditor
+							value={compose || ""}
+							language="yaml"
+							readOnly
+							height="50rem"
+						/>
+					</pre>
+				) : (
+					<div className="py-4 text-center text-muted-foreground">
+						No compose file available. Make sure at least one domain is
+						configured for this project.
+					</div>
+				)}
 			</DialogContent>
 		</Dialog>
 	);

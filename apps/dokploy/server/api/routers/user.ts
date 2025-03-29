@@ -1,11 +1,11 @@
 import {
 	IS_CLOUD,
+	createApiKey,
 	findOrganizationById,
 	findUserById,
 	getUserByToken,
 	removeUserById,
 	updateUser,
-	createApiKey,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -13,12 +13,12 @@ import {
 	apiAssignPermissions,
 	apiFindOneToken,
 	apiUpdateUser,
+	apikey,
 	invitation,
 	member,
-	apikey,
 } from "@dokploy/server/db/schema";
-import * as bcrypt from "bcrypt";
 import { TRPCError } from "@trpc/server";
+import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import {

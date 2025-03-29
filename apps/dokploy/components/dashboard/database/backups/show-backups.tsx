@@ -16,12 +16,12 @@ import {
 import { api } from "@/utils/api";
 import { DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
-import { UpdateBackup } from "./update-backup";
 import { RestoreBackup } from "./restore-backup";
-import { useState } from "react";
+import { UpdateBackup } from "./update-backup";
 
 interface Props {
 	id: string;

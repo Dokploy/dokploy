@@ -1,6 +1,6 @@
-import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { RebuildDatabase } from "./rebuild-database";
 
 interface Props {

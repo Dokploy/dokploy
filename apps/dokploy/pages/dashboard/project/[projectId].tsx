@@ -35,6 +35,15 @@ import {
 	CommandItem,
 } from "@/components/ui/command";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuLabel,
@@ -47,6 +56,13 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
@@ -64,8 +80,8 @@ import {
 	Loader2,
 	PlusIcon,
 	Search,
-	X,
 	Trash2,
+	X,
 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -73,25 +89,9 @@ import type {
 } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { type ReactElement, useMemo, useState, useEffect } from "react";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 
 export type Services = {
 	appName: string;

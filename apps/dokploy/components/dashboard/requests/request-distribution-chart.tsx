@@ -1,10 +1,10 @@
-import { api } from "@/utils/api";
 import {
 	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
+import { api } from "@/utils/api";
 import {
 	Area,
 	AreaChart,
