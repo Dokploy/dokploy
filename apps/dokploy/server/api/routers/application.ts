@@ -422,7 +422,6 @@ export const applicationRouter = createTRPCRouter({
 				sourceType: "gitea",
 				applicationStatus: "idle",
 				giteaId: input.giteaId,
-				giteaProjectId: input.giteaProjectId,
 				watchPaths: input.watchPaths,
 			});
 

@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import type { Branch, Repository } from "@/utils/gitea-utils";
+import type { Repository } from "@/utils/gitea-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, Plus, X } from "lucide-react";
 import Link from "next/link";
@@ -54,7 +54,6 @@ const GiteaProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
-			id: z.number().nullable(),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -80,7 +79,6 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			repository: {
 				owner: "",
 				repo: "",
-				id: null,
 			},
 			giteaId: "",
 			branch: "",
@@ -116,11 +114,10 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 		data: branches,
 		fetchStatus,
 		status,
-	} = api.gitea.getGiteaBranches.useQuery<Branch[]>(
+	} = api.gitea.getGiteaBranches.useQuery(
 		{
 			owner: repository?.owner,
 			repositoryName: repository?.repo,
-			id: repository?.id || 0,
 			giteaId: giteaId,
 		},
 		{
@@ -130,55 +127,18 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 
 	useEffect(() => {
 		if (data) {
-			console.log("Setting form data from API:", data);
-
-			// Only reset form on initial load, not after user interactions
-			if (!form.formState.isDirty && !form.formState.dirtyFields.giteaId) {
-				console.log("Initial form reset from API data");
-				form.reset({
-					branch: data.giteaBranch || "",
-					repository: {
-						repo: data.giteaRepository || "",
-						owner: data.giteaOwner || "",
-						id: null,
-					},
-					composePath: data.composePath || "./docker-compose.yml",
-					giteaId: data.giteaId || "",
-					watchPaths: data.watchPaths || [],
-				});
-			} else {
-				console.log(
-					"Skipping form reset because form has been modified by user",
-				);
-			}
+			form.reset({
+				branch: data.giteaBranch || "",
+				repository: {
+					repo: data.giteaRepository || "",
+					owner: data.giteaOwner || "",
+				},
+				composePath: data.composePath || "./docker-compose.yml",
+				giteaId: data.giteaId || "",
+				watchPaths: data.watchPaths || [],
+			});
 		}
-	}, [data]);
-
-	// Add this separate effect to update repository ID if needed
-	useEffect(() => {
-		const values = form.getValues();
-		// If we have a repository selected but no ID, try to find it
-		if (
-			values.repository.owner &&
-			values.repository.repo &&
-			!values.repository.id &&
-			repositories?.length
-		) {
-			const matchingRepo = repositories.find(
-				(repo) =>
-					repo.name === values.repository.repo &&
-					repo.owner.username === values.repository.owner,
-			);
-
-			if (matchingRepo) {
-				console.log("Found matching repository ID:", matchingRepo.id);
-				form.setValue("repository", {
-					...values.repository,
-					id: matchingRepo.id,
-				});
-			}
-		}
-	}, [repositories]);
+	}, [form.reset, data, form]);
 
 	const onSubmit = async (data: GiteaProvider) => {
 		await mutateAsync({
@@ -219,18 +179,12 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									<FormLabel>Gitea Account</FormLabel>
 									<Select
 										onValueChange={(value) => {
-											console.log("Select changed to:", value);
 											field.onChange(value);
-											form.setValue(
-												"repository",
-												{
-													owner: "",
-													repo: "",
-													id: null,
-												},
-												{ shouldValidate: false },
-											);
-											form.setValue("branch", "", { shouldValidate: false });
+											form.setValue("repository", {
+												owner: "",
+												repo: "",
+											});
+											form.setValue("branch", "");
 										}}
 										defaultValue={field.value}
 										value={field.value}
@@ -315,14 +269,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 																key={repo.url}
 																value={repo.name}
 																onSelect={() => {
-																	console.log(
-																		"Repository selected:",
-																		repo.name,
-																	);
 																	form.setValue("repository", {
 																		owner: repo.owner.username,
 																		repo: repo.name,
-																		id: repo.id,
 																	});
 																	form.setValue("branch", "");
 																}}

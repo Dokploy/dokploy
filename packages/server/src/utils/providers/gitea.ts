@@ -413,7 +413,6 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 };
 
 export const getGiteaBranches = async (input: {
-	id?: number;
 	giteaId?: string;
 	owner: string;
 	repo: string;
@@ -448,5 +447,11 @@ export const getGiteaBranches = async (input: {
 		commit: {
 			id: branch.commit.id,
 		},
-	}));
+	})) as {
+		id: string;
+		name: string;
+		commit: {
+			id: string;
+		};
+	}[];
 };

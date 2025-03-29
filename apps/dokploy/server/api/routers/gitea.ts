@@ -143,7 +143,6 @@ export const giteaRouter = createTRPCRouter({
 					giteaId,
 					owner,
 					repo: repositoryName,
-					id: 0,
 				});
 			} catch (error) {
 				console.error("Error fetching Gitea branches:", error);

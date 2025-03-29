@@ -65,7 +65,6 @@ export const apiGiteaTestConnection = createSchema
 export type ApiGiteaTestConnection = z.infer<typeof apiGiteaTestConnection>;
 
 export const apiFindGiteaBranches = z.object({
-	id: z.number().optional(),
 	owner: z.string().min(1),
 	repositoryName: z.string().min(1),
 	giteaId: z.string().optional(),

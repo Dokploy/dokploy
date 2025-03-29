@@ -158,7 +158,6 @@ export const applications = pgTable("application", {
 	gitlabBuildPath: text("gitlabBuildPath").default("/"),
 	gitlabPathNamespace: text("gitlabPathNamespace"),
 	// Gitea
-	giteaProjectId: integer("giteaProjectId"),
 	giteaRepository: text("giteaRepository"),
 	giteaOwner: text("giteaOwner"),
 	giteaBranch: text("giteaBranch"),
@@ -508,7 +507,6 @@ export const apiSaveGiteaProvider = createSchema
 		giteaOwner: true,
 		giteaRepository: true,
 		giteaId: true,
-		giteaProjectId: true,
 		watchPaths: true,
 	})
 	.required();

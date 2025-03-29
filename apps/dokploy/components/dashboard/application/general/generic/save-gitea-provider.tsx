@@ -67,7 +67,6 @@ const GiteaProviderSchema = z.object({
 		.object({
 			repo: z.string().min(1, "Repo is required"),
 			owner: z.string().min(1, "Owner is required"),
-			id: z.number().nullable().optional(),
 		})
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
@@ -94,7 +93,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			repository: {
 				owner: "",
 				repo: "",
-				id: null,
 			},
 			giteaId: "",
 			branch: "",
@@ -127,7 +125,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 		{
 			owner: repository?.owner,
 			repositoryName: repository?.repo,
-			id: repository?.id ?? 0, // Use nullish coalescing to provide 0 as a fallback
 			giteaId: giteaId,
 		},
 		{
@@ -142,7 +139,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 				repository: {
 					repo: data.giteaRepository || "",
 					owner: data.giteaOwner || "",
-					id: data.giteaProjectId || null, // Handle null case explicitly
 				},
 				buildPath: data.giteaBuildPath || "/",
 				giteaId: data.giteaId || "",
@@ -159,7 +155,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			giteaBuildPath: data.buildPath,
 			giteaId: data.giteaId,
 			applicationId,
-			giteaProjectId: data.repository.id || null, // Handle null case explicitly
 			watchPaths: data.watchPaths,
 		})
 			.then(async () => {
@@ -192,7 +187,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 											form.setValue("repository", {
 												owner: "",
 												repo: "",
-												id: null,
 											});
 											form.setValue("branch", "");
 										}}
@@ -277,7 +271,6 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 																		form.setValue("repository", {
 																			owner: repo.owner.username as string,
 																			repo: repo.name,
-																			id: repo.id,
 																		});
 																		form.setValue("branch", "");
 																	}}
