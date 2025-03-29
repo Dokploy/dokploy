@@ -31,8 +31,8 @@ jobs:
 
       - name: Commit changes if needed
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add .
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore: auto-format with Biome"
-          git push
+            BRANCH=$(echo "${{ github.head_ref || github.ref_name }}")
+            git add .
+            git diff --quiet && git diff --staged --quiet || git commit -m "chore: auto-format with Biome"
+            git push origin HEAD:$BRANCH
+
