@@ -72,6 +72,7 @@ interface Props {
 export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
+	const [appNameLocked, setAppNameLocked] = useState(true);
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -87,6 +88,22 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 		},
 		resolver: zodResolver(AddComposeSchema),
 	});
+
+	const generateAppName = (value: string): string => {
+		if (!value) return `${slug}-`;
+
+		const processedValue = value
+			.trim()
+			.toLowerCase()
+			// replace dots, spaces, and special characters with dashes
+			.replace(/[^\w]+/g, "-")
+			// remove any consecutive dashes
+			.replace(/-+/g, "-")
+			// remove leading/trailing dashes
+			.replace(/^-+|-+$/g, "");
+
+		return `${slug}-${processedValue}`;
+	};
 
 	useEffect(() => {
 		form.reset();
@@ -150,13 +167,17 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 											<Input
 												placeholder="Frontend"
 												{...field}
+												autoComplete="off"
+												autoCorrect="off"
+												autoCapitalize="off"
 												onChange={(e) => {
-													const val = e.target.value?.trim() || "";
-													form.setValue(
-														"appName",
-														`${slug}-${val.toLowerCase()}`,
-													);
+													const val = e.target.value;
 													field.onChange(val);
+
+													// Auto-generate App Name if locked
+													if (appNameLocked && val) {
+														form.setValue("appName", generateAppName(val));
+													}
 												}}
 											/>
 										</FormControl>
@@ -165,6 +186,56 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 								)}
 							/>
 						</div>
+						<FormField
+							control={form.control}
+							name="appName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>App Name</FormLabel>
+									<TooltipProvider delayDuration={100}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div className="relative w-full">
+													<FormControl>
+														<Input
+															placeholder="project-frontend"
+															{...field}
+															readOnly={appNameLocked}
+															className={
+																appNameLocked
+																	? "cursor-pointer opacity-70 pr-10"
+																	: ""
+															}
+															onClick={() => {
+																if (appNameLocked) {
+																	setAppNameLocked(false);
+																}
+															}}
+														/>
+													</FormControl>
+													{appNameLocked && (
+														<div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</div>
+													)}
+												</div>
+											</TooltipTrigger>
+											<TooltipContent
+												side="top"
+												className="z-[999] min-w-[180px] max-w-[250px] p-2 text-xs"
+												sideOffset={5}
+												avoidCollisions
+											>
+												{appNameLocked
+													? "App name is auto-generated. Click to edit manually."
+													: "App name can be edited manually."}
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 						<FormField
 							control={form.control}
 							name="serverId"
@@ -182,6 +253,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 												className="z-[999] w-[300px]"
 												align="start"
 												side="top"
+												avoidCollisions
 											>
 												<span>
 													If no server is selected, the application will be
@@ -217,19 +289,6 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 											</SelectGroup>
 										</SelectContent>
 									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="appName"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>App Name</FormLabel>
-									<FormControl>
-										<Input placeholder="my-app" {...field} />
-									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
