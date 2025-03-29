@@ -60,7 +60,6 @@ const AddTemplateSchema = z.object({
   description: z.string().optional(),
   serverId: z.string().optional(),
 });
-
 type AddTemplate = z.infer<typeof AddTemplateSchema>;
 
 interface Props {
