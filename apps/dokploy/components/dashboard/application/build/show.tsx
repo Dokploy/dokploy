@@ -132,7 +132,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 		api.application.saveBuildType.useMutation();
 	const { data, refetch } = api.application.one.useQuery(
 		{ applicationId },
-		{ enabled: !!applicationId }
+		{ enabled: !!applicationId },
 	);
 
 	const form = useForm<AddTemplate>({
@@ -233,7 +233,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 															)}
 														</FormLabel>
 													</FormItem>
-												)
+												),
 											)}
 										</RadioGroup>
 									</FormControl>
