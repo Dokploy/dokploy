@@ -25,21 +25,6 @@ export const SecurityAudit = ({ serverId }: Props) => {
 				enabled: !!serverId,
 			},
 		);
-	const _utils = api.useUtils();
-
-	// Helper function to check if root login is securely configured
-	const isRootLoginSecure = () => {
-		if (!data?.ssh?.permitRootLogin) return false;
-
-		// These are secure options for PermitRootLogin
-		const secureOptions = [
-			"no",
-			"prohibit-password",
-			"without-password",
-			"forced-commands-only",
-		];
-		return secureOptions.includes(data.ssh.permitRootLogin);
-	};
 
 	return (
 		<CardContent className="p-0">
@@ -160,15 +145,6 @@ export const SecurityAudit = ({ serverId }: Props) => {
 												data?.ssh?.passwordAuth === "no"
 													? "Disabled (Recommended)"
 													: "Enabled (Password Authentication should be disabled)"
-											}
-										/>
-										<StatusRow
-											label="Root Login"
-											isEnabled={isRootLoginSecure()}
-											description={
-												isRootLoginSecure()
-													? `${data?.ssh?.permitRootLogin} (Secure)`
-													: `${data?.ssh?.permitRootLogin || "yes"} (Should be set to 'prohibit-password' or 'no')`
 											}
 										/>
 										<StatusRow
