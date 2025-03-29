@@ -6,8 +6,8 @@ import { generateObject } from "ai";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
-import { findServerById } from "./server";
 import { findOrganizationById } from "./admin";
+import { findServerById } from "./server";
 
 export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	const aiSettings = await db.query.ai.findMany({

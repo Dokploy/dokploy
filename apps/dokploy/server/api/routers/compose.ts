@@ -9,23 +9,10 @@ import {
 	apiUpdateCompose,
 	compose as composeTable,
 } from "@/server/db/schema";
-import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
-import { generatePassword } from "@/templates/utils";
-import {
-	type CompleteTemplate,
-	fetchTemplateFiles,
-	fetchTemplatesList,
-} from "@dokploy/server/templates/github";
-import { processTemplate } from "@dokploy/server/templates/processors";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { dump, load } from "js-yaml";
-import _ from "lodash";
-import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { z } from "zod";
 import type { DeploymentJob } from "@/server/queues/queue-types";
+import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { generatePassword } from "@/templates/utils";
 import {
 	IS_CLOUD,
 	addDomainToCompose,
@@ -55,6 +42,19 @@ import {
 	stopCompose,
 	updateCompose,
 } from "@dokploy/server";
+import {
+	type CompleteTemplate,
+	fetchTemplateFiles,
+	fetchTemplatesList,
+} from "@dokploy/server/templates/github";
+import { processTemplate } from "@dokploy/server/templates/processors";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { dump, load } from "js-yaml";
+import _ from "lodash";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure

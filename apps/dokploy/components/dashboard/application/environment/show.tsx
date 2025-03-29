@@ -4,10 +4,10 @@ import { Form } from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useEffect } from "react";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
