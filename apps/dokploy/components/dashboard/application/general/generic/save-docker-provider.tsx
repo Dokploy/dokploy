@@ -115,7 +115,11 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Username</FormLabel>
 									<FormControl>
-										<Input placeholder="Username" autoComplete="username" {...field} />
+										<Input
+											placeholder="Username"
+											autoComplete="username"
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -130,7 +134,12 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Password</FormLabel>
 									<FormControl>
-										<Input placeholder="Password" autoComplete="one-time-code" {...field} type="password" />
+										<Input
+											placeholder="Password"
+											autoComplete="one-time-code"
+											{...field}
+											type="password"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

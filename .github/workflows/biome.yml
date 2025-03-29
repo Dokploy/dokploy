@@ -27,7 +27,7 @@ jobs:
         run: pnpm install
 
       - name: Run Biome formatter
-        run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true
+        run: pnpm biome format . --write
 
       - name: Commit changes if needed
         run: |
