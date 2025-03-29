@@ -1,4 +1,4 @@
-name: Format Code with Biome
+name: autofix.ci
 
 on:
   push:
