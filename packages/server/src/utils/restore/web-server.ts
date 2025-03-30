@@ -141,5 +141,3 @@ export const restoreWebServerBackup = async (
 		throw error;
 	}
 };
-// docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_restore -v -U dokploy -d dokploy /Users/mauricio/Documents/Github/Personal/dokploy/apps/dokploy/.docker/temp-restore-2025-03-30T01-09-27-203Z/database.sql
-// server/webserver-backup-2025-03-30T00-38-08-836Z.zip
