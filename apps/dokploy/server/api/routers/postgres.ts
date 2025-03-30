@@ -1,4 +1,5 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
@@ -33,9 +34,8 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { db } from "@/server/db";
+import { z } from "zod";
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreatePostgres)

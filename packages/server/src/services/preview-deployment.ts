@@ -62,6 +62,7 @@ export const findApplicationByPreview = async (applicationId: string) => {
 			gitlab: true,
 			github: true,
 			bitbucket: true,
+			gitea: true,
 			server: true,
 		},
 	});

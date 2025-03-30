@@ -101,11 +101,11 @@ export const initializeTraefik = async ({
 					console.log("Waiting for service cleanup...");
 					await new Promise((resolve) => setTimeout(resolve, 5000));
 					attempts++;
-				} catch (e) {
+				} catch (_e) {
 					break;
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			console.log("No existing service to remove");
 		}
 
@@ -120,7 +120,7 @@ export const initializeTraefik = async ({
 
 			await container.remove({ force: true });
 			await new Promise((resolve) => setTimeout(resolve, 5000));
-		} catch (error) {
+		} catch (_err) {
 			console.log("No existing container to remove");
 		}
 

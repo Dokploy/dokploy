@@ -14,18 +14,18 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { DatabaseBackup, Play, Trash2 } from "lucide-react";
+import { Database, DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
-import { UpdateBackup } from "./update-backup";
 import { RestoreBackup } from "./restore-backup";
-import { useState } from "react";
+import { UpdateBackup } from "./update-backup";
 
 interface Props {
 	id: string;
-	type: Exclude<ServiceType, "application" | "redis">;
+	type: Exclude<ServiceType, "application" | "redis"> | "web-server";
 }
 export const ShowBackups = ({ id, type }: Props) => {
 	const [activeManualBackup, setActiveManualBackup] = useState<
@@ -38,6 +38,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 		mariadb: () =>
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		"web-server": () => api.user.getBackups.useQuery(),
 	};
 	const { data } = api.destination.all.useQuery();
 	const { data: postgres, refetch } = queryMap[type]
@@ -49,6 +50,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 		mysql: () => api.backup.manualBackupMySql.useMutation(),
 		mariadb: () => api.backup.manualBackupMariadb.useMutation(),
 		mongo: () => api.backup.manualBackupMongo.useMutation(),
+		"web-server": () => api.backup.manualBackupWebServer.useMutation(),
 	};
 
 	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutationMap[
@@ -64,7 +66,10 @@ export const ShowBackups = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between gap-4  flex-wrap">
 				<div className="flex flex-col gap-0.5">
-					<CardTitle className="text-xl">Backups</CardTitle>
+					<CardTitle className="text-xl flex flex-row gap-2">
+						<Database className="size-6 text-muted-foreground" />
+						Backups
+					</CardTitle>
 					<CardDescription>
 						Add backups to your database to save the data to a different
 						provider.
@@ -73,11 +78,17 @@ export const ShowBackups = ({ id, type }: Props) => {
 
 				{postgres && postgres?.backups?.length > 0 && (
 					<div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
-						<AddBackup databaseId={id} databaseType={type} refetch={refetch} />
+						{type !== "web-server" && (
+							<AddBackup
+								databaseId={id}
+								databaseType={type}
+								refetch={refetch}
+							/>
+						)}
 						<RestoreBackup
 							databaseId={id}
 							databaseType={type}
-							serverId={postgres.serverId}
+							serverId={"serverId" in postgres ? postgres.serverId : undefined}
 						/>
 					</div>
 				)}
@@ -115,7 +126,9 @@ export const ShowBackups = ({ id, type }: Props) => {
 									<RestoreBackup
 										databaseId={id}
 										databaseType={type}
-										serverId={postgres.serverId}
+										serverId={
+											"serverId" in postgres ? postgres.serverId : undefined
+										}
 									/>
 								</div>
 							</div>
