@@ -78,6 +78,7 @@ import {
 	FolderInput,
 	GlobeIcon,
 	Loader2,
+	MoreHorizontal,
 	PlusIcon,
 	Search,
 	Trash2,
@@ -92,6 +93,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 
 export type Services = {
 	appName: string;
@@ -553,7 +555,7 @@ const Project = (
 								</CardTitle>
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" || auth?.canCreateServices) && (
+							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
@@ -569,7 +571,7 @@ const Project = (
 											className="w-[200px] space-y-2"
 											align="end"
 										>
-											<DropdownMenuLabel className="text-sm font-normal ">
+											<DropdownMenuLabel className="text-sm font-normal">
 												Actions
 											</DropdownMenuLabel>
 											<DropdownMenuSeparator />
@@ -593,7 +595,23 @@ const Project = (
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</div>
-							)}
+								{auth?.role === "owner" && (
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button variant="ghost" className="h-8 w-8 p-0">
+												<span className="sr-only">Open menu</span>
+												<MoreHorizontal className="h-4 w-4" />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="end">
+											<DuplicateProject
+												project={data}
+												services={applications}
+											/>
+										</DropdownMenuContent>
+									</DropdownMenu>
+								)}
+							</div>
 						</div>
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							{isLoading ? (
