@@ -76,7 +76,8 @@
     "ws": "8.16.0",
     "zod": "^3.23.4",
     "ssh2": "1.15.0",
-    "@octokit/rest": "^20.0.2"
+    "@octokit/rest": "^20.0.2",
+    "toml": "3.0.0"
   },
   "devDependencies": {
     "@types/micromatch": "4.0.9",

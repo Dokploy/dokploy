@@ -150,7 +150,8 @@
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
 		"zod": "^3.23.4",
-		"zod-form-data": "^2.0.2"
+		"zod-form-data": "^2.0.2",
+		"toml": "3.0.0"
 	},
 	"devDependencies": {
 		"@types/adm-zip": "^0.5.5",
