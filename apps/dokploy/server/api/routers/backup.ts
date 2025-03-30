@@ -238,19 +238,42 @@ export const backupRouter = createTRPCRouter({
 			try {
 				const backup = await findBackupById(input.backupId);
 				const destination = await findDestinationById(backup.destinationId);
+				const rcloneFlags = getS3Credentials(destination);
 				const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 				const { BASE_PATH } = paths();
-				const tempDir = `${BASE_PATH}`;
+				const tempDir = `${BASE_PATH}/temp-backup-${timestamp}`;
+				const backupFileName = `webserver-backup-${timestamp}.zip`;
+				const s3Path = `:s3:${destination.bucket}/${backup.prefix}${backupFileName}`;
 
 				try {
-					const postgresCommand = `docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_dump -v -Fc -U dokploy -d dokploy > ${tempDir}/${timestamp}.sql`;
+					// Create temp directory structure
+					console.log("Creating temp directory structure...");
+					await execAsync(`mkdir -p ${tempDir}/filesystem`);
 
-					console.log("Executing backup command:", postgresCommand);
+					// Backup database
+					const postgresCommand = `docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_dump -v -Fc -U dokploy -d dokploy > ${tempDir}/database.sql`;
+					console.log("Executing database backup command:", postgresCommand);
 					await execAsync(postgresCommand);
+
+					// Backup filesystem (excluding temp directory)
+					console.log("Copying filesystem...");
+					await execAsync(`cp -r /etc/dokploy/* ${tempDir}/filesystem/`);
+
+					// Create zip file
+					console.log("Creating zip file...");
+					await execAsync(
+						`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/`,
+					);
+
+					// Show zip contents and size
+					// console.log(`unzip -l ${tempDir}/${backupFileName}`);
+					// await execAsync(`unzip -l ${tempDir}/${backupFileName}`);
+					// await execAsync(`du -sh ${tempDir}/${backupFileName}`);
 
 					return true;
 				} finally {
-					// Keep files for inspection
+					// Keep the temp directory for inspection
+					console.log("Backup files are in:", tempDir);
 				}
 			} catch (error) {
 				console.error("Backup error:", error);
