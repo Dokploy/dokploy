@@ -1,4 +1,4 @@
-import { load } from "js-yaml";
+import { parse } from "toml";
 
 /**
  * Complete template interface that includes both metadata and configuration
@@ -86,7 +86,7 @@ export async function fetchTemplateFiles(
 	try {
 		// Fetch both files in parallel
 		const [templateYmlResponse, dockerComposeResponse] = await Promise.all([
-			fetch(`${baseUrl}/blueprints/${templateId}/template.yml`),
+			fetch(`${baseUrl}/blueprints/${templateId}/template.toml`),
 			fetch(`${baseUrl}/blueprints/${templateId}/docker-compose.yml`),
 		]);
 
@@ -99,7 +99,7 @@ export async function fetchTemplateFiles(
 			dockerComposeResponse.text(),
 		]);
 
-		const config = load(templateYml) as CompleteTemplate;
+		const config = parse(templateYml) as CompleteTemplate;
 
 		return { config, dockerCompose };
 	} catch (error) {

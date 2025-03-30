@@ -92,6 +92,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 
 export type Services = {
 	appName: string;
@@ -553,7 +554,7 @@ const Project = (
 								</CardTitle>
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" || auth?.canCreateServices) && (
+							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
@@ -569,7 +570,7 @@ const Project = (
 											className="w-[200px] space-y-2"
 											align="end"
 										>
-											<DropdownMenuLabel className="text-sm font-normal ">
+											<DropdownMenuLabel className="text-sm font-normal">
 												Actions
 											</DropdownMenuLabel>
 											<DropdownMenuSeparator />
@@ -593,7 +594,7 @@ const Project = (
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</div>
-							)}
+							</div>
 						</div>
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							{isLoading ? (
@@ -670,20 +671,27 @@ const Project = (
 													</DialogAction>
 													{(auth?.role === "owner" ||
 														auth?.canDeleteServices) && (
-														<DialogAction
-															title="Delete Services"
-															description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
-															type="destructive"
-															onClick={handleBulkDelete}
-														>
-															<Button
-																variant="ghost"
-																className="w-full justify-start text-destructive"
+														<>
+															<DialogAction
+																title="Delete Services"
+																description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+																type="destructive"
+																onClick={handleBulkDelete}
 															>
-																<Trash2 className="mr-2 h-4 w-4" />
-																Delete
-															</Button>
-														</DialogAction>
+																<Button
+																	variant="ghost"
+																	className="w-full justify-start text-destructive"
+																>
+																	<Trash2 className="mr-2 h-4 w-4" />
+																	Delete
+																</Button>
+															</DialogAction>
+															<DuplicateProject
+																projectId={projectId}
+																services={applications}
+																selectedServiceIds={selectedServices}
+															/>
+														</>
 													)}
 
 													<Dialog

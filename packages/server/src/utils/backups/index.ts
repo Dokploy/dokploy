@@ -10,11 +10,7 @@ import {
 } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { runMariadbBackup } from "./mariadb";
-import { runMongoBackup } from "./mongo";
-import { runMySqlBackup } from "./mysql";
-import { runPostgresBackup } from "./postgres";
-import { getS3Credentials } from "./utils";
+import { getS3Credentials, scheduleBackup } from "./utils";
 
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { startLogCleanup } from "../access-log/handler";
@@ -56,126 +52,27 @@ export const initCronJobs = async () => {
 		}
 	}
 
-	const pgs = await db.query.postgres.findMany({
+	const backups = await db.query.backups.findMany({
 		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
-		},
-	});
-	for (const pg of pgs) {
-		for (const backup of pg.backups) {
-			const { schedule, backupId, enabled, database } = backup;
-			if (enabled) {
-				console.log(
-					`[Backup] Postgres DB ${pg.name} for ${database} Activated`,
-				);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`PG-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					await runPostgresBackup(pg, backup);
-					await keepLatestNBackups(backup, pg.serverId);
-				});
-			}
-		}
-	}
-
-	const mariadbs = await db.query.mariadb.findMany({
-		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
+			destination: true,
+			postgres: true,
+			mariadb: true,
+			mysql: true,
+			mongo: true,
+			user: true,
 		},
 	});
 
-	for (const maria of mariadbs) {
-		for (const backup of maria.backups) {
-			const { schedule, backupId, enabled, database } = backup;
-			if (enabled) {
-				console.log(
-					`[Backup] MariaDB DB ${maria.name} for ${database} Activated`,
-				);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`MARIADB-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					await runMariadbBackup(maria, backup);
-					await keepLatestNBackups(backup, maria.serverId);
-				});
+	for (const backup of backups) {
+		try {
+			if (backup.enabled) {
+				scheduleBackup(backup);
 			}
-		}
-	}
-
-	const mongodbs = await db.query.mongo.findMany({
-		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
-		},
-	});
-
-	for (const mongo of mongodbs) {
-		for (const backup of mongo.backups) {
-			const { schedule, backupId, enabled } = backup;
-			if (enabled) {
-				console.log(`[Backup] MongoDB DB ${mongo.name} Activated`);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`MONGO-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					await runMongoBackup(mongo, backup);
-					await keepLatestNBackups(backup, mongo.serverId);
-				});
-			}
-		}
-	}
-
-	const mysqls = await db.query.mysql.findMany({
-		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
-		},
-	});
-
-	for (const mysql of mysqls) {
-		for (const backup of mysql.backups) {
-			const { schedule, backupId, enabled } = backup;
-			if (enabled) {
-				console.log(`[Backup] MySQL DB ${mysql.name} Activated`);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`MYSQL-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					await runMySqlBackup(mysql, backup);
-					await keepLatestNBackups(backup, mysql.serverId);
-				});
-			}
+			console.log(
+				`[Backup] ${backup.databaseType} Enabled with cron: [${backup.schedule}]`,
+			);
+		} catch (error) {
+			console.error(`[Backup] ${backup.databaseType} Error`, error);
 		}
 	}
 

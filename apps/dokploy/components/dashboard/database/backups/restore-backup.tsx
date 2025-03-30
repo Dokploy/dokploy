@@ -47,8 +47,8 @@ import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
 	databaseId: string;
-	databaseType: Exclude<ServiceType, "application" | "redis">;
-	serverId: string | null;
+	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	serverId?: string | null;
 }
 
 const RestoreBackupSchema = z.object({
@@ -91,7 +91,7 @@ export const RestoreBackup = ({
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
-			databaseName: "",
+			databaseName: databaseType === "web-server" ? "dokploy" : "",
 		},
 		resolver: zodResolver(RestoreBackupSchema),
 	});
@@ -340,7 +340,11 @@ export const RestoreBackup = ({
 								<FormItem className="">
 									<FormLabel>Database Name</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder="Enter database name" />
+										<Input
+											disabled={databaseType === "web-server"}
+											{...field}
+											placeholder="Enter database name"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

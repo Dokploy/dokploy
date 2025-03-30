@@ -1006,7 +1006,7 @@ services:
 
 volumes:
   db-config-testhash:
-`) as ComposeSpecification;
+`);
 
 test("Expect to change the suffix in all the possible places (4 Try)", () => {
 	const composeData = load(composeFileComplex) as ComposeSpecification;
@@ -1114,4 +1114,61 @@ test("Expect to change the suffix in all the possible places (5 Try)", () => {
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
 
 	expect(updatedComposeData).toEqual(expectedDockerComposeExample1);
+});
+
+const composeFileBackrest = `
+services:
+  backrest:
+    image: garethgeorge/backrest:v1.7.3
+    restart: unless-stopped
+    ports:
+      - 9898
+    environment:
+      - BACKREST_PORT=9898
+      - BACKREST_DATA=/data
+      - BACKREST_CONFIG=/config/config.json
+      - XDG_CACHE_HOME=/cache
+      - TZ=\${TZ}
+    volumes:
+      - backrest/data:/data
+      - backrest/config:/config
+      - backrest/cache:/cache
+      - /:/userdata:ro
+
+volumes:
+  backrest:
+  backrest-cache:
+`;
+
+const expectedDockerComposeBackrest = load(`
+services:
+  backrest:
+    image: garethgeorge/backrest:v1.7.3
+    restart: unless-stopped
+    ports:
+      - 9898
+    environment:
+      - BACKREST_PORT=9898
+      - BACKREST_DATA=/data
+      - BACKREST_CONFIG=/config/config.json
+      - XDG_CACHE_HOME=/cache
+      - TZ=\${TZ}
+    volumes:
+      - backrest-testhash/data:/data
+      - backrest-testhash/config:/config
+      - backrest-testhash/cache:/cache
+      - /:/userdata:ro
+
+volumes:
+  backrest-testhash:
+  backrest-cache-testhash:
+`) as ComposeSpecification;
+
+test("Should handle volume paths with subdirectories correctly", () => {
+	const composeData = load(composeFileBackrest) as ComposeSpecification;
+	const suffix = "testhash";
+
+	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
+
+	expect(updatedComposeData).toEqual(expectedDockerComposeBackrest);
 });

@@ -91,6 +91,28 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult;
 	}),
+	getBackups: adminProcedure.query(async ({ ctx }) => {
+		const memberResult = await db.query.member.findFirst({
+			where: and(
+				eq(member.userId, ctx.user.id),
+				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+			),
+			with: {
+				user: {
+					with: {
+						backups: {
+							with: {
+								destination: true,
+							},
+						},
+						apiKeys: true,
+					},
+				},
+			},
+		});
+
+		return memberResult?.user;
+	}),
 	getServerMetrics: protectedProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(
