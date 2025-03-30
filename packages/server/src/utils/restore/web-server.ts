@@ -1,7 +1,7 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
-import { paths } from "@dokploy/server";
+import { paths, IS_CLOUD } from "@dokploy/server/constants";
 import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -11,6 +11,9 @@ export const restoreWebServerBackup = async (
 	backupFile: string,
 	emit: (log: string) => void,
 ) => {
+	if (IS_CLOUD) {
+		return;
+	}
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;

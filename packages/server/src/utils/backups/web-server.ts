@@ -2,10 +2,13 @@ import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { execAsync } from "../process/execAsync";
 import { getS3Credentials } from "./utils";
 import { findDestinationById } from "@dokploy/server/services/destination";
-import { paths } from "@dokploy/server/constants";
+import { IS_CLOUD, paths } from "@dokploy/server/constants";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	try {
+		if (IS_CLOUD) {
+			return;
+		}
 		const destination = await findDestinationById(backup.destinationId);
 		const rcloneFlags = getS3Credentials(destination);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
