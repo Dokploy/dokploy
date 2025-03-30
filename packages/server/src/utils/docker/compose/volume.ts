@@ -30,12 +30,22 @@ export const addSuffixToVolumesInServices = (
 
 					// skip bind mounts and variables (e.g. $PWD)
 					if (
-						volumeName?.startsWith(".") ||
-						volumeName?.startsWith("/") ||
-						volumeName?.startsWith("$")
+						!volumeName ||
+						volumeName.startsWith(".") ||
+						volumeName.startsWith("/") ||
+						volumeName.startsWith("$")
 					) {
 						return volume;
 					}
+
+					// Handle volume paths with subdirectories
+					const parts = volumeName.split("/");
+					if (parts.length > 1) {
+						const baseName = parts[0];
+						const rest = parts.slice(1).join("/");
+						return `${baseName}-${suffix}/${rest}:${path}`;
+					}
+
 					return `${volumeName}-${suffix}:${path}`;
 				}
 				if (_.isObject(volume) && volume.type === "volume" && volume.source) {
