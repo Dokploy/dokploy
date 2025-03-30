@@ -6,13 +6,11 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
+	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { api } from "@/utils/api";
-import type { findProjectById } from "@dokploy/server";
 import { Copy, Loader2 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -36,24 +34,26 @@ export type Services = {
 	status?: "idle" | "running" | "done" | "error";
 };
 
-type Project = Awaited<ReturnType<typeof findProjectById>>;
-
 interface DuplicateProjectProps {
-	project: Project;
+	projectId: string;
 	services: Services[];
+	selectedServiceIds: string[];
 }
 
 export const DuplicateProject = ({
-	project,
+	projectId,
 	services,
+	selectedServiceIds,
 }: DuplicateProjectProps) => {
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	const [includeServices, setIncludeServices] = useState(true);
-	const [selectedServices, setSelectedServices] = useState<string[]>([]);
 	const utils = api.useUtils();
 	const router = useRouter();
+
+	const selectedServices = services.filter((service) =>
+		selectedServiceIds.includes(service.id),
+	);
 
 	const { mutateAsync: duplicateProject, isLoading } =
 		api.project.duplicate.useMutation({
@@ -75,140 +75,98 @@ export const DuplicateProject = ({
 		}
 
 		await duplicateProject({
-			sourceProjectId: project.projectId,
+			sourceProjectId: projectId,
 			name,
 			description,
-			includeServices,
-			selectedServices: includeServices
-				? services
-						.filter((service) => selectedServices.includes(service.id))
-						.map((service) => ({
-							id: service.id,
-							type: service.type,
-						}))
-				: [],
+			includeServices: true,
+			selectedServices: selectedServices.map((service) => ({
+				id: service.id,
+				type: service.type,
+			})),
 		});
 	};
 
 	return (
-		<>
-			<DropdownMenuItem
-				onSelect={(e) => {
-					e.preventDefault();
-					setOpen(true);
-				}}
-			>
-				<Copy className="mr-2 h-4 w-4" />
-				Duplicate Project
-			</DropdownMenuItem>
+		<Dialog
+			open={open}
+			onOpenChange={(isOpen) => {
+				setOpen(isOpen);
+				if (!isOpen) {
+					// Reset form when closing
+					setName("");
+					setDescription("");
+				}
+			}}
+		>
+			<DialogTrigger asChild>
+				<Button variant="ghost" className="w-full justify-start">
+					<Copy className="mr-2 h-4 w-4" />
+					Duplicate
+				</Button>
+			</DialogTrigger>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Duplicate Project</DialogTitle>
+					<DialogDescription>
+						Create a new project with the selected services
+					</DialogDescription>
+				</DialogHeader>
 
-			<Dialog
-				open={open}
-				onOpenChange={(isOpen) => {
-					setOpen(isOpen);
-					if (!isOpen) {
-						// Reset form when closing
-						setName("");
-						setDescription("");
-						setIncludeServices(true);
-						setSelectedServices([]);
-					}
-				}}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Duplicate Project</DialogTitle>
-						<DialogDescription>
-							Create a new project with the same configuration
-						</DialogDescription>
-					</DialogHeader>
-
-					<div className="grid gap-4 py-4">
-						<div className="grid gap-2">
-							<Label htmlFor="name">Name</Label>
-							<Input
-								id="name"
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-								placeholder="New project name"
-							/>
-						</div>
-
-						<div className="grid gap-2">
-							<Label htmlFor="description">Description</Label>
-							<Input
-								id="description"
-								value={description}
-								onChange={(e) => setDescription(e.target.value)}
-								placeholder="Project description (optional)"
-							/>
-						</div>
-
-						<div className="flex items-center space-x-2">
-							<Checkbox
-								id="includeServices"
-								checked={includeServices}
-								onCheckedChange={(checked) => {
-									setIncludeServices(checked as boolean);
-									if (!checked) {
-										setSelectedServices([]);
-									}
-								}}
-							/>
-							<Label htmlFor="includeServices">Include services</Label>
-						</div>
-
-						{includeServices && services.length > 0 && (
-							<div className="grid gap-2">
-								<Label>Select services to duplicate</Label>
-								<div className="space-y-2">
-									{services.map((service) => (
-										<div
-											key={service.id}
-											className="flex items-center space-x-2"
-										>
-											<Checkbox
-												id={service.id}
-												checked={selectedServices.includes(service.id)}
-												onCheckedChange={(checked) => {
-													setSelectedServices((prev) =>
-														checked
-															? [...prev, service.id]
-															: prev.filter((id) => id !== service.id),
-													);
-												}}
-											/>
-											<Label htmlFor={service.id}>
-												{service.name} ({service.type})
-											</Label>
-										</div>
-									))}
-								</div>
-							</div>
-						)}
+				<div className="grid gap-4 py-4">
+					<div className="grid gap-2">
+						<Label htmlFor="name">Name</Label>
+						<Input
+							id="name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							placeholder="New project name"
+						/>
 					</div>
 
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setOpen(false)}
-							disabled={isLoading}
-						>
-							Cancel
-						</Button>
-						<Button onClick={handleDuplicate} disabled={isLoading}>
-							{isLoading ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Duplicating...
-								</>
-							) : (
-								"Duplicate"
-							)}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</>
+					<div className="grid gap-2">
+						<Label htmlFor="description">Description</Label>
+						<Input
+							id="description"
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+							placeholder="Project description (optional)"
+						/>
+					</div>
+
+					<div className="grid gap-2">
+						<Label>Selected services to duplicate</Label>
+						<div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-md p-4">
+							{selectedServices.map((service) => (
+								<div key={service.id} className="flex items-center space-x-2">
+									<span className="text-sm">
+										{service.name} ({service.type})
+									</span>
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+
+				<DialogFooter>
+					<Button
+						variant="outline"
+						onClick={() => setOpen(false)}
+						disabled={isLoading}
+					>
+						Cancel
+					</Button>
+					<Button onClick={handleDuplicate} disabled={isLoading}>
+						{isLoading ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Duplicating...
+							</>
+						) : (
+							"Duplicate"
+						)}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 };
