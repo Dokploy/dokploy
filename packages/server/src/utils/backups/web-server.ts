@@ -3,6 +3,9 @@ import { execAsync } from "../process/execAsync";
 import { getS3Credentials } from "./utils";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import { mkdtemp } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	try {
@@ -13,7 +16,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		const rcloneFlags = getS3Credentials(destination);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const { BASE_PATH } = paths();
-		const tempDir = `${BASE_PATH}/temp-backup-${timestamp}`;
+		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
 		const backupFileName = `webserver-backup-${timestamp}.zip`;
 		const s3Path = `:s3:${destination.bucket}/${backup.prefix}${backupFileName}`;
 
