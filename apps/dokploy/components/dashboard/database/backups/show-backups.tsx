@@ -88,7 +88,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 						<RestoreBackup
 							databaseId={id}
 							databaseType={type}
-							serverId={type === "web-server" ? undefined : postgres?.serverId}
+							serverId={"serverId" in postgres ? postgres.serverId : undefined}
 						/>
 					</div>
 				)}
@@ -127,7 +127,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 										databaseId={id}
 										databaseType={type}
 										serverId={
-											type === "web-server" ? undefined : postgres?.serverId
+											"serverId" in postgres ? postgres.serverId : undefined
 										}
 									/>
 								</div>
