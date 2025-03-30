@@ -139,7 +139,7 @@ const createSchema = createInsertSchema(compose, {
 	name: z.string().min(1),
 	description: z.string(),
 	env: z.string().optional(),
-	composeFile: z.string().min(1),
+	composeFile: z.string().optional(),
 	projectId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
@@ -155,6 +155,7 @@ export const apiCreateCompose = createSchema.pick({
 	composeType: true,
 	appName: true,
 	serverId: true,
+	composeFile: true,
 });
 
 export const apiCreateComposeByTemplate = createSchema

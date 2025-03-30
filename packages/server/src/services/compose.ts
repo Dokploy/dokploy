@@ -69,7 +69,7 @@ export const createCompose = async (input: typeof apiCreateCompose._type) => {
 		.insert(compose)
 		.values({
 			...input,
-			composeFile: "",
+			composeFile: input.composeFile || "",
 			appName,
 		})
 		.returning()
