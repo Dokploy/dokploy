@@ -25,7 +25,7 @@ export const SecurityAudit = ({ serverId }: Props) => {
 				enabled: !!serverId,
 			},
 		);
-	const _utils = api.useUtils();
+
 	return (
 		<CardContent className="p-0">
 			<div className="flex flex-col gap-4">
@@ -36,10 +36,12 @@ export const SecurityAudit = ({ serverId }: Props) => {
 								<div className="flex items-center gap-2">
 									<LockKeyhole className="size-5" />
 									<CardTitle className="text-xl">
-										Setup Security Sugestions
+										Setup Security Suggestions
 									</CardTitle>
 								</div>
-								<CardDescription>Check the security sugestions</CardDescription>
+								<CardDescription>
+									Check the security suggestions
+								</CardDescription>
 							</div>
 							<Button
 								isLoading={isRefreshing}
@@ -120,36 +122,36 @@ export const SecurityAudit = ({ serverId }: Props) => {
 									<div className="grid gap-2.5">
 										<StatusRow
 											label="Enabled"
-											isEnabled={data?.ssh.enabled}
+											isEnabled={data?.ssh?.enabled}
 											description={
-												data?.ssh.enabled
+												data?.ssh?.enabled
 													? "Enabled"
 													: "Not Enabled (SSH should be enabled)"
 											}
 										/>
 										<StatusRow
 											label="Key Auth"
-											isEnabled={data?.ssh.keyAuth}
+											isEnabled={data?.ssh?.keyAuth}
 											description={
-												data?.ssh.keyAuth
+												data?.ssh?.keyAuth
 													? "Enabled (Recommended)"
 													: "Not Enabled (Key Authentication should be enabled)"
 											}
 										/>
 										<StatusRow
 											label="Password Auth"
-											isEnabled={data?.ssh.passwordAuth === "no"}
+											isEnabled={data?.ssh?.passwordAuth === "no"}
 											description={
-												data?.ssh.passwordAuth === "no"
+												data?.ssh?.passwordAuth === "no"
 													? "Disabled (Recommended)"
 													: "Enabled (Password Authentication should be disabled)"
 											}
 										/>
 										<StatusRow
 											label="Use PAM"
-											isEnabled={data?.ssh.usePam === "no"}
+											isEnabled={data?.ssh?.usePam === "no"}
 											description={
-												data?.ssh.usePam === "no"
+												data?.ssh?.usePam === "no"
 													? "Disabled (Recommended for key-based auth)"
 													: "Enabled (Should be disabled when using key-based auth)"
 											}
@@ -166,9 +168,9 @@ export const SecurityAudit = ({ serverId }: Props) => {
 									<div className="grid gap-2.5">
 										<StatusRow
 											label="Installed"
-											isEnabled={data?.fail2ban.installed}
+											isEnabled={data?.fail2ban?.installed}
 											description={
-												data?.fail2ban.installed
+												data?.fail2ban?.installed
 													? "Installed (Recommended)"
 													: "Not Installed (Fail2Ban should be installed for protection against brute force attacks)"
 											}
@@ -176,18 +178,18 @@ export const SecurityAudit = ({ serverId }: Props) => {
 
 										<StatusRow
 											label="Enabled"
-											isEnabled={data?.fail2ban.enabled}
+											isEnabled={data?.fail2ban?.enabled}
 											description={
-												data?.fail2ban.enabled
+												data?.fail2ban?.enabled
 													? "Enabled (Recommended)"
 													: "Not Enabled (Fail2Ban service should be enabled)"
 											}
 										/>
 										<StatusRow
 											label="Active"
-											isEnabled={data?.fail2ban.active}
+											isEnabled={data?.fail2ban?.active}
 											description={
-												data?.fail2ban.active
+												data?.fail2ban?.active
 													? "Active (Recommended)"
 													: "Not Active (Fail2Ban service should be running)"
 											}
@@ -195,9 +197,9 @@ export const SecurityAudit = ({ serverId }: Props) => {
 
 										<StatusRow
 											label="SSH Protection"
-											isEnabled={data?.fail2ban.sshEnabled === "true"}
+											isEnabled={data?.fail2ban?.sshEnabled === "true"}
 											description={
-												data?.fail2ban.sshEnabled === "true"
+												data?.fail2ban?.sshEnabled === "true"
 													? "Enabled (Recommended)"
 													: "Not Enabled (SSH protection should be enabled to prevent brute force attacks)"
 											}
@@ -205,11 +207,11 @@ export const SecurityAudit = ({ serverId }: Props) => {
 
 										<StatusRow
 											label="SSH Mode"
-											isEnabled={data?.fail2ban.sshMode === "aggressive"}
+											isEnabled={data?.fail2ban?.sshMode === "aggressive"}
 											description={
-												data?.fail2ban.sshMode === "aggressive"
+												data?.fail2ban?.sshMode === "aggressive"
 													? "Aggressive Mode (Recommended)"
-													: `Mode: ${data?.fail2ban.sshMode || "Not Set"} (Aggressive mode recommended for better protection)`
+													: `Mode: ${data?.fail2ban?.sshMode || "Not Set"} (Aggressive mode recommended for better protection)`
 											}
 										/>
 									</div>

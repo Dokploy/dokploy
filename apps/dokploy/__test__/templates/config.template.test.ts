@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import type { Schema } from "@dokploy/server/templates";
 import type { CompleteTemplate } from "@dokploy/server/templates/processors";
 import { processTemplate } from "@dokploy/server/templates/processors";
-import type { Schema } from "@dokploy/server/templates";
+import { describe, expect, it } from "vitest";
 
 describe("processTemplate", () => {
 	// Mock schema for testing
@@ -232,6 +232,49 @@ describe("processTemplate", () => {
 			expect(base64Value).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
 			expect(base64Value.length).toBeGreaterThanOrEqual(42);
 			expect(base64Value.length).toBeLessThanOrEqual(44);
+		});
+
+		it("should handle boolean values in env vars when provided as an array", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: [
+						"ENABLE_USER_SIGN_UP=false",
+						"DEBUG_MODE=true",
+						"SOME_NUMBER=42",
+					],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(3);
+			expect(result.envs).toContain("ENABLE_USER_SIGN_UP=false");
+			expect(result.envs).toContain("DEBUG_MODE=true");
+			expect(result.envs).toContain("SOME_NUMBER=42");
+		});
+
+		it("should handle boolean values in env vars when provided as an object", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: {
+						ENABLE_USER_SIGN_UP: false,
+						DEBUG_MODE: true,
+						SOME_NUMBER: 42,
+					},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(3);
+			expect(result.envs).toContain("ENABLE_USER_SIGN_UP=false");
+			expect(result.envs).toContain("DEBUG_MODE=true");
+			expect(result.envs).toContain("SOME_NUMBER=42");
 		});
 	});
 

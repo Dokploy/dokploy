@@ -1,0 +1,1 @@
+ALTER TABLE "gitea" DROP COLUMN "gitea_username";

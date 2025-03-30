@@ -28,6 +28,7 @@ export * from "./services/git-provider";
 export * from "./services/bitbucket";
 export * from "./services/github";
 export * from "./services/gitlab";
+export * from "./services/gitea";
 export * from "./services/server";
 export * from "./services/application";
 export * from "./utils/databases/rebuild";
@@ -47,6 +48,7 @@ export * from "./utils/backups/mongo";
 export * from "./utils/backups/mysql";
 export * from "./utils/backups/postgres";
 export * from "./utils/backups/utils";
+export * from "./utils/backups/web-server";
 export * from "./templates/processors";
 
 export * from "./utils/notifications/build-error";
@@ -90,6 +92,7 @@ export * from "./utils/providers/docker";
 export * from "./utils/providers/git";
 export * from "./utils/providers/github";
 export * from "./utils/providers/gitlab";
+export * from "./utils/providers/gitea";
 export * from "./utils/providers/raw";
 
 export * from "./utils/servers/remote-docker";

@@ -1,0 +1,1 @@
+ALTER TABLE "application" DROP COLUMN "giteaProjectId";

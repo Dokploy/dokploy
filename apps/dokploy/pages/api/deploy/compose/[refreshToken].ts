@@ -8,9 +8,10 @@ import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
 	extractBranchName,
-	extractCommitedPaths,
 	extractCommitMessage,
+	extractCommitedPaths,
 	extractHash,
+	getProviderByHeader,
 } from "../[refreshToken]";
 
 export default async function handler(
@@ -91,12 +92,6 @@ export default async function handler(
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
-		} else if (sourceType === "git") {
-			const branchName = extractBranchName(req.headers, req.body);
-			if (!branchName || branchName !== composeResult.customGitBranch) {
-				res.status(301).json({ message: "Branch Not Match" });
-				return;
-			}
 
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
@@ -104,6 +99,7 @@ export default async function handler(
 				composeResult.bitbucket?.appPassword || "",
 				composeResult.bitbucketRepository || "",
 			);
+
 			const shouldDeployPaths = shouldDeploy(
 				composeResult.watchPaths,
 				commitedPaths,
@@ -111,6 +107,59 @@ export default async function handler(
 
 			if (!shouldDeployPaths) {
 				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+		} else if (sourceType === "git") {
+			const branchName = extractBranchName(req.headers, req.body);
+			if (!branchName || branchName !== composeResult.customGitBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+			const provider = getProviderByHeader(req.headers);
+			let normalizedCommits: string[] = [];
+
+			if (provider === "github") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			} else if (provider === "gitlab") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			} else if (provider === "gitea") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			}
+
+			const shouldDeployPaths = shouldDeploy(
+				composeResult.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+		} else if (sourceType === "gitea") {
+			const branchName = extractBranchName(req.headers, req.body);
+
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				composeResult.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+
+			if (!branchName || branchName !== composeResult.giteaBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
 		}

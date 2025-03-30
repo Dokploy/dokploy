@@ -13,6 +13,7 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
@@ -33,6 +34,7 @@ export const sourceType = pgEnum("sourceType", [
 	"github",
 	"gitlab",
 	"bitbucket",
+	"gitea",
 	"drop",
 ]);
 
@@ -155,6 +157,11 @@ export const applications = pgTable("application", {
 	gitlabBranch: text("gitlabBranch"),
 	gitlabBuildPath: text("gitlabBuildPath").default("/"),
 	gitlabPathNamespace: text("gitlabPathNamespace"),
+	// Gitea
+	giteaRepository: text("giteaRepository"),
+	giteaOwner: text("giteaOwner"),
+	giteaBranch: text("giteaBranch"),
+	giteaBuildPath: text("giteaBuildPath").default("/"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
 	bitbucketOwner: text("bitbucketOwner"),
@@ -212,6 +219,9 @@ export const applications = pgTable("application", {
 	gitlabId: text("gitlabId").references(() => gitlab.gitlabId, {
 		onDelete: "set null",
 	}),
+	giteaId: text("giteaId").references(() => gitea.giteaId, {
+		onDelete: "set null",
+	}),
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
@@ -248,6 +258,10 @@ export const applicationsRelations = relations(
 		gitlab: one(gitlab, {
 			fields: [applications.gitlabId],
 			references: [gitlab.gitlabId],
+		}),
+		gitea: one(gitea, {
+			fields: [applications.giteaId],
+			references: [gitea.giteaId],
 		}),
 		bitbucket: one(bitbucket, {
 			fields: [applications.bitbucketId],
@@ -379,7 +393,9 @@ const createSchema = createInsertSchema(applications, {
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
 	projectId: z.string(),
-	sourceType: z.enum(["github", "docker", "git"]).optional(),
+	sourceType: z
+		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
+		.optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	buildType: z.enum([
 		"dockerfile",
@@ -479,6 +495,18 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketRepository: true,
 		bitbucketId: true,
 		applicationId: true,
+		watchPaths: true,
+	})
+	.required();
+
+export const apiSaveGiteaProvider = createSchema
+	.pick({
+		applicationId: true,
+		giteaBranch: true,
+		giteaBuildPath: true,
+		giteaOwner: true,
+		giteaRepository: true,
+		giteaId: true,
 		watchPaths: true,
 	})
 	.required();

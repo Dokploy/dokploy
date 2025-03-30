@@ -25,6 +25,7 @@ export * from "./git-provider";
 export * from "./bitbucket";
 export * from "./github";
 export * from "./gitlab";
+export * from "./gitea";
 export * from "./server";
 export * from "./utils";
 export * from "./preview-deployments";
