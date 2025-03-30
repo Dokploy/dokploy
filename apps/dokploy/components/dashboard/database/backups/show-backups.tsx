@@ -14,7 +14,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { DatabaseBackup, Play, Trash2 } from "lucide-react";
+import { Database, DatabaseBackup, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -66,7 +66,10 @@ export const ShowBackups = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between gap-4  flex-wrap">
 				<div className="flex flex-col gap-0.5">
-					<CardTitle className="text-xl">Backups</CardTitle>
+					<CardTitle className="text-xl flex flex-row gap-2">
+						<Database className="size-6 text-muted-foreground" />
+						Backups
+					</CardTitle>
 					<CardDescription>
 						Add backups to your database to save the data to a different
 						provider.

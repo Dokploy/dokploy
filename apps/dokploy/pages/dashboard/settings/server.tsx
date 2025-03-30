@@ -10,6 +10,7 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 import { api } from "@/utils/api";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { Card } from "@/components/ui/card";
 const Page = () => {
 	const { data: user } = api.user.get.useQuery();
 	return (
@@ -17,7 +18,11 @@ const Page = () => {
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
-				<ShowBackups id={user?.userId ?? ""} type="web-server" />
+				<div className="w-full flex flex-col gap-4">
+					<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+						<ShowBackups id={user?.userId ?? ""} type="web-server" />
+					</Card>
+				</div>
 			</div>
 		</div>
 	);
