@@ -246,34 +246,30 @@ export const backupRouter = createTRPCRouter({
 				const s3Path = `:s3:${destination.bucket}/${backup.prefix}${backupFileName}`;
 
 				try {
-					// Create temp directory structure
-					console.log("Creating temp directory structure...");
 					await execAsync(`mkdir -p ${tempDir}/filesystem`);
 
-					// Backup database
 					const postgresCommand = `docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_dump -v -Fc -U dokploy -d dokploy > ${tempDir}/database.sql`;
-					console.log("Executing database backup command:", postgresCommand);
 					await execAsync(postgresCommand);
 
-					// Backup filesystem (excluding temp directory)
-					console.log("Copying filesystem...");
-					await execAsync(`cp -r /etc/dokploy/* ${tempDir}/filesystem/`);
+					await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
 
-					// Create zip file
-					console.log("Creating zip file...");
 					await execAsync(
 						`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/`,
 					);
 
-					// Show zip contents and size
-					// console.log(`unzip -l ${tempDir}/${backupFileName}`);
+					// // Show zip contents and size
+					// console.log("Zip file contents:");
 					// await execAsync(`unzip -l ${tempDir}/${backupFileName}`);
 					// await execAsync(`du -sh ${tempDir}/${backupFileName}`);
 
+					// Upload to S3
+					const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
+					await execAsync(uploadCommand);
 					return true;
 				} finally {
-					// Keep the temp directory for inspection
-					console.log("Backup files are in:", tempDir);
+					// Cleanup temporary files
+					console.log("Cleaning up temporary files...");
+					await execAsync(`rm -rf ${tempDir}`);
 				}
 			} catch (error) {
 				console.error("Backup error:", error);
@@ -422,6 +418,17 @@ export const backupRouter = createTRPCRouter({
 						mongo,
 						destination,
 						input.databaseName,
+						input.backupFile,
+						(log) => {
+							emit.next(log);
+						},
+					);
+				});
+			} else if (input.databaseType === "web-server") {
+				return observable<string>((emit) => {
+					restoreWebServerBackup(
+						webServer,
+						destination,
 						input.backupFile,
 						(log) => {
 							emit.next(log);
