@@ -6,6 +6,7 @@ import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
+import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =
@@ -23,6 +24,9 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 		} else if (databaseType === "mariadb" && mariadb) {
 			await runMariadbBackup(mariadb, backup);
 			await keepLatestNBackups(backup, mariadb.serverId);
+		} else if (databaseType === "web-server") {
+			await runWebServerBackup(backup);
+			await keepLatestNBackups(backup);
 		}
 	});
 };
