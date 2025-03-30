@@ -67,15 +67,11 @@ export const cloneBitbucketRepository = async (
 		if (recurseSubmodules) {
 			cloneArgs.splice(4, 0, "--recurse-submodules");
 		}
-		await spawnAsync(
-			"git",
-			cloneArgs,
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-		);
+		await spawnAsync("git", cloneArgs, (data) => {
+			if (writeStream.writable) {
+				writeStream.write(data);
+			}
+		});
 		writeStream.write(`\nCloned ${repoclone} to ${outputPath}: ✅\n`);
 	} catch (error) {
 		writeStream.write(`ERROR Clonning: ${error}: ❌`);

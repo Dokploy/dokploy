@@ -23,7 +23,13 @@ export const cloneGitRepository = async (
 	isCompose = false,
 ) => {
 	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths();
-	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId, recurseSubmodules = true } = entity;
+	const {
+		appName,
+		customGitUrl,
+		customGitBranch,
+		customGitSSHKeyId,
+		recurseSubmodules = true,
+	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -269,7 +275,13 @@ export const cloneGitRawRepository = async (entity: {
 	customGitSSHKeyId?: string | null;
 	recurseSubmodules?: boolean;
 }) => {
-	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId, recurseSubmodules = true } = entity;
+	const {
+		appName,
+		customGitUrl,
+		customGitBranch,
+		customGitSSHKeyId,
+		recurseSubmodules = true,
+	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -327,19 +339,14 @@ export const cloneGitRawRepository = async (entity: {
 		if (recurseSubmodules) {
 			cloneArgs.splice(4, 0, "--recurse-submodules");
 		}
-		await spawnAsync(
-			"git",
-			cloneArgs,
-			(_data) => {},
-			{
-				env: {
-					...process.env,
-					...(customGitSSHKeyId && {
-						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
-					}),
-				},
+		await spawnAsync("git", cloneArgs, (_data) => {}, {
+			env: {
+				...process.env,
+				...(customGitSSHKeyId && {
+					GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
+				}),
 			},
-		);
+		});
 	} catch (error) {
 		throw error;
 	}

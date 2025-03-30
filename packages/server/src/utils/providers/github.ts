@@ -143,15 +143,11 @@ export const cloneGithubRepository = async ({
 		if (recurseSubmodules) {
 			cloneArgs.splice(4, 0, "--recurse-submodules");
 		}
-		await spawnAsync(
-			"git",
-			cloneArgs,
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-		);
+		await spawnAsync("git", cloneArgs, (data) => {
+			if (writeStream.writable) {
+				writeStream.write(data);
+			}
+		});
 		writeStream.write(`\nCloned ${repoclone}: ✅\n`);
 	} catch (error) {
 		writeStream.write(`ERROR Clonning: ${error}: ❌`);
@@ -233,7 +229,14 @@ echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 };
 
 export const cloneRawGithubRepository = async (entity: Compose) => {
-	const { appName, repository, owner, branch, githubId, recurseSubmodules = true } = entity;
+	const {
+		appName,
+		repository,
+		owner,
+		branch,
+		githubId,
+		recurseSubmodules = true,
+	} = entity;
 
 	if (!githubId) {
 		throw new TRPCError({
@@ -271,7 +274,15 @@ export const cloneRawGithubRepository = async (entity: Compose) => {
 };
 
 export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
-	const { appName, repository, owner, branch, githubId, serverId, recurseSubmodules = true } = compose;
+	const {
+		appName,
+		repository,
+		owner,
+		branch,
+		githubId,
+		serverId,
+		recurseSubmodules = true,
+	} = compose;
 
 	if (!serverId) {
 		throw new TRPCError({
