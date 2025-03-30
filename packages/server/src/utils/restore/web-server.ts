@@ -2,6 +2,9 @@ import type { Destination } from "@dokploy/server/services/destination";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 import { paths } from "@dokploy/server";
+import { mkdtemp } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 export const restoreWebServerBackup = async (
 	destination: Destination,
@@ -13,7 +16,9 @@ export const restoreWebServerBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupFile}`;
 		const { BASE_PATH } = paths();
-		const tempDir = `${BASE_PATH}/temp-restore-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+
+		// Create a temporary directory outside of BASE_PATH
+		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-restore-"));
 
 		try {
 			emit("Starting restore...");
@@ -39,6 +44,25 @@ export const restoreWebServerBackup = async (
 			emit("Extracting backup...");
 			await execAsync(`cd ${tempDir} && unzip ${backupFile}`);
 
+			// Restore filesystem first
+			emit("Restoring filesystem...");
+			emit(`Copying from ${tempDir}/filesystem/* to ${BASE_PATH}/`);
+
+			// First clean the target directory
+			emit("Cleaning target directory...");
+			await execAsync(`rm -rf "${BASE_PATH}/"*`);
+
+			// Ensure the target directory exists
+			emit("Setting up target directory...");
+			await execAsync(`mkdir -p "${BASE_PATH}"`);
+
+			// Copy files preserving permissions
+			emit("Copying files...");
+			await execAsync(`cp -rp "${tempDir}/filesystem/"* "${BASE_PATH}/"`);
+
+			// Now handle database restore
+			emit("Starting database restore...");
+
 			// Check if database.sql.gz exists and decompress it
 			const { stdout: hasGzFile } = await execAsync(
 				`ls ${tempDir}/database.sql.gz || true`,
@@ -55,9 +79,6 @@ export const restoreWebServerBackup = async (
 			if (!hasSqlFile.includes("database.sql")) {
 				throw new Error("Database file not found after extraction");
 			}
-
-			// Restore database
-			emit("Restoring database...");
 
 			// Drop and recreate database
 			emit("Disconnecting all users from database...");
@@ -98,10 +119,6 @@ export const restoreWebServerBackup = async (
 			await execAsync(
 				`docker exec $(docker ps --filter "name=dokploy-postgres" -q) rm /tmp/database.sql`,
 			);
-
-			// Restore filesystem
-			emit("Restoring filesystem...");
-			await execAsync(`cp -r ${tempDir}/filesystem/* ${BASE_PATH}/`);
 
 			emit("Restore completed successfully!");
 		} finally {
