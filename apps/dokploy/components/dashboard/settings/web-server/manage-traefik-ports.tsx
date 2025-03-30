@@ -161,7 +161,11 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																			{...field}
 																			onChange={(e) => {
 																				const value = e.target.value;
-																				field.onChange(value === "" ? undefined : Number(value));
+																				field.onChange(
+																					value === ""
+																						? undefined
+																						: Number(value),
+																				);
 																			}}
 																			value={field.value || ""}
 																			className="w-full dark:bg-black"
@@ -189,7 +193,11 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																			{...field}
 																			onChange={(e) => {
 																				const value = e.target.value;
-																				field.onChange(value === "" ? undefined : Number(value));
+																				field.onChange(
+																					value === ""
+																						? undefined
+																						: Number(value),
+																				);
 																			}}
 																			value={field.value || ""}
 																			className="w-full dark:bg-black"

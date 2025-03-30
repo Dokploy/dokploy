@@ -1,4 +1,5 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangeMongoStatus,
 	apiCreateMongo,
@@ -30,12 +31,11 @@ import {
 	stopServiceRemote,
 	updateMongoById,
 } from "@dokploy/server";
+import { rebuildDatabase } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { db } from "@/server/db";
-import { rebuildDatabase } from "@dokploy/server";
+import { z } from "zod";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMongo)

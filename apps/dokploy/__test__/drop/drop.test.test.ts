@@ -27,6 +27,11 @@ if (typeof window === "undefined") {
 const baseApp: ApplicationNested = {
 	applicationId: "",
 	herokuVersion: "",
+	giteaBranch: "",
+	giteaBuildPath: "",
+	giteaId: "",
+	giteaOwner: "",
+	giteaRepository: "",
 	cleanCache: false,
 	watchPaths: [],
 	applicationStatus: "done",

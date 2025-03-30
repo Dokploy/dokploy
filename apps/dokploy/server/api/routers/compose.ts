@@ -9,23 +9,10 @@ import {
 	apiUpdateCompose,
 	compose as composeTable,
 } from "@/server/db/schema";
-import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
-import { generatePassword } from "@/templates/utils";
-import {
-	type CompleteTemplate,
-	fetchTemplateFiles,
-	fetchTemplatesList,
-} from "@dokploy/server/templates/github";
-import { processTemplate } from "@dokploy/server/templates/processors";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { dump, load } from "js-yaml";
-import _ from "lodash";
-import { nanoid } from "nanoid";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
-import { z } from "zod";
 import type { DeploymentJob } from "@/server/queues/queue-types";
+import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { generatePassword } from "@/templates/utils";
 import {
 	IS_CLOUD,
 	addDomainToCompose,
@@ -55,6 +42,20 @@ import {
 	stopCompose,
 	updateCompose,
 } from "@dokploy/server";
+import {
+	type CompleteTemplate,
+	fetchTemplateFiles,
+	fetchTemplatesList,
+} from "@dokploy/server/templates/github";
+import { processTemplate } from "@dokploy/server/templates/processors";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { dump } from "js-yaml";
+import { parse } from "toml";
+import _ from "lodash";
+import { nanoid } from "nanoid";
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -594,7 +595,7 @@ export const composeRouter = createTRPCRouter({
 					serverIp = "127.0.0.1";
 				}
 				const templateData = JSON.parse(decodedData);
-				const config = load(templateData.config) as CompleteTemplate;
+				const config = parse(templateData.config) as CompleteTemplate;
 
 				if (!templateData.compose || !config) {
 					throw new TRPCError({
@@ -663,7 +664,8 @@ export const composeRouter = createTRPCRouter({
 				}
 
 				const templateData = JSON.parse(decodedData);
-				const config = load(templateData.config) as CompleteTemplate;
+
+				const config = parse(templateData.config) as CompleteTemplate;
 
 				if (!templateData.compose || !config) {
 					throw new TRPCError({
@@ -678,7 +680,6 @@ export const composeRouter = createTRPCRouter({
 					projectName: compose.appName,
 				});
 
-				// Update compose file
 				await updateCompose(input.composeId, {
 					composeFile: templateData.compose,
 					sourceType: "raw",
@@ -686,7 +687,6 @@ export const composeRouter = createTRPCRouter({
 					isolatedDeployment: true,
 				});
 
-				// Create mounts
 				if (processedTemplate.mounts && processedTemplate.mounts.length > 0) {
 					for (const mount of processedTemplate.mounts) {
 						await createMount({
@@ -700,7 +700,6 @@ export const composeRouter = createTRPCRouter({
 					}
 				}
 
-				// Create domains
 				if (processedTemplate.domains && processedTemplate.domains.length > 0) {
 					for (const domain of processedTemplate.domains) {
 						await createDomain({

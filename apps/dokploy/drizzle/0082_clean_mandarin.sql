@@ -1,0 +1,2 @@
+ALTER TABLE "backup" ADD COLUMN "userId" text;--> statement-breakpoint
+ALTER TABLE "backup" ADD CONSTRAINT "backup_userId_user_temp_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user_temp"("id") ON DELETE no action ON UPDATE no action;

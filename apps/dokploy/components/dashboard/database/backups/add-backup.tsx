@@ -61,7 +61,7 @@ type AddPostgresBackup = z.infer<typeof AddPostgresBackup1Schema>;
 
 interface Props {
 	databaseId: string;
-	databaseType: "postgres" | "mariadb" | "mysql" | "mongo";
+	databaseType: "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
 	refetch: () => void;
 }
 
@@ -85,7 +85,7 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 
 	useEffect(() => {
 		form.reset({
-			database: "",
+			database: databaseType === "web-server" ? "dokploy" : "",
 			destinationId: "",
 			enabled: true,
 			prefix: "/",
@@ -112,7 +112,11 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 							? {
 									mongoId: databaseId,
 								}
-							: undefined;
+							: databaseType === "web-server"
+								? {
+										userId: databaseId,
+									}
+								: undefined;
 
 		await createBackup({
 			destinationId: data.destinationId,
@@ -236,7 +240,11 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 										<FormItem>
 											<FormLabel>Database</FormLabel>
 											<FormControl>
-												<Input placeholder={"dokploy"} {...field} />
+												<Input
+													disabled={databaseType === "web-server"}
+													placeholder={"dokploy"}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -286,16 +294,21 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 										<FormItem>
 											<FormLabel>Keep the latest</FormLabel>
 											<FormControl>
-												<Input type="number" placeholder={"keeps all the backups if left empty"} {...field} />
+												<Input
+													type="number"
+													placeholder={"keeps all the backups if left empty"}
+													{...field}
+												/>
 											</FormControl>
 											<FormDescription>
-												Optional. If provided, only keeps the latest N backups in the cloud.
+												Optional. If provided, only keeps the latest N backups
+												in the cloud.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									);
 								}}
-							/>							
+							/>
 							<FormField
 								control={form.control}
 								name="enabled"

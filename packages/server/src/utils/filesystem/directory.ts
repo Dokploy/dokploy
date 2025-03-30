@@ -113,6 +113,8 @@ export const getBuildAppDirectory = (application: Application) => {
 		buildPath = application?.gitlabBuildPath || "";
 	} else if (sourceType === "bitbucket") {
 		buildPath = application?.bitbucketBuildPath || "";
+	} else if (sourceType === "gitea") {
+		buildPath = application?.giteaBuildPath || "";
 	} else if (sourceType === "drop") {
 		buildPath = application?.dropBuildPath || "";
 	} else if (sourceType === "git") {
