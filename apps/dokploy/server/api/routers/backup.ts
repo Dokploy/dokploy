@@ -19,13 +19,13 @@ import {
 	findPostgresByBackupId,
 	findPostgresById,
 	findServerById,
-	paths,
 	removeBackupById,
 	removeScheduleBackup,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
 	runPostgresBackup,
+	runWebServerBackup,
 	scheduleBackup,
 	updateBackupById,
 } from "@dokploy/server";
@@ -41,6 +41,7 @@ import {
 	restoreMongoBackup,
 	restoreMySqlBackup,
 	restorePostgresBackup,
+	restoreWebServerBackup,
 } from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -235,50 +236,9 @@ export const backupRouter = createTRPCRouter({
 	manualBackupWebServer: protectedProcedure
 		.input(apiFindOneBackup)
 		.mutation(async ({ input }) => {
-			try {
-				const backup = await findBackupById(input.backupId);
-				const destination = await findDestinationById(backup.destinationId);
-				const rcloneFlags = getS3Credentials(destination);
-				const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-				const { BASE_PATH } = paths();
-				const tempDir = `${BASE_PATH}/temp-backup-${timestamp}`;
-				const backupFileName = `webserver-backup-${timestamp}.zip`;
-				const s3Path = `:s3:${destination.bucket}/${backup.prefix}${backupFileName}`;
-
-				try {
-					await execAsync(`mkdir -p ${tempDir}/filesystem`);
-
-					const postgresCommand = `docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_dump -v -Fc -U dokploy -d dokploy > ${tempDir}/database.sql`;
-					await execAsync(postgresCommand);
-
-					await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
-
-					await execAsync(
-						`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/`,
-					);
-
-					// // Show zip contents and size
-					// console.log("Zip file contents:");
-					// await execAsync(`unzip -l ${tempDir}/${backupFileName}`);
-					// await execAsync(`du -sh ${tempDir}/${backupFileName}`);
-
-					// Upload to S3
-					const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
-					await execAsync(uploadCommand);
-					return true;
-				} finally {
-					// Cleanup temporary files
-					console.log("Cleaning up temporary files...");
-					await execAsync(`rm -rf ${tempDir}`);
-				}
-			} catch (error) {
-				console.error("Backup error:", error);
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Error running manual Web Server backup",
-					cause: error,
-				});
-			}
+			const backup = await findBackupById(input.backupId);
+			await runWebServerBackup(backup);
+			return true;
 		}),
 	listBackupFiles: protectedProcedure
 		.input(
@@ -424,16 +384,12 @@ export const backupRouter = createTRPCRouter({
 						},
 					);
 				});
-			} else if (input.databaseType === "web-server") {
+			}
+			if (input.databaseType === "web-server") {
 				return observable<string>((emit) => {
-					restoreWebServerBackup(
-						webServer,
-						destination,
-						input.backupFile,
-						(log) => {
-							emit.next(log);
-						},
-					);
+					restoreWebServerBackup(destination, input.backupFile, (log) => {
+						emit.next(log);
+					});
 				});
 			}
 
