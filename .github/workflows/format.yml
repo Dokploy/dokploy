@@ -1,0 +1,22 @@
+name: autofix.ci
+
+on:
+  push:
+    branches: [canary]
+  pull_request:
+    branches: [canary]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup biomeJs
+        uses: biomejs/setup-biome@v2  
+
+      - name: Run Biome formatter
+        run:  biome format . --write
+
+      - uses: autofix-ci/action@551dded8c6cc8a1054039c8bc0b8b48c51dfc6ef

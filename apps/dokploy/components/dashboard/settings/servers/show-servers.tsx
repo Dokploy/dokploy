@@ -33,6 +33,7 @@ import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
+import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { HandleServers } from "./handle-servers";
@@ -42,7 +43,6 @@ import { ShowMonitoringModal } from "./show-monitoring-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
-import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 
 export const ShowServers = () => {
 	const { t } = useTranslation("settings");

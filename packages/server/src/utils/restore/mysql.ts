@@ -1,11 +1,11 @@
-import type { MySql } from "@dokploy/server/services/mysql";
 import type { Destination } from "@dokploy/server/services/destination";
+import type { MySql } from "@dokploy/server/services/mysql";
+import { getS3Credentials } from "../backups/utils";
 import {
 	getRemoteServiceContainer,
 	getServiceContainer,
 } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials } from "../backups/utils";
 
 export const restoreMySqlBackup = async (
 	mysql: MySql,

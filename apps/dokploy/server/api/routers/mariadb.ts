@@ -1,14 +1,15 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
 	apiDeployMariaDB,
 	apiFindOneMariaDB,
+	apiRebuildMariadb,
 	apiResetMariadb,
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
-	apiRebuildMariadb,
 	mariadb as mariadbTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
@@ -30,12 +31,11 @@ import {
 	stopServiceRemote,
 	updateMariadbById,
 } from "@dokploy/server";
+import { rebuildDatabase } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { db } from "@/server/db";
-import { rebuildDatabase } from "@dokploy/server";
+import { z } from "zod";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMariaDB)

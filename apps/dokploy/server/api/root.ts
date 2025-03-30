@@ -1,4 +1,3 @@
-import { authRouter } from "@/server/api/routers/auth";
 import { createTRPCRouter } from "../api/trpc";
 import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
@@ -13,6 +12,7 @@ import { destinationRouter } from "./routers/destination";
 import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
 import { gitProviderRouter } from "./routers/git-provider";
+import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
 import { gitlabRouter } from "./routers/gitlab";
 import { mariadbRouter } from "./routers/mariadb";
@@ -44,7 +44,6 @@ import { userRouter } from "./routers/user";
 export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	docker: dockerRouter,
-	auth: authRouter,
 	project: projectRouter,
 	application: applicationRouter,
 	mysql: mysqlRouter,
@@ -70,6 +69,7 @@ export const appRouter = createTRPCRouter({
 	notification: notificationRouter,
 	sshKey: sshRouter,
 	gitProvider: gitProviderRouter,
+	gitea: giteaRouter,
 	bitbucket: bitbucketRouter,
 	gitlab: gitlabRouter,
 	github: githubRouter,
