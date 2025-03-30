@@ -45,7 +45,9 @@ export interface CompleteTemplate {
 	variables: Record<string, string>;
 	config: {
 		domains: DomainConfig[];
-		env: Record<string, string> | string[];
+		env:
+			| Record<string, string | boolean | number>
+			| (string | Record<string, string | boolean | number>)[];
 		mounts?: MountConfig[];
 	};
 }
@@ -200,7 +202,16 @@ export function processEnvVars(
 			if (typeof env === "string") {
 				return processValue(env, variables, schema);
 			}
-			return env;
+			// Si es un objeto, asumimos que es un par clave-valor
+			if (typeof env === "object" && env !== null) {
+				const keys = Object.keys(env);
+				if (keys.length > 0) {
+					const key = keys[0];
+					return `${key}=${env[key as keyof typeof env]}`;
+				}
+			}
+			// Para valores primitivos (boolean, number)
+			return String(env);
 		});
 	}
 
