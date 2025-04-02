@@ -62,11 +62,12 @@ export default async function handler(
 
 	if (
 		req.headers["x-github-event"] !== "push" &&
-		req.headers["x-github-event"] !== "pull_request"
+		req.headers["x-github-event"] !== "pull_request" &&
+		req.headers["x-github-event"] !== "create"
 	) {
 		res
 			.status(400)
-			.json({ message: "We only accept push events or pull_request events" });
+			.json({ message: "We only accept push, pull_request, or create events" });
 		return;
 	}
 
@@ -89,6 +90,106 @@ export default async function handler(
 		return;
 	}
 
+	// Handle tag creation event
+	if (req.headers["x-github-event"] === "create" && githubBody?.ref_type === "tag") {
+		try {
+			const tagName = githubBody?.ref;
+			const repository = githubBody?.repository?.name;
+			const owner = githubBody?.repository?.owner?.name || githubBody?.repository?.owner?.login;
+			const deploymentTitle = `Tag created: ${tagName}`;
+			const deploymentHash = githubBody?.master_branch || "";
+
+			// Find applications configured to deploy on tag
+			const apps = await db.query.applications.findMany({
+				where: and(
+					eq(applications.sourceType, "github"),
+					eq(applications.autoDeploy, true),
+					eq(applications.triggerType, "tag"),
+					eq(applications.repository, repository),
+					eq(applications.owner, owner),
+					eq(applications.githubId, githubResult.githubId),
+				),
+			});
+
+			for (const app of apps) {
+				const jobData: DeploymentJob = {
+					applicationId: app.applicationId as string,
+					titleLog: deploymentTitle,
+					descriptionLog: `Tag: ${tagName}`,
+					type: "deploy",
+					applicationType: "application",
+					server: !!app.serverId,
+				};
+
+				if (IS_CLOUD && app.serverId) {
+					jobData.serverId = app.serverId;
+					await deploy(jobData);
+					continue;
+				}
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+			}
+
+			// Find compose apps configured to deploy on tag
+			const composeApps = await db.query.compose.findMany({
+				where: and(
+					eq(compose.sourceType, "github"),
+					eq(compose.autoDeploy, true),
+					eq(compose.triggerType, "tag"),
+					eq(compose.repository, repository),
+					eq(compose.owner, owner),
+					eq(compose.githubId, githubResult.githubId),
+				),
+			});
+
+			for (const composeApp of composeApps) {
+				const jobData: DeploymentJob = {
+					composeId: composeApp.composeId as string,
+					titleLog: deploymentTitle,
+					type: "deploy",
+					applicationType: "compose",
+					descriptionLog: `Tag: ${tagName}`,
+					server: !!composeApp.serverId,
+				};
+
+				if (IS_CLOUD && composeApp.serverId) {
+					jobData.serverId = composeApp.serverId;
+					await deploy(jobData);
+					continue;
+				}
+
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
+			}
+
+			const totalApps = apps.length + composeApps.length;
+			
+			if (totalApps === 0) {
+				res.status(200).json({ message: "No apps configured to deploy on tag" });
+				return;
+			}
+			
+			res.status(200).json({ message: `Deployed ${totalApps} apps based on tag ${tagName}` });
+			return;
+		} catch (error) {
+			console.error("Error deploying applications on tag:", error);
+			res.status(400).json({ message: "Error deploying applications on tag", error });
+			return;
+		}
+	}
+
 	if (req.headers["x-github-event"] === "push") {
 		try {
 			const branchName = githubBody?.ref?.replace("refs/heads/", "");
@@ -105,6 +206,7 @@ export default async function handler(
 				where: and(
 					eq(applications.sourceType, "github"),
 					eq(applications.autoDeploy, true),
+					eq(applications.triggerType, "push"),
 					eq(applications.branch, branchName),
 					eq(applications.repository, repository),
 					eq(applications.owner, owner),
@@ -150,6 +252,7 @@ export default async function handler(
 				where: and(
 					eq(compose.sourceType, "github"),
 					eq(compose.autoDeploy, true),
+					eq(compose.triggerType, "push"),
 					eq(compose.branch, branchName),
 					eq(compose.repository, repository),
 					eq(compose.owner, owner),
