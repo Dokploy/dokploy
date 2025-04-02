@@ -46,8 +46,8 @@ void app.prepare().then(async () => {
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
-			await initCronJobs();
 			await migration();
+			await initCronJobs();
 			await sendDokployRestartNotifications();
 		}
 
