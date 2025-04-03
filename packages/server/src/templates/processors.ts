@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import type { Schema } from "./index";
 import {
 	generateBase64,
@@ -70,7 +71,7 @@ function processValue(
 	schema: Schema,
 ): string {
 	// First replace utility functions
-	let processedValue = value.replace(/\${([^}]+)}/g, (match, varName) => {
+	let processedValue = value?.replace(/\${([^}]+)}/g, (match, varName) => {
 		// Handle utility functions
 		if (varName === "domain") {
 			return generateRandomDomain(schema);
@@ -115,6 +116,14 @@ function processValue(
 		if (varName.startsWith("jwt:")) {
 			const length = Number.parseInt(varName.split(":")[1], 10) || 256;
 			return generateJwt(length);
+		}
+
+		if (varName === "username") {
+			return faker.internet.userName().toLowerCase();
+		}
+
+		if (varName === "email") {
+			return faker.internet.email().toLowerCase();
 		}
 
 		// If not a utility function, try to get from variables
@@ -177,7 +186,14 @@ export function processDomains(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["domains"] {
-	if (!template?.config?.domains) return [];
+	if (
+		!template?.config?.domains ||
+		template.config.domains.length === 0 ||
+		template.config.domains.every((domain) => !domain.serviceName)
+	) {
+		return [];
+	}
+
 	return template?.config?.domains?.map((domain: DomainConfig) => ({
 		...domain,
 		host: domain.host
@@ -194,7 +210,9 @@ export function processEnvVars(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["envs"] {
-	if (!template?.config?.env) return [];
+	if (!template?.config?.env || Object.keys(template.config.env).length === 0) {
+		return [];
+	}
 
 	// Handle array of env vars
 	if (Array.isArray(template.config.env)) {
@@ -233,7 +251,13 @@ export function processMounts(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["mounts"] {
-	if (!template?.config?.mounts) return [];
+	if (
+		!template?.config?.mounts ||
+		template.config.mounts.length === 0 ||
+		template.config.mounts.every((mount) => !mount.filePath && !mount.content)
+	) {
+		return [];
+	}
 
 	return template?.config?.mounts?.map((mount: MountConfig) => ({
 		filePath: processValue(mount.filePath, variables, schema),
