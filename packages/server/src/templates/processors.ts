@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import type { Schema } from "./index";
 import {
 	generateBase64,
@@ -115,6 +116,14 @@ function processValue(
 		if (varName.startsWith("jwt:")) {
 			const length = Number.parseInt(varName.split(":")[1], 10) || 256;
 			return generateJwt(length);
+		}
+
+		if (varName === "username") {
+			return faker.internet.userName().toLowerCase();
+		}
+
+		if (varName === "email") {
+			return faker.internet.email().toLowerCase();
 		}
 
 		// If not a utility function, try to get from variables
