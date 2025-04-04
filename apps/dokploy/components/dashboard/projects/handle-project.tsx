@@ -31,9 +31,14 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const AddProjectSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
+	name: z
+		.string()
+		.min(1, {
+			message: "Name is required",
+		})
+		.regex(/^[a-zA-Z]/, {
+			message: "Project name cannot start with a number",
+		}),
 	description: z.string().optional(),
 });
 
@@ -97,18 +102,6 @@ export const HandleProject = ({ projectId }: Props) => {
 				);
 			});
 	};
-	// useEffect(() => {
-	// 	const getUsers = async () => {
-	// 		const users = await authClient.admin.listUsers({
-	// 			query: {
-	// 				limit: 100,
-	// 			},
-	// 		});
-	// 		console.log(users);
-	// 	};
-
-	// 	getUsers();
-	// });
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
