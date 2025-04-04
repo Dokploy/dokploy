@@ -1,5 +1,4 @@
 import type http from "node:http";
-import { validateRequest } from "@dokploy/server/index";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
 import { appRouter } from "../api/root";
@@ -13,11 +12,13 @@ export const setupDrawerLogsWebSocketServer = (
 		path: "/drawer-logs",
 	});
 
+	// Set up tRPC WebSocket handler
 	applyWSSHandler({
 		wss: wssTerm,
 		router: appRouter,
 		createContext: createTRPCContext as any,
 	});
+
 	server.on("upgrade", (req, socket, head) => {
 		const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
 
@@ -31,13 +32,8 @@ export const setupDrawerLogsWebSocketServer = (
 		}
 	});
 
-	wssTerm.on("connection", async (ws, req) => {
-		const _url = new URL(req.url || "", `http://${req.headers.host}`);
-		const { user, session } = await validateRequest(req);
-
-		if (!user || !session) {
-			ws.close();
-			return;
-		}
-	});
+	// Return cleanup function
+	return () => {
+		wssTerm.close();
+	};
 };
