@@ -1,1 +1,0 @@
-ALTER TABLE "user_temp" ADD COLUMN "licenseKey" text;
