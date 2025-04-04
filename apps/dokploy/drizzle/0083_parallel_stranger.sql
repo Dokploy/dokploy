@@ -1,0 +1,1 @@
+ALTER TYPE "public"."databaseType" ADD VALUE 'web-server';

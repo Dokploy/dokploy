@@ -7,6 +7,11 @@ import { expect, test } from "vitest";
 const baseApp: ApplicationNested = {
 	applicationId: "",
 	herokuVersion: "",
+	giteaRepository: "",
+	giteaOwner: "",
+	giteaBranch: "",
+	giteaBuildPath: "",
+	giteaId: "",
 	cleanCache: false,
 	applicationStatus: "done",
 	appName: "",

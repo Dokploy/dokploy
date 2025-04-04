@@ -10,15 +10,22 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { api } from "@/utils/api";
-
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { Card } from "@/components/ui/card";
 const Page = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: user } = api.user.get.useQuery();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
 				{!isCloud && <EnablePaidFeatures />}
+				<div className="w-full flex flex-col gap-4">
+					<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto w-full">
+						<ShowBackups id={user?.userId ?? ""} type="web-server" />
+					</Card>
+				</div>
 			</div>
 		</div>
 	);

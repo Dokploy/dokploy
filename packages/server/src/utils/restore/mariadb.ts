@@ -1,11 +1,11 @@
-import type { Mariadb } from "@dokploy/server/services/mariadb";
 import type { Destination } from "@dokploy/server/services/destination";
+import type { Mariadb } from "@dokploy/server/services/mariadb";
+import { getS3Credentials } from "../backups/utils";
 import {
 	getRemoteServiceContainer,
 	getServiceContainer,
 } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials } from "../backups/utils";
 
 export const restoreMariadbBackup = async (
 	mariadb: Mariadb,

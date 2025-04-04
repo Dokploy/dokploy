@@ -14,6 +14,7 @@ import {
 	apiSaveDockerProvider,
 	apiSaveEnvironmentVariables,
 	apiSaveGitProvider,
+	apiSaveGiteaProvider,
 	apiSaveGithubProvider,
 	apiSaveGitlabProvider,
 	apiUpdateApplication,
@@ -396,6 +397,31 @@ export const applicationRouter = createTRPCRouter({
 				sourceType: "bitbucket",
 				applicationStatus: "idle",
 				bitbucketId: input.bitbucketId,
+				watchPaths: input.watchPaths,
+			});
+
+			return true;
+		}),
+	saveGiteaProvider: protectedProcedure
+		.input(apiSaveGiteaProvider)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this gitea provider",
+				});
+			}
+			await updateApplication(input.applicationId, {
+				giteaRepository: input.giteaRepository,
+				giteaOwner: input.giteaOwner,
+				giteaBranch: input.giteaBranch,
+				giteaBuildPath: input.giteaBuildPath,
+				sourceType: "gitea",
+				applicationStatus: "idle",
+				giteaId: input.giteaId,
 				watchPaths: input.watchPaths,
 			});
 

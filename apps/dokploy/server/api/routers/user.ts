@@ -1,12 +1,12 @@
 import {
 	IS_CLOUD,
+	createApiKey,
 	findOrganizationById,
 	findUserById,
 	getUserByToken,
 	removeUserById,
-	updateUser,
-	createApiKey,
 	setupWebMonitoring,
+	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -14,13 +14,13 @@ import {
 	apiAssignPermissions,
 	apiFindOneToken,
 	apiUpdateUser,
+	apiUpdateWebServerMonitoring,
+	apikey,
 	invitation,
 	member,
-	apikey,
-	apiUpdateWebServerMonitoring,
 } from "@dokploy/server/db/schema";
-import * as bcrypt from "bcrypt";
 import { TRPCError } from "@trpc/server";
+import * as bcrypt from "bcrypt";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -96,6 +96,28 @@ export const userRouter = createTRPCRouter({
 		});
 
 		return memberResult;
+	}),
+	getBackups: adminProcedure.query(async ({ ctx }) => {
+		const memberResult = await db.query.member.findFirst({
+			where: and(
+				eq(member.userId, ctx.user.id),
+				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+			),
+			with: {
+				user: {
+					with: {
+						backups: {
+							with: {
+								destination: true,
+							},
+						},
+						apiKeys: true,
+					},
+				},
+			},
+		});
+
+		return memberResult?.user;
 	}),
 	getServerMetrics: protectedProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({

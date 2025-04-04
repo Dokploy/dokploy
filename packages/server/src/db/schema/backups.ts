@@ -15,12 +15,13 @@ import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
-
+import { users_temp } from "./user";
 export const databaseType = pgEnum("databaseType", [
 	"postgres",
 	"mariadb",
 	"mysql",
 	"mongo",
+	"web-server",
 ]);
 
 export const backups = pgTable("backup", {
@@ -58,6 +59,7 @@ export const backups = pgTable("backup", {
 	mongoId: text("mongoId").references((): AnyPgColumn => mongo.mongoId, {
 		onDelete: "cascade",
 	}),
+	userId: text("userId").references(() => users_temp.id),
 });
 
 export const backupsRelations = relations(backups, ({ one }) => ({
@@ -81,6 +83,10 @@ export const backupsRelations = relations(backups, ({ one }) => ({
 		fields: [backups.mongoId],
 		references: [mongo.mongoId],
 	}),
+	user: one(users_temp, {
+		fields: [backups.userId],
+		references: [users_temp.id],
+	}),
 }));
 
 const createSchema = createInsertSchema(backups, {
@@ -91,11 +97,12 @@ const createSchema = createInsertSchema(backups, {
 	database: z.string().min(1),
 	schedule: z.string(),
 	keepLatestCount: z.number().optional(),
-	databaseType: z.enum(["postgres", "mariadb", "mysql", "mongo"]),
+	databaseType: z.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"]),
 	postgresId: z.string().optional(),
 	mariadbId: z.string().optional(),
 	mysqlId: z.string().optional(),
 	mongoId: z.string().optional(),
+	userId: z.string().optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
@@ -110,6 +117,7 @@ export const apiCreateBackup = createSchema.pick({
 	postgresId: true,
 	mongoId: true,
 	databaseType: true,
+	userId: true,
 });
 
 export const apiFindOneBackup = createSchema

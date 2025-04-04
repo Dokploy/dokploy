@@ -29,7 +29,7 @@ WORKDIR /app
 # Set production
 ENV NODE_ENV=production
 
-RUN apt-get update && apt-get install -y curl unzip apache2-utils iproute2 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl unzip zip apache2-utils iproute2 && rm -rf /var/lib/apt/lists/*
 
 # Copy only the necessary files
 COPY --from=build /prod/dokploy/.next ./.next

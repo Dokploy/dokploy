@@ -1,6 +1,7 @@
 import {
 	BitbucketIcon,
 	GitIcon,
+	GiteaIcon,
 	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
@@ -14,10 +15,11 @@ import { ComposeFileEditor } from "../compose-file-editor";
 import { ShowConvertedCompose } from "../show-converted-compose";
 import { SaveBitbucketProviderCompose } from "./save-bitbucket-provider-compose";
 import { SaveGitProviderCompose } from "./save-git-provider-compose";
+import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 import { SaveGitlabProviderCompose } from "./save-gitlab-provider-compose";
 
-type TabState = "github" | "git" | "raw" | "gitlab" | "bitbucket";
+type TabState = "github" | "git" | "raw" | "gitlab" | "bitbucket" | "gitea";
 interface Props {
 	composeId: string;
 }
@@ -27,9 +29,11 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
 	const { data: bitbucketProviders } =
 		api.bitbucket.bitbucketProviders.useQuery();
+	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
 
 	const { data: compose } = api.compose.one.useQuery({ composeId });
 	const [tab, setSab] = useState<TabState>(compose?.sourceType || "github");
+
 	return (
 		<Card className="group relative w-full bg-transparent">
 			<CardHeader>
@@ -54,21 +58,21 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 						setSab(e as TabState);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between  w-full gap-4">
-						<TabsList className="md:grid md:w-fit md:grid-cols-5 max-md:overflow-x-scroll justify-start bg-transparent overflow-y-hidden">
+					<div className="flex flex-row items-center justify-between w-full gap-4">
+						<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-x-scroll justify-start bg-transparent overflow-y-hidden">
 							<TabsTrigger
 								value="github"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GithubIcon className="size-4 text-current fill-current" />
-								Github
+								GitHub
 							</TabsTrigger>
 							<TabsTrigger
 								value="gitlab"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GitlabIcon className="size-4 text-current fill-current" />
-								Gitlab
+								GitLab
 							</TabsTrigger>
 							<TabsTrigger
 								value="bitbucket"
@@ -77,7 +81,12 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 								<BitbucketIcon className="size-4 text-current fill-current" />
 								Bitbucket
 							</TabsTrigger>
-
+							<TabsTrigger
+								value="gitea"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+							>
+								<GiteaIcon className="size-4 text-current fill-current" /> Gitea
+							</TabsTrigger>
 							<TabsTrigger
 								value="git"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
@@ -89,11 +98,12 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 								value="raw"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
-								<CodeIcon className="size-4 " />
+								<CodeIcon className="size-4" />
 								Raw
 							</TabsTrigger>
 						</TabsList>
 					</div>
+
 					<TabsContent value="github" className="w-full p-2">
 						{githubProviders && githubProviders?.length > 0 ? (
 							<SaveGithubProviderCompose composeId={composeId} />
@@ -142,6 +152,26 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 								<BitbucketIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using Bitbucket, you need to configure your account
+									first. Please, go to{" "}
+									<Link
+										href="/dashboard/settings/git-providers"
+										className="text-foreground"
+									>
+										Settings
+									</Link>{" "}
+									to do so.
+								</span>
+							</div>
+						)}
+					</TabsContent>
+					<TabsContent value="gitea" className="w-full p-2">
+						{giteaProviders && giteaProviders?.length > 0 ? (
+							<SaveGiteaProviderCompose composeId={composeId} />
+						) : (
+							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+								<GiteaIcon className="size-8 text-muted-foreground" />
+								<span className="text-base text-muted-foreground">
+									To deploy using Gitea, you need to configure your account
 									first. Please, go to{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
