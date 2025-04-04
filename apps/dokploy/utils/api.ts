@@ -27,15 +27,28 @@ const getWsUrl = () => {
 	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 	const host = window.location.host;
 
+	// Use the base URL for all tRPC WebSocket connections
 	return `${protocol}${host}/drawer-logs`;
 };
 
-const wsClient =
-	typeof window !== "undefined"
-		? createWSClient({
-				url: getWsUrl() || "",
-			})
-		: null;
+// Singleton WebSocket client instance
+let wsClientInstance: ReturnType<typeof createWSClient> | null = null;
+
+const getWsClient = () => {
+	if (typeof window === "undefined") return null;
+
+	if (!wsClientInstance) {
+		wsClientInstance = createWSClient({
+			url: getWsUrl() || "",
+			onClose: () => {
+				// Reset the instance when connection closes so it can be recreated
+				wsClientInstance = null;
+			},
+		});
+	}
+
+	return wsClientInstance;
+};
 
 /** A set of type-safe react-query hooks for your tRPC API. */
 export const api = createTRPCNext<AppRouter>({
@@ -57,7 +70,7 @@ export const api = createTRPCNext<AppRouter>({
 				splitLink({
 					condition: (op) => op.type === "subscription",
 					true: wsLink({
-						client: wsClient!,
+						client: getWsClient()!,
 					}),
 					false: splitLink({
 						condition: (op) => op.input instanceof FormData,
