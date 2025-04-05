@@ -25,6 +25,12 @@ export const buildStatic = async (
 			].join("\n"),
 		);
 
+		createFile(
+			buildAppDirectory,
+			".dockerignore",
+			[".git", ".env", "Dockerfile", ".dockerignore"].join("\n"),
+		);
+
 		await buildCustomDocker(
 			{
 				...application,
