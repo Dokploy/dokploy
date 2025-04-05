@@ -262,15 +262,6 @@ const Project = (
 	const [selectedTargetProject, setSelectedTargetProject] =
 		useState<string>("");
 
-	const emptyServices =
-		data?.mariadb?.length === 0 &&
-		data?.mongo?.length === 0 &&
-		data?.mysql?.length === 0 &&
-		data?.postgres?.length === 0 &&
-		data?.redis?.length === 0 &&
-		data?.applications?.length === 0 &&
-		data?.compose?.length === 0;
-
 	const applications = extractServices(data);
 
 	const [searchQuery, setSearchQuery] = useState("");
@@ -283,6 +274,9 @@ const Project = (
 		{ value: "redis", label: "Redis", icon: RedisIcon },
 		{ value: "compose", label: "Compose", icon: CircuitBoard },
 	];
+
+	const serviceKeys = serviceTypes.map(service => service.value);
+	const emptyServices = !data || serviceKeys.every(key => Array.isArray(data[key]) && data[key].length === 0);
 
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 	const [openCombobox, setOpenCombobox] = useState(false);
@@ -306,279 +300,93 @@ const Project = (
 		);
 	};
 
-	const composeActions = {
-		start: api.compose.start.useMutation(),
-		stop: api.compose.stop.useMutation(),
-		move: api.compose.move.useMutation(),
-		delete: api.compose.delete.useMutation(),
-	};
+	const serviceActionsMap = {
+		application: {
+			start: api.application.start.useMutation(),
+			stop: api.application.stop.useMutation(),
+			move: api.application.move.useMutation(),
+			delete: api.application.delete.useMutation(),
+		},
+		compose: {
+			start: api.compose.start.useMutation(),
+			stop: api.compose.stop.useMutation(),
+			move: api.compose.move.useMutation(),
+			delete: api.compose.delete.useMutation(),
+		},
+		postgres: {
+			start: api.postgres.start.useMutation(),
+			stop: api.postgres.stop.useMutation(),
+			move: api.postgres.move.useMutation(),
+			delete: api.postgres.remove.useMutation(),
+		},
+		mysql: {
+			start: api.mysql.start.useMutation(),
+			stop: api.mysql.stop.useMutation(),
+			move: api.mysql.move.useMutation(),
+			delete: api.mysql.remove.useMutation(),
+		},
+		mariadb: {
+			start: api.mariadb.start.useMutation(),
+			stop: api.mariadb.stop.useMutation(),
+			move: api.mariadb.move.useMutation(),
+			delete: api.mariadb.remove.useMutation(),
+		},
+		redis: {
+			start: api.redis.start.useMutation(),
+			stop: api.redis.stop.useMutation(),
+			move: api.redis.move.useMutation(),
+			delete: api.redis.remove.useMutation(),
+		},
+		mongo: {
+			start: api.mongo.start.useMutation(),
+			stop: api.mongo.stop.useMutation(),
+			move: api.mongo.move.useMutation(),
+			delete: api.mongo.remove.useMutation(),
+		},
+	} as const;
 
-	const applicationActions = {
-		start: api.application.start.useMutation(),
-		stop: api.application.stop.useMutation(),
-		move: api.application.move.useMutation(),
-		delete: api.application.delete.useMutation(),
-	};
-
-	const postgresActions = {
-		start: api.postgres.start.useMutation(),
-		stop: api.postgres.stop.useMutation(),
-		move: api.postgres.move.useMutation(),
-		delete: api.postgres.remove.useMutation(),
-	};
-
-	const mysqlActions = {
-		start: api.mysql.start.useMutation(),
-		stop: api.mysql.stop.useMutation(),
-		move: api.mysql.move.useMutation(),
-		delete: api.mysql.remove.useMutation(),
-	};
-
-	const mariadbActions = {
-		start: api.mariadb.start.useMutation(),
-		stop: api.mariadb.stop.useMutation(),
-		move: api.mariadb.move.useMutation(),
-		delete: api.mariadb.remove.useMutation(),
-	};
-
-	const redisActions = {
-		start: api.redis.start.useMutation(),
-		stop: api.redis.stop.useMutation(),
-		move: api.redis.move.useMutation(),
-		delete: api.redis.remove.useMutation(),
-	};
-
-	const mongoActions = {
-		start: api.mongo.start.useMutation(),
-		stop: api.mongo.stop.useMutation(),
-		move: api.mongo.move.useMutation(),
-		delete: api.mongo.remove.useMutation(),
-	};
-
-	const handleBulkStart = async () => {
+	const handleBulkAction = async (
+		action: "start" | "stop" | "move" | "delete",
+		extraParams: { targetProjectId?: string } = {}
+	) => {
 		let success = 0;
 		setIsBulkActionLoading(true);
+
 		for (const serviceId of selectedServices) {
+			const service = filteredServices.find(s => s.id === serviceId);
+			if (!service) continue;
+
+			const actions = serviceActionsMap[service.type as keyof typeof serviceActionsMap];
+			const mutation = actions?.[action];
+
+			if (!mutation) continue;
+
 			try {
-				const service = filteredServices.find((s) => s.id === serviceId);
-				if (!service) continue;
+				const payload: Record<string, any> = { [`${service.type}Id`]: serviceId };
 
-				switch (service.type) {
-					case "application":
-						await applicationActions.start.mutateAsync({ applicationId: serviceId });
-						break;
-					case "compose":
-						await composeActions.start.mutateAsync({ composeId: serviceId });
-						break;
-					case "postgres":
-						await postgresActions.start.mutateAsync({ postgresId: serviceId });
-						break;
-					case "mysql":
-						await mysqlActions.start.mutateAsync({ mysqlId: serviceId });
-						break;
-					case "mariadb":
-						await mariadbActions.start.mutateAsync({ mariadbId: serviceId });
-						break;
-					case "redis":
-						await redisActions.start.mutateAsync({ redisId: serviceId });
-						break;
-					case "mongo":
-						await mongoActions.start.mutateAsync({ mongoId: serviceId });
-						break;
+				if (action === "move" && extraParams.targetProjectId) {
+					payload.targetProjectId = extraParams.targetProjectId;
 				}
-				success++;
-			} catch (_error) {
-				toast.error(`Error starting service ${serviceId}`);
-			}
-		}
-		if (success > 0) {
-			toast.success(`${success} services started successfully`);
-			refetch();
-		}
-		setIsBulkActionLoading(false);
-		setSelectedServices([]);
-		setIsDropdownOpen(false);
-	};
 
-	const handleBulkStop = async () => {
-		let success = 0;
-		setIsBulkActionLoading(true);
-		for (const serviceId of selectedServices) {
-			try {
-				const service = filteredServices.find((s) => s.id === serviceId);
-				if (!service) continue;
-
-				switch (service.type) {
-					case "application":
-						await applicationActions.stop.mutateAsync({ applicationId: serviceId });
-						break;
-					case "compose":
-						await composeActions.stop.mutateAsync({ composeId: serviceId });
-						break;
-					case "postgres":
-						await postgresActions.stop.mutateAsync({ postgresId: serviceId });
-						break;
-					case "mysql":
-						await mysqlActions.stop.mutateAsync({ mysqlId: serviceId });
-						break;
-					case "mariadb":
-						await mariadbActions.stop.mutateAsync({ mariadbId: serviceId });
-						break;
-					case "redis":
-						await redisActions.stop.mutateAsync({ redisId: serviceId });
-						break;
-					case "mongo":
-						await mongoActions.stop.mutateAsync({ mongoId: serviceId });
-						break;
+				if (action === "delete" && service.type === "compose") {
+					payload.deleteVolumes = false;
 				}
-				success++;
-			} catch (_error) {
-				toast.error(`Error stopping service ${serviceId}`);
-			}
-		}
-		if (success > 0) {
-			toast.success(`${success} services stopped successfully`);
-			refetch();
-		}
-		setSelectedServices([]);
-		setIsDropdownOpen(false);
-		setIsBulkActionLoading(false);
-	};
 
-	const handleBulkMove = async () => {
-		if (!selectedTargetProject) {
-			toast.error("Please select a target project");
-			return;
-		}
-
-		let success = 0;
-		setIsBulkActionLoading(true);
-		for (const serviceId of selectedServices) {
-			try {
-				const service = filteredServices.find((s) => s.id === serviceId);
-				if (!service) continue;
-
-				switch (service.type) {
-					case "application":
-						await applicationActions.move.mutateAsync({
-							applicationId: serviceId,
-							targetProjectId: selectedTargetProject,
-						});
-						break;
-					case "compose":
-						await composeActions.move.mutateAsync({
-							composeId: serviceId,
-							targetProjectId: selectedTargetProject,
-						});
-						break;
-					case "postgres":
-						await postgresActions.move.mutateAsync({
-							postgresId: serviceId,
-							targetProjectId: selectedTargetProject,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.move.mutateAsync({
-							mysqlId: serviceId,
-							targetProjectId: selectedTargetProject,
-						});
-						break;
-					case "mariadb":
-						await mariadbActions.move.mutateAsync({
-							mariadbId: serviceId,
-							targetProjectId: selectedTargetProject,
-						});
-						break;
-					case "redis":
-						await redisActions.move.mutateAsync({
-							redisId: serviceId,
-							targetProjectId: selectedTargetProject,
-						});
-						break;
-					case "mongo":
-						await mongoActions.move.mutateAsync({
-							mongoId: serviceId,
-							targetProjectId: selectedTargetProject,
-						});
-						break;
-				}
+				await mutation.mutateAsync(payload);
 				success++;
 			} catch (error) {
-				toast.error(
-					`Error moving service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
-				);
+				toast.error(`Error during ${action} of service ${serviceId}`);
 			}
 		}
+
 		if (success > 0) {
-			toast.success(`${success} services moved successfully`);
+			toast.success(`${success} services ${action}ed successfully`);
 			refetch();
 		}
+		setIsBulkActionLoading(false);
 		setSelectedServices([]);
 		setIsDropdownOpen(false);
-		setIsMoveDialogOpen(false);
-		setIsBulkActionLoading(false);
-	};
-
-	const handleBulkDelete = async () => {
-		let success = 0;
-		setIsBulkActionLoading(true);
-		for (const serviceId of selectedServices) {
-			try {
-				const service = filteredServices.find((s) => s.id === serviceId);
-				if (!service) continue;
-
-				switch (service.type) {
-					case "application":
-						await applicationActions.delete.mutateAsync({
-							applicationId: serviceId,
-						});
-						break;
-					case "compose":
-						await composeActions.delete.mutateAsync({
-							composeId: serviceId,
-							deleteVolumes: false,
-						});
-						break;
-					case "postgres":
-						await postgresActions.delete.mutateAsync({
-							postgresId: serviceId,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.delete.mutateAsync({
-							mysqlId: serviceId,
-						});
-						break;
-					case "mariadb":
-						await mariadbActions.delete.mutateAsync({
-							mariadbId: serviceId,
-						});
-						break;
-					case "redis":
-						await redisActions.delete.mutateAsync({
-							redisId: serviceId,
-						});
-						break;
-					case "mongo":
-						await mongoActions.delete.mutateAsync({
-							mongoId: serviceId,
-						});
-						break;
-				}
-				success++;
-			} catch (error) {
-				toast.error(
-					`Error deleting service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
-				);
-			}
-		}
-		if (success > 0) {
-			toast.success(`${success} services deleted successfully`);
-			refetch();
-		}
-		setSelectedServices([]);
-		setIsDropdownOpen(false);
-		setIsBulkActionLoading(false);
+		if (action === "move") setIsMoveDialogOpen(false);
 	};
 
 	const filteredServices = useMemo(() => {
@@ -707,7 +515,7 @@ const Project = (
 														title="Start Services"
 														description={`Are you sure you want to start ${selectedServices.length} services?`}
 														type="default"
-														onClick={handleBulkStart}
+														onClick={() => handleBulkAction("start")}
 													>
 														<Button
 															variant="ghost"
@@ -721,7 +529,7 @@ const Project = (
 														title="Stop Services"
 														description={`Are you sure you want to stop ${selectedServices.length} services?`}
 														type="destructive"
-														onClick={handleBulkStop}
+														onClick={() => handleBulkAction("stop")}
 													>
 														<Button
 															variant="ghost"
@@ -738,7 +546,7 @@ const Project = (
 																title="Delete Services"
 																description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
 																type="destructive"
-																onClick={handleBulkDelete}
+																onClick={() => handleBulkAction("delete")}
 															>
 																<Button
 																	variant="ghost"
@@ -821,7 +629,7 @@ const Project = (
 																	Cancel
 																</Button>
 																<Button
-																	onClick={handleBulkMove}
+																	onClick={() => handleBulkAction("move", { targetProjectId: selectedTargetProject })}
 																	isLoading={isBulkActionLoading}
 																	disabled={
 																		allProjects?.filter(
