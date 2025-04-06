@@ -31,7 +31,10 @@ import {
 } from "@dokploy/server";
 
 import { findDestinationById } from "@dokploy/server/services/destination";
-import { getS3Credentials } from "@dokploy/server/utils/backups/utils";
+import {
+	getS3Credentials,
+	normalizeS3Path,
+} from "@dokploy/server/utils/backups/utils";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -257,7 +260,7 @@ export const backupRouter = createTRPCRouter({
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =
 					lastSlashIndex !== -1
-						? input.search.slice(0, lastSlashIndex + 1)
+						? normalizeS3Path(input.search.slice(0, lastSlashIndex + 1))
 						: "";
 				const searchTerm =
 					lastSlashIndex !== -1
@@ -270,7 +273,7 @@ export const backupRouter = createTRPCRouter({
 				let stdout = "";
 
 				if (input.serverId) {
-					const result = await execAsyncRemote(listCommand, input.serverId);
+					const result = await execAsyncRemote(input.serverId, listCommand);
 					stdout = result.stdout;
 				} else {
 					const result = await execAsync(listCommand);
