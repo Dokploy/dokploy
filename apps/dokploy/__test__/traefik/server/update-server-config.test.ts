@@ -14,6 +14,7 @@ import {
 import { beforeEach, expect, test, vi } from "vitest";
 
 const baseAdmin: User = {
+	https: false,
 	enablePaidFeatures: false,
 	metricsConfig: {
 		containers: {
