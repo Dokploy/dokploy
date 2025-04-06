@@ -33,6 +33,7 @@ import {
 	findApplicationById,
 	findProjectById,
 	getApplicationStats,
+	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
 	removeDeployments,
@@ -132,28 +133,36 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiReloadApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
-			) {
+
+			try {
+				if (
+					application.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to reload this application",
+					});
+				}
+
+				if (application.serverId) {
+					await stopServiceRemote(application.serverId, input.appName);
+				} else {
+					await stopService(input.appName);
+				}
+
+				await updateApplicationStatus(input.applicationId, "idle");
+				await mechanizeDockerContainer(application);
+				await updateApplicationStatus(input.applicationId, "done");
+				return true;
+			} catch (error) {
+				await updateApplicationStatus(input.applicationId, "error");
 				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this application",
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Error reloading application",
+					cause: error,
 				});
 			}
-			if (application.serverId) {
-				await stopServiceRemote(application.serverId, input.appName);
-			} else {
-				await stopService(input.appName);
-			}
-			await updateApplicationStatus(input.applicationId, "idle");
-
-			if (application.serverId) {
-				await startServiceRemote(application.serverId, input.appName);
-			} else {
-				await startService(input.appName);
-			}
-			await updateApplicationStatus(input.applicationId, "done");
-			return true;
 		}),
 
 	delete: protectedProcedure

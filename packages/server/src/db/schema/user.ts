@@ -50,6 +50,7 @@ export const users_temp = pgTable("user_temp", {
 	// Admin
 	serverIp: text("serverIp"),
 	certificateType: certificateType("certificateType").notNull().default("none"),
+	https: boolean("https").notNull().default(false),
 	host: text("host"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
@@ -202,10 +203,12 @@ export const apiAssignDomain = createSchema
 		host: true,
 		certificateType: true,
 		letsEncryptEmail: true,
+		https: true,
 	})
 	.required()
 	.partial({
 		letsEncryptEmail: true,
+		https: true,
 	});
 
 export const apiUpdateDockerCleanup = createSchema
