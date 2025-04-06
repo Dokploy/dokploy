@@ -29,7 +29,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
 
 			await execAsync(
-				`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/`,
+				`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/ > /dev/null 2>&1`,
 			);
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
