@@ -3,6 +3,7 @@ import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { WebSocketServer } from "ws";
 import { appRouter } from "../api/root";
 import { createTRPCContext } from "../api/trpc";
+import { validateRequest } from "@dokploy/server/lib/auth";
 
 export const setupDrawerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -32,8 +33,13 @@ export const setupDrawerLogsWebSocketServer = (
 		}
 	});
 
-	// Return cleanup function
-	return () => {
-		wssTerm.close();
-	};
+	wssTerm.on("connection", async (ws, req) => {
+		const _url = new URL(req.url || "", `http://${req.headers.host}`);
+		const { user, session } = await validateRequest(req);
+
+		if (!user || !session) {
+			ws.close();
+			return;
+		}
+	});
 };
