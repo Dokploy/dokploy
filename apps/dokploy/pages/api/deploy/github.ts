@@ -91,11 +91,16 @@ export default async function handler(
 	}
 
 	// Handle tag creation event
-	if (req.headers["x-github-event"] === "create" && githubBody?.ref_type === "tag") {
+	if (
+		req.headers["x-github-event"] === "create" &&
+		githubBody?.ref_type === "tag"
+	) {
 		try {
 			const tagName = githubBody?.ref;
 			const repository = githubBody?.repository?.name;
-			const owner = githubBody?.repository?.owner?.name || githubBody?.repository?.owner?.login;
+			const owner =
+				githubBody?.repository?.owner?.name ||
+				githubBody?.repository?.owner?.login;
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = githubBody?.master_branch || "";
 
@@ -175,17 +180,25 @@ export default async function handler(
 			}
 
 			const totalApps = apps.length + composeApps.length;
-			
+
 			if (totalApps === 0) {
-				res.status(200).json({ message: "No apps configured to deploy on tag" });
+				res
+					.status(200)
+					.json({ message: "No apps configured to deploy on tag" });
 				return;
 			}
-			
-			res.status(200).json({ message: `Deployed ${totalApps} apps based on tag ${tagName}` });
+
+			res
+				.status(200)
+				.json({
+					message: `Deployed ${totalApps} apps based on tag ${tagName}`,
+				});
 			return;
 		} catch (error) {
 			console.error("Error deploying applications on tag:", error);
-			res.status(400).json({ message: "Error deploying applications on tag", error });
+			res
+				.status(400)
+				.json({ message: "Error deploying applications on tag", error });
 			return;
 		}
 	}

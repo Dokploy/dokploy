@@ -396,7 +396,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
-														Choose when to trigger deployments: on push to the selected branch or when a new tag is created.
+														Choose when to trigger deployments: on push to the
+														selected branch or when a new tag is created.
 													</p>
 												</TooltipContent>
 											</Tooltip>
