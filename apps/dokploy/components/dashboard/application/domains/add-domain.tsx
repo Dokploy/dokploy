@@ -89,8 +89,6 @@ export const AddDomain = ({
 			serverId: application?.serverId || "",
 		});
 
-	console.log("canGenerateTraefikMeDomains", canGenerateTraefikMeDomains);
-
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
 		defaultValues: {
