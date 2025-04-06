@@ -15,7 +15,7 @@ export const updateServerTraefik = (
 	user: User | null,
 	newHost: string | null,
 ) => {
-	const { https, host, certificateType } = user || {};
+	const { https, certificateType } = user || {};
 	const appName = "dokploy";
 	const config: FileConfig = loadOrCreateConfig(appName);
 
@@ -24,7 +24,7 @@ export const updateServerTraefik = (
 	config.http.services = config.http.services || {};
 
 	const currentRouterConfig = config.http.routers[`${appName}-router-app`] || {
-		rule: `Host(\`${host}\`)`,
+		rule: `Host(\`${newHost}\`)`,
 		service: `${appName}-service-app`,
 		entryPoints: ["web"],
 	};
@@ -66,7 +66,7 @@ export const updateServerTraefik = (
 		currentRouterConfig.middlewares = [];
 	}
 
-	if (user?.host) {
+	if (newHost) {
 		writeTraefikConfig(config, appName);
 	} else {
 		removeTraefikConfig(appName);
