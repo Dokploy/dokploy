@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { User } from "@dokploy/server/services/user";
 import { dump, load } from "js-yaml";
-import { loadOrCreateConfig, writeTraefikConfig } from "./application";
+import {
+	loadOrCreateConfig,
+	removeTraefikConfig,
+	writeTraefikConfig,
+} from "./application";
 import type { FileConfig } from "./file-types";
 import type { MainTraefikConfig } from "./types";
 
@@ -11,32 +15,62 @@ export const updateServerTraefik = (
 	user: User | null,
 	newHost: string | null,
 ) => {
+	const { https, host, certificateType } = user || {};
 	const appName = "dokploy";
 	const config: FileConfig = loadOrCreateConfig(appName);
 
 	config.http = config.http || { routers: {}, services: {} };
 	config.http.routers = config.http.routers || {};
+	config.http.services = config.http.services || {};
 
-	const currentRouterConfig = config.http.routers[`${appName}-router-app`];
+	const currentRouterConfig = config.http.routers[`${appName}-router-app`] || {
+		rule: `Host(\`${host}\`)`,
+		service: `${appName}-service-app`,
+		entryPoints: ["web"],
+	};
+	config.http.routers[`${appName}-router-app`] = currentRouterConfig;
 
-	if (currentRouterConfig && newHost) {
-		currentRouterConfig.rule = `Host(\`${newHost}\`)`;
+	config.http.services = {
+		...config.http.services,
+		[`${appName}-service-app`]: {
+			loadBalancer: {
+				servers: [
+					{
+						url: `http://dokploy:${process.env.PORT || 3000}`,
+						passHostHeader: true,
+					},
+				],
+			},
+		},
+	};
 
-		if (user?.certificateType === "letsencrypt") {
+	if (https) {
+		currentRouterConfig.middlewares = ["redirect-to-https"];
+
+		if (certificateType === "letsencrypt") {
 			config.http.routers[`${appName}-router-app-secure`] = {
-				...currentRouterConfig,
+				rule: `Host(\`${newHost}\`)`,
+				service: `${appName}-service-app`,
 				entryPoints: ["websecure"],
 				tls: { certResolver: "letsencrypt" },
 			};
-
-			currentRouterConfig.middlewares = ["redirect-to-https"];
 		} else {
-			delete config.http.routers[`${appName}-router-app-secure`];
-			currentRouterConfig.middlewares = [];
+			config.http.routers[`${appName}-router-app-secure`] = {
+				rule: `Host(\`${newHost}\`)`,
+				service: `${appName}-service-app`,
+				entryPoints: ["websecure"],
+			};
 		}
+	} else {
+		delete config.http.routers[`${appName}-router-app-secure`];
+		currentRouterConfig.middlewares = [];
 	}
 
-	writeTraefikConfig(config, appName);
+	if (user?.host) {
+		writeTraefikConfig(config, appName);
+	} else {
+		removeTraefikConfig(appName);
+	}
 };
 
 export const updateLetsEncryptEmail = (newEmail: string | null) => {
