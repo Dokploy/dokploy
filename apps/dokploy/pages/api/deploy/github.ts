@@ -188,11 +188,9 @@ export default async function handler(
 				return;
 			}
 
-			res
-				.status(200)
-				.json({
-					message: `Deployed ${totalApps} apps based on tag ${tagName}`,
-				});
+			res.status(200).json({
+				message: `Deployed ${totalApps} apps based on tag ${tagName}`,
+			});
 			return;
 		} catch (error) {
 			console.error("Error deploying applications on tag:", error);
