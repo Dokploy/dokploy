@@ -1,6 +1,6 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { execAsync } from "../process/execAsync";
-import { getS3Credentials } from "./utils";
+import { getS3Credentials, normalizeS3Path } from "./utils";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { mkdtemp } from "node:fs/promises";
@@ -18,7 +18,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
 		const backupFileName = `webserver-backup-${timestamp}.zip`;
-		const s3Path = `:s3:${destination.bucket}/${backup.prefix}${backupFileName}`;
+		const s3Path = `:s3:${destination.bucket}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
 
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
@@ -29,7 +29,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
 
 			await execAsync(
-				`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/`,
+				`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/ > /dev/null 2>&1`,
 			);
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;

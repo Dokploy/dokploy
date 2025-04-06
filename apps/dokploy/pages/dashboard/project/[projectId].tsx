@@ -314,31 +314,43 @@ const Project = (
 	};
 
 	const applicationActions = {
+		start: api.application.start.useMutation(),
+		stop: api.application.stop.useMutation(),
 		move: api.application.move.useMutation(),
 		delete: api.application.delete.useMutation(),
 	};
 
 	const postgresActions = {
+		start: api.postgres.start.useMutation(),
+		stop: api.postgres.stop.useMutation(),
 		move: api.postgres.move.useMutation(),
 		delete: api.postgres.remove.useMutation(),
 	};
 
 	const mysqlActions = {
+		start: api.mysql.start.useMutation(),
+		stop: api.mysql.stop.useMutation(),
 		move: api.mysql.move.useMutation(),
 		delete: api.mysql.remove.useMutation(),
 	};
 
 	const mariadbActions = {
+		start: api.mariadb.start.useMutation(),
+		stop: api.mariadb.stop.useMutation(),
 		move: api.mariadb.move.useMutation(),
 		delete: api.mariadb.remove.useMutation(),
 	};
 
 	const redisActions = {
+		start: api.redis.start.useMutation(),
+		stop: api.redis.stop.useMutation(),
 		move: api.redis.move.useMutation(),
 		delete: api.redis.remove.useMutation(),
 	};
 
 	const mongoActions = {
+		start: api.mongo.start.useMutation(),
+		stop: api.mongo.stop.useMutation(),
 		move: api.mongo.move.useMutation(),
 		delete: api.mongo.remove.useMutation(),
 	};
@@ -348,7 +360,32 @@ const Project = (
 		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
 			try {
-				await composeActions.start.mutateAsync({ composeId: serviceId });
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.start.mutateAsync({ applicationId: serviceId });
+						break;
+					case "compose":
+						await composeActions.start.mutateAsync({ composeId: serviceId });
+						break;
+					case "postgres":
+						await postgresActions.start.mutateAsync({ postgresId: serviceId });
+						break;
+					case "mysql":
+						await mysqlActions.start.mutateAsync({ mysqlId: serviceId });
+						break;
+					case "mariadb":
+						await mariadbActions.start.mutateAsync({ mariadbId: serviceId });
+						break;
+					case "redis":
+						await redisActions.start.mutateAsync({ redisId: serviceId });
+						break;
+					case "mongo":
+						await mongoActions.start.mutateAsync({ mongoId: serviceId });
+						break;
+				}
 				success++;
 			} catch (_error) {
 				toast.error(`Error starting service ${serviceId}`);
@@ -368,7 +405,32 @@ const Project = (
 		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
 			try {
-				await composeActions.stop.mutateAsync({ composeId: serviceId });
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.stop.mutateAsync({ applicationId: serviceId });
+						break;
+					case "compose":
+						await composeActions.stop.mutateAsync({ composeId: serviceId });
+						break;
+					case "postgres":
+						await postgresActions.stop.mutateAsync({ postgresId: serviceId });
+						break;
+					case "mysql":
+						await mysqlActions.stop.mutateAsync({ mysqlId: serviceId });
+						break;
+					case "mariadb":
+						await mariadbActions.stop.mutateAsync({ mariadbId: serviceId });
+						break;
+					case "redis":
+						await redisActions.stop.mutateAsync({ redisId: serviceId });
+						break;
+					case "mongo":
+						await mongoActions.stop.mutateAsync({ mongoId: serviceId });
+						break;
+				}
 				success++;
 			} catch (_error) {
 				toast.error(`Error stopping service ${serviceId}`);

@@ -10,8 +10,8 @@ import {
 import {
 	IS_CLOUD,
 	createRegistry,
-	execAsync,
 	execAsyncRemote,
+	execFileAsync,
 	findRegistryById,
 	removeRegistry,
 	updateRegistry,
@@ -83,7 +83,13 @@ export const registryRouter = createTRPCRouter({
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
-				const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+				const args = [
+					"login",
+					input.registryUrl,
+					"--username",
+					input.username,
+					"--password-stdin",
+				];
 
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
@@ -93,9 +99,14 @@ export const registryRouter = createTRPCRouter({
 				}
 
 				if (input.serverId && input.serverId !== "none") {
-					await execAsyncRemote(input.serverId, loginCommand);
+					await execAsyncRemote(
+						input.serverId,
+						`echo ${input.password} | docker ${args.join(" ")}`,
+					);
 				} else {
-					await execAsync(loginCommand);
+					await execFileAsync("docker", args, {
+						input: Buffer.from(input.password).toString(),
+					});
 				}
 
 				return true;
