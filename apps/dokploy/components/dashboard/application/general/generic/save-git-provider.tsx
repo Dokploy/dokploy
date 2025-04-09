@@ -44,6 +44,7 @@ const GitProviderSchema = z.object({
 	branch: z.string().min(1, "Branch required"),
 	sshKey: z.string().optional(),
 	watchPaths: z.array(z.string()).optional(),
+	recurseSubmodules: z.boolean().default(true),
 });
 
 type GitProvider = z.infer<typeof GitProviderSchema>;
@@ -67,6 +68,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 			repositoryURL: "",
 			sshKey: undefined,
 			watchPaths: [],
+			recurseSubmodules: true,
 		},
 		resolver: zodResolver(GitProviderSchema),
 	});
@@ -79,6 +81,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 				buildPath: data.customGitBuildPath || "/",
 				repositoryURL: data.customGitUrl || "",
 				watchPaths: data.watchPaths || [],
+				recurseSubmodules: data.recurseSubmodules ?? true,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -91,6 +94,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 			customGitSSHKeyId: values.sshKey === "none" ? null : values.sshKey,
 			applicationId,
 			watchPaths: values.watchPaths || [],
+			recurseSubmodules: values.recurseSubmodules,
 		})
 			.then(async () => {
 				toast.success("Git Provider Saved");
@@ -291,6 +295,23 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 									</div>
 								</FormControl>
 								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name="recurseSubmodules"
+						render={({ field }) => (
+							<FormItem className="flex items-center space-x-2">
+								<FormControl>
+									<input
+										type="checkbox"
+										checked={field.value}
+										onChange={field.onChange}
+										className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+									/>
+								</FormControl>
+								<FormLabel>Recurse Submodules</FormLabel>
 							</FormItem>
 						)}
 					/>

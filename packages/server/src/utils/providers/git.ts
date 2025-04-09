@@ -17,12 +17,19 @@ export const cloneGitRepository = async (
 		customGitUrl?: string | null;
 		customGitBranch?: string | null;
 		customGitSSHKeyId?: string | null;
+		recurseSubmodules?: boolean;
 	},
 	logPath: string,
 	isCompose = false,
 ) => {
 	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths();
-	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId } = entity;
+	const {
+		appName,
+		customGitUrl,
+		customGitBranch,
+		customGitSSHKeyId,
+		recurseSubmodules = true,
+	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -70,19 +77,22 @@ export const cloneGitRepository = async (
 		}
 
 		const { port } = sanitizeRepoPathSSH(customGitUrl);
+		const cloneArgs = [
+			"clone",
+			"--branch",
+			customGitBranch,
+			"--depth",
+			"1",
+			customGitUrl,
+			outputPath,
+			"--progress",
+		];
+		if (recurseSubmodules) {
+			cloneArgs.splice(4, 0, "--recurse-submodules");
+		}
 		await spawnAsync(
 			"git",
-			[
-				"clone",
-				"--branch",
-				customGitBranch,
-				"--depth",
-				"1",
-				"--recurse-submodules",
-				customGitUrl,
-				outputPath,
-				"--progress",
-			],
+			cloneArgs,
 			(data) => {
 				if (writeStream.writable) {
 					writeStream.write(data);
@@ -114,6 +124,7 @@ export const getCustomGitCloneCommand = async (
 		customGitBranch?: string | null;
 		customGitSSHKeyId?: string | null;
 		serverId: string | null;
+		recurseSubmodules?: boolean;
 	},
 	logPath: string,
 	isCompose = false,
@@ -125,6 +136,7 @@ export const getCustomGitCloneCommand = async (
 		customGitBranch,
 		customGitSSHKeyId,
 		serverId,
+		recurseSubmodules = true,
 	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
@@ -181,7 +193,7 @@ export const getCustomGitCloneCommand = async (
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 --recurse-submodules --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
 				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
 				exit 1;
 			fi
@@ -261,8 +273,15 @@ export const cloneGitRawRepository = async (entity: {
 	customGitUrl?: string | null;
 	customGitBranch?: string | null;
 	customGitSSHKeyId?: string | null;
+	recurseSubmodules?: boolean;
 }) => {
-	const { appName, customGitUrl, customGitBranch, customGitSSHKeyId } = entity;
+	const {
+		appName,
+		customGitUrl,
+		customGitBranch,
+		customGitSSHKeyId,
+		recurseSubmodules = true,
+	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
 		throw new TRPCError({
@@ -307,29 +326,27 @@ export const cloneGitRawRepository = async (entity: {
 		}
 
 		const { port } = sanitizeRepoPathSSH(customGitUrl);
-		await spawnAsync(
-			"git",
-			[
-				"clone",
-				"--branch",
-				customGitBranch,
-				"--depth",
-				"1",
-				"--recurse-submodules",
-				customGitUrl,
-				outputPath,
-				"--progress",
-			],
-			(_data) => {},
-			{
-				env: {
-					...process.env,
-					...(customGitSSHKeyId && {
-						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
-					}),
-				},
+		const cloneArgs = [
+			"clone",
+			"--branch",
+			customGitBranch,
+			"--depth",
+			"1",
+			customGitUrl,
+			outputPath,
+			"--progress",
+		];
+		if (recurseSubmodules) {
+			cloneArgs.splice(4, 0, "--recurse-submodules");
+		}
+		await spawnAsync("git", cloneArgs, (_data) => {}, {
+			env: {
+				...process.env,
+				...(customGitSSHKeyId && {
+					GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
+				}),
 			},
-		);
+		});
 	} catch (error) {
 		throw error;
 	}
@@ -342,6 +359,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		customGitUrl,
 		customGitSSHKeyId,
 		serverId,
+		recurseSubmodules = true,
 	} = compose;
 
 	if (!serverId) {
@@ -396,7 +414,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 --recurse-submodules --progress ${customGitUrl} ${outputPath} ; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
 			fi
