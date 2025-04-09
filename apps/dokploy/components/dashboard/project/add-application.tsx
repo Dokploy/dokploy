@@ -9,6 +9,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
@@ -60,7 +61,6 @@ const AddTemplateSchema = z.object({
 	description: z.string().optional(),
 	serverId: z.string().optional(),
 });
-
 type AddTemplate = z.infer<typeof AddTemplateSchema>;
 
 interface Props {
@@ -72,6 +72,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [visible, setVisible] = useState(false);
+	const [appNameLocked, setAppNameLocked] = useState(true);
 	const slug = slugify(projectName);
 	const { data: servers } = api.server.withSSHKey.useQuery();
 
@@ -86,6 +87,22 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 		},
 		resolver: zodResolver(AddTemplateSchema),
 	});
+
+	const generateAppName = (value: string): string => {
+		if (!value) return `${slug}-`;
+
+		const processedValue = value
+			.trim()
+			.toLowerCase()
+			// replace dots, spaces, and special characters with dashes
+			.replace(/[^\w]+/g, "-")
+			// remove any consecutive dashes
+			.replace(/-+/g, "-")
+			// remove leading/trailing dashes
+			.replace(/^-+|-+$/g, "");
+
+		return `${slug}-${processedValue}`;
+	};
 
 	const onSubmit = async (data: AddTemplate) => {
 		await mutateAsync({
@@ -143,16 +160,69 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 										<Input
 											placeholder="Frontend"
 											{...field}
+											autoComplete="off"
+											autoCorrect="off"
+											autoCapitalize="off"
 											onChange={(e) => {
-												const val = e.target.value?.trim() || "";
-												form.setValue(
-													"appName",
-													`${slug}-${val.toLowerCase().replaceAll(" ", "-")}`,
-												);
+												const val = e.target.value;
 												field.onChange(val);
+
+												if (appNameLocked && val) {
+													form.setValue("appName", generateAppName(val));
+												}
 											}}
 										/>
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="appName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>App Name</FormLabel>
+									<TooltipProvider delayDuration={100}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div className="relative w-full">
+													<FormControl>
+														<Input
+															placeholder="project-frontend"
+															{...field}
+															readOnly={appNameLocked}
+															className={
+																appNameLocked
+																	? "cursor-pointer opacity-70 pr-10"
+																	: ""
+															}
+															onClick={() => {
+																if (appNameLocked) {
+																	setAppNameLocked(false);
+																}
+															}}
+														/>
+													</FormControl>
+													{appNameLocked && (
+														<div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</div>
+													)}
+												</div>
+											</TooltipTrigger>
+											<TooltipContent
+												side="top"
+												className="z-[999] min-w-[180px] max-w-[250px] p-2 text-xs"
+												sideOffset={5}
+												avoidCollisions
+											>
+												{appNameLocked
+													? "App name is auto-generated. Click to edit manually."
+													: "App name can be edited manually."}
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -174,6 +244,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 												className="z-[999] w-[300px]"
 												align="start"
 												side="top"
+												avoidCollisions
 											>
 												<span>
 													If no server is selected, the application will be
@@ -199,29 +270,12 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 													>
 														<span className="flex items-center gap-2 justify-between w-full">
 															<span>{server.name}</span>
-															<span className="text-muted-foreground text-xs self-center">
-																{server.ipAddress}
-															</span>
 														</span>
 													</SelectItem>
 												))}
-												<SelectLabel>Servers ({servers?.length})</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="appName"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>App Name</FormLabel>
-									<FormControl>
-										<Input placeholder="my-app" {...field} />
-									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -239,19 +293,17 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 											{...field}
 										/>
 									</FormControl>
-
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
 					</form>
-
-					<DialogFooter>
-						<Button isLoading={isLoading} form="hook-form" type="submit">
-							Create
-						</Button>
-					</DialogFooter>
 				</Form>
+				<DialogFooter>
+					<Button isLoading={isLoading} form="hook-form" type="submit">
+						Create
+					</Button>
+				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);
