@@ -298,7 +298,11 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												})
 													.then(() => {
 														refetch();
-														toast.success(checked ? "Preview deployments enabled" : "Preview deployments disabled");
+														toast.success(
+															checked
+																? "Preview deployments enabled"
+																: "Preview deployments disabled",
+														);
 													})
 													.catch((error) => {
 														toast.error(error.message);
