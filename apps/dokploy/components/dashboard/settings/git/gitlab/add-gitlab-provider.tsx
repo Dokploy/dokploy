@@ -248,7 +248,9 @@ export const AddGitlabProvider = () => {
 									name="groupName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Group Name (Optional)</FormLabel>
+											<FormLabel>
+												Group Name (Optional, Comma-Separated List)
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="For organization/group access use the slugish name of the group eg: my-org"
