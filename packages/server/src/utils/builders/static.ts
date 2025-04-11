@@ -58,6 +58,9 @@ export const getStaticCommand = (
 		"Dockerfile",
 		[
 			"FROM nginx:alpine",
+			"RUN cp /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.orig && \
+    		sed -i '/location \/ {/{n;s|root   /usr/share/nginx/html;|root   /usr/share/nginx/html;\n        try_files \$uri \$uri/ /index.html;|}' /etc/nginx/conf.d/default.conf",
+			"CMD [\"nginx\", \"-s\", \"reload\"]",
 			"WORKDIR /usr/share/nginx/html/",
 			`COPY ${publishDirectory || "."} .`,
 		].join("\n"),
