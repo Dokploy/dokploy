@@ -56,6 +56,8 @@ const randomImages = [
 export const ProfileForm = () => {
 	const _utils = api.useUtils();
 	const { data, refetch, isLoading } = api.user.get.useQuery();
+
+	console.log(data);
 	const {
 		mutateAsync,
 		isLoading: isUpdating,
@@ -84,12 +86,17 @@ export const ProfileForm = () => {
 
 	useEffect(() => {
 		if (data) {
-			form.reset({
-				email: data?.user?.email || "",
-				password: "",
-				image: data?.user?.image || "",
-				currentPassword: "",
-			});
+			form.reset(
+				{
+					email: data?.user?.email || "",
+					password: form.getValues("password") || "",
+					image: data?.user?.image || "",
+					currentPassword: form.getValues("currentPassword") || "",
+				},
+				{
+					keepValues: true,
+				},
+			);
 
 			if (data.user.email) {
 				generateSHA256Hash(data.user.email).then((hash) => {
@@ -97,8 +104,7 @@ export const ProfileForm = () => {
 				});
 			}
 		}
-		form.reset();
-	}, [form, form.reset, data]);
+	}, [form, data]);
 
 	const onSubmit = async (values: Profile) => {
 		await mutateAsync({
@@ -110,7 +116,12 @@ export const ProfileForm = () => {
 			.then(async () => {
 				await refetch();
 				toast.success("Profile Updated");
-				form.reset();
+				form.reset({
+					email: values.email,
+					password: "",
+					image: values.image,
+					currentPassword: "",
+				});
 			})
 			.catch(() => {
 				toast.error("Error updating the profile");
