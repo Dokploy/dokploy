@@ -57,7 +57,6 @@ export const ProfileForm = () => {
 	const _utils = api.useUtils();
 	const { data, refetch, isLoading } = api.user.get.useQuery();
 
-	console.log(data);
 	const {
 		mutateAsync,
 		isLoading: isUpdating,
