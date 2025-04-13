@@ -365,7 +365,9 @@ const Project = (
 
 				switch (service.type) {
 					case "application":
-						await applicationActions.start.mutateAsync({ applicationId: serviceId });
+						await applicationActions.start.mutateAsync({
+							applicationId: serviceId,
+						});
 						break;
 					case "compose":
 						await composeActions.start.mutateAsync({ composeId: serviceId });
@@ -410,7 +412,9 @@ const Project = (
 
 				switch (service.type) {
 					case "application":
-						await applicationActions.stop.mutateAsync({ applicationId: serviceId });
+						await applicationActions.stop.mutateAsync({
+							applicationId: serviceId,
+						});
 						break;
 					case "compose":
 						await composeActions.stop.mutateAsync({ composeId: serviceId });
