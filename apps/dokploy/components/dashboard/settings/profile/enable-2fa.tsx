@@ -36,6 +36,7 @@ const PasswordSchema = z.object({
 	password: z.string().min(8, {
 		message: "Password is required",
 	}),
+	issuer: z.string().optional(),
 });
 
 const PinSchema = z.object({
@@ -66,6 +67,7 @@ export const Enable2FA = () => {
 		try {
 			const { data: enableData, error } = await authClient.twoFactor.enable({
 				password: formData.password,
+				issuer: formData.issuer,
 			});
 
 			if (!enableData) {
@@ -207,6 +209,26 @@ export const Enable2FA = () => {
 											<Input
 												type="password"
 												placeholder="Enter your password"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Enter your password to enable 2FA
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={passwordForm.control}
+								name="issuer"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Issuer</FormLabel>
+										<FormControl>
+											<Input
+												type="text"
+												placeholder="Enter your issuer"
 												{...field}
 											/>
 										</FormControl>
