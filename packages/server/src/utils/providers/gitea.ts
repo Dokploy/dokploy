@@ -128,9 +128,9 @@ export const getGiteaCloneCommand = async (
 		});
 	}
 
-	if (!giteaId) {
+	if (!giteaId || !gitea) {
 		const command = `
-		echo  "Error: ❌ Gitlab Provider not found" >> ${logPath};
+		echo  "Error: ❌ Gitea Provider not found" >> ${logPath};
 		exit 1;
 	`;
 
