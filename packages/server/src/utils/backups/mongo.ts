@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
@@ -8,7 +7,7 @@ import {
 } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials } from "./utils";
+import { getS3Credentials, normalizeS3Path } from "./utils";
 
 // mongodb://mongo:Bqh7AQl-PRbnBu@localhost:27017/?tls=false&directConnection=true
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
@@ -17,7 +16,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { prefix, database } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.dump.gz`;
-	const bucketDestination = path.join(prefix, backupFileName);
+	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);

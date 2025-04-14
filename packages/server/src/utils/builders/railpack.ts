@@ -84,7 +84,7 @@ export const buildRailpack = async (
 		for (const envVar of envVariables) {
 			const [key, value] = envVar.split("=");
 			if (key && value) {
-				buildArgs.push("--secret", `id=${key},env=${key}`);
+				buildArgs.push("--secret", `id=${key},env='${key}'`);
 				env[key] = value;
 			}
 		}
@@ -132,7 +132,7 @@ export const getRailpackCommand = (
 	];
 
 	for (const env of envVariables) {
-		prepareArgs.push("--env", env);
+		prepareArgs.push("--env", `'${env}'`);
 	}
 
 	// Calculate secrets hash for layer invalidation
@@ -164,7 +164,7 @@ export const getRailpackCommand = (
 	for (const envVar of envVariables) {
 		const [key, value] = envVar.split("=");
 		if (key && value) {
-			buildArgs.push("--secret", `id=${key},env=${key}`);
+			buildArgs.push("--secret", `id=${key},env='${key}'`);
 			exportEnvs.push(`export ${key}=${value}`);
 		}
 	}
