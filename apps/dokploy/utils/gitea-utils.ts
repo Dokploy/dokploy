@@ -59,6 +59,7 @@ export interface GiteaProviderResponse {
 	giteaId: string;
 	clientId: string;
 	giteaUrl: string;
+	giteaUrlAlt: string;
 }
 
 export interface GitProvider {
@@ -69,6 +70,7 @@ export interface GitProvider {
 	gitea?: {
 		giteaId: string;
 		giteaUrl: string;
+		giteaUrlAlt?: string;
 		clientId: string;
 	};
 }
@@ -77,6 +79,7 @@ export interface GiteaProvider {
 	gitea?: {
 		giteaId?: string;
 		giteaUrl?: string;
+		giteaUrlAlt?: string;
 		clientId?: string;
 		clientSecret?: string;
 		redirectUri?: string;

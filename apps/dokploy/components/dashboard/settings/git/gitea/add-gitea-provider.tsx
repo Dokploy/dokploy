@@ -17,6 +17,12 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import {
@@ -39,6 +45,7 @@ const Schema = z.object({
 	giteaUrl: z.string().min(1, {
 		message: "Gitea URL is required",
 	}),
+	giteaUrlAlt: z.string(),
 	clientId: z.string().min(1, {
 		message: "Client ID is required",
 	}),
@@ -70,6 +77,7 @@ export const AddGiteaProvider = () => {
 			redirectUri: webhookUrl,
 			name: "",
 			giteaUrl: "https://gitea.com",
+			giteaUrlAlt: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -83,6 +91,7 @@ export const AddGiteaProvider = () => {
 			redirectUri: webhookUrl,
 			name: "",
 			giteaUrl: "https://gitea.com",
+			giteaUrlAlt: "",
 		});
 	}, [form, webhookUrl, isOpen]);
 
@@ -95,6 +104,7 @@ export const AddGiteaProvider = () => {
 				name: data.name,
 				redirectUri: data.redirectUri,
 				giteaUrl: data.giteaUrl,
+				giteaUrlAlt: data.giteaUrlAlt,
 				organizationName: data.organizationName,
 			})) as unknown as GiteaProviderResponse;
 
@@ -272,6 +282,36 @@ export const AddGiteaProvider = () => {
 										</FormItem>
 									)}
 								/>
+
+								<Accordion type="single" collapsible className="w-full">
+									<AccordionItem value="advanced">
+										<AccordionTrigger>Advanced Settings</AccordionTrigger>
+										<AccordionContent>
+											<p className="text-muted-foreground text-sm mb-6">
+												<b>Gitea Docker Url</b>: useful only when Gitea's front
+												end is not exposed to the internet (i.e. you use remote
+												tunneling) and Dokploy can't access the browser
+												reachable Gitea Url. In most cases, this is unnessesary.
+											</p>
+											<FormField
+												control={form.control}
+												name="giteaUrlAlt"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Gitea Docker URL</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="http://gitea:3000"
+																{...field}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</AccordionContent>
+									</AccordionItem>
+								</Accordion>
 
 								<Button isLoading={form.formState.isSubmitting}>
 									Configure Gitea App
