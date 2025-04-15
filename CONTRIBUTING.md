@@ -52,7 +52,7 @@ feat: add new feature
 
 Before you start, please make the clone based on the `canary` branch, since the `main` branch is the source of truth and should always reflect the latest stable release, also the PRs will be merged to the `canary` branch.
 
-We use Node v20.9.0
+We use Node v20.9.0 and recommend this specific version. If you have nvm installed, you can run `nvm install 20.9.0 && nvm use` in the root directory. 
 
 ```bash
 git clone https://github.com/dokploy/dokploy.git
@@ -86,6 +86,8 @@ pnpm run dokploy:dev
 ```
 
 Go to http://localhost:3000 to see the development server
+
+Note: this project uses Biome. If your editor is configured to use another formatter such as Prettier, it's recommended to either change it to use Biome or turn it off.
 
 ## Build
 
