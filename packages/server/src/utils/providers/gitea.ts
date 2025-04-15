@@ -28,6 +28,11 @@ export const getErrorCloneRequirements = (entity: {
 	return reasons;
 };
 
+export const getGiteaCloneUrl = (gitea: Gitea, repo: string) => {
+	const giteaUrl = new URL(gitea.giteaUrl);
+	return `${giteaUrl.protocol}//oauth2:${gitea.accessToken}@${giteaUrl.host}/${repo}`;
+};
+
 export const refreshGiteaToken = async (giteaProviderId: string) => {
 	try {
 		const giteaProvider = await findGiteaById(giteaProviderId);
@@ -53,8 +58,11 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 			return giteaProvider.accessToken;
 		}
 
+		// if user provided giteaUrlAlt, default to it for server fetches
+		const giteaUrl = giteaProvider.giteaUrlAlt || giteaProvider.giteaUrl;
+
 		// Token is expired or about to expire, refresh it
-		const tokenEndpoint = `${giteaProvider.giteaUrl}/login/oauth/access_token`;
+		const tokenEndpoint = `${giteaUrl}/login/oauth/access_token`;
 		const params = new URLSearchParams({
 			grant_type: "refresh_token",
 			refresh_token: giteaProvider.refreshToken,
@@ -147,9 +155,8 @@ export const getGiteaCloneCommand = async (
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 
-	const baseUrl = gitea?.giteaUrl.replace(/^https?:\/\//, "");
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const cloneUrl = `https://oauth2:${gitea?.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = getGiteaCloneUrl(gitea, repoClone);
 
 	const cloneCommand = `
     rm -rf ${outputPath};
@@ -197,8 +204,7 @@ export const cloneGiteaRepository = async (
 	await recreateDirectory(outputPath);
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
-	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = getGiteaCloneUrl(giteaProvider, repoClone);
 
 	writeStream.write(`\nCloning Repo ${repoClone} to ${outputPath}...\n`);
 
@@ -255,8 +261,7 @@ export const cloneRawGiteaRepository = async (entity: Compose) => {
 	await recreateDirectory(outputPath);
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
-	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = getGiteaCloneUrl(giteaProvider, repoClone);
 
 	try {
 		await spawnAsync("git", [
@@ -302,8 +307,7 @@ export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
-	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = getGiteaCloneUrl(giteaProvider, repoClone);
 	try {
 		const command = `
 			rm -rf ${outputPath};
@@ -345,7 +349,9 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 			});
 		}
 
-		const baseUrl = provider.giteaUrl.replace(/\/+$/, "");
+		// if user provided giteaUrlAlt, default to it for server fetches
+		const giteaUrl = provider.giteaUrlAlt || provider.giteaUrl;
+		const baseUrl = giteaUrl.replace(/\/+$/, "");
 		const url = `${baseUrl}/api/v1/user/repos`;
 
 		const response = await fetch(url, {
@@ -381,7 +387,9 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 
 	const giteaProvider = await findGiteaById(giteaId);
 
-	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
+	// if user provided giteaUrlAlt, default to it for server fetches
+	const giteaUrl = giteaProvider.giteaUrlAlt || giteaProvider.giteaUrl;
+	const baseUrl = giteaUrl.replace(/\/+$/, "");
 	const url = `${baseUrl}/api/v1/user/repos`;
 
 	const response = await fetch(url, {
@@ -425,7 +433,9 @@ export const getGiteaBranches = async (input: {
 
 	const giteaProvider = await findGiteaById(input.giteaId);
 
-	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
+	// if user provided giteaUrlAlt, default to it for server fetches
+	const giteaUrl = giteaProvider.giteaUrlAlt || giteaProvider.giteaUrl;
+	const baseUrl = giteaUrl.replace(/\/+$/, "");
 	const url = `${baseUrl}/api/v1/repos/${input.owner}/${input.repo}/branches`;
 
 	const response = await fetch(url, {
