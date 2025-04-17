@@ -435,7 +435,9 @@ export const testGitlabConnection = async (
 		const { full_path, kind } = repo.namespace;
 
 		if (groupName) {
-			return full_path.toLowerCase().includes(groupName) && kind === "group";
+			return groupName
+				.split(",")
+				.some((name) => full_path.toLowerCase().includes(name));
 		}
 		return kind === "user";
 	});
