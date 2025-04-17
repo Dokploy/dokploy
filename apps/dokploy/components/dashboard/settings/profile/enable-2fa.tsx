@@ -61,6 +61,79 @@ export const Enable2FA = () => {
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [step, setStep] = useState<"password" | "verify">("password");
 	const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+	const [otpValue, setOtpValue] = useState("");
+
+	const handleVerifySubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		try {
+			const result = await authClient.twoFactor.verifyTotp({
+				code: otpValue,
+			});
+
+			if (result.error) {
+				if (result.error.code === "INVALID_TWO_FACTOR_AUTHENTICATION") {
+					toast.error("Invalid verification code");
+					return;
+				}
+
+				throw result.error;
+			}
+
+			if (!result.data) {
+				throw new Error("No response received from server");
+			}
+
+			toast.success("2FA configured successfully");
+			utils.user.get.invalidate();
+			setIsDialogOpen(false);
+		} catch (error) {
+			if (error instanceof Error) {
+				const errorMessage =
+					error.message === "Failed to fetch"
+						? "Connection error. Please check your internet connection."
+						: error.message;
+
+				toast.error(errorMessage);
+			} else {
+				toast.error("Error verifying 2FA code", {
+					description: error instanceof Error ? error.message : "Unknown error",
+				});
+			}
+		}
+	};
+
+	const passwordForm = useForm<PasswordForm>({
+		resolver: zodResolver(PasswordSchema),
+		defaultValues: {
+			password: "",
+		},
+	});
+
+	const pinForm = useForm<PinForm>({
+		resolver: zodResolver(PinSchema),
+		defaultValues: {
+			pin: "",
+		},
+	});
+
+	useEffect(() => {
+		if (!isDialogOpen) {
+			setStep("password");
+			setData(null);
+			setBackupCodes([]);
+			setOtpValue("");
+			passwordForm.reset({
+				password: "",
+				issuer: "",
+			});
+		}
+	}, [isDialogOpen, passwordForm]);
+
+	useEffect(() => {
+		if (step === "verify") {
+			setOtpValue("");
+		}
+	}, [step]);
 
 	const handlePasswordSubmit = async (formData: PasswordForm) => {
 		setIsPasswordLoading(true);
@@ -104,75 +177,6 @@ export const Enable2FA = () => {
 			setIsPasswordLoading(false);
 		}
 	};
-
-	const handleVerifySubmit = async (formData: PinForm) => {
-		try {
-			const result = await authClient.twoFactor.verifyTotp({
-				code: formData.pin,
-			});
-
-			if (result.error) {
-				if (result.error.code === "INVALID_TWO_FACTOR_AUTHENTICATION") {
-					pinForm.setError("pin", {
-						message: "Invalid code. Please try again.",
-					});
-					toast.error("Invalid verification code");
-					return;
-				}
-
-				throw result.error;
-			}
-
-			if (!result.data) {
-				throw new Error("No response received from server");
-			}
-
-			toast.success("2FA configured successfully");
-			utils.user.get.invalidate();
-			setIsDialogOpen(false);
-		} catch (error) {
-			if (error instanceof Error) {
-				const errorMessage =
-					error.message === "Failed to fetch"
-						? "Connection error. Please check your internet connection."
-						: error.message;
-
-				pinForm.setError("pin", {
-					message: errorMessage,
-				});
-				toast.error(errorMessage);
-			} else {
-				pinForm.setError("pin", {
-					message: "Error verifying code",
-				});
-				toast.error("Error verifying 2FA code");
-			}
-		}
-	};
-
-	const passwordForm = useForm<PasswordForm>({
-		resolver: zodResolver(PasswordSchema),
-		defaultValues: {
-			password: "",
-		},
-	});
-
-	const pinForm = useForm<PinForm>({
-		resolver: zodResolver(PinSchema),
-		defaultValues: {
-			pin: "",
-		},
-	});
-
-	useEffect(() => {
-		if (!isDialogOpen) {
-			setStep("password");
-			setData(null);
-			setBackupCodes([]);
-			passwordForm.reset();
-			pinForm.reset();
-		}
-	}, [isDialogOpen, passwordForm, pinForm]);
 
 	return (
 		<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -233,7 +237,8 @@ export const Enable2FA = () => {
 											/>
 										</FormControl>
 										<FormDescription>
-											Enter your password to enable 2FA
+											Use a custom issuer to identify the service you're
+											authenticating with.
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -250,11 +255,7 @@ export const Enable2FA = () => {
 					</Form>
 				) : (
 					<Form {...pinForm}>
-						<form
-							id="pin-form"
-							onSubmit={pinForm.handleSubmit(handleVerifySubmit)}
-							className="space-y-6"
-						>
+						<form onSubmit={handleVerifySubmit} className="space-y-6">
 							<div className="flex flex-col gap-6 justify-center items-center">
 								{data?.qrCodeUrl ? (
 									<>
@@ -306,36 +307,33 @@ export const Enable2FA = () => {
 								)}
 							</div>
 
-							<FormField
-								control={pinForm.control}
-								name="pin"
-								render={({ field }) => (
-									<FormItem className="flex flex-col justify-center items-center">
-										<FormLabel>Verification Code</FormLabel>
-										<FormControl>
-											<InputOTP maxLength={6} {...field}>
-												<InputOTPGroup>
-													<InputOTPSlot index={0} />
-													<InputOTPSlot index={1} />
-													<InputOTPSlot index={2} />
-													<InputOTPSlot index={3} />
-													<InputOTPSlot index={4} />
-													<InputOTPSlot index={5} />
-												</InputOTPGroup>
-											</InputOTP>
-										</FormControl>
-										<FormDescription>
-											Enter the 6-digit code from your authenticator app
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+							<div className="flex flex-col justify-center items-center">
+								<FormLabel>Verification Code</FormLabel>
+								<InputOTP
+									maxLength={6}
+									value={otpValue}
+									onChange={setOtpValue}
+									autoComplete="off"
+								>
+									<InputOTPGroup>
+										<InputOTPSlot index={0} />
+										<InputOTPSlot index={1} />
+										<InputOTPSlot index={2} />
+										<InputOTPSlot index={3} />
+										<InputOTPSlot index={4} />
+										<InputOTPSlot index={5} />
+									</InputOTPGroup>
+								</InputOTP>
+								<FormDescription>
+									Enter the 6-digit code from your authenticator app
+								</FormDescription>
+							</div>
 
 							<Button
 								type="submit"
 								className="w-full"
 								isLoading={isPasswordLoading}
+								disabled={otpValue.length !== 6}
 							>
 								Enable 2FA
 							</Button>
