@@ -84,6 +84,7 @@ export const RestoreBackup = ({
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
+	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
@@ -99,13 +100,18 @@ export const RestoreBackup = ({
 	const destionationId = form.watch("destinationId");
 
 	const debouncedSetSearch = debounce((value: string) => {
+		setDebouncedSearchTerm(value);
+	}, 150);
+
+	const handleSearchChange = (value: string) => {
 		setSearch(value);
-	}, 300);
+		debouncedSetSearch(value);
+	};
 
 	const { data: files = [], isLoading } = api.backup.listBackupFiles.useQuery(
 		{
 			destinationId: destionationId,
-			search,
+			search: debouncedSearchTerm,
 			serverId: serverId ?? "",
 		},
 		{
@@ -284,7 +290,8 @@ export const RestoreBackup = ({
 											<Command>
 												<CommandInput
 													placeholder="Search backup files..."
-													onValueChange={debouncedSetSearch}
+													value={search}
+													onValueChange={handleSearchChange}
 													className="h-9"
 												/>
 												{isLoading ? (
@@ -308,6 +315,8 @@ export const RestoreBackup = ({
 																	key={file}
 																	onSelect={() => {
 																		form.setValue("backupFile", file);
+																		setSearch(file);
+																		setDebouncedSearchTerm(file);
 																	}}
 																>
 																	<div className="flex w-full justify-between">
