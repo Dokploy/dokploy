@@ -23,7 +23,17 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
 
-			const postgresCommand = `docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_dump -v -Fc -U dokploy -d dokploy > ${tempDir}/database.sql`;
+			// First get the container ID
+			const { stdout: containerId } = await execAsync(
+				"docker ps --filter 'name=dokploy-postgres' -q",
+			);
+
+			if (!containerId) {
+				throw new Error("PostgreSQL container not found");
+			}
+
+			// Then run pg_dump with the container ID
+			const postgresCommand = `docker exec ${containerId.trim()} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database.sql'`;
 			await execAsync(postgresCommand);
 
 			await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
