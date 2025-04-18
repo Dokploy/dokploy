@@ -76,6 +76,7 @@ export const compose = pgTable("compose", {
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
 	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
+	triggerType: text("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
