@@ -15,6 +15,12 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { getGiteaOAuthUrl } from "@/utils/gitea-utils";
@@ -30,6 +36,7 @@ import { z } from "zod";
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	giteaUrl: z.string().min(1, "Gitea URL is required"),
+	giteaUrlAlt: z.string(),
 	clientId: z.string().min(1, "Client ID is required"),
 	clientSecret: z.string().min(1, "Client Secret is required"),
 });
@@ -94,6 +101,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 		defaultValues: {
 			name: "",
 			giteaUrl: "https://gitea.com",
+			giteaUrlAlt: "",
 			clientId: "",
 			clientSecret: "",
 		},
@@ -104,6 +112,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 			form.reset({
 				name: gitea.gitProvider?.name || "",
 				giteaUrl: gitea.giteaUrl || "https://gitea.com",
+				giteaUrlAlt: gitea.giteaUrlAlt || "",
 				clientId: gitea.clientId || "",
 				clientSecret: gitea.clientSecret || "",
 			});
@@ -116,6 +125,7 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 			gitProviderId: gitea?.gitProvider?.gitProviderId || "",
 			name: values.name,
 			giteaUrl: values.giteaUrl,
+			giteaUrlAlt: values.giteaUrlAlt,
 			clientId: values.clientId,
 			clientSecret: values.clientSecret,
 		})
@@ -254,6 +264,33 @@ export const EditGiteaProvider = ({ giteaId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
+						<Accordion type="single" collapsible className="w-full">
+							<AccordionItem value="advanced">
+								<AccordionTrigger>Advanced Settings</AccordionTrigger>
+								<AccordionContent>
+									<p className="text-muted-foreground text-sm mb-6">
+										<b>Gitea Docker Url</b>: useful only when Gitea's front end
+										is not exposed to the internet (i.e. you use remote
+										tunneling) and Dokploy can't access the browser reachable
+										Gitea Url. In most cases, this is unnessesary.
+									</p>
+									<FormField
+										control={form.control}
+										name="giteaUrlAlt"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Gitea Docker URL</FormLabel>
+												<FormControl>
+													<Input placeholder="http://gitea:3000" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</AccordionContent>
+							</AccordionItem>
+						</Accordion>
 
 						<div className="flex justify-end gap-2">
 							<Button
