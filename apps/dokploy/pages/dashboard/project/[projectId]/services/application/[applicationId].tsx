@@ -215,7 +215,7 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
+									<div className="flex flex-row items-center justify-between w-full gap-4">
 										<TabsList
 											className={cn(
 												"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
