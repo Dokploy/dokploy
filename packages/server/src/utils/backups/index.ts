@@ -2,7 +2,6 @@ import path from "node:path";
 import { getAllServers } from "@dokploy/server/services/server";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
-import { findAdmin } from "../../services/admin";
 import {
 	cleanUpDockerBuilder,
 	cleanUpSystemPrune,
@@ -14,13 +13,24 @@ import { getS3Credentials, scheduleBackup } from "./utils";
 
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { startLogCleanup } from "../access-log/handler";
+import { member } from "@dokploy/server/db/schema";
+import { eq } from "drizzle-orm";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
 
-	const admin = await findAdmin();
+	const admin = await db.query.member.findFirst({
+		where: eq(member.role, "owner"),
+		with: {
+			user: true,
+		},
+	});
 
-	if (admin?.user.enableDockerCleanup) {
+	if (!admin) {
+		return;
+	}
+
+	if (admin.user.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
@@ -96,8 +106,8 @@ export const keepLatestNBackups = async (
 			backup.prefix,
 		);
 
-		// --include "*.sql.gz" ensures nothing else other than the db backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*.sql.gz" ${backupFilesPath}`;
+		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files

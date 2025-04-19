@@ -1,0 +1,1 @@
+ALTER TABLE "user_temp" ADD COLUMN "https" boolean DEFAULT false NOT NULL;

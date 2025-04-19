@@ -36,6 +36,13 @@ export const removeScheduleBackup = (backupId: string) => {
 	currentJob?.cancel();
 };
 
+export const normalizeS3Path = (prefix: string) => {
+	// Trim whitespace and remove leading/trailing slashes
+	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
+	// Return empty string if prefix is empty, otherwise append trailing slash
+	return normalizedPrefix ? `${normalizedPrefix}/` : "";
+};
+
 export const getS3Credentials = (destination: Destination) => {
 	const { accessKey, secretAccessKey, region, endpoint, provider } =
 		destination;
