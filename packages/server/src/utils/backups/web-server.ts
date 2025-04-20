@@ -24,6 +24,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
 
 			// First get the container ID
+			// Returns: ID\nID\nID...
 			const { stdout: containerId } = await execAsync(
 				"docker ps --filter 'name=dokploy-postgres' -q",
 			);
@@ -32,14 +33,20 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 				throw new Error("PostgreSQL container not found");
 			}
 
+			// ID\nID\nID... => [ "ID", "ID", ... ]
+			const containers = containerId.trim().split("\n").filter(Boolean); 
+
 			// Then run pg_dump with the container ID
-			const postgresCommand = `docker exec ${containerId.trim()} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database.sql'`;
-			await execAsync(postgresCommand);
+			for (const containerId of containers) {
+				// 																Maybe we can find a better identification for this part      vvv
+				const postgresCommand = `docker exec ${containerId.trim()} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database-${containerId}.sql'`;
+				await execAsync(postgresCommand);
+			}
 
 			await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
 
-			await execAsync(
-				`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/ > /dev/null 2>&1`,
+			await execAsync( // Zip all .sql files since we created more than one
+				`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
 			);
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
