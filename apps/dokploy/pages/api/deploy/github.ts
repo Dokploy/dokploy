@@ -62,12 +62,11 @@ export default async function handler(
 
 	if (
 		req.headers["x-github-event"] !== "push" &&
-		req.headers["x-github-event"] !== "pull_request" &&
-		req.headers["x-github-event"] !== "create"
+		req.headers["x-github-event"] !== "pull_request"
 	) {
 		res
 			.status(400)
-			.json({ message: "We only accept push, pull_request, or create events" });
+			.json({ message: "We only accept push events or pull_request events" });
 		return;
 	}
 
@@ -92,17 +91,17 @@ export default async function handler(
 
 	// Handle tag creation event
 	if (
-		req.headers["x-github-event"] === "create" &&
-		githubBody?.ref_type === "tag"
+		req.headers["x-github-event"] === "push" &&
+		githubBody?.ref?.startsWith("refs/tags/")
 	) {
 		try {
-			const tagName = githubBody?.ref;
+			const tagName = githubBody?.ref.replace("refs/tags/", "");
 			const repository = githubBody?.repository?.name;
 			const owner =
 				githubBody?.repository?.owner?.name ||
 				githubBody?.repository?.owner?.login;
 			const deploymentTitle = `Tag created: ${tagName}`;
-			const deploymentHash = githubBody?.master_branch || "";
+			const deploymentHash = extractHash(req.headers, githubBody);
 
 			// Find applications configured to deploy on tag
 			const apps = await db.query.applications.findMany({
@@ -120,7 +119,7 @@ export default async function handler(
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
-					descriptionLog: `Tag: ${tagName}`,
+					descriptionLog: `Hash: ${deploymentHash}`,
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
@@ -159,7 +158,7 @@ export default async function handler(
 					titleLog: deploymentTitle,
 					type: "deploy",
 					applicationType: "compose",
-					descriptionLog: `Tag: ${tagName}`,
+					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
 				};
 
