@@ -105,8 +105,19 @@ export function processValue(
 			return crypto.randomUUID();
 		}
 
-		if (varName === "timestamp") {
+		if (varName === "timestamp" || varName === "timestampms") {
 			return Date.now().toString();
+		}
+
+		if (varName === "timestamps") {
+			return Math.round(Date.now() / 1000).toString();
+		}
+
+		if (varName.startsWith("timestampms:")) {
+			return new Date(varName.slice(12)).getTime().toString();
+		}
+		if (varName.startsWith("timestamps:")) {
+			return Math.round(new Date(varName.slice(11)).getTime() / 1000).toString();
 		}
 
 		if (varName === "randomPort") {
