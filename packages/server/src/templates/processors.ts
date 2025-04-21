@@ -65,7 +65,7 @@ export interface Template {
 /**
  * Process a string value and replace variables
  */
-function processValue(
+export function processValue(
 	value: string,
 	variables: Record<string, string>,
 	schema: Schema,
@@ -84,11 +84,11 @@ function processValue(
 			const length = Number.parseInt(varName.split(":")[1], 10) || 32;
 			return generateBase64(length);
 		}
+
 		if (varName.startsWith("password:")) {
 			const length = Number.parseInt(varName.split(":")[1], 10) || 16;
 			return generatePassword(length);
 		}
-
 		if (varName === "password") {
 			return generatePassword(16);
 		}
@@ -114,8 +114,30 @@ function processValue(
 		}
 
 		if (varName.startsWith("jwt:")) {
-			const length = Number.parseInt(varName.split(":")[1], 10) || 256;
-			return generateJwt(length);
+			const params:string[] = varName.split(":").slice(1);
+			if (params.length === 1 && params[0] && params[0].match(/^\d{1,3}$/)) {
+				return generateJwt({length: Number.parseInt(params[0], 10)});
+			}
+			let [secret, payload] = params;
+			if (typeof payload === "string" && variables[payload]) {
+				payload = variables[payload];
+			}
+			if (typeof payload === "string" && payload.startsWith("{") && payload.endsWith("}")) {
+				try {
+					payload = JSON.parse(payload);
+				} catch (e) {
+					// If payload is not a valid JSON, invalid it
+					payload = undefined;
+					console.error("Invalid JWT payload", e);
+				}
+			}
+			if (typeof payload !== 'object') {
+				payload = undefined;
+			}
+			return generateJwt({
+				secret: secret ? (variables[secret] || secret) : undefined,
+				payload: payload as any
+			});
 		}
 
 		if (varName === "username") {
@@ -147,7 +169,7 @@ export function processVariables(
 ): Record<string, string> {
 	const variables: Record<string, string> = {};
 
-	// First pass: Process variables that don't depend on other variables
+	// First pass: Process some variables that don't depend on other variables
 	for (const [key, value] of Object.entries(template.variables)) {
 		if (typeof value !== "string") continue;
 
