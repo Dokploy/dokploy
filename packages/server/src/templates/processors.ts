@@ -97,6 +97,10 @@ export function processValue(
 			const length = Number.parseInt(varName.split(":")[1], 10) || 8;
 			return generateHash(length);
 		}
+		if (varName === "hash") {
+			return generateHash();
+		}
+
 		if (varName === "uuid") {
 			return crypto.randomUUID();
 		}
@@ -183,6 +187,8 @@ export function processVariables(
 			const match = value.match(/\${password:(\d+)}/);
 			const length = match?.[1] ? Number.parseInt(match[1], 10) : 16;
 			variables[key] = generatePassword(length);
+		} else if (value === "${hash}") {
+			variables[key] = generateHash();
 		} else if (value.startsWith("${hash:")) {
 			const match = value.match(/\${hash:(\d+)}/);
 			const length = match?.[1] ? Number.parseInt(match[1], 10) : 8;
