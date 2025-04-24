@@ -53,7 +53,7 @@ export const initializePostgres = async () => {
       ...settings,
     });
     console.log("Postgres Started ✅");
-    await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 15));
+    await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 8));
   } catch {
     try {
       await docker.createService(settings);
