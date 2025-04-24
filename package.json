@@ -4,6 +4,7 @@
 	"workspaces": ["apps/*", "packages/*"],
 	"scripts": {
 		"local:build": "docker build -t dokploy-containerized:latest . && docker build -t dokploy:latest -f Dockerfile.local .",
+		"local:build::pub": "docker build -t dokploy-containerized:latest . && docker build -t alexdev404/dokploy:latest -f Dockerfile.local .",
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
 		"dokploy:dev:turbopack": "pnpm --filter=dokploy run dev-turbopack",
