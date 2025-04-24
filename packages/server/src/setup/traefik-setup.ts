@@ -3,6 +3,8 @@ import { dump } from "js-yaml";
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { paths } from "../constants";
+
+import { pullImage } from "../utils/docker/utils";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
@@ -87,10 +89,13 @@ export const initializeTraefik = async ({
 
   const docker = await getRemoteDocker(serverId);
   try {
-    await docker.pullImage(imageName);
+    await pullImage(imageName);
     console.log("Traefik image pulled successfully");
     const service = docker.getService(containerName);
-    await service?.remove({ force: true });
+
+    await service?.remove({ force: true }).catch(() =>{
+      console.log("No existing service to remove");
+    });
 
     let attempts = 0;
     const maxAttempts = 5;
