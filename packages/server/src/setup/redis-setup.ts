@@ -60,6 +60,6 @@ export const initializeRedis = async () => {
 			console.log("Redis service already exists, continuing...");
 		}
 		console.log("Redis Not Found: Starting ✅");
-    await new Promise((resolve) => setTimeout(resolve, 10 * 60 * 2500));
+    await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 2.5));
 	}
 };
