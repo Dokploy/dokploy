@@ -1,19 +1,19 @@
 import { migration } from "@/server/db/migration";
 import {
-	IS_CLOUD,
-	createDefaultMiddlewares,
-	createDefaultServerTraefikConfig,
-	createDefaultTraefikConfig,
-	initCronJobs,
-	initializeNetwork,
-	sendDokployRestartNotifications,
-	setupDirectories,
+  IS_CLOUD,
+  createDefaultMiddlewares,
+  createDefaultServerTraefikConfig,
+  createDefaultTraefikConfig,
+  initCronJobs,
+  initializeNetwork,
+  sendDokployRestartNotifications,
+  setupDirectories,
 } from "@dokploy/server";
 import {
-	initializePostgres,
-	initializeRedis,
-	initializeSwarm,
-	initializeTraefik,
+  initializePostgres,
+  initializeRedis,
+  initializeSwarm,
+  initializeTraefik,
 } from "@dokploy/server/index";
 import { config } from "dotenv";
 import next from "next";
@@ -52,7 +52,7 @@ app.prepare().then(async () => {
       await initializeNetwork();
       createDefaultTraefikConfig();
       createDefaultServerTraefikConfig();
-      console.log("🔃 [BOOTSTRAP]: Please wait...");
+      console.log("🔃  [BOOTSTRAP]: Please wait...");
       await initializeSwarm();
       await initializeRedis().then(async () => {
         console.log("Redis Initialized");

@@ -53,16 +53,18 @@ export const initializePostgres = async () => {
       ...settings,
     });
     console.log("Postgres Started ✅");
+    await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 15));
   } catch {
     try {
       await docker.createService(settings);
+      console.log("Postgres Not Found: Starting ✅");
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 2.5));
     } catch (error: any) {
       if (error?.statusCode !== 409) {
         throw error;
       }
       console.log("Postgres service already exists, continuing...");
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 1.5));
     }
-    console.log("Postgres Not Found: Starting ✅");
-    await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 2.5));
   }
 };

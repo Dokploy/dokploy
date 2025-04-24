@@ -3,8 +3,8 @@ import { docker } from "../constants";
 import { pullImage } from "../utils/docker/utils";
 
 export const initializeRedis = async () => {
-	const imageName = "redis:7";
-	const containerName = "dokploy-redis";
+  const imageName = "redis:7";
+  const containerName = "dokploy-redis";
 
   const settings: CreateServiceOptions = {
     Name: containerName,
@@ -43,23 +43,25 @@ export const initializeRedis = async () => {
   try {
     await pullImage(imageName);
 
-		const service = docker.getService(containerName);
-		const inspect = await service.inspect();
-		await service.update({
-			version: Number.parseInt(inspect.Version.Index),
-			...settings,
-		});
-		console.log("Redis Started ✅");
-	} catch (_) {
-		try {
-			await docker.createService(settings);
-		} catch (error: any) {
-			if (error?.statusCode !== 409) {
-				throw error;
-			}
-			console.log("Redis service already exists, continuing...");
-		}
-		console.log("Redis Not Found: Starting ✅");
+    const service = docker.getService(containerName);
+    const inspect = await service.inspect();
+    await service.update({
+      version: Number.parseInt(inspect.Version.Index),
+      ...settings,
+    });
+    console.log("Redis Started ✅");
     await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 2.5));
-	}
+  } catch {
+    try {
+      await docker.createService(settings);
+      console.log("Redis Not Found: Starting ✅");
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 2.5));
+    } catch (error: any) {
+      if (error?.statusCode !== 409) {
+        throw error;
+      }
+      console.log("Redis service already exists, continuing...");
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 1.5));
+    }
+  }
 };
