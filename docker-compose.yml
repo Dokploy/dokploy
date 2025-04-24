@@ -9,5 +9,5 @@ services:
     restart: on-failure
     deploy:
       restart_policy:
-        delay: 30m
+        delay: 1m
         condition: on-failure

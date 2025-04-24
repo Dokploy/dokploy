@@ -24,9 +24,16 @@ RUN chmod a+r /etc/apt/keyrings/docker.asc && \
 RUN echo "#!/bin/bash\n \
 rm -rf /var/run/docker.pid\n \
 dockerd &\n \
+counter=0\n \
+max_attempts=100\n \
 while ! docker info > /dev/null 2>&1; do\n \
-    echo 'Waiting for Docker to start...'\n \
-    sleep 1\n \
+  echo 'Waiting for Docker to start...'\n \
+  ((counter++))\n \
+  if [ \$counter -ge \$max_attempts ]; then\n \
+    echo 'Docker failed to start after \$max_attempts attempts. Exiting.'\n \
+    exit 1\n \
+  fi\n \
+  sleep 1\n \
 done\n \
 docker swarm init\n \
 pnpm start" > /app/dockerd-entrypoint.sh && chmod +x /app/dockerd-entrypoint.sh
