@@ -9,6 +9,12 @@ import {
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
+import {
+	initializePostgres,
+	initializeRedis,
+	initializeSwarm,
+	initializeTraefik,
+} from "@dokploy/server/index";
 import { config } from "dotenv";
 import next from "next";
 import http from "node:http";
@@ -25,44 +31,50 @@ const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
 app.prepare().then(async () => {
-	try {
-		const server = http.createServer((req, res) => {
-			handle(req, res);
-		});
+  try {
+    const server = http.createServer((req, res) => {
+      handle(req, res);
+    });
 
-		// WEBSOCKET
-		setupDrawerLogsWebSocketServer(server);
-		setupDeploymentLogsWebSocketServer(server);
-		setupDockerContainerLogsWebSocketServer(server);
-		setupDockerContainerTerminalWebSocketServer(server);
-		setupTerminalWebSocketServer(server);
-		if (!IS_CLOUD) {
-			setupDockerStatsMonitoringSocketServer(server);
-		}
+    // WEBSOCKET
+    setupDrawerLogsWebSocketServer(server);
+    setupDeploymentLogsWebSocketServer(server);
+    setupDockerContainerLogsWebSocketServer(server);
+    setupDockerContainerTerminalWebSocketServer(server);
+    setupTerminalWebSocketServer(server);
+    if (!IS_CLOUD) {
+      setupDockerStatsMonitoringSocketServer(server);
+    }
 
-		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
-			setupDirectories();
-			createDefaultMiddlewares();
-			await initializeNetwork();
-			createDefaultTraefikConfig();
-			createDefaultServerTraefikConfig();
-			await migration();
-			await initCronJobs();
-			await sendDokployRestartNotifications();
-		}
+    if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
+      setupDirectories();
+      createDefaultMiddlewares();
+      await initializeNetwork();
+      createDefaultTraefikConfig();
+      createDefaultServerTraefikConfig();
+      await initializeSwarm();
+      await initializePostgres();
+      await initializeTraefik();
+      await initializeRedis();
+      setTimeout(async () => {
+        await migration();
+        await initCronJobs();
+        await sendDokployRestartNotifications();
+      }, 10 * 60 * 1000);
+    }
 
-		if (IS_CLOUD && process.env.NODE_ENV === "production") {
-			await migration();
-		}
+    if (IS_CLOUD && process.env.NODE_ENV === "production") {
+      await migration();
+    }
 
-		server.listen(PORT);
-		console.log("Server Started:", PORT);
-		if (!IS_CLOUD) {
-			console.log("Starting Deployment Worker");
-			const { deploymentWorker } = await import("./queues/deployments-queue");
-			await deploymentWorker.run();
-		}
-	} catch (e) {
-		console.error("Main Server Error", e);
-	}
+    server.listen(PORT);
+    console.log("Server Started:", PORT);
+    if (!IS_CLOUD) {
+      console.log("Starting Deployment Worker");
+      const { deploymentWorker } = await import("./queues/deployments-queue");
+      await deploymentWorker.run();
+    }
+  } catch (e) {
+    console.error("Main Server Error", e);
+  }
 });

@@ -1,0 +1,13 @@
+# This file is part of Dokploy.
+services:
+  dokploy-app:
+    image: alexdev404/dokploy
+    container_name: dokploy-app
+    ports:
+      - "3000:3000"
+    privileged: true
+    restart: on-failure
+    deploy:
+      restart_policy:
+        delay: 30m
+        condition: on-failure
