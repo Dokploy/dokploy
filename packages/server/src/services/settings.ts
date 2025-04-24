@@ -1,10 +1,10 @@
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
 import { docker } from "@dokploy/server/constants";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -61,7 +61,7 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 		return DEFAULT_UPDATE_DATA;
 	}
 
-	const baseUrl = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
+	const baseUrl = "https://hub.docker.com/v2/repositories/alexdev404/dokploy/tags";
 	let url: string | null = `${baseUrl}?page_size=100`;
 	let allResults: { digest: string; name: string }[] = [];
 	while (url) {
