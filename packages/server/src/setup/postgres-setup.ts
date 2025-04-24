@@ -63,5 +63,6 @@ export const initializePostgres = async () => {
       console.log("Postgres service already exists, continuing...");
     }
     console.log("Postgres Not Found: Starting ✅");
+    await new Promise((resolve) => setTimeout(resolve, 10 * 60 * 7000));
   }
 };

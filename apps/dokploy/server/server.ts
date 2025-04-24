@@ -52,15 +52,14 @@ app.prepare().then(async () => {
       await initializeNetwork();
       createDefaultTraefikConfig();
       createDefaultServerTraefikConfig();
+	  console.log("🔃 [BOOTSTRAP]: Please wait...")
       await initializeSwarm();
       await initializePostgres();
       await initializeTraefik();
       await initializeRedis();
-      setTimeout(async () => {
-        await migration();
-        await initCronJobs();
-        await sendDokployRestartNotifications();
-      }, 10 * 60 * 1000);
+      await migration();
+      await initCronJobs();
+      await sendDokployRestartNotifications();
     }
 
     if (IS_CLOUD && process.env.NODE_ENV === "production") {
