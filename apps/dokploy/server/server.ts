@@ -52,13 +52,31 @@ app.prepare().then(async () => {
       await initializeNetwork();
       createDefaultTraefikConfig();
       createDefaultServerTraefikConfig();
-	  console.log("🔃 [BOOTSTRAP]: Please wait...")
+      console.log("🔃 [BOOTSTRAP]: Please wait...");
       await initializeSwarm();
-      await initializePostgres();
-      await initializeTraefik();
-      await initializeRedis();
-      await migration();
-      await initCronJobs();
+      await initializeRedis().then(async () => {
+        console.log("Redis Initialized");
+        if (!IS_CLOUD) {
+          console.log("Starting Deployment Worker");
+          const { deploymentWorker } = await import(
+            "./queues/deployments-queue"
+          );
+          setTimeout(async () => {
+            await deploymentWorker.run();
+          }, 1000 * 60 * 5);
+          console.log("Redis Worker Initialized");
+        }
+      });
+      await initializePostgres().then(async () => {
+        console.log("Postgres Initialized");
+        await migration();
+        console.log("Postgres Migration Completed");
+      });
+      await initializeTraefik().then(async () => {
+        console.log("Traefik Initialized");
+        await initCronJobs();
+        console.log("Cron Jobs Initialized");
+      });
       await sendDokployRestartNotifications();
     }
 
@@ -68,11 +86,6 @@ app.prepare().then(async () => {
 
     server.listen(PORT);
     console.log("Server Started:", PORT);
-    if (!IS_CLOUD) {
-      console.log("Starting Deployment Worker");
-      const { deploymentWorker } = await import("./queues/deployments-queue");
-      await deploymentWorker.run();
-    }
   } catch (e) {
     console.error("Main Server Error", e);
   }
