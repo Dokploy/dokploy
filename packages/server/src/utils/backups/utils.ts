@@ -1,11 +1,12 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduleJob, scheduledJobs } from "node-schedule";
+import { keepLatestNBackups } from ".";
 import { runMariadbBackup } from "./mariadb";
 import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
-import { keepLatestNBackups } from ".";
+import { runWebServerBackup } from "./web-server";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =
@@ -23,6 +24,9 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 		} else if (databaseType === "mariadb" && mariadb) {
 			await runMariadbBackup(mariadb, backup);
 			await keepLatestNBackups(backup, mariadb.serverId);
+		} else if (databaseType === "web-server") {
+			await runWebServerBackup(backup);
+			await keepLatestNBackups(backup);
 		}
 	});
 };
@@ -30,6 +34,13 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 export const removeScheduleBackup = (backupId: string) => {
 	const currentJob = scheduledJobs[backupId];
 	currentJob?.cancel();
+};
+
+export const normalizeS3Path = (prefix: string) => {
+	// Trim whitespace and remove leading/trailing slashes
+	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
+	// Return empty string if prefix is empty, otherwise append trailing slash
+	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
 export const getS3Credentials = (destination: Destination) => {

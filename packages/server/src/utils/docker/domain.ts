@@ -15,6 +15,10 @@ import {
 	cloneRawGitRepositoryRemote,
 } from "../providers/git";
 import {
+	cloneRawGiteaRepository,
+	cloneRawGiteaRepositoryRemote,
+} from "../providers/gitea";
+import {
 	cloneRawGithubRepository,
 	cloneRawGithubRepositoryRemote,
 } from "../providers/github";
@@ -44,6 +48,8 @@ export const cloneCompose = async (compose: Compose) => {
 		await cloneRawBitbucketRepository(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneGitRawRepository(compose);
+	} else if (compose.sourceType === "gitea") {
+		await cloneRawGiteaRepository(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRaw(compose);
 	}
@@ -58,6 +64,8 @@ export const cloneComposeRemote = async (compose: Compose) => {
 		await cloneRawBitbucketRepositoryRemote(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneRawGitRepositoryRemote(compose);
+	} else if (compose.sourceType === "gitea") {
+		await cloneRawGiteaRepositoryRemote(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRawRemote(compose);
 	}
@@ -241,6 +249,11 @@ export const addDomainToCompose = async (
 				labels.unshift("traefik.enable=true");
 			}
 			labels.unshift(...httpLabels);
+			if (!compose.isolatedDeployment) {
+				if (!labels.includes("traefik.docker.network=dokploy-network")) {
+					labels.unshift("traefik.docker.network=dokploy-network");
+				}
+			}
 		}
 
 		if (!compose.isolatedDeployment) {

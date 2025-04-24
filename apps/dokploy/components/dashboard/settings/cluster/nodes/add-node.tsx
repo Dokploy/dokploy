@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -12,7 +13,6 @@ import { ExternalLink, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { AddManager } from "./manager/add-manager";
 import { AddWorker } from "./workers/add-worker";
-import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	serverId?: string;

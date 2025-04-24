@@ -35,6 +35,15 @@ import {
 	CommandItem,
 } from "@/components/ui/command";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuLabel,
@@ -47,6 +56,13 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
@@ -64,8 +80,8 @@ import {
 	Loader2,
 	PlusIcon,
 	Search,
-	X,
 	Trash2,
+	X,
 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -73,25 +89,10 @@ import type {
 } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { type ReactElement, useMemo, useState, useEffect } from "react";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 
 export type Services = {
 	appName: string;
@@ -313,31 +314,43 @@ const Project = (
 	};
 
 	const applicationActions = {
+		start: api.application.start.useMutation(),
+		stop: api.application.stop.useMutation(),
 		move: api.application.move.useMutation(),
 		delete: api.application.delete.useMutation(),
 	};
 
 	const postgresActions = {
+		start: api.postgres.start.useMutation(),
+		stop: api.postgres.stop.useMutation(),
 		move: api.postgres.move.useMutation(),
 		delete: api.postgres.remove.useMutation(),
 	};
 
 	const mysqlActions = {
+		start: api.mysql.start.useMutation(),
+		stop: api.mysql.stop.useMutation(),
 		move: api.mysql.move.useMutation(),
 		delete: api.mysql.remove.useMutation(),
 	};
 
 	const mariadbActions = {
+		start: api.mariadb.start.useMutation(),
+		stop: api.mariadb.stop.useMutation(),
 		move: api.mariadb.move.useMutation(),
 		delete: api.mariadb.remove.useMutation(),
 	};
 
 	const redisActions = {
+		start: api.redis.start.useMutation(),
+		stop: api.redis.stop.useMutation(),
 		move: api.redis.move.useMutation(),
 		delete: api.redis.remove.useMutation(),
 	};
 
 	const mongoActions = {
+		start: api.mongo.start.useMutation(),
+		stop: api.mongo.stop.useMutation(),
 		move: api.mongo.move.useMutation(),
 		delete: api.mongo.remove.useMutation(),
 	};
@@ -347,7 +360,34 @@ const Project = (
 		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
 			try {
-				await composeActions.start.mutateAsync({ composeId: serviceId });
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.start.mutateAsync({
+							applicationId: serviceId,
+						});
+						break;
+					case "compose":
+						await composeActions.start.mutateAsync({ composeId: serviceId });
+						break;
+					case "postgres":
+						await postgresActions.start.mutateAsync({ postgresId: serviceId });
+						break;
+					case "mysql":
+						await mysqlActions.start.mutateAsync({ mysqlId: serviceId });
+						break;
+					case "mariadb":
+						await mariadbActions.start.mutateAsync({ mariadbId: serviceId });
+						break;
+					case "redis":
+						await redisActions.start.mutateAsync({ redisId: serviceId });
+						break;
+					case "mongo":
+						await mongoActions.start.mutateAsync({ mongoId: serviceId });
+						break;
+				}
 				success++;
 			} catch (_error) {
 				toast.error(`Error starting service ${serviceId}`);
@@ -367,7 +407,34 @@ const Project = (
 		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
 			try {
-				await composeActions.stop.mutateAsync({ composeId: serviceId });
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.stop.mutateAsync({
+							applicationId: serviceId,
+						});
+						break;
+					case "compose":
+						await composeActions.stop.mutateAsync({ composeId: serviceId });
+						break;
+					case "postgres":
+						await postgresActions.stop.mutateAsync({ postgresId: serviceId });
+						break;
+					case "mysql":
+						await mysqlActions.stop.mutateAsync({ mysqlId: serviceId });
+						break;
+					case "mariadb":
+						await mariadbActions.stop.mutateAsync({ mariadbId: serviceId });
+						break;
+					case "redis":
+						await redisActions.stop.mutateAsync({ redisId: serviceId });
+						break;
+					case "mongo":
+						await mongoActions.stop.mutateAsync({ mongoId: serviceId });
+						break;
+				}
 				success++;
 			} catch (_error) {
 				toast.error(`Error stopping service ${serviceId}`);
@@ -553,7 +620,7 @@ const Project = (
 								</CardTitle>
 								<CardDescription>{data?.description}</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" || auth?.canCreateServices) && (
+							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
@@ -569,7 +636,7 @@ const Project = (
 											className="w-[200px] space-y-2"
 											align="end"
 										>
-											<DropdownMenuLabel className="text-sm font-normal ">
+											<DropdownMenuLabel className="text-sm font-normal">
 												Actions
 											</DropdownMenuLabel>
 											<DropdownMenuSeparator />
@@ -593,7 +660,7 @@ const Project = (
 										</DropdownMenuContent>
 									</DropdownMenu>
 								</div>
-							)}
+							</div>
 						</div>
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							{isLoading ? (
@@ -670,20 +737,27 @@ const Project = (
 													</DialogAction>
 													{(auth?.role === "owner" ||
 														auth?.canDeleteServices) && (
-														<DialogAction
-															title="Delete Services"
-															description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
-															type="destructive"
-															onClick={handleBulkDelete}
-														>
-															<Button
-																variant="ghost"
-																className="w-full justify-start text-destructive"
+														<>
+															<DialogAction
+																title="Delete Services"
+																description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+																type="destructive"
+																onClick={handleBulkDelete}
 															>
-																<Trash2 className="mr-2 h-4 w-4" />
-																Delete
-															</Button>
-														</DialogAction>
+																<Button
+																	variant="ghost"
+																	className="w-full justify-start text-destructive"
+																>
+																	<Trash2 className="mr-2 h-4 w-4" />
+																	Delete
+																</Button>
+															</DialogAction>
+															<DuplicateProject
+																projectId={projectId}
+																services={applications}
+																selectedServiceIds={selectedServices}
+															/>
+														</>
 													)}
 
 													<Dialog

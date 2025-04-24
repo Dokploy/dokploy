@@ -52,6 +52,7 @@ const createSchema = createInsertSchema(projects, {
 export const apiCreateProject = createSchema.pick({
 	name: true,
 	description: true,
+	env: true,
 });
 
 export const apiFindOneProject = createSchema

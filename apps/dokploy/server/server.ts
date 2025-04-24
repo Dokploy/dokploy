@@ -6,12 +6,9 @@ import {
 	createDefaultTraefikConfig,
 	initCronJobs,
 	initializeNetwork,
-	initializePostgres,
-	initializeRedis,
-	initializeTraefik,
-	setupDirectories
+	sendDokployRestartNotifications,
+	setupDirectories,
 } from "@dokploy/server";
-import { sendDokployRestartNotifications } from "@dokploy/server/utils/notifications/dokploy-restart";
 import { config } from "dotenv";
 import next from "next";
 import http from "node:http";
@@ -23,11 +20,11 @@ import { setupDeploymentLogsWebSocketServer } from "./wss/listen-deployment";
 import { setupTerminalWebSocketServer } from "./wss/terminal";
 
 config({ path: ".env" });
-const PORT = Number.parseInt(process.env.PORT || "3000", 10);
+const PORT = Number.parseInt(process.env.PORT ?? "3000", 10);
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
-void app.prepare().then(async () => {
+app.prepare().then(async () => {
 	try {
 		const server = http.createServer((req, res) => {
 			handle(req, res);
@@ -49,15 +46,8 @@ void app.prepare().then(async () => {
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
-			await initializePostgres();
-			await initializeTraefik();
-			await initializeRedis();
-
-			initCronJobs();
-
-			// Timeout to wait for the database to be ready
-			await new Promise((resolve) => setTimeout(resolve, 10000));
 			await migration();
+			await initCronJobs();
 			await sendDokployRestartNotifications();
 		}
 

@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
@@ -8,7 +7,7 @@ import {
 } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials } from "./utils";
+import { getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMariadbBackup = async (
 	mariadb: Mariadb,
@@ -19,7 +18,7 @@ export const runMariadbBackup = async (
 	const { prefix, database } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
-	const bucketDestination = path.join(prefix, backupFileName);
+	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);

@@ -1,11 +1,11 @@
+import { createHash } from "node:crypto";
 import type { WriteStream } from "node:fs";
+import { nanoid } from "nanoid";
 import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
-import { spawnAsync } from "../process/spawnAsync";
 import { execAsync } from "../process/execAsync";
-import { nanoid } from "nanoid";
-import { createHash } from "node:crypto";
+import { spawnAsync } from "../process/spawnAsync";
 
 const calculateSecretsHash = (envVariables: string[]): string => {
 	const hash = createHash("sha256");
@@ -84,7 +84,7 @@ export const buildRailpack = async (
 		for (const envVar of envVariables) {
 			const [key, value] = envVar.split("=");
 			if (key && value) {
-				buildArgs.push("--secret", `id=${key},env=${key}`);
+				buildArgs.push("--secret", `id=${key},env='${key}'`);
 				env[key] = value;
 			}
 		}
@@ -132,7 +132,7 @@ export const getRailpackCommand = (
 	];
 
 	for (const env of envVariables) {
-		prepareArgs.push("--env", env);
+		prepareArgs.push("--env", `'${env}'`);
 	}
 
 	// Calculate secrets hash for layer invalidation
@@ -164,7 +164,7 @@ export const getRailpackCommand = (
 	for (const envVar of envVariables) {
 		const [key, value] = envVar.split("=");
 		if (key && value) {
-			buildArgs.push("--secret", `id=${key},env=${key}`);
+			buildArgs.push("--secret", `id=${key},env='${key}'`);
 			exportEnvs.push(`export ${key}=${value}`);
 		}
 	}
