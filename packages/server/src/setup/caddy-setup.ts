@@ -1,0 +1,350 @@
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import type { ContainerCreateOptions } from "dockerode";
+import { dump } from "js-yaml";
+import { paths } from "../constants";
+import { getRemoteDocker } from "../utils/servers/remote-docker";
+import type { FileConfig } from "../utils/traefik/file-types";
+import type { MainTraefikConfig } from "../utils/traefik/types";
+
+export const TRAEFIK_SSL_PORT =
+	Number.parseInt(process.env.TRAEFIK_SSL_PORT!, 10) || 443;
+export const TRAEFIK_PORT =
+	Number.parseInt(process.env.TRAEFIK_PORT!, 10) || 80;
+export const TRAEFIK_HTTP3_PORT =
+	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
+export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.1.2";
+
+interface TraefikOptions {
+	enableDashboard?: boolean;
+	env?: string[];
+	serverId?: string;
+	additionalPorts?: {
+		targetPort: number;
+		publishedPort: number;
+	}[];
+	force?: boolean;
+}
+
+export const initializeCaddy = async ({
+	enableDashboard = false,
+	env,
+	serverId,
+	additionalPorts = [],
+	force = false,
+}: TraefikOptions = {}) => {
+	const { CADDY_PATH, CADDY_DYNAMIC_PATH } = paths(!!serverId);
+	const imageName = "lucaslorentz/caddy-docker-proxy:ci-alpine";
+	const containerName = "dokploy-caddy";
+
+	const exposedPorts: Record<string, {}> = {
+		[`${TRAEFIK_PORT}/tcp`]: {},
+		[`${TRAEFIK_SSL_PORT}/tcp`]: {},
+		[`${TRAEFIK_HTTP3_PORT}/udp`]: {},
+	};
+
+	const portBindings: Record<string, Array<{ HostPort: string }>> = {
+		[`${TRAEFIK_PORT}/tcp`]: [{ HostPort: TRAEFIK_PORT.toString() }],
+		[`${TRAEFIK_SSL_PORT}/tcp`]: [{ HostPort: TRAEFIK_SSL_PORT.toString() }],
+		[`${TRAEFIK_HTTP3_PORT}/udp`]: [
+			{ HostPort: TRAEFIK_HTTP3_PORT.toString() },
+		],
+	};
+
+	if (enableDashboard) {
+		exposedPorts["8080/tcp"] = {};
+		portBindings["8080/tcp"] = [{ HostPort: "8080" }];
+	}
+
+	for (const port of additionalPorts) {
+		const portKey = `${port.targetPort}/tcp`;
+		exposedPorts[portKey] = {};
+		portBindings[portKey] = [{ HostPort: port.publishedPort.toString() }];
+	}
+
+	const settings: ContainerCreateOptions = {
+		name: containerName,
+		Image: imageName,
+		NetworkingConfig: {
+			EndpointsConfig: {
+				"dokploy-network": {},
+			},
+		},
+		ExposedPorts: exposedPorts,
+		HostConfig: {
+			RestartPolicy: {
+				Name: "always",
+			},
+			Binds: [
+				`${CADDY_PATH}/Caddyfile:/etc/caddy/Caddyfile`,
+				`${CADDY_DYNAMIC_PATH}:/etc/caddy/dynamic`,
+				"/var/run/docker.sock:/var/run/docker.sock",
+			],
+			PortBindings: portBindings,
+		},
+		Env: env,
+	};
+
+	const docker = await getRemoteDocker(serverId);
+	try {
+		try {
+			const service = docker.getService("dokploy-caddy");
+			await service?.remove({ force: true });
+
+			let attempts = 0;
+			const maxAttempts = 5;
+			while (attempts < maxAttempts) {
+				try {
+					await docker.listServices({
+						filters: { name: ["dokploy-caddy"] },
+					});
+					console.log("Waiting for service cleanup...");
+					await new Promise((resolve) => setTimeout(resolve, 5000));
+					attempts++;
+				} catch (_e) {
+					break;
+				}
+			}
+		} catch (_err) {
+			console.log("No existing service to remove");
+		}
+
+		// Then try to remove any existing container
+		const container = docker.getContainer(containerName);
+		try {
+			const inspect = await container.inspect();
+			if (inspect.State.Status === "running" && !force) {
+				console.log("Caddy already running");
+				return;
+			}
+
+			await container.remove({ force: true });
+			await new Promise((resolve) => setTimeout(resolve, 5000));
+		} catch (_err) {
+			console.log("No existing container to remove");
+		}
+
+		// Create and start the new container
+		try {
+			await docker.createContainer(settings);
+			const newContainer = docker.getContainer(containerName);
+			await newContainer.start();
+			console.log("Caddy container started successfully");
+		} catch (error: any) {
+			if (error?.json?.message?.includes("port is already allocated")) {
+				console.log("Ports still in use, waiting longer for cleanup...");
+				await new Promise((resolve) => setTimeout(resolve, 10000));
+				// Try one more time
+				await docker.createContainer(settings);
+				const newContainer = docker.getContainer(containerName);
+				await newContainer.start();
+				console.log("Caddy container started successfully after retry");
+			}
+		}
+	} catch (error) {
+		console.error("Failed to initialize Caddy:", error);
+		throw error;
+	}
+};
+
+export const createDefaultServerCaddyConfig = () => {
+	const { CADDY_DYNAMIC_PATH } = paths();
+	const configFilePath = path.join(CADDY_DYNAMIC_PATH, "Caddyfile");
+
+	if (existsSync(configFilePath)) {
+		console.log("Default caddy config already exists");
+		return;
+	}
+
+	const appName = "dokploy";
+	const serviceURLDefault = `http://${appName}:${process.env.PORT || 3000}`;
+	const config: FileConfig = {
+		http: {
+			routers: {
+				[`${appName}-router-app`]: {
+					rule: `Host(\`${appName}.docker.localhost\`) && PathPrefix(\`/\`)`,
+					service: `${appName}-service-app`,
+					entryPoints: ["web"],
+				},
+			},
+			services: {
+				[`${appName}-service-app`]: {
+					loadBalancer: {
+						servers: [{ url: serviceURLDefault }],
+						passHostHeader: true,
+					},
+				},
+			},
+		},
+	};
+
+	const yamlStr = dump(config);
+	mkdirSync(CADDY_DYNAMIC_PATH, { recursive: true });
+	writeFileSync(path.join(CADDY_DYNAMIC_PATH, `Caddyfile`), yamlStr, "utf8");
+};
+
+export const getDefaultCaddyConfig = () => {
+	const configObject: MainTraefikConfig = {
+		providers: {
+			...(process.env.NODE_ENV === "development"
+				? {
+						docker: {
+							defaultRule:
+								"Host(`{{ trimPrefix `/` .Name }}.docker.localhost`)",
+						},
+					}
+				: {
+						swarm: {
+							exposedByDefault: false,
+							watch: true,
+						},
+						docker: {
+							exposedByDefault: false,
+							watch: true,
+							network: "dokploy-network",
+						},
+					}),
+			file: {
+				directory: "/etc/dokploy/traefik/dynamic",
+				watch: true,
+			},
+		},
+		entryPoints: {
+			web: {
+				address: `:${TRAEFIK_PORT}`,
+			},
+			websecure: {
+				address: `:${TRAEFIK_SSL_PORT}`,
+				http3: {
+					advertisedPort: TRAEFIK_HTTP3_PORT,
+				},
+				...(process.env.NODE_ENV === "production" && {
+					http: {
+						tls: {
+							certResolver: "letsencrypt",
+						},
+					},
+				}),
+			},
+		},
+		api: {
+			insecure: true,
+		},
+		...(process.env.NODE_ENV === "production" && {
+			certificatesResolvers: {
+				letsencrypt: {
+					acme: {
+						email: "test@localhost.com",
+						storage: "/etc/dokploy/traefik/dynamic/acme.json",
+						httpChallenge: {
+							entryPoint: "web",
+						},
+					},
+				},
+			},
+		}),
+	};
+
+	const yamlStr = dump(configObject);
+
+	return yamlStr;
+};
+
+export const getDefaultServerTraefikConfig = () => {
+	const configObject: MainTraefikConfig = {
+		providers: {
+			swarm: {
+				exposedByDefault: false,
+				watch: true,
+			},
+			docker: {
+				exposedByDefault: false,
+				watch: true,
+				network: "dokploy-network",
+			},
+			file: {
+				directory: "/etc/dokploy/traefik/dynamic",
+				watch: true,
+			},
+		},
+		entryPoints: {
+			web: {
+				address: `:${TRAEFIK_PORT}`,
+			},
+			websecure: {
+				address: `:${TRAEFIK_SSL_PORT}`,
+				http3: {
+					advertisedPort: TRAEFIK_HTTP3_PORT,
+				},
+				http: {
+					tls: {
+						certResolver: "letsencrypt",
+					},
+				},
+			},
+		},
+		api: {
+			insecure: true,
+		},
+		certificatesResolvers: {
+			letsencrypt: {
+				acme: {
+					email: "test@localhost.com",
+					storage: "/etc/dokploy/traefik/dynamic/acme.json",
+					httpChallenge: {
+						entryPoint: "web",
+					},
+				},
+			},
+		},
+	};
+
+	const yamlStr = dump(configObject);
+
+	return yamlStr;
+};
+
+export const createDefaultCaddyConfig = () => {
+	const { CADDY_PATH, CADDY_DYNAMIC_PATH } = paths();
+	const mainConfig = path.join(CADDY_PATH, "Caddyfile");
+	const acmeJsonPath = path.join(CADDY_DYNAMIC_PATH, "acme.json");
+
+	if (existsSync(acmeJsonPath)) {
+		chmodSync(acmeJsonPath, "600");
+	}
+	if (existsSync(mainConfig)) {
+		console.log("Main config already exists");
+		return;
+	}
+	const yamlStr = getDefaultCaddyConfig();
+	mkdirSync(CADDY_PATH, { recursive: true });
+	writeFileSync(mainConfig, yamlStr, "utf8");
+};
+
+export const getDefaultMiddlewares = () => {
+	const defaultMiddlewares = {
+		http: {
+			middlewares: {
+				"redirect-to-https": {
+					redirectScheme: {
+						scheme: "https",
+						permanent: true,
+					},
+				},
+			},
+		},
+	};
+	const yamlStr = dump(defaultMiddlewares);
+	return yamlStr;
+};
+export const createDefaultMiddlewares = () => {
+	const { DYNAMIC_TRAEFIK_PATH } = paths();
+	const middlewaresPath = path.join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
+	if (existsSync(middlewaresPath)) {
+		console.log("Default middlewares already exists");
+		return;
+	}
+	const yamlStr = getDefaultMiddlewares();
+	mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
+	writeFileSync(middlewaresPath, yamlStr, "utf8");
+};

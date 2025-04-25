@@ -12,10 +12,14 @@ export const paths = (isServer = false) => {
 	const MAIN_TRAEFIK_PATH = `${BASE_PATH}/traefik`;
 	const DYNAMIC_TRAEFIK_PATH = `${MAIN_TRAEFIK_PATH}/dynamic`;
 
+	const CADDY_PATH = `${BASE_PATH}/caddy`;
+	const CADDY_DYNAMIC_PATH = `${CADDY_PATH}/dynamic`;
 	return {
 		BASE_PATH,
 		MAIN_TRAEFIK_PATH,
 		DYNAMIC_TRAEFIK_PATH,
+		CADDY_PATH,
+		CADDY_DYNAMIC_PATH,
 		LOGS_PATH: `${BASE_PATH}/logs`,
 		APPLICATIONS_PATH: `${BASE_PATH}/applications`,
 		COMPOSE_PATH: `${BASE_PATH}/compose`,
