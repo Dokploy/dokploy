@@ -134,16 +134,7 @@ export const UserNav = () => {
 								</DropdownMenuItem>
 							)}
 
-							{data?.role === "owner" && (
-								<DropdownMenuItem
-									className="cursor-pointer"
-									onClick={() => {
-										router.push("/dashboard/settings");
-									}}
-								>
-									Settings
-								</DropdownMenuItem>
-							)}
+							
 						</>
 					)}
 				</DropdownMenuGroup>
