@@ -133,8 +133,6 @@ export const UserNav = () => {
 									Servers
 								</DropdownMenuItem>
 							)}
-
-							
 						</>
 					)}
 				</DropdownMenuGroup>
