@@ -1,17 +1,17 @@
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import {
-	createServerDeployment,
-	updateDeploymentStatus,
+  createServerDeployment,
+  updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
 import { findServerById } from "@dokploy/server/services/server";
 import {
-	TRAEFIK_HTTP3_PORT,
-	TRAEFIK_PORT,
-	TRAEFIK_SSL_PORT,
-	TRAEFIK_VERSION,
-	getDefaultMiddlewares,
-	getDefaultServerTraefikConfig,
+  TRAEFIK_HTTP3_PORT,
+  TRAEFIK_PORT,
+  TRAEFIK_SSL_PORT,
+  TRAEFIK_VERSION,
+  getDefaultMiddlewares,
+  getDefaultServerTraefikConfig,
 } from "@dokploy/server/setup/traefik-setup";
 import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
@@ -19,55 +19,55 @@ import { recreateDirectory } from "../utils/filesystem/directory";
 import slug from "slugify";
 
 export const slugify = (text: string | undefined) => {
-	if (!text) {
-		return "";
-	}
+  if (!text) {
+    return "";
+  }
 
-	const cleanedText = text.trim().replace(/[^a-zA-Z0-9\s]/g, "");
+  const cleanedText = text.trim().replace(/[^a-zA-Z0-9\s]/g, "");
 
-	return slug(cleanedText, {
-		lower: true,
-		trim: true,
-		strict: true,
-	});
+  return slug(cleanedText, {
+    lower: true,
+    trim: true,
+    strict: true,
+  });
 };
 
 export const serverSetup = async (
-	serverId: string,
-	onData?: (data: any) => void,
+  serverId: string,
+  onData?: (data: any) => void
 ) => {
-	const server = await findServerById(serverId);
-	const { LOGS_PATH } = paths();
+  const server = await findServerById(serverId);
+  const { LOGS_PATH } = paths();
 
-	const slugifyName = slugify(`server ${server.name}`);
+  const slugifyName = slugify(`server ${server.name}`);
 
-	const fullPath = path.join(LOGS_PATH, slugifyName);
+  const fullPath = path.join(LOGS_PATH, slugifyName);
 
-	await recreateDirectory(fullPath);
+  await recreateDirectory(fullPath);
 
-	const deployment = await createServerDeployment({
-		serverId: server.serverId,
-		title: "Setup Server",
-		description: "Setup Server",
-	});
+  const deployment = await createServerDeployment({
+    serverId: server.serverId,
+    title: "Setup Server",
+    description: "Setup Server",
+  });
 
-	try {
-		onData?.("\nInstalling Server Dependencies: ✅\n");
-		await installRequirements(serverId, onData);
+  try {
+    onData?.("\nInstalling Server Dependencies: ✅\n");
+    await installRequirements(serverId, onData);
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
+    await updateDeploymentStatus(deployment.deploymentId, "done");
 
-		onData?.("\nSetup Server: ✅\n");
-	} catch (err) {
-		console.log(err);
+    onData?.("\nSetup Server: ✅\n");
+  } catch (err) {
+    console.log(err);
 
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		onData?.(`${err} ❌\n`);
-	}
+    await updateDeploymentStatus(deployment.deploymentId, "error");
+    onData?.(`${err} ❌\n`);
+  }
 };
 
 export const defaultCommand = () => {
-	const bashCommand = `
+  const bashCommand = `
 set -e;
 DOCKER_VERSION=27.0.3
 OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
@@ -76,7 +76,7 @@ CURRENT_USER=$USER
 
 echo "Installing requirements for: OS: $OS_TYPE"
 if [ $EUID != 0 ]; then
-	echo "Please run this script as root or with sudo ❌" 
+	echo "Please run this script as root or with sudo ❌"
 	exit
 fi
 
@@ -176,83 +176,83 @@ echo -e "13. Installing Railpack"
 ${installRailpack()}
 				`;
 
-	return bashCommand;
+  return bashCommand;
 };
 
 const installRequirements = async (
-	serverId: string,
-	onData?: (data: any) => void,
+  serverId: string,
+  onData?: (data: any) => void
 ) => {
-	const client = new Client();
-	const server = await findServerById(serverId);
-	if (!server.sshKeyId) {
-		onData?.("❌ No SSH Key found, please assign one to this server");
-		throw new Error("No SSH Key found");
-	}
+  const client = new Client();
+  const server = await findServerById(serverId);
+  if (!server.sshKeyId) {
+    onData?.("❌ No SSH Key found, please assign one to this server");
+    throw new Error("No SSH Key found");
+  }
 
-	return new Promise<void>((resolve, reject) => {
-		client
-			.once("ready", () => {
-				const command = server.command || defaultCommand();
-				client.exec(command, (err, stream) => {
-					if (err) {
-						onData?.(err.message);
-						reject(err);
-						return;
-					}
-					stream
-						.on("close", () => {
-							client.end();
-							resolve();
-						})
-						.on("data", (data: string) => {
-							onData?.(data.toString());
-						})
-						.stderr.on("data", (data) => {
-							onData?.(data.toString());
-						});
-				});
-			})
-			.on("error", (err) => {
-				client.end();
-				if (err.level === "client-authentication") {
-					onData?.(
-						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
-					);
-					reject(
-						new Error(
-							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
-						),
-					);
-				} else {
-					onData?.(`SSH connection error: ${err.message} ${err.level}`);
-					reject(new Error(`SSH connection error: ${err.message}`));
-				}
-			})
-			.connect({
-				host: server.ipAddress,
-				port: server.port,
-				username: server.username,
-				privateKey: server.sshKey?.privateKey,
-			});
-	});
+  return new Promise<void>((resolve, reject) => {
+    client
+      .once("ready", () => {
+        const command = server.command || defaultCommand();
+        client.exec(command, (err, stream) => {
+          if (err) {
+            onData?.(err.message);
+            reject(err);
+            return;
+          }
+          stream
+            .on("close", () => {
+              client.end();
+              resolve();
+            })
+            .on("data", (data: string) => {
+              onData?.(data.toString());
+            })
+            .stderr.on("data", (data) => {
+              onData?.(data.toString());
+            });
+        });
+      })
+      .on("error", (err) => {
+        client.end();
+        if (err.level === "client-authentication") {
+          onData?.(
+            `Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`
+          );
+          reject(
+            new Error(
+              `Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`
+            )
+          );
+        } else {
+          onData?.(`SSH connection error: ${err.message} ${err.level}`);
+          reject(new Error(`SSH connection error: ${err.message}`));
+        }
+      })
+      .connect({
+        host: server.ipAddress,
+        port: server.port,
+        username: server.username,
+        privateKey: server.sshKey?.privateKey,
+      });
+  });
 };
 
 const setupDirectories = () => {
-	const { SSH_PATH } = paths(true);
-	const directories = Object.values(paths(true));
+  const { SSH_PATH } = paths(true);
+  const directories = Object.values(paths(true));
 
-	const createDirsCommand = directories
-		.map((dir) => `mkdir -p "${dir}"`)
-		.join(" && ");
-	const chmodCommand = `chmod 700 "${SSH_PATH}"`;
+  const createDirsCommand = directories
+    .map((dir) => `mkdir -p "${dir}"`)
+    .join(" && ");
+  const chmodCommand = `chmod 700 "${SSH_PATH}"`;
 
-	const command = `
+  const command = `
 	${createDirsCommand}
 	${chmodCommand}
 	`;
 
-	return command;
+  return command;
 };
 
 const setupMainDirectory = () => `
@@ -263,7 +263,7 @@ const setupMainDirectory = () => `
 		# Create the /etc/dokploy directory
 		mkdir -p /etc/dokploy
 		chmod 777 /etc/dokploy
-		
+
 		echo "Directory /etc/dokploy created ✅"
 	fi
 `;
@@ -276,16 +276,16 @@ export const setupSwarm = () => `
 			# Get IP address
 			get_ip() {
 				local ip=""
-				
+
 				# Try IPv4 with multiple services
 				# First attempt: ifconfig.io
 				ip=\$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
-				
+
 				# Second attempt: icanhazip.com
 				if [ -z "\$ip" ]; then
 					ip=\$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 				fi
-				
+
 				# Third attempt: ipecho.net
 				if [ -z "\$ip" ]; then
 					ip=\$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
@@ -295,12 +295,12 @@ export const setupSwarm = () => `
 				if [ -z "\$ip" ]; then
 					# Try IPv6 with ifconfig.io
 					ip=\$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
-					
+
 					# Try IPv6 with icanhazip.com
 					if [ -z "\$ip" ]; then
 						ip=\$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 					fi
-					
+
 					# Try IPv6 with ipecho.net
 					if [ -z "\$ip" ]; then
 						ip=\$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
@@ -502,9 +502,9 @@ fi
 `;
 
 const createTraefikConfig = () => {
-	const config = getDefaultServerTraefikConfig();
+  const config = getDefaultServerTraefikConfig();
 
-	const command = `
+  const command = `
 	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then
 		chmod 600 "/etc/dokploy/traefik/dynamic/acme.json"
 	fi
@@ -515,19 +515,19 @@ const createTraefikConfig = () => {
 	fi
 	`;
 
-	return command;
+  return command;
 };
 
 const createDefaultMiddlewares = () => {
-	const config = getDefaultMiddlewares();
-	const command = `
+  const config = getDefaultMiddlewares();
+  const command = `
 	if [ -f "/etc/dokploy/traefik/dynamic/middlewares.yml" ]; then
 		echo "Middlewares config already exists ✅"
 	else
 		echo "${config}" > /etc/dokploy/traefik/dynamic/middlewares.yml
 	fi
 	`;
-	return command;
+  return command;
 };
 
 export const installRClone = () => `
@@ -541,7 +541,7 @@ export const installRClone = () => `
 `;
 
 export const createTraefikInstance = () => {
-	const command = `
+  const command = `
 	    # Check if dokpyloy-traefik exists
 		if docker service inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Migrating Traefik to Standalone..."
@@ -549,7 +549,7 @@ export const createTraefikInstance = () => {
 			sleep 8
 			echo "Traefik migrated to Standalone ✅"
 		fi
-			
+
 		if docker inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Traefik already exists ✅"
 		else
@@ -570,14 +570,14 @@ export const createTraefikInstance = () => {
 		fi
 	`;
 
-	return command;
+  return command;
 };
 
 const installNixpacks = () => `
 	if command_exists nixpacks; then
 		echo "Nixpacks already installed ✅"
 	else
-	    export NIXPACKS_VERSION=1.29.1
+	    export NIXPACKS_VERSION=1.35.0
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
