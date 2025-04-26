@@ -24,28 +24,23 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
 
 			// First get the container ID
-			// Returns: ID\nID\nID...
 			const { stdout: containerId } = await execAsync(
-				"docker ps --filter 'name=dokploy-postgres' -q",
+				`docker ps --filter "name=dokploy-postgres" --filter "status=running" -q | head -n 1`,
 			);
 
 			if (!containerId) {
 				throw new Error("PostgreSQL container not found");
 			}
 
-			// ID\nID\nID... => [ "ID", "ID", ... ]
-			const containers = containerId.trim().split("\n").filter(Boolean); 
+			const postgresContainerId = containerId.trim();
 
-			// Then run pg_dump with the container ID
-			for (const containerId of containers) {
-				// 																Maybe we can find a better identification for this part      vvv
-				const postgresCommand = `docker exec ${containerId.trim()} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database-${containerId}.sql'`;
-				await execAsync(postgresCommand);
-			}
+			const postgresCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database.sql'`;
+			await execAsync(postgresCommand);
 
 			await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
 
-			await execAsync( // Zip all .sql files since we created more than one
+			await execAsync(
+				// Zip all .sql files since we created more than one
 				`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
 			);
 
