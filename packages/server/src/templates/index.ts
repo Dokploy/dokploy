@@ -85,18 +85,23 @@ export function generateJwt(options: GenerateJWTOptions = {}): string {
 		alg: "HS256",
 		typ: "JWT",
 	});
-	payload.iss || (payload.iss = "dokploy");
-	payload.iat || (payload.iat = Math.floor(Date.now() / 1000));
-	payload.exp ||
-		(payload.exp = Math.floor(
-			new Date("2030-01-01T00:00:00Z").getTime() / 1000,
-		));
+	if (!payload.iss) {
+		payload.iss = "dokploy";
+	}
+	if (!payload.iat) {
+		payload.iat = Math.floor(Date.now() / 1000);
+	}
+	if (!payload.exp) {
+		payload.exp = Math.floor(new Date("2030-01-01T00:00:00Z").getTime() / 1000);
+	}
 	const encodedPayload = objToJWTBase64({
 		iat: Math.floor(Date.now() / 1000),
 		exp: Math.floor(new Date("2030-01-01T00:00:00Z").getTime() / 1000),
 		...payload,
 	});
-	secret || (secret = randomBytes(32).toString("hex"));
+	if (!secret) {
+		secret = randomBytes(32).toString("hex");
+	}
 	const signature = safeBase64(
 		createHmac("SHA256", secret)
 			.update(`${encodedHeader}.${encodedPayload}`)
