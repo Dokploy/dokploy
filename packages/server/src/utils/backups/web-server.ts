@@ -25,21 +25,23 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			// First get the container ID
 			const { stdout: containerId } = await execAsync(
-				"docker ps --filter 'name=dokploy-postgres' -q",
+				`docker ps --filter "name=dokploy-postgres" --filter "status=running" -q | head -n 1`,
 			);
 
 			if (!containerId) {
 				throw new Error("PostgreSQL container not found");
 			}
 
-			// Then run pg_dump with the container ID
-			const postgresCommand = `docker exec ${containerId.trim()} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database.sql'`;
+			const postgresContainerId = containerId.trim();
+
+			const postgresCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database.sql'`;
 			await execAsync(postgresCommand);
 
 			await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
 
 			await execAsync(
-				`cd ${tempDir} && zip -r ${backupFileName} database.sql filesystem/ > /dev/null 2>&1`,
+				// Zip all .sql files since we created more than one
+				`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
 			);
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
