@@ -31,6 +31,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -60,7 +61,7 @@ const GitlabProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
-	recurseSubmodules: z.boolean().default(true),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -87,7 +88,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			},
 			gitlabId: "",
 			branch: "",
-			recurseSubmodules: true,
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GitlabProviderSchema),
 	});
@@ -137,7 +138,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				buildPath: data.gitlabBuildPath || "/",
 				gitlabId: data.gitlabId || "",
 				watchPaths: data.watchPaths || [],
-				recurseSubmodules: data.recurseSubmodules ?? true,
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -153,7 +154,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			gitlabProjectId: data.repository.id,
 			gitlabPathNamespace: data.repository.gitlabPathNamespace,
 			watchPaths: data.watchPaths || [],
-			recurseSubmodules: data.recurseSubmodules,
+			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -489,18 +490,16 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 						/>
 						<FormField
 							control={form.control}
-							name="recurseSubmodules"
+							name="enableSubmodules"
 							render={({ field }) => (
 								<FormItem className="flex items-center space-x-2">
 									<FormControl>
-										<input
-											type="checkbox"
+										<Switch
 											checked={field.value}
-											onChange={field.onChange}
-											className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel>Recurse Submodules</FormLabel>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

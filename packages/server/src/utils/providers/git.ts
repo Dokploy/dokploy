@@ -17,7 +17,7 @@ export const cloneGitRepository = async (
 		customGitUrl?: string | null;
 		customGitBranch?: string | null;
 		customGitSSHKeyId?: string | null;
-		recurseSubmodules?: boolean;
+		enableSubmodules?: boolean;
 	},
 	logPath: string,
 	isCompose = false,
@@ -28,7 +28,7 @@ export const cloneGitRepository = async (
 		customGitUrl,
 		customGitBranch,
 		customGitSSHKeyId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
@@ -83,13 +83,12 @@ export const cloneGitRepository = async (
 			customGitBranch,
 			"--depth",
 			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			customGitUrl,
 			outputPath,
 			"--progress",
 		];
-		if (recurseSubmodules) {
-			cloneArgs.splice(4, 0, "--recurse-submodules");
-		}
+
 		await spawnAsync(
 			"git",
 			cloneArgs,
@@ -124,7 +123,7 @@ export const getCustomGitCloneCommand = async (
 		customGitBranch?: string | null;
 		customGitSSHKeyId?: string | null;
 		serverId: string | null;
-		recurseSubmodules?: boolean;
+		enableSubmodules: boolean;
 	},
 	logPath: string,
 	isCompose = false,
@@ -136,7 +135,7 @@ export const getCustomGitCloneCommand = async (
 		customGitBranch,
 		customGitSSHKeyId,
 		serverId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
@@ -193,7 +192,7 @@ export const getCustomGitCloneCommand = async (
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
 				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
 				exit 1;
 			fi
@@ -273,14 +272,14 @@ export const cloneGitRawRepository = async (entity: {
 	customGitUrl?: string | null;
 	customGitBranch?: string | null;
 	customGitSSHKeyId?: string | null;
-	recurseSubmodules?: boolean;
+	enableSubmodules?: boolean;
 }) => {
 	const {
 		appName,
 		customGitUrl,
 		customGitBranch,
 		customGitSSHKeyId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!customGitUrl || !customGitBranch) {
@@ -332,13 +331,12 @@ export const cloneGitRawRepository = async (entity: {
 			customGitBranch,
 			"--depth",
 			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			customGitUrl,
 			outputPath,
 			"--progress",
 		];
-		if (recurseSubmodules) {
-			cloneArgs.splice(4, 0, "--recurse-submodules");
-		}
+
 		await spawnAsync("git", cloneArgs, (_data) => {}, {
 			env: {
 				...process.env,
@@ -359,7 +357,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		customGitUrl,
 		customGitSSHKeyId,
 		serverId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = compose;
 
 	if (!serverId) {
@@ -414,7 +412,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
+			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
 			fi

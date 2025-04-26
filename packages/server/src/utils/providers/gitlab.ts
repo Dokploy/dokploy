@@ -96,7 +96,7 @@ export const cloneGitlabRepository = async (
 		gitlabId,
 		gitlab,
 		gitlabPathNamespace,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!gitlabId) {
@@ -139,13 +139,12 @@ export const cloneGitlabRepository = async (
 			gitlabBranch!,
 			"--depth",
 			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
 		];
-		if (recurseSubmodules) {
-			cloneArgs.splice(4, 0, "--recurse-submodules");
-		}
+
 		await spawnAsync("git", cloneArgs, (data) => {
 			if (writeStream.writable) {
 				writeStream.write(data);
@@ -172,7 +171,7 @@ export const getGitlabCloneCommand = async (
 		gitlabId,
 		serverId,
 		gitlab,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!serverId) {
@@ -228,7 +227,7 @@ export const getGitlabCloneCommand = async (
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${gitlabBranch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+if ! git clone --branch ${gitlabBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
@@ -341,7 +340,7 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 		gitlabBranch,
 		gitlabId,
 		gitlabPathNamespace,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!gitlabId) {
@@ -369,13 +368,11 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 			gitlabBranch!,
 			"--depth",
 			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
 		];
-		if (recurseSubmodules) {
-			cloneArgs.splice(4, 0, "--recurse-submodules");
-		}
 		await spawnAsync("git", cloneArgs);
 	} catch (error) {
 		throw error;
@@ -389,7 +386,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 		branch,
 		gitlabId,
 		serverId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = compose;
 
 	if (!serverId) {
@@ -414,7 +411,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${branch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {

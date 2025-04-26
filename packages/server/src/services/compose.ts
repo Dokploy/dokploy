@@ -356,6 +356,7 @@ export const deployRemoteCompose = async ({
 					deployment.logPath,
 					true,
 				);
+				console.log(command);
 			} else if (compose.sourceType === "raw") {
 				command += getCreateComposeFileCommand(compose, deployment.logPath);
 			} else if (compose.sourceType === "gitea") {

@@ -37,7 +37,7 @@ export const cloneBitbucketRepository = async (
 		bitbucketBranch,
 		bitbucketId,
 		bitbucket,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!bitbucketId) {
@@ -60,13 +60,12 @@ export const cloneBitbucketRepository = async (
 			bitbucketBranch!,
 			"--depth",
 			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
 		];
-		if (recurseSubmodules) {
-			cloneArgs.splice(4, 0, "--recurse-submodules");
-		}
+
 		await spawnAsync("git", cloneArgs, (data) => {
 			if (writeStream.writable) {
 				writeStream.write(data);
@@ -89,7 +88,7 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 		bitbucketOwner,
 		bitbucketBranch,
 		bitbucketId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!bitbucketId) {
@@ -113,13 +112,12 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 			bitbucketBranch!,
 			"--depth",
 			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
 		];
-		if (recurseSubmodules) {
-			cloneArgs.splice(4, 0, "--recurse-submodules");
-		}
+
 		await spawnAsync("git", cloneArgs);
 	} catch (error) {
 		throw error;
@@ -135,7 +133,7 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 		bitbucketBranch,
 		bitbucketId,
 		serverId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = compose;
 
 	if (!serverId) {
@@ -160,7 +158,7 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 	try {
 		const cloneCommand = `
 			rm -rf ${outputPath};
-			git clone --branch ${bitbucketBranch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, cloneCommand);
 	} catch (error) {
@@ -181,7 +179,7 @@ export const getBitbucketCloneCommand = async (
 		bitbucketBranch,
 		bitbucketId,
 		serverId,
-		recurseSubmodules = true,
+		enableSubmodules,
 	} = entity;
 
 	if (!serverId) {
@@ -213,7 +211,7 @@ export const getBitbucketCloneCommand = async (
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${bitbucketBranch} --depth 1 ${recurseSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+if ! git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
