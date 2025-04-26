@@ -117,7 +117,9 @@ export function processValue(
 			return new Date(varName.slice(12)).getTime().toString();
 		}
 		if (varName.startsWith("timestamps:")) {
-			return Math.round(new Date(varName.slice(11)).getTime() / 1000).toString();
+			return Math.round(
+				new Date(varName.slice(11)).getTime() / 1000,
+			).toString();
 		}
 
 		if (varName === "randomPort") {
@@ -129,15 +131,19 @@ export function processValue(
 		}
 
 		if (varName.startsWith("jwt:")) {
-			const params:string[] = varName.split(":").slice(1);
+			const params: string[] = varName.split(":").slice(1);
 			if (params.length === 1 && params[0] && params[0].match(/^\d{1,3}$/)) {
-				return generateJwt({length: Number.parseInt(params[0], 10)});
+				return generateJwt({ length: Number.parseInt(params[0], 10) });
 			}
 			let [secret, payload] = params;
 			if (typeof payload === "string" && variables[payload]) {
 				payload = variables[payload];
 			}
-			if (typeof payload === "string" && payload.startsWith("{") && payload.endsWith("}")) {
+			if (
+				typeof payload === "string" &&
+				payload.startsWith("{") &&
+				payload.endsWith("}")
+			) {
 				try {
 					payload = JSON.parse(payload);
 				} catch (e) {
@@ -146,12 +152,12 @@ export function processValue(
 					console.error("Invalid JWT payload", e);
 				}
 			}
-			if (typeof payload !== 'object') {
+			if (typeof payload !== "object") {
 				payload = undefined;
 			}
 			return generateJwt({
-				secret: secret ? (variables[secret] || secret) : undefined,
-				payload: payload as any
+				secret: secret ? variables[secret] || secret : undefined,
+				payload: payload as any,
 			});
 		}
 

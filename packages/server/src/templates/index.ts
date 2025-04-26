@@ -9,7 +9,7 @@ import { fetchTemplateFiles } from "./github";
 export interface Schema {
 	serverIp: string;
 	projectName: string;
-};
+}
 
 export type DomainSchema = Pick<Domain, "host" | "port" | "serviceName"> & {
 	path?: string;
@@ -22,7 +22,7 @@ export interface Template {
 		content: string;
 	}>;
 	domains: DomainSchema[];
-};
+}
 
 export interface GenerateJWTOptions {
 	length?: number;
@@ -65,17 +65,16 @@ export const generatePassword = (quantity = 16): string => {
  */
 export function generateBase64(bytes = 32): string {
 	return randomBytes(bytes).toString("base64");
-};
+}
 
 function safeBase64(str: string): string {
-	return str
-		.replace(/=/g, "")
-		.replace(/\+/g, "-")
-		.replace(/\//g, "_");
-};
+	return str.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
 function objToJWTBase64(obj: any): string {
-	return safeBase64(Buffer.from(JSON.stringify(obj), "utf8").toString("base64"));
-};
+	return safeBase64(
+		Buffer.from(JSON.stringify(obj), "utf8").toString("base64"),
+	);
+}
 
 export function generateJwt(options: GenerateJWTOptions = {}): string {
 	let { length, secret, payload = {} } = options;
@@ -88,16 +87,21 @@ export function generateJwt(options: GenerateJWTOptions = {}): string {
 	});
 	payload.iss || (payload.iss = "dokploy");
 	payload.iat || (payload.iat = Math.floor(Date.now() / 1000));
-	payload.exp || (payload.exp = Math.floor(new Date("2030-01-01T00:00:00Z").getTime() / 1000));
+	payload.exp ||
+		(payload.exp = Math.floor(
+			new Date("2030-01-01T00:00:00Z").getTime() / 1000,
+		));
 	const encodedPayload = objToJWTBase64({
 		iat: Math.floor(Date.now() / 1000),
 		exp: Math.floor(new Date("2030-01-01T00:00:00Z").getTime() / 1000),
 		...payload,
 	});
 	secret || (secret = randomBytes(32).toString("hex"));
-	const signature = safeBase64(createHmac("SHA256", secret)
-		.update(`${encodedHeader}.${encodedPayload}`)
-		.digest("base64"));
+	const signature = safeBase64(
+		createHmac("SHA256", secret)
+			.update(`${encodedHeader}.${encodedPayload}`)
+			.digest("base64"),
+	);
 
 	return `${encodedHeader}.${encodedPayload}.${signature}`;
 }
