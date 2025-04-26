@@ -1,10 +1,12 @@
 import { SaveDockerProvider } from "@/components/dashboard/application/general/generic/save-docker-provider";
 import { SaveGitProvider } from "@/components/dashboard/application/general/generic/save-git-provider";
+import { SaveGiteaProvider } from "@/components/dashboard/application/general/generic/save-gitea-provider";
 import { SaveGithubProvider } from "@/components/dashboard/application/general/generic/save-github-provider";
 import {
 	BitbucketIcon,
 	DockerIcon,
 	GitIcon,
+	GiteaIcon,
 	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
@@ -18,7 +20,14 @@ import { SaveBitbucketProvider } from "./save-bitbucket-provider";
 import { SaveDragNDrop } from "./save-drag-n-drop";
 import { SaveGitlabProvider } from "./save-gitlab-provider";
 
-type TabState = "github" | "docker" | "git" | "drop" | "gitlab" | "bitbucket";
+type TabState =
+	| "github"
+	| "docker"
+	| "git"
+	| "drop"
+	| "gitlab"
+	| "bitbucket"
+	| "gitea";
 
 interface Props {
 	applicationId: string;
@@ -29,6 +38,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
 	const { data: bitbucketProviders } =
 		api.bitbucket.bitbucketProviders.useQuery();
+	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
 
 	const { data: application } = api.application.one.useQuery({ applicationId });
 	const [tab, setSab] = useState<TabState>(application?.sourceType || "github");
@@ -55,7 +65,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						setSab(e as TabState);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between  w-full gap-4">
+					<div className="flex flex-row items-center justify-between w-full gap-4">
 						<TabsList className="md:grid md:w-fit md:grid-cols-7 max-md:overflow-x-scroll justify-start bg-transparent overflow-y-hidden">
 							<TabsTrigger
 								value="github"
@@ -77,6 +87,13 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 							>
 								<BitbucketIcon className="size-4 text-current fill-current" />
 								Bitbucket
+							</TabsTrigger>
+							<TabsTrigger
+								value="gitea"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+							>
+								<GiteaIcon className="size-4 text-current fill-current" />
+								Gitea
 							</TabsTrigger>
 							<TabsTrigger
 								value="docker"
@@ -150,6 +167,26 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 								<BitbucketIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									To deploy using Bitbucket, you need to configure your account
+									first. Please, go to{" "}
+									<Link
+										href="/dashboard/settings/git-providers"
+										className="text-foreground"
+									>
+										Settings
+									</Link>{" "}
+									to do so.
+								</span>
+							</div>
+						)}
+					</TabsContent>
+					<TabsContent value="gitea" className="w-full p-2">
+						{giteaProviders && giteaProviders?.length > 0 ? (
+							<SaveGiteaProvider applicationId={applicationId} />
+						) : (
+							<div className="flex flex-col items-center gap-3 min-h-[15vh] justify-center">
+								<GiteaIcon className="size-8 text-muted-foreground" />
+								<span className="text-base text-muted-foreground">
+									To deploy using Gitea, you need to configure your account
 									first. Please, go to{" "}
 									<Link
 										href="/dashboard/settings/git-providers"

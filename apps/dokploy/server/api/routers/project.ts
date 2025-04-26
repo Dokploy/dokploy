@@ -14,21 +14,44 @@ import {
 	projects,
 	redis,
 } from "@/server/db/schema";
+import { z } from "zod";
 
 import {
 	IS_CLOUD,
 	addNewProject,
 	checkProjectAccess,
+	createApplication,
+	createCompose,
+	createMariadb,
+	createMongo,
+	createMysql,
+	createPostgres,
 	createProject,
+	createRedis,
 	deleteProject,
+	findApplicationById,
+	findComposeById,
+	findMongoById,
 	findMemberById,
+	findRedisById,
 	findProjectById,
 	findUserById,
 	updateProjectById,
+	findPostgresById,
+	findMariadbById,
+	findMySqlById,
+	createDomain,
+	createPort,
+	createMount,
+	createRedirect,
+	createPreviewDeployment,
+	createBackup,
+	createSecurity,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateProject)
@@ -266,7 +289,317 @@ export const projectRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
+	duplicate: protectedProcedure
+		.input(
+			z.object({
+				sourceProjectId: z.string(),
+				name: z.string(),
+				description: z.string().optional(),
+				includeServices: z.boolean().default(true),
+				selectedServices: z
+					.array(
+						z.object({
+							id: z.string(),
+							type: z.enum([
+								"application",
+								"postgres",
+								"mariadb",
+								"mongo",
+								"mysql",
+								"redis",
+								"compose",
+							]),
+						}),
+					)
+					.optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				if (ctx.user.rol === "member") {
+					await checkProjectAccess(
+						ctx.user.id,
+						"create",
+						ctx.session.activeOrganizationId,
+					);
+				}
+
+				// Get source project
+				const sourceProject = await findProjectById(input.sourceProjectId);
+
+				if (sourceProject.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this project",
+					});
+				}
+
+				// Create new project
+				const newProject = await createProject(
+					{
+						name: input.name,
+						description: input.description,
+						env: sourceProject.env,
+					},
+					ctx.session.activeOrganizationId,
+				);
+
+				if (input.includeServices) {
+					const servicesToDuplicate = input.selectedServices || [];
+
+					// Helper function to duplicate a service
+					const duplicateService = async (id: string, type: string) => {
+						switch (type) {
+							case "application": {
+								const {
+									applicationId,
+									domains,
+									security,
+									ports,
+									registry,
+									redirects,
+									previewDeployments,
+									mounts,
+									...application
+								} = await findApplicationById(id);
+
+								const newApplication = await createApplication({
+									...application,
+									projectId: newProject.projectId,
+								});
+
+								for (const domain of domains) {
+									const { domainId, ...rest } = domain;
+									await createDomain({
+										...rest,
+										applicationId: newApplication.applicationId,
+										domainType: "application",
+									});
+								}
+
+								for (const port of ports) {
+									const { portId, ...rest } = port;
+									await createPort({
+										...rest,
+										applicationId: newApplication.applicationId,
+									});
+								}
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newApplication.applicationId,
+										serviceType: "application",
+									});
+								}
+
+								for (const redirect of redirects) {
+									const { redirectId, ...rest } = redirect;
+									await createRedirect({
+										...rest,
+										applicationId: newApplication.applicationId,
+									});
+								}
+
+								for (const secure of security) {
+									const { securityId, ...rest } = secure;
+									await createSecurity({
+										...rest,
+										applicationId: newApplication.applicationId,
+									});
+								}
+
+								for (const previewDeployment of previewDeployments) {
+									const { previewDeploymentId, ...rest } = previewDeployment;
+									await createPreviewDeployment({
+										...rest,
+										applicationId: newApplication.applicationId,
+									});
+								}
+
+								break;
+							}
+							case "postgres": {
+								const { postgresId, mounts, backups, ...postgres } =
+									await findPostgresById(id);
+
+								const newPostgres = await createPostgres({
+									...postgres,
+									projectId: newProject.projectId,
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newPostgres.postgresId,
+										serviceType: "postgres",
+									});
+								}
+
+								for (const backup of backups) {
+									const { backupId, ...rest } = backup;
+									await createBackup({
+										...rest,
+										postgresId: newPostgres.postgresId,
+									});
+								}
+								break;
+							}
+							case "mariadb": {
+								const { mariadbId, mounts, backups, ...mariadb } =
+									await findMariadbById(id);
+								const newMariadb = await createMariadb({
+									...mariadb,
+									projectId: newProject.projectId,
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newMariadb.mariadbId,
+										serviceType: "mariadb",
+									});
+								}
+
+								for (const backup of backups) {
+									const { backupId, ...rest } = backup;
+									await createBackup({
+										...rest,
+										mariadbId: newMariadb.mariadbId,
+									});
+								}
+								break;
+							}
+							case "mongo": {
+								const { mongoId, mounts, backups, ...mongo } =
+									await findMongoById(id);
+								const newMongo = await createMongo({
+									...mongo,
+									projectId: newProject.projectId,
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newMongo.mongoId,
+										serviceType: "mongo",
+									});
+								}
+
+								for (const backup of backups) {
+									const { backupId, ...rest } = backup;
+									await createBackup({
+										...rest,
+										mongoId: newMongo.mongoId,
+									});
+								}
+								break;
+							}
+							case "mysql": {
+								const { mysqlId, mounts, backups, ...mysql } =
+									await findMySqlById(id);
+								const newMysql = await createMysql({
+									...mysql,
+									projectId: newProject.projectId,
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newMysql.mysqlId,
+										serviceType: "mysql",
+									});
+								}
+
+								for (const backup of backups) {
+									const { backupId, ...rest } = backup;
+									await createBackup({
+										...rest,
+										mysqlId: newMysql.mysqlId,
+									});
+								}
+								break;
+							}
+							case "redis": {
+								const { redisId, mounts, ...redis } = await findRedisById(id);
+								const newRedis = await createRedis({
+									...redis,
+									projectId: newProject.projectId,
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newRedis.redisId,
+										serviceType: "redis",
+									});
+								}
+
+								break;
+							}
+							case "compose": {
+								const { composeId, mounts, domains, ...compose } =
+									await findComposeById(id);
+								const newCompose = await createCompose({
+									...compose,
+									projectId: newProject.projectId,
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newCompose.composeId,
+										serviceType: "compose",
+									});
+								}
+
+								for (const domain of domains) {
+									const { domainId, ...rest } = domain;
+									await createDomain({
+										...rest,
+										composeId: newCompose.composeId,
+										domainType: "compose",
+									});
+								}
+
+								break;
+							}
+						}
+					};
+
+					// Duplicate selected services
+
+					for (const service of servicesToDuplicate) {
+						await duplicateService(service.id, service.type);
+					}
+				}
+
+				if (ctx.user.rol === "member") {
+					await addNewProject(
+						ctx.user.id,
+						newProject.projectId,
+						ctx.session.activeOrganizationId,
+					);
+				}
+
+				return newProject;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Error duplicating the project: ${error instanceof Error ? error.message : error}`,
+					cause: error,
+				});
+			}
+		}),
 });
+
 function buildServiceFilter(
 	fieldName: AnyPgColumn,
 	accessedServices: string[],

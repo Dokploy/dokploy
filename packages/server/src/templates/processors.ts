@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import type { Schema } from "./index";
 import {
 	generateBase64,
@@ -45,7 +46,9 @@ export interface CompleteTemplate {
 	variables: Record<string, string>;
 	config: {
 		domains: DomainConfig[];
-		env: Record<string, string> | string[];
+		env:
+			| Record<string, string | boolean | number>
+			| (string | Record<string, string | boolean | number>)[];
 		mounts?: MountConfig[];
 	};
 }
@@ -62,13 +65,13 @@ export interface Template {
 /**
  * Process a string value and replace variables
  */
-function processValue(
+export function processValue(
 	value: string,
 	variables: Record<string, string>,
 	schema: Schema,
 ): string {
 	// First replace utility functions
-	let processedValue = value.replace(/\${([^}]+)}/g, (match, varName) => {
+	let processedValue = value?.replace(/\${([^}]+)}/g, (match, varName) => {
 		// Handle utility functions
 		if (varName === "domain") {
 			return generateRandomDomain(schema);
@@ -81,11 +84,11 @@ function processValue(
 			const length = Number.parseInt(varName.split(":")[1], 10) || 32;
 			return generateBase64(length);
 		}
+
 		if (varName.startsWith("password:")) {
 			const length = Number.parseInt(varName.split(":")[1], 10) || 16;
 			return generatePassword(length);
 		}
-
 		if (varName === "password") {
 			return generatePassword(16);
 		}
@@ -94,12 +97,29 @@ function processValue(
 			const length = Number.parseInt(varName.split(":")[1], 10) || 8;
 			return generateHash(length);
 		}
+		if (varName === "hash") {
+			return generateHash();
+		}
+
 		if (varName === "uuid") {
 			return crypto.randomUUID();
 		}
 
-		if (varName === "timestamp") {
+		if (varName === "timestamp" || varName === "timestampms") {
 			return Date.now().toString();
+		}
+
+		if (varName === "timestamps") {
+			return Math.round(Date.now() / 1000).toString();
+		}
+
+		if (varName.startsWith("timestampms:")) {
+			return new Date(varName.slice(12)).getTime().toString();
+		}
+		if (varName.startsWith("timestamps:")) {
+			return Math.round(
+				new Date(varName.slice(11)).getTime() / 1000,
+			).toString();
 		}
 
 		if (varName === "randomPort") {
@@ -111,8 +131,42 @@ function processValue(
 		}
 
 		if (varName.startsWith("jwt:")) {
-			const length = Number.parseInt(varName.split(":")[1], 10) || 256;
-			return generateJwt(length);
+			const params: string[] = varName.split(":").slice(1);
+			if (params.length === 1 && params[0] && params[0].match(/^\d{1,3}$/)) {
+				return generateJwt({ length: Number.parseInt(params[0], 10) });
+			}
+			let [secret, payload] = params;
+			if (typeof payload === "string" && variables[payload]) {
+				payload = variables[payload];
+			}
+			if (
+				typeof payload === "string" &&
+				payload.startsWith("{") &&
+				payload.endsWith("}")
+			) {
+				try {
+					payload = JSON.parse(payload);
+				} catch (e) {
+					// If payload is not a valid JSON, invalid it
+					payload = undefined;
+					console.error("Invalid JWT payload", e);
+				}
+			}
+			if (typeof payload !== "object") {
+				payload = undefined;
+			}
+			return generateJwt({
+				secret: secret ? variables[secret] || secret : undefined,
+				payload: payload as any,
+			});
+		}
+
+		if (varName === "username") {
+			return faker.internet.userName().toLowerCase();
+		}
+
+		if (varName === "email") {
+			return faker.internet.email().toLowerCase();
 		}
 
 		// If not a utility function, try to get from variables
@@ -136,7 +190,7 @@ export function processVariables(
 ): Record<string, string> {
 	const variables: Record<string, string> = {};
 
-	// First pass: Process variables that don't depend on other variables
+	// First pass: Process some variables that don't depend on other variables
 	for (const [key, value] of Object.entries(template.variables)) {
 		if (typeof value !== "string") continue;
 
@@ -150,6 +204,8 @@ export function processVariables(
 			const match = value.match(/\${password:(\d+)}/);
 			const length = match?.[1] ? Number.parseInt(match[1], 10) : 16;
 			variables[key] = generatePassword(length);
+		} else if (value === "${hash}") {
+			variables[key] = generateHash();
 		} else if (value.startsWith("${hash:")) {
 			const match = value.match(/\${hash:(\d+)}/);
 			const length = match?.[1] ? Number.parseInt(match[1], 10) : 8;
@@ -175,7 +231,14 @@ export function processDomains(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["domains"] {
-	if (!template?.config?.domains) return [];
+	if (
+		!template?.config?.domains ||
+		template.config.domains.length === 0 ||
+		template.config.domains.every((domain) => !domain.serviceName)
+	) {
+		return [];
+	}
+
 	return template?.config?.domains?.map((domain: DomainConfig) => ({
 		...domain,
 		host: domain.host
@@ -192,7 +255,9 @@ export function processEnvVars(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["envs"] {
-	if (!template?.config?.env) return [];
+	if (!template?.config?.env || Object.keys(template.config.env).length === 0) {
+		return [];
+	}
 
 	// Handle array of env vars
 	if (Array.isArray(template.config.env)) {
@@ -200,17 +265,27 @@ export function processEnvVars(
 			if (typeof env === "string") {
 				return processValue(env, variables, schema);
 			}
-			return env;
+			// Si es un objeto, asumimos que es un par clave-valor
+			if (typeof env === "object" && env !== null) {
+				const keys = Object.keys(env);
+				if (keys.length > 0) {
+					const key = keys[0];
+					return `${key}=${env[key as keyof typeof env]}`;
+				}
+			}
+			// Para valores primitivos (boolean, number)
+			return String(env);
 		});
 	}
 
 	// Handle object of env vars
-	return Object.entries(template.config.env).map(
-		([key, value]: [string, string]) => {
+	return Object.entries(template.config.env).map(([key, value]) => {
+		if (typeof value === "string") {
 			const processedValue = processValue(value, variables, schema);
 			return `${key}=${processedValue}`;
-		},
-	);
+		}
+		return `${key}=${value}`;
+	});
 }
 
 /**
@@ -221,7 +296,13 @@ export function processMounts(
 	variables: Record<string, string>,
 	schema: Schema,
 ): Template["mounts"] {
-	if (!template?.config?.mounts) return [];
+	if (
+		!template?.config?.mounts ||
+		template.config.mounts.length === 0 ||
+		template.config.mounts.every((mount) => !mount.filePath && !mount.content)
+	) {
+		return [];
+	}
 
 	return template?.config?.mounts?.map((mount: MountConfig) => ({
 		filePath: processValue(mount.filePath, variables, schema),

@@ -10,9 +10,10 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { account, organization, apikey } from "./account";
+import { account, apikey, organization } from "./account";
 import { projects } from "./project";
 import { certificateType } from "./shared";
+import { backups } from "./backups";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -49,6 +50,7 @@ export const users_temp = pgTable("user_temp", {
 	// Admin
 	serverIp: text("serverIp"),
 	certificateType: certificateType("certificateType").notNull().default("none"),
+	https: boolean("https").notNull().default(false),
 	host: text("host"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
@@ -124,6 +126,7 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	organizations: many(organization),
 	projects: many(projects),
 	apiKeys: many(apikey),
+	backups: many(backups),
 }));
 
 const createSchema = createInsertSchema(users_temp, {
@@ -200,10 +203,12 @@ export const apiAssignDomain = createSchema
 		host: true,
 		certificateType: true,
 		letsEncryptEmail: true,
+		https: true,
 	})
 	.required()
 	.partial({
 		letsEncryptEmail: true,
+		https: true,
 	});
 
 export const apiUpdateDockerCleanup = createSchema

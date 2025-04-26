@@ -25,22 +25,30 @@ import {
 	runMongoBackup,
 	runMySqlBackup,
 	runPostgresBackup,
+	runWebServerBackup,
 	scheduleBackup,
 	updateBackupById,
 } from "@dokploy/server";
 
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
-import { execAsync } from "@dokploy/server/utils/process/execAsync";
-import { getS3Credentials } from "@dokploy/server/utils/backups/utils";
 import { findDestinationById } from "@dokploy/server/services/destination";
+import {
+	getS3Credentials,
+	normalizeS3Path,
+} from "@dokploy/server/utils/backups/utils";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import {
 	restoreMariadbBackup,
 	restoreMongoBackup,
 	restoreMySqlBackup,
 	restorePostgresBackup,
+	restoreWebServerBackup,
 } from "@dokploy/server/utils/restore";
+import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
+import { z } from "zod";
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -82,9 +90,13 @@ export const backupRouter = createTRPCRouter({
 					}
 				}
 			} catch (error) {
+				console.error(error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error creating the Backup",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error creating the Backup",
 					cause: error,
 				});
 			}
@@ -224,11 +236,19 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	manualBackupWebServer: protectedProcedure
+		.input(apiFindOneBackup)
+		.mutation(async ({ input }) => {
+			const backup = await findBackupById(input.backupId);
+			await runWebServerBackup(backup);
+			return true;
+		}),
 	listBackupFiles: protectedProcedure
 		.input(
 			z.object({
 				destinationId: z.string(),
 				search: z.string(),
+				serverId: z.string().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -240,7 +260,7 @@ export const backupRouter = createTRPCRouter({
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =
 					lastSlashIndex !== -1
-						? input.search.slice(0, lastSlashIndex + 1)
+						? normalizeS3Path(input.search.slice(0, lastSlashIndex + 1))
 						: "";
 				const searchTerm =
 					lastSlashIndex !== -1
@@ -250,7 +270,16 @@ export const backupRouter = createTRPCRouter({
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
 				const listCommand = `rclone lsf ${rcloneFlags.join(" ")} "${searchPath}" | head -n 100`;
 
-				const { stdout } = await execAsync(listCommand);
+				let stdout = "";
+
+				if (input.serverId) {
+					const result = await execAsyncRemote(input.serverId, listCommand);
+					stdout = result.stdout;
+				} else {
+					const result = await execAsync(listCommand);
+					stdout = result.stdout;
+				}
+
 				const files = stdout.split("\n").filter(Boolean);
 
 				const results = baseDir
@@ -288,7 +317,13 @@ export const backupRouter = createTRPCRouter({
 		.input(
 			z.object({
 				databaseId: z.string(),
-				databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo"]),
+				databaseType: z.enum([
+					"postgres",
+					"mysql",
+					"mariadb",
+					"mongo",
+					"web-server",
+				]),
 				databaseName: z.string().min(1),
 				backupFile: z.string().min(1),
 				destinationId: z.string().min(1),
@@ -351,6 +386,13 @@ export const backupRouter = createTRPCRouter({
 							emit.next(log);
 						},
 					);
+				});
+			}
+			if (input.databaseType === "web-server") {
+				return observable<string>((emit) => {
+					restoreWebServerBackup(destination, input.backupFile, (log) => {
+						emit.next(log);
+					});
 				});
 			}
 

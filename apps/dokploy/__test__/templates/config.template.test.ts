@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import type { Schema } from "@dokploy/server/templates";
 import type { CompleteTemplate } from "@dokploy/server/templates/processors";
 import { processTemplate } from "@dokploy/server/templates/processors";
-import type { Schema } from "@dokploy/server/templates";
+import { describe, expect, it } from "vitest";
 
 describe("processTemplate", () => {
 	// Mock schema for testing
@@ -50,6 +50,35 @@ describe("processTemplate", () => {
 			expect(result.envs).toHaveLength(0);
 			expect(result.domains).toHaveLength(0);
 			expect(result.mounts).toHaveLength(0);
+		});
+
+		it("should allow creation of real jwt secret", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					jwt_secret: "cQsdycq1hDLopQonF6jUTqgQc5WEZTwWLL02J6XJ",
+					anon_payload: JSON.stringify({
+						role: "tester",
+						iss: "dockploy",
+						iat: "${timestamps:2025-01-01T00:00:00Z}",
+						exp: "${timestamps:2030-01-01T00:00:00Z}",
+					}),
+					anon_key: "${jwt:jwt_secret:anon_payload}",
+				},
+				config: {
+					domains: [],
+					env: {
+						ANON_KEY: "${anon_key}",
+					},
+				},
+			};
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(1);
+			expect(result.envs).toContain(
+				"ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOiIxNzM1Njg5NjAwIiwiZXhwIjoiMTg5MzQ1NjAwMCIsInJvbGUiOiJ0ZXN0ZXIiLCJpc3MiOiJkb2NrcGxveSJ9.BG5JoxL2_NaTFbPgyZdm3kRWenf_O3su_HIRKGCJ_kY",
+			);
+			expect(result.mounts).toHaveLength(0);
+			expect(result.domains).toHaveLength(0);
 		});
 	});
 
@@ -232,6 +261,49 @@ describe("processTemplate", () => {
 			expect(base64Value).toMatch(/^[A-Za-z0-9+/]+={0,2}$/);
 			expect(base64Value.length).toBeGreaterThanOrEqual(42);
 			expect(base64Value.length).toBeLessThanOrEqual(44);
+		});
+
+		it("should handle boolean values in env vars when provided as an array", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: [
+						"ENABLE_USER_SIGN_UP=false",
+						"DEBUG_MODE=true",
+						"SOME_NUMBER=42",
+					],
+					mounts: [],
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(3);
+			expect(result.envs).toContain("ENABLE_USER_SIGN_UP=false");
+			expect(result.envs).toContain("DEBUG_MODE=true");
+			expect(result.envs).toContain("SOME_NUMBER=42");
+		});
+
+		it("should handle boolean values in env vars when provided as an object", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {},
+				config: {
+					domains: [],
+					env: {
+						ENABLE_USER_SIGN_UP: false,
+						DEBUG_MODE: true,
+						SOME_NUMBER: 42,
+					},
+				},
+			};
+
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(3);
+			expect(result.envs).toContain("ENABLE_USER_SIGN_UP=false");
+			expect(result.envs).toContain("DEBUG_MODE=true");
+			expect(result.envs).toContain("SOME_NUMBER=42");
 		});
 	});
 

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
@@ -20,6 +21,7 @@ export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"github",
 	"gitlab",
 	"bitbucket",
+	"gitea",
 	"raw",
 ]);
 
@@ -55,6 +57,10 @@ export const compose = pgTable("compose", {
 	bitbucketRepository: text("bitbucketRepository"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
+	// Gitea
+	giteaRepository: text("giteaRepository"),
+	giteaOwner: text("giteaOwner"),
+	giteaBranch: text("giteaBranch"),
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
@@ -87,6 +93,9 @@ export const compose = pgTable("compose", {
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
 		onDelete: "set null",
 	}),
+	giteaId: text("giteaId").references(() => gitea.giteaId, {
+		onDelete: "set null",
+	}),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -116,6 +125,10 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.bitbucketId],
 		references: [bitbucket.bitbucketId],
 	}),
+	gitea: one(gitea, {
+		fields: [compose.giteaId],
+		references: [gitea.giteaId],
+	}),
 	server: one(server, {
 		fields: [compose.serverId],
 		references: [server.serverId],
@@ -126,7 +139,7 @@ const createSchema = createInsertSchema(compose, {
 	name: z.string().min(1),
 	description: z.string(),
 	env: z.string().optional(),
-	composeFile: z.string().min(1),
+	composeFile: z.string().optional(),
 	projectId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
@@ -142,6 +155,7 @@ export const apiCreateCompose = createSchema.pick({
 	composeType: true,
 	appName: true,
 	serverId: true,
+	composeFile: true,
 });
 
 export const apiCreateComposeByTemplate = createSchema

@@ -56,7 +56,7 @@ export const ShowDestinations = () => {
 													key={sshKey.sshKeyId}
 													className="flex items-center justify-between bg-sidebar p-1 w-full rounded-lg"
 												>
-													<div className="flex items-center justify-between  p-3.5 rounded-lg bg-background border  w-full">
+													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 														<div className="flex items-center justify-between">
 															<div className="flex flex-col">
 																<span className="text-sm font-medium">

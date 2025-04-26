@@ -1,3 +1,5 @@
+import { DrawerLogs } from "@/components/shared/drawer-logs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -23,6 +25,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
@@ -32,22 +35,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
+import { debounce } from "lodash";
 import { CheckIcon, ChevronsUpDown, Copy, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 import type { ServiceType } from "../../application/advanced/show-resources";
-import { debounce } from "lodash";
-import { Input } from "@/components/ui/input";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
-import { DrawerLogs } from "@/components/shared/drawer-logs";
-import { Badge } from "@/components/ui/badge";
-import copy from "copy-to-clipboard";
-import { toast } from "sonner";
 
 interface Props {
 	databaseId: string;
-	databaseType: Exclude<ServiceType, "application" | "redis">;
+	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	serverId?: string | null;
 }
 
 const RestoreBackupSchema = z.object({
@@ -76,9 +77,14 @@ const RestoreBackupSchema = z.object({
 
 type RestoreBackup = z.infer<typeof RestoreBackupSchema>;
 
-export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
+export const RestoreBackup = ({
+	databaseId,
+	databaseType,
+	serverId,
+}: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
+	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
@@ -86,7 +92,7 @@ export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
-			databaseName: "",
+			databaseName: databaseType === "web-server" ? "dokploy" : "",
 		},
 		resolver: zodResolver(RestoreBackupSchema),
 	});
@@ -94,13 +100,19 @@ export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
 	const destionationId = form.watch("destinationId");
 
 	const debouncedSetSearch = debounce((value: string) => {
+		setDebouncedSearchTerm(value);
+	}, 150);
+
+	const handleSearchChange = (value: string) => {
 		setSearch(value);
-	}, 300);
+		debouncedSetSearch(value);
+	};
 
 	const { data: files = [], isLoading } = api.backup.listBackupFiles.useQuery(
 		{
 			destinationId: destionationId,
-			search,
+			search: debouncedSearchTerm,
+			serverId: serverId ?? "",
 		},
 		{
 			enabled: isOpen && !!destionationId,
@@ -278,7 +290,8 @@ export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
 											<Command>
 												<CommandInput
 													placeholder="Search backup files..."
-													onValueChange={debouncedSetSearch}
+													value={search}
+													onValueChange={handleSearchChange}
 													className="h-9"
 												/>
 												{isLoading ? (
@@ -302,9 +315,13 @@ export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
 																	key={file}
 																	onSelect={() => {
 																		form.setValue("backupFile", file);
+																		setSearch(file);
+																		setDebouncedSearchTerm(file);
 																	}}
 																>
-																	{file}
+																	<div className="flex w-full justify-between">
+																		<span>{file}</span>
+																	</div>
 																	<CheckIcon
 																		className={cn(
 																			"ml-auto h-4 w-4",
@@ -332,7 +349,11 @@ export const RestoreBackup = ({ databaseId, databaseType }: Props) => {
 								<FormItem className="">
 									<FormLabel>Database Name</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder="Enter database name" />
+										<Input
+											disabled={databaseType === "web-server"}
+											{...field}
+											placeholder="Enter database name"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

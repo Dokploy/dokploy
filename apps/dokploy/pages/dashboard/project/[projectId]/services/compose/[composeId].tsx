@@ -1,3 +1,4 @@
+import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
@@ -47,7 +48,6 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 
 type TabState =
 	| "projects"
@@ -212,15 +212,15 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
-												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+												"lg:grid lg:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-7"
+													? "lg:grid-cols-7"
 													: data?.serverId
-														? "md:grid-cols-6"
-														: "md:grid-cols-7",
+														? "lg:grid-cols-6"
+														: "lg:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>

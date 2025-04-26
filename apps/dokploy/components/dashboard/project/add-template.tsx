@@ -67,7 +67,7 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
@@ -307,7 +307,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 							>
 								{templates?.map((template) => (
 									<div
-										key={template.id}
+										key={template?.id}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",
@@ -315,7 +315,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 										)}
 									>
 										<Badge className="absolute top-2 right-2" variant="blue">
-											{template.version}
+											{template?.version}
 										</Badge>
 										<div
 											className={cn(
@@ -324,21 +324,21 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 											)}
 										>
 											<img
-												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template.id}/${template.logo}`}
+												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template?.id}/${template?.logo}`}
 												className={cn(
 													"object-contain",
 													viewMode === "detailed" ? "size-24" : "size-16",
 												)}
-												alt={template.name}
+												alt={template?.name}
 											/>
 											<div className="flex flex-col items-center gap-2">
 												<span className="text-sm font-medium line-clamp-1">
-													{template.name}
+													{template?.name}
 												</span>
 												{viewMode === "detailed" &&
-													template.tags.length > 0 && (
+													template?.tags?.length > 0 && (
 														<div className="flex flex-wrap justify-center gap-1.5">
-															{template.tags.map((tag) => (
+															{template?.tags?.map((tag) => (
 																<Badge
 																	key={tag}
 																	variant="green"
@@ -356,7 +356,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 										{viewMode === "detailed" && (
 											<ScrollArea className="flex-1 p-6">
 												<div className="text-sm text-muted-foreground">
-													{template.description}
+													{template?.description}
 												</div>
 											</ScrollArea>
 										)}
@@ -372,25 +372,27 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 										>
 											{viewMode === "detailed" && (
 												<div className="flex gap-2">
-													<Link
-														href={template.links.github}
-														target="_blank"
-														className="text-muted-foreground hover:text-foreground transition-colors"
-													>
-														<GithubIcon className="size-5" />
-													</Link>
-													{template.links.website && (
+													{template?.links?.github && (
 														<Link
-															href={template.links.website}
+															href={template?.links?.github}
+															target="_blank"
+															className="text-muted-foreground hover:text-foreground transition-colors"
+														>
+															<GithubIcon className="size-5" />
+														</Link>
+													)}
+													{template?.links?.website && (
+														<Link
+															href={template?.links?.website}
 															target="_blank"
 															className="text-muted-foreground hover:text-foreground transition-colors"
 														>
 															<Globe className="size-5" />
 														</Link>
 													)}
-													{template.links.docs && (
+													{template?.links?.docs && (
 														<Link
-															href={template.links.docs}
+															href={template?.links?.docs}
 															target="_blank"
 															className="text-muted-foreground hover:text-foreground transition-colors"
 														>
@@ -419,7 +421,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 														</AlertDialogTitle>
 														<AlertDialogDescription>
 															This will create an application from the{" "}
-															{template.name} template and add it to your
+															{template?.name} template and add it to your
 															project.
 														</AlertDialogDescription>
 

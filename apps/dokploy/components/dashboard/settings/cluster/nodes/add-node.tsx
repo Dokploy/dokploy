@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -48,6 +49,10 @@ export const AddNode = ({ serverId }: Props) => {
 							Architecture
 							<ExternalLink className="h-4 w-4" />
 						</Link>
+						<AlertBlock type="warning">
+							Make sure you use the same architecture as the node you are
+							adding.
+						</AlertBlock>
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-2">
@@ -56,10 +61,10 @@ export const AddNode = ({ serverId }: Props) => {
 							<TabsTrigger value="worker">Worker</TabsTrigger>
 							<TabsTrigger value="manager">Manager</TabsTrigger>
 						</TabsList>
-						<TabsContent value="worker" className="pt-4">
+						<TabsContent value="worker" className="pt-4 overflow-hidden">
 							<AddWorker serverId={serverId} />
 						</TabsContent>
-						<TabsContent value="manager" className="pt-4">
+						<TabsContent value="manager" className="pt-4 overflow-hidden">
 							<AddManager serverId={serverId} />
 						</TabsContent>
 					</Tabs>

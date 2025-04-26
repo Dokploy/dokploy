@@ -26,6 +26,7 @@ import {
 	findUserById,
 	getDokployImage,
 	getDokployImageTag,
+	getLogCleanupStatus,
 	getUpdateData,
 	initializeTraefik,
 	parseRawConfig,
@@ -41,6 +42,8 @@ import {
 	recreateDirectory,
 	sendDockerCleanupNotifications,
 	spawnAsync,
+	startLogCleanup,
+	stopLogCleanup,
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
@@ -48,9 +51,6 @@ import {
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
-	startLogCleanup,
-	stopLogCleanup,
-	getLogCleanupStatus,
 } from "@dokploy/server";
 import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
 import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
@@ -184,6 +184,7 @@ export const settingsRouter = createTRPCRouter({
 					letsEncryptEmail: input.letsEncryptEmail,
 				}),
 				certificateType: input.certificateType,
+				https: input.https,
 			});
 
 			if (!user) {
@@ -479,6 +480,7 @@ export const settingsRouter = createTRPCRouter({
 					"bitbucket",
 					"github",
 					"gitlab",
+					"gitea",
 				],
 			});
 

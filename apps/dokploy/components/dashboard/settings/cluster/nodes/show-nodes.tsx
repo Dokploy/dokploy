@@ -35,9 +35,9 @@ import { api } from "@/utils/api";
 import {
 	Boxes,
 	HelpCircle,
+	Loader2,
 	LockIcon,
 	MoreHorizontal,
-	Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddNode } from "./add-node";
@@ -144,7 +144,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 															<DropdownMenuContent align="end">
 																<DropdownMenuLabel>Actions</DropdownMenuLabel>
 																<ShowNodeData data={node} />
-																{node?.ManagerStatus?.Leader && (
+																{!node?.ManagerStatus?.Leader && (
 																	<DialogAction
 																		title="Delete Node"
 																		description="Are you sure you want to delete this node from the cluster?"

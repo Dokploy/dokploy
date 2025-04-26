@@ -159,9 +159,15 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																		<Input
 																			type="number"
 																			{...field}
-																			onChange={(e) =>
-																				field.onChange(Number(e.target.value))
-																			}
+																			onChange={(e) => {
+																				const value = e.target.value;
+																				field.onChange(
+																					value === ""
+																						? undefined
+																						: Number(value),
+																				);
+																			}}
+																			value={field.value || ""}
 																			className="w-full dark:bg-black"
 																			placeholder="e.g. 8080"
 																		/>
@@ -185,9 +191,15 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																		<Input
 																			type="number"
 																			{...field}
-																			onChange={(e) =>
-																				field.onChange(Number(e.target.value))
-																			}
+																			onChange={(e) => {
+																				const value = e.target.value;
+																				field.onChange(
+																					value === ""
+																						? undefined
+																						: Number(value),
+																				);
+																			}}
+																			value={field.value || ""}
 																			className="w-full dark:bg-black"
 																			placeholder="e.g. 80"
 																		/>
