@@ -299,7 +299,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 							</FormItem>
 						)}
 					/>
-					
+
 					<FormField
 						control={form.control}
 						name="enableSubmodules"
