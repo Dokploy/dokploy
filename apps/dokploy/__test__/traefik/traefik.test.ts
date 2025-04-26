@@ -16,6 +16,7 @@ const baseApp: ApplicationNested = {
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
+	enableSubmodules: false,
 	serverId: "",
 	branch: null,
 	dockerBuildStage: "",
