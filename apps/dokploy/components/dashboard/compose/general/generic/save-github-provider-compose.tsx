@@ -40,7 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -58,6 +58,7 @@ const GithubProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
 });
 
@@ -84,6 +85,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			githubId: "",
 			branch: "",
 			watchPaths: [],
+			triggerType: "push",
 			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
@@ -128,6 +130,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				composePath: data.composePath,
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
+				triggerType: data.triggerType || "push",
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
@@ -145,6 +148,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			composeStatus: "idle",
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
+			triggerType: data.triggerType,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -383,6 +387,46 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 										<Input placeholder="docker-compose.yml" {...field} />
 									</FormControl>
 
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="triggerType"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Trigger Type</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Choose when to trigger deployments: on push to the
+														selected branch or when a new tag is created.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+										value={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a trigger type" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											<SelectItem value="push">On Push</SelectItem>
+											<SelectItem value="tag">On Tag</SelectItem>
+										</SelectContent>
+									</Select>
 									<FormMessage />
 								</FormItem>
 							)}

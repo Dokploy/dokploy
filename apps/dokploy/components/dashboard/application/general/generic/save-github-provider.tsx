@@ -392,8 +392,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 							control={form.control}
 							name="triggerType"
 							render={({ field }) => (
-								<FormItem>
-									<div className="flex items-center gap-2">
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2 ">
 										<FormLabel>Trigger Type</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
