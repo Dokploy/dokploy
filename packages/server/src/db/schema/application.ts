@@ -182,6 +182,7 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	dockerfile: text("dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
@@ -470,6 +471,7 @@ export const apiSaveGithubProvider = createSchema
 		buildPath: true,
 		githubId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -484,6 +486,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabProjectId: true,
 		gitlabPathNamespace: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -496,6 +499,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketId: true,
 		applicationId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -508,6 +512,7 @@ export const apiSaveGiteaProvider = createSchema
 		giteaRepository: true,
 		giteaId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -528,6 +533,7 @@ export const apiSaveGitProvider = createSchema
 		customGitBuildPath: true,
 		customGitUrl: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required()
 	.merge(

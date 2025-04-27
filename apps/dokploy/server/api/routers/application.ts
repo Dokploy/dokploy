@@ -355,6 +355,7 @@ export const applicationRouter = createTRPCRouter({
 				applicationStatus: "idle",
 				githubId: input.githubId,
 				watchPaths: input.watchPaths,
+				enableSubmodules: input.enableSubmodules,
 			});
 
 			return true;
@@ -382,6 +383,7 @@ export const applicationRouter = createTRPCRouter({
 				gitlabProjectId: input.gitlabProjectId,
 				gitlabPathNamespace: input.gitlabPathNamespace,
 				watchPaths: input.watchPaths,
+				enableSubmodules: input.enableSubmodules,
 			});
 
 			return true;
@@ -407,6 +409,7 @@ export const applicationRouter = createTRPCRouter({
 				applicationStatus: "idle",
 				bitbucketId: input.bitbucketId,
 				watchPaths: input.watchPaths,
+				enableSubmodules: input.enableSubmodules,
 			});
 
 			return true;
@@ -432,6 +435,7 @@ export const applicationRouter = createTRPCRouter({
 				applicationStatus: "idle",
 				giteaId: input.giteaId,
 				watchPaths: input.watchPaths,
+				enableSubmodules: input.enableSubmodules,
 			});
 
 			return true;
@@ -479,6 +483,7 @@ export const applicationRouter = createTRPCRouter({
 				sourceType: "git",
 				applicationStatus: "idle",
 				watchPaths: input.watchPaths,
+				enableSubmodules: input.enableSubmodules,
 			});
 
 			return true;
