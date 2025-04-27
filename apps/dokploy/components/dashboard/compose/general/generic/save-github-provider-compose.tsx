@@ -30,6 +30,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -57,6 +58,7 @@ const GithubProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -82,6 +84,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			githubId: "",
 			branch: "",
 			watchPaths: [],
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
@@ -125,6 +128,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				composePath: data.composePath,
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -140,6 +144,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			sourceType: "github",
 			composeStatus: "idle",
 			watchPaths: data.watchPaths,
+			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -457,6 +462,21 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 										</div>
 									</FormControl>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

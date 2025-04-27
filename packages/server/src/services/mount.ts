@@ -144,7 +144,8 @@ export const updateMount = async (
 			await deleteFileMount(mountId);
 			await createFileMount(mountId);
 		}
-		return mount;
+
+		return await findMountById(mountId);
 	});
 };
 

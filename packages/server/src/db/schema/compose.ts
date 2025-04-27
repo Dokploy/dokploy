@@ -72,6 +72,7 @@ export const compose = pgTable("compose", {
 	),
 	command: text("command").notNull().default(""),
 	//
+	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),

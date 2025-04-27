@@ -23,6 +23,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRoundIcon, LockIcon, X } from "lucide-react";
@@ -44,6 +45,7 @@ const GitProviderSchema = z.object({
 	branch: z.string().min(1, "Branch required"),
 	sshKey: z.string().optional(),
 	watchPaths: z.array(z.string()).optional(),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GitProvider = z.infer<typeof GitProviderSchema>;
@@ -67,6 +69,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 			repositoryURL: "",
 			sshKey: undefined,
 			watchPaths: [],
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GitProviderSchema),
 	});
@@ -79,6 +82,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 				buildPath: data.customGitBuildPath || "/",
 				repositoryURL: data.customGitUrl || "",
 				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -91,6 +95,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 			customGitSSHKeyId: values.sshKey === "none" ? null : values.sshKey,
 			applicationId,
 			watchPaths: values.watchPaths || [],
+			enableSubmodules: values.enableSubmodules,
 		})
 			.then(async () => {
 				toast.success("Git Provider Saved");
@@ -291,6 +296,22 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 									</div>
 								</FormControl>
 								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="enableSubmodules"
+						render={({ field }) => (
+							<FormItem className="flex items-center space-x-2">
+								<FormControl>
+									<Switch
+										checked={field.value}
+										onCheckedChange={field.onChange}
+									/>
+								</FormControl>
+								<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 							</FormItem>
 						)}
 					/>

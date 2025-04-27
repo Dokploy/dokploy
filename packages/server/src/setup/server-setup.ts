@@ -76,7 +76,7 @@ CURRENT_USER=$USER
 
 echo "Installing requirements for: OS: $OS_TYPE"
 if [ $EUID != 0 ]; then
-	echo "Please run this script as root or with sudo ❌" 
+	echo "Please run this script as root or with sudo ❌"
 	exit
 fi
 
@@ -263,7 +263,7 @@ const setupMainDirectory = () => `
 		# Create the /etc/dokploy directory
 		mkdir -p /etc/dokploy
 		chmod 777 /etc/dokploy
-		
+
 		echo "Directory /etc/dokploy created ✅"
 	fi
 `;
@@ -276,16 +276,16 @@ export const setupSwarm = () => `
 			# Get IP address
 			get_ip() {
 				local ip=""
-				
+
 				# Try IPv4 with multiple services
 				# First attempt: ifconfig.io
 				ip=\$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
-				
+
 				# Second attempt: icanhazip.com
 				if [ -z "\$ip" ]; then
 					ip=\$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 				fi
-				
+
 				# Third attempt: ipecho.net
 				if [ -z "\$ip" ]; then
 					ip=\$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
@@ -295,12 +295,12 @@ export const setupSwarm = () => `
 				if [ -z "\$ip" ]; then
 					# Try IPv6 with ifconfig.io
 					ip=\$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
-					
+
 					# Try IPv6 with icanhazip.com
 					if [ -z "\$ip" ]; then
 						ip=\$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 					fi
-					
+
 					# Try IPv6 with ipecho.net
 					if [ -z "\$ip" ]; then
 						ip=\$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
@@ -549,7 +549,7 @@ export const createTraefikInstance = () => {
 			sleep 8
 			echo "Traefik migrated to Standalone ✅"
 		fi
-			
+
 		if docker inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Traefik already exists ✅"
 		else
@@ -577,7 +577,7 @@ const installNixpacks = () => `
 	if command_exists nixpacks; then
 		echo "Nixpacks already installed ✅"
 	else
-	    export NIXPACKS_VERSION=1.29.1
+	    export NIXPACKS_VERSION=1.35.0
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi

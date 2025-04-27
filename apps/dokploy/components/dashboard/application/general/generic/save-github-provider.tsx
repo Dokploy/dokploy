@@ -30,6 +30,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -58,6 +59,7 @@ const GithubProviderSchema = z.object({
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -82,6 +84,8 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			},
 			githubId: "",
 			branch: "",
+			triggerType: "push",
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
@@ -126,6 +130,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -140,6 +145,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			githubId: data.githubId,
 			watchPaths: data.watchPaths || [],
 			triggerType: data.triggerType,
+			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -498,6 +504,22 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										</Button>
 									</div>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

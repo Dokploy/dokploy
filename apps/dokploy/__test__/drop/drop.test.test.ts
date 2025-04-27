@@ -34,6 +34,7 @@ const baseApp: ApplicationNested = {
 	giteaRepository: "",
 	cleanCache: false,
 	watchPaths: [],
+	enableSubmodules: false,
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
