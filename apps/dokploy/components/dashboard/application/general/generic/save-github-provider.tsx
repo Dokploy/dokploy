@@ -92,6 +92,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 
 	const repository = form.watch("repository");
 	const githubId = form.watch("githubId");
+	const triggerType = form.watch("triggerType");
 
 	const { data: repositories, isLoading: isLoadingRepositories } =
 		api.github.getGithubRepositories.useQuery(
@@ -428,85 +429,88 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="watchPaths"
-							render={({ field }) => (
-								<FormItem className="md:col-span-2">
-									<div className="flex items-center gap-2">
-										<FormLabel>Watch Paths</FormLabel>
-										<TooltipProvider>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-												</TooltipTrigger>
-												<TooltipContent>
-													<p>
-														Add paths to watch for changes. When files in these
-														paths change, a new deployment will be triggered.
-													</p>
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
-									</div>
-									<div className="flex flex-wrap gap-2 mb-2">
-										{field.value?.map((path, index) => (
-											<Badge
-												key={index}
-												variant="secondary"
-												className="flex items-center gap-1"
-											>
-												{path}
-												<X
-													className="size-3 cursor-pointer hover:text-destructive"
-													onClick={() => {
-														const newPaths = [...(field.value || [])];
-														newPaths.splice(index, 1);
-														field.onChange(newPaths);
+						{triggerType === "push" && (
+							<FormField
+								control={form.control}
+								name="watchPaths"
+								render={({ field }) => (
+									<FormItem className="md:col-span-2">
+										<div className="flex items-center gap-2">
+											<FormLabel>Watch Paths</FormLabel>
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															Add paths to watch for changes. When files in
+															these paths change, a new deployment will be
+															triggered.
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+										<div className="flex flex-wrap gap-2 mb-2">
+											{field.value?.map((path, index) => (
+												<Badge
+													key={index}
+													variant="secondary"
+													className="flex items-center gap-1"
+												>
+													{path}
+													<X
+														className="size-3 cursor-pointer hover:text-destructive"
+														onClick={() => {
+															const newPaths = [...(field.value || [])];
+															newPaths.splice(index, 1);
+															field.onChange(newPaths);
+														}}
+													/>
+												</Badge>
+											))}
+										</div>
+										<div className="flex gap-2">
+											<FormControl>
+												<Input
+													placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+													onKeyDown={(e) => {
+														if (e.key === "Enter") {
+															e.preventDefault();
+															const input = e.currentTarget;
+															const path = input.value.trim();
+															if (path) {
+																field.onChange([...(field.value || []), path]);
+																input.value = "";
+															}
+														}
 													}}
 												/>
-											</Badge>
-										))}
-									</div>
-									<div className="flex gap-2">
-										<FormControl>
-											<Input
-												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
-												onKeyDown={(e) => {
-													if (e.key === "Enter") {
-														e.preventDefault();
-														const input = e.currentTarget;
-														const path = input.value.trim();
-														if (path) {
-															field.onChange([...(field.value || []), path]);
-															input.value = "";
-														}
+											</FormControl>
+											<Button
+												type="button"
+												variant="outline"
+												size="icon"
+												onClick={() => {
+													const input = document.querySelector(
+														'input[placeholder*="Enter a path"]',
+													) as HTMLInputElement;
+													const path = input.value.trim();
+													if (path) {
+														field.onChange([...(field.value || []), path]);
+														input.value = "";
 													}
 												}}
-											/>
-										</FormControl>
-										<Button
-											type="button"
-											variant="outline"
-											size="icon"
-											onClick={() => {
-												const input = document.querySelector(
-													'input[placeholder*="Enter a path"]',
-												) as HTMLInputElement;
-												const path = input.value.trim();
-												if (path) {
-													field.onChange([...(field.value || []), path]);
-													input.value = "";
-												}
-											}}
-										>
-											<Plus className="size-4" />
-										</Button>
-									</div>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+											>
+												<Plus className="size-4" />
+											</Button>
+										</div>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						<FormField
 							control={form.control}
