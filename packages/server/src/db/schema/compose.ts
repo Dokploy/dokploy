@@ -12,7 +12,7 @@ import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
-import { applicationStatus } from "./shared";
+import { applicationStatus, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 
@@ -77,7 +77,7 @@ export const compose = pgTable("compose", {
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
 	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
-	triggerType: text("triggerType").default("push"),
+	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
