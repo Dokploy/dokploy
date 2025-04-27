@@ -97,9 +97,7 @@ export default async function handler(
 		try {
 			const tagName = githubBody?.ref.replace("refs/tags/", "");
 			const repository = githubBody?.repository?.name;
-			const owner =
-				githubBody?.repository?.owner?.name ||
-				githubBody?.repository?.owner?.login;
+			const owner = githubBody?.repository?.owner?.name;
 			const deploymentTitle = `Tag created: ${tagName}`;
 			const deploymentHash = extractHash(req.headers, githubBody);
 
