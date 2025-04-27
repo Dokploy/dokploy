@@ -13,53 +13,65 @@ export const extractExpirationDate = (certData: string): Date | null => {
 			bytes[i] = binaryStr.charCodeAt(i);
 		}
 
-		let dateFound = 0;
+		// ASN.1 tag for UTCTime is 0x17, GeneralizedTime is 0x18
+		// We need to find the second occurrence of either tag as it's the "not after" (expiration) date
+		let dateFound = false;
 		for (let i = 0; i < bytes.length - 2; i++) {
-			if (bytes[i] === 0x17 || bytes[i] === 0x18) {
-				const dateType = bytes[i];
-				const dateLength = bytes[i + 1];
-				if (typeof dateLength === "undefined") continue;
+			// Look for sequence containing validity period (0x30)
+			if (bytes[i] === 0x30) {
+				// Check next bytes for UTCTime or GeneralizedTime
+				let j = i + 1;
+				while (j < bytes.length - 2) {
+					if (bytes[j] === 0x17 || bytes[j] === 0x18) {
+						const dateType = bytes[j];
+						const dateLength = bytes[j + 1];
+						if (typeof dateLength === "undefined") break;
 
-				if (dateFound === 0) {
-					dateFound++;
-					i += dateLength + 1;
-					continue;
+						if (!dateFound) {
+							// Skip "not before" date
+							dateFound = true;
+							j += dateLength + 2;
+							continue;
+						}
+
+						// Found "not after" date
+						let dateStr = "";
+						for (let k = 0; k < dateLength; k++) {
+							const charCode = bytes[j + 2 + k];
+							if (typeof charCode === "undefined") continue;
+							dateStr += String.fromCharCode(charCode);
+						}
+
+						if (dateType === 0x17) {
+							// UTCTime (YYMMDDhhmmssZ)
+							const year = Number.parseInt(dateStr.slice(0, 2));
+							const fullYear = year >= 50 ? 1900 + year : 2000 + year;
+							return new Date(
+								Date.UTC(
+									fullYear,
+									Number.parseInt(dateStr.slice(2, 4)) - 1,
+									Number.parseInt(dateStr.slice(4, 6)),
+									Number.parseInt(dateStr.slice(6, 8)),
+									Number.parseInt(dateStr.slice(8, 10)),
+									Number.parseInt(dateStr.slice(10, 12)),
+								),
+							);
+						}
+
+						// GeneralizedTime (YYYYMMDDhhmmssZ)
+						return new Date(
+							Date.UTC(
+								Number.parseInt(dateStr.slice(0, 4)),
+								Number.parseInt(dateStr.slice(4, 6)) - 1,
+								Number.parseInt(dateStr.slice(6, 8)),
+								Number.parseInt(dateStr.slice(8, 10)),
+								Number.parseInt(dateStr.slice(10, 12)),
+								Number.parseInt(dateStr.slice(12, 14)),
+							),
+						);
+					}
+					j++;
 				}
-
-				let dateStr = "";
-				for (let j = 0; j < dateLength; j++) {
-					const charCode = bytes[i + 2 + j];
-					if (typeof charCode === "undefined") continue;
-					dateStr += String.fromCharCode(charCode);
-				}
-
-				if (dateType === 0x17) {
-					// UTCTime (YYMMDDhhmmssZ)
-					const year = Number.parseInt(dateStr.slice(0, 2));
-					const fullYear = year >= 50 ? 1900 + year : 2000 + year;
-					return new Date(
-						Date.UTC(
-							fullYear,
-							Number.parseInt(dateStr.slice(2, 4)) - 1,
-							Number.parseInt(dateStr.slice(4, 6)),
-							Number.parseInt(dateStr.slice(6, 8)),
-							Number.parseInt(dateStr.slice(8, 10)),
-							Number.parseInt(dateStr.slice(10, 12)),
-						),
-					);
-				}
-
-				// GeneralizedTime (YYYYMMDDhhmmssZ)
-				return new Date(
-					Date.UTC(
-						Number.parseInt(dateStr.slice(0, 4)),
-						Number.parseInt(dateStr.slice(4, 6)) - 1,
-						Number.parseInt(dateStr.slice(6, 8)),
-						Number.parseInt(dateStr.slice(8, 10)),
-						Number.parseInt(dateStr.slice(10, 12)),
-						Number.parseInt(dateStr.slice(12, 14)),
-					),
-				);
 			}
 		}
 		return null;
