@@ -77,6 +77,14 @@ const RestoreBackupSchema = z.object({
 
 type RestoreBackup = z.infer<typeof RestoreBackupSchema>;
 
+const formatBytes = (bytes: number): string => {
+	if (bytes === 0) return "0 Bytes";
+	const k = 1024;
+	const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+};
+
 export const RestoreBackup = ({
 	databaseId,
 	databaseType,
@@ -101,7 +109,7 @@ export const RestoreBackup = ({
 
 	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
-	}, 150);
+	}, 350);
 
 	const handleSearchChange = (value: string) => {
 		setSearch(value);
@@ -271,7 +279,7 @@ export const RestoreBackup = ({
 											</Badge>
 										)}
 									</FormLabel>
-									<Popover>
+									<Popover modal>
 										<PopoverTrigger asChild>
 											<FormControl>
 												<Button
@@ -308,28 +316,51 @@ export const RestoreBackup = ({
 													</div>
 												) : (
 													<ScrollArea className="h-64">
-														<CommandGroup>
-															{files.map((file) => (
+														<CommandGroup className="w-96">
+															{files?.map((file) => (
 																<CommandItem
-																	value={file}
-																	key={file}
+																	value={file.Path}
+																	key={file.Path}
 																	onSelect={() => {
-																		form.setValue("backupFile", file);
-																		setSearch(file);
-																		setDebouncedSearchTerm(file);
+																		form.setValue("backupFile", file.Path);
+																		if (file.IsDir) {
+																			setSearch(`${file.Path}/`);
+																			setDebouncedSearchTerm(`${file.Path}/`);
+																		} else {
+																			setSearch(file.Path);
+																			setDebouncedSearchTerm(file.Path);
+																		}
 																	}}
 																>
-																	<div className="flex w-full justify-between">
-																		<span>{file}</span>
+																	<div className="flex w-full flex-col gap-1">
+																		<div className="flex w-full justify-between">
+																			<span className="font-medium">
+																				{file.Path}
+																			</span>
+
+																			<CheckIcon
+																				className={cn(
+																					"ml-auto h-4 w-4",
+																					file.Path === field.value
+																						? "opacity-100"
+																						: "opacity-0",
+																				)}
+																			/>
+																		</div>
+																		<div className="flex items-center gap-4 text-xs text-muted-foreground">
+																			<span>
+																				Size: {formatBytes(file.Size)}
+																			</span>
+																			{file.IsDir && (
+																				<span className="text-blue-500">
+																					Directory
+																				</span>
+																			)}
+																			{file.Hashes?.MD5 && (
+																				<span>MD5: {file.Hashes.MD5}</span>
+																			)}
+																		</div>
 																	</div>
-																	<CheckIcon
-																		className={cn(
-																			"ml-auto h-4 w-4",
-																			file === field.value
-																				? "opacity-100"
-																				: "opacity-0",
-																		)}
-																	/>
 																</CommandItem>
 															))}
 														</CommandGroup>
