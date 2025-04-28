@@ -22,28 +22,46 @@ import type { ServiceType } from "../../application/advanced/show-resources";
 import { AddBackup } from "./add-backup";
 import { RestoreBackup } from "./restore-backup";
 import { UpdateBackup } from "./update-backup";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	id: string;
-	type: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	backupType?: "database" | "compose";
 }
-export const ShowBackups = ({ id, type }: Props) => {
+export const ShowBackups = ({
+	id,
+	databaseType,
+	backupType = "database",
+}: Props) => {
 	const [activeManualBackup, setActiveManualBackup] = useState<
 		string | undefined
 	>();
-	const queryMap = {
-		postgres: () =>
-			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-		mariadb: () =>
-			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
-		"web-server": () => api.user.getBackups.useQuery(),
-	};
+	const queryMap =
+		backupType === "database"
+			? {
+					postgres: () =>
+						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+					mysql: () =>
+						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+					mariadb: () =>
+						api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+					mongo: () =>
+						api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+					"web-server": () => api.user.getBackups.useQuery(),
+				}
+			: {
+					compose: () =>
+						api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+				};
 	const { data } = api.destination.all.useQuery();
-	const { data: postgres, refetch } = queryMap[type]
-		? queryMap[type]()
+	const key = backupType === "database" ? databaseType : "compose";
+	const query = queryMap[key as keyof typeof queryMap];
+	const { data: postgres, refetch } = query
+		? query()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
+
+	console.log(postgres);
 
 	const mutationMap = {
 		postgres: () => api.backup.manualBackupPostgres.useMutation(),
@@ -51,12 +69,13 @@ export const ShowBackups = ({ id, type }: Props) => {
 		mariadb: () => api.backup.manualBackupMariadb.useMutation(),
 		mongo: () => api.backup.manualBackupMongo.useMutation(),
 		"web-server": () => api.backup.manualBackupWebServer.useMutation(),
+		compose: () => api.backup.manualBackupCompose.useMutation(),
 	};
 
 	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutationMap[
-		type
+		databaseType
 	]
-		? mutationMap[type]()
+		? mutationMap[databaseType]()
 		: api.backup.manualBackupMongo.useMutation();
 
 	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
@@ -78,16 +97,17 @@ export const ShowBackups = ({ id, type }: Props) => {
 
 				{postgres && postgres?.backups?.length > 0 && (
 					<div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
-						{type !== "web-server" && (
+						{databaseType !== "web-server" && (
 							<AddBackup
-								databaseId={id}
-								databaseType={type}
+								id={id}
+								databaseType={databaseType}
+								backupType={backupType}
 								refetch={refetch}
 							/>
 						)}
 						<RestoreBackup
-							databaseId={id}
-							databaseType={type}
+							id={id}
+							databaseType={databaseType}
 							serverId={"serverId" in postgres ? postgres.serverId : undefined}
 						/>
 					</div>
@@ -110,7 +130,7 @@ export const ShowBackups = ({ id, type }: Props) => {
 						</span>
 					</div>
 				) : (
-					<div>
+					<div className="flex flex-col gap-4 w-full">
 						{postgres?.backups.length === 0 ? (
 							<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 								<DatabaseBackup className="size-8 text-muted-foreground" />
@@ -119,13 +139,14 @@ export const ShowBackups = ({ id, type }: Props) => {
 								</span>
 								<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
 									<AddBackup
-										databaseId={id}
-										databaseType={type}
+										id={id}
+										databaseType={databaseType}
+										backupType={backupType}
 										refetch={refetch}
 									/>
 									<RestoreBackup
-										databaseId={id}
-										databaseType={type}
+										id={id}
+										databaseType={databaseType}
 										serverId={
 											"serverId" in postgres ? postgres.serverId : undefined
 										}
@@ -133,12 +154,41 @@ export const ShowBackups = ({ id, type }: Props) => {
 								</div>
 							</div>
 						) : (
-							<div className="flex flex-col pt-2">
+							<div className="flex flex-col pt-2 gap-4">
+								<div className="flex flex-col gap-4 w-full">
+									{backupType === "compose" && (
+										<AlertBlock type="info">
+											Deploy is required to apply changes after creating or
+											updating a backup.
+										</AlertBlock>
+									)}
+								</div>
 								<div className="flex flex-col gap-6">
 									{postgres?.backups.map((backup) => (
 										<div key={backup.backupId}>
 											<div className="flex w-full flex-col md:flex-row md:items-center justify-between gap-4 md:gap-10 border rounded-lg p-4">
-												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 flex-col gap-8">
+												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-8 flex-col gap-8">
+													{backup.backupType === "compose" && (
+														<>
+															<div className="flex flex-col gap-1">
+																<span className="font-medium">
+																	Service Name
+																</span>
+																<span className="text-sm text-muted-foreground">
+																	{backup.serviceName}
+																</span>
+															</div>
+
+															<div className="flex flex-col gap-1">
+																<span className="font-medium">
+																	Database Type
+																</span>
+																<span className="text-sm text-muted-foreground">
+																	{backup.databaseType}
+																</span>
+															</div>
+														</>
+													)}
 													<div className="flex flex-col gap-1">
 														<span className="font-medium">Destination</span>
 														<span className="text-sm text-muted-foreground">

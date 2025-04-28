@@ -9,6 +9,7 @@ import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show"
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { ProjectLayout } from "@/components/layouts/project-layout";
@@ -30,6 +31,13 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
@@ -57,6 +65,8 @@ type TabState =
 	| "domains"
 	| "monitoring";
 
+type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo";
+
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
@@ -65,6 +75,8 @@ const Service = (
 	const router = useRouter();
 	const { projectId } = router.query;
 	const [tab, setTab] = useState<TabState>(activeTab);
+	const [selectedDatabaseType, setSelectedDatabaseType] =
+		useState<DatabaseType>("postgres");
 
 	useEffect(() => {
 		if (router.query.tab) {
@@ -217,16 +229,17 @@ const Service = (
 											className={cn(
 												"lg:grid lg:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "lg:grid-cols-7"
+													? "lg:grid-cols-8"
 													: data?.serverId
-														? "lg:grid-cols-6"
-														: "lg:grid-cols-7",
+														? "lg:grid-cols-7"
+														: "lg:grid-cols-8",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
+											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
@@ -243,6 +256,34 @@ const Service = (
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowEnvironment id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="backups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<div className="flex flex-row items-center gap-2">
+												<Label>Database Type</Label>
+												<Select
+													value={selectedDatabaseType}
+													onValueChange={(value) =>
+														setSelectedDatabaseType(value as DatabaseType)
+													}
+												>
+													<SelectTrigger className="w-[180px]">
+														<SelectValue placeholder="Select a database type" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="postgres">PostgreSQL</SelectItem>
+														<SelectItem value="mariadb">MariaDB</SelectItem>
+														<SelectItem value="mysql">MySQL</SelectItem>
+														<SelectItem value="mongo">MongoDB</SelectItem>
+													</SelectContent>
+												</Select>
+											</div>
+											<ShowBackups
+												id={composeId}
+												databaseType={selectedDatabaseType}
+												backupType="compose"
+											/>
 										</div>
 									</TabsContent>
 

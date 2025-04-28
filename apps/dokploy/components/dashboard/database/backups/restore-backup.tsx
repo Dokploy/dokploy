@@ -46,7 +46,7 @@ import type { ServiceType } from "../../application/advanced/show-resources";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
-	databaseId: string;
+	id: string;
 	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
 	serverId?: string | null;
 }
@@ -85,11 +85,7 @@ const formatBytes = (bytes: number): string => {
 	return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 };
 
-export const RestoreBackup = ({
-	databaseId,
-	databaseType,
-	serverId,
-}: Props) => {
+export const RestoreBackup = ({ id, databaseType, serverId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -136,7 +132,7 @@ export const RestoreBackup = ({
 
 	api.backup.restoreBackupWithLogs.useSubscription(
 		{
-			databaseId,
+			databaseId: id,
 			databaseType,
 			databaseName: form.watch("databaseName"),
 			backupFile: form.watch("backupFile"),

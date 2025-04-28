@@ -82,6 +82,11 @@ export const backupRouter = createTRPCRouter({
 						serverId = backup.mongo.serverId;
 					} else if (databaseType === "mariadb" && backup.mariadb?.serverId) {
 						serverId = backup.mariadb.serverId;
+					} else if (
+						backup.backupType === "compose" &&
+						backup.compose?.serverId
+					) {
+						serverId = backup.compose.serverId;
 					}
 					const server = await findServerById(serverId);
 
@@ -231,6 +236,13 @@ export const backupRouter = createTRPCRouter({
 					cause: error,
 				});
 			}
+		}),
+	manualBackupCompose: protectedProcedure
+		.input(apiFindOneBackup)
+		.mutation(async ({ input }) => {
+			// const backup = await findBackupById(input.backupId);
+			// await runComposeBackup(backup);
+			return true;
 		}),
 	manualBackupMongo: protectedProcedure
 		.input(apiFindOneBackup)

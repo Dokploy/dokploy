@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -31,15 +32,36 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, PenBoxIcon } from "lucide-react";
+import {
+	CheckIcon,
+	ChevronsUpDown,
+	DatabaseZap,
+	PenBoxIcon,
+	RefreshCw,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+
+type CacheType = "cache" | "fetch";
 
 const UpdateBackupSchema = z.object({
 	destinationId: z.string().min(1, "Destination required"),
@@ -48,6 +70,7 @@ const UpdateBackupSchema = z.object({
 	enabled: z.boolean(),
 	database: z.string().min(1, "Database required"),
 	keepLatestCount: z.coerce.number().optional(),
+	serviceName: z.string().nullable(),
 });
 
 type UpdateBackup = z.infer<typeof UpdateBackupSchema>;
@@ -59,6 +82,7 @@ interface Props {
 
 export const UpdateBackup = ({ backupId, refetch }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [cacheType, setCacheType] = useState<CacheType>("cache");
 	const { data, isLoading } = api.destination.all.useQuery();
 	const { data: backup } = api.backup.one.useQuery(
 		{
@@ -66,6 +90,24 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 		},
 		{
 			enabled: !!backupId,
+		},
+	);
+
+	const {
+		data: services,
+		isFetching: isLoadingServices,
+		error: errorServices,
+		refetch: refetchServices,
+	} = api.compose.loadServices.useQuery(
+		{
+			composeId: backup?.composeId || "",
+			type: cacheType,
+		},
+		{
+			retry: false,
+			refetchOnWindowFocus: false,
+			enabled:
+				isOpen && backup?.backupType === "compose" && !!backup?.composeId,
 		},
 	);
 
@@ -80,6 +122,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			prefix: "/",
 			schedule: "",
 			keepLatestCount: undefined,
+			serviceName: null,
 		},
 		resolver: zodResolver(UpdateBackupSchema),
 	});
@@ -92,6 +135,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 				enabled: backup.enabled || false,
 				prefix: backup.prefix,
 				schedule: backup.schedule,
+				serviceName: backup.serviceName || null,
 				keepLatestCount: backup.keepLatestCount
 					? Number(backup.keepLatestCount)
 					: undefined,
@@ -100,6 +144,14 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 	}, [form, form.reset, backup]);
 
 	const onSubmit = async (data: UpdateBackup) => {
+		if (backup?.backupType === "compose" && !data.serviceName) {
+			form.setError("serviceName", {
+				type: "manual",
+				message: "Service name is required for compose backups",
+			});
+			return;
+		}
+
 		await mutateAsync({
 			backupId,
 			destinationId: data.destinationId,
@@ -107,6 +159,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			schedule: data.schedule,
 			enabled: data.enabled,
 			database: data.database,
+			serviceName: data.serviceName,
 			keepLatestCount: data.keepLatestCount as number | null,
 		})
 			.then(async () => {
@@ -143,6 +196,11 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 						className="grid w-full gap-4"
 					>
 						<div className="grid grid-cols-1 gap-4">
+							{errorServices && (
+								<AlertBlock type="warning" className="[overflow-wrap:anywhere]">
+									{errorServices?.message}
+								</AlertBlock>
+							)}
 							<FormField
 								control={form.control}
 								name="destinationId"
@@ -218,6 +276,110 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 									</FormItem>
 								)}
 							/>
+							{backup?.backupType === "compose" && (
+								<div className="flex flex-row items-end w-full gap-4">
+									<FormField
+										control={form.control}
+										name="serviceName"
+										render={({ field }) => (
+											<FormItem className="w-full">
+												<FormLabel>Service Name</FormLabel>
+												<div className="flex gap-2">
+													<Select
+														onValueChange={field.onChange}
+														value={field.value || undefined}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a service name" />
+															</SelectTrigger>
+														</FormControl>
+
+														<SelectContent>
+															{services?.map((service, index) => (
+																<SelectItem
+																	value={service}
+																	key={`${service}-${index}`}
+																>
+																	{service}
+																</SelectItem>
+															))}
+															{(!services || services.length === 0) && (
+																<SelectItem value="none" disabled>
+																	Empty
+																</SelectItem>
+															)}
+														</SelectContent>
+													</Select>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "fetch") {
+																			refetchServices();
+																		} else {
+																			setCacheType("fetch");
+																		}
+																	}}
+																>
+																	<RefreshCw className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Fetch: Will clone the repository and load the
+																	services
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "cache") {
+																			refetchServices();
+																		} else {
+																			setCacheType("cache");
+																		}
+																	}}
+																>
+																	<DatabaseZap className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Cache: If you previously deployed this
+																	compose, it will read the services from the
+																	last deployment/fetch from the repository
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							)}
 							<FormField
 								control={form.control}
 								name="database"

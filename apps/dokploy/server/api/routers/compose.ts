@@ -723,4 +723,18 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 		}),
+	manualBackup: protectedProcedure
+		.input(z.object({ composeId: z.string() }))
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to backup this compose",
+				});
+			}
+			await createBackup({
+				composeId: compose.composeId,
+			});
+		}),
 });

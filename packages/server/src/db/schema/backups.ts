@@ -16,6 +16,8 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { users_temp } from "./user";
+import { compose } from "./compose";
+
 export const databaseType = pgEnum("databaseType", [
 	"postgres",
 	"mariadb",
@@ -23,6 +25,8 @@ export const databaseType = pgEnum("databaseType", [
 	"mongo",
 	"web-server",
 ]);
+
+export const backupType = pgEnum("backupType", ["database", "compose"]);
 
 export const backups = pgTable("backup", {
 	backupId: text("backupId")
@@ -33,14 +37,19 @@ export const backups = pgTable("backup", {
 	enabled: boolean("enabled"),
 	database: text("database").notNull(),
 	prefix: text("prefix").notNull(),
-
+	serviceName: text("serviceName"),
 	destinationId: text("destinationId")
 		.notNull()
 		.references(() => destinations.destinationId, { onDelete: "cascade" }),
-
 	keepLatestCount: integer("keepLatestCount"),
-
+	backupType: backupType("backupType").notNull().default("database"),
 	databaseType: databaseType("databaseType").notNull(),
+	composeId: text("composeId").references(
+		(): AnyPgColumn => compose.composeId,
+		{
+			onDelete: "cascade",
+		},
+	),
 	postgresId: text("postgresId").references(
 		(): AnyPgColumn => postgres.postgresId,
 		{
@@ -87,6 +96,10 @@ export const backupsRelations = relations(backups, ({ one }) => ({
 		fields: [backups.userId],
 		references: [users_temp.id],
 	}),
+	compose: one(compose, {
+		fields: [backups.composeId],
+		references: [compose.composeId],
+	}),
 }));
 
 const createSchema = createInsertSchema(backups, {
@@ -118,6 +131,9 @@ export const apiCreateBackup = createSchema.pick({
 	mongoId: true,
 	databaseType: true,
 	userId: true,
+	backupType: true,
+	composeId: true,
+	serviceName: true,
 });
 
 export const apiFindOneBackup = createSchema
@@ -141,5 +157,6 @@ export const apiUpdateBackup = createSchema
 		destinationId: true,
 		database: true,
 		keepLatestCount: true,
+		serviceName: true,
 	})
 	.required();

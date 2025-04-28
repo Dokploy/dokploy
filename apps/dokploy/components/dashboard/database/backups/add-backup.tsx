@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -31,42 +32,59 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { DatabaseZap, PlusIcon, RefreshCw } from "lucide-react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+type CacheType = "cache" | "fetch";
+
 const AddPostgresBackup1Schema = z.object({
 	destinationId: z.string().min(1, "Destination required"),
 	schedule: z.string().min(1, "Schedule (Cron) required"),
-	// .regex(
-	//   new RegExp(
-	//     /^(\*|([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])|\*\/([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])) (\*|([0-9]|1[0-9]|2[0-3])|\*\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|\*\/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\*|([1-9]|1[0-2])|\*\/([1-9]|1[0-2])) (\*|([0-6])|\*\/([0-6]))$/,
-	//   ),
-	//   "Invalid Cron",
-	// ),
 	prefix: z.string().min(1, "Prefix required"),
 	enabled: z.boolean(),
 	database: z.string().min(1, "Database required"),
 	keepLatestCount: z.coerce.number().optional(),
+	serviceName: z.string().nullable(),
 });
 
 type AddPostgresBackup = z.infer<typeof AddPostgresBackup1Schema>;
 
 interface Props {
-	databaseId: string;
+	id: string;
 	databaseType: "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
 	refetch: () => void;
+	backupType: "database" | "compose";
 }
 
-export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
+export const AddBackup = ({
+	id,
+	databaseType,
+	refetch,
+	backupType = "database",
+}: Props) => {
 	const { data, isLoading } = api.destination.all.useQuery();
+	const [cacheType, setCacheType] = useState<CacheType>("cache");
 
 	const { mutateAsync: createBackup, isLoading: isCreatingPostgresBackup } =
 		api.backup.create.useMutation();
@@ -79,9 +97,27 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 			prefix: "/",
 			schedule: "",
 			keepLatestCount: undefined,
+			serviceName: null,
 		},
 		resolver: zodResolver(AddPostgresBackup1Schema),
 	});
+
+	const {
+		data: services,
+		isFetching: isLoadingServices,
+		error: errorServices,
+		refetch: refetchServices,
+	} = api.compose.loadServices.useQuery(
+		{
+			composeId: id,
+			type: cacheType,
+		},
+		{
+			retry: false,
+			refetchOnWindowFocus: false,
+			enabled: backupType === "compose",
+		},
+	);
 
 	useEffect(() => {
 		form.reset({
@@ -91,32 +127,45 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 			prefix: "/",
 			schedule: "",
 			keepLatestCount: undefined,
+			serviceName: null,
 		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful]);
+	}, [form, form.reset, form.formState.isSubmitSuccessful, databaseType]);
 
 	const onSubmit = async (data: AddPostgresBackup) => {
+		if (backupType === "compose" && !data.serviceName) {
+			form.setError("serviceName", {
+				type: "manual",
+				message: "Service name is required for compose backups",
+			});
+			return;
+		}
+
 		const getDatabaseId =
-			databaseType === "postgres"
+			backupType === "compose"
 				? {
-						postgresId: databaseId,
+						composeId: id,
 					}
-				: databaseType === "mariadb"
+				: databaseType === "postgres"
 					? {
-							mariadbId: databaseId,
+							postgresId: id,
 						}
-					: databaseType === "mysql"
+					: databaseType === "mariadb"
 						? {
-								mysqlId: databaseId,
+								mariadbId: id,
 							}
-						: databaseType === "mongo"
+						: databaseType === "mysql"
 							? {
-									mongoId: databaseId,
+									mysqlId: id,
 								}
-							: databaseType === "web-server"
+							: databaseType === "mongo"
 								? {
-										userId: databaseId,
+										mongoId: id,
 									}
-								: undefined;
+								: databaseType === "web-server"
+									? {
+											userId: id,
+										}
+									: undefined;
 
 		await createBackup({
 			destinationId: data.destinationId,
@@ -125,8 +174,10 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 			enabled: data.enabled,
 			database: data.database,
 			keepLatestCount: data.keepLatestCount,
-			databaseType,
+			databaseType: databaseType,
+			serviceName: data.serviceName,
 			...getDatabaseId,
+			backupType,
 		})
 			.then(async () => {
 				toast.success("Backup Created");
@@ -157,6 +208,11 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 						className="grid w-full gap-4"
 					>
 						<div className="grid grid-cols-1 gap-4">
+							{errorServices && (
+								<AlertBlock type="warning" className="[overflow-wrap:anywhere]">
+									{errorServices?.message}
+								</AlertBlock>
+							)}
 							<FormField
 								control={form.control}
 								name="destinationId"
@@ -232,6 +288,110 @@ export const AddBackup = ({ databaseId, databaseType, refetch }: Props) => {
 									</FormItem>
 								)}
 							/>
+							{backupType === "compose" && (
+								<div className="flex flex-row items-end w-full gap-4">
+									<FormField
+										control={form.control}
+										name="serviceName"
+										render={({ field }) => (
+											<FormItem className="w-full">
+												<FormLabel>Service Name</FormLabel>
+												<div className="flex gap-2">
+													<Select
+														onValueChange={field.onChange}
+														value={field.value || undefined}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a service name" />
+															</SelectTrigger>
+														</FormControl>
+
+														<SelectContent>
+															{services?.map((service, index) => (
+																<SelectItem
+																	value={service}
+																	key={`${service}-${index}`}
+																>
+																	{service}
+																</SelectItem>
+															))}
+															{(!services || services.length === 0) && (
+																<SelectItem value="none" disabled>
+																	Empty
+																</SelectItem>
+															)}
+														</SelectContent>
+													</Select>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "fetch") {
+																			refetchServices();
+																		} else {
+																			setCacheType("fetch");
+																		}
+																	}}
+																>
+																	<RefreshCw className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Fetch: Will clone the repository and load the
+																	services
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "cache") {
+																			refetchServices();
+																		} else {
+																			setCacheType("cache");
+																		}
+																	}}
+																>
+																	<DatabaseZap className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Cache: If you previously deployed this
+																	compose, it will read the services from the
+																	last deployment/fetch from the repository
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							)}
 							<FormField
 								control={form.control}
 								name="database"
