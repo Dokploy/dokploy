@@ -50,6 +50,18 @@ import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 
+interface RcloneFile {
+	Path: string;
+	Name: string;
+	Size: number;
+	IsDir: boolean;
+	Tier?: string;
+	Hashes?: {
+		MD5?: string;
+		SHA1?: string;
+	};
+}
+
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateBackup)
@@ -268,7 +280,7 @@ export const backupRouter = createTRPCRouter({
 						: input.search;
 
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
-				const listCommand = `rclone lsf ${rcloneFlags.join(" ")} "${searchPath}" | head -n 100`;
+				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} "${searchPath}" --no-mimetype --no-modtime 2>/dev/null`;
 
 				let stdout = "";
 
@@ -280,20 +292,35 @@ export const backupRouter = createTRPCRouter({
 					stdout = result.stdout;
 				}
 
-				const files = stdout.split("\n").filter(Boolean);
+				let files: RcloneFile[] = [];
+				try {
+					files = JSON.parse(stdout) as RcloneFile[];
+				} catch (error) {
+					console.error("Error parsing JSON response:", error);
+					console.error("Raw stdout:", stdout);
+					throw new Error("Failed to parse backup files list");
+				}
+
+				// Limit to first 100 files
 
 				const results = baseDir
-					? files.map((file) => `${baseDir}${file}`)
+					? files.map((file) => ({
+							...file,
+							Path: `${baseDir}${file.Path}`,
+						}))
 					: files;
 
 				if (searchTerm) {
-					return results.filter((file) =>
-						file.toLowerCase().includes(searchTerm.toLowerCase()),
-					);
+					return results
+						.filter((file) =>
+							file.Path.toLowerCase().includes(searchTerm.toLowerCase()),
+						)
+						.slice(0, 100);
 				}
 
-				return results;
+				return results.slice(0, 100);
 			} catch (error) {
+				console.error("Error in listBackupFiles:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:

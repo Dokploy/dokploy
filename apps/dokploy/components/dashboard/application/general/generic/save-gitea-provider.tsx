@@ -31,6 +31,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -74,6 +75,7 @@ const GiteaProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	giteaId: z.string().min(1, "Gitea Provider is required"),
 	watchPaths: z.array(z.string()).default([]),
+	enableSubmodules: z.boolean().optional(),
 });
 
 type GiteaProvider = z.infer<typeof GiteaProviderSchema>;
@@ -99,6 +101,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			giteaId: "",
 			branch: "",
 			watchPaths: [],
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GiteaProviderSchema),
 	});
@@ -152,6 +155,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 				buildPath: data.giteaBuildPath || "/",
 				giteaId: data.giteaId || "",
 				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules || false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -165,6 +169,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			giteaId: data.giteaId,
 			applicationId,
 			watchPaths: data.watchPaths,
+			enableSubmodules: data.enableSubmodules || false,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -495,6 +500,21 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 										</Button>
 									</div>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

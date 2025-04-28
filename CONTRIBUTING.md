@@ -52,7 +52,7 @@ feat: add new feature
 
 Before you start, please make the clone based on the `canary` branch, since the `main` branch is the source of truth and should always reflect the latest stable release, also the PRs will be merged to the `canary` branch.
 
-We use Node v20.9.0 and recommend this specific version. If you have nvm installed, you can run `nvm install 20.9.0 && nvm use` in the root directory. 
+We use Node v20.9.0 and recommend this specific version. If you have nvm installed, you can run `nvm install 20.9.0 && nvm use` in the root directory.
 
 ```bash
 git clone https://github.com/dokploy/dokploy.git
@@ -147,10 +147,8 @@ curl -sSL https://railpack.com/install.sh | sh
 
 ```bash
 # Install Buildpacks
-curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.32.1/pack-v0.32.1-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 ```
-
-
 
 ## Pull Request
 
@@ -168,7 +166,6 @@ Thank you for your contribution!
 ## Templates
 
 To add a new template, go to `https://github.com/Dokploy/templates` repository and read the README.md file.
-
 
 ### Recommendations
 

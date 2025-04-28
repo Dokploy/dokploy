@@ -51,6 +51,35 @@ describe("processTemplate", () => {
 			expect(result.domains).toHaveLength(0);
 			expect(result.mounts).toHaveLength(0);
 		});
+
+		it("should allow creation of real jwt secret", () => {
+			const template: CompleteTemplate = {
+				metadata: {} as any,
+				variables: {
+					jwt_secret: "cQsdycq1hDLopQonF6jUTqgQc5WEZTwWLL02J6XJ",
+					anon_payload: JSON.stringify({
+						role: "tester",
+						iss: "dockploy",
+						iat: "${timestamps:2025-01-01T00:00:00Z}",
+						exp: "${timestamps:2030-01-01T00:00:00Z}",
+					}),
+					anon_key: "${jwt:jwt_secret:anon_payload}",
+				},
+				config: {
+					domains: [],
+					env: {
+						ANON_KEY: "${anon_key}",
+					},
+				},
+			};
+			const result = processTemplate(template, mockSchema);
+			expect(result.envs).toHaveLength(1);
+			expect(result.envs).toContain(
+				"ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOiIxNzM1Njg5NjAwIiwiZXhwIjoiMTg5MzQ1NjAwMCIsInJvbGUiOiJ0ZXN0ZXIiLCJpc3MiOiJkb2NrcGxveSJ9.BG5JoxL2_NaTFbPgyZdm3kRWenf_O3su_HIRKGCJ_kY",
+			);
+			expect(result.mounts).toHaveLength(0);
+			expect(result.domains).toHaveLength(0);
+		});
 	});
 
 	describe("domains processing", () => {

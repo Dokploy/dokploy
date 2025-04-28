@@ -26,15 +26,20 @@ const dockerComposeServices = [
 	{ label: "secrets", type: "keyword", info: "Define secrets" },
 ].map((opt) => ({
 	...opt,
-	apply: (view: EditorView, completion: Completion) => {
+	apply: (
+		view: EditorView,
+		completion: Completion,
+		from: number,
+		to: number,
+	) => {
 		const insert = `${completion.label}:`;
 		view.dispatch({
 			changes: {
-				from: view.state.selection.main.from,
-				to: view.state.selection.main.to,
+				from,
+				to,
 				insert,
 			},
-			selection: { anchor: view.state.selection.main.from + insert.length },
+			selection: { anchor: from + insert.length },
 		});
 	},
 }));
@@ -74,15 +79,20 @@ const dockerComposeServiceOptions = [
 	{ label: "networks", type: "keyword", info: "Networks to join" },
 ].map((opt) => ({
 	...opt,
-	apply: (view: EditorView, completion: Completion) => {
+	apply: (
+		view: EditorView,
+		completion: Completion,
+		from: number,
+		to: number,
+	) => {
 		const insert = `${completion.label}: `;
 		view.dispatch({
 			changes: {
-				from: view.state.selection.main.from,
-				to: view.state.selection.main.to,
+				from,
+				to,
 				insert,
 			},
-			selection: { anchor: view.state.selection.main.from + insert.length },
+			selection: { anchor: from + insert.length },
 		});
 	},
 }));
@@ -99,6 +109,7 @@ function dockerComposeComplete(
 	const line = context.state.doc.lineAt(context.pos);
 	const indentation = /^\s*/.exec(line.text)?.[0].length || 0;
 
+	// If we're at the root level
 	if (indentation === 0) {
 		return {
 			from: word.from,

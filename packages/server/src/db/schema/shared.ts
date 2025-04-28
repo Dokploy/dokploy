@@ -12,3 +12,5 @@ export const certificateType = pgEnum("certificateType", [
 	"none",
 	"custom",
 ]);
+
+export const triggerType = pgEnum("triggerType", ["push", "tag"]);

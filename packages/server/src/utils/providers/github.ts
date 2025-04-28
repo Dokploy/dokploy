@@ -83,6 +83,7 @@ interface CloneGithubRepository {
 	repository: string | null;
 	logPath: string;
 	type?: "application" | "compose";
+	enableSubmodules: boolean;
 }
 export const cloneGithubRepository = async ({
 	logPath,
@@ -92,7 +93,8 @@ export const cloneGithubRepository = async ({
 	const isCompose = type === "compose";
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths();
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { appName, repository, owner, branch, githubId } = entity;
+	const { appName, repository, owner, branch, githubId, enableSubmodules } =
+		entity;
 
 	if (!githubId) {
 		throw new TRPCError({
@@ -128,25 +130,23 @@ export const cloneGithubRepository = async ({
 
 	try {
 		writeStream.write(`\nClonning Repo ${repoclone} to ${outputPath}: ✅\n`);
-		await spawnAsync(
-			"git",
-			[
-				"clone",
-				"--branch",
-				branch!,
-				"--depth",
-				"1",
-				"--recurse-submodules",
-				cloneUrl,
-				outputPath,
-				"--progress",
-			],
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-		);
+		const cloneArgs = [
+			"clone",
+			"--branch",
+			branch!,
+			"--depth",
+			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
+			cloneUrl,
+			outputPath,
+			"--progress",
+		];
+
+		await spawnAsync("git", cloneArgs, (data) => {
+			if (writeStream.writable) {
+				writeStream.write(data);
+			}
+		});
 		writeStream.write(`\nCloned ${repoclone}: ✅\n`);
 	} catch (error) {
 		writeStream.write(`ERROR Clonning: ${error}: ❌`);
@@ -161,7 +161,15 @@ export const getGithubCloneCommand = async ({
 	type = "application",
 	...entity
 }: CloneGithubRepository & { serverId: string }) => {
-	const { appName, repository, owner, branch, githubId, serverId } = entity;
+	const {
+		appName,
+		repository,
+		owner,
+		branch,
+		githubId,
+		serverId,
+		enableSubmodules,
+	} = entity;
 	const isCompose = type === "compose";
 	if (!serverId) {
 		throw new TRPCError({
@@ -216,7 +224,7 @@ export const getGithubCloneCommand = async ({
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${branch} --depth 1 --recurse-submodules --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+if ! git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
 	echo "❌ [ERROR] Fail to clone repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
@@ -227,7 +235,8 @@ echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 };
 
 export const cloneRawGithubRepository = async (entity: Compose) => {
-	const { appName, repository, owner, branch, githubId } = entity;
+	const { appName, repository, owner, branch, githubId, enableSubmodules } =
+		entity;
 
 	if (!githubId) {
 		throw new TRPCError({
@@ -245,24 +254,33 @@ export const cloneRawGithubRepository = async (entity: Compose) => {
 	await recreateDirectory(outputPath);
 	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
 	try {
-		await spawnAsync("git", [
+		const cloneArgs = [
 			"clone",
 			"--branch",
 			branch!,
 			"--depth",
 			"1",
-			"--recurse-submodules",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
-		]);
+		];
+		await spawnAsync("git", cloneArgs);
 	} catch (error) {
 		throw error;
 	}
 };
 
 export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
-	const { appName, repository, owner, branch, githubId, serverId } = compose;
+	const {
+		appName,
+		repository,
+		owner,
+		branch,
+		githubId,
+		serverId,
+		enableSubmodules,
+	} = compose;
 
 	if (!serverId) {
 		throw new TRPCError({
@@ -288,7 +306,7 @@ export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${branch} --depth 1 ${cloneUrl} ${outputPath}
+			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
