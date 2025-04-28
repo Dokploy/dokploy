@@ -24,7 +24,7 @@ import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
 import { server } from "./server";
-import { applicationStatus, certificateType } from "./shared";
+import { applicationStatus, certificateType, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 
@@ -149,6 +149,7 @@ export const applications = pgTable("application", {
 	owner: text("owner"),
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
+	triggerType: triggerType("triggerType").default("push"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Gitlab
 	gitlabProjectId: integer("gitlabProjectId"),
@@ -473,7 +474,10 @@ export const apiSaveGithubProvider = createSchema
 		watchPaths: true,
 		enableSubmodules: true,
 	})
-	.required();
+	.required()
+	.extend({
+		triggerType: z.enum(["push", "tag"]).default("push"),
+	});
 
 export const apiSaveGitlabProvider = createSchema
 	.pick({
