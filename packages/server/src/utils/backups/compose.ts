@@ -88,4 +88,3 @@ export const runComposeBackup = async (
 		throw error;
 	}
 };
-// mongorestore -d monguito -u mongo -p Bqh7AQl-PRbnBu --authenticationDatabase admin --gzip --archive=2024-04-13T05:03:58.937Z.dump.gz

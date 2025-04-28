@@ -16,13 +16,14 @@ import { eq } from "drizzle-orm";
 import { logger } from "./logger.js";
 import { scheduleJob } from "./queue.js";
 import type { QueueJob } from "./schema.js";
+import { runComposeBackup } from "@dokploy/server/src/utils/backups/compose.js";
 
 export const runJobs = async (job: QueueJob) => {
 	try {
 		if (job.type === "backup") {
 			const { backupId } = job;
 			const backup = await findBackupById(backupId);
-			const { databaseType, postgres, mysql, mongo, mariadb } = backup;
+			const { databaseType, postgres, mysql, mongo, mariadb, compose } = backup;
 
 			if (databaseType === "postgres" && postgres) {
 				const server = await findServerById(postgres.serverId as string);
@@ -55,6 +56,14 @@ export const runJobs = async (job: QueueJob) => {
 					return;
 				}
 				await runMariadbBackup(mariadb, backup);
+				await keepLatestNBackups(backup, server.serverId);
+			} else if (databaseType === "compose" && compose) {
+				const server = await findServerById(compose.serverId as string);
+				if (server.serverStatus === "inactive") {
+					logger.info("Server is inactive");
+					return;
+				}
+				await runComposeBackup(compose, backup);
 				await keepLatestNBackups(backup, server.serverId);
 			}
 		}
