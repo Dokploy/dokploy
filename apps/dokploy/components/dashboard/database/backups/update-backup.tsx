@@ -192,7 +192,6 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			form.reset(
 				{
 					...currentValues,
-					metadata: {},
 				},
 				{ keepDefaultValues: true },
 			);

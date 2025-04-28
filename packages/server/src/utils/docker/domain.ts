@@ -38,8 +38,6 @@ import type {
 	PropertiesNetworks,
 } from "./types";
 import { encodeBase64 } from "./utils";
-import type { Backup } from "@dokploy/server/services/backup";
-import { createBackupLabels } from "./backup";
 
 export const cloneCompose = async (compose: Compose) => {
 	if (compose.sourceType === "github") {
@@ -134,13 +132,13 @@ export const readComposeFile = async (compose: Compose) => {
 };
 
 export const writeDomainsToCompose = async (
-	compose: Compose & { domains: Domain[]; backups: Backup[] },
+	compose: Compose,
+	domains: Domain[],
 ) => {
-	const { domains, backups } = compose;
-	if (!domains.length && !backups.length) {
+	if (!domains.length) {
 		return;
 	}
-	const composeConverted = await addDomainToCompose(compose);
+	const composeConverted = await addDomainToCompose(compose, domains);
 
 	const path = getComposePath(compose);
 	const composeString = dump(composeConverted, { lineWidth: 1000 });
@@ -152,7 +150,7 @@ export const writeDomainsToCompose = async (
 };
 
 export const writeDomainsToComposeRemote = async (
-	compose: Compose & { domains: Domain[]; backups: Backup[] },
+	compose: Compose,
 	domains: Domain[],
 	logPath: string,
 ) => {
@@ -161,7 +159,7 @@ export const writeDomainsToComposeRemote = async (
 	}
 
 	try {
-		const composeConverted = await addDomainToCompose(compose);
+		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
 
 		if (!composeConverted) {
@@ -182,20 +180,22 @@ exit 1;
 		`;
 	}
 };
+// (node:59875) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. Use emitter.setMaxListeners() to increase limit
 export const addDomainToCompose = async (
-	compose: Compose & { domains: Domain[]; backups: Backup[] },
+	compose: Compose,
+	domains: Domain[],
 ) => {
-	const { appName, domains, backups } = compose;
+	const { appName } = compose;
 
 	let result: ComposeSpecification | null;
 
 	if (compose.serverId) {
-		result = await loadDockerComposeRemote(compose);
+		result = await loadDockerComposeRemote(compose); // aca hay que ir al servidor e ir a traer el compose file al servidor
 	} else {
 		result = await loadDockerCompose(compose);
 	}
 
-	if (!result || (domains.length === 0 && backups.length === 0)) {
+	if (!result || domains.length === 0) {
 		return null;
 	}
 
@@ -210,7 +210,6 @@ export const addDomainToCompose = async (
 		result = randomized;
 	}
 
-	// Add domains to the compose
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
@@ -263,38 +262,6 @@ export const addDomainToCompose = async (
 				result.services[serviceName].networks,
 			);
 		}
-	}
-
-	// Add backups to the compose
-	for (const backup of backups) {
-		const { backupId, serviceName, enabled } = backup;
-
-		if (!enabled) {
-			continue;
-		}
-
-		if (!serviceName) {
-			throw new Error(
-				"Service name not found, please check the backups to use a valid service name",
-			);
-		}
-
-		if (!result?.services?.[serviceName]) {
-			throw new Error(`The service ${serviceName} not found in the compose`);
-		}
-
-		const backupLabels = createBackupLabels(backupId);
-
-		if (!result.services[serviceName].labels) {
-			result.services[serviceName].labels = [];
-		}
-
-		result.services[serviceName].labels = [
-			...(Array.isArray(result.services[serviceName].labels)
-				? result.services[serviceName].labels
-				: []),
-			...backupLabels,
-		];
 	}
 
 	// Add dokploy-network to the root of the compose file

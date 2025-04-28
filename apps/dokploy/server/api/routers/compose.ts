@@ -27,6 +27,7 @@ import {
 	createMount,
 	deleteMount,
 	findComposeById,
+	findDomainsByComposeId,
 	findProjectById,
 	findServerById,
 	findUserById,
@@ -267,7 +268,8 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to get this compose",
 				});
 			}
-			const composeFile = await addDomainToCompose(compose);
+			const domains = await findDomainsByComposeId(input.composeId);
+			const composeFile = await addDomainToCompose(compose, domains);
 			return dump(composeFile, {
 				lineWidth: 1000,
 			});

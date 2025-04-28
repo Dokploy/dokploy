@@ -21,7 +21,7 @@ export const runComposeBackup = async (
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-		const command = `docker ps --filter "status=running" --filter "label=dokploy.backup.id=${backup.backupId}" --format "{{.ID}}" | head -n 1`;
+		const command = getFindContainerCommand(compose, backup.serviceName || "");
 		if (compose.serverId) {
 			const { stdout } = await execAsyncRemote(compose.serverId, command);
 			if (!stdout) {
@@ -87,4 +87,27 @@ export const runComposeBackup = async (
 		});
 		throw error;
 	}
+};
+
+export const getFindContainerCommand = (
+	compose: Compose,
+	serviceName: string,
+) => {
+	const { appName, composeType } = compose;
+	const labels =
+		composeType === "stack"
+			? {
+					namespace: `label=com.docker.stack.namespace=${appName}`,
+					service: `label=com.docker.swarm.service.name=${appName}_${serviceName}`,
+				}
+			: {
+					project: `label=com.docker.compose.project=${appName}`,
+					service: `label=com.docker.compose.service=${serviceName}`,
+				};
+
+	const command = `docker ps --filter "status=running" \
+	  --filter "${Object.values(labels).join('" --filter "')}" \
+	  --format "{{.ID}}" | head -n 1`;
+
+	return command.trim();
 };

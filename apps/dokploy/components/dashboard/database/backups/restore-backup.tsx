@@ -32,24 +32,75 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import copy from "copy-to-clipboard";
 import { debounce } from "lodash";
-import { CheckIcon, ChevronsUpDown, Copy, RotateCcw } from "lucide-react";
+import {
+	CheckIcon,
+	ChevronsUpDown,
+	Copy,
+	RotateCcw,
+	RefreshCw,
+	DatabaseZap,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
 	id: string;
 	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
 	serverId?: string | null;
+	backupType?: "database" | "compose";
 }
+
+const getMetadataSchema = (
+	backupType: "database" | "compose",
+	databaseType: string,
+) => {
+	if (backupType !== "compose") return z.object({}).optional();
+
+	const schemas = {
+		postgres: z.object({
+			databaseUser: z.string().min(1, "Database user is required"),
+		}),
+		mariadb: z.object({
+			databaseUser: z.string().min(1, "Database user is required"),
+			databasePassword: z.string().min(1, "Database password is required"),
+		}),
+		mongo: z.object({
+			databaseUser: z.string().min(1, "Database user is required"),
+			databasePassword: z.string().min(1, "Database password is required"),
+		}),
+		mysql: z.object({
+			databaseRootPassword: z.string().min(1, "Root password is required"),
+		}),
+		"web-server": z.object({}),
+	};
+
+	return z.object({
+		[databaseType]: schemas[databaseType as keyof typeof schemas],
+		serviceName: z.string().min(1, "Service name is required"),
+	});
+};
 
 const RestoreBackupSchema = z.object({
 	destinationId: z
@@ -73,9 +124,15 @@ const RestoreBackupSchema = z.object({
 		.min(1, {
 			message: "Database name is required",
 		}),
+	databaseType: z
+		.string({
+			required_error: "Please select a database type",
+		})
+		.min(1, {
+			message: "Database type is required",
+		}),
+	metadata: z.object({}).optional(),
 });
-
-type RestoreBackup = z.infer<typeof RestoreBackupSchema>;
 
 const formatBytes = (bytes: number): string => {
 	if (bytes === 0) return "0 Bytes";
@@ -85,23 +142,40 @@ const formatBytes = (bytes: number): string => {
 	return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 };
 
-export const RestoreBackup = ({ id, databaseType, serverId }: Props) => {
+export const RestoreBackup = ({
+	id,
+	databaseType,
+	serverId,
+	backupType = "database",
+}: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+	const [selectedDatabaseType, setSelectedDatabaseType] = useState<string>(
+		backupType === "compose" ? "" : databaseType,
+	);
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
-	const form = useForm<RestoreBackup>({
+	const schema = RestoreBackupSchema.extend({
+		metadata: getMetadataSchema(backupType, selectedDatabaseType),
+	});
+
+	const form = useForm<z.infer<typeof schema>>({
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
 			databaseName: databaseType === "web-server" ? "dokploy" : "",
+			databaseType: backupType === "compose" ? "" : databaseType,
+			metadata: {},
 		},
-		resolver: zodResolver(RestoreBackupSchema),
+		resolver: zodResolver(schema),
 	});
 
 	const destionationId = form.watch("destinationId");
+
+	const metadata = form.watch("metadata");
+	// console.log({ metadata });
 
 	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
@@ -127,16 +201,15 @@ export const RestoreBackup = ({ id, databaseType, serverId }: Props) => {
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
 
-	// const { mutateAsync: restore, isLoading: isRestoring } =
-	// 	api.backup.restoreBackup.useMutation();
-
 	api.backup.restoreBackupWithLogs.useSubscription(
 		{
 			databaseId: id,
-			databaseType,
+			databaseType: form.watch("databaseType"),
 			databaseName: form.watch("databaseName"),
 			backupFile: form.watch("backupFile"),
 			destinationId: form.watch("destinationId"),
+			backupType: backupType,
+			metadata: metadata,
 		},
 		{
 			enabled: isDeploying,
@@ -158,9 +231,31 @@ export const RestoreBackup = ({ id, databaseType, serverId }: Props) => {
 		},
 	);
 
-	const onSubmit = async (_data: RestoreBackup) => {
+	const onSubmit = async (data: z.infer<typeof schema>) => {
+		if (backupType === "compose" && !data.databaseType) {
+			toast.error("Please select a database type");
+			return;
+		}
+		console.log({ data });
 		setIsDeploying(true);
 	};
+
+	const [cacheType, setCacheType] = useState<"fetch" | "cache">("cache");
+	const {
+		data: services = [],
+		isLoading: isLoadingServices,
+		refetch: refetchServices,
+	} = api.compose.loadServices.useQuery(
+		{
+			composeId: id,
+			type: cacheType,
+		},
+		{
+			retry: false,
+			refetchOnWindowFocus: false,
+			enabled: backupType === "compose",
+		},
+	);
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -170,7 +265,7 @@ export const RestoreBackup = ({ id, databaseType, serverId }: Props) => {
 					Restore Backup
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-lg">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />
@@ -373,25 +468,270 @@ export const RestoreBackup = ({ id, databaseType, serverId }: Props) => {
 							control={form.control}
 							name="databaseName"
 							render={({ field }) => (
-								<FormItem className="">
+								<FormItem>
 									<FormLabel>Database Name</FormLabel>
 									<FormControl>
-										<Input
-											disabled={databaseType === "web-server"}
-											{...field}
-											placeholder="Enter database name"
-										/>
+										<Input placeholder="Enter database name" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
+
+						{backupType === "compose" && (
+							<>
+								<FormField
+									control={form.control}
+									name="databaseType"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Database Type</FormLabel>
+											<Select
+												value={field.value}
+												onValueChange={(value) => {
+													field.onChange(value);
+													setSelectedDatabaseType(value);
+												}}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select database type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="postgres">PostgreSQL</SelectItem>
+													<SelectItem value="mariadb">MariaDB</SelectItem>
+													<SelectItem value="mongo">MongoDB</SelectItem>
+													<SelectItem value="mysql">MySQL</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="metadata.serviceName"
+									render={({ field }) => (
+										<FormItem className="w-full">
+											<FormLabel>Service Name</FormLabel>
+											<div className="flex gap-2">
+												<Select
+													onValueChange={field.onChange}
+													value={field.value || undefined}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a service name" />
+														</SelectTrigger>
+													</FormControl>
+
+													<SelectContent>
+														{services?.map((service, index) => (
+															<SelectItem
+																value={service}
+																key={`${service}-${index}`}
+															>
+																{service}
+															</SelectItem>
+														))}
+														{(!services || services.length === 0) && (
+															<SelectItem value="none" disabled>
+																Empty
+															</SelectItem>
+														)}
+													</SelectContent>
+												</Select>
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Button
+																variant="secondary"
+																type="button"
+																isLoading={isLoadingServices}
+																onClick={() => {
+																	if (cacheType === "fetch") {
+																		refetchServices();
+																	} else {
+																		setCacheType("fetch");
+																	}
+																}}
+															>
+																<RefreshCw className="size-4 text-muted-foreground" />
+															</Button>
+														</TooltipTrigger>
+														<TooltipContent
+															side="left"
+															sideOffset={5}
+															className="max-w-[10rem]"
+														>
+															<p>
+																Fetch: Will clone the repository and load the
+																services
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Button
+																variant="secondary"
+																type="button"
+																isLoading={isLoadingServices}
+																onClick={() => {
+																	if (cacheType === "cache") {
+																		refetchServices();
+																	} else {
+																		setCacheType("cache");
+																	}
+																}}
+															>
+																<DatabaseZap className="size-4 text-muted-foreground" />
+															</Button>
+														</TooltipTrigger>
+														<TooltipContent
+															side="left"
+															sideOffset={5}
+															className="max-w-[10rem]"
+														>
+															<p>
+																Cache: If you previously deployed this compose,
+																it will read the services from the last
+																deployment/fetch from the repository
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								{selectedDatabaseType === "postgres" && (
+									<FormField
+										control={form.control}
+										name="metadata.postgres.databaseUser"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Database User</FormLabel>
+												<FormControl>
+													<Input placeholder="Enter database user" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+
+								{selectedDatabaseType === "mariadb" && (
+									<>
+										<FormField
+											control={form.control}
+											name="metadata.mariadb.databaseUser"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Database User</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="Enter database user"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="metadata.mariadb.databasePassword"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Database Password</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="Enter database password"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
+								{selectedDatabaseType === "mongo" && (
+									<>
+										<FormField
+											control={form.control}
+											name="metadata.mongo.databaseUser"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Database User</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="Enter database user"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="metadata.mongo.databasePassword"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Database Password</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="Enter database password"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
+								{selectedDatabaseType === "mysql" && (
+									<FormField
+										control={form.control}
+										name="metadata.mysql.databaseRootPassword"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Root Password</FormLabel>
+												<FormControl>
+													<Input
+														type="password"
+														placeholder="Enter root password"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+							</>
+						)}
+
 						<DialogFooter>
 							<Button
 								isLoading={isDeploying}
 								form="hook-form-restore-backup"
 								type="submit"
-								disabled={!form.watch("backupFile")}
+								disabled={
+									!form.watch("backupFile") ||
+									(backupType === "compose" && !form.watch("databaseType"))
+								}
 							>
 								Restore
 							</Button>

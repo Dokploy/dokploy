@@ -110,6 +110,7 @@ export const ShowBackups = ({
 						<RestoreBackup
 							id={id}
 							databaseType={databaseType}
+							backupType={backupType}
 							serverId={"serverId" in postgres ? postgres.serverId : undefined}
 						/>
 					</div>

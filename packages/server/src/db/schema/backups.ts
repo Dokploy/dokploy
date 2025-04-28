@@ -137,7 +137,7 @@ const createSchema = createInsertSchema(backups, {
 	mysqlId: z.string().optional(),
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
-	metadata: z.object({}).optional(),
+	metadata: z.any().optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
