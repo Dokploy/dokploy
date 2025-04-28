@@ -221,7 +221,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			databaseType:
 				backup?.backupType === "compose"
 					? selectedDatabaseType
-					: backup?.databaseType,
+					: (backup?.databaseType as DatabaseType),
 		})
 			.then(async () => {
 				toast.success("Backup Updated");

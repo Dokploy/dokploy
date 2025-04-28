@@ -71,22 +71,25 @@ export const backups = pgTable("backup", {
 	}),
 	userId: text("userId").references(() => users_temp.id),
 	// Only for compose backups
-	metadata: jsonb("metadata").$type<{
-		postgres?: {
-			databaseUser: string;
-		};
-		mariadb?: {
-			databaseUser: string;
-			databasePassword: string;
-		};
-		mongo?: {
-			databaseUser: string;
-			databasePassword: string;
-		};
-		mysql?: {
-			databaseRootPassword: string;
-		};
-	}>(),
+	metadata: jsonb("metadata").$type<
+		| {
+				postgres?: {
+					databaseUser: string;
+				};
+				mariadb?: {
+					databaseUser: string;
+					databasePassword: string;
+				};
+				mongo?: {
+					databaseUser: string;
+					databasePassword: string;
+				};
+				mysql?: {
+					databaseRootPassword: string;
+				};
+		  }
+		| undefined
+	>(),
 });
 
 export const backupsRelations = relations(backups, ({ one }) => ({
@@ -134,6 +137,7 @@ const createSchema = createInsertSchema(backups, {
 	mysqlId: z.string().optional(),
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
+	metadata: z.object({}).optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
