@@ -74,8 +74,7 @@ export const ShowBackups = ({
 					compose: api.backup.manualBackupCompose.useMutation(),
 				};
 
-	const key2 = backupType === "database" ? databaseType : "compose";
-	const mutation = mutationMap[key2 as keyof typeof mutationMap];
+	const mutation = mutationMap[key as keyof typeof mutationMap];
 
 	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutation
 		? mutation
