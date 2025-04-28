@@ -58,7 +58,36 @@ import { z } from "zod";
 
 type CacheType = "cache" | "fetch";
 
-const AddPostgresBackup1Schema = z.object({
+const getMetadataSchema = (
+	backupType: "database" | "compose",
+	databaseType: Props["databaseType"],
+) => {
+	if (backupType !== "compose") return z.object({}).optional();
+
+	const schemas = {
+		postgres: z.object({
+			databaseUser: z.string().min(1, "Database user is required"),
+		}),
+		mariadb: z.object({
+			databaseUser: z.string().min(1, "Database user is required"),
+			databasePassword: z.string().min(1, "Database password is required"),
+		}),
+		mongo: z.object({
+			databaseUser: z.string().min(1, "Database user is required"),
+			databasePassword: z.string().min(1, "Database password is required"),
+		}),
+		mysql: z.object({
+			databaseRootPassword: z.string().min(1, "Root password is required"),
+		}),
+		"web-server": z.object({}),
+	};
+
+	return z.object({
+		[databaseType]: schemas[databaseType],
+	});
+};
+
+const Schema = z.object({
 	destinationId: z.string().min(1, "Destination required"),
 	schedule: z.string().min(1, "Schedule (Cron) required"),
 	prefix: z.string().min(1, "Prefix required"),
@@ -68,7 +97,7 @@ const AddPostgresBackup1Schema = z.object({
 	serviceName: z.string().nullable(),
 });
 
-type AddPostgresBackup = z.infer<typeof AddPostgresBackup1Schema>;
+type Schema = z.infer<typeof Schema>;
 
 interface Props {
 	id: string;
@@ -89,7 +118,11 @@ export const AddBackup = ({
 	const { mutateAsync: createBackup, isLoading: isCreatingPostgresBackup } =
 		api.backup.create.useMutation();
 
-	const form = useForm<AddPostgresBackup>({
+	const schema = Schema.extend({
+		metadata: getMetadataSchema(backupType, databaseType),
+	});
+
+	const form = useForm<z.infer<typeof schema>>({
 		defaultValues: {
 			database: "",
 			destinationId: "",
@@ -98,8 +131,9 @@ export const AddBackup = ({
 			schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
+			metadata: {},
 		},
-		resolver: zodResolver(AddPostgresBackup1Schema),
+		resolver: zodResolver(schema),
 	});
 
 	const {
@@ -128,10 +162,11 @@ export const AddBackup = ({
 			schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
+			metadata: {},
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, databaseType]);
 
-	const onSubmit = async (data: AddPostgresBackup) => {
+	const onSubmit = async (data: Schema) => {
 		if (backupType === "compose" && !data.serviceName) {
 			form.setError("serviceName", {
 				type: "manual",
@@ -489,6 +524,115 @@ export const AddBackup = ({
 									</FormItem>
 								)}
 							/>
+							{backupType === "compose" && (
+								<>
+									{databaseType === "postgres" && (
+										<FormField
+											control={form.control}
+											name="metadata.postgres.databaseUser"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Database User</FormLabel>
+													<FormControl>
+														<Input placeholder="postgres" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+
+									{databaseType === "mariadb" && (
+										<>
+											<FormField
+												control={form.control}
+												name="metadata.mariadb.databaseUser"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Database User</FormLabel>
+														<FormControl>
+															<Input placeholder="mariadb" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="metadata.mariadb.databasePassword"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Database Password</FormLabel>
+														<FormControl>
+															<Input
+																type="password"
+																placeholder="••••••••"
+																{...field}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</>
+									)}
+
+									{databaseType === "mongo" && (
+										<>
+											<FormField
+												control={form.control}
+												name="metadata.mongo.databaseUser"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Database User</FormLabel>
+														<FormControl>
+															<Input placeholder="mongo" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="metadata.mongo.databasePassword"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Database Password</FormLabel>
+														<FormControl>
+															<Input
+																type="password"
+																placeholder="••••••••"
+																{...field}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</>
+									)}
+
+									{databaseType === "mysql" && (
+										<FormField
+											control={form.control}
+											name="metadata.mysql.databaseRootPassword"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Root Password</FormLabel>
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="••••••••"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									)}
+								</>
+							)}
 						</div>
 						<DialogFooter>
 							<Button

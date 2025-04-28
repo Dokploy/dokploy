@@ -3,6 +3,7 @@ import {
 	type AnyPgColumn,
 	boolean,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -69,6 +70,23 @@ export const backups = pgTable("backup", {
 		onDelete: "cascade",
 	}),
 	userId: text("userId").references(() => users_temp.id),
+	// Only for compose backups
+	metadata: jsonb("metadata").$type<{
+		postgres?: {
+			databaseUser: string;
+		};
+		mariadb?: {
+			databaseUser: string;
+			databasePassword: string;
+		};
+		mongo?: {
+			databaseUser: string;
+			databasePassword: string;
+		};
+		mysql?: {
+			databaseRootPassword: string;
+		};
+	}>(),
 });
 
 export const backupsRelations = relations(backups, ({ one }) => ({
@@ -134,6 +152,7 @@ export const apiCreateBackup = createSchema.pick({
 	backupType: true,
 	composeId: true,
 	serviceName: true,
+	metadata: true,
 });
 
 export const apiFindOneBackup = createSchema
@@ -158,5 +177,6 @@ export const apiUpdateBackup = createSchema
 		database: true,
 		keepLatestCount: true,
 		serviceName: true,
+		metadata: true,
 	})
 	.required();

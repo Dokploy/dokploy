@@ -7,26 +7,39 @@ import { runMongoBackup } from "./mongo";
 import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
+import { runComposeBackup } from "./compose";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
-	const { schedule, backupId, databaseType, postgres, mysql, mongo, mariadb } =
-		backup;
+	const {
+		schedule,
+		backupId,
+		databaseType,
+		postgres,
+		mysql,
+		mongo,
+		mariadb,
+		compose,
+	} = backup;
 	scheduleJob(backupId, schedule, async () => {
-		if (databaseType === "postgres" && postgres) {
-			await runPostgresBackup(postgres, backup);
-			await keepLatestNBackups(backup, postgres.serverId);
-		} else if (databaseType === "mysql" && mysql) {
-			await runMySqlBackup(mysql, backup);
-			await keepLatestNBackups(backup, mysql.serverId);
-		} else if (databaseType === "mongo" && mongo) {
-			await runMongoBackup(mongo, backup);
-			await keepLatestNBackups(backup, mongo.serverId);
-		} else if (databaseType === "mariadb" && mariadb) {
-			await runMariadbBackup(mariadb, backup);
-			await keepLatestNBackups(backup, mariadb.serverId);
-		} else if (databaseType === "web-server") {
-			await runWebServerBackup(backup);
-			await keepLatestNBackups(backup);
+		if (backup.backupType === "database") {
+			if (databaseType === "postgres" && postgres) {
+				await runPostgresBackup(postgres, backup);
+				await keepLatestNBackups(backup, postgres.serverId);
+			} else if (databaseType === "mysql" && mysql) {
+				await runMySqlBackup(mysql, backup);
+				await keepLatestNBackups(backup, mysql.serverId);
+			} else if (databaseType === "mongo" && mongo) {
+				await runMongoBackup(mongo, backup);
+				await keepLatestNBackups(backup, mongo.serverId);
+			} else if (databaseType === "mariadb" && mariadb) {
+				await runMariadbBackup(mariadb, backup);
+				await keepLatestNBackups(backup, mariadb.serverId);
+			} else if (databaseType === "web-server") {
+				await runWebServerBackup(backup);
+				await keepLatestNBackups(backup);
+			}
+		} else if (backup.backupType === "compose" && compose) {
+			await runComposeBackup(compose, backup);
 		}
 	});
 };

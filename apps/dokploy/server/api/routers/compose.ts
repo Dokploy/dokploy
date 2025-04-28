@@ -27,7 +27,6 @@ import {
 	createMount,
 	deleteMount,
 	findComposeById,
-	findDomainsByComposeId,
 	findProjectById,
 	findServerById,
 	findUserById,
@@ -268,8 +267,7 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to get this compose",
 				});
 			}
-			const domains = await findDomainsByComposeId(input.composeId);
-			const composeFile = await addDomainToCompose(compose, domains);
+			const composeFile = await addDomainToCompose(compose);
 			return dump(composeFile, {
 				lineWidth: 1000,
 			});
@@ -722,19 +720,5 @@ export const composeRouter = createTRPCRouter({
 					message: `Error importing template: ${error instanceof Error ? error.message : error}`,
 				});
 			}
-		}),
-	manualBackup: protectedProcedure
-		.input(z.object({ composeId: z.string() }))
-		.mutation(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to backup this compose",
-				});
-			}
-			await createBackup({
-				composeId: compose.composeId,
-			});
 		}),
 });

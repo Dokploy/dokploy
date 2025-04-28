@@ -61,21 +61,24 @@ export const ShowBackups = ({
 		? query()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
-	console.log(postgres);
+	const mutationMap =
+		backupType === "database"
+			? {
+					postgres: api.backup.manualBackupPostgres.useMutation(),
+					mysql: api.backup.manualBackupMySql.useMutation(),
+					mariadb: api.backup.manualBackupMariadb.useMutation(),
+					mongo: api.backup.manualBackupMongo.useMutation(),
+					"web-server": api.backup.manualBackupWebServer.useMutation(),
+				}
+			: {
+					compose: api.backup.manualBackupCompose.useMutation(),
+				};
 
-	const mutationMap = {
-		postgres: () => api.backup.manualBackupPostgres.useMutation(),
-		mysql: () => api.backup.manualBackupMySql.useMutation(),
-		mariadb: () => api.backup.manualBackupMariadb.useMutation(),
-		mongo: () => api.backup.manualBackupMongo.useMutation(),
-		"web-server": () => api.backup.manualBackupWebServer.useMutation(),
-		compose: () => api.backup.manualBackupCompose.useMutation(),
-	};
+	const key2 = backupType === "database" ? databaseType : "compose";
+	const mutation = mutationMap[key2 as keyof typeof mutationMap];
 
-	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutationMap[
-		databaseType
-	]
-		? mutationMap[databaseType]()
+	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutation
+		? mutation
 		: api.backup.manualBackupMongo.useMutation();
 
 	const { mutateAsync: deleteBackup, isLoading: isRemoving } =

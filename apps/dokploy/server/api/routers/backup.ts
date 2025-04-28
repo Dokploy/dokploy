@@ -10,6 +10,7 @@ import {
 	IS_CLOUD,
 	createBackup,
 	findBackupById,
+	findComposeByBackupId,
 	findMariadbByBackupId,
 	findMariadbById,
 	findMongoByBackupId,
@@ -31,6 +32,7 @@ import {
 } from "@dokploy/server";
 
 import { findDestinationById } from "@dokploy/server/services/destination";
+import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
 	getS3Credentials,
 	normalizeS3Path,
@@ -240,9 +242,18 @@ export const backupRouter = createTRPCRouter({
 	manualBackupCompose: protectedProcedure
 		.input(apiFindOneBackup)
 		.mutation(async ({ input }) => {
-			// const backup = await findBackupById(input.backupId);
-			// await runComposeBackup(backup);
-			return true;
+			try {
+				const backup = await findBackupById(input.backupId);
+				const compose = await findComposeByBackupId(backup.backupId);
+				await runComposeBackup(compose, backup);
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error running manual Compose backup ",
+					cause: error,
+				});
+			}
 		}),
 	manualBackupMongo: protectedProcedure
 		.input(apiFindOneBackup)

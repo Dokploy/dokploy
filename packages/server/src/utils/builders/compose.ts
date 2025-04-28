@@ -22,15 +22,15 @@ import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
 	"compose",
-	{ project: true; mounts: true; domains: true }
+	{ project: true; mounts: true; domains: true; backups: true }
 >;
 export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { sourceType, appName, mounts, composeType, domains } = compose;
+	const { sourceType, appName, mounts, composeType } = compose;
 	try {
 		const { COMPOSE_PATH } = paths();
 		const command = createCommand(compose);
-		await writeDomainsToCompose(compose, domains);
+		await writeDomainsToCompose(compose);
 		createEnvFile(compose);
 
 		if (compose.isolatedDeployment) {
