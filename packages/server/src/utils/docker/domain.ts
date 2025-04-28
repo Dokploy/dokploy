@@ -210,6 +210,7 @@ export const addDomainToCompose = async (
 		result = randomized;
 	}
 
+	// Add domains to the compose
 	for (const domain of domains) {
 		const { serviceName, https } = domain;
 		if (!serviceName) {
@@ -264,6 +265,7 @@ export const addDomainToCompose = async (
 		}
 	}
 
+	// Add backups to the compose
 	for (const backup of backups) {
 		const { backupId, serviceName, enabled } = backup;
 

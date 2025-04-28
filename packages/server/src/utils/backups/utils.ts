@@ -40,6 +40,7 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 			}
 		} else if (backup.backupType === "compose" && compose) {
 			await runComposeBackup(compose, backup);
+			await keepLatestNBackups(backup, compose.serverId);
 		}
 	});
 };

@@ -161,7 +161,7 @@ export const ShowBackups = ({
 									{backupType === "compose" && (
 										<AlertBlock type="info">
 											Deploy is required to apply changes after creating or
-											updating a backup.
+											updating the service name in the backup.
 										</AlertBlock>
 									)}
 								</div>
