@@ -31,13 +31,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
@@ -65,8 +58,6 @@ type TabState =
 	| "domains"
 	| "monitoring";
 
-type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo";
-
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
@@ -75,8 +66,6 @@ const Service = (
 	const router = useRouter();
 	const { projectId } = router.query;
 	const [tab, setTab] = useState<TabState>(activeTab);
-	const [selectedDatabaseType, setSelectedDatabaseType] =
-		useState<DatabaseType>("postgres");
 
 	useEffect(() => {
 		if (router.query.tab) {
@@ -260,30 +249,7 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<div className="flex flex-row items-center gap-2">
-												<Label>Database Type</Label>
-												<Select
-													value={selectedDatabaseType}
-													onValueChange={(value) =>
-														setSelectedDatabaseType(value as DatabaseType)
-													}
-												>
-													<SelectTrigger className="w-[180px]">
-														<SelectValue placeholder="Select a database type" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectItem value="postgres">PostgreSQL</SelectItem>
-														<SelectItem value="mariadb">MariaDB</SelectItem>
-														<SelectItem value="mysql">MySQL</SelectItem>
-														<SelectItem value="mongo">MongoDB</SelectItem>
-													</SelectContent>
-												</Select>
-											</div>
-											<ShowBackups
-												id={composeId}
-												databaseType={selectedDatabaseType}
-												backupType="compose"
-											/>
+											<ShowBackups id={composeId} backupType="compose" />
 										</div>
 									</TabsContent>
 

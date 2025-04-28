@@ -178,5 +178,6 @@ export const apiUpdateBackup = createSchema
 		keepLatestCount: true,
 		serviceName: true,
 		metadata: true,
+		databaseType: true,
 	})
 	.required();

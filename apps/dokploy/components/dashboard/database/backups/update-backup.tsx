@@ -65,7 +65,7 @@ type CacheType = "cache" | "fetch";
 
 const getMetadataSchema = (
 	backupType: "database" | "compose",
-	databaseType: string,
+	databaseType: DatabaseType,
 ) => {
 	if (backupType !== "compose") return z.object({}).optional();
 
@@ -108,9 +108,12 @@ interface Props {
 	refetch: () => void;
 }
 
+type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
+
 export const UpdateBackup = ({ backupId, refetch }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
+
 	const { data, isLoading } = api.destination.all.useQuery();
 	const { data: backup } = api.backup.one.useQuery(
 		{
@@ -120,7 +123,10 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			enabled: !!backupId,
 		},
 	);
-
+	const [selectedDatabaseType, setSelectedDatabaseType] =
+		useState<DatabaseType>(
+			(backup?.databaseType as DatabaseType) || "postgres",
+		);
 	const {
 		data: services,
 		isFetching: isLoadingServices,
@@ -142,11 +148,12 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 	const { mutateAsync, isLoading: isLoadingUpdate } =
 		api.backup.update.useMutation();
 
-	const schema = backup
-		? Schema.extend({
-				metadata: getMetadataSchema(backup.backupType, backup.databaseType),
-			})
-		: Schema;
+	const schema = Schema.extend({
+		metadata: getMetadataSchema(
+			backup?.backupType || "database",
+			selectedDatabaseType,
+		),
+	});
 
 	const form = useForm<z.infer<typeof schema>>({
 		defaultValues: {
@@ -179,6 +186,19 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 		}
 	}, [form, form.reset, backup]);
 
+	useEffect(() => {
+		if (backup?.backupType === "compose") {
+			const currentValues = form.getValues();
+			form.reset(
+				{
+					...currentValues,
+					metadata: {},
+				},
+				{ keepDefaultValues: true },
+			);
+		}
+	}, [selectedDatabaseType, backup?.backupType, form]);
+
 	const onSubmit = async (data: z.infer<typeof schema>) => {
 		if (backup?.backupType === "compose" && !data.serviceName) {
 			form.setError("serviceName", {
@@ -198,6 +218,10 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 			serviceName: data.serviceName,
 			keepLatestCount: data.keepLatestCount as number | null,
 			metadata: data.metadata || {},
+			databaseType:
+				backup?.backupType === "compose"
+					? selectedDatabaseType
+					: backup?.databaseType,
 		})
 			.then(async () => {
 				toast.success("Backup Updated");
@@ -215,12 +239,12 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="group hover:bg-blue-500/10 "
+					className="group hover:bg-blue-500/10"
 				>
-					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Update Backup</DialogTitle>
 					<DialogDescription>Update the backup</DialogDescription>
@@ -237,6 +261,27 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 								<AlertBlock type="warning" className="[overflow-wrap:anywhere]">
 									{errorServices?.message}
 								</AlertBlock>
+							)}
+							{backup?.backupType === "compose" && (
+								<FormItem>
+									<FormLabel>Database Type</FormLabel>
+									<Select
+										value={selectedDatabaseType}
+										onValueChange={(value) => {
+											setSelectedDatabaseType(value as DatabaseType);
+										}}
+									>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Select a database type" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="postgres">PostgreSQL</SelectItem>
+											<SelectItem value="mariadb">MariaDB</SelectItem>
+											<SelectItem value="mysql">MySQL</SelectItem>
+											<SelectItem value="mongo">MongoDB</SelectItem>
+										</SelectContent>
+									</Select>
+								</FormItem>
 							)}
 							<FormField
 								control={form.control}
@@ -512,7 +557,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 							/>
 							{backup?.backupType === "compose" && (
 								<>
-									{backup.databaseType === "postgres" && (
+									{selectedDatabaseType === "postgres" && (
 										<FormField
 											control={form.control}
 											name="metadata.postgres.databaseUser"
@@ -528,7 +573,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 										/>
 									)}
 
-									{backup.databaseType === "mariadb" && (
+									{selectedDatabaseType === "mariadb" && (
 										<>
 											<FormField
 												control={form.control}
@@ -563,7 +608,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 										</>
 									)}
 
-									{backup.databaseType === "mongo" && (
+									{selectedDatabaseType === "mongo" && (
 										<>
 											<FormField
 												control={form.control}
@@ -598,7 +643,7 @@ export const UpdateBackup = ({ backupId, refetch }: Props) => {
 										</>
 									)}
 
-									{backup.databaseType === "mysql" && (
+									{selectedDatabaseType === "mysql" && (
 										<FormField
 											control={form.control}
 											name="metadata.mysql.databaseRootPassword"
