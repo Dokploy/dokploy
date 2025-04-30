@@ -207,8 +207,6 @@ export const HandleBackup = ({
 		resolver: zodResolver(Schema),
 	});
 
-	console.log(backup);
-
 	const {
 		data: services,
 		isFetching: isLoadingServices,
@@ -304,7 +302,7 @@ export const HandleBackup = ({
 					<Button
 						variant="ghost"
 						size="icon"
-						className="group hover:bg-blue-500/10"
+						className="group hover:bg-blue-500/10 size-8"
 					>
 						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
 					</Button>
