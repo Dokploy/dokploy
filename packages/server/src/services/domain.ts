@@ -7,6 +7,8 @@ import { type apiCreateDomain, domains } from "../db/schema";
 import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { findServerById } from "./server";
+import dns from "node:dns";
+import { promisify } from "node:util";
 
 export type Domain = typeof domains.$inferSelect;
 
@@ -136,4 +138,86 @@ export const removeDomainById = async (domainId: string) => {
 
 export const getDomainHost = (domain: Domain) => {
 	return `${domain.https ? "https" : "http"}://${domain.host}`;
+};
+
+const resolveDns = promisify(dns.resolve4);
+
+// Cloudflare IP ranges (simplified - these are some common ones)
+const CLOUDFLARE_IPS = [
+	"172.67.",
+	"104.21.",
+	"104.16.",
+	"104.17.",
+	"104.18.",
+	"104.19.",
+	"104.20.",
+	"104.22.",
+	"104.23.",
+	"104.24.",
+	"104.25.",
+	"104.26.",
+	"104.27.",
+	"104.28.",
+];
+
+const isCloudflareIp = (ip: string) => {
+	return CLOUDFLARE_IPS.some((range) => ip.startsWith(range));
+};
+
+export const validateDomain = async (
+	domain: string,
+	expectedIp?: string,
+): Promise<{
+	isValid: boolean;
+	resolvedIp?: string;
+	error?: string;
+	isCloudflare?: boolean;
+}> => {
+	try {
+		// Remove protocol and path if present
+		const cleanDomain = domain.replace(/^https?:\/\//, "").split("/")[0];
+
+		// Resolve the domain to get its IP
+		const ips = await resolveDns(cleanDomain || "");
+
+		const resolvedIp = ips[0];
+
+		// Check if it's a Cloudflare IP
+		const behindCloudflare = ips.some((ip) => isCloudflareIp(ip));
+
+		// If behind Cloudflare, we consider it valid but inform the user
+		if (behindCloudflare) {
+			return {
+				isValid: true,
+				resolvedIp,
+				isCloudflare: true,
+				error:
+					"Domain is behind Cloudflare - actual IP is masked by Cloudflare proxy",
+			};
+		}
+
+		// If we have an expected IP, validate against it
+		if (expectedIp) {
+			return {
+				isValid: resolvedIp === expectedIp,
+				resolvedIp,
+				error:
+					resolvedIp !== expectedIp
+						? `Domain resolves to ${resolvedIp} but should point to ${expectedIp}`
+						: undefined,
+			};
+		}
+
+		// If no expected IP, just return the resolved IP
+		return {
+			isValid: true,
+			resolvedIp,
+		};
+	} catch (error) {
+		return {
+			isValid: false,
+			error:
+				error instanceof Error ? error.message : "Failed to resolve domain",
+		};
+	}
 };
