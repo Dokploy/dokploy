@@ -19,10 +19,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
-import { AddBackup } from "./add-backup";
 import { RestoreBackup } from "./restore-backup";
-import { UpdateBackup } from "./update-backup";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { HandleBackup } from "./handle-backup";
+import { cn } from "@/lib/utils";
 
 interface Props {
 	id: string;
@@ -100,7 +100,7 @@ export const ShowBackups = ({
 				{postgres && postgres?.backups?.length > 0 && (
 					<div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
 						{databaseType !== "web-server" && (
-							<AddBackup
+							<HandleBackup
 								id={id}
 								databaseType={databaseType}
 								backupType={backupType}
@@ -141,7 +141,7 @@ export const ShowBackups = ({
 									No backups configured
 								</span>
 								<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-									<AddBackup
+									<HandleBackup
 										id={id}
 										databaseType={databaseType}
 										backupType={backupType}
@@ -170,7 +170,12 @@ export const ShowBackups = ({
 									{postgres?.backups.map((backup) => (
 										<div key={backup.backupId}>
 											<div className="flex w-full flex-col md:flex-row md:items-center justify-between gap-4 md:gap-10 border rounded-lg p-4">
-												<div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-8 flex-col gap-8">
+												<div
+													className={cn(
+														"grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 flex-col gap-8",
+														backup.backupType === "compose" && "xl:grid-cols-8",
+													)}
+												>
 													{backup.backupType === "compose" && (
 														<>
 															<div className="flex flex-col gap-1">
@@ -265,7 +270,8 @@ export const ShowBackups = ({
 														</Tooltip>
 													</TooltipProvider>
 
-													<UpdateBackup
+													<HandleBackup
+														backupType={backup.backupType}
 														backupId={backup.backupId}
 														refetch={refetch}
 													/>

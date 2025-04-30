@@ -49,7 +49,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DatabaseZap, PlusIcon, RefreshCw } from "lucide-react";
+import { DatabaseZap, PenBoxIcon, PlusIcon, RefreshCw } from "lucide-react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -58,75 +58,140 @@ import { z } from "zod";
 
 type CacheType = "cache" | "fetch";
 
-const getMetadataSchema = (
-	backupType: "database" | "compose",
-	databaseType: DatabaseType,
-) => {
-	if (backupType !== "compose") return z.object({}).optional();
+type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
 
-	const schemas = {
-		postgres: z.object({
-			databaseUser: z.string().min(1, "Database user is required"),
-		}),
-		mariadb: z.object({
-			databaseUser: z.string().min(1, "Database user is required"),
-			databasePassword: z.string().min(1, "Database password is required"),
-		}),
-		mongo: z.object({
-			databaseUser: z.string().min(1, "Database user is required"),
-			databasePassword: z.string().min(1, "Database password is required"),
-		}),
-		mysql: z.object({
-			databaseRootPassword: z.string().min(1, "Root password is required"),
-		}),
-		"web-server": z.object({}),
-	};
-
-	return z.object({
-		[databaseType]: schemas[databaseType],
+const Schema = z
+	.object({
+		destinationId: z.string().min(1, "Destination required"),
+		schedule: z.string().min(1, "Schedule (Cron) required"),
+		prefix: z.string().min(1, "Prefix required"),
+		enabled: z.boolean(),
+		database: z.string().min(1, "Database required"),
+		keepLatestCount: z.coerce.number().optional(),
+		serviceName: z.string().nullable(),
+		databaseType: z
+			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+			.optional(),
+		backupType: z.enum(["database", "compose"]),
+		metadata: z
+			.object({
+				postgres: z
+					.object({
+						databaseUser: z.string(),
+					})
+					.optional(),
+				mariadb: z
+					.object({
+						databaseUser: z.string(),
+						databasePassword: z.string(),
+					})
+					.optional(),
+				mongo: z
+					.object({
+						databaseUser: z.string(),
+						databasePassword: z.string(),
+					})
+					.optional(),
+				mysql: z
+					.object({
+						databaseRootPassword: z.string(),
+					})
+					.optional(),
+			})
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.backupType === "compose" && !data.databaseType) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Database type is required for compose backups",
+				path: ["databaseType"],
+			});
+		}
+		if (data.backupType === "compose" && data.databaseType) {
+			if (data.databaseType === "postgres") {
+				if (!data.metadata?.postgres?.databaseUser) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database user is required for PostgreSQL",
+						path: ["metadata", "postgres", "databaseUser"],
+					});
+				}
+			} else if (data.databaseType === "mariadb") {
+				if (!data.metadata?.mariadb?.databaseUser) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database user is required for MariaDB",
+						path: ["metadata", "mariadb", "databaseUser"],
+					});
+				}
+				if (!data.metadata?.mariadb?.databasePassword) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database password is required for MariaDB",
+						path: ["metadata", "mariadb", "databasePassword"],
+					});
+				}
+			} else if (data.databaseType === "mongo") {
+				if (!data.metadata?.mongo?.databaseUser) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database user is required for MongoDB",
+						path: ["metadata", "mongo", "databaseUser"],
+					});
+				}
+				if (!data.metadata?.mongo?.databasePassword) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database password is required for MongoDB",
+						path: ["metadata", "mongo", "databasePassword"],
+					});
+				}
+			} else if (data.databaseType === "mysql") {
+				if (!data.metadata?.mysql?.databaseRootPassword) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Root password is required for MySQL",
+						path: ["metadata", "mysql", "databaseRootPassword"],
+					});
+				}
+			}
+		}
 	});
-};
-
-const Schema = z.object({
-	destinationId: z.string().min(1, "Destination required"),
-	schedule: z.string().min(1, "Schedule (Cron) required"),
-	prefix: z.string().min(1, "Prefix required"),
-	enabled: z.boolean(),
-	database: z.string().min(1, "Database required"),
-	keepLatestCount: z.coerce.number().optional(),
-	serviceName: z.string().nullable(),
-});
-
-type Schema = z.infer<typeof Schema>;
 
 interface Props {
-	id: string;
+	id?: string;
+	backupId?: string;
 	databaseType?: DatabaseType;
 	refetch: () => void;
 	backupType: "database" | "compose";
 }
 
-type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
-
-export const AddBackup = ({
+export const HandleBackup = ({
 	id,
+	backupId,
 	databaseType = "postgres",
 	refetch,
 	backupType = "database",
 }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
+
 	const { data, isLoading } = api.destination.all.useQuery();
+	const { data: backup } = api.backup.one.useQuery(
+		{
+			backupId: backupId ?? "",
+		},
+		{
+			enabled: !!backupId,
+		},
+	);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
-	const [selectedDatabaseType, setSelectedDatabaseType] =
-		useState<DatabaseType>(databaseType as DatabaseType);
-
 	const { mutateAsync: createBackup, isLoading: isCreatingPostgresBackup } =
-		api.backup.create.useMutation();
+		backupId
+			? api.backup.update.useMutation()
+			: api.backup.create.useMutation();
 
-	const schema = Schema.extend({
-		metadata: getMetadataSchema(backupType, selectedDatabaseType),
-	});
-
-	const form = useForm<z.infer<typeof schema>>({
+	const form = useForm<z.infer<typeof Schema>>({
 		defaultValues: {
 			database: databaseType === "web-server" ? "dokploy" : "",
 			destinationId: "",
@@ -135,10 +200,14 @@ export const AddBackup = ({
 			schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
+			databaseType: backupType === "compose" ? undefined : databaseType,
+			backupType: backupType,
 			metadata: {},
 		},
-		resolver: zodResolver(schema),
+		resolver: zodResolver(Schema),
 	});
+
+	console.log(backup);
 
 	const {
 		data: services,
@@ -147,38 +216,33 @@ export const AddBackup = ({
 		refetch: refetchServices,
 	} = api.compose.loadServices.useQuery(
 		{
-			composeId: id,
+			composeId: backup?.composeId ?? id ?? "",
 			type: cacheType,
 		},
 		{
 			retry: false,
 			refetchOnWindowFocus: false,
-			enabled: backupType === "compose",
+			enabled: backupType === "compose" && !!backup?.composeId && !!id,
 		},
 	);
 
 	useEffect(() => {
 		form.reset({
-			database: databaseType === "web-server" ? "dokploy" : "",
-			destinationId: "",
-			enabled: true,
-			prefix: "/",
-			schedule: "",
-			keepLatestCount: undefined,
-			serviceName: null,
-			metadata: {},
+			database:
+				(backup?.database ?? databaseType === "web-server") ? "dokploy" : "",
+			destinationId: backup?.destinationId ?? "",
+			enabled: backup?.enabled ?? true,
+			prefix: backup?.prefix ?? "/",
+			schedule: backup?.schedule ?? "",
+			keepLatestCount: backup?.keepLatestCount ?? undefined,
+			serviceName: backup?.serviceName ?? null,
+			databaseType: backup?.databaseType ?? databaseType,
+			backupType: backup?.backupType ?? backupType,
+			metadata: backup?.metadata ?? {},
 		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful, databaseType]);
+	}, [form, form.reset, backupId, backup]);
 
-	const onSubmit = async (data: Schema) => {
-		if (backupType === "compose" && !data.serviceName) {
-			form.setError("serviceName", {
-				type: "manual",
-				message: "Service name is required for compose backups",
-			});
-			return;
-		}
-
+	const onSubmit = async (data: z.infer<typeof Schema>) => {
 		const getDatabaseId =
 			backupType === "compose"
 				? {
@@ -212,33 +276,50 @@ export const AddBackup = ({
 			schedule: data.schedule,
 			enabled: data.enabled,
 			database: data.database,
-			keepLatestCount: data.keepLatestCount,
-			databaseType:
-				backupType === "compose" ? selectedDatabaseType : databaseType,
+			keepLatestCount: data.keepLatestCount ?? null,
+			databaseType: data.databaseType || databaseType,
 			serviceName: data.serviceName,
 			...getDatabaseId,
+			backupId: backupId ?? "",
 			backupType,
+			metadata: data.metadata,
 		})
 			.then(async () => {
-				toast.success("Backup Created");
+				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
 				refetch();
+				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error creating a backup");
+				toast.error(`Error ${backupId ? "updating" : "creating"} a backup`);
 			});
 	};
+
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button>
-					<PlusIcon className="h-4 w-4" />
-					Create Backup
-				</Button>
+				{backupId ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10"
+					>
+						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<Button>
+						<PlusIcon className="h-4 w-4" />
+						{backupId ? "Update Backup" : "Create Backup"}
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg max-h-screen overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Create a backup</DialogTitle>
-					<DialogDescription>Add a new backup</DialogDescription>
+					<DialogTitle>
+						{backupId ? "Update Backup" : "Create Backup"}
+					</DialogTitle>
+					<DialogDescription>
+						{backupId ? "Update a backup" : "Add a new backup"}
+					</DialogDescription>
 				</DialogHeader>
 
 				<Form {...form}>
@@ -254,25 +335,33 @@ export const AddBackup = ({
 								</AlertBlock>
 							)}
 							{backupType === "compose" && (
-								<FormItem>
-									<FormLabel>Database Type</FormLabel>
-									<Select
-										value={selectedDatabaseType}
-										onValueChange={(value) =>
-											setSelectedDatabaseType(value as DatabaseType)
-										}
-									>
-										<SelectTrigger className="w-full">
-											<SelectValue placeholder="Select a database type" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="postgres">PostgreSQL</SelectItem>
-											<SelectItem value="mariadb">MariaDB</SelectItem>
-											<SelectItem value="mysql">MySQL</SelectItem>
-											<SelectItem value="mongo">MongoDB</SelectItem>
-										</SelectContent>
-									</Select>
-								</FormItem>
+								<FormField
+									control={form.control}
+									name="databaseType"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Database Type</FormLabel>
+											<Select
+												value={field.value}
+												onValueChange={(value) => {
+													field.onChange(value as DatabaseType);
+													form.setValue("metadata", {});
+												}}
+											>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Select a database type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="postgres">PostgreSQL</SelectItem>
+													<SelectItem value="mariadb">MariaDB</SelectItem>
+													<SelectItem value="mysql">MySQL</SelectItem>
+													<SelectItem value="mongo">MongoDB</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							)}
 							<FormField
 								control={form.control}
@@ -552,7 +641,7 @@ export const AddBackup = ({
 							/>
 							{backupType === "compose" && (
 								<>
-									{selectedDatabaseType === "postgres" && (
+									{form.watch("databaseType") === "postgres" && (
 										<FormField
 											control={form.control}
 											name="metadata.postgres.databaseUser"
@@ -568,7 +657,7 @@ export const AddBackup = ({
 										/>
 									)}
 
-									{selectedDatabaseType === "mariadb" && (
+									{form.watch("databaseType") === "mariadb" && (
 										<>
 											<FormField
 												control={form.control}
@@ -603,7 +692,7 @@ export const AddBackup = ({
 										</>
 									)}
 
-									{selectedDatabaseType === "mongo" && (
+									{form.watch("databaseType") === "mongo" && (
 										<>
 											<FormField
 												control={form.control}
@@ -638,7 +727,7 @@ export const AddBackup = ({
 										</>
 									)}
 
-									{selectedDatabaseType === "mysql" && (
+									{form.watch("databaseType") === "mysql" && (
 										<FormField
 											control={form.control}
 											name="metadata.mysql.databaseRootPassword"
@@ -666,7 +755,7 @@ export const AddBackup = ({
 								form="hook-form-add-backup"
 								type="submit"
 							>
-								Create
+								{backupId ? "Update" : "Create"}
 							</Button>
 						</DialogFooter>
 					</form>

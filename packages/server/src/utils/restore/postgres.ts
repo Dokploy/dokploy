@@ -40,8 +40,6 @@ rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${
 			emit(stderr);
 		} else {
 			const { stdout, stderr } = await execAsync(command);
-			console.log("stdout", stdout);
-			console.log("stderr", stderr);
 			emit(stdout);
 			emit(stderr);
 		}

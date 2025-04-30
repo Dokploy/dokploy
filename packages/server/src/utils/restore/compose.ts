@@ -14,7 +14,6 @@ export const restoreComposeBackup = async (
 	emit: (log: string) => void,
 ) => {
 	try {
-		console.log({ metadata });
 		const { serverId } = compose;
 
 		const rcloneFlags = getS3Credentials(destination);
@@ -78,8 +77,6 @@ export const restoreComposeBackup = async (
 			emit(stderr);
 		} else {
 			const { stdout, stderr } = await execAsync(restoreCommand);
-			console.log("stdout", stdout);
-			console.log("stderr", stderr);
 			emit(stdout);
 			emit(stderr);
 		}
