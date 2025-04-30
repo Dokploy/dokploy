@@ -37,14 +37,14 @@ interface Props {
 	composeId: string;
 }
 
-type ValidationState = {
+export type ValidationState = {
 	isLoading: boolean;
 	isValid?: boolean;
 	error?: string;
 	resolvedIp?: string;
 };
 
-type ValidationStates = {
+export type ValidationStates = {
 	[key: string]: ValidationState;
 };
 
