@@ -401,6 +401,11 @@ export const AddDomainCompose = ({
 										return (
 											<FormItem>
 												<FormLabel>Container Port</FormLabel>
+												<FormDescription>
+													The port where your application is running inside the
+													container (e.g., 3000 for Node.js, 80 for Nginx, 8080
+													for Java)
+												</FormDescription>
 												<FormControl>
 													<NumberInput placeholder={"3000"} {...field} />
 												</FormControl>

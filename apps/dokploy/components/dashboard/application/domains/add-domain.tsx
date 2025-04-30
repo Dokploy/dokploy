@@ -89,8 +89,6 @@ export const AddDomain = ({
 			serverId: application?.serverId || "",
 		});
 
-	console.log("canGenerateTraefikMeDomains", canGenerateTraefikMeDomains);
-
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
 		defaultValues: {
@@ -276,6 +274,11 @@ export const AddDomain = ({
 										return (
 											<FormItem>
 												<FormLabel>Container Port</FormLabel>
+												<FormDescription>
+													The port where your application is running inside the
+													container (e.g., 3000 for Node.js, 80 for Nginx, 8080
+													for Java)
+												</FormDescription>
 												<FormControl>
 													<NumberInput placeholder={"3000"} {...field} />
 												</FormControl>

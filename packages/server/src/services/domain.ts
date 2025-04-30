@@ -180,7 +180,7 @@ export const validateDomain = async (
 		// Resolve the domain to get its IP
 		const ips = await resolveDns(cleanDomain || "");
 
-		const resolvedIp = ips[0];
+		const resolvedIps = ips.map((ip) => ip.toString());
 
 		// Check if it's a Cloudflare IP
 		const behindCloudflare = ips.some((ip) => isCloudflareIp(ip));
@@ -189,7 +189,7 @@ export const validateDomain = async (
 		if (behindCloudflare) {
 			return {
 				isValid: true,
-				resolvedIp,
+				resolvedIp: resolvedIps.join(", "),
 				isCloudflare: true,
 				error:
 					"Domain is behind Cloudflare - actual IP is masked by Cloudflare proxy",
@@ -199,19 +199,18 @@ export const validateDomain = async (
 		// If we have an expected IP, validate against it
 		if (expectedIp) {
 			return {
-				isValid: resolvedIp === expectedIp,
-				resolvedIp,
-				error:
-					resolvedIp !== expectedIp
-						? `Domain resolves to ${resolvedIp} but should point to ${expectedIp}`
-						: undefined,
+				isValid: resolvedIps.includes(expectedIp),
+				resolvedIp: resolvedIps.join(", "),
+				error: !resolvedIps.includes(expectedIp)
+					? `Domain resolves to ${resolvedIps.join(", ")} but should point to ${expectedIp}`
+					: undefined,
 			};
 		}
 
 		// If no expected IP, just return the resolved IP
 		return {
 			isValid: true,
-			resolvedIp,
+			resolvedIp: resolvedIps.join(", "),
 		};
 	} catch (error) {
 		return {

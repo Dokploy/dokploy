@@ -42,6 +42,7 @@ export type ValidationState = {
 	isValid?: boolean;
 	error?: string;
 	resolvedIp?: string;
+	message?: string;
 };
 
 export type ValidationStates = {
@@ -98,6 +99,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 					isValid: result.isValid,
 					error: result.error,
 					resolvedIp: result.resolvedIp,
+					message: result.error && result.isValid ? result.error : undefined,
 				},
 			}));
 		} catch (err) {
@@ -322,12 +324,14 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 																	) : validationState?.isValid ? (
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
-																			{"DNS Valid"}
+																			{validationState.message
+																				? "Behind Cloudflare"
+																				: "DNS Valid"}
 																		</>
 																	) : validationState?.error ? (
 																		<>
 																			<XCircle className="size-3 mr-1" />
-																			{validationState.error}
+																			DNS Invalid
 																		</>
 																	) : (
 																		<>
@@ -338,12 +342,25 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent className="max-w-xs">
-																{validationState?.error ? (
+																{validationState?.error &&
+																!validationState.isValid ? (
 																	<div className="flex flex-col gap-1">
 																		<p className="font-medium text-red-500">
 																			Error:
 																		</p>
 																		<p>{validationState.error}</p>
+																	</div>
+																) : validationState?.isValid ? (
+																	<div className="flex flex-col gap-1">
+																		<p className="font-medium text-green-500">
+																			{validationState.message
+																				? "Info:"
+																				: "Valid Configuration:"}
+																		</p>
+																		<p>
+																			{validationState.message ||
+																				`Domain points to ${validationState.resolvedIp}`}
+																		</p>
 																	</div>
 																) : (
 																	"Click to validate DNS configuration"

@@ -84,6 +84,7 @@ export const ShowDomains = ({ applicationId }: Props) => {
 					isValid: result.isValid,
 					error: result.error,
 					resolvedIp: result.resolvedIp,
+					message: result.error && result.isValid ? result.error : undefined,
 				},
 			}));
 		} catch (err) {
@@ -304,7 +305,9 @@ export const ShowDomains = ({ applicationId }: Props) => {
 																	) : validationState?.isValid ? (
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
-																			{"DNS Valid"}
+																			{validationState.message
+																				? "Behind Cloudflare"
+																				: "DNS Valid"}
 																		</>
 																	) : validationState?.error ? (
 																		<>
