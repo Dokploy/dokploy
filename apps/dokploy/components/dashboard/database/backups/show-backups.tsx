@@ -20,7 +20,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { RestoreBackup } from "./restore-backup";
-import { AlertBlock } from "@/components/shared/alert-block";
 import { HandleBackup } from "./handle-backup";
 import { cn } from "@/lib/utils";
 import {
@@ -164,14 +163,6 @@ export const ShowBackups = ({
 							</div>
 						) : (
 							<div className="flex flex-col pt-2 gap-4">
-								<div className="flex flex-col gap-4 w-full">
-									{backupType === "compose" && (
-										<AlertBlock type="info">
-											Deploy is required to apply changes after creating or
-											updating the service name in the backup.
-										</AlertBlock>
-									)}
-								</div>
 								<div className="flex flex-col gap-6">
 									{postgres?.backups.map((backup) => (
 										<div key={backup.backupId}>
@@ -300,7 +291,7 @@ export const ShowBackups = ({
 																		setActiveManualBackup(undefined);
 																	}}
 																>
-																	<Play className="size-4 text-muted-foreground" />
+																	<Play className="size-4 " />
 																</Button>
 															</TooltipTrigger>
 															<TooltipContent>Run Manual Backup</TooltipContent>

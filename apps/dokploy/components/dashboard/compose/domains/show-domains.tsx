@@ -331,7 +331,7 @@ export const ShowDomainsCompose = ({ composeId }: Props) => {
 																	) : validationState?.error ? (
 																		<>
 																			<XCircle className="size-3 mr-1" />
-																			DNS Invalid
+																			{validationState.error}
 																		</>
 																	) : (
 																		<>
