@@ -228,8 +228,11 @@ export const HandleBackup = ({
 
 	useEffect(() => {
 		form.reset({
-			database:
-				(backup?.database ?? databaseType === "web-server") ? "dokploy" : "",
+			database: backup?.database
+				? backup?.database
+				: databaseType === "web-server"
+					? "dokploy"
+					: "",
 			destinationId: backup?.destinationId ?? "",
 			enabled: backup?.enabled ?? true,
 			prefix: backup?.prefix ?? "/",
