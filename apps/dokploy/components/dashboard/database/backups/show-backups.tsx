@@ -28,6 +28,7 @@ import {
 	MysqlIcon,
 	PostgresqlIcon,
 } from "@/components/icons/data-tools-icons";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	id: string;
@@ -163,6 +164,11 @@ export const ShowBackups = ({
 							</div>
 						) : (
 							<div className="flex flex-col pt-2 gap-4">
+								{backupType === "compose" && (
+									<AlertBlock title="Compose Backups">
+										Make sure the compose is running before creating a backup.
+									</AlertBlock>
+								)}
 								<div className="flex flex-col gap-6">
 									{postgres?.backups.map((backup) => (
 										<div key={backup.backupId}>

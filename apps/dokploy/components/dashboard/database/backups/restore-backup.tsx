@@ -65,74 +65,130 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+type DatabaseType =
+	| Exclude<ServiceType, "application" | "redis">
+	| "web-server";
+
 interface Props {
 	id: string;
-	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	databaseType: DatabaseType;
 	serverId?: string | null;
 	backupType?: "database" | "compose";
 }
 
-const getMetadataSchema = (
-	backupType: "database" | "compose",
-	databaseType: string,
-) => {
-	if (backupType !== "compose") return z.object({}).optional();
-
-	const schemas = {
-		postgres: z.object({
-			databaseUser: z.string().min(1, "Database user is required"),
-		}),
-		mariadb: z.object({
-			databaseUser: z.string().min(1, "Database user is required"),
-			databasePassword: z.string().min(1, "Database password is required"),
-		}),
-		mongo: z.object({
-			databaseUser: z.string().min(1, "Database user is required"),
-			databasePassword: z.string().min(1, "Database password is required"),
-		}),
-		mysql: z.object({
-			databaseRootPassword: z.string().min(1, "Root password is required"),
-		}),
-		"web-server": z.object({}),
-	};
-
-	return z.object({
-		[databaseType]: schemas[databaseType as keyof typeof schemas],
-		serviceName: z.string().min(1, "Service name is required"),
+const RestoreBackupSchema = z
+	.object({
+		destinationId: z
+			.string({
+				required_error: "Please select a destination",
+			})
+			.min(1, {
+				message: "Destination is required",
+			}),
+		backupFile: z
+			.string({
+				required_error: "Please select a backup file",
+			})
+			.min(1, {
+				message: "Backup file is required",
+			}),
+		databaseName: z
+			.string({
+				required_error: "Please enter a database name",
+			})
+			.min(1, {
+				message: "Database name is required",
+			}),
+		databaseType: z
+			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+			.optional(),
+		backupType: z.enum(["database", "compose"]).default("database"),
+		serviceName: z.string().nullable().optional(),
+		metadata: z
+			.object({
+				postgres: z
+					.object({
+						databaseUser: z.string(),
+					})
+					.optional(),
+				mariadb: z
+					.object({
+						databaseUser: z.string(),
+						databasePassword: z.string(),
+					})
+					.optional(),
+				mongo: z
+					.object({
+						databaseUser: z.string(),
+						databasePassword: z.string(),
+					})
+					.optional(),
+				mysql: z
+					.object({
+						databaseRootPassword: z.string(),
+					})
+					.optional(),
+			})
+			.optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.backupType === "compose" && !data.databaseType) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Database type is required for compose backups",
+				path: ["databaseType"],
+			});
+		}
+		if (data.backupType === "compose" && data.databaseType) {
+			if (data.databaseType === "postgres") {
+				if (!data.metadata?.postgres?.databaseUser) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database user is required for PostgreSQL",
+						path: ["metadata", "postgres", "databaseUser"],
+					});
+				}
+			} else if (data.databaseType === "mariadb") {
+				if (!data.metadata?.mariadb?.databaseUser) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database user is required for MariaDB",
+						path: ["metadata", "mariadb", "databaseUser"],
+					});
+				}
+				if (!data.metadata?.mariadb?.databasePassword) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database password is required for MariaDB",
+						path: ["metadata", "mariadb", "databasePassword"],
+					});
+				}
+			} else if (data.databaseType === "mongo") {
+				if (!data.metadata?.mongo?.databaseUser) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database user is required for MongoDB",
+						path: ["metadata", "mongo", "databaseUser"],
+					});
+				}
+				if (!data.metadata?.mongo?.databasePassword) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Database password is required for MongoDB",
+						path: ["metadata", "mongo", "databasePassword"],
+					});
+				}
+			} else if (data.databaseType === "mysql") {
+				if (!data.metadata?.mysql?.databaseRootPassword) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: "Root password is required for MySQL",
+						path: ["metadata", "mysql", "databaseRootPassword"],
+					});
+				}
+			}
+		}
 	});
-};
-
-const RestoreBackupSchema = z.object({
-	destinationId: z
-		.string({
-			required_error: "Please select a destination",
-		})
-		.min(1, {
-			message: "Destination is required",
-		}),
-	backupFile: z
-		.string({
-			required_error: "Please select a backup file",
-		})
-		.min(1, {
-			message: "Backup file is required",
-		}),
-	databaseName: z
-		.string({
-			required_error: "Please enter a database name",
-		})
-		.min(1, {
-			message: "Database name is required",
-		}),
-	databaseType: z
-		.string({
-			required_error: "Please select a database type",
-		})
-		.min(1, {
-			message: "Database type is required",
-		}),
-	metadata: z.object({}).optional(),
-});
 
 const formatBytes = (bytes: number): string => {
 	if (bytes === 0) return "0 Bytes";
@@ -151,31 +207,24 @@ export const RestoreBackup = ({
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-	const [selectedDatabaseType, setSelectedDatabaseType] = useState<string>(
-		backupType === "compose" ? "" : databaseType,
-	);
 
 	const { data: destinations = [] } = api.destination.all.useQuery();
 
-	const schema = RestoreBackupSchema.extend({
-		metadata: getMetadataSchema(backupType, selectedDatabaseType),
-	});
-
-	const form = useForm<z.infer<typeof schema>>({
+	const form = useForm<z.infer<typeof RestoreBackupSchema>>({
 		defaultValues: {
 			destinationId: "",
 			backupFile: "",
 			databaseName: databaseType === "web-server" ? "dokploy" : "",
-			databaseType: backupType === "compose" ? "" : databaseType,
+			databaseType:
+				backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
 			metadata: {},
 		},
-		resolver: zodResolver(schema),
+		resolver: zodResolver(RestoreBackupSchema),
 	});
 
 	const destionationId = form.watch("destinationId");
-
+	const currentDatabaseType = form.watch("databaseType");
 	const metadata = form.watch("metadata");
-	// console.log({ metadata });
 
 	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
@@ -204,7 +253,7 @@ export const RestoreBackup = ({
 	api.backup.restoreBackupWithLogs.useSubscription(
 		{
 			databaseId: id,
-			databaseType: form.watch("databaseType"),
+			databaseType: currentDatabaseType as DatabaseType,
 			databaseName: form.watch("databaseName"),
 			backupFile: form.watch("backupFile"),
 			destinationId: form.watch("destinationId"),
@@ -231,7 +280,7 @@ export const RestoreBackup = ({
 		},
 	);
 
-	const onSubmit = async (data: z.infer<typeof schema>) => {
+	const onSubmit = async (data: z.infer<typeof RestoreBackupSchema>) => {
 		if (backupType === "compose" && !data.databaseType) {
 			toast.error("Please select a database type");
 			return;
@@ -488,9 +537,9 @@ export const RestoreBackup = ({
 											<FormLabel>Database Type</FormLabel>
 											<Select
 												value={field.value}
-												onValueChange={(value) => {
+												onValueChange={(value: DatabaseType) => {
 													field.onChange(value);
-													setSelectedDatabaseType(value);
+													form.setValue("metadata", {});
 												}}
 											>
 												<SelectTrigger>
@@ -510,7 +559,7 @@ export const RestoreBackup = ({
 
 								<FormField
 									control={form.control}
-									name="metadata.serviceName"
+									name="serviceName"
 									render={({ field }) => (
 										<FormItem className="w-full">
 											<FormLabel>Service Name</FormLabel>
@@ -609,7 +658,7 @@ export const RestoreBackup = ({
 									)}
 								/>
 
-								{selectedDatabaseType === "postgres" && (
+								{currentDatabaseType === "postgres" && (
 									<FormField
 										control={form.control}
 										name="metadata.postgres.databaseUser"
@@ -625,7 +674,7 @@ export const RestoreBackup = ({
 									/>
 								)}
 
-								{selectedDatabaseType === "mariadb" && (
+								{currentDatabaseType === "mariadb" && (
 									<>
 										<FormField
 											control={form.control}
@@ -663,7 +712,7 @@ export const RestoreBackup = ({
 									</>
 								)}
 
-								{selectedDatabaseType === "mongo" && (
+								{currentDatabaseType === "mongo" && (
 									<>
 										<FormField
 											control={form.control}
@@ -701,7 +750,7 @@ export const RestoreBackup = ({
 									</>
 								)}
 
-								{selectedDatabaseType === "mysql" && (
+								{currentDatabaseType === "mysql" && (
 									<FormField
 										control={form.control}
 										name="metadata.mysql.databaseRootPassword"
