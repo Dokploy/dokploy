@@ -185,30 +185,34 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 											</Tooltip>
 										</TooltipProvider>
 									</FormLabel>
-									<Select
-										onValueChange={(value) => field.onChange(value)}
-										value={field.value}
-									>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="Select or type a cron expression" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											{commonCronExpressions.map((expr) => (
-												<SelectItem key={expr.value} value={expr.value}>
-													{expr.label} ({expr.value})
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<FormControl>
-										<Input
-											placeholder="Custom cron expression (e.g., 0 0 * * *)"
-											{...field}
-											className="mt-2"
-										/>
-									</FormControl>
+									<div className="flex flex-col gap-2">
+										<Select
+											onValueChange={(value) => {
+												field.onChange(value);
+											}}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Select a predefined schedule" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												{commonCronExpressions.map((expr) => (
+													<SelectItem key={expr.value} value={expr.value}>
+														{expr.label} ({expr.value})
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<div className="relative">
+											<FormControl>
+												<Input
+													placeholder="Custom cron expression (e.g., 0 0 * * *)"
+													{...field}
+												/>
+											</FormControl>
+										</div>
+									</div>
 									<FormDescription>
 										Choose a predefined schedule or enter a custom cron
 										expression
