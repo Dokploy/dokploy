@@ -139,9 +139,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 																			.catch((error) => {
 																				console.log(error);
 																				toast.error(
-																					error instanceof Error
-																						? error.message
-																						: "Error running schedule",
+																					`Error running schedule: ${error}`,
 																				);
 																			});
 																	}}

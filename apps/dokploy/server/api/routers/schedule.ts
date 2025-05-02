@@ -99,7 +99,6 @@ export const scheduleRouter = createTRPCRouter({
 				await runCommand(input.scheduleId);
 				return true;
 			} catch (error) {
-				console.log(error);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message:
