@@ -1,15 +1,14 @@
 import { Button } from "@/components/ui/button";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 import { api } from "@/utils/api";
 import { HandleSchedules } from "./handle-schedules";
-import { Clock, Play, Terminal, Trash2 } from "lucide-react";
+import {
+	Clock,
+	Play,
+	Terminal,
+	Trash2,
+	ClipboardList,
+	Loader2,
+} from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -33,9 +32,10 @@ interface Props {
 }
 
 export const ShowSchedules = ({ applicationId }: Props) => {
-	const { data: schedules } = api.schedule.list.useQuery({
-		applicationId,
-	});
+	const { data: schedules, isLoading: isLoadingSchedules } =
+		api.schedule.list.useQuery({
+			applicationId,
+		});
 	const utils = api.useUtils();
 
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
@@ -47,7 +47,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 	return (
 		<Card className="border px-4 shadow-none bg-transparent">
 			<CardHeader className="px-0">
-				<div className="flex  justify-between items-center">
+				<div className="flex justify-between items-center">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl font-bold flex items-center gap-2">
 							Scheduled Tasks
@@ -63,138 +63,145 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 				</div>
 			</CardHeader>
 			<CardContent className="px-0">
-				{schedules && schedules.length > 0 ? (
-					<div className="rounded-lg border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Task Name</TableHead>
-									<TableHead>Schedule</TableHead>
-									<TableHead>Shell</TableHead>
-									<TableHead>Command</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead className="text-right">Actions</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{schedules.map((schedule) => {
-									const application = schedule.application;
-									const deployments = schedule.deployments;
-									return (
-										<TableRow key={schedule.scheduleId}>
-											<TableCell className="font-medium">
-												{schedule.name}
-											</TableCell>
-											<TableCell>
-												<Badge variant="secondary" className="font-mono">
-													{schedule.cronExpression}
-												</Badge>
-											</TableCell>
-											<TableCell>
-												<Badge variant="secondary" className="font-mono">
-													{schedule.shellType}
-												</Badge>
-											</TableCell>
-											<TableCell>
-												<div className="flex items-center gap-2">
-													<Terminal className="w-4 h-4 text-muted-foreground" />
-													<code className="bg-muted px-2 py-1 rounded text-sm">
-														{schedule.command}
-													</code>
-												</div>
-											</TableCell>
-											<TableCell>
+				{isLoadingSchedules ? (
+					<div className="flex gap-4  min-h-[35vh] w-full items-center justify-center text-center mx-auto">
+						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
+						<span className="text-sm text-muted-foreground/70">
+							Loading scheduled tasks...
+						</span>
+					</div>
+				) : schedules && schedules.length > 0 ? (
+					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
+						{schedules.map((schedule) => {
+							const application = schedule.application;
+							const deployments = schedule.deployments;
+							return (
+								<div
+									key={schedule.scheduleId}
+									className=" flex items-center justify-between rounded-lg border p-3 transition-colors bg-muted/50"
+								>
+									<div className="flex items-start gap-3">
+										<div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/5">
+											<Clock className="size-4 text-primary/70" />
+										</div>
+										<div className="space-y-1.5">
+											<div className="flex items-center gap-2">
+												<h3 className="text-sm font-medium leading-none">
+													{schedule.name}
+												</h3>
 												<Badge
 													variant={schedule.enabled ? "default" : "secondary"}
+													className="text-[10px] px-1 py-0"
 												>
 													{schedule.enabled ? "Enabled" : "Disabled"}
 												</Badge>
-											</TableCell>
-											<TableCell className="text-right">
-												<div className="flex justify-end gap-2">
-													<ShowSchedulesLogs
-														deployments={deployments || []}
-														serverId={application.serverId || undefined}
-													/>
+											</div>
+											<div className="flex items-center gap-2 text-sm text-muted-foreground">
+												<Badge
+													variant="outline"
+													className="font-mono text-[10px] bg-transparent"
+												>
+													{schedule.cronExpression}
+												</Badge>
+												<span className="text-xs text-muted-foreground/50">
+													•
+												</span>
+												<Badge
+													variant="outline"
+													className="font-mono text-[10px] bg-transparent"
+												>
+													{schedule.shellType}
+												</Badge>
+											</div>
+											<div className="flex items-center gap-2">
+												<Terminal className="size-3.5 text-muted-foreground/70" />
+												<code className="font-mono text-[10px] text-muted-foreground/70">
+													{schedule.command}
+												</code>
+											</div>
+										</div>
+									</div>
 
-													<TooltipProvider delayDuration={0}>
-														<Tooltip>
-															<TooltipTrigger asChild>
-																<Button
-																	type="button"
-																	variant="ghost"
-																	isLoading={isLoading}
-																	onClick={async () => {
-																		await runManually({
-																			scheduleId: schedule.scheduleId,
-																		})
-																			.then(() => {
-																				toast.success(
-																					"Schedule run successfully",
-																				);
-																				utils.schedule.list.invalidate({
-																					applicationId,
-																				});
-																			})
-																			.catch((error) => {
-																				console.log(error);
-																				toast.error(
-																					`Error running schedule: ${error}`,
-																				);
-																			});
-																	}}
-																>
-																	<Play className="size-4" />
-																</Button>
-															</TooltipTrigger>
-															<TooltipContent>
-																Run Manual Schedule
-															</TooltipContent>
-														</Tooltip>
-													</TooltipProvider>
+									<div className="flex items-center gap-1.5">
+										<ShowSchedulesLogs
+											deployments={deployments || []}
+											serverId={application.serverId || undefined}
+										>
+											<Button variant="ghost" size="icon">
+												<ClipboardList className="size-4  transition-colors " />
+											</Button>
+										</ShowSchedulesLogs>
 
-													<HandleSchedules
-														scheduleId={schedule.scheduleId}
-														applicationId={applicationId}
-													/>
-
-													<DialogAction
-														title="Delete Schedule"
-														description="Are you sure you want to delete this schedule?"
-														type="destructive"
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														isLoading={isLoading}
 														onClick={async () => {
-															await deleteSchedule({
+															await runManually({
 																scheduleId: schedule.scheduleId,
 															})
 																.then(() => {
+																	toast.success("Schedule run successfully");
 																	utils.schedule.list.invalidate({
 																		applicationId,
 																	});
-																	toast.success(
-																		"Schedule deleted successfully",
-																	);
 																})
-																.catch(() => {
-																	toast.error("Error deleting schedule");
+																.catch((error) => {
+																	console.log(error);
+																	toast.error(
+																		`Error running schedule: ${error}`,
+																	);
 																});
 														}}
 													>
-														<Button
-															variant="ghost"
-															size="icon"
-															className="group hover:bg-red-500/10 "
-															isLoading={isDeleting}
-														>
-															<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-														</Button>
-													</DialogAction>
-												</div>
-											</TableCell>
-										</TableRow>
-									);
-								})}
-							</TableBody>
-						</Table>
+														<Play className="size-4  transition-colors" />
+													</Button>
+												</TooltipTrigger>
+												<TooltipContent>Run Manual Schedule</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+
+										<HandleSchedules
+											scheduleId={schedule.scheduleId}
+											applicationId={applicationId}
+										/>
+
+										<DialogAction
+											title="Delete Schedule"
+											description="Are you sure you want to delete this schedule?"
+											type="destructive"
+											onClick={async () => {
+												await deleteSchedule({
+													scheduleId: schedule.scheduleId,
+												})
+													.then(() => {
+														utils.schedule.list.invalidate({
+															applicationId,
+														});
+														toast.success("Schedule deleted successfully");
+													})
+													.catch(() => {
+														toast.error("Error deleting schedule");
+													});
+											}}
+										>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="group hover:bg-red-500/10 "
+												isLoading={isDeleting}
+											>
+												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+											</Button>
+										</DialogAction>
+									</div>
+								</div>
+							);
+						})}
 					</div>
 				) : (
 					<div className="flex flex-col gap-2 items-center justify-center py-12 border rounded-lg">
