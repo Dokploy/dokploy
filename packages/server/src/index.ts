@@ -49,6 +49,7 @@ export * from "./utils/backups/mysql";
 export * from "./utils/backups/postgres";
 export * from "./utils/backups/utils";
 export * from "./utils/backups/web-server";
+export * from "./utils/backups/compose";
 export * from "./templates/processors";
 
 export * from "./utils/notifications/build-error";

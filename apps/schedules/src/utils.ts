@@ -9,6 +9,7 @@ import {
 	runMongoBackup,
 	runMySqlBackup,
 	runPostgresBackup,
+	runComposeBackup,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/dist/db";
 import { backups, server } from "@dokploy/server/dist/db/schema";
@@ -16,7 +17,6 @@ import { and, eq } from "drizzle-orm";
 import { logger } from "./logger.js";
 import { scheduleJob } from "./queue.js";
 import type { QueueJob } from "./schema.js";
-import { runComposeBackup } from "@dokploy/server/src/utils/backups/compose.js";
 
 export const runJobs = async (job: QueueJob) => {
 	try {
