@@ -68,6 +68,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 								<TableRow>
 									<TableHead>Task Name</TableHead>
 									<TableHead>Schedule</TableHead>
+									<TableHead>Shell</TableHead>
 									<TableHead>Command</TableHead>
 									<TableHead>Status</TableHead>
 									<TableHead className="text-right">Actions</TableHead>
@@ -85,6 +86,11 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 											<TableCell>
 												<Badge variant="secondary" className="font-mono">
 													{schedule.cronExpression}
+												</Badge>
+											</TableCell>
+											<TableCell>
+												<Badge variant="secondary" className="font-mono">
+													{schedule.shellType}
 												</Badge>
 											</TableCell>
 											<TableCell>

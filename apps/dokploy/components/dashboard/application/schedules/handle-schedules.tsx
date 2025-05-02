@@ -51,6 +51,7 @@ const commonCronExpressions = [
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	cronExpression: z.string().min(1, "Cron expression is required"),
+	shellType: z.enum(["bash", "sh"]).default("bash"),
 	command: z.string().min(1, "Command is required"),
 	enabled: z.boolean().default(true),
 });
@@ -68,6 +69,7 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 		defaultValues: {
 			name: "",
 			cronExpression: "",
+			shellType: "bash",
 			command: "",
 			enabled: true,
 		},
@@ -79,25 +81,28 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 	);
 
 	useEffect(() => {
-		if (scheduleId) {
+		if (scheduleId && schedule) {
 			form.reset({
-				name: schedule?.name,
-				cronExpression: schedule?.cronExpression,
-				command: schedule?.command,
-				enabled: schedule?.enabled,
+				name: schedule.name,
+				cronExpression: schedule.cronExpression,
+				shellType: schedule.shellType,
+				command: schedule.command,
+				enabled: schedule.enabled,
 			});
 		}
-	}, [form, form.reset, schedule]);
+	}, [form, schedule, scheduleId]);
 
 	const { mutateAsync, isLoading } = scheduleId
 		? api.schedule.update.useMutation()
 		: api.schedule.create.useMutation();
 
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
+		if (!applicationId && !scheduleId) return;
+
 		await mutateAsync({
 			...values,
-			...(scheduleId && { scheduleId }),
-			...(applicationId && { applicationId }),
+			scheduleId: scheduleId || "",
+			applicationId: applicationId || "",
 		})
 			.then(() => {
 				toast.success(
@@ -120,19 +125,18 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="group hover:bg-blue-500/10 "
+						className="group hover:bg-blue-500/10"
 					>
-						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+						<PenBoxIcon className="size-3.5 text-primary group-hover:text-blue-500" />
 					</Button>
 				) : (
 					<Button>
-						<PlusCircle className="w-4 h-4" />
+						<PlusCircle className="w-4 h-4 mr-2" />
 						Add Schedule
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent>
-				{scheduleId}
 				<DialogHeader>
 					<DialogTitle>{scheduleId ? "Edit" : "Create"} Schedule</DialogTitle>
 				</DialogHeader>
@@ -216,6 +220,37 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 
 						<FormField
 							control={form.control}
+							name="shellType"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										<Terminal className="w-4 h-4" />
+										Shell Type
+									</FormLabel>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select shell type" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											<SelectItem value="bash">Bash</SelectItem>
+											<SelectItem value="sh">Sh</SelectItem>
+										</SelectContent>
+									</Select>
+									<FormDescription>
+										Choose the shell to execute your command
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
 							name="command"
 							render={({ field }) => (
 								<FormItem>
@@ -252,6 +287,7 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
 						<Button type="submit" disabled={isLoading} className="w-full">
 							{isLoading ? (
 								<>
