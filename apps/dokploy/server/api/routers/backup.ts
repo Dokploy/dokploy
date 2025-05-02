@@ -131,7 +131,6 @@ export const backupRouter = createTRPCRouter({
 		.input(apiUpdateBackup)
 		.mutation(async ({ input }) => {
 			try {
-				console.log(input);
 				await updateBackupById(input.backupId, input);
 				const backup = await findBackupById(input.backupId);
 

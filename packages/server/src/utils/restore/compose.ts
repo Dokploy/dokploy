@@ -22,7 +22,6 @@ export const restoreComposeBackup = async (
 
 		const command = getFindContainerCommand(compose, metadata.serviceName);
 
-		console.log("command", command);
 		let containerId = "";
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
@@ -31,8 +30,6 @@ export const restoreComposeBackup = async (
 			containerId = stdout.trim();
 		} else {
 			const { stdout, stderr } = await execAsync(command);
-			console.log("stdout", stdout);
-			console.log("stderr", stderr);
 			emit(stdout);
 			emit(stderr);
 			containerId = stdout.trim();
