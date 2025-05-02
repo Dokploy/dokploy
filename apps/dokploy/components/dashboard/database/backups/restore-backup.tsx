@@ -71,7 +71,7 @@ type DatabaseType =
 
 interface Props {
 	id: string;
-	databaseType: DatabaseType;
+	databaseType?: DatabaseType;
 	serverId?: string | null;
 	backupType?: "database" | "compose";
 }

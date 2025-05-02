@@ -32,7 +32,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	id: string;
-	databaseType: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	databaseType?: Exclude<ServiceType, "application" | "redis"> | "web-server";
 	backupType?: "database" | "compose";
 }
 export const ShowBackups = ({
