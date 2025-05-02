@@ -26,6 +26,8 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { ShowSchedulesLogs } from "./show-schedules-logs";
 
 interface Props {
 	applicationId: string;
@@ -45,6 +47,12 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 	});
 
 	const { mutate: deleteSchedule } = api.schedule.delete.useMutation({
+		onSuccess: () => {
+			utils.schedule.list.invalidate({ applicationId });
+		},
+	});
+
+	const { mutateAsync: runManually } = api.schedule.runManually.useMutation({
 		onSuccess: () => {
 			utils.schedule.list.invalidate({ applicationId });
 		},
@@ -107,59 +115,88 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 								</TableRow>
 							</TableHeader>
 							<TableBody>
-								{schedules.map((schedule) => (
-									<TableRow key={schedule.scheduleId}>
-										<TableCell className="font-medium">
-											{schedule.name}
-										</TableCell>
-										<TableCell>
-											<Badge variant="secondary" className="font-mono">
-												{schedule.cronExpression}
-											</Badge>
-										</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-2">
-												<Terminal className="w-4 h-4 text-muted-foreground" />
-												<code className="bg-muted px-2 py-1 rounded text-sm">
-													{schedule.command}
-												</code>
-											</div>
-										</TableCell>
-										<TableCell>
-											<Badge
-												variant={schedule.enabled ? "default" : "secondary"}
-											>
-												{schedule.enabled ? "Enabled" : "Disabled"}
-											</Badge>
-										</TableCell>
-										<TableCell className="text-right">
-											<div className="flex justify-end gap-2">
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={() => {
-														setEditingSchedule(schedule);
-														setIsOpen(true);
-													}}
+								{schedules.map((schedule) => {
+									const application = schedule.application;
+									const deployments = schedule.deployments;
+									return (
+										<TableRow key={schedule.scheduleId}>
+											<TableCell className="font-medium">
+												{schedule.name}
+											</TableCell>
+											<TableCell>
+												<Badge variant="secondary" className="font-mono">
+													{schedule.cronExpression}
+												</Badge>
+											</TableCell>
+											<TableCell>
+												<div className="flex items-center gap-2">
+													<Terminal className="w-4 h-4 text-muted-foreground" />
+													<code className="bg-muted px-2 py-1 rounded text-sm">
+														{schedule.command}
+													</code>
+												</div>
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={schedule.enabled ? "default" : "secondary"}
 												>
-													<Edit2 className="w-4 h-4" />
-													<span className="sr-only">Edit</span>
-												</Button>
-												<Button
-													variant="ghost"
-													size="sm"
-													className="text-destructive hover:text-destructive"
-													onClick={() =>
-														deleteSchedule({ scheduleId: schedule.scheduleId })
-													}
-												>
-													<Trash2 className="w-4 h-4" />
-													<span className="sr-only">Delete</span>
-												</Button>
-											</div>
-										</TableCell>
-									</TableRow>
-								))}
+													{schedule.enabled ? "Enabled" : "Disabled"}
+												</Badge>
+											</TableCell>
+											<TableCell className="text-right">
+												<div className="flex justify-end gap-2">
+													<ShowSchedulesLogs
+														deployments={deployments}
+														serverId={application.serverId || undefined}
+													/>
+													<Button
+														variant="ghost"
+														size="sm"
+														onClick={async () => {
+															await runManually({
+																scheduleId: schedule.scheduleId,
+															})
+																.then(() => {
+																	toast.success("Schedule run successfully");
+																})
+																.catch((error) => {
+																	toast.error(
+																		error instanceof Error
+																			? error.message
+																			: "Error running schedule",
+																	);
+																});
+														}}
+													>
+														Run Manual Schedule
+													</Button>
+													<Button
+														onClick={() => {
+															setEditingSchedule(schedule);
+															setIsOpen(true);
+														}}
+													>
+														<Edit2 className="w-4 h-4" />
+														<span className="sr-only">Edit</span>
+													</Button>
+													<Button
+														variant="ghost"
+														size="sm"
+														className="text-destructive hover:text-destructive"
+														onClick={() =>
+															deleteSchedule({
+																scheduleId: schedule.scheduleId,
+															})
+														}
+													>
+														<Trash2 className="w-4 h-4" />
+														<span className="sr-only">Delete</span>
+													</Button>
+												</div>
+											</TableCell>
+										</TableRow>
+									);
+								})}
 							</TableBody>
 						</Table>
 					</div>

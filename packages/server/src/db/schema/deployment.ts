@@ -136,6 +136,17 @@ export const apiCreateDeploymentServer = schema
 		serverId: z.string().min(1),
 	});
 
+export const apiCreateDeploymentSchedule = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		description: true,
+	})
+	.extend({
+		scheduleId: z.string().min(1),
+	});
+
 export const apiFindAllByApplication = schema
 	.pick({
 		applicationId: true,

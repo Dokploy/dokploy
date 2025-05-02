@@ -4,8 +4,10 @@ import {
 	createScheduleSchema,
 	schedules,
 } from "@dokploy/server/db/schema/schedule";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { runCommand } from "@dokploy/server/index";
+import { deployments } from "@dokploy/server/db/schema/deployment";
 
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -59,10 +61,15 @@ export const scheduleRouter = createTRPCRouter({
 	list: protectedProcedure
 		.input(z.object({ applicationId: z.string() }))
 		.query(async ({ ctx, input }) => {
-			return ctx.db
-				.select()
-				.from(schedules)
-				.where(eq(schedules.applicationId, input.applicationId));
+			return ctx.db.query.schedules.findMany({
+				where: eq(schedules.applicationId, input.applicationId),
+				with: {
+					application: true,
+					deployments: {
+						orderBy: [desc(deployments.createdAt)],
+					},
+				},
+			});
 		}),
 
 	one: protectedProcedure
@@ -84,20 +91,10 @@ export const scheduleRouter = createTRPCRouter({
 		}),
 
 	runManually: protectedProcedure
-		.input(z.object({ scheduleId: z.string() }))
-		.mutation(async ({ ctx, input }) => {
-			const schedule = await ctx.db
-				.select()
-				.from(schedules)
-				.where(eq(schedules.scheduleId, input.scheduleId));
+		.input(z.object({ scheduleId: z.string().min(1) }))
+		.mutation(async ({ input }) => {
+			await runCommand(input.scheduleId);
 
-			if (!schedule) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Schedule not found",
-				});
-			}
-
-			return schedule;
+			return true;
 		}),
 });

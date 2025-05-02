@@ -5,6 +5,8 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { deployments } from "./deployment";
+import { generateAppName } from "./utils";
+
 export const schedules = pgTable("schedule", {
 	scheduleId: text("scheduleId")
 		.notNull()
@@ -12,6 +14,9 @@ export const schedules = pgTable("schedule", {
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
 	cronExpression: text("cronExpression").notNull(),
+	appName: text("appName")
+		.notNull()
+		.$defaultFn(() => generateAppName("schedule")),
 	command: text("command").notNull(),
 	applicationId: text("applicationId")
 		.notNull()
@@ -23,6 +28,8 @@ export const schedules = pgTable("schedule", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 });
+
+export type Schedule = typeof schedules.$inferSelect;
 
 export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 	application: one(applications, {
