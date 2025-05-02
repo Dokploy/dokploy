@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
 import { HandleSchedules } from "./handle-schedules";
-import { Clock, Terminal, Trash2 } from "lucide-react";
+import { Clock, Play, Terminal, Trash2 } from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -20,6 +20,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ShowSchedulesLogs } from "./show-schedules-logs";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
 	applicationId: string;
@@ -29,20 +35,21 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 	const { data: schedules } = api.schedule.list.useQuery({
 		applicationId,
 	});
+	const utils = api.useUtils();
 
-	const { mutate: deleteSchedule } = api.schedule.delete.useMutation({
-		onSuccess: () => {
-			utils.schedule.list.invalidate({ applicationId });
-		},
-	});
+	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
+		api.schedule.delete.useMutation({
+			onSuccess: () => {
+				utils.schedule.list.invalidate({ applicationId });
+			},
+		});
 
-	const { mutateAsync: runManually } = api.schedule.runManually.useMutation({
-		onSuccess: () => {
-			utils.schedule.list.invalidate({ applicationId });
-		},
-	});
-
-	const utils = api.useContext();
+	const { mutateAsync: runManually, isLoading } =
+		api.schedule.runManually.useMutation({
+			onSuccess: () => {
+				utils.schedule.list.invalidate({ applicationId });
+			},
+		});
 
 	return (
 		<Card className="border px-4 shadow-none bg-transparent">
@@ -114,27 +121,40 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 														deployments={deployments || []}
 														serverId={application.serverId || undefined}
 													/>
-													<Button
-														variant="ghost"
-														size="sm"
-														onClick={async () => {
-															await runManually({
-																scheduleId: schedule.scheduleId,
-															})
-																.then(() => {
-																	toast.success("Schedule run successfully");
-																})
-																.catch((error) => {
-																	toast.error(
-																		error instanceof Error
-																			? error.message
-																			: "Error running schedule",
-																	);
-																});
-														}}
-													>
-														Run Manual Schedule
-													</Button>
+
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	type="button"
+																	variant="ghost"
+																	isLoading={isLoading}
+																	onClick={async () => {
+																		await runManually({
+																			scheduleId: schedule.scheduleId,
+																		})
+																			.then(() => {
+																				toast.success(
+																					"Schedule run successfully",
+																				);
+																			})
+																			.catch((error) => {
+																				toast.error(
+																					error instanceof Error
+																						? error.message
+																						: "Error running schedule",
+																				);
+																			});
+																	}}
+																>
+																	<Play className="size-4" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent>
+																Run Manual Schedule
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
 
 													<HandleSchedules
 														scheduleId={schedule.scheduleId}
@@ -145,11 +165,24 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 														variant="ghost"
 														size="sm"
 														className="text-destructive hover:text-destructive"
-														onClick={() =>
-															deleteSchedule({
+														isLoading={isDeleting}
+														onClick={async () => {
+															await deleteSchedule({
 																scheduleId: schedule.scheduleId,
 															})
-														}
+																.then(() => {
+																	toast.success(
+																		"Schedule deleted successfully",
+																	);
+																})
+																.catch((error) => {
+																	toast.error(
+																		error instanceof Error
+																			? error.message
+																			: "Error deleting schedule",
+																	);
+																});
+														}}
 													>
 														<Trash2 className="w-4 h-4" />
 														<span className="sr-only">Delete</span>

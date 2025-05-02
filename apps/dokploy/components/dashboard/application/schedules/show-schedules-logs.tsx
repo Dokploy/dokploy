@@ -13,17 +13,18 @@ import {
 import type { RouterOutputs } from "@/utils/api";
 import { useState } from "react";
 import { ShowDeployment } from "../deployments/show-deployment";
+import { ClipboardList } from "lucide-react";
 
 interface Props {
 	deployments: RouterOutputs["deployment"]["all"];
 	serverId?: string;
-	trigger?: React.ReactNode;
+	children?: React.ReactNode;
 }
 
 export const ShowSchedulesLogs = ({
 	deployments,
 	serverId,
-	trigger,
+	children,
 }: Props) => {
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
@@ -32,8 +33,8 @@ export const ShowSchedulesLogs = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				{trigger ? (
-					trigger
+				{children ? (
+					children
 				) : (
 					<Button className="sm:w-auto w-full" size="sm" variant="outline">
 						View Logs
@@ -47,45 +48,53 @@ export const ShowSchedulesLogs = ({
 						See all the logs for this schedule
 					</DialogDescription>
 				</DialogHeader>
-				<div className="grid gap-4">
-					{deployments?.map((deployment, index) => (
-						<div
-							key={deployment.deploymentId}
-							className="flex items-center justify-between rounded-lg border p-4 gap-2"
-						>
-							<div className="flex flex-col">
-								<span className="flex items-center gap-4 font-medium capitalize text-foreground">
-									{index + 1} {deployment.status}
-									<StatusTooltip
-										status={deployment?.status}
-										className="size-2.5"
-									/>
-								</span>
-								<span className="text-sm text-muted-foreground">
-									{deployment.title}
-								</span>
-								{deployment.description && (
-									<span className="break-all text-sm text-muted-foreground">
-										{deployment.description}
+				{deployments.length > 0 ? (
+					<div className="grid gap-4">
+						{deployments.map((deployment, index) => (
+							<div
+								key={deployment.deploymentId}
+								className="flex items-center justify-between rounded-lg border p-4 gap-2"
+							>
+								<div className="flex flex-col">
+									<span className="flex items-center gap-4 font-medium capitalize text-foreground">
+										{index + 1} {deployment.status}
+										<StatusTooltip
+											status={deployment?.status}
+											className="size-2.5"
+										/>
 									</span>
-								)}
-							</div>
-							<div className="flex flex-col items-end gap-2">
-								<div className="text-sm capitalize text-muted-foreground">
-									<DateTooltip date={deployment.createdAt} />
+									<span className="text-sm text-muted-foreground">
+										{deployment.title}
+									</span>
+									{deployment.description && (
+										<span className="break-all text-sm text-muted-foreground">
+											{deployment.description}
+										</span>
+									)}
 								</div>
+								<div className="flex flex-col items-end gap-2">
+									<div className="text-sm capitalize text-muted-foreground">
+										<DateTooltip date={deployment.createdAt} />
+									</div>
 
-								<Button
-									onClick={() => {
-										setActiveLog(deployment);
-									}}
-								>
-									View
-								</Button>
+									<Button
+										onClick={() => {
+											setActiveLog(deployment);
+										}}
+									>
+										View
+									</Button>
+								</div>
 							</div>
-						</div>
-					))}
-				</div>
+						))}
+					</div>
+				) : (
+					<div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+						<ClipboardList className="size-12 mb-4" />
+						<p className="text-lg font-medium">No logs found</p>
+						<p className="text-sm">This schedule hasn't been executed yet</p>
+					</div>
+				)}
 			</DialogContent>
 			<ShowDeployment
 				serverId={serverId || ""}
