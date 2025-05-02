@@ -19,7 +19,8 @@ export const scheduleJob = (schedule: Schedule) => {
 };
 
 export const runCommand = async (scheduleId: string) => {
-	const { application, command } = await findScheduleById(scheduleId);
+	const { application, command, shellType } =
+		await findScheduleById(scheduleId);
 
 	const isServer = !!application.serverId;
 
@@ -42,7 +43,8 @@ export const runCommand = async (scheduleId: string) => {
 				application.serverId,
 				`
                 set -e
-                docker exec ${containerId} sh -c "${command}" || { 
+				echo "Running command: docker exec ${containerId} ${shellType} -c \"${command}\"" >> ${deployment.logPath};
+                docker exec ${containerId} ${shellType} -c "${command}" || { 
                     echo "❌ Command failed" >> ${deployment.logPath};
                     exit 1;
                 }
@@ -56,10 +58,12 @@ export const runCommand = async (scheduleId: string) => {
 		const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 
 		try {
-			writeStream.write(`${command}\n`);
+			writeStream.write(
+				`docker exec ${containerId} ${shellType} -c "${command}"\n`,
+			);
 			await spawnAsync(
 				"docker",
-				["exec", containerId, "sh", "-c", command],
+				["exec", containerId, shellType, "-c", command],
 				(data) => {
 					if (writeStream.writable) {
 						writeStream.write(data);

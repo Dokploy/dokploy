@@ -645,6 +645,13 @@
       "when": 1746180131377,
       "tag": "0091_amused_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1746221961240,
+      "tag": "0092_safe_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

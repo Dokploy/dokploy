@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
 	createScheduleSchema,
 	schedules,
+	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
 import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -13,15 +14,16 @@ export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
 		.mutation(async ({ ctx, input }) => {
+			const { scheduleId, ...rest } = input;
 			const [schedule] = await ctx.db
 				.insert(schedules)
-				.values(input)
+				.values(rest)
 				.returning();
 			return schedule;
 		}),
 
 	update: protectedProcedure
-		.input(createScheduleSchema.extend({ scheduleId: z.string() }))
+		.input(updateScheduleSchema)
 		.mutation(async ({ ctx, input }) => {
 			const { scheduleId, ...rest } = input;
 			const [schedule] = await ctx.db

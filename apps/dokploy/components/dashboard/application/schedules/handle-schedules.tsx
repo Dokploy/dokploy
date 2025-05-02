@@ -13,7 +13,7 @@ import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Clock, Terminal, Info } from "lucide-react";
+import { Clock, Terminal, Info, PlusCircle, PenBoxIcon } from "lucide-react";
 import {
 	Select,
 	SelectContent,
@@ -28,6 +28,15 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
+import { useEffect, useState } from "react";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },
@@ -47,26 +56,16 @@ const formSchema = z.object({
 });
 
 interface Props {
-	applicationId: string;
-	onSuccess?: () => void;
-	defaultValues?: {
-		name: string;
-		cronExpression: string;
-		command: string;
-	};
+	applicationId?: string;
 	scheduleId?: string;
 }
 
-export const HandleSchedules = ({
-	applicationId,
-	onSuccess,
-	defaultValues,
-	scheduleId,
-}: Props) => {
-	const utils = api.useContext();
+export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const utils = api.useUtils();
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
-		defaultValues: defaultValues || {
+		defaultValues: {
 			name: "",
 			cronExpression: "",
 			command: "",
@@ -74,166 +73,198 @@ export const HandleSchedules = ({
 		},
 	});
 
-	const { mutate: createSchedule, isLoading: isCreating } =
-		api.schedule.create.useMutation({
-			onSuccess: () => {
-				utils.schedule.list.invalidate({ applicationId });
-				form.reset();
-				onSuccess?.();
-			},
-		});
+	const { data: schedule } = api.schedule.one.useQuery(
+		{ scheduleId: scheduleId || "" },
+		{ enabled: !!scheduleId },
+	);
 
-	const { mutate: updateSchedule, isLoading: isUpdating } =
-		api.schedule.update.useMutation({
-			onSuccess: () => {
-				utils.schedule.list.invalidate({ applicationId });
-				onSuccess?.();
-			},
-		});
-
-	const isLoading = isCreating || isUpdating;
-
-	const onSubmit = (values: z.infer<typeof formSchema>) => {
+	useEffect(() => {
 		if (scheduleId) {
-			updateSchedule({
-				...values,
-				scheduleId,
-				applicationId,
-			});
-		} else {
-			createSchedule({
-				...values,
-				applicationId,
+			form.reset({
+				name: schedule?.name,
+				cronExpression: schedule?.cronExpression,
+				command: schedule?.command,
+				enabled: schedule?.enabled,
 			});
 		}
+	}, [form, form.reset, schedule]);
+
+	const { mutateAsync, isLoading } = scheduleId
+		? api.schedule.update.useMutation()
+		: api.schedule.create.useMutation();
+
+	const onSubmit = async (values: z.infer<typeof formSchema>) => {
+		await mutateAsync({
+			...values,
+			...(scheduleId && { scheduleId }),
+			...(applicationId && { applicationId }),
+		})
+			.then(() => {
+				toast.success(
+					`Schedule ${scheduleId ? "updated" : "created"} successfully`,
+				);
+				utils.schedule.list.invalidate({ applicationId });
+				setIsOpen(false);
+			})
+			.catch((error) => {
+				toast.error(
+					error instanceof Error ? error.message : "An unknown error occurred",
+				);
+			});
 	};
 
 	return (
-		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-				<FormField
-					control={form.control}
-					name="name"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel className="flex items-center gap-2">
-								<Clock className="w-4 h-4" />
-								Task Name
-							</FormLabel>
-							<FormControl>
-								<Input placeholder="Daily Database Backup" {...field} />
-							</FormControl>
-							<FormDescription>
-								A descriptive name for your scheduled task
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+			<DialogTrigger asChild>
+				{scheduleId ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="group hover:bg-blue-500/10 "
+					>
+						<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					</Button>
+				) : (
+					<Button>
+						<PlusCircle className="w-4 h-4" />
+						Add Schedule
+					</Button>
+				)}
+			</DialogTrigger>
+			<DialogContent>
+				{scheduleId}
+				<DialogHeader>
+					<DialogTitle>{scheduleId ? "Edit" : "Create"} Schedule</DialogTitle>
+				</DialogHeader>
+				<Form {...form}>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										<Clock className="w-4 h-4" />
+										Task Name
+									</FormLabel>
+									<FormControl>
+										<Input placeholder="Daily Database Backup" {...field} />
+									</FormControl>
+									<FormDescription>
+										A descriptive name for your scheduled task
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-				<FormField
-					control={form.control}
-					name="cronExpression"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel className="flex items-center gap-2">
-								<Clock className="w-4 h-4" />
-								Schedule
-								<TooltipProvider>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Info className="w-4 h-4 text-muted-foreground cursor-help" />
-										</TooltipTrigger>
-										<TooltipContent>
-											<p>
-												Cron expression format: minute hour day month weekday
-											</p>
-											<p>Example: 0 0 * * * (daily at midnight)</p>
-										</TooltipContent>
-									</Tooltip>
-								</TooltipProvider>
-							</FormLabel>
-							<Select
-								onValueChange={(value) => field.onChange(value)}
-								value={field.value}
-							>
-								<FormControl>
-									<SelectTrigger>
-										<SelectValue placeholder="Select or type a cron expression" />
-									</SelectTrigger>
-								</FormControl>
-								<SelectContent>
-									{commonCronExpressions.map((expr) => (
-										<SelectItem key={expr.value} value={expr.value}>
-											{expr.label} ({expr.value})
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<FormControl>
-								<Input
-									placeholder="Custom cron expression (e.g., 0 0 * * *)"
-									{...field}
-									className="mt-2"
-								/>
-							</FormControl>
-							<FormDescription>
-								Choose a predefined schedule or enter a custom cron expression
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+						<FormField
+							control={form.control}
+							name="cronExpression"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										<Clock className="w-4 h-4" />
+										Schedule
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Info className="w-4 h-4 text-muted-foreground cursor-help" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Cron expression format: minute hour day month
+														weekday
+													</p>
+													<p>Example: 0 0 * * * (daily at midnight)</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</FormLabel>
+									<Select
+										onValueChange={(value) => field.onChange(value)}
+										value={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select or type a cron expression" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{commonCronExpressions.map((expr) => (
+												<SelectItem key={expr.value} value={expr.value}>
+													{expr.label} ({expr.value})
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormControl>
+										<Input
+											placeholder="Custom cron expression (e.g., 0 0 * * *)"
+											{...field}
+											className="mt-2"
+										/>
+									</FormControl>
+									<FormDescription>
+										Choose a predefined schedule or enter a custom cron
+										expression
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-				<FormField
-					control={form.control}
-					name="command"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel className="flex items-center gap-2">
-								<Terminal className="w-4 h-4" />
-								Command
-							</FormLabel>
-							<FormControl>
-								<Input
-									placeholder="docker exec my-container npm run backup"
-									{...field}
-								/>
-							</FormControl>
-							<FormDescription>
-								The command to execute in your container
-							</FormDescription>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+						<FormField
+							control={form.control}
+							name="command"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										<Terminal className="w-4 h-4" />
+										Command
+									</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="docker exec my-container npm run backup"
+											{...field}
+										/>
+									</FormControl>
+									<FormDescription>
+										The command to execute in your container
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-				<FormField
-					control={form.control}
-					name="enabled"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel className="flex items-center gap-2">
-								<Switch
-									checked={field.value}
-									onCheckedChange={field.onChange}
-								/>
-								Enabled
-							</FormLabel>
-						</FormItem>
-					)}
-				/>
-				<Button type="submit" disabled={isLoading} className="w-full">
-					{isLoading ? (
-						<>
-							<Clock className="mr-2 h-4 w-4 animate-spin" />
-							{scheduleId ? "Updating..." : "Creating..."}
-						</>
-					) : (
-						<>{scheduleId ? "Update" : "Create"} Schedule</>
-					)}
-				</Button>
-			</form>
-		</Form>
+						<FormField
+							control={form.control}
+							name="enabled"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+										Enabled
+									</FormLabel>
+								</FormItem>
+							)}
+						/>
+						<Button type="submit" disabled={isLoading} className="w-full">
+							{isLoading ? (
+								<>
+									<Clock className="mr-2 h-4 w-4 animate-spin" />
+									{scheduleId ? "Updating..." : "Creating..."}
+								</>
+							) : (
+								<>{scheduleId ? "Update" : "Create"} Schedule</>
+							)}
+						</Button>
+					</form>
+				</Form>
+			</DialogContent>
+		</Dialog>
 	);
 };

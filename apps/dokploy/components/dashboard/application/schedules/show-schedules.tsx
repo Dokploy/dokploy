@@ -1,12 +1,5 @@
 import { Button } from "@/components/ui/button";
 import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@/components/ui/dialog";
-import {
 	Table,
 	TableBody,
 	TableCell,
@@ -15,9 +8,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
-import { useState } from "react";
 import { HandleSchedules } from "./handle-schedules";
-import { PlusCircle, Clock, Terminal, Trash2, Edit2 } from "lucide-react";
+import { Clock, Terminal, Trash2 } from "lucide-react";
 import {
 	Card,
 	CardContent,
@@ -34,14 +26,6 @@ interface Props {
 }
 
 export const ShowSchedules = ({ applicationId }: Props) => {
-	const [isOpen, setIsOpen] = useState(false);
-	const [editingSchedule, setEditingSchedule] = useState<{
-		scheduleId: string;
-		name: string;
-		cronExpression: string;
-		command: string;
-	} | null>(null);
-
 	const { data: schedules } = api.schedule.list.useQuery({
 		applicationId,
 	});
@@ -60,11 +44,6 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 
 	const utils = api.useContext();
 
-	const onClose = () => {
-		setIsOpen(false);
-		setEditingSchedule(null);
-	};
-
 	return (
 		<Card className="border px-4 shadow-none bg-transparent">
 			<CardHeader className="px-0">
@@ -78,27 +57,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 						</CardDescription>
 					</div>
 
-					<Dialog open={isOpen} onOpenChange={setIsOpen}>
-						<DialogTrigger asChild>
-							<Button className="gap-2">
-								<PlusCircle className="w-4 h-4" />
-								New Schedule
-							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>
-									{editingSchedule ? "Edit" : "Create"} Schedule
-								</DialogTitle>
-							</DialogHeader>
-							<HandleSchedules
-								applicationId={applicationId}
-								onSuccess={onClose}
-								defaultValues={editingSchedule || undefined}
-								scheduleId={editingSchedule?.scheduleId}
-							/>
-						</DialogContent>
-					</Dialog>
+					<HandleSchedules applicationId={applicationId} />
 				</div>
 			</CardHeader>
 			<CardContent className="px-0">
@@ -146,7 +105,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 											<TableCell className="text-right">
 												<div className="flex justify-end gap-2">
 													<ShowSchedulesLogs
-														deployments={deployments}
+														deployments={deployments || []}
 														serverId={application.serverId || undefined}
 													/>
 													<Button
@@ -170,15 +129,12 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 													>
 														Run Manual Schedule
 													</Button>
-													<Button
-														onClick={() => {
-															setEditingSchedule(schedule);
-															setIsOpen(true);
-														}}
-													>
-														<Edit2 className="w-4 h-4" />
-														<span className="sr-only">Edit</span>
-													</Button>
+
+													<HandleSchedules
+														scheduleId={schedule.scheduleId}
+														applicationId={applicationId}
+													/>
+
 													<Button
 														variant="ghost"
 														size="sm"
