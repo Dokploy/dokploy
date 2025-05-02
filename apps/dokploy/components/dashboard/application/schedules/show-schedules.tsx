@@ -26,6 +26,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DialogAction } from "@/components/shared/dialog-action";
 
 interface Props {
 	applicationId: string;
@@ -161,32 +162,36 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 														applicationId={applicationId}
 													/>
 
-													<Button
-														variant="ghost"
-														size="sm"
-														className="text-destructive hover:text-destructive"
-														isLoading={isDeleting}
+													<DialogAction
+														title="Delete Schedule"
+														description="Are you sure you want to delete this schedule?"
+														type="destructive"
 														onClick={async () => {
 															await deleteSchedule({
 																scheduleId: schedule.scheduleId,
 															})
 																.then(() => {
+																	utils.schedule.list.invalidate({
+																		applicationId,
+																	});
 																	toast.success(
 																		"Schedule deleted successfully",
 																	);
 																})
-																.catch((error) => {
-																	toast.error(
-																		error instanceof Error
-																			? error.message
-																			: "Error deleting schedule",
-																	);
+																.catch(() => {
+																	toast.error("Error deleting schedule");
 																});
 														}}
 													>
-														<Trash2 className="w-4 h-4" />
-														<span className="sr-only">Delete</span>
-													</Button>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="group hover:bg-red-500/10 "
+															isLoading={isDeleting}
+														>
+															<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+														</Button>
+													</DialogAction>
 												</div>
 											</TableCell>
 										</TableRow>
