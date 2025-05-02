@@ -24,7 +24,7 @@ import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
 import { server } from "./server";
-import { applicationStatus, certificateType } from "./shared";
+import { applicationStatus, certificateType, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 
@@ -149,6 +149,7 @@ export const applications = pgTable("application", {
 	owner: text("owner"),
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
+	triggerType: triggerType("triggerType").default("push"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Gitlab
 	gitlabProjectId: integer("gitlabProjectId"),
@@ -182,6 +183,7 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	dockerfile: text("dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
@@ -470,8 +472,12 @@ export const apiSaveGithubProvider = createSchema
 		buildPath: true,
 		githubId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
-	.required();
+	.required()
+	.extend({
+		triggerType: z.enum(["push", "tag"]).default("push"),
+	});
 
 export const apiSaveGitlabProvider = createSchema
 	.pick({
@@ -484,6 +490,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabProjectId: true,
 		gitlabPathNamespace: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -496,6 +503,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketId: true,
 		applicationId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -508,6 +516,7 @@ export const apiSaveGiteaProvider = createSchema
 		giteaRepository: true,
 		giteaId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -528,6 +537,7 @@ export const apiSaveGitProvider = createSchema
 		customGitBuildPath: true,
 		customGitUrl: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required()
 	.merge(

@@ -31,7 +31,6 @@ export const mountRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateMount)
 		.mutation(async ({ input }) => {
-			await updateMount(input.mountId, input);
-			return true;
+			return await updateMount(input.mountId, input);
 		}),
 });

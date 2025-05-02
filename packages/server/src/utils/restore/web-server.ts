@@ -45,7 +45,7 @@ export const restoreWebServerBackup = async (
 
 			// Extract backup
 			emit("Extracting backup...");
-			await execAsync(`cd ${tempDir} && unzip ${backupFile}`);
+			await execAsync(`cd ${tempDir} && unzip ${backupFile} > /dev/null 2>&1`);
 
 			// Restore filesystem first
 			emit("Restoring filesystem...");
@@ -83,44 +83,54 @@ export const restoreWebServerBackup = async (
 				throw new Error("Database file not found after extraction");
 			}
 
+			const { stdout: postgresContainer } = await execAsync(
+				`docker ps --filter "name=dokploy-postgres" --filter "status=running" -q | head -n 1`,
+			);
+
+			if (!postgresContainer) {
+				throw new Error("Dokploy Postgres container not found");
+			}
+
+			const postgresContainerId = postgresContainer.trim();
+
 			// Drop and recreate database
 			emit("Disconnecting all users from database...");
 			await execAsync(
-				`docker exec $(docker ps --filter "name=dokploy-postgres" -q) psql -U dokploy postgres -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = 'dokploy' AND pid <> pg_backend_pid();"`,
+				`docker exec ${postgresContainerId} psql -U dokploy postgres -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = 'dokploy' AND pid <> pg_backend_pid();"`,
 			);
 
 			emit("Dropping existing database...");
 			await execAsync(
-				`docker exec $(docker ps --filter "name=dokploy-postgres" -q) psql -U dokploy postgres -c "DROP DATABASE IF EXISTS dokploy;"`,
+				`docker exec ${postgresContainerId} psql -U dokploy postgres -c "DROP DATABASE IF EXISTS dokploy;"`,
 			);
 
 			emit("Creating fresh database...");
 			await execAsync(
-				`docker exec $(docker ps --filter "name=dokploy-postgres" -q) psql -U dokploy postgres -c "CREATE DATABASE dokploy;"`,
+				`docker exec ${postgresContainerId} psql -U dokploy postgres -c "CREATE DATABASE dokploy;"`,
 			);
 
 			// Copy the backup file into the container
 			emit("Copying backup file into container...");
 			await execAsync(
-				`docker cp ${tempDir}/database.sql $(docker ps --filter "name=dokploy-postgres" -q):/tmp/database.sql`,
+				`docker cp ${tempDir}/database.sql ${postgresContainerId}:/tmp/database.sql`,
 			);
 
 			// Verify file in container
 			emit("Verifying file in container...");
 			await execAsync(
-				`docker exec $(docker ps --filter "name=dokploy-postgres" -q) ls -l /tmp/database.sql`,
+				`docker exec ${postgresContainerId} ls -l /tmp/database.sql`,
 			);
 
 			// Restore from the copied file
 			emit("Running database restore...");
 			await execAsync(
-				`docker exec $(docker ps --filter "name=dokploy-postgres" -q) pg_restore -v -U dokploy -d dokploy /tmp/database.sql`,
+				`docker exec ${postgresContainerId} pg_restore -v -U dokploy -d dokploy /tmp/database.sql`,
 			);
 
 			// Cleanup the temporary file in the container
 			emit("Cleaning up container temp file...");
 			await execAsync(
-				`docker exec $(docker ps --filter "name=dokploy-postgres" -q) rm /tmp/database.sql`,
+				`docker exec ${postgresContainerId} rm /tmp/database.sql`,
 			);
 
 			emit("Restore completed successfully!");

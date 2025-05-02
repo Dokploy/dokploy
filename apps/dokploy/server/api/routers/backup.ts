@@ -31,7 +31,10 @@ import {
 } from "@dokploy/server";
 
 import { findDestinationById } from "@dokploy/server/services/destination";
-import { getS3Credentials } from "@dokploy/server/utils/backups/utils";
+import {
+	getS3Credentials,
+	normalizeS3Path,
+} from "@dokploy/server/utils/backups/utils";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -46,6 +49,18 @@ import {
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
+
+interface RcloneFile {
+	Path: string;
+	Name: string;
+	Size: number;
+	IsDir: boolean;
+	Tier?: string;
+	Hashes?: {
+		MD5?: string;
+		SHA1?: string;
+	};
+}
 
 export const backupRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -257,7 +272,7 @@ export const backupRouter = createTRPCRouter({
 				const lastSlashIndex = input.search.lastIndexOf("/");
 				const baseDir =
 					lastSlashIndex !== -1
-						? input.search.slice(0, lastSlashIndex + 1)
+						? normalizeS3Path(input.search.slice(0, lastSlashIndex + 1))
 						: "";
 				const searchTerm =
 					lastSlashIndex !== -1
@@ -265,32 +280,47 @@ export const backupRouter = createTRPCRouter({
 						: input.search;
 
 				const searchPath = baseDir ? `${bucketPath}/${baseDir}` : bucketPath;
-				const listCommand = `rclone lsf ${rcloneFlags.join(" ")} "${searchPath}" | head -n 100`;
+				const listCommand = `rclone lsjson ${rcloneFlags.join(" ")} "${searchPath}" --no-mimetype --no-modtime 2>/dev/null`;
 
 				let stdout = "";
 
 				if (input.serverId) {
-					const result = await execAsyncRemote(listCommand, input.serverId);
+					const result = await execAsyncRemote(input.serverId, listCommand);
 					stdout = result.stdout;
 				} else {
 					const result = await execAsync(listCommand);
 					stdout = result.stdout;
 				}
 
-				const files = stdout.split("\n").filter(Boolean);
+				let files: RcloneFile[] = [];
+				try {
+					files = JSON.parse(stdout) as RcloneFile[];
+				} catch (error) {
+					console.error("Error parsing JSON response:", error);
+					console.error("Raw stdout:", stdout);
+					throw new Error("Failed to parse backup files list");
+				}
+
+				// Limit to first 100 files
 
 				const results = baseDir
-					? files.map((file) => `${baseDir}${file}`)
+					? files.map((file) => ({
+							...file,
+							Path: `${baseDir}${file.Path}`,
+						}))
 					: files;
 
 				if (searchTerm) {
-					return results.filter((file) =>
-						file.toLowerCase().includes(searchTerm.toLowerCase()),
-					);
+					return results
+						.filter((file) =>
+							file.Path.toLowerCase().includes(searchTerm.toLowerCase()),
+						)
+						.slice(0, 100);
 				}
 
-				return results;
+				return results.slice(0, 100);
 			} catch (error) {
+				console.error("Error in listBackupFiles:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message:

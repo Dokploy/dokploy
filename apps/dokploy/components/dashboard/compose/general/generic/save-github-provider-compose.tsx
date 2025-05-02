@@ -30,6 +30,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -39,7 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -57,6 +58,8 @@ const GithubProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	triggerType: z.enum(["push", "tag"]).default("push"),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -82,13 +85,15 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			githubId: "",
 			branch: "",
 			watchPaths: [],
+			triggerType: "push",
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
 
 	const repository = form.watch("repository");
 	const githubId = form.watch("githubId");
-
+	const triggerType = form.watch("triggerType");
 	const { data: repositories, isLoading: isLoadingRepositories } =
 		api.github.getGithubRepositories.useQuery(
 			{
@@ -125,6 +130,8 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				composePath: data.composePath,
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
+				triggerType: data.triggerType || "push",
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -140,6 +147,8 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			sourceType: "github",
 			composeStatus: "idle",
 			watchPaths: data.watchPaths,
+			enableSubmodules: data.enableSubmodules,
+			triggerType: data.triggerType,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -384,79 +393,140 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 						/>
 						<FormField
 							control={form.control}
-							name="watchPaths"
+							name="triggerType"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>Watch Paths</FormLabel>
+										<FormLabel>Trigger Type</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
-												<TooltipTrigger>
-													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-														?
-													</div>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
-														Add paths to watch for changes. When files in these
-														paths change, a new deployment will be triggered.
+														Choose when to trigger deployments: on push to the
+														selected branch or when a new tag is created.
 													</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
 									</div>
-									<div className="flex flex-wrap gap-2 mb-2">
-										{field.value?.map((path, index) => (
-											<Badge key={index} variant="secondary">
-												{path}
-												<X
-													className="ml-1 size-3 cursor-pointer"
-													onClick={() => {
-														const newPaths = [...(field.value || [])];
-														newPaths.splice(index, 1);
-														form.setValue("watchPaths", newPaths);
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+										value={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a trigger type" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											<SelectItem value="push">On Push</SelectItem>
+											<SelectItem value="tag">On Tag</SelectItem>
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						{triggerType === "push" && (
+							<FormField
+								control={form.control}
+								name="watchPaths"
+								render={({ field }) => (
+									<FormItem className="md:col-span-2">
+										<div className="flex items-center gap-2">
+											<FormLabel>Watch Paths</FormLabel>
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger>
+														<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+															?
+														</div>
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															Add paths to watch for changes. When files in
+															these paths change, a new deployment will be
+															triggered.
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+										<div className="flex flex-wrap gap-2 mb-2">
+											{field.value?.map((path, index) => (
+												<Badge key={index} variant="secondary">
+													{path}
+													<X
+														className="ml-1 size-3 cursor-pointer"
+														onClick={() => {
+															const newPaths = [...(field.value || [])];
+															newPaths.splice(index, 1);
+															form.setValue("watchPaths", newPaths);
+														}}
+													/>
+												</Badge>
+											))}
+										</div>
+										<FormControl>
+											<div className="flex gap-2">
+												<Input
+													placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+													onKeyDown={(e) => {
+														if (e.key === "Enter") {
+															e.preventDefault();
+															const input = e.currentTarget;
+															const value = input.value.trim();
+															if (value) {
+																const newPaths = [
+																	...(field.value || []),
+																	value,
+																];
+																form.setValue("watchPaths", newPaths);
+																input.value = "";
+															}
+														}
 													}}
 												/>
-											</Badge>
-										))}
-									</div>
-									<FormControl>
-										<div className="flex gap-2">
-											<Input
-												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
-												onKeyDown={(e) => {
-													if (e.key === "Enter") {
-														e.preventDefault();
-														const input = e.currentTarget;
+												<Button
+													type="button"
+													variant="secondary"
+													onClick={() => {
+														const input = document.querySelector(
+															'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+														) as HTMLInputElement;
 														const value = input.value.trim();
 														if (value) {
 															const newPaths = [...(field.value || []), value];
 															form.setValue("watchPaths", newPaths);
 															input.value = "";
 														}
-													}
-												}}
-											/>
-											<Button
-												type="button"
-												variant="secondary"
-												onClick={() => {
-													const input = document.querySelector(
-														'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
-													) as HTMLInputElement;
-													const value = input.value.trim();
-													if (value) {
-														const newPaths = [...(field.value || []), value];
-														form.setValue("watchPaths", newPaths);
-														input.value = "";
-													}
-												}}
-											>
-												Add
-											</Button>
-										</div>
+													}}
+												>
+													Add
+												</Button>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
 									</FormControl>
-									<FormMessage />
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

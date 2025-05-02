@@ -119,6 +119,7 @@ export const getGiteaCloneCommand = async (
 		giteaRepository,
 		serverId,
 		gitea,
+		enableSubmodules,
 	} = entity;
 
 	if (!serverId) {
@@ -155,7 +156,7 @@ export const getGiteaCloneCommand = async (
     rm -rf ${outputPath};
     mkdir -p ${outputPath};
     
-    if ! git clone --branch ${giteaBranch} --depth 1 --recurse-submodules ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+    if ! git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
       echo "❌ [ERROR] Failed to clone the repository ${repoClone}" >> ${logPath};
       exit 1;
     fi
@@ -174,7 +175,14 @@ export const cloneGiteaRepository = async (
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths();
 
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { appName, giteaBranch, giteaId, giteaOwner, giteaRepository } = entity;
+	const {
+		appName,
+		giteaBranch,
+		giteaId,
+		giteaOwner,
+		giteaRepository,
+		enableSubmodules,
+	} = entity;
 
 	if (!giteaId) {
 		throw new TRPCError({
@@ -211,7 +219,7 @@ export const cloneGiteaRepository = async (
 				giteaBranch!,
 				"--depth",
 				"1",
-				"--recurse-submodules",
+				...(enableSubmodules ? ["--recurse-submodules"] : []),
 				cloneUrl,
 				outputPath,
 				"--progress",
@@ -232,7 +240,14 @@ export const cloneGiteaRepository = async (
 };
 
 export const cloneRawGiteaRepository = async (entity: Compose) => {
-	const { appName, giteaRepository, giteaOwner, giteaBranch, giteaId } = entity;
+	const {
+		appName,
+		giteaRepository,
+		giteaOwner,
+		giteaBranch,
+		giteaId,
+		enableSubmodules,
+	} = entity;
 	const { COMPOSE_PATH } = paths();
 
 	if (!giteaId) {
@@ -265,7 +280,7 @@ export const cloneRawGiteaRepository = async (entity: Compose) => {
 			giteaBranch!,
 			"--depth",
 			"1",
-			"--recurse-submodules",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
@@ -283,6 +298,7 @@ export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
 		giteaBranch,
 		giteaId,
 		serverId,
+		enableSubmodules,
 	} = compose;
 
 	if (!serverId) {
@@ -307,7 +323,7 @@ export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${giteaBranch} --depth 1 ${cloneUrl} ${outputPath}
+			git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {

@@ -1,8 +1,47 @@
-import { exec } from "node:child_process";
+import { exec, execFile } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
+
 export const execAsync = util.promisify(exec);
+
+export const execFileAsync = async (
+	command: string,
+	args: string[],
+	options: { input?: string } = {},
+): Promise<{ stdout: string; stderr: string }> => {
+	const child = execFile(command, args);
+
+	if (options.input && child.stdin) {
+		child.stdin.write(options.input);
+		child.stdin.end();
+	}
+
+	return new Promise((resolve, reject) => {
+		let stdout = "";
+		let stderr = "";
+
+		child.stdout?.on("data", (data) => {
+			stdout += data.toString();
+		});
+
+		child.stderr?.on("data", (data) => {
+			stderr += data.toString();
+		});
+
+		child.on("close", (code) => {
+			if (code === 0) {
+				resolve({ stdout, stderr });
+			} else {
+				reject(
+					new Error(`Command failed with code ${code}. Stderr: ${stderr}`),
+				);
+			}
+		});
+
+		child.on("error", reject);
+	});
+};
 
 export const execAsyncRemote = async (
 	serverId: string | null,
