@@ -17,6 +17,9 @@ import {
 import { api } from "@/utils/api";
 import { useState } from "react";
 import { HandleSchedules } from "./handle-schedules";
+import { PlusCircle, Clock, Terminal, Trash2, Edit2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
 	applicationId: string;
@@ -49,71 +52,107 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 	};
 
 	return (
-		<div className="space-y-4">
-			<div className="flex justify-between items-center">
-				<h2 className="text-2xl font-bold">Schedules</h2>
-				<Dialog open={isOpen} onOpenChange={setIsOpen}>
-					<DialogTrigger asChild>
-						<Button>Create Schedule</Button>
-					</DialogTrigger>
-					<DialogContent>
-						<DialogHeader>
-							<DialogTitle>
-								{editingSchedule ? "Edit" : "Create"} Schedule
-							</DialogTitle>
-						</DialogHeader>
-						<HandleSchedules
-							applicationId={applicationId}
-							onSuccess={onClose}
-							defaultValues={editingSchedule || undefined}
-							scheduleId={editingSchedule?.scheduleId}
-						/>
-					</DialogContent>
-				</Dialog>
-			</div>
-
-			{schedules && schedules.length > 0 ? (
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Name</TableHead>
-							<TableHead>Cron Expression</TableHead>
-							<TableHead>Command</TableHead>
-							<TableHead>Actions</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{schedules.map((schedule) => (
-							<TableRow key={schedule.scheduleId}>
-								<TableCell>{schedule.name}</TableCell>
-								<TableCell>{schedule.cronExpression}</TableCell>
-								<TableCell>{schedule.command}</TableCell>
-								<TableCell className="space-x-2">
-									<Button
-										variant="outline"
-										onClick={() => {
-											setEditingSchedule(schedule);
-											setIsOpen(true);
-										}}
-									>
-										Edit
-									</Button>
-									<Button
-										variant="destructive"
-										onClick={() =>
-											deleteSchedule({ scheduleId: schedule.scheduleId })
-										}
-									>
-										Delete
-									</Button>
-								</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			) : (
-				<div className="text-center text-gray-500">No schedules found</div>
-			)}
-		</div>
+		<Card className="border px-4 shadow-none bg-transparent">
+			<CardHeader className="px-0">
+				<div className="flex justify-between items-center">
+					<CardTitle className="text-xl font-bold flex items-center gap-2">
+						<Clock className="size-4 text-muted-foreground" />
+						Scheduled Tasks
+					</CardTitle>
+					<Dialog open={isOpen} onOpenChange={setIsOpen}>
+						<DialogTrigger asChild>
+							<Button className="gap-2">
+								<PlusCircle className="w-4 h-4" />
+								New Schedule
+							</Button>
+						</DialogTrigger>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>
+									{editingSchedule ? "Edit" : "Create"} Schedule
+								</DialogTitle>
+							</DialogHeader>
+							<HandleSchedules
+								applicationId={applicationId}
+								onSuccess={onClose}
+								defaultValues={editingSchedule || undefined}
+								scheduleId={editingSchedule?.scheduleId}
+							/>
+						</DialogContent>
+					</Dialog>
+				</div>
+			</CardHeader>
+			<CardContent className="px-0">
+				{schedules && schedules.length > 0 ? (
+					<div className="rounded-lg border">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Task Name</TableHead>
+									<TableHead>Schedule</TableHead>
+									<TableHead>Command</TableHead>
+									<TableHead className="text-right">Actions</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{schedules.map((schedule) => (
+									<TableRow key={schedule.scheduleId}>
+										<TableCell className="font-medium">
+											{schedule.name}
+										</TableCell>
+										<TableCell>
+											<Badge variant="secondary" className="font-mono">
+												{schedule.cronExpression}
+											</Badge>
+										</TableCell>
+										<TableCell>
+											<div className="flex items-center gap-2">
+												<Terminal className="w-4 h-4 text-muted-foreground" />
+												<code className="bg-muted px-2 py-1 rounded text-sm">
+													{schedule.command}
+												</code>
+											</div>
+										</TableCell>
+										<TableCell className="text-right">
+											<div className="flex justify-end gap-2">
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() => {
+														setEditingSchedule(schedule);
+														setIsOpen(true);
+													}}
+												>
+													<Edit2 className="w-4 h-4" />
+													<span className="sr-only">Edit</span>
+												</Button>
+												<Button
+													variant="ghost"
+													size="sm"
+													className="text-destructive hover:text-destructive"
+													onClick={() =>
+														deleteSchedule({ scheduleId: schedule.scheduleId })
+													}
+												>
+													<Trash2 className="w-4 h-4" />
+													<span className="sr-only">Delete</span>
+												</Button>
+											</div>
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+				) : (
+					<div className="flex flex-row gap-4 items-center justify-center py-12 border rounded-lg">
+						<Clock className="size-6 text-muted-foreground" />
+						<p className="text-muted-foreground text-center">
+							No scheduled tasks found
+						</p>
+					</div>
+				)}
+			</CardContent>
+		</Card>
 	);
 };
