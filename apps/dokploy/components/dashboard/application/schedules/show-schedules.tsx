@@ -18,7 +18,13 @@ import { api } from "@/utils/api";
 import { useState } from "react";
 import { HandleSchedules } from "./handle-schedules";
 import { PlusCircle, Clock, Terminal, Trash2, Edit2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
@@ -54,11 +60,16 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 	return (
 		<Card className="border px-4 shadow-none bg-transparent">
 			<CardHeader className="px-0">
-				<div className="flex justify-between items-center">
-					<CardTitle className="text-xl font-bold flex items-center gap-2">
-						<Clock className="size-4 text-muted-foreground" />
-						Scheduled Tasks
-					</CardTitle>
+				<div className="flex  justify-between items-center">
+					<div className="flex flex-col gap-2">
+						<CardTitle className="text-xl font-bold flex items-center gap-2">
+							Scheduled Tasks
+						</CardTitle>
+						<CardDescription>
+							Schedule tasks to run automatically at specified intervals.
+						</CardDescription>
+					</div>
+
 					<Dialog open={isOpen} onOpenChange={setIsOpen}>
 						<DialogTrigger asChild>
 							<Button className="gap-2">
@@ -91,6 +102,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 									<TableHead>Task Name</TableHead>
 									<TableHead>Schedule</TableHead>
 									<TableHead>Command</TableHead>
+									<TableHead>Status</TableHead>
 									<TableHead className="text-right">Actions</TableHead>
 								</TableRow>
 							</TableHeader>
@@ -112,6 +124,13 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 													{schedule.command}
 												</code>
 											</div>
+										</TableCell>
+										<TableCell>
+											<Badge
+												variant={schedule.enabled ? "default" : "secondary"}
+											>
+												{schedule.enabled ? "Enabled" : "Disabled"}
+											</Badge>
 										</TableCell>
 										<TableCell className="text-right">
 											<div className="flex justify-end gap-2">

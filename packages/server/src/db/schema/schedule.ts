@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -18,6 +18,7 @@ export const schedules = pgTable("schedule", {
 		.references(() => applications.applicationId, {
 			onDelete: "cascade",
 		}),
+	enabled: boolean("enabled").notNull().default(true),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),

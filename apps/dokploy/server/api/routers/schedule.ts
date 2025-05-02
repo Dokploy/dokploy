@@ -82,4 +82,22 @@ export const scheduleRouter = createTRPCRouter({
 
 			return schedule;
 		}),
+
+	runManually: protectedProcedure
+		.input(z.object({ scheduleId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const schedule = await ctx.db
+				.select()
+				.from(schedules)
+				.where(eq(schedules.scheduleId, input.scheduleId));
+
+			if (!schedule) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Schedule not found",
+				});
+			}
+
+			return schedule;
+		}),
 });

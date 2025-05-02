@@ -27,6 +27,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 
 const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },
@@ -42,6 +43,7 @@ const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),
 	cronExpression: z.string().min(1, "Cron expression is required"),
 	command: z.string().min(1, "Command is required"),
+	enabled: z.boolean().default(true),
 });
 
 interface Props {
@@ -68,6 +70,7 @@ export const HandleSchedules = ({
 			name: "",
 			cronExpression: "",
 			command: "",
+			enabled: true,
 		},
 	});
 
@@ -205,6 +208,21 @@ export const HandleSchedules = ({
 					)}
 				/>
 
+				<FormField
+					control={form.control}
+					name="enabled"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel className="flex items-center gap-2">
+								<Switch
+									checked={field.value}
+									onCheckedChange={field.onChange}
+								/>
+								Enabled
+							</FormLabel>
+						</FormItem>
+					)}
+				/>
 				<Button type="submit" disabled={isLoading} className="w-full">
 					{isLoading ? (
 						<>
