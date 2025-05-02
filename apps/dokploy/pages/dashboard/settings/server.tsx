@@ -20,7 +20,6 @@ const Page = () => {
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<WebDomain />
 				<WebServer />
-				{!isCloud && <EnablePaidFeatures />}
 				<div className="w-full flex flex-col gap-4">
 					<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto w-full">
 						<ShowBackups
@@ -30,6 +29,7 @@ const Page = () => {
 						/>
 					</Card>
 				</div>
+				{!isCloud && <EnablePaidFeatures />}
 			</div>
 		</div>
 	);
