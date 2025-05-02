@@ -4,7 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
-
+import { deployments } from "./deployment";
 export const schedules = pgTable("schedule", {
 	scheduleId: text("scheduleId")
 		.notNull()
@@ -23,11 +23,12 @@ export const schedules = pgTable("schedule", {
 		.$defaultFn(() => new Date().toISOString()),
 });
 
-export const schedulesRelations = relations(schedules, ({ one }) => ({
+export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 	application: one(applications, {
 		fields: [schedules.applicationId],
 		references: [applications.applicationId],
 	}),
+	deployments: many(deployments),
 }));
 
 export const createScheduleSchema = createInsertSchema(schedules, {

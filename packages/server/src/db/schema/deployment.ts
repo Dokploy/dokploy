@@ -13,7 +13,7 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
 import { server } from "./server";
-
+import { schedules } from "./schedule";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
@@ -48,6 +48,10 @@ export const deployments = pgTable("deployment", {
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	errorMessage: text("errorMessage"),
+	scheduleId: text("scheduleId").references(
+		(): AnyPgColumn => schedules.scheduleId,
+		{ onDelete: "cascade" },
+	),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -66,6 +70,10 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	previewDeployment: one(previewDeployments, {
 		fields: [deployments.previewDeploymentId],
 		references: [previewDeployments.previewDeploymentId],
+	}),
+	schedule: one(schedules, {
+		fields: [deployments.scheduleId],
+		references: [schedules.scheduleId],
 	}),
 }));
 
