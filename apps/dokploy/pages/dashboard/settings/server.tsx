@@ -23,7 +23,11 @@ const Page = () => {
 				{!isCloud && <EnablePaidFeatures />}
 				<div className="w-full flex flex-col gap-4">
 					<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto w-full">
-						<ShowBackups id={user?.userId ?? ""} type="web-server" />
+						<ShowBackups
+							id={user?.userId ?? ""}
+							databaseType="web-server"
+							backupType="database"
+						/>
 					</Card>
 				</div>
 			</div>

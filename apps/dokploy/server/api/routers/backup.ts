@@ -10,6 +10,8 @@ import {
 	IS_CLOUD,
 	createBackup,
 	findBackupById,
+	findComposeByBackupId,
+	findComposeById,
 	findMariadbByBackupId,
 	findMariadbById,
 	findMongoByBackupId,
@@ -31,6 +33,7 @@ import {
 } from "@dokploy/server";
 
 import { findDestinationById } from "@dokploy/server/services/destination";
+import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
 	getS3Credentials,
 	normalizeS3Path,
@@ -40,6 +43,7 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import {
+	restoreComposeBackup,
 	restoreMariadbBackup,
 	restoreMongoBackup,
 	restoreMySqlBackup,
@@ -82,6 +86,11 @@ export const backupRouter = createTRPCRouter({
 						serverId = backup.mongo.serverId;
 					} else if (databaseType === "mariadb" && backup.mariadb?.serverId) {
 						serverId = backup.mariadb.serverId;
+					} else if (
+						backup.backupType === "compose" &&
+						backup.compose?.serverId
+					) {
+						serverId = backup.compose.serverId;
 					}
 					const server = await findServerById(serverId);
 
@@ -232,6 +241,22 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 		}),
+	manualBackupCompose: protectedProcedure
+		.input(apiFindOneBackup)
+		.mutation(async ({ input }) => {
+			try {
+				const backup = await findBackupById(input.backupId);
+				const compose = await findComposeByBackupId(backup.backupId);
+				await runComposeBackup(compose, backup);
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error running manual Compose backup ",
+					cause: error,
+				});
+			}
+		}),
 	manualBackupMongo: protectedProcedure
 		.input(apiFindOneBackup)
 		.mutation(async ({ input }) => {
@@ -351,78 +376,96 @@ export const backupRouter = createTRPCRouter({
 					"mongo",
 					"web-server",
 				]),
+				backupType: z.enum(["database", "compose"]),
 				databaseName: z.string().min(1),
 				backupFile: z.string().min(1),
 				destinationId: z.string().min(1),
+				metadata: z.any(),
 			}),
 		)
 		.subscription(async ({ input }) => {
 			const destination = await findDestinationById(input.destinationId);
-			if (input.databaseType === "postgres") {
-				const postgres = await findPostgresById(input.databaseId);
+			if (input.backupType === "database") {
+				if (input.databaseType === "postgres") {
+					const postgres = await findPostgresById(input.databaseId);
 
-				return observable<string>((emit) => {
-					restorePostgresBackup(
-						postgres,
-						destination,
-						input.databaseName,
-						input.backupFile,
-						(log) => {
-							emit.next(log);
-						},
-					);
-				});
-			}
-			if (input.databaseType === "mysql") {
-				const mysql = await findMySqlById(input.databaseId);
-				return observable<string>((emit) => {
-					restoreMySqlBackup(
-						mysql,
-						destination,
-						input.databaseName,
-						input.backupFile,
-						(log) => {
-							emit.next(log);
-						},
-					);
-				});
-			}
-			if (input.databaseType === "mariadb") {
-				const mariadb = await findMariadbById(input.databaseId);
-				return observable<string>((emit) => {
-					restoreMariadbBackup(
-						mariadb,
-						destination,
-						input.databaseName,
-						input.backupFile,
-						(log) => {
-							emit.next(log);
-						},
-					);
-				});
-			}
-			if (input.databaseType === "mongo") {
-				const mongo = await findMongoById(input.databaseId);
-				return observable<string>((emit) => {
-					restoreMongoBackup(
-						mongo,
-						destination,
-						input.databaseName,
-						input.backupFile,
-						(log) => {
-							emit.next(log);
-						},
-					);
-				});
-			}
-			if (input.databaseType === "web-server") {
-				return observable<string>((emit) => {
-					restoreWebServerBackup(destination, input.backupFile, (log) => {
-						emit.next(log);
+					return observable<string>((emit) => {
+						restorePostgresBackup(
+							postgres,
+							destination,
+							input.databaseName,
+							input.backupFile,
+							(log) => {
+								emit.next(log);
+							},
+						);
 					});
+				}
+				if (input.databaseType === "mysql") {
+					const mysql = await findMySqlById(input.databaseId);
+					return observable<string>((emit) => {
+						restoreMySqlBackup(
+							mysql,
+							destination,
+							input.databaseName,
+							input.backupFile,
+							(log) => {
+								emit.next(log);
+							},
+						);
+					});
+				}
+				if (input.databaseType === "mariadb") {
+					const mariadb = await findMariadbById(input.databaseId);
+					return observable<string>((emit) => {
+						restoreMariadbBackup(
+							mariadb,
+							destination,
+							input.databaseName,
+							input.backupFile,
+							(log) => {
+								emit.next(log);
+							},
+						);
+					});
+				}
+				if (input.databaseType === "mongo") {
+					const mongo = await findMongoById(input.databaseId);
+					return observable<string>((emit) => {
+						restoreMongoBackup(
+							mongo,
+							destination,
+							input.databaseName,
+							input.backupFile,
+							(log) => {
+								emit.next(log);
+							},
+						);
+					});
+				}
+				if (input.databaseType === "web-server") {
+					return observable<string>((emit) => {
+						restoreWebServerBackup(destination, input.backupFile, (log) => {
+							emit.next(log);
+						});
+					});
+				}
+			}
+			if (input.backupType === "compose") {
+				const compose = await findComposeById(input.databaseId);
+				return observable<string>((emit) => {
+					restoreComposeBackup(
+						compose,
+						destination,
+						input.databaseName,
+						input.backupFile,
+						input.metadata,
+						(log) => {
+							emit.next(log);
+						},
+					);
 				});
 			}
-
 			return true;
 		}),
 });

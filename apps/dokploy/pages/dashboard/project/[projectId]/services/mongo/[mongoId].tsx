@@ -272,7 +272,11 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={mongoId} type="mongo" />
+											<ShowBackups
+												id={mongoId}
+												databaseType="mongo"
+												backupType="database"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

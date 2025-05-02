@@ -21,6 +21,7 @@ import {
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
+	validateDomain,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -223,5 +224,16 @@ export const domainRouter = createTRPCRouter({
 			}
 
 			return result;
+		}),
+
+	validateDomain: protectedProcedure
+		.input(
+			z.object({
+				domain: z.string(),
+				serverIp: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			return validateDomain(input.domain, input.serverIp);
 		}),
 });
