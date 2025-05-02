@@ -95,8 +95,16 @@ export const scheduleRouter = createTRPCRouter({
 	runManually: protectedProcedure
 		.input(z.object({ scheduleId: z.string().min(1) }))
 		.mutation(async ({ input }) => {
-			await runCommand(input.scheduleId);
-
-			return true;
+			try {
+				await runCommand(input.scheduleId);
+				return true;
+			} catch (error) {
+				console.log(error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message:
+						error instanceof Error ? error.message : "Error running schedule",
+				});
+			}
 		}),
 });

@@ -39,18 +39,10 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 	const utils = api.useUtils();
 
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
-		api.schedule.delete.useMutation({
-			onSuccess: () => {
-				utils.schedule.list.invalidate({ applicationId });
-			},
-		});
+		api.schedule.delete.useMutation();
 
 	const { mutateAsync: runManually, isLoading } =
-		api.schedule.runManually.useMutation({
-			onSuccess: () => {
-				utils.schedule.list.invalidate({ applicationId });
-			},
-		});
+		api.schedule.runManually.useMutation();
 
 	return (
 		<Card className="border px-4 shadow-none bg-transparent">
@@ -65,7 +57,9 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 						</CardDescription>
 					</div>
 
-					<HandleSchedules applicationId={applicationId} />
+					{schedules && schedules.length > 0 && (
+						<HandleSchedules applicationId={applicationId} />
+					)}
 				</div>
 			</CardHeader>
 			<CardContent className="px-0">
@@ -138,8 +132,12 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 																				toast.success(
 																					"Schedule run successfully",
 																				);
+																				utils.schedule.list.invalidate({
+																					applicationId,
+																				});
 																			})
 																			.catch((error) => {
+																				console.log(error);
 																				toast.error(
 																					error instanceof Error
 																						? error.message
@@ -201,11 +199,15 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 						</Table>
 					</div>
 				) : (
-					<div className="flex flex-row gap-4 items-center justify-center py-12 border rounded-lg">
-						<Clock className="size-6 text-muted-foreground" />
-						<p className="text-muted-foreground text-center">
-							No scheduled tasks found
+					<div className="flex flex-col gap-2 items-center justify-center py-12 border rounded-lg">
+						<Clock className="size-8 mb-4 text-muted-foreground" />
+						<p className="text-lg font-medium text-muted-foreground">
+							No scheduled tasks
 						</p>
+						<p className="text-sm text-muted-foreground mt-1">
+							Create your first scheduled task to automate your workflows
+						</p>
+						<HandleSchedules applicationId={applicationId} />
 					</div>
 				)}
 			</CardContent>
