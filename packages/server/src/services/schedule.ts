@@ -8,10 +8,9 @@ import type {
 	updateScheduleSchema,
 } from "../db/schema/schedule";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
-import { IS_CLOUD, paths } from "../constants";
+import { paths } from "../constants";
 import path from "node:path";
 import { encodeBase64 } from "../utils/docker/utils";
-import { scheduleJob, removeScheduleJob } from "../utils/schedules/utils";
 
 export type ScheduleExtended = Awaited<ReturnType<typeof findScheduleById>>;
 
@@ -27,10 +26,6 @@ export const createSchedule = async (
 			newSchedule.scheduleType === "server")
 	) {
 		await handleScript(newSchedule);
-	}
-
-	if (newSchedule?.enabled) {
-		scheduleJob(newSchedule);
 	}
 
 	return newSchedule;
@@ -94,6 +89,13 @@ export const updateSchedule = async (
 		.where(eq(schedules.scheduleId, scheduleId))
 		.returning();
 
+	if (!updatedSchedule) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Schedule not found",
+		});
+	}
+
 	if (
 		updatedSchedule?.scheduleType === "dokploy-server" ||
 		updatedSchedule?.scheduleType === "server"
@@ -101,16 +103,6 @@ export const updateSchedule = async (
 		await handleScript(updatedSchedule);
 	}
 
-	if (IS_CLOUD) {
-		// scheduleJob(updatedSchedule);
-	} else {
-		if (updatedSchedule?.enabled) {
-			removeScheduleJob(scheduleId);
-			scheduleJob(updatedSchedule);
-		} else {
-			removeScheduleJob(scheduleId);
-		}
-	}
 	return updatedSchedule;
 };
 

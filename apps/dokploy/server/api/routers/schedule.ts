@@ -16,27 +16,74 @@ import {
 	createSchedule,
 	updateSchedule,
 } from "@dokploy/server/services/schedule";
-
+import { IS_CLOUD, scheduleJob } from "@dokploy/server";
+import { removeJob, schedule } from "@/server/utils/backup";
+import { removeScheduleJob } from "@dokploy/server";
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
 		.mutation(async ({ input }) => {
-			const schedule = await createSchedule(input);
-			return schedule;
+			const newSchedule = await createSchedule(input);
+
+			if (newSchedule?.enabled) {
+				if (IS_CLOUD) {
+					schedule({
+						scheduleId: newSchedule.scheduleId,
+						type: "schedule",
+						cronSchedule: newSchedule.cronExpression,
+					});
+				} else {
+					scheduleJob(newSchedule);
+				}
+			}
+			return newSchedule;
 		}),
 
 	update: protectedProcedure
 		.input(updateScheduleSchema)
 		.mutation(async ({ input }) => {
-			const schedule = await updateSchedule(input);
-			return schedule;
+			const updatedSchedule = await updateSchedule(input);
+
+			if (IS_CLOUD) {
+				if (updatedSchedule?.enabled) {
+					schedule({
+						scheduleId: updatedSchedule.scheduleId,
+						type: "schedule",
+						cronSchedule: updatedSchedule.cronExpression,
+					});
+				} else {
+					await removeJob({
+						cronSchedule: updatedSchedule.cronExpression,
+						scheduleId: updatedSchedule.scheduleId,
+						type: "schedule",
+					});
+				}
+			} else {
+				if (updatedSchedule?.enabled) {
+					removeScheduleJob(updatedSchedule.scheduleId);
+					scheduleJob(updatedSchedule);
+				} else {
+					removeScheduleJob(updatedSchedule.scheduleId);
+				}
+			}
+			return updatedSchedule;
 		}),
 
 	delete: protectedProcedure
 		.input(z.object({ scheduleId: z.string() }))
 		.mutation(async ({ input }) => {
+			const schedule = await findScheduleById(input.scheduleId);
 			await deleteSchedule(input.scheduleId);
 
+			if (IS_CLOUD) {
+				await removeJob({
+					cronSchedule: schedule.cronExpression,
+					scheduleId: schedule.scheduleId,
+					type: "schedule",
+				});
+			} else {
+				removeScheduleJob(schedule.scheduleId);
+			}
 			return true;
 		}),
 
