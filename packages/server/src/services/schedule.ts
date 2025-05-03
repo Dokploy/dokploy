@@ -101,8 +101,6 @@ export const updateSchedule = async (
 		await handleScript(updatedSchedule);
 	}
 
-	console.log("updatedSchedule", updatedSchedule);
-
 	if (IS_CLOUD) {
 		// scheduleJob(updatedSchedule);
 	} else {

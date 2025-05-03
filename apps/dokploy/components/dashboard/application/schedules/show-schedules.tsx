@@ -165,8 +165,12 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 															await runManually({
 																scheduleId: schedule.scheduleId,
 															})
-																.then(() => {
+																.then(async () => {
 																	toast.success("Schedule run successfully");
+
+																	await new Promise((resolve) =>
+																		setTimeout(resolve, 1500),
+																	);
 																	refetchSchedules();
 																})
 																.catch(() => {

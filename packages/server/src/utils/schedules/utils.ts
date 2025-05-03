@@ -13,7 +13,7 @@ import path from "node:path";
 export const scheduleJob = (schedule: Schedule) => {
 	const { cronExpression, scheduleId } = schedule;
 
-	scheduleJobNode(cronExpression, async () => {
+	scheduleJobNode(scheduleId, cronExpression, async () => {
 		await runCommand(scheduleId);
 	});
 };
