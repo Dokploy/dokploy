@@ -108,6 +108,15 @@ const Schema = z
 				path: ["databaseType"],
 			});
 		}
+
+		if (data.backupType === "compose" && !data.serviceName) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Service name is required for compose backups",
+				path: ["serviceName"],
+			});
+		}
+
 		if (data.backupType === "compose" && data.databaseType) {
 			if (data.databaseType === "postgres") {
 				if (!data.metadata?.postgres?.databaseUser) {

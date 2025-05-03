@@ -33,6 +33,7 @@ export const runComposeBackup = async (
 		title: "Compose Backup",
 		description: "Compose Backup",
 	});
+
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
@@ -77,7 +78,8 @@ export const runComposeBackup = async (
 				compose.serverId,
 				`
 				 set -e;
-				 Running command.
+				 echo "Running command." >> ${deployment.logPath};
+				 export RCLONE_LOG_LEVEL=DEBUG;
 				${backupCommand} | ${rcloneCommand} >> ${deployment.logPath} 2>> ${deployment.logPath} || {
 					echo "❌ Command failed" >> ${deployment.logPath};
 					exit 1;
