@@ -6,12 +6,25 @@ import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import { mkdtemp } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import {
+	createDeploymentBackup,
+	updateDeploymentStatus,
+} from "@dokploy/server/services/deployment";
+import { createWriteStream } from "node:fs";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
+	if (IS_CLOUD) {
+		return;
+	}
+
+	const deployment = await createDeploymentBackup({
+		backupId: backup.backupId,
+		title: "Web Server Backup",
+		description: "Web Server Backup",
+	});
+	const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
+
 	try {
-		if (IS_CLOUD) {
-			return;
-		}
 		const destination = await findDestinationById(backup.destinationId);
 		const rcloneFlags = getS3Credentials(destination);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -46,12 +59,19 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
 			await execAsync(uploadCommand);
+			writeStream.write("Backup done✅");
+			writeStream.end();
+			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;
 		} finally {
 			await execAsync(`rm -rf ${tempDir}`);
 		}
 	} catch (error) {
 		console.error("Backup error:", error);
+		writeStream.write("Backup error❌");
+		writeStream.write(error instanceof Error ? error.message : "Unknown error");
+		writeStream.end();
+		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
 	}
 };

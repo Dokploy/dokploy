@@ -92,8 +92,8 @@ export const runComposeBackup = async (
 			await execAsyncStream(
 				`${backupCommand} | ${rcloneCommand}`,
 				(data) => {
-					if (writeStream.write(data)) {
-						console.log(data);
+					if (writeStream.writable) {
+						writeStream.write(data);
 					}
 				},
 				{

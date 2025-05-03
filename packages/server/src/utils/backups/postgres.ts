@@ -3,13 +3,17 @@ import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
 import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { execAsyncRemote, execAsyncStream } from "../process/execAsync";
 import {
 	getPostgresBackupCommand,
 	getS3Credentials,
 	normalizeS3Path,
 } from "./utils";
-import { createDeploymentBackup } from "@dokploy/server/services/deployment";
+import {
+	createDeploymentBackup,
+	updateDeploymentStatus,
+} from "@dokploy/server/services/deployment";
+import { createWriteStream } from "node:fs";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
@@ -45,9 +49,37 @@ export const runPostgresBackup = async (
 		);
 
 		if (postgres.serverId) {
-			await execAsyncRemote(postgres.serverId, `${command} | ${rcloneCommand}`);
+			await execAsyncRemote(
+				postgres.serverId,
+				`
+				set -e;
+				echo "Running command." >> ${deployment.logPath};
+				export RCLONE_LOG_LEVEL=DEBUG;
+				${command} | ${rcloneCommand} >> ${deployment.logPath} 2>> ${deployment.logPath} || {
+					echo "❌ Command failed" >> ${deployment.logPath};
+					exit 1;
+				}
+				echo "✅ Command executed successfully" >> ${deployment.logPath};
+				`,
+			);
 		} else {
-			await execAsync(`${command} | ${rcloneCommand}`);
+			const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
+			await execAsyncStream(
+				`${command} | ${rcloneCommand}`,
+				(data) => {
+					if (writeStream.writable) {
+						writeStream.write(data);
+					}
+				},
+				{
+					env: {
+						...process.env,
+						RCLONE_LOG_LEVEL: "DEBUG",
+					},
+				},
+			);
+			writeStream.write("Backup done✅");
+			writeStream.end();
 		}
 
 		await sendDatabaseBackupNotifications({
@@ -57,6 +89,8 @@ export const runPostgresBackup = async (
 			type: "success",
 			organizationId: project.organizationId,
 		});
+
+		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
@@ -67,6 +101,8 @@ export const runPostgresBackup = async (
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
 		});
+
+		await updateDeploymentStatus(deployment.deploymentId, "error");
 
 		throw error;
 	} finally {
