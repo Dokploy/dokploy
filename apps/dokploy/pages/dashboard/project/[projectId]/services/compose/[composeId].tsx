@@ -1,6 +1,7 @@
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
@@ -230,6 +231,7 @@ const Service = (
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -250,6 +252,12 @@ const Service = (
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowBackups id={composeId} backupType="compose" />
+										</div>
+									</TabsContent>
+
+									<TabsContent value="schedules">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowSchedules id={composeId} scheduleType="compose" />
 										</div>
 									</TabsContent>
 

@@ -10,6 +10,7 @@ import {
 	ChevronRight,
 	ChevronsUpDown,
 	CircleHelp,
+	Clock,
 	CreditCard,
 	Database,
 	Folder,
@@ -157,6 +158,14 @@ const MENU: Menu = {
 			icon: BarChartHorizontalBigIcon,
 			// Only enabled in non-cloud environments
 			isEnabled: ({ isCloud }) => !isCloud,
+		},
+		{
+			isSingle: true,
+			title: "Schedules",
+			url: "/dashboard/schedules",
+			icon: Clock,
+			// Only enabled in non-cloud environments
+			isEnabled: ({ isCloud, auth }) => !isCloud && auth?.role === "owner",
 		},
 		{
 			isSingle: true,

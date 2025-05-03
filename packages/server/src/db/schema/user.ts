@@ -14,6 +14,7 @@ import { account, apikey, organization } from "./account";
 import { projects } from "./project";
 import { certificateType } from "./shared";
 import { backups } from "./backups";
+import { schedules } from "./schedule";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -127,6 +128,7 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	projects: many(projects),
 	apiKeys: many(apikey),
 	backups: many(backups),
+	schedules: many(schedules),
 }));
 
 const createSchema = createInsertSchema(users_temp, {

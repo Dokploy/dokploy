@@ -13,7 +13,7 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
 import { server } from "./server";
-
+import { schedules } from "./schedule";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
@@ -47,7 +47,13 @@ export const deployments = pgTable("deployment", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	startedAt: text("startedAt"),
+	finishedAt: text("finishedAt"),
 	errorMessage: text("errorMessage"),
+	scheduleId: text("scheduleId").references(
+		(): AnyPgColumn => schedules.scheduleId,
+		{ onDelete: "cascade" },
+	),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -66,6 +72,10 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	previewDeployment: one(previewDeployments, {
 		fields: [deployments.previewDeploymentId],
 		references: [previewDeployments.previewDeploymentId],
+	}),
+	schedule: one(schedules, {
+		fields: [deployments.scheduleId],
+		references: [schedules.scheduleId],
 	}),
 }));
 
@@ -126,6 +136,17 @@ export const apiCreateDeploymentServer = schema
 	})
 	.extend({
 		serverId: z.string().min(1),
+	});
+
+export const apiCreateDeploymentSchedule = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		description: true,
+	})
+	.extend({
+		scheduleId: z.string().min(1),
 	});
 
 export const apiFindAllByApplication = schema

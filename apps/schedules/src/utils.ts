@@ -3,8 +3,10 @@ import {
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 	findBackupById,
+	findScheduleById,
 	findServerById,
 	keepLatestNBackups,
+	runCommand,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
@@ -12,7 +14,7 @@ import {
 	runComposeBackup,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/dist/db";
-import { backups, server } from "@dokploy/server/dist/db/schema";
+import { backups, schedules, server } from "@dokploy/server/dist/db/schema";
 import { and, eq } from "drizzle-orm";
 import { logger } from "./logger.js";
 import { scheduleJob } from "./queue.js";
@@ -75,8 +77,7 @@ export const runJobs = async (job: QueueJob) => {
 				}
 				await runComposeBackup(compose, backup);
 			}
-		}
-		if (job.type === "server") {
+		} else if (job.type === "server") {
 			const { serverId } = job;
 			const server = await findServerById(serverId);
 			if (server.serverStatus === "inactive") {
@@ -86,6 +87,12 @@ export const runJobs = async (job: QueueJob) => {
 			await cleanUpUnusedImages(serverId);
 			await cleanUpDockerBuilder(serverId);
 			await cleanUpSystemPrune(serverId);
+		} else if (job.type === "schedule") {
+			const { scheduleId } = job;
+			const schedule = await findScheduleById(scheduleId);
+			if (schedule.enabled) {
+				await runCommand(schedule.scheduleId);
+			}
 		}
 	} catch (error) {
 		logger.error(error);
@@ -134,4 +141,17 @@ export const initializeJobs = async () => {
 		});
 	}
 	logger.info({ Quantity: backupsResult.length }, "Backups Initialized");
+
+	const schedulesResult = await db.query.schedules.findMany({
+		where: eq(schedules.enabled, true),
+	});
+
+	for (const schedule of schedulesResult) {
+		scheduleJob({
+			scheduleId: schedule.scheduleId,
+			type: "schedule",
+			cronSchedule: schedule.cronExpression,
+		});
+	}
+	logger.info({ Quantity: schedulesResult.length }, "Schedules Initialized");
 };

@@ -1,5 +1,5 @@
 {
-  "id": "7fea81ef-e2a7-4a8b-b755-e98903a08b57",
+  "id": "c7eae4ce-5acc-439b-962f-bb2ef8922187",
   "prevId": "7fb3716c-3cc6-4b18-b8d1-762844da26be",
   "version": "7",
   "dialect": "postgresql",
@@ -1770,12 +1770,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "serviceName": {
-          "name": "serviceName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "destinationId": {
           "name": "destinationId",
           "type": "text",
@@ -1788,26 +1782,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "backupType": {
-          "name": "backupType",
-          "type": "backupType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'database'"
-        },
         "databaseType": {
           "name": "databaseType",
           "type": "databaseType",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
-        },
-        "composeId": {
-          "name": "composeId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "postgresId": {
           "name": "postgresId",
@@ -1851,19 +1831,6 @@
           ],
           "columnsTo": [
             "destinationId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "backup_composeId_compose_composeId_fk": {
-          "name": "backup_composeId_compose_composeId_fk",
-          "tableFrom": "backup",
-          "tableTo": "compose",
-          "columnsFrom": [
-            "composeId"
-          ],
-          "columnsTo": [
-            "composeId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2101,8 +2068,26 @@
           "primaryKey": false,
           "notNull": true
         },
+        "startedAt": {
+          "name": "startedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finishedAt": {
+          "name": "finishedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "errorMessage": {
           "name": "errorMessage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scheduleId": {
+          "name": "scheduleId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2158,6 +2143,19 @@
           ],
           "columnsTo": [
             "previewDeploymentId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_scheduleId_schedule_scheduleId_fk": {
+          "name": "deployment_scheduleId_schedule_scheduleId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "schedule",
+          "columnsFrom": [
+            "scheduleId"
+          ],
+          "columnsTo": [
+            "scheduleId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -5255,6 +5253,167 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.schedule": {
+      "name": "schedule",
+      "schema": "",
+      "columns": {
+        "scheduleId": {
+          "name": "scheduleId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cronExpression": {
+          "name": "cronExpression",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serviceName": {
+          "name": "serviceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shellType": {
+          "name": "shellType",
+          "type": "shellType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'bash'"
+        },
+        "scheduleType": {
+          "name": "scheduleType",
+          "type": "scheduleType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'application'"
+        },
+        "command": {
+          "name": "command",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "script": {
+          "name": "script",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "schedule_applicationId_application_applicationId_fk": {
+          "name": "schedule_applicationId_application_applicationId_fk",
+          "tableFrom": "schedule",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "schedule_composeId_compose_composeId_fk": {
+          "name": "schedule_composeId_compose_composeId_fk",
+          "tableFrom": "schedule",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "schedule_serverId_server_serverId_fk": {
+          "name": "schedule_serverId_server_serverId_fk",
+          "tableFrom": "schedule",
+          "tableTo": "server",
+          "columnsFrom": [
+            "serverId"
+          ],
+          "columnsTo": [
+            "serverId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "schedule_userId_user_temp_id_fk": {
+          "name": "schedule_userId_user_temp_id_fk",
+          "tableFrom": "schedule",
+          "tableTo": "user_temp",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -5290,14 +5449,6 @@
         "compose",
         "application",
         "preview"
-      ]
-    },
-    "public.backupType": {
-      "name": "backupType",
-      "schema": "public",
-      "values": [
-        "database",
-        "compose"
       ]
     },
     "public.databaseType": {
@@ -5432,6 +5583,24 @@
       "values": [
         "active",
         "inactive"
+      ]
+    },
+    "public.scheduleType": {
+      "name": "scheduleType",
+      "schema": "public",
+      "values": [
+        "application",
+        "compose",
+        "server",
+        "dokploy-server"
+      ]
+    },
+    "public.shellType": {
+      "name": "shellType",
+      "schema": "public",
+      "values": [
+        "bash",
+        "sh"
       ]
     }
   },
