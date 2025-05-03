@@ -37,10 +37,16 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Database } from "lucide-react";
+import { AlertTriangle, Database, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -156,6 +162,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
+	const [appNameLocked, setAppNameLocked] = useState(true);
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
@@ -184,6 +191,22 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 		redis: redisMutation,
 		mariadb: mariadbMutation,
 		mysql: mysqlMutation,
+	};
+
+	const generateAppName = (value: string): string => {
+		if (!value) return `${slug}-`;
+
+		const processedValue = value
+			.trim()
+			.toLowerCase()
+			// replace dots, spaces, and special characters with dashes
+			.replace(/[^\w]+/g, "-")
+			// remove any consecutive dashes
+			.replace(/-+/g, "-")
+			// remove leading/trailing dashes
+			.replace(/^-+|-+$/g, "");
+
+		return `${slug}-${processedValue}`;
 	};
 
 	const onSubmit = async (data: AddDatabase) => {
@@ -361,17 +384,70 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<Input
 													placeholder="Name"
 													{...field}
+													autoComplete="off"
+													autoCorrect="off"
+													autoCapitalize="off"
 													onChange={(e) => {
 														const val = e.target.value?.trim() || "";
-														form.setValue(
-															"appName",
-															`${slug}-${val.toLowerCase()}`,
-														);
 														field.onChange(val);
+
+														if (appNameLocked && val) {
+															form.setValue("appName", generateAppName(val));
+														}
 													}}
 												/>
 											</FormControl>
 
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="appName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>App Name</FormLabel>
+											<TooltipProvider delayDuration={100}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<div className="relative w-full">
+															<FormControl>
+																<Input
+																	placeholder="my-app"
+																	{...field}
+																	readOnly={appNameLocked}
+																	className={
+																		appNameLocked
+																			? "cursor-pointer opacity-70 pr-10"
+																			: ""
+																	}
+																	onClick={() => {
+																		if (appNameLocked) {
+																			setAppNameLocked(false);
+																		}
+																	}}
+																/>
+															</FormControl>
+															{appNameLocked && (
+																<div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+																	<HelpCircle className="size-4 text-muted-foreground" />
+																</div>
+															)}
+														</div>
+													</TooltipTrigger>
+													<TooltipContent
+														side="top"
+														className="z-[999] min-w-[180px] max-w-[250px] p-2 text-xs"
+														sideOffset={5}
+														avoidCollisions
+													>
+														{appNameLocked
+															? "App name is auto-generated. Click to edit manually."
+															: "App name can be edited manually."}
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -411,20 +487,6 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 								/>
 								<FormField
 									control={form.control}
-									name="appName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>App Name</FormLabel>
-											<FormControl>
-												<Input placeholder="my-app" {...field} />
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
 									name="description"
 									render={({ field }) => (
 										<FormItem>
@@ -452,7 +514,11 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 											<FormItem>
 												<FormLabel>Database Name</FormLabel>
 												<FormControl>
-													<Input placeholder="Database Name" {...field} />
+													<Input
+														placeholder="Database Name"
+														autoComplete="off"
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />
@@ -514,6 +580,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 													<Input
 														type="password"
 														placeholder="******************"
+														autoComplete="one-time-code"
 														{...field}
 													/>
 												</FormControl>
