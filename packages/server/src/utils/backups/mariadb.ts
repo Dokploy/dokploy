@@ -1,10 +1,7 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path } from "./utils";
@@ -24,22 +21,20 @@ export const runMariadbBackup = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
+		const { Id: containerId } = await getServiceContainer(
+			appName,
+			mariadb.serverId,
+		);
+
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 		if (mariadb.serverId) {
-			const { Id: containerId } = await getRemoteServiceContainer(
-				mariadb.serverId,
-				appName,
-			);
 			const mariadbDumpCommand = `docker exec ${containerId} sh -c "mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --databases ${database} | gzip"`;
-
 			await execAsyncRemote(
 				mariadb.serverId,
 				`${mariadbDumpCommand} | ${rcloneCommand}`,
 			);
 		} else {
-			const { Id: containerId } = await getServiceContainer(appName);
 			const mariadbDumpCommand = `docker exec ${containerId} sh -c "mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --databases ${database} | gzip"`;
-
 			await execAsync(`${mariadbDumpCommand} | ${rcloneCommand}`);
 		}
 

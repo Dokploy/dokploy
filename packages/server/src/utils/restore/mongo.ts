@@ -1,11 +1,9 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import { getS3Credentials } from "../backups/utils";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getMongoRestoreCommand } from "./utils";
 
 export const restoreMongoBackup = async (
 	mongo: Mongo,
@@ -21,14 +19,18 @@ export const restoreMongoBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupFile}`;
 
-		const { Id: containerName } = serverId
-			? await getRemoteServiceContainer(serverId, appName)
-			: await getServiceContainer(appName);
+		const { Id: containerId } = await getServiceContainer(appName, serverId);
 
 		// For MongoDB, we need to first download the backup file since mongorestore expects a directory
 		const tempDir = "/tmp/dokploy-restore";
 		const fileName = backupFile.split("/").pop() || "backup.dump.gz";
 		const decompressedName = fileName.replace(".gz", "");
+		const restoreCommand = getMongoRestoreCommand(
+			containerId,
+			database,
+			databaseUser,
+			databasePassword || "",
+		);
 
 		const downloadCommand = `\
 rm -rf ${tempDir} && \
@@ -36,7 +38,7 @@ mkdir -p ${tempDir} && \
 rclone copy ${rcloneFlags.join(" ")} "${backupPath}" ${tempDir} && \
 cd ${tempDir} && \
 gunzip -f "${fileName}" && \
-docker exec -i ${containerName} mongorestore --username ${databaseUser} --password ${databasePassword} --authenticationDatabase admin --db ${database} --archive < "${decompressedName}" && \
+${restoreCommand} < "${decompressedName}" && \
 rm -rf ${tempDir}`;
 
 		emit("Starting restore...");

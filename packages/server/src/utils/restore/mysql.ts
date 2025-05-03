@@ -1,11 +1,9 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { getS3Credentials } from "../backups/utils";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getMysqlRestoreCommand } from "./utils";
 
 export const restoreMySqlBackup = async (
 	mysql: MySql,
@@ -21,22 +19,26 @@ export const restoreMySqlBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupFile}`;
 
-		const { Id: containerName } = serverId
-			? await getRemoteServiceContainer(serverId, appName)
-			: await getServiceContainer(appName);
+		const { Id: containerId } = await getServiceContainer(appName, serverId);
 
-		const restoreCommand = `
-    rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerName} mysql -u root -p${databaseRootPassword} ${database}
+		const restoreCommand = getMysqlRestoreCommand(
+			containerId,
+			database,
+			databaseRootPassword || "",
+		);
+
+		const command = `
+    rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${restoreCommand}
   `;
 
 		emit("Starting restore...");
 
-		emit(`Executing command: ${restoreCommand}`);
+		emit(`Executing command: ${command}`);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, restoreCommand);
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(restoreCommand);
+			await execAsync(command);
 		}
 
 		emit("Restore completed successfully!");

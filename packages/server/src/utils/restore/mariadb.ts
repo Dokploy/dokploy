@@ -1,11 +1,9 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { getS3Credentials } from "../backups/utils";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getMariadbRestoreCommand } from "./utils";
 
 export const restoreMariadbBackup = async (
 	mariadb: Mariadb,
@@ -21,22 +19,27 @@ export const restoreMariadbBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupFile}`;
 
-		const { Id: containerName } = serverId
-			? await getRemoteServiceContainer(serverId, appName)
-			: await getServiceContainer(appName);
+		const { Id: containerId } = await getServiceContainer(appName, serverId);
 
-		const restoreCommand = `
-    rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerName} mariadb -u ${databaseUser} -p${databasePassword} ${database}
+		const restoreCommand = getMariadbRestoreCommand(
+			containerId,
+			database,
+			databaseUser,
+			databasePassword || "",
+		);
+
+		const command = `
+    rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${restoreCommand}
   `;
 
 		emit("Starting restore...");
 
-		emit(`Executing command: ${restoreCommand}`);
+		emit(`Executing command: ${command}`);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, restoreCommand);
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(restoreCommand);
+			await execAsync(command);
 		}
 
 		emit("Restore completed successfully!");

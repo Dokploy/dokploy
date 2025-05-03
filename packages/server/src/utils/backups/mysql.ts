@@ -1,13 +1,14 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getMysqlBackupCommand,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	const { appName, databaseRootPassword, projectId, name } = mysql;
@@ -21,23 +22,21 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
+		const { Id: containerId } = await getServiceContainer(
+			appName,
+			mysql.serverId,
+		);
+
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const command = getMysqlBackupCommand(
+			containerId,
+			database,
+			databaseRootPassword || "",
+		);
 		if (mysql.serverId) {
-			const { Id: containerId } = await getRemoteServiceContainer(
-				mysql.serverId,
-				appName,
-			);
-			const mysqlDumpCommand = `docker exec ${containerId} sh -c "mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databaseRootPassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
-
-			await execAsyncRemote(
-				mysql.serverId,
-				`${mysqlDumpCommand} | ${rcloneCommand}`,
-			);
+			await execAsyncRemote(mysql.serverId, `${command} | ${rcloneCommand}`);
 		} else {
-			const { Id: containerId } = await getServiceContainer(appName);
-			const mysqlDumpCommand = `docker exec ${containerId} sh -c "mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databaseRootPassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
-
-			await execAsync(`${mysqlDumpCommand} | ${rcloneCommand}`);
+			await execAsync(`${command} | ${rcloneCommand}`);
 		}
 		await sendDatabaseBackupNotifications({
 			applicationName: name,

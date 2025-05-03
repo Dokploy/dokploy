@@ -1,13 +1,14 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getPostgresBackupCommand,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 import { createDeploymentBackup } from "@dokploy/server/services/deployment";
 
 export const runPostgresBackup = async (
@@ -31,26 +32,22 @@ export const runPostgresBackup = async (
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+
+		const { Id: containerId } = await getServiceContainer(
+			appName,
+			postgres.serverId,
+		);
+
+		const command = getPostgresBackupCommand(
+			containerId,
+			database,
+			databaseUser || "",
+		);
+
 		if (postgres.serverId) {
-			const { Id: containerId } = await getRemoteServiceContainer(
-				postgres.serverId,
-				appName,
-			);
-			const pgDumpCommand = `docker exec ${containerId} sh -c "pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
-
-			await execAsyncRemote(
-				postgres.serverId,
-				`${pgDumpCommand} | ${rcloneCommand}`,
-			);
+			await execAsyncRemote(postgres.serverId, `${command} | ${rcloneCommand}`);
 		} else {
-			const { Id: containerId } = await getServiceContainer(appName);
-
-			const pgDumpCommand = `docker exec ${containerId} sh -c "pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
-
-			await execAsync(`${pgDumpCommand} | ${rcloneCommand}`, (data) => {
-				console.log(data);
-			});
-			// await execAsync(`${pgDumpCommand} | ${rcloneCommand}`);
+			await execAsync(`${command} | ${rcloneCommand}`);
 		}
 
 		await sendDatabaseBackupNotifications({
@@ -75,6 +72,3 @@ export const runPostgresBackup = async (
 	} finally {
 	}
 };
-
-// Restore
-// /Applications/pgAdmin 4.app/Contents/SharedSupport/pg_restore --host "localhost" --port "5432" --username "mauricio" --no-password --dbname "postgres" --verbose "/Users/mauricio/Downloads/_databases_2024-04-12T07_02_05.234Z.sql"

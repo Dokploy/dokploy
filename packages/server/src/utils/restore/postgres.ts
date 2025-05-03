@@ -1,11 +1,9 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import { getS3Credentials } from "../backups/utils";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getPostgresRestoreCommand } from "./utils";
 
 export const restorePostgresBackup = async (
 	postgres: Postgres,
@@ -22,15 +20,19 @@ export const restorePostgresBackup = async (
 
 		const backupPath = `${bucketPath}/${backupFile}`;
 
-		const { Id: containerName } = serverId
-			? await getRemoteServiceContainer(serverId, appName)
-			: await getServiceContainer(appName);
+		const { Id: containerId } = await getServiceContainer(appName, serverId);
 
 		emit("Starting restore...");
 		emit(`Backup path: ${backupPath}`);
 
+		const restoreCommand = getPostgresRestoreCommand(
+			containerId,
+			database,
+			databaseUser,
+		);
+
 		const command = `\
-rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerName} pg_restore -U ${databaseUser} -d ${database} --clean --if-exists`;
+rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${restoreCommand}`;
 
 		emit(`Executing command: ${command}`);
 

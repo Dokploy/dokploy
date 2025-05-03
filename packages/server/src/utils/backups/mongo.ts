@@ -1,15 +1,15 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
+import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getMongoBackupCommand,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
-// mongodb://mongo:Bqh7AQl-PRbnBu@localhost:27017/?tls=false&directConnection=true
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { appName, databasePassword, databaseUser, projectId, name } = mongo;
 	const project = await findProjectById(projectId);
@@ -22,22 +22,22 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-		if (mongo.serverId) {
-			const { Id: containerId } = await getRemoteServiceContainer(
-				mongo.serverId,
-				appName,
-			);
-			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase=admin --gzip"`;
+		const { Id: containerId } = await getServiceContainer(
+			appName,
+			mongo.serverId,
+		);
 
-			await execAsyncRemote(
-				mongo.serverId,
-				`${mongoDumpCommand} | ${rcloneCommand}`,
-			);
+		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const command = getMongoBackupCommand(
+			containerId,
+			database,
+			databaseUser || "",
+			databasePassword || "",
+		);
+		if (mongo.serverId) {
+			await execAsyncRemote(mongo.serverId, `${command} | ${rcloneCommand}`);
 		} else {
-			const { Id: containerId } = await getServiceContainer(appName);
-			const mongoDumpCommand = `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}'  --archive --authenticationDatabase=admin --gzip"`;
-			await execAsync(`${mongoDumpCommand} | ${rcloneCommand}`);
+			await execAsync(`${command} | ${rcloneCommand}`);
 		}
 
 		await sendDatabaseBackupNotifications({
@@ -61,4 +61,3 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		throw error;
 	}
 };
-// mongorestore -d monguito -u mongo -p Bqh7AQl-PRbnBu --authenticationDatabase admin --gzip --archive=2024-04-13T05:03:58.937Z.dump.gz
