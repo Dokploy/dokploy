@@ -621,64 +621,8 @@
     {
       "idx": 88,
       "version": "7",
-      "when": 1746177535905,
-      "tag": "0088_worthless_surge",
-      "breakpoints": true
-    },
-    {
-      "idx": 89,
-      "version": "7",
-      "when": 1746178027816,
-      "tag": "0089_fearless_morlun",
-      "breakpoints": true
-    },
-    {
-      "idx": 90,
-      "version": "7",
-      "when": 1746178996842,
-      "tag": "0090_colossal_azazel",
-      "breakpoints": true
-    },
-    {
-      "idx": 91,
-      "version": "7",
-      "when": 1746180131377,
-      "tag": "0091_amused_warlock",
-      "breakpoints": true
-    },
-    {
-      "idx": 92,
-      "version": "7",
-      "when": 1746221961240,
-      "tag": "0092_safe_scarlet_witch",
-      "breakpoints": true
-    },
-    {
-      "idx": 93,
-      "version": "7",
-      "when": 1746228754403,
-      "tag": "0093_abnormal_machine_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 94,
-      "version": "7",
-      "when": 1746228771046,
-      "tag": "0094_easy_butterfly",
-      "breakpoints": true
-    },
-    {
-      "idx": 95,
-      "version": "7",
-      "when": 1746232483345,
-      "tag": "0095_friendly_cobalt_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 96,
-      "version": "7",
-      "when": 1746252086587,
-      "tag": "0096_special_may_parker",
+      "when": 1746256928101,
+      "tag": "0088_illegal_ma_gnuci",
       "breakpoints": true
     }
   ]

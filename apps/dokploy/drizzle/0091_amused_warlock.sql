@@ -1,1 +1,0 @@
-ALTER TABLE "schedule" ADD COLUMN "appName" text NOT NULL;
