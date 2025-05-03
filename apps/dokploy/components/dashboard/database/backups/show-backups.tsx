@@ -124,7 +124,7 @@ export const ShowBackups = ({
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{data?.length === 0 ? (
-					<div className="flex flex-col items-center gap-3">
+					<div className="flex flex-col items-center gap-3 min-h-[35vh] justify-center">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground text-center">
 							To create a backup it is required to set at least 1 provider.

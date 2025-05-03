@@ -219,10 +219,10 @@ const Service = (
 											className={cn(
 												"lg:grid lg:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "lg:grid-cols-8"
+													? "lg:grid-cols-9"
 													: data?.serverId
-														? "lg:grid-cols-7"
-														: "lg:grid-cols-8",
+														? "lg:grid-cols-8"
+														: "lg:grid-cols-9",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -230,8 +230,8 @@ const Service = (
 											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}

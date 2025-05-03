@@ -1,1 +1,0 @@
-ALTER TABLE "backup" ADD COLUMN "metadata" jsonb;
