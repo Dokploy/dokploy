@@ -1,6 +1,7 @@
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
@@ -217,10 +218,10 @@ const Service = (
 											className={cn(
 												"lg:grid lg:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "lg:grid-cols-7"
+													? "lg:grid-cols-8"
 													: data?.serverId
-														? "lg:grid-cols-6"
-														: "lg:grid-cols-7",
+														? "lg:grid-cols-7"
+														: "lg:grid-cols-8",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -228,6 +229,7 @@ const Service = (
 											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -243,6 +245,12 @@ const Service = (
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowEnvironment id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+
+									<TabsContent value="schedules">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowSchedules id={composeId} scheduleType="compose" />
 										</div>
 									</TabsContent>
 

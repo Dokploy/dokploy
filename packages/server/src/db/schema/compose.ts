@@ -15,7 +15,7 @@ import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-
+import { schedules } from "./schedule";
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",
@@ -135,6 +135,7 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.serverId],
 		references: [server.serverId],
 	}),
+	schedules: many(schedules),
 }));
 
 const createSchema = createInsertSchema(compose, {

@@ -14,6 +14,11 @@ type QueueJob =
 			type: "server";
 			cronSchedule: string;
 			serverId: string;
+	  }
+	| {
+			type: "schedule";
+			cronSchedule: string;
+			scheduleId: string;
 	  };
 export const schedule = async (job: QueueJob) => {
 	try {

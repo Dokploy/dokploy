@@ -6,6 +6,7 @@ import {
 	type apiCreateDeployment,
 	type apiCreateDeploymentCompose,
 	type apiCreateDeploymentPreview,
+	type apiCreateDeploymentSchedule,
 	type apiCreateDeploymentServer,
 	deployments,
 } from "@dokploy/server/db/schema";
@@ -27,6 +28,7 @@ import {
 	findPreviewDeploymentById,
 	updatePreviewDeployment,
 } from "./preview-deployment";
+import { findScheduleById } from "./schedule";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -57,6 +59,7 @@ export const createDeployment = async (
 	try {
 		await removeLastTenDeployments(
 			deployment.applicationId,
+			"application",
 			application.serverId,
 		);
 		const { LOGS_PATH } = paths(!!application.serverId);
@@ -88,6 +91,7 @@ export const createDeployment = async (
 				status: "running",
 				logPath: logFilePath,
 				description: deployment.description || "",
+				startedAt: new Date().toISOString(),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -107,6 +111,8 @@ export const createDeployment = async (
 				logPath: "",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				startedAt: new Date().toISOString(),
+				finishedAt: new Date().toISOString(),
 			})
 			.returning();
 		await updateApplicationStatus(application.applicationId, "error");
@@ -128,8 +134,9 @@ export const createDeploymentPreview = async (
 		deployment.previewDeploymentId,
 	);
 	try {
-		await removeLastTenPreviewDeploymenById(
+		await removeLastTenDeployments(
 			deployment.previewDeploymentId,
+			"previewDeployment",
 			previewDeployment?.application?.serverId,
 		);
 
@@ -165,6 +172,7 @@ export const createDeploymentPreview = async (
 				logPath: logFilePath,
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
+				startedAt: new Date().toISOString(),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -184,6 +192,8 @@ export const createDeploymentPreview = async (
 				logPath: "",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				startedAt: new Date().toISOString(),
+				finishedAt: new Date().toISOString(),
 			})
 			.returning();
 		await updatePreviewDeployment(deployment.previewDeploymentId, {
@@ -205,8 +215,9 @@ export const createDeploymentCompose = async (
 ) => {
 	const compose = await findComposeById(deployment.composeId);
 	try {
-		await removeLastTenComposeDeployments(
+		await removeLastTenDeployments(
 			deployment.composeId,
+			"compose",
 			compose.serverId,
 		);
 		const { LOGS_PATH } = paths(!!compose.serverId);
@@ -238,6 +249,7 @@ echo "Initializing deployment" >> ${logFilePath};
 				description: deployment.description || "",
 				status: "running",
 				logPath: logFilePath,
+				startedAt: new Date().toISOString(),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -257,12 +269,90 @@ echo "Initializing deployment" >> ${logFilePath};
 				logPath: "",
 				description: deployment.description || "",
 				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				startedAt: new Date().toISOString(),
+				finishedAt: new Date().toISOString(),
 			})
 			.returning();
 		await updateCompose(compose.composeId, {
 			composeStatus: "error",
 		});
 		console.log(error);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error creating the deployment",
+		});
+	}
+};
+
+export const createDeploymentSchedule = async (
+	deployment: Omit<
+		typeof apiCreateDeploymentSchedule._type,
+		"deploymentId" | "createdAt" | "status" | "logPath"
+	>,
+) => {
+	const schedule = await findScheduleById(deployment.scheduleId);
+
+	try {
+		const serverId =
+			schedule.application?.serverId ||
+			schedule.compose?.serverId ||
+			schedule.server?.serverId;
+		await removeLastTenDeployments(deployment.scheduleId, "schedule", serverId);
+		const { SCHEDULES_PATH } = paths(!!serverId);
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
+		const logFilePath = path.join(SCHEDULES_PATH, schedule.appName, fileName);
+
+		if (serverId) {
+			const server = await findServerById(serverId);
+
+			const command = `
+				mkdir -p ${SCHEDULES_PATH}/${schedule.appName};
+            	echo "Initializing schedule" >> ${logFilePath};
+			`;
+
+			await execAsyncRemote(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(path.join(SCHEDULES_PATH, schedule.appName), {
+				recursive: true,
+			});
+			await fsPromises.writeFile(logFilePath, "Initializing schedule\n");
+		}
+
+		const deploymentCreate = await db
+			.insert(deployments)
+			.values({
+				scheduleId: deployment.scheduleId,
+				title: deployment.title || "Deployment",
+				status: "running",
+				logPath: logFilePath,
+				description: deployment.description || "",
+				startedAt: new Date().toISOString(),
+			})
+			.returning();
+		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the deployment",
+			});
+		}
+		return deploymentCreate[0];
+	} catch (error) {
+		console.log(error);
+		await db
+			.insert(deployments)
+			.values({
+				scheduleId: deployment.scheduleId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				startedAt: new Date().toISOString(),
+				finishedAt: new Date().toISOString(),
+			})
+			.returning();
+
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Error creating the deployment",
@@ -296,109 +386,15 @@ export const removeDeploymentsByApplicationId = async (
 		.returning();
 };
 
-const removeLastTenDeployments = async (
-	applicationId: string,
-	serverId: string | null,
+const getDeploymentsByType = async (
+	id: string,
+	type: "application" | "compose" | "server" | "schedule" | "previewDeployment",
 ) => {
 	const deploymentList = await db.query.deployments.findMany({
-		where: eq(deployments.applicationId, applicationId),
+		where: eq(deployments[`${type}Id`], id),
 		orderBy: desc(deployments.createdAt),
 	});
-
-	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(9);
-		if (serverId) {
-			let command = "";
-			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-
-				command += `
-				rm -rf ${logPath};
-				`;
-				await removeDeployment(oldDeployment.deploymentId);
-			}
-
-			await execAsyncRemote(serverId, command);
-		} else {
-			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-				if (existsSync(logPath)) {
-					await fsPromises.unlink(logPath);
-				}
-				await removeDeployment(oldDeployment.deploymentId);
-			}
-		}
-	}
-};
-
-const removeLastTenComposeDeployments = async (
-	composeId: string,
-	serverId: string | null,
-) => {
-	const deploymentList = await db.query.deployments.findMany({
-		where: eq(deployments.composeId, composeId),
-		orderBy: desc(deployments.createdAt),
-	});
-	if (deploymentList.length > 10) {
-		if (serverId) {
-			let command = "";
-			const deploymentsToDelete = deploymentList.slice(9);
-			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-
-				command += `
-				rm -rf ${logPath};
-				`;
-				await removeDeployment(oldDeployment.deploymentId);
-			}
-
-			await execAsyncRemote(serverId, command);
-		} else {
-			const deploymentsToDelete = deploymentList.slice(9);
-			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-				if (existsSync(logPath)) {
-					await fsPromises.unlink(logPath);
-				}
-				await removeDeployment(oldDeployment.deploymentId);
-			}
-		}
-	}
-};
-
-export const removeLastTenPreviewDeploymenById = async (
-	previewDeploymentId: string,
-	serverId: string | null,
-) => {
-	const deploymentList = await db.query.deployments.findMany({
-		where: eq(deployments.previewDeploymentId, previewDeploymentId),
-		orderBy: desc(deployments.createdAt),
-	});
-
-	if (deploymentList.length > 10) {
-		const deploymentsToDelete = deploymentList.slice(9);
-		if (serverId) {
-			let command = "";
-			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-
-				command += `
-				rm -rf ${logPath};
-				`;
-				await removeDeployment(oldDeployment.deploymentId);
-			}
-
-			await execAsyncRemote(serverId, command);
-		} else {
-			for (const oldDeployment of deploymentsToDelete) {
-				const logPath = path.join(oldDeployment.logPath);
-				if (existsSync(logPath)) {
-					await fsPromises.unlink(logPath);
-				}
-				await removeDeployment(oldDeployment.deploymentId);
-			}
-		}
-	}
+	return deploymentList;
 };
 
 export const removeDeployments = async (application: Application) => {
@@ -411,6 +407,38 @@ export const removeDeployments = async (application: Application) => {
 		await removeDirectoryIfExistsContent(logsPath);
 	}
 	await removeDeploymentsByApplicationId(applicationId);
+};
+
+const removeLastTenDeployments = async (
+	id: string,
+	type: "application" | "compose" | "server" | "schedule" | "previewDeployment",
+	serverId?: string | null,
+) => {
+	const deploymentList = await getDeploymentsByType(id, type);
+	if (deploymentList.length > 10) {
+		const deploymentsToDelete = deploymentList.slice(10);
+		if (serverId) {
+			let command = "";
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+
+				command += `
+				rm -rf ${logPath};
+				`;
+				await removeDeployment(oldDeployment.deploymentId);
+			}
+
+			await execAsyncRemote(serverId, command);
+		} else {
+			for (const oldDeployment of deploymentsToDelete) {
+				const logPath = path.join(oldDeployment.logPath);
+				if (existsSync(logPath)) {
+					await fsPromises.unlink(logPath);
+				}
+				await removeDeployment(oldDeployment.deploymentId);
+			}
+		}
+	}
 };
 
 export const removeDeploymentsByPreviewDeploymentId = async (
@@ -494,6 +522,10 @@ export const updateDeploymentStatus = async (
 		.update(deployments)
 		.set({
 			status: deploymentStatus,
+			finishedAt:
+				deploymentStatus === "done" || deploymentStatus === "error"
+					? new Date().toISOString()
+					: null,
 		})
 		.where(eq(deployments.deploymentId, deploymentId))
 		.returning();

@@ -12,6 +12,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
@@ -232,6 +233,7 @@ const Service = (
 											<TabsTrigger value="preview-deployments">
 												Preview Deployments
 											</TabsTrigger>
+											<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
@@ -305,6 +307,14 @@ const Service = (
 											<ShowDockerLogs
 												appName={data?.appName || ""}
 												serverId={data?.serverId || ""}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="schedules">
+										<div className="flex flex-col gap-4  pt-2.5">
+											<ShowSchedules
+												id={applicationId}
+												scheduleType="application"
 											/>
 										</div>
 									</TabsContent>

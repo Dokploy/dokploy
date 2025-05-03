@@ -13,6 +13,7 @@ import type { RedisNested } from "../databases/redis";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
+import type { Compose } from "@dokploy/server/services/compose";
 
 interface RegistryAuth {
 	username: string;
@@ -536,6 +537,70 @@ export const getRemoteServiceContainer = async (
 
 		const container = containers[0];
 
+		return container;
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const getServiceContainerIV2 = async (
+	appName: string,
+	serverId?: string | null,
+) => {
+	try {
+		const filter = {
+			status: ["running"],
+			label: [`com.docker.swarm.service.name=${appName}`],
+		};
+		const remoteDocker = await getRemoteDocker(serverId);
+		const containers = await remoteDocker.listContainers({
+			filters: JSON.stringify(filter),
+		});
+
+		if (containers.length === 0 || !containers[0]) {
+			throw new Error(`No container found with name: ${appName}`);
+		}
+
+		const container = containers[0];
+		return container;
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const getComposeContainer = async (
+	compose: Compose,
+	serviceName: string,
+) => {
+	try {
+		const { appName, composeType, serverId } = compose;
+		// 1. Determine the correct labels based on composeType
+		const labels: string[] = [];
+		if (composeType === "stack") {
+			// Labels for Docker Swarm stack services
+			labels.push(`com.docker.stack.namespace=${appName}`);
+			labels.push(`com.docker.swarm.service.name=${appName}_${serviceName}`);
+		} else {
+			// Labels for Docker Compose projects (default)
+			labels.push(`com.docker.compose.project=${appName}`);
+			labels.push(`com.docker.compose.service=${serviceName}`);
+		}
+		const filter = {
+			status: ["running"],
+			label: labels,
+		};
+
+		const remoteDocker = await getRemoteDocker(serverId);
+		const containers = await remoteDocker.listContainers({
+			filters: JSON.stringify(filter),
+			limit: 1,
+		});
+
+		if (containers.length === 0 || !containers[0]) {
+			throw new Error(`No container found with name: ${appName}`);
+		}
+
+		const container = containers[0];
 		return container;
 	} catch (error) {
 		throw error;

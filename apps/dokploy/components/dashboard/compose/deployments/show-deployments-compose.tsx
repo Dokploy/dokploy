@@ -9,12 +9,13 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import { RocketIcon } from "lucide-react";
+import { RocketIcon, Clock } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueuesCompose } from "./cancel-queues-compose";
 import { RefreshTokenCompose } from "./refresh-token-compose";
 import { ShowDeploymentCompose } from "./show-deployment-compose";
-
+import { Badge } from "@/components/ui/badge";
+import { formatDuration } from "@/components/dashboard/application/schedules/show-schedules-logs";
 interface Props {
 	composeId: string;
 }
@@ -96,8 +97,23 @@ export const ShowDeploymentsCompose = ({ composeId }: Props) => {
 									)}
 								</div>
 								<div className="flex flex-col items-end gap-2">
-									<div className="text-sm capitalize text-muted-foreground">
+									<div className="text-sm capitalize text-muted-foreground flex items-center gap-2">
 										<DateTooltip date={deployment.createdAt} />
+										{deployment.startedAt && deployment.finishedAt && (
+											<Badge
+												variant="outline"
+												className="text-[10px] gap-1 flex items-center"
+											>
+												<Clock className="size-3" />
+												{formatDuration(
+													Math.floor(
+														(new Date(deployment.finishedAt).getTime() -
+															new Date(deployment.startedAt).getTime()) /
+															1000,
+													),
+												)}
+											</Badge>
+										)}
 									</div>
 
 									<Button
