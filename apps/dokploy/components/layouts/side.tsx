@@ -165,7 +165,7 @@ const MENU: Menu = {
 			url: "/dashboard/schedules",
 			icon: Clock,
 			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud }) => !isCloud,
+			isEnabled: ({ isCloud, auth }) => !isCloud && auth?.role === "owner",
 		},
 		{
 			isSingle: true,
