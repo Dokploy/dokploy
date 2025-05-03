@@ -22,7 +22,7 @@ import { postgres } from "./postgres";
 import { redis } from "./redis";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-
+import { schedules } from "./schedule";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 
 export const server = pgTable("server", {
@@ -114,6 +114,7 @@ export const serverRelations = relations(server, ({ one, many }) => ({
 		fields: [server.organizationId],
 		references: [organization.id],
 	}),
+	schedules: many(schedules),
 }));
 
 const createSchema = createInsertSchema(server, {

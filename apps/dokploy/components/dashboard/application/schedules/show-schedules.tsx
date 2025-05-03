@@ -28,14 +28,25 @@ import {
 import { DialogAction } from "@/components/shared/dialog-action";
 
 interface Props {
-	applicationId: string;
+	id: string;
+	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
 }
 
-export const ShowSchedules = ({ applicationId }: Props) => {
-	const { data: schedules, isLoading: isLoadingSchedules } =
-		api.schedule.list.useQuery({
-			applicationId,
-		});
+export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
+	const {
+		data: schedules,
+		isLoading: isLoadingSchedules,
+		refetch: refetchSchedules,
+	} = api.schedule.list.useQuery(
+		{
+			id: id || "",
+			scheduleType,
+		},
+		{
+			enabled: !!id,
+		},
+	);
+
 	const utils = api.useUtils();
 
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
@@ -45,7 +56,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 		api.schedule.runManually.useMutation();
 
 	return (
-		<Card className="border px-4 shadow-none bg-transparent">
+		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
 			<CardHeader className="px-0">
 				<div className="flex justify-between items-center">
 					<div className="flex flex-col gap-2">
@@ -58,13 +69,13 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 					</div>
 
 					{schedules && schedules.length > 0 && (
-						<HandleSchedules applicationId={applicationId} />
+						<HandleSchedules id={id} scheduleType={scheduleType} />
 					)}
 				</div>
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingSchedules ? (
-					<div className="flex gap-4  min-h-[35vh] w-full items-center justify-center text-center mx-auto">
+					<div className="flex gap-4   w-full items-center justify-center text-center mx-auto">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
 							Loading scheduled tasks...
@@ -73,7 +84,10 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 				) : schedules && schedules.length > 0 ? (
 					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
 						{schedules.map((schedule) => {
-							const application = schedule.application;
+							const serverId =
+								schedule.serverId ||
+								schedule.application?.serverId ||
+								schedule.compose?.serverId;
 							const deployments = schedule.deployments;
 							return (
 								<div
@@ -101,31 +115,38 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 													variant="outline"
 													className="font-mono text-[10px] bg-transparent"
 												>
-													{schedule.cronExpression}
+													Cron: {schedule.cronExpression}
 												</Badge>
-												<span className="text-xs text-muted-foreground/50">
-													•
-												</span>
-												<Badge
-													variant="outline"
-													className="font-mono text-[10px] bg-transparent"
-												>
-													{schedule.shellType}
-												</Badge>
+												{schedule.scheduleType !== "server" &&
+													schedule.scheduleType !== "dokploy-server" && (
+														<>
+															<span className="text-xs text-muted-foreground/50">
+																•
+															</span>
+															<Badge
+																variant="outline"
+																className="font-mono text-[10px] bg-transparent"
+															>
+																{schedule.shellType}
+															</Badge>
+														</>
+													)}
 											</div>
-											<div className="flex items-center gap-2">
-												<Terminal className="size-3.5 text-muted-foreground/70" />
-												<code className="font-mono text-[10px] text-muted-foreground/70">
-													{schedule.command}
-												</code>
-											</div>
+											{schedule.command && (
+												<div className="flex items-center gap-2">
+													<Terminal className="size-3.5 text-muted-foreground/70" />
+													<code className="font-mono text-[10px] text-muted-foreground/70">
+														{schedule.command}
+													</code>
+												</div>
+											)}
 										</div>
 									</div>
 
 									<div className="flex items-center gap-1.5">
 										<ShowSchedulesLogs
 											deployments={deployments || []}
-											serverId={application.serverId || undefined}
+											serverId={serverId}
 										>
 											<Button variant="ghost" size="icon">
 												<ClipboardList className="size-4  transition-colors " />
@@ -146,15 +167,10 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 															})
 																.then(() => {
 																	toast.success("Schedule run successfully");
-																	utils.schedule.list.invalidate({
-																		applicationId,
-																	});
+																	refetchSchedules();
 																})
-																.catch((error) => {
-																	console.log(error);
-																	toast.error(
-																		`Error running schedule: ${error}`,
-																	);
+																.catch(() => {
+																	toast.error("Error running schedule:");
 																});
 														}}
 													>
@@ -167,7 +183,8 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 
 										<HandleSchedules
 											scheduleId={schedule.scheduleId}
-											applicationId={applicationId}
+											id={id}
+											scheduleType={scheduleType}
 										/>
 
 										<DialogAction
@@ -180,7 +197,8 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 												})
 													.then(() => {
 														utils.schedule.list.invalidate({
-															applicationId,
+															id,
+															scheduleType,
 														});
 														toast.success("Schedule deleted successfully");
 													})
@@ -204,7 +222,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 						})}
 					</div>
 				) : (
-					<div className="flex flex-col gap-2 items-center justify-center py-12 border rounded-lg">
+					<div className="flex flex-col gap-2 items-center justify-center py-12  rounded-lg">
 						<Clock className="size-8 mb-4 text-muted-foreground" />
 						<p className="text-lg font-medium text-muted-foreground">
 							No scheduled tasks
@@ -212,7 +230,7 @@ export const ShowSchedules = ({ applicationId }: Props) => {
 						<p className="text-sm text-muted-foreground mt-1">
 							Create your first scheduled task to automate your workflows
 						</p>
-						<HandleSchedules applicationId={applicationId} />
+						<HandleSchedules id={id} scheduleType={scheduleType} />
 					</div>
 				)}
 			</CardContent>

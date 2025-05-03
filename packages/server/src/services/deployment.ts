@@ -281,17 +281,19 @@ export const createDeploymentSchedule = async (
 	const schedule = await findScheduleById(deployment.scheduleId);
 
 	try {
-		await removeDeploymentsSchedule(
-			deployment.scheduleId,
-			schedule.application.serverId,
-		);
-		const { SCHEDULES_PATH } = paths(!!schedule.application.serverId);
+		const serverId =
+			schedule.application?.serverId ||
+			schedule.compose?.serverId ||
+			schedule.server?.serverId;
+		await removeDeploymentsSchedule(deployment.scheduleId, serverId);
+		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${schedule.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(SCHEDULES_PATH, schedule.appName, fileName);
 
-		if (schedule.application.serverId) {
-			const server = await findServerById(schedule.application.serverId);
+		if (serverId) {
+			console.log("serverId", serverId);
+			const server = await findServerById(serverId);
 
 			const command = `
 				mkdir -p ${SCHEDULES_PATH}/${schedule.appName};
@@ -324,6 +326,7 @@ export const createDeploymentSchedule = async (
 		}
 		return deploymentCreate[0];
 	} catch (error) {
+		console.log(error);
 		await db
 			.insert(deployments)
 			.values({
@@ -476,7 +479,7 @@ export const removeLastTenPreviewDeploymenById = async (
 
 export const removeDeploymentsSchedule = async (
 	scheduleId: string,
-	serverId: string | null,
+	serverId?: string | null,
 ) => {
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments.scheduleId, scheduleId),

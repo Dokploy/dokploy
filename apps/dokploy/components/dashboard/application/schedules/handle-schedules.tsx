@@ -13,7 +13,15 @@ import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Clock, Terminal, Info, PlusCircle, PenBoxIcon } from "lucide-react";
+import {
+	Clock,
+	Terminal,
+	Info,
+	PlusCircle,
+	PenBoxIcon,
+	RefreshCw,
+	DatabaseZap,
+} from "lucide-react";
 import {
 	Select,
 	SelectContent,
@@ -37,7 +45,10 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
+import type { CacheType } from "../../compose/domains/add-domain";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
+import { cn } from "@/lib/utils";
 const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },
 	{ label: "Every hour", value: "0 * * * *" },
@@ -48,21 +59,66 @@ const commonCronExpressions = [
 	{ label: "Every weekday at midnight", value: "0 0 * * 1-5" },
 ];
 
-const formSchema = z.object({
-	name: z.string().min(1, "Name is required"),
-	cronExpression: z.string().min(1, "Cron expression is required"),
-	shellType: z.enum(["bash", "sh"]).default("bash"),
-	command: z.string().min(1, "Command is required"),
-	enabled: z.boolean().default(true),
-});
+const formSchema = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		cronExpression: z.string().min(1, "Cron expression is required"),
+		shellType: z.enum(["bash", "sh"]).default("bash"),
+		command: z.string(),
+		enabled: z.boolean().default(true),
+		serviceName: z.string(),
+		scheduleType: z.enum([
+			"application",
+			"compose",
+			"server",
+			"dokploy-server",
+		]),
+		script: z.string(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.scheduleType === "compose" && !data.serviceName) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Service name is required",
+				path: ["serviceName"],
+			});
+		}
+
+		if (
+			(data.scheduleType === "dokploy-server" ||
+				data.scheduleType === "server") &&
+			!data.script
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Script is required",
+				path: ["script"],
+			});
+		}
+
+		if (
+			(data.scheduleType === "application" ||
+				data.scheduleType === "compose") &&
+			!data.command
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Command is required",
+				path: ["command"],
+			});
+		}
+	});
 
 interface Props {
-	applicationId?: string;
+	id?: string;
 	scheduleId?: string;
+	scheduleType?: "application" | "compose" | "server" | "dokploy-server";
 }
 
-export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
+export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [cacheType, setCacheType] = useState<CacheType>("cache");
+
 	const utils = api.useUtils();
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -72,12 +128,34 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 			shellType: "bash",
 			command: "",
 			enabled: true,
+			serviceName: "",
+			scheduleType: scheduleType || "application",
+			script: "",
 		},
 	});
+
+	const scheduleTypeForm = form.watch("scheduleType");
 
 	const { data: schedule } = api.schedule.one.useQuery(
 		{ scheduleId: scheduleId || "" },
 		{ enabled: !!scheduleId },
+	);
+
+	const {
+		data: services,
+		isFetching: isLoadingServices,
+		error: errorServices,
+		refetch: refetchServices,
+	} = api.compose.loadServices.useQuery(
+		{
+			composeId: id || "",
+			type: cacheType,
+		},
+		{
+			retry: false,
+			refetchOnWindowFocus: false,
+			enabled: !!id && scheduleType === "compose",
+		},
 	);
 
 	useEffect(() => {
@@ -88,6 +166,9 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 				shellType: schedule.shellType,
 				command: schedule.command,
 				enabled: schedule.enabled,
+				serviceName: schedule.serviceName || "",
+				scheduleType: schedule.scheduleType,
+				script: schedule.script || "",
 			});
 		}
 	}, [form, schedule, scheduleId]);
@@ -97,18 +178,32 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 		: api.schedule.create.useMutation();
 
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
-		if (!applicationId && !scheduleId) return;
+		if (!id && !scheduleId) return;
 
 		await mutateAsync({
 			...values,
 			scheduleId: scheduleId || "",
-			applicationId: applicationId || "",
+			...(scheduleType === "application" && {
+				applicationId: id || "",
+			}),
+			...(scheduleType === "compose" && {
+				composeId: id || "",
+			}),
+			...(scheduleType === "server" && {
+				serverId: id || "",
+			}),
+			...(scheduleType === "dokploy-server" && {
+				userId: id || "",
+			}),
 		})
 			.then(() => {
 				toast.success(
 					`Schedule ${scheduleId ? "updated" : "created"} successfully`,
 				);
-				utils.schedule.list.invalidate({ applicationId });
+				utils.schedule.list.invalidate({
+					id,
+					scheduleType,
+				});
 				setIsOpen(false);
 			})
 			.catch((error) => {
@@ -136,12 +231,130 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent>
+			<DialogContent
+				className={cn(
+					"max-h-screen overflow-y-auto",
+					scheduleTypeForm === "dokploy-server" || scheduleTypeForm === "server"
+						? "max-h-[95vh] sm:max-w-2xl"
+						: " sm:max-w-lg",
+				)}
+			>
 				<DialogHeader>
 					<DialogTitle>{scheduleId ? "Edit" : "Create"} Schedule</DialogTitle>
 				</DialogHeader>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+						{scheduleTypeForm === "compose" && (
+							<div className="flex flex-col w-full gap-4">
+								{errorServices && (
+									<AlertBlock
+										type="warning"
+										className="[overflow-wrap:anywhere]"
+									>
+										{errorServices?.message}
+									</AlertBlock>
+								)}
+								<FormField
+									control={form.control}
+									name="serviceName"
+									render={({ field }) => (
+										<FormItem className="w-full">
+											<FormLabel>Service Name</FormLabel>
+											<div className="flex gap-2">
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value || ""}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a service name" />
+														</SelectTrigger>
+													</FormControl>
+
+													<SelectContent>
+														{services?.map((service, index) => (
+															<SelectItem
+																value={service}
+																key={`${service}-${index}`}
+															>
+																{service}
+															</SelectItem>
+														))}
+														<SelectItem value="none" disabled>
+															Empty
+														</SelectItem>
+													</SelectContent>
+												</Select>
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Button
+																variant="secondary"
+																type="button"
+																isLoading={isLoadingServices}
+																onClick={() => {
+																	if (cacheType === "fetch") {
+																		refetchServices();
+																	} else {
+																		setCacheType("fetch");
+																	}
+																}}
+															>
+																<RefreshCw className="size-4 text-muted-foreground" />
+															</Button>
+														</TooltipTrigger>
+														<TooltipContent
+															side="left"
+															sideOffset={5}
+															className="max-w-[10rem]"
+														>
+															<p>
+																Fetch: Will clone the repository and load the
+																services
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Button
+																variant="secondary"
+																type="button"
+																isLoading={isLoadingServices}
+																onClick={() => {
+																	if (cacheType === "cache") {
+																		refetchServices();
+																	} else {
+																		setCacheType("cache");
+																	}
+																}}
+															>
+																<DatabaseZap className="size-4 text-muted-foreground" />
+															</Button>
+														</TooltipTrigger>
+														<TooltipContent
+															side="left"
+															sideOffset={5}
+															className="max-w-[10rem]"
+														>
+															<p>
+																Cache: If you previously deployed this compose,
+																it will read the services from the last
+																deployment/fetch from the repository
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						)}
+
 						<FormField
 							control={form.control}
 							name="name"
@@ -222,59 +435,86 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 							)}
 						/>
 
-						<FormField
-							control={form.control}
-							name="shellType"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel className="flex items-center gap-2">
-										<Terminal className="w-4 h-4" />
-										Shell Type
-									</FormLabel>
-									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
-									>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="Select shell type" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											<SelectItem value="bash">Bash</SelectItem>
-											<SelectItem value="sh">Sh</SelectItem>
-										</SelectContent>
-									</Select>
-									<FormDescription>
-										Choose the shell to execute your command
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{(scheduleTypeForm === "application" ||
+							scheduleTypeForm === "compose") && (
+							<>
+								<FormField
+									control={form.control}
+									name="shellType"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel className="flex items-center gap-2">
+												<Terminal className="w-4 h-4" />
+												Shell Type
+											</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select shell type" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="bash">Bash</SelectItem>
+													<SelectItem value="sh">Sh</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Choose the shell to execute your command
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="command"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel className="flex items-center gap-2">
+												<Terminal className="w-4 h-4" />
+												Command
+											</FormLabel>
+											<FormControl>
+												<Input placeholder="npm run backup" {...field} />
+											</FormControl>
+											<FormDescription>
+												The command to execute in your container
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 
-						<FormField
-							control={form.control}
-							name="command"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel className="flex items-center gap-2">
-										<Terminal className="w-4 h-4" />
-										Command
-									</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="docker exec my-container npm run backup"
-											{...field}
-										/>
-									</FormControl>
-									<FormDescription>
-										The command to execute in your container
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{(scheduleTypeForm === "dokploy-server" ||
+							scheduleTypeForm === "server") && (
+							<FormField
+								control={form.control}
+								name="script"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Script</FormLabel>
+										<FormControl>
+											<FormControl>
+												<CodeEditor
+													language="shell"
+													placeholder={`# This is a comment
+echo "Hello, world!"
+`}
+													className="h-96 font-mono"
+													{...field}
+												/>
+											</FormControl>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						<FormField
 							control={form.control}
@@ -292,15 +532,8 @@ export const HandleSchedules = ({ applicationId, scheduleId }: Props) => {
 							)}
 						/>
 
-						<Button type="submit" disabled={isLoading} className="w-full">
-							{isLoading ? (
-								<>
-									<Clock className="mr-2 h-4 w-4 animate-spin" />
-									{scheduleId ? "Updating..." : "Creating..."}
-								</>
-							) : (
-								<>{scheduleId ? "Update" : "Create"} Schedule</>
-							)}
+						<Button type="submit" isLoading={isLoading} className="w-full">
+							{scheduleId ? "Update" : "Create"} Schedule
 						</Button>
 					</form>
 				</Form>

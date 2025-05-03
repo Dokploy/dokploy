@@ -652,6 +652,27 @@
       "when": 1746221961240,
       "tag": "0092_safe_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1746228754403,
+      "tag": "0093_abnormal_machine_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1746228771046,
+      "tag": "0094_easy_butterfly",
+      "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1746232483345,
+      "tag": "0095_friendly_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

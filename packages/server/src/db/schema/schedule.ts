@@ -6,8 +6,17 @@ import { z } from "zod";
 import { applications } from "./application";
 import { deployments } from "./deployment";
 import { generateAppName } from "./utils";
-
+import { compose } from "./compose";
+import { server } from "./server";
+import { users_temp } from "./user";
 export const shellTypes = pgEnum("shellType", ["bash", "sh"]);
+
+export const scheduleType = pgEnum("scheduleType", [
+	"application",
+	"compose",
+	"server",
+	"dokploy-server",
+]);
 
 export const schedules = pgTable("schedule", {
 	scheduleId: text("scheduleId")
@@ -19,13 +28,26 @@ export const schedules = pgTable("schedule", {
 	appName: text("appName")
 		.notNull()
 		.$defaultFn(() => generateAppName("schedule")),
+	serviceName: text("serviceName"),
 	shellType: shellTypes("shellType").notNull().default("bash"),
+	scheduleType: scheduleType("scheduleType").notNull().default("application"),
 	command: text("command").notNull(),
-	applicationId: text("applicationId")
-		.notNull()
-		.references(() => applications.applicationId, {
+	script: text("script"),
+	applicationId: text("applicationId").references(
+		() => applications.applicationId,
+		{
 			onDelete: "cascade",
-		}),
+		},
+	),
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
+	serverId: text("serverId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
+	userId: text("userId").references(() => users_temp.id, {
+		onDelete: "cascade",
+	}),
 	enabled: boolean("enabled").notNull().default(true),
 	createdAt: text("createdAt")
 		.notNull()
@@ -39,15 +61,22 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 		fields: [schedules.applicationId],
 		references: [applications.applicationId],
 	}),
+	compose: one(compose, {
+		fields: [schedules.composeId],
+		references: [compose.composeId],
+	}),
+	server: one(server, {
+		fields: [schedules.serverId],
+		references: [server.serverId],
+	}),
+	user: one(users_temp, {
+		fields: [schedules.userId],
+		references: [users_temp.id],
+	}),
 	deployments: many(deployments),
 }));
 
-export const createScheduleSchema = createInsertSchema(schedules, {
-	name: z.string().min(1),
-	cronExpression: z.string().min(1),
-	command: z.string().min(1),
-	applicationId: z.string().min(1),
-});
+export const createScheduleSchema = createInsertSchema(schedules);
 
 export const updateScheduleSchema = createUpdateSchema(schedules).extend({
 	scheduleId: z.string().min(1),

@@ -312,7 +312,10 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="schedules">
 										<div className="flex flex-col gap-4  pt-2.5">
-											<ShowSchedules applicationId={applicationId} />
+											<ShowSchedules
+												id={applicationId}
+												scheduleType="application"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="deployments" className="w-full">

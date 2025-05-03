@@ -6,67 +6,65 @@ import {
 	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
 import { desc, eq } from "drizzle-orm";
+import { db } from "@dokploy/server/db";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { runCommand } from "@dokploy/server/index";
 import { deployments } from "@dokploy/server/db/schema/deployment";
+import {
+	deleteSchedule,
+	findScheduleById,
+	createSchedule,
+	updateSchedule,
+} from "@dokploy/server/services/schedule";
 
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { scheduleId, ...rest } = input;
-			const [schedule] = await ctx.db
-				.insert(schedules)
-				.values(rest)
-				.returning();
+		.mutation(async ({ input }) => {
+			const schedule = await createSchedule(input);
 			return schedule;
 		}),
 
 	update: protectedProcedure
 		.input(updateScheduleSchema)
-		.mutation(async ({ ctx, input }) => {
-			const { scheduleId, ...rest } = input;
-			const [schedule] = await ctx.db
-				.update(schedules)
-				.set(rest)
-				.where(eq(schedules.scheduleId, scheduleId))
-				.returning();
-
-			if (!schedule) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Schedule not found",
-				});
-			}
-
+		.mutation(async ({ input }) => {
+			const schedule = await updateSchedule(input);
 			return schedule;
 		}),
 
 	delete: protectedProcedure
 		.input(z.object({ scheduleId: z.string() }))
-		.mutation(async ({ ctx, input }) => {
-			const [schedule] = await ctx.db
-				.delete(schedules)
-				.where(eq(schedules.scheduleId, input.scheduleId))
-				.returning();
+		.mutation(async ({ input }) => {
+			await deleteSchedule(input.scheduleId);
 
-			if (!schedule) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Schedule not found",
-				});
-			}
-
-			return schedule;
+			return true;
 		}),
 
 	list: protectedProcedure
-		.input(z.object({ applicationId: z.string() }))
-		.query(async ({ ctx, input }) => {
-			return ctx.db.query.schedules.findMany({
-				where: eq(schedules.applicationId, input.applicationId),
+		.input(
+			z.object({
+				id: z.string(),
+				scheduleType: z.enum([
+					"application",
+					"compose",
+					"server",
+					"dokploy-server",
+				]),
+			}),
+		)
+		.query(async ({ input }) => {
+			const where = {
+				application: eq(schedules.applicationId, input.id),
+				compose: eq(schedules.composeId, input.id),
+				server: eq(schedules.serverId, input.id),
+				"dokploy-server": eq(schedules.userId, input.id),
+			};
+			return db.query.schedules.findMany({
+				where: where[input.scheduleType],
 				with: {
 					application: true,
+					server: true,
+					compose: true,
 					deployments: {
 						orderBy: [desc(deployments.createdAt)],
 					},
@@ -76,20 +74,8 @@ export const scheduleRouter = createTRPCRouter({
 
 	one: protectedProcedure
 		.input(z.object({ scheduleId: z.string() }))
-		.query(async ({ ctx, input }) => {
-			const [schedule] = await ctx.db
-				.select()
-				.from(schedules)
-				.where(eq(schedules.scheduleId, input.scheduleId));
-
-			if (!schedule) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Schedule not found",
-				});
-			}
-
-			return schedule;
+		.query(async ({ input }) => {
+			return await findScheduleById(input.scheduleId);
 		}),
 
 	runManually: protectedProcedure
