@@ -3,7 +3,13 @@ import type { Compose } from "@dokploy/server/services/compose";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import type { Backup } from "@dokploy/server/services/backup";
-import { getFindContainerCommand } from "../backups/compose";
+import { getComposeContainer } from "../docker/utils";
+import {
+	getMariadbRestoreCommand,
+	getMongoRestoreCommand,
+	getMysqlRestoreCommand,
+	getPostgresRestoreCommand,
+} from "./utils";
 
 export const restoreComposeBackup = async (
 	compose: Compose,
@@ -20,31 +26,21 @@ export const restoreComposeBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupFile}`;
 
-		const command = getFindContainerCommand(compose, metadata.serviceName);
-
-		let containerId = "";
-		if (serverId) {
-			const { stdout, stderr } = await execAsyncRemote(serverId, command);
-			emit(stdout);
-			emit(stderr);
-			containerId = stdout.trim();
-		} else {
-			const { stdout, stderr } = await execAsync(command);
-			emit(stdout);
-			emit(stderr);
-			containerId = stdout.trim();
-		}
+		const { Id: containerId } = await getComposeContainer(
+			compose,
+			metadata.serviceName || "",
+		);
 		let restoreCommand = "";
 
 		if (metadata.postgres) {
-			restoreCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerId} pg_restore -U ${metadata.postgres.databaseUser} -d ${database} --clean --if-exists`;
+			restoreCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${getPostgresRestoreCommand(containerId, database, metadata.postgres.databaseUser)}`;
 		} else if (metadata.mariadb) {
 			restoreCommand = `
-			rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerId} mariadb -u ${metadata.mariadb.databaseUser} -p${metadata.mariadb.databasePassword} ${database}
+			rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${getMariadbRestoreCommand(containerId, database, metadata.mariadb.databaseUser, metadata.mariadb.databasePassword)}
 		  `;
 		} else if (metadata.mysql) {
 			restoreCommand = `
-			rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerId} mysql -u root -p${metadata.mysql.databaseRootPassword} ${database}
+			rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${getMysqlRestoreCommand(containerId, database, metadata.mysql.databaseRootPassword)}
 		  `;
 		} else if (metadata.mongo) {
 			const tempDir = "/tmp/dokploy-restore";
@@ -56,7 +52,7 @@ export const restoreComposeBackup = async (
 			rclone copy ${rcloneFlags.join(" ")} "${backupPath}" ${tempDir} && \
 			cd ${tempDir} && \
 			gunzip -f "${fileName}" && \
-			docker exec -i ${containerId} mongorestore --username ${metadata.mongo.databaseUser} --password ${metadata.mongo.databasePassword} --authenticationDatabase admin --db ${database} --archive < "${decompressedName}" && \
+		    ${getMongoRestoreCommand(containerId, database, metadata.mongo.databaseUser, metadata.mongo.databasePassword)} < "${decompressedName}" && \
 			rm -rf ${tempDir}`;
 		}
 

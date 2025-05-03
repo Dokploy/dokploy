@@ -134,6 +134,7 @@ export const findComposeById = async (composeId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

@@ -18,7 +18,8 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { users_temp } from "./user";
 import { compose } from "./compose";
-
+import { deployments } from "./deployment";
+import { generateAppName } from ".";
 export const databaseType = pgEnum("databaseType", [
 	"postgres",
 	"mariadb",
@@ -34,6 +35,10 @@ export const backups = pgTable("backup", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
+	appName: text("appName")
+		.notNull()
+		.$defaultFn(() => generateAppName("backup"))
+		.unique(),
 	schedule: text("schedule").notNull(),
 	enabled: boolean("enabled"),
 	database: text("database").notNull(),
@@ -92,7 +97,7 @@ export const backups = pgTable("backup", {
 	>(),
 });
 
-export const backupsRelations = relations(backups, ({ one }) => ({
+export const backupsRelations = relations(backups, ({ one, many }) => ({
 	destination: one(destinations, {
 		fields: [backups.destinationId],
 		references: [destinations.destinationId],
@@ -121,6 +126,7 @@ export const backupsRelations = relations(backups, ({ one }) => ({
 		fields: [backups.composeId],
 		references: [compose.composeId],
 	}),
+	deployments: many(deployments),
 }));
 
 const createSchema = createInsertSchema(backups, {

@@ -8,6 +8,7 @@ import {
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path } from "./utils";
+import { createDeploymentBackup } from "@dokploy/server/services/deployment";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
@@ -16,6 +17,11 @@ export const runPostgresBackup = async (
 	const { appName, databaseUser, name, projectId } = postgres;
 	const project = await findProjectById(projectId);
 
+	const deployment = await createDeploymentBackup({
+		backupId: backup.backupId,
+		title: "Postgres Backup",
+		description: "Postgres Backup",
+	});
 	const { prefix, database } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
@@ -40,7 +46,11 @@ export const runPostgresBackup = async (
 			const { Id: containerId } = await getServiceContainer(appName);
 
 			const pgDumpCommand = `docker exec ${containerId} sh -c "pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
-			await execAsync(`${pgDumpCommand} | ${rcloneCommand}`);
+
+			await execAsync(`${pgDumpCommand} | ${rcloneCommand}`, (data) => {
+				console.log(data);
+			});
+			// await execAsync(`${pgDumpCommand} | ${rcloneCommand}`);
 		}
 
 		await sendDatabaseBackupNotifications({

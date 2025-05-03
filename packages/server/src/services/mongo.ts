@@ -60,6 +60,7 @@ export const findMongoById = async (mongoId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

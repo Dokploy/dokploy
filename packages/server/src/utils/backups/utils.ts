@@ -75,3 +75,37 @@ export const getS3Credentials = (destination: Destination) => {
 
 	return rcloneFlags;
 };
+
+export const getPostgresBackupCommand = (
+	containerId: string,
+	database: string,
+	databaseUser: string,
+) => {
+	return `docker exec ${containerId} sh -c "pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
+};
+
+export const getMariadbBackupCommand = (
+	containerId: string,
+	database: string,
+	databaseUser: string,
+	databasePassword: string,
+) => {
+	return `docker exec ${containerId} sh -c "mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --databases ${database} | gzip"`;
+};
+
+export const getMysqlBackupCommand = (
+	containerId: string,
+	database: string,
+	databasePassword: string,
+) => {
+	return `docker exec ${containerId} sh -c "mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databasePassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
+};
+
+export const getMongoBackupCommand = (
+	containerId: string,
+	database: string,
+	databaseUser: string,
+	databasePassword: string,
+) => {
+	return `docker exec ${containerId} sh -c "mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase admin --gzip"`;
+};

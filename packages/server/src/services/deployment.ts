@@ -4,6 +4,7 @@ import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDeployment,
+	type apiCreateDeploymentBackup,
 	type apiCreateDeploymentCompose,
 	type apiCreateDeploymentPreview,
 	type apiCreateDeploymentSchedule,
@@ -29,6 +30,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { findScheduleById } from "./schedule";
+import { findBackupById } from "./backup";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -284,6 +286,86 @@ echo "Initializing deployment" >> ${logFilePath};
 	}
 };
 
+export const createDeploymentBackup = async (
+	deployment: Omit<
+		typeof apiCreateDeploymentBackup._type,
+		"deploymentId" | "createdAt" | "status" | "logPath"
+	>,
+) => {
+	const backup = await findBackupById(deployment.backupId);
+
+	let serverId: string | null | undefined;
+	if (backup.backupType === "database") {
+		serverId =
+			backup.postgres?.serverId ||
+			backup.mariadb?.serverId ||
+			backup.mysql?.serverId ||
+			backup.mongo?.serverId;
+	} else if (backup.backupType === "compose") {
+		serverId = backup.compose?.serverId;
+	}
+	try {
+		await removeLastTenDeployments(deployment.backupId, "backup", serverId);
+		const { LOGS_PATH } = paths(!!serverId);
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const fileName = `${backup.appName}-${formattedDateTime}.log`;
+		const logFilePath = path.join(LOGS_PATH, backup.appName, fileName);
+
+		if (serverId) {
+			const server = await findServerById(serverId);
+
+			const command = `
+mkdir -p ${LOGS_PATH}/${backup.appName};
+echo "Initializing backup" >> ${logFilePath};
+`;
+
+			await execAsyncRemote(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(path.join(LOGS_PATH, backup.appName), {
+				recursive: true,
+			});
+			await fsPromises.writeFile(logFilePath, "Initializing backup");
+		}
+
+		const deploymentCreate = await db
+			.insert(deployments)
+			.values({
+				backupId: deployment.backupId,
+				title: deployment.title || "Backup",
+				description: deployment.description || "",
+				status: "running",
+				logPath: logFilePath,
+				startedAt: new Date().toISOString(),
+			})
+			.returning();
+		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the backup",
+			});
+		}
+		return deploymentCreate[0];
+	} catch (error) {
+		await db
+			.insert(deployments)
+			.values({
+				backupId: deployment.backupId,
+				title: deployment.title || "Backup",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				startedAt: new Date().toISOString(),
+				finishedAt: new Date().toISOString(),
+			})
+			.returning();
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error creating the backup",
+		});
+	}
+};
+
 export const createDeploymentSchedule = async (
 	deployment: Omit<
 		typeof apiCreateDeploymentSchedule._type,
@@ -388,7 +470,13 @@ export const removeDeploymentsByApplicationId = async (
 
 const getDeploymentsByType = async (
 	id: string,
-	type: "application" | "compose" | "server" | "schedule" | "previewDeployment",
+	type:
+		| "application"
+		| "compose"
+		| "server"
+		| "schedule"
+		| "previewDeployment"
+		| "backup",
 ) => {
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments[`${type}Id`], id),
@@ -411,7 +499,13 @@ export const removeDeployments = async (application: Application) => {
 
 const removeLastTenDeployments = async (
 	id: string,
-	type: "application" | "compose" | "server" | "schedule" | "previewDeployment",
+	type:
+		| "application"
+		| "compose"
+		| "server"
+		| "schedule"
+		| "previewDeployment"
+		| "backup",
 	serverId?: string | null,
 ) => {
 	const deploymentList = await getDeploymentsByType(id, type);

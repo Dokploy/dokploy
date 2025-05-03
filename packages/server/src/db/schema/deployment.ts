@@ -14,6 +14,7 @@ import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
 import { server } from "./server";
 import { schedules } from "./schedule";
+import { backups } from "./backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
@@ -54,6 +55,9 @@ export const deployments = pgTable("deployment", {
 		(): AnyPgColumn => schedules.scheduleId,
 		{ onDelete: "cascade" },
 	),
+	backupId: text("backupId").references((): AnyPgColumn => backups.backupId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -76,6 +80,10 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	schedule: one(schedules, {
 		fields: [deployments.scheduleId],
 		references: [schedules.scheduleId],
+	}),
+	backup: one(backups, {
+		fields: [deployments.backupId],
+		references: [backups.backupId],
 	}),
 }));
 
@@ -124,6 +132,18 @@ export const apiCreateDeploymentCompose = schema
 	})
 	.extend({
 		composeId: z.string().min(1),
+	});
+
+export const apiCreateDeploymentBackup = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		backupId: true,
+		description: true,
+	})
+	.extend({
+		backupId: z.string().min(1),
 	});
 
 export const apiCreateDeploymentServer = schema

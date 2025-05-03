@@ -103,7 +103,6 @@ const RestoreBackupSchema = z
 			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
 			.optional(),
 		backupType: z.enum(["database", "compose"]).default("database"),
-		serviceName: z.string().nullable().optional(),
 		metadata: z
 			.object({
 				postgres: z
@@ -128,6 +127,7 @@ const RestoreBackupSchema = z
 						databaseRootPassword: z.string(),
 					})
 					.optional(),
+				serviceName: z.string().optional(),
 			})
 			.optional(),
 	})
@@ -139,6 +139,17 @@ const RestoreBackupSchema = z
 				path: ["databaseType"],
 			});
 		}
+
+		console.log(data.backupType, { metadata: data.metadata });
+
+		if (data.backupType === "compose" && !data.metadata?.serviceName) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Service name is required for compose backups",
+				path: ["metadata", "serviceName"],
+			});
+		}
+
 		if (data.backupType === "compose" && data.databaseType) {
 			if (data.databaseType === "postgres") {
 				if (!data.metadata?.postgres?.databaseUser) {
@@ -217,6 +228,7 @@ export const RestoreBackup = ({
 			databaseName: databaseType === "web-server" ? "dokploy" : "",
 			databaseType:
 				backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
+			backupType: backupType,
 			metadata: {},
 		},
 		resolver: zodResolver(RestoreBackupSchema),
@@ -559,7 +571,7 @@ export const RestoreBackup = ({
 
 								<FormField
 									control={form.control}
-									name="serviceName"
+									name="metadata.serviceName"
 									render={({ field }) => (
 										<FormItem className="w-full">
 											<FormLabel>Service Name</FormLabel>

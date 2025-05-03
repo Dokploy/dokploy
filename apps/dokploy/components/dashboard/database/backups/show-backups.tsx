@@ -14,7 +14,13 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Database, DatabaseBackup, Play, Trash2 } from "lucide-react";
+import {
+	ClipboardList,
+	Database,
+	DatabaseBackup,
+	Play,
+	Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -29,6 +35,7 @@ import {
 	PostgresqlIcon,
 } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { ShowSchedulesLogs } from "../../application/schedules/show-schedules-logs";
 
 interface Props {
 	id: string;
@@ -156,6 +163,7 @@ export const ShowBackups = ({
 									<RestoreBackup
 										id={id}
 										databaseType={databaseType}
+										backupType={backupType}
 										serverId={
 											"serverId" in postgres ? postgres.serverId : undefined
 										}
@@ -267,6 +275,15 @@ export const ShowBackups = ({
 												</div>
 
 												<div className="flex flex-row md:flex-col gap-1.5">
+													<ShowSchedulesLogs deployments={backup.deployments}>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="size-8"
+														>
+															<ClipboardList className="size-4  transition-colors " />
+														</Button>
+													</ShowSchedulesLogs>
 													<TooltipProvider delayDuration={0}>
 														<Tooltip>
 															<TooltipTrigger asChild>
