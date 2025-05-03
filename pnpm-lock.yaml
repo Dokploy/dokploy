@@ -302,8 +302,8 @@ importers:
         specifier: ^0.39.1
         version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       drizzle-zod:
-        specifier: 0.7.1
-        version: 0.7.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
+        specifier: 0.5.1
+        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
       fancy-ansi:
         specifier: ^0.1.3
         version: 0.1.3
@@ -664,8 +664,8 @@ importers:
         specifier: ^0.39.1
         version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       drizzle-zod:
-        specifier: 0.7.1
-        version: 0.7.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
+        specifier: 0.5.1
+        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
       hi-base32:
         specifier: ^0.5.1
         version: 0.5.1
@@ -4549,11 +4549,11 @@ packages:
       sqlite3:
         optional: true
 
-  drizzle-zod@0.7.1:
-    resolution: {integrity: sha512-nZzALOdz44/AL2U005UlmMqaQ1qe5JfanvLujiTHiiT8+vZJTBFhj3pY4Vk+L6UWyKFfNmLhk602Hn4kCTynKQ==}
+  drizzle-zod@0.5.1:
+    resolution: {integrity: sha512-C/8bvzUH/zSnVfwdSibOgFjLhtDtbKYmkbPbUCq46QZyZCH6kODIMSOgZ8R7rVjoI+tCj3k06MRJMDqsIeoS4A==}
     peerDependencies:
-      drizzle-orm: '>=0.36.0'
-      zod: '>=3.0.0'
+      drizzle-orm: '>=0.23.13'
+      zod: '*'
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -11191,7 +11191,7 @@ snapshots:
       react: 18.2.0
       sqlite3: 5.1.7
 
-  drizzle-zod@0.7.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8):
+  drizzle-zod@0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8):
     dependencies:
       drizzle-orm: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       zod: 3.23.8

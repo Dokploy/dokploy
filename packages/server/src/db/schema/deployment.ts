@@ -47,6 +47,8 @@ export const deployments = pgTable("deployment", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	startedAt: text("startedAt"),
+	finishedAt: text("finishedAt"),
 	errorMessage: text("errorMessage"),
 	scheduleId: text("scheduleId").references(
 		(): AnyPgColumn => schedules.scheduleId,

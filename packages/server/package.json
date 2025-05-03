@@ -54,7 +54,7 @@
     "dockerode": "4.0.2",
     "dotenv": "16.4.5",
     "drizzle-orm": "^0.39.1",
-    "drizzle-zod": "0.7.1",
+    "drizzle-zod": "0.5.1",
     "hi-base32": "^0.5.1",
     "js-yaml": "4.1.0",
     "lodash": "4.17.21",

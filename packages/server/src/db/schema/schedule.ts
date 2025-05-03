@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { boolean, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
-import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
+import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
@@ -78,6 +78,6 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 
 export const createScheduleSchema = createInsertSchema(schedules);
 
-export const updateScheduleSchema = createUpdateSchema(schedules).extend({
+export const updateScheduleSchema = createScheduleSchema.extend({
 	scheduleId: z.string().min(1),
 });

@@ -673,6 +673,13 @@
       "when": 1746232483345,
       "tag": "0095_friendly_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1746252086587,
+      "tag": "0096_special_may_parker",
+      "breakpoints": true
     }
   ]
 }
