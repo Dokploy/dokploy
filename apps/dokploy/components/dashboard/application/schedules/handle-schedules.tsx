@@ -14,8 +14,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
-	Clock,
-	Terminal,
 	Info,
 	PlusCircle,
 	PenBoxIcon,
@@ -49,7 +47,8 @@ import type { CacheType } from "../../compose/domains/add-domain";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { cn } from "@/lib/utils";
-const commonCronExpressions = [
+
+export const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },
 	{ label: "Every hour", value: "0 * * * *" },
 	{ label: "Every day at midnight", value: "0 0 * * *" },
@@ -361,7 +360,6 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel className="flex items-center gap-2">
-										<Clock className="w-4 h-4" />
 										Task Name
 									</FormLabel>
 									<FormControl>
@@ -381,7 +379,6 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel className="flex items-center gap-2">
-										<Clock className="w-4 h-4" />
 										Schedule
 										<TooltipProvider>
 											<Tooltip>
@@ -444,7 +441,6 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel className="flex items-center gap-2">
-												<Terminal className="w-4 h-4" />
 												Shell Type
 											</FormLabel>
 											<Select
@@ -474,7 +470,6 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel className="flex items-center gap-2">
-												<Terminal className="w-4 h-4" />
 												Command
 											</FormLabel>
 											<FormControl>

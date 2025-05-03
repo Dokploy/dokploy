@@ -1,6 +1,6 @@
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
 import { findScheduleById } from "@dokploy/server/services/schedule";
-import { scheduleJob as scheduleJobNode } from "node-schedule";
+import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
 import { getComposeContainer, getServiceContainerIV2 } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
@@ -16,6 +16,11 @@ export const scheduleJob = (schedule: Schedule) => {
 	scheduleJobNode(cronExpression, async () => {
 		await runCommand(scheduleId);
 	});
+};
+
+export const removeScheduleJob = (scheduleId: string) => {
+	const currentJob = scheduledJobs[scheduleId];
+	currentJob?.cancel();
 };
 
 export const runCommand = async (scheduleId: string) => {

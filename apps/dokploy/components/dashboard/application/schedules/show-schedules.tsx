@@ -75,7 +75,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingSchedules ? (
-					<div className="flex gap-4   w-full items-center justify-center text-center mx-auto">
+					<div className="flex gap-4   w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
 							Loading scheduled tasks...
@@ -146,7 +146,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 									<div className="flex items-center gap-1.5">
 										<ShowSchedulesLogs
 											deployments={deployments || []}
-											serverId={serverId}
+											serverId={serverId || undefined}
 										>
 											<Button variant="ghost" size="icon">
 												<ClipboardList className="size-4  transition-colors " />
