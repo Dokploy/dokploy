@@ -1,7 +1,7 @@
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
 import { findScheduleById } from "@dokploy/server/services/schedule";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
-import { getComposeContainer, getServiceContainerIV2 } from "../docker/utils";
+import { getComposeContainer, getServiceContainer } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { createDeploymentSchedule } from "@dokploy/server/services/deployment";
@@ -45,7 +45,7 @@ export const runCommand = async (scheduleId: string) => {
 		let containerId = "";
 		let serverId = "";
 		if (scheduleType === "application" && application) {
-			const container = await getServiceContainerIV2(
+			const container = await getServiceContainer(
 				application.appName,
 				application.serverId,
 			);

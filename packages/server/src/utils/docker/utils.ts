@@ -520,31 +520,6 @@ export const getServiceContainer = async (
 	}
 };
 
-export const getServiceContainerIV2 = async (
-	appName: string,
-	serverId?: string | null,
-) => {
-	try {
-		const filter = {
-			status: ["running"],
-			label: [`com.docker.swarm.service.name=${appName}`],
-		};
-		const remoteDocker = await getRemoteDocker(serverId);
-		const containers = await remoteDocker.listContainers({
-			filters: JSON.stringify(filter),
-		});
-
-		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
-		}
-
-		const container = containers[0];
-		return container;
-	} catch (error) {
-		throw error;
-	}
-};
-
 export const getComposeContainer = async (
 	compose: Compose,
 	serviceName: string,
