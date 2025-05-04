@@ -330,7 +330,7 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="domains" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains applicationId={applicationId} />
+											<ShowDomains id={applicationId} type="application" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

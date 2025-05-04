@@ -16,12 +16,13 @@ import {
 	Loader2,
 	PenBoxIcon,
 	RefreshCw,
+	Server,
 	Trash2,
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { AddDomain } from "./add-domain";
+import { AddDomain } from "./handle-domain";
 import { useState } from "react";
 import {
 	Tooltip,
@@ -29,36 +30,65 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { ValidationStates } from "../../compose/domains/show-domains";
-import { DnsHelperModal } from "../../compose/domains/dns-helper-modal";
+import { DnsHelperModal } from "./dns-helper-modal";
 import { Badge } from "@/components/ui/badge";
 
+export type ValidationState = {
+	isLoading: boolean;
+	isValid?: boolean;
+	error?: string;
+	resolvedIp?: string;
+	message?: string;
+};
+
 interface Props {
-	applicationId: string;
+	id: string;
+	type: "application" | "compose";
 }
 
-export const ShowDomains = ({ applicationId }: Props) => {
-	const { data: application } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
-	);
+export const ShowDomains = ({ id, type }: Props) => {
+	const { data: application } =
+		type === "application"
+			? api.application.one.useQuery(
+					{
+						applicationId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				)
+			: api.compose.one.useQuery(
+					{
+						composeId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				);
 	const [validationStates, setValidationStates] = useState<ValidationStates>(
 		{},
 	);
 	const { data: ip } = api.settings.getIp.useQuery();
 
-	const { data, refetch } = api.domain.byApplicationId.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
-	);
+	const { data, refetch } =
+		type === "application"
+			? api.domain.byApplicationId.useQuery(
+					{
+						applicationId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				)
+			: api.domain.byComposeId.useQuery(
+					{
+						composeId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				);
+
 	const { mutateAsync: validateDomain } =
 		api.domain.validateDomain.useMutation();
 	const { mutateAsync: deleteDomain, isLoading: isRemoving } =
@@ -113,7 +143,7 @@ export const ShowDomains = ({ applicationId }: Props) => {
 
 					<div className="flex flex-row gap-4 flex-wrap">
 						{data && data?.length > 0 && (
-							<AddDomain applicationId={applicationId}>
+							<AddDomain id={id} type={type}>
 								<Button>
 									<GlobeIcon className="size-4" /> Add Domain
 								</Button>
@@ -123,14 +153,14 @@ export const ShowDomains = ({ applicationId }: Props) => {
 				</CardHeader>
 				<CardContent className="flex w-full flex-row gap-4">
 					{data?.length === 0 ? (
-						<div className="flex w-full flex-col items-center justify-center gap-3">
+						<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[40vh]">
 							<GlobeIcon className="size-8 text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
 								To access the application it is required to set at least 1
 								domain
 							</span>
 							<div className="flex flex-row gap-4 flex-wrap">
-								<AddDomain applicationId={applicationId}>
+								<AddDomain id={id} type={type}>
 									<Button>
 										<GlobeIcon className="size-4" /> Add Domain
 									</Button>
@@ -138,19 +168,26 @@ export const ShowDomains = ({ applicationId }: Props) => {
 							</div>
 						</div>
 					) : (
-						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full">
+						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full min-h-[40vh]">
 							{data?.map((item) => {
 								const validationState = validationStates[item.host];
 								return (
 									<Card
 										key={item.domainId}
-										className="relative overflow-hidden w-full border bg-card transition-all hover:shadow-md bg-transparent"
+										className="relative overflow-hidden w-full border bg-card transition-all hover:shadow-md bg-transparent h-fit"
 									>
 										<CardContent className="p-6">
 											<div className="flex flex-col gap-4">
 												{/* Service & Domain Info */}
 												<div className="flex items-start justify-between">
 													<div className="flex flex-col gap-2">
+														{item.serviceName && (
+															<Badge variant="outline" className="w-fit">
+																<Server className="size-3 mr-1" />
+																{item.serviceName}
+															</Badge>
+														)}
+
 														<Link
 															className="flex items-center gap-2 text-base font-medium hover:underline"
 															target="_blank"
@@ -175,7 +212,8 @@ export const ShowDomains = ({ applicationId }: Props) => {
 															/>
 														)}
 														<AddDomain
-															applicationId={applicationId}
+															id={id}
+															type={type}
 															domainId={item.domainId}
 														>
 															<Button

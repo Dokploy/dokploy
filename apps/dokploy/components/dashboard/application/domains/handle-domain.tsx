@@ -38,26 +38,67 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import { domain } from "@/server/db/validations/domain";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Dices } from "lucide-react";
+import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import type z from "zod";
+import z from "zod";
+
+export type CacheType = "fetch" | "cache";
+
+export const domain = z
+	.object({
+		host: z.string().min(1, { message: "Add a hostname" }),
+		path: z.string().min(1).optional(),
+		port: z
+			.number()
+			.min(1, { message: "Port must be at least 1" })
+			.max(65535, { message: "Port must be 65535 or below" })
+			.optional(),
+		https: z.boolean().optional(),
+		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
+		customCertResolver: z.string().optional(),
+		serviceName: z.string().optional(),
+		domainType: z.enum(["application", "compose", "preview"]).optional(),
+	})
+	.superRefine((input, ctx) => {
+		if (input.https && !input.certificateType) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["certificateType"],
+				message: "Required",
+			});
+		}
+
+		if (input.certificateType === "custom" && !input.customCertResolver) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["customCertResolver"],
+				message: "Required",
+			});
+		}
+
+		if (input.domainType === "compose" && !input.serviceName) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["serviceName"],
+				message: "Required",
+			});
+		}
+	});
 
 type Domain = z.infer<typeof domain>;
 
 interface Props {
-	applicationId: string;
+	id: string;
+	type: "application" | "compose";
 	domainId?: string;
 	children: React.ReactNode;
 }
 
-export const AddDomain = ({
-	applicationId,
-	domainId = "",
-	children,
-}: Props) => {
+export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [cacheType, setCacheType] = useState<CacheType>("cache");
+
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
 		{
@@ -68,14 +109,24 @@ export const AddDomain = ({
 		},
 	);
 
-	const { data: application } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
-	);
+	const { data: application } =
+		type === "application"
+			? api.application.one.useQuery(
+					{
+						applicationId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				)
+			: api.compose.one.useQuery(
+					{
+						composeId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				);
 
 	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
@@ -89,6 +140,23 @@ export const AddDomain = ({
 			serverId: application?.serverId || "",
 		});
 
+	const {
+		data: services,
+		isFetching: isLoadingServices,
+		error: errorServices,
+		refetch: refetchServices,
+	} = api.compose.loadServices.useQuery(
+		{
+			composeId: id,
+			type: cacheType,
+		},
+		{
+			retry: false,
+			refetchOnWindowFocus: false,
+			enabled: type === "compose" && !!id,
+		},
+	);
+
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
 		defaultValues: {
@@ -98,12 +166,15 @@ export const AddDomain = ({
 			https: false,
 			certificateType: undefined,
 			customCertResolver: undefined,
+			serviceName: undefined,
+			domainType: type,
 		},
 		mode: "onChange",
 	});
 
 	const certificateType = form.watch("certificateType");
 	const https = form.watch("https");
+	const domainType = form.watch("domainType");
 
 	useEffect(() => {
 		if (data) {
@@ -114,6 +185,8 @@ export const AddDomain = ({
 				port: data?.port || undefined,
 				certificateType: data?.certificateType || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
+				serviceName: data?.serviceName || undefined,
+				domainType: data?.domainType || type,
 			});
 		}
 
@@ -125,6 +198,7 @@ export const AddDomain = ({
 				https: false,
 				certificateType: undefined,
 				customCertResolver: undefined,
+				domainType: type,
 			});
 		}
 	}, [form, data, isLoading, domainId]);
@@ -148,22 +222,37 @@ export const AddDomain = ({
 	const onSubmit = async (data: Domain) => {
 		await mutateAsync({
 			domainId,
-			applicationId,
+			...(data.domainType === "application" && {
+				applicationId: id,
+			}),
+			...(data.domainType === "compose" && {
+				composeId: id,
+			}),
 			...data,
 		})
 			.then(async () => {
 				toast.success(dictionary.success);
-				await utils.domain.byApplicationId.invalidate({
-					applicationId,
-				});
-				await utils.application.readTraefikConfig.invalidate({ applicationId });
+
+				if (data.domainType === "application") {
+					await utils.domain.byApplicationId.invalidate({
+						applicationId: id,
+					});
+					await utils.application.readTraefikConfig.invalidate({
+						applicationId: id,
+					});
+				} else if (data.domainType === "compose") {
+					await utils.domain.byComposeId.invalidate({
+						composeId: id,
+					});
+				}
 
 				if (domainId) {
 					refetch();
 				}
 				setIsOpen(false);
 			})
-			.catch(() => {
+			.catch((e) => {
+				console.log(e);
 				toast.error(dictionary.error);
 			});
 	};
@@ -187,6 +276,119 @@ export const AddDomain = ({
 					>
 						<div className="flex flex-col gap-4">
 							<div className="flex flex-col gap-2">
+								<div className="flex flex-row items-end w-full gap-4">
+									{domainType === "compose" && (
+										<>
+											{errorServices && (
+												<AlertBlock
+													type="warning"
+													className="[overflow-wrap:anywhere]"
+												>
+													{errorServices?.message}
+												</AlertBlock>
+											)}
+											<FormField
+												control={form.control}
+												name="serviceName"
+												render={({ field }) => (
+													<FormItem className="w-full">
+														<FormLabel>Service Name</FormLabel>
+														<div className="flex gap-2">
+															<Select
+																onValueChange={field.onChange}
+																defaultValue={field.value || ""}
+															>
+																<FormControl>
+																	<SelectTrigger>
+																		<SelectValue placeholder="Select a service name" />
+																	</SelectTrigger>
+																</FormControl>
+
+																<SelectContent>
+																	{services?.map((service, index) => (
+																		<SelectItem
+																			value={service}
+																			key={`${service}-${index}`}
+																		>
+																			{service}
+																		</SelectItem>
+																	))}
+																	<SelectItem value="none" disabled>
+																		Empty
+																	</SelectItem>
+																</SelectContent>
+															</Select>
+															<TooltipProvider delayDuration={0}>
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<Button
+																			variant="secondary"
+																			type="button"
+																			isLoading={isLoadingServices}
+																			onClick={() => {
+																				if (cacheType === "fetch") {
+																					refetchServices();
+																				} else {
+																					setCacheType("fetch");
+																				}
+																			}}
+																		>
+																			<RefreshCw className="size-4 text-muted-foreground" />
+																		</Button>
+																	</TooltipTrigger>
+																	<TooltipContent
+																		side="left"
+																		sideOffset={5}
+																		className="max-w-[10rem]"
+																	>
+																		<p>
+																			Fetch: Will clone the repository and load
+																			the services
+																		</p>
+																	</TooltipContent>
+																</Tooltip>
+															</TooltipProvider>
+															<TooltipProvider delayDuration={0}>
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<Button
+																			variant="secondary"
+																			type="button"
+																			isLoading={isLoadingServices}
+																			onClick={() => {
+																				if (cacheType === "cache") {
+																					refetchServices();
+																				} else {
+																					setCacheType("cache");
+																				}
+																			}}
+																		>
+																			<DatabaseZap className="size-4 text-muted-foreground" />
+																		</Button>
+																	</TooltipTrigger>
+																	<TooltipContent
+																		side="left"
+																		sideOffset={5}
+																		className="max-w-[10rem]"
+																	>
+																		<p>
+																			Cache: If you previously deployed this
+																			compose, it will read the services from
+																			the last deployment/fetch from the
+																			repository
+																		</p>
+																	</TooltipContent>
+																</Tooltip>
+															</TooltipProvider>
+														</div>
+
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</>
+									)}
+								</div>
 								<FormField
 									control={form.control}
 									name="host"

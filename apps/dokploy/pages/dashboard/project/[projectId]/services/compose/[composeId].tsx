@@ -1,11 +1,11 @@
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
-import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
@@ -339,7 +339,7 @@ const Service = (
 
 									<TabsContent value="domains">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomainsCompose composeId={composeId} />
+											<ShowDomains id={composeId} type="compose" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
