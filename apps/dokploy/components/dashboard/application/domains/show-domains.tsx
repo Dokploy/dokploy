@@ -41,6 +41,8 @@ export type ValidationState = {
 	message?: string;
 };
 
+export type ValidationStates = Record<string, ValidationState>;
+
 interface Props {
 	id: string;
 	type: "application" | "compose";
@@ -70,24 +72,27 @@ export const ShowDomains = ({ id, type }: Props) => {
 	);
 	const { data: ip } = api.settings.getIp.useQuery();
 
-	const { data, refetch } =
-		type === "application"
-			? api.domain.byApplicationId.useQuery(
-					{
-						applicationId: id,
-					},
-					{
-						enabled: !!id,
-					},
-				)
-			: api.domain.byComposeId.useQuery(
-					{
-						composeId: id,
-					},
-					{
-						enabled: !!id,
-					},
-				);
+	const {
+		data,
+		refetch,
+		isLoading: isLoadingDomains,
+	} = type === "application"
+		? api.domain.byApplicationId.useQuery(
+				{
+					applicationId: id,
+				},
+				{
+					enabled: !!id,
+				},
+			)
+		: api.domain.byComposeId.useQuery(
+				{
+					composeId: id,
+				},
+				{
+					enabled: !!id,
+				},
+			);
 
 	const { mutateAsync: validateDomain } =
 		api.domain.validateDomain.useMutation();
@@ -152,7 +157,14 @@ export const ShowDomains = ({ id, type }: Props) => {
 					</div>
 				</CardHeader>
 				<CardContent className="flex w-full flex-row gap-4">
-					{data?.length === 0 ? (
+					{isLoadingDomains ? (
+						<div className="flex w-full flex-row gap-4 min-h-[40vh] justify-center items-center">
+							<Loader2 className="size-5 animate-spin text-muted-foreground" />
+							<span className="text-base text-muted-foreground">
+								Loading domains...
+							</span>
+						</div>
+					) : data?.length === 0 ? (
 						<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[40vh]">
 							<GlobeIcon className="size-8 text-muted-foreground" />
 							<span className="text-base text-muted-foreground">
@@ -168,7 +180,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 							</div>
 						</div>
 					) : (
-						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full min-h-[40vh]">
+						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full min-h-[40vh] ">
 							{data?.map((item) => {
 								const validationState = validationStates[item.host];
 								return (
