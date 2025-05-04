@@ -18,7 +18,13 @@ import { Badge } from "@/components/ui/badge";
 
 interface Props {
 	id: string;
-	type: "application" | "compose" | "schedule" | "server" | "backup";
+	type:
+		| "application"
+		| "compose"
+		| "schedule"
+		| "server"
+		| "backup"
+		| "previewDeployment";
 	refreshToken?: string;
 	serverId?: string;
 }
@@ -65,7 +71,9 @@ export const ShowDeployments = ({
 						See all the 10 last deployments for this {type}
 					</CardDescription>
 				</div>
-				{refreshToken && <CancelQueues id={id} type={type} />}
+				{(type === "application" || type === "compose") && (
+					<CancelQueues id={id} type={type} />
+				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{refreshToken && (
@@ -80,7 +88,9 @@ export const ShowDeployments = ({
 								<span className="break-all text-muted-foreground">
 									{`${url}/api/deploy/${refreshToken}`}
 								</span>
-								<RefreshToken id={id} type={type} />
+								{(type === "application" || type === "compose") && (
+									<RefreshToken id={id} type={type} />
+								)}
 							</div>
 						</div>
 					</div>

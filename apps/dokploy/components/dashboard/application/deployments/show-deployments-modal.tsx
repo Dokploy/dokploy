@@ -8,7 +8,13 @@ import { ShowDeployments } from "./show-deployments";
 
 interface Props {
 	id: string;
-	type: "application" | "compose" | "schedule" | "server" | "backup";
+	type:
+		| "application"
+		| "compose"
+		| "schedule"
+		| "server"
+		| "backup"
+		| "previewDeployment";
 	serverId?: string;
 	refreshToken?: string;
 	children?: React.ReactNode;

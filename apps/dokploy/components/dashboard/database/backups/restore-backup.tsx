@@ -140,8 +140,6 @@ const RestoreBackupSchema = z
 			});
 		}
 
-		console.log(data.backupType, { metadata: data.metadata });
-
 		if (data.backupType === "compose" && !data.metadata?.serviceName) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
@@ -532,7 +530,11 @@ export const RestoreBackup = ({
 								<FormItem>
 									<FormLabel>Database Name</FormLabel>
 									<FormControl>
-										<Input placeholder="Enter database name" {...field} />
+										<Input
+											placeholder="Enter database name"
+											{...field}
+											disabled={databaseType === "web-server"}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -789,10 +791,10 @@ export const RestoreBackup = ({
 								isLoading={isDeploying}
 								form="hook-form-restore-backup"
 								type="submit"
-								disabled={
-									!form.watch("backupFile") ||
-									(backupType === "compose" && !form.watch("databaseType"))
-								}
+								// disabled={
+								// 	!form.watch("backupFile") ||
+								// 	(backupType === "compose" && !form.watch("databaseType"))
+								// }
 							>
 								Restore
 							</Button>
