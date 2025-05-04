@@ -1,5 +1,24 @@
 CREATE TYPE "public"."backupType" AS ENUM('database', 'compose');--> statement-breakpoint
-ALTER TABLE "backup" ADD COLUMN "appName" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "backup" ADD COLUMN "appName" text;
+
+UPDATE "backup" 
+SET "appName" = 'backup-' || 
+    (
+        ARRAY['optimize', 'parse', 'quantify', 'bypass', 'override', 'generate',
+            'secure', 'hack', 'backup', 'connect', 'index', 'compress']::text[]
+    )[floor(random() * 12) + 1] || '-' ||
+    (
+        ARRAY['digital', 'virtual', 'mobile', 'neural', 'optical', 'auxiliary',
+            'primary', 'backup', 'wireless', 'haptic', 'solid-state']::text[]
+    )[floor(random() * 11) + 1] || '-' ||
+    (
+        ARRAY['driver', 'protocol', 'array', 'matrix', 'system', 'bandwidth',
+            'monitor', 'firewall', 'card', 'sensor', 'bus']::text[]
+    )[floor(random() * 11) + 1] || '-' ||
+    substr(md5(random()::text), 1, 6);
+
+    
+ALTER TABLE "backup" ALTER COLUMN "appName" SET NOT NULL;
 ALTER TABLE "backup" ADD COLUMN "serviceName" text;--> statement-breakpoint
 ALTER TABLE "backup" ADD COLUMN "backupType" "backupType" DEFAULT 'database' NOT NULL;--> statement-breakpoint
 ALTER TABLE "backup" ADD COLUMN "composeId" text;--> statement-breakpoint
