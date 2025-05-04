@@ -15,7 +15,6 @@ import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
 import { Badge } from "@/components/ui/badge";
-import { formatDuration } from "../schedules/show-schedules-logs";
 
 interface Props {
 	id: string;
@@ -23,6 +22,13 @@ interface Props {
 	refreshToken?: string;
 	serverId?: string;
 }
+
+export const formatDuration = (seconds: number) => {
+	if (seconds < 60) return `${seconds}s`;
+	const minutes = Math.floor(seconds / 60);
+	const remainingSeconds = seconds % 60;
+	return `${minutes}m ${remainingSeconds}s`;
+};
 
 export const ShowDeployments = ({
 	id,
