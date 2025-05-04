@@ -9,7 +9,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import { RocketIcon, Clock } from "lucide-react";
+import { RocketIcon, Clock, Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
@@ -17,21 +17,34 @@ import { ShowDeployment } from "./show-deployment";
 import { Badge } from "@/components/ui/badge";
 import { formatDuration } from "../schedules/show-schedules-logs";
 interface Props {
-	applicationId: string;
+	id: string;
+	type: "application" | "compose";
 }
 
-export const ShowDeployments = ({ applicationId }: Props) => {
+export const ShowDeployments = ({ id, type }: Props) => {
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
-	const { data } = api.application.one.useQuery({ applicationId });
-	const { data: deployments } = api.deployment.all.useQuery(
-		{ applicationId },
-		{
-			enabled: !!applicationId,
-			refetchInterval: 1000,
-		},
-	);
+	const { data } =
+		type === "application"
+			? api.application.one.useQuery({ applicationId: id })
+			: api.compose.one.useQuery({ composeId: id });
+	const { data: deployments, isLoading: isLoadingDeployments } =
+		type === "application"
+			? api.deployment.all.useQuery(
+					{ applicationId: id },
+					{
+						enabled: !!id,
+						refetchInterval: 1000,
+					},
+				)
+			: api.deployment.allByCompose.useQuery(
+					{ composeId: id },
+					{
+						enabled: !!id,
+						refetchInterval: 1000,
+					},
+				);
 
 	const [url, setUrl] = React.useState("");
 	useEffect(() => {
@@ -44,10 +57,10 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
 					<CardDescription>
-						See all the 10 last deployments for this application
+						See all the 10 last deployments for this {type}
 					</CardDescription>
 				</div>
-				<CancelQueues applicationId={applicationId} />
+				<CancelQueues id={id} type={type} />
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<div className="flex flex-col gap-2 text-sm">
@@ -61,12 +74,19 @@ export const ShowDeployments = ({ applicationId }: Props) => {
 							<span className="break-all text-muted-foreground">
 								{`${url}/api/deploy/${data?.refreshToken}`}
 							</span>
-							<RefreshToken applicationId={applicationId} />
+							<RefreshToken id={id} type={type} />
 						</div>
 					</div>
 				</div>
-				{data?.deployments?.length === 0 ? (
-					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
+				{isLoadingDeployments ? (
+					<div className="flex w-full flex-row items-center justify-center gap-3 pt-10 min-h-[25vh]">
+						<Loader2 className="size-6 text-muted-foreground animate-spin" />
+						<span className="text-base text-muted-foreground">
+							Loading deployments...
+						</span>
+					</div>
+				) : data?.deployments?.length === 0 ? (
+					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10 min-h-[25vh]">
 						<RocketIcon className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
 							No deployments found

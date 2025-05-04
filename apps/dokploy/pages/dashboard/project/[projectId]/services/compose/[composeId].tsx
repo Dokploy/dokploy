@@ -1,5 +1,6 @@
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
@@ -333,7 +334,7 @@ const Service = (
 
 									<TabsContent value="deployments">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDeploymentsCompose composeId={composeId} />
+											<ShowDeployments id={composeId} type="compose" />
 										</div>
 									</TabsContent>
 
