@@ -509,7 +509,7 @@ export const getServiceContainer = async (
 		});
 
 		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
+			return null;
 		}
 
 		const container = containers[0];
@@ -549,7 +549,7 @@ export const getComposeContainer = async (
 		});
 
 		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
+			return null;
 		}
 
 		const container = containers[0];

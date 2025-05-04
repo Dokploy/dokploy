@@ -316,7 +316,7 @@ export const createDeploymentBackup = async (
 
 			const command = `
 mkdir -p ${LOGS_PATH}/${backup.appName};
-echo "Initializing backup" >> ${logFilePath};
+echo "Initializing backup\n" >> ${logFilePath};
 `;
 
 			await execAsyncRemote(server.serverId, command);
@@ -324,7 +324,7 @@ echo "Initializing backup" >> ${logFilePath};
 			await fsPromises.mkdir(path.join(LOGS_PATH, backup.appName), {
 				recursive: true,
 			});
-			await fsPromises.writeFile(logFilePath, "Initializing backup");
+			await fsPromises.writeFile(logFilePath, "Initializing backup\n");
 		}
 
 		const deploymentCreate = await db

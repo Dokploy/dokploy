@@ -21,7 +21,6 @@ export const execAsyncStream = (
 
 		const childProcess = exec(command, options, (error) => {
 			if (error) {
-				console.log(error);
 				reject(error);
 				return;
 			}

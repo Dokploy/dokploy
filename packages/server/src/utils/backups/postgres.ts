@@ -1,33 +1,27 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
-import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsyncRemote, execAsyncStream } from "../process/execAsync";
-import {
-	getPostgresBackupCommand,
-	getS3Credentials,
-	normalizeS3Path,
-} from "./utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { createWriteStream } from "node:fs";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
 	backup: BackupSchedule,
 ) => {
-	const { appName, databaseUser, name, projectId } = postgres;
+	const { name, projectId } = postgres;
 	const project = await findProjectById(projectId);
 
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
-		title: "Postgres Backup",
-		description: "Postgres Backup",
+		title: "Initializing Backup",
+		description: "Initializing Backup",
 	});
-	const { prefix, database } = backup;
+	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
@@ -37,49 +31,15 @@ export const runPostgresBackup = async (
 
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
 
-		const { Id: containerId } = await getServiceContainer(
-			appName,
-			postgres.serverId,
+		const backupCommand = getBackupCommand(
+			backup,
+			rcloneCommand,
+			deployment.logPath,
 		);
-
-		const command = getPostgresBackupCommand(
-			containerId,
-			database,
-			databaseUser || "",
-		);
-
 		if (postgres.serverId) {
-			await execAsyncRemote(
-				postgres.serverId,
-				`
-				set -e;
-				echo "Running command." >> ${deployment.logPath};
-				export RCLONE_LOG_LEVEL=DEBUG;
-				${command} | ${rcloneCommand} >> ${deployment.logPath} 2>> ${deployment.logPath} || {
-					echo "❌ Command failed" >> ${deployment.logPath};
-					exit 1;
-				}
-				echo "✅ Command executed successfully" >> ${deployment.logPath};
-				`,
-			);
+			await execAsyncRemote(postgres.serverId, backupCommand);
 		} else {
-			const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
-			await execAsyncStream(
-				`${command} | ${rcloneCommand}`,
-				(data) => {
-					if (writeStream.writable) {
-						writeStream.write(data);
-					}
-				},
-				{
-					env: {
-						...process.env,
-						RCLONE_LOG_LEVEL: "DEBUG",
-					},
-				},
-			);
-			writeStream.write("Backup done✅");
-			writeStream.end();
+			await execAsync(backupCommand);
 		}
 
 		await sendDatabaseBackupNotifications({

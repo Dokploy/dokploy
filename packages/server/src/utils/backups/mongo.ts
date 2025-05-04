@@ -1,24 +1,18 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
-import { getServiceContainer } from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsyncRemote, execAsyncStream } from "../process/execAsync";
-import {
-	getMongoBackupCommand,
-	getS3Credentials,
-	normalizeS3Path,
-} from "./utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { createWriteStream } from "node:fs";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
-	const { appName, databasePassword, databaseUser, projectId, name } = mongo;
+	const { projectId, name } = mongo;
 	const project = await findProjectById(projectId);
-	const { prefix, database } = backup;
+	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.dump.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
@@ -30,51 +24,18 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-
-		const { Id: containerId } = await getServiceContainer(
-			appName,
-			mongo.serverId,
-		);
-
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-		const command = getMongoBackupCommand(
-			containerId,
-			database,
-			databaseUser || "",
-			databasePassword || "",
+
+		const backupCommand = getBackupCommand(
+			backup,
+			rcloneCommand,
+			deployment.logPath,
 		);
+
 		if (mongo.serverId) {
-			await execAsyncRemote(
-				mongo.serverId,
-				`
-				set -e;
-				echo "Running command." >> ${deployment.logPath};
-				export RCLONE_LOG_LEVEL=DEBUG;
-				${command} | ${rcloneCommand} >> ${deployment.logPath} 2>> ${deployment.logPath} || {
-					echo "❌ Command failed" >> ${deployment.logPath};
-					exit 1;
-				}
-				echo "✅ Command executed successfully" >> ${deployment.logPath};
-				`,
-			);
+			await execAsyncRemote(mongo.serverId, backupCommand);
 		} else {
-			const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
-			await execAsyncStream(
-				`${command} | ${rcloneCommand}`,
-				(data) => {
-					if (writeStream.writable) {
-						writeStream.write(data);
-					}
-				},
-				{
-					env: {
-						...process.env,
-						RCLONE_LOG_LEVEL: "DEBUG",
-					},
-				},
-			);
-			writeStream.write("Backup done✅");
-			writeStream.end();
+			await execAsync(backupCommand);
 		}
 
 		await sendDatabaseBackupNotifications({
