@@ -106,11 +106,11 @@ export const getMongoBackupCommand = (
 	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mongodump -d '${database}' -u '${databaseUser}' -p '${databasePassword}' --archive --authenticationDatabase admin --gzip"`;
 };
 
-const getServiceContainerCommand = (appName: string) => {
+export const getServiceContainerCommand = (appName: string) => {
 	return `docker ps -q --filter "status=running" --filter "label=com.docker.swarm.service.name=${appName}" | head -n 1`;
 };
 
-const getComposeContainerCommand = (
+export const getComposeContainerCommand = (
 	appName: string,
 	serviceName: string,
 	composeType: "stack" | "docker-compose" | undefined,
@@ -226,7 +226,7 @@ export const getBackupCommand = (
 	CONTAINER_ID=$(${containerSearch})
 
 	if [ -z "$CONTAINER_ID" ]; then
-		echo "[$(date)] ❌ Container not found" >> ${logPath};
+		echo "[$(date)] ❌ Error: Container not found" >> ${logPath};
 		exit 1;
 	fi
 
@@ -234,7 +234,7 @@ export const getBackupCommand = (
 	
 	# Run the backup command and capture the exit status
 	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ backup failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
 		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
 		exit 1;
 	}
@@ -244,7 +244,7 @@ export const getBackupCommand = (
 	
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Upload to S3 failed" >> ${logPath};
+		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}

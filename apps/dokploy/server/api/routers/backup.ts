@@ -3,6 +3,7 @@ import {
 	apiCreateBackup,
 	apiFindOneBackup,
 	apiRemoveBackup,
+	apiRestoreBackup,
 	apiUpdateBackup,
 } from "@/server/db/schema";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
@@ -366,23 +367,7 @@ export const backupRouter = createTRPCRouter({
 				override: true,
 			},
 		})
-		.input(
-			z.object({
-				databaseId: z.string(),
-				databaseType: z.enum([
-					"postgres",
-					"mysql",
-					"mariadb",
-					"mongo",
-					"web-server",
-				]),
-				backupType: z.enum(["database", "compose"]),
-				databaseName: z.string().min(1),
-				backupFile: z.string().min(1),
-				destinationId: z.string().min(1),
-				metadata: z.any(),
-			}),
-		)
+		.input(apiRestoreBackup)
 		.subscription(async ({ input }) => {
 			const destination = await findDestinationById(input.destinationId);
 			if (input.backupType === "database") {
@@ -390,57 +375,33 @@ export const backupRouter = createTRPCRouter({
 					const postgres = await findPostgresById(input.databaseId);
 
 					return observable<string>((emit) => {
-						restorePostgresBackup(
-							postgres,
-							destination,
-							input.databaseName,
-							input.backupFile,
-							(log) => {
-								emit.next(log);
-							},
-						);
+						restorePostgresBackup(postgres, destination, input, (log) => {
+							emit.next(log);
+						});
 					});
 				}
 				if (input.databaseType === "mysql") {
 					const mysql = await findMySqlById(input.databaseId);
 					return observable<string>((emit) => {
-						restoreMySqlBackup(
-							mysql,
-							destination,
-							input.databaseName,
-							input.backupFile,
-							(log) => {
-								emit.next(log);
-							},
-						);
+						restoreMySqlBackup(mysql, destination, input, (log) => {
+							emit.next(log);
+						});
 					});
 				}
 				if (input.databaseType === "mariadb") {
 					const mariadb = await findMariadbById(input.databaseId);
 					return observable<string>((emit) => {
-						restoreMariadbBackup(
-							mariadb,
-							destination,
-							input.databaseName,
-							input.backupFile,
-							(log) => {
-								emit.next(log);
-							},
-						);
+						restoreMariadbBackup(mariadb, destination, input, (log) => {
+							emit.next(log);
+						});
 					});
 				}
 				if (input.databaseType === "mongo") {
 					const mongo = await findMongoById(input.databaseId);
 					return observable<string>((emit) => {
-						restoreMongoBackup(
-							mongo,
-							destination,
-							input.databaseName,
-							input.backupFile,
-							(log) => {
-								emit.next(log);
-							},
-						);
+						restoreMongoBackup(mongo, destination, input, (log) => {
+							emit.next(log);
+						});
 					});
 				}
 				if (input.databaseType === "web-server") {
@@ -454,16 +415,9 @@ export const backupRouter = createTRPCRouter({
 			if (input.backupType === "compose") {
 				const compose = await findComposeById(input.databaseId);
 				return observable<string>((emit) => {
-					restoreComposeBackup(
-						compose,
-						destination,
-						input.databaseName,
-						input.backupFile,
-						input.metadata,
-						(log) => {
-							emit.next(log);
-						},
-					);
+					restoreComposeBackup(compose, destination, input, (log) => {
+						emit.next(log);
+					});
 				});
 			}
 			return true;

@@ -1,15 +1,15 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { getS3Credentials } from "../backups/utils";
-import { getServiceContainer } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getMysqlRestoreCommand } from "./utils";
+import { getRestoreCommand } from "./utils";
+import type { apiRestoreBackup } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 
 export const restoreMySqlBackup = async (
 	mysql: MySql,
 	destination: Destination,
-	database: string,
-	backupFile: string,
+	backupInput: z.infer<typeof apiRestoreBackup>,
 	emit: (log: string) => void,
 ) => {
 	try {
@@ -17,19 +17,20 @@ export const restoreMySqlBackup = async (
 
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const { Id: containerId } = await getServiceContainer(appName, serverId);
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
-		const restoreCommand = getMysqlRestoreCommand(
-			containerId,
-			database,
-			databaseRootPassword || "",
-		);
-
-		const command = `
-    rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${restoreCommand}
-  `;
+		const command = getRestoreCommand({
+			appName,
+			type: "mysql",
+			credentials: {
+				database: backupInput.databaseName,
+				databasePassword: databaseRootPassword,
+			},
+			restoreType: "database",
+			rcloneCommand,
+		});
 
 		emit("Starting restore...");
 

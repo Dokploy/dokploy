@@ -1,15 +1,15 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import { getS3Credentials } from "../backups/utils";
-import { getServiceContainer } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getPostgresRestoreCommand } from "./utils";
+import { getRestoreCommand } from "./utils";
+import type { apiRestoreBackup } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 
 export const restorePostgresBackup = async (
 	postgres: Postgres,
 	destination: Destination,
-	database: string,
-	backupFile: string,
+	backupInput: z.infer<typeof apiRestoreBackup>,
 	emit: (log: string) => void,
 ) => {
 	try {
@@ -18,32 +18,30 @@ export const restorePostgresBackup = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
 
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const { Id: containerId } = await getServiceContainer(appName, serverId);
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
 		emit("Starting restore...");
 		emit(`Backup path: ${backupPath}`);
 
-		const restoreCommand = getPostgresRestoreCommand(
-			containerId,
-			database,
-			databaseUser,
-		);
-
-		const command = `\
-rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${restoreCommand}`;
+		const command = getRestoreCommand({
+			appName,
+			credentials: {
+				database: backupInput.databaseName,
+				databaseUser,
+			},
+			type: "postgres",
+			rcloneCommand,
+			restoreType: "database",
+		});
 
 		emit(`Executing command: ${command}`);
 
 		if (serverId) {
-			const { stdout, stderr } = await execAsyncRemote(serverId, command);
-			emit(stdout);
-			emit(stderr);
+			await execAsyncRemote(serverId, command);
 		} else {
-			const { stdout, stderr } = await execAsync(command);
-			emit(stdout);
-			emit(stderr);
+			await execAsync(command);
 		}
 
 		emit("Restore completed successfully!");

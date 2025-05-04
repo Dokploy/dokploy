@@ -1,36 +1,37 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { getS3Credentials } from "../backups/utils";
-import { getServiceContainer } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getMariadbRestoreCommand } from "./utils";
+import { getRestoreCommand } from "./utils";
+import type { apiRestoreBackup } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 
 export const restoreMariadbBackup = async (
 	mariadb: Mariadb,
 	destination: Destination,
-	database: string,
-	backupFile: string,
+	backupInput: z.infer<typeof apiRestoreBackup>,
 	emit: (log: string) => void,
 ) => {
 	try {
-		const { appName, databasePassword, databaseUser, serverId } = mariadb;
+		const { appName, serverId, databaseUser, databasePassword } = mariadb;
 
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const { Id: containerId } = await getServiceContainer(appName, serverId);
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
-		const restoreCommand = getMariadbRestoreCommand(
-			containerId,
-			database,
-			databaseUser,
-			databasePassword || "",
-		);
-
-		const command = `
-    rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | ${restoreCommand}
-  `;
+		const command = getRestoreCommand({
+			appName,
+			credentials: {
+				database: backupInput.databaseName,
+				databaseUser,
+				databasePassword,
+			},
+			type: "mariadb",
+			rcloneCommand,
+			restoreType: "database",
+		});
 
 		emit("Starting restore...");
 

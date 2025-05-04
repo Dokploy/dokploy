@@ -191,3 +191,39 @@ export const apiUpdateBackup = createSchema
 		databaseType: true,
 	})
 	.required();
+
+export const apiRestoreBackup = z.object({
+	databaseId: z.string(),
+	databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo", "web-server"]),
+	backupType: z.enum(["database", "compose"]),
+	databaseName: z.string().min(1),
+	backupFile: z.string().min(1),
+	destinationId: z.string().min(1),
+	metadata: z
+		.object({
+			serviceName: z.string().optional(),
+			postgres: z
+				.object({
+					databaseUser: z.string(),
+				})
+				.optional(),
+			mariadb: z
+				.object({
+					databaseUser: z.string(),
+					databasePassword: z.string(),
+				})
+				.optional(),
+			mongo: z
+				.object({
+					databaseUser: z.string(),
+					databasePassword: z.string(),
+				})
+				.optional(),
+			mysql: z
+				.object({
+					databaseRootPassword: z.string(),
+				})
+				.optional(),
+		})
+		.optional(),
+});
