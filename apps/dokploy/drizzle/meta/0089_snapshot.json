@@ -1,5 +1,5 @@
 {
-  "id": "12ebb86a-87e3-4023-a64d-0c5df96507fb",
+  "id": "3ec09926-2da4-41c9-8eae-8ef6b023035e",
   "prevId": "c7eae4ce-5acc-439b-962f-bb2ef8922187",
   "version": "7",
   "dialect": "postgresql",
@@ -1746,6 +1746,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "schedule": {
           "name": "schedule",
           "type": "text",
@@ -1941,7 +1947,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "backup_appName_unique": {
+          "name": "backup_appName_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "appName"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2130,6 +2144,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "backupId": {
+          "name": "backupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2195,6 +2215,19 @@
           ],
           "columnsTo": [
             "scheduleId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_backupId_backup_backupId_fk": {
+          "name": "deployment_backupId_backup_backupId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "backup",
+          "columnsFrom": [
+            "backupId"
+          ],
+          "columnsTo": [
+            "backupId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"

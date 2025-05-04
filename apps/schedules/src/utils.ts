@@ -144,14 +144,44 @@ export const initializeJobs = async () => {
 
 	const schedulesResult = await db.query.schedules.findMany({
 		where: eq(schedules.enabled, true),
+		with: {
+			application: {
+				with: {
+					server: true,
+				},
+			},
+			compose: {
+				with: {
+					server: true,
+				},
+			},
+			server: true,
+		},
 	});
 
-	for (const schedule of schedulesResult) {
+	const filteredSchedulesBasedOnServerStatus = schedulesResult.filter(
+		(schedule) => {
+			if (schedule.server) {
+				return schedule.server.serverStatus === "active";
+			}
+			if (schedule.application) {
+				return schedule.application.server?.serverStatus === "active";
+			}
+			if (schedule.compose) {
+				return schedule.compose.server?.serverStatus === "active";
+			}
+		},
+	);
+
+	for (const schedule of filteredSchedulesBasedOnServerStatus) {
 		scheduleJob({
 			scheduleId: schedule.scheduleId,
 			type: "schedule",
 			cronSchedule: schedule.cronExpression,
 		});
 	}
-	logger.info({ Quantity: schedulesResult.length }, "Schedules Initialized");
+	logger.info(
+		{ Quantity: filteredSchedulesBasedOnServerStatus.length },
+		"Schedules Initialized",
+	);
 };

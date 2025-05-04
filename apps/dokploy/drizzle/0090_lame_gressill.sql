@@ -1,2 +1,0 @@
-ALTER TABLE "deployment" ADD COLUMN "backupId" text;--> statement-breakpoint
-ALTER TABLE "deployment" ADD CONSTRAINT "deployment_backupId_backup_backupId_fk" FOREIGN KEY ("backupId") REFERENCES "public"."backup"("backupId") ON DELETE cascade ON UPDATE no action;
