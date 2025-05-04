@@ -49,12 +49,19 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { DatabaseZap, PenBoxIcon, PlusIcon, RefreshCw } from "lucide-react";
+import {
+	DatabaseZap,
+	Info,
+	PenBoxIcon,
+	PlusIcon,
+	RefreshCw,
+} from "lucide-react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { commonCronExpressions } from "../../application/schedules/handle-schedules";
 
 type CacheType = "cache" | "fetch";
 
@@ -577,10 +584,55 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Schedule (Cron)</FormLabel>
-											<FormControl>
-												<Input placeholder={"0 0 * * *"} {...field} />
-											</FormControl>
+											<FormLabel className="flex items-center gap-2">
+												Schedule
+												<TooltipProvider>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<Info className="w-4 h-4 text-muted-foreground cursor-help" />
+														</TooltipTrigger>
+														<TooltipContent>
+															<p>
+																Cron expression format: minute hour day month
+																weekday
+															</p>
+															<p>Example: 0 0 * * * (daily at midnight)</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</FormLabel>
+											<div className="flex flex-col gap-2">
+												<Select
+													onValueChange={(value) => {
+														field.onChange(value);
+													}}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a predefined schedule" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														{commonCronExpressions.map((expr) => (
+															<SelectItem key={expr.value} value={expr.value}>
+																{expr.label} ({expr.value})
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												<div className="relative">
+													<FormControl>
+														<Input
+															placeholder="Custom cron expression (e.g., 0 0 * * *)"
+															{...field}
+														/>
+													</FormControl>
+												</div>
+											</div>
+											<FormDescription>
+												Choose a predefined schedule or enter a custom cron
+												expression
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									);
