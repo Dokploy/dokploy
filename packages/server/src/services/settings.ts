@@ -40,8 +40,6 @@ export const getServiceImageDigest = async () => {
 		"docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'",
 	);
 
-	console.log("stdout", stdout);
-
 	const currentDigest = stdout.trim().split("@")[1];
 
 	if (!currentDigest) {
