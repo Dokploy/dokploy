@@ -1,17 +1,15 @@
 import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { getS3Credentials } from "../backups/utils";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getRestoreCommand } from "./utils";
+import type { apiRestoreBackup } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 
 export const restoreMySqlBackup = async (
 	mysql: MySql,
 	destination: Destination,
-	database: string,
-	backupFile: string,
+	backupInput: z.infer<typeof apiRestoreBackup>,
 	emit: (log: string) => void,
 ) => {
 	try {
@@ -19,24 +17,29 @@ export const restoreMySqlBackup = async (
 
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const { Id: containerName } = serverId
-			? await getRemoteServiceContainer(serverId, appName)
-			: await getServiceContainer(appName);
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
-		const restoreCommand = `
-    rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerName} mysql -u root -p${databaseRootPassword} ${database}
-  `;
+		const command = getRestoreCommand({
+			appName,
+			type: "mysql",
+			credentials: {
+				database: backupInput.databaseName,
+				databasePassword: databaseRootPassword,
+			},
+			restoreType: "database",
+			rcloneCommand,
+		});
 
 		emit("Starting restore...");
 
-		emit(`Executing command: ${restoreCommand}`);
+		emit(`Executing command: ${command}`);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, restoreCommand);
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(restoreCommand);
+			await execAsync(command);
 		}
 
 		emit("Restore completed successfully!");

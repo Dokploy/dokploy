@@ -157,4 +157,31 @@ export const organizationRouter = createTRPCRouter({
 			orderBy: [desc(invitation.status), desc(invitation.expiresAt)],
 		});
 	}),
+	removeInvitation: adminProcedure
+		.input(z.object({ invitationId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const invitationResult = await db.query.invitation.findFirst({
+				where: eq(invitation.id, input.invitationId),
+			});
+
+			if (!invitationResult) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Invitation not found",
+				});
+			}
+
+			if (
+				invitationResult?.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to remove this invitation",
+				});
+			}
+
+			return await db
+				.delete(invitation)
+				.where(eq(invitation.id, input.invitationId));
+		}),
 });

@@ -79,6 +79,33 @@ export const settingsRouter = createTRPCRouter({
 		await execAsync(`docker service update --force ${stdout.trim()}`);
 		return true;
 	}),
+	cleanRedis: adminProcedure.mutation(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+
+		const { stdout: containerId } = await execAsync(
+			`docker ps --filter "name=dokploy-redis" --filter "status=running" -q | head -n 1`,
+		);
+
+		if (!containerId) {
+			throw new Error("Redis container not found");
+		}
+
+		const redisContainerId = containerId.trim();
+
+		await execAsync(`docker exec -i ${redisContainerId} redis-cli flushall`);
+		return true;
+	}),
+	reloadRedis: adminProcedure.mutation(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+
+		await execAsync("docker service scale dokploy-redis=0");
+		await execAsync("docker service scale dokploy-redis=1");
+		return true;
+	}),
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {

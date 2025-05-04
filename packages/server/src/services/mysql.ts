@@ -59,6 +59,7 @@ export const findMySqlById = async (mysqlId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

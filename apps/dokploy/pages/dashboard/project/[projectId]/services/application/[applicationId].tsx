@@ -12,6 +12,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
@@ -215,7 +216,7 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
 												"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
@@ -232,6 +233,7 @@ const Service = (
 											<TabsTrigger value="preview-deployments">
 												Preview Deployments
 											</TabsTrigger>
+											<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
@@ -308,9 +310,22 @@ const Service = (
 											/>
 										</div>
 									</TabsContent>
-									<TabsContent value="deployments" className="w-full">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDeployments applicationId={applicationId} />
+									<TabsContent value="schedules">
+										<div className="flex flex-col gap-4  pt-2.5">
+											<ShowSchedules
+												id={applicationId}
+												scheduleType="application"
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="deployments" className="w-full pt-2.5">
+										<div className="flex flex-col gap-4  border rounded-lg">
+											<ShowDeployments
+												id={applicationId}
+												type="application"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="preview-deployments" className="w-full">
@@ -320,7 +335,7 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="domains" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains applicationId={applicationId} />
+											<ShowDomains id={applicationId} type="application" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

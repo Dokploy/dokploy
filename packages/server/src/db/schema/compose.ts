@@ -12,10 +12,12 @@ import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
-import { applicationStatus } from "./shared";
+import { applicationStatus, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
+import { backups } from "./backups";
 
+import { schedules } from "./schedule";
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",
@@ -72,10 +74,12 @@ export const compose = pgTable("compose", {
 	),
 	command: text("command").notNull().default(""),
 	//
+	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
 	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
+	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
@@ -133,6 +137,8 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.serverId],
 		references: [server.serverId],
 	}),
+	backups: many(backups),
+	schedules: many(schedules),
 }));
 
 const createSchema = createInsertSchema(compose, {

@@ -17,7 +17,7 @@ import {
 	ExternalLink,
 	FileText,
 	GitPullRequest,
-	Layers,
+	Loader2,
 	PenSquare,
 	RocketIcon,
 	Trash2,
@@ -25,8 +25,8 @@ import {
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../settings/web-server/show-modal-logs";
 import { AddPreviewDomain } from "./add-preview-domain";
-import { ShowPreviewBuilds } from "./show-preview-builds";
 import { ShowPreviewSettings } from "./show-preview-settings";
+import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 
 interface Props {
 	applicationId: string;
@@ -38,13 +38,16 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 	const { mutateAsync: deletePreviewDeployment, isLoading } =
 		api.previewDeployment.delete.useMutation();
 
-	const { data: previewDeployments, refetch: refetchPreviewDeployments } =
-		api.previewDeployment.all.useQuery(
-			{ applicationId },
-			{
-				enabled: !!applicationId,
-			},
-		);
+	const {
+		data: previewDeployments,
+		refetch: refetchPreviewDeployments,
+		isLoading: isLoadingPreviewDeployments,
+	} = api.previewDeployment.all.useQuery(
+		{ applicationId },
+		{
+			enabled: !!applicationId,
+		},
+	);
 
 	const handleDeletePreviewDeployment = async (previewDeploymentId: string) => {
 		deletePreviewDeployment({
@@ -80,8 +83,15 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 								each pull request you create.
 							</span>
 						</div>
-						{!previewDeployments?.length ? (
-							<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
+						{isLoadingPreviewDeployments ? (
+							<div className="flex w-full flex-row items-center justify-center gap-3 min-h-[35vh]">
+								<Loader2 className="size-5 text-muted-foreground animate-spin" />
+								<span className="text-base text-muted-foreground">
+									Loading preview deployments...
+								</span>
+							</div>
+						) : !previewDeployments?.length ? (
+							<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[35vh]">
 								<RocketIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
 									No preview deployments found
@@ -168,19 +178,10 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															</Button>
 														</ShowModalLogs>
 
-														<ShowPreviewBuilds
-															deployments={deployment.deployments || []}
+														<ShowDeploymentsModal
+															id={deployment.previewDeploymentId}
+															type="previewDeployment"
 															serverId={data?.serverId || ""}
-															trigger={
-																<Button
-																	variant="outline"
-																	size="sm"
-																	className="gap-2"
-																>
-																	<Layers className="size-4" />
-																	Builds
-																</Button>
-															}
 														/>
 
 														<AddPreviewDomain

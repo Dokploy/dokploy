@@ -131,6 +131,12 @@ export const findComposeById = async (composeId: string) => {
 			bitbucket: true,
 			gitea: true,
 			server: true,
+			backups: {
+				with: {
+					destination: true,
+					deployments: true,
+				},
+			},
 		},
 	});
 	if (!result) {
@@ -356,6 +362,7 @@ export const deployRemoteCompose = async ({
 					deployment.logPath,
 					true,
 				);
+				console.log(command);
 			} else if (compose.sourceType === "raw") {
 				command += getCreateComposeFileCommand(compose, deployment.logPath);
 			} else if (compose.sourceType === "gitea") {
@@ -471,7 +478,9 @@ export const removeCompose = async (
 		const projectPath = join(COMPOSE_PATH, compose.appName);
 
 		if (compose.composeType === "stack") {
-			const command = `cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
+			const command = `
+			docker network disconnect ${compose.appName} dokploy-traefik;
+			cd ${projectPath} && docker stack rm ${compose.appName} && rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);
@@ -482,12 +491,11 @@ export const removeCompose = async (
 				cwd: projectPath,
 			});
 		} else {
-			let command: string;
-			if (deleteVolumes) {
-				command = `cd ${projectPath} && docker compose -p ${compose.appName} down --volumes && rm -rf ${projectPath}`;
-			} else {
-				command = `cd ${projectPath} && docker compose -p ${compose.appName} down && rm -rf ${projectPath}`;
-			}
+			const command = `
+			 docker network disconnect ${compose.appName} dokploy-traefik;
+			cd ${projectPath} && docker compose -p ${compose.appName} down ${
+				deleteVolumes ? "--volumes" : ""
+			} && rm -rf ${projectPath}`;
 
 			if (compose.serverId) {
 				await execAsyncRemote(compose.serverId, command);

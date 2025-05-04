@@ -183,7 +183,7 @@ const MySql = (
 											router.push(newPath, undefined, { shallow: true });
 										}}
 									>
-										<div className="flex flex-row items-center justify-between  w-full gap-4">
+										<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 											<TabsList
 												className={cn(
 													"md:grid md:w-fit max-md:overflow-y-scroll justify-start ",
@@ -252,7 +252,11 @@ const MySql = (
 										</TabsContent>
 										<TabsContent value="backups">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowBackups id={mysqlId} type="mysql" />
+												<ShowBackups
+													id={mysqlId}
+													databaseType="mysql"
+													backupType="database"
+												/>
 											</div>
 										</TabsContent>
 										<TabsContent value="advanced">

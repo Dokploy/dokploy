@@ -63,6 +63,7 @@ export const findMariadbById = async (mariadbId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

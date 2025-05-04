@@ -183,7 +183,7 @@ const Mongo = (
 										router.push(newPath, undefined, { shallow: true });
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
@@ -272,7 +272,11 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={mongoId} type="mongo" />
+											<ShowBackups
+												id={mongoId}
+												databaseType="mongo"
+												backupType="database"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

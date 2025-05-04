@@ -22,6 +22,9 @@ export const ShowDokployActions = () => {
 	const { mutateAsync: reloadServer, isLoading } =
 		api.settings.reloadServer.useMutation();
 
+	const { mutateAsync: cleanRedis } = api.settings.cleanRedis.useMutation();
+	const { mutateAsync: reloadRedis } = api.settings.reloadRedis.useMutation();
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild disabled={isLoading}>
@@ -69,6 +72,36 @@ export const ShowDokployActions = () => {
 							{t("settings.server.webServer.updateServerIp")}
 						</DropdownMenuItem>
 					</UpdateServerIp>
+
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={async () => {
+							await cleanRedis()
+								.then(async () => {
+									toast.success("Redis cleaned");
+								})
+								.catch(() => {
+									toast.error("Error cleaning Redis");
+								});
+						}}
+					>
+						Clean Redis
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						className="cursor-pointer"
+						onClick={async () => {
+							await reloadRedis()
+								.then(async () => {
+									toast.success("Redis reloaded");
+								})
+								.catch(() => {
+									toast.error("Error reloading Redis");
+								});
+						}}
+					>
+						Reload Redis
+					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
