@@ -278,7 +278,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 							<div className="flex flex-col gap-2">
 								<div className="flex flex-row items-end w-full gap-4">
 									{domainType === "compose" && (
-										<>
+										<div className="flex flex-col gap-2 w-full">
 											{errorServices && (
 												<AlertBlock
 													type="warning"
@@ -386,7 +386,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 													</FormItem>
 												)}
 											/>
-										</>
+										</div>
 									)}
 								</div>
 								<FormField
