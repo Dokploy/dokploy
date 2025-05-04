@@ -103,6 +103,7 @@ export const userRouter = createTRPCRouter({
 						backups: {
 							with: {
 								destination: true,
+								deployments: true,
 							},
 						},
 						apiKeys: true,

@@ -494,56 +494,7 @@ export const getCreateFileCommand = (
 	`;
 };
 
-export const getServiceContainer = async (appName: string) => {
-	try {
-		const filter = {
-			status: ["running"],
-			label: [`com.docker.swarm.service.name=${appName}`],
-		};
-
-		const containers = await docker.listContainers({
-			filters: JSON.stringify(filter),
-		});
-
-		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
-		}
-
-		const container = containers[0];
-
-		return container;
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const getRemoteServiceContainer = async (
-	serverId: string,
-	appName: string,
-) => {
-	try {
-		const filter = {
-			status: ["running"],
-			label: [`com.docker.swarm.service.name=${appName}`],
-		};
-		const remoteDocker = await getRemoteDocker(serverId);
-		const containers = await remoteDocker.listContainers({
-			filters: JSON.stringify(filter),
-		});
-
-		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
-		}
-
-		const container = containers[0];
-
-		return container;
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const getServiceContainerIV2 = async (
+export const getServiceContainer = async (
 	appName: string,
 	serverId?: string | null,
 ) => {
@@ -558,10 +509,11 @@ export const getServiceContainerIV2 = async (
 		});
 
 		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
+			return null;
 		}
 
 		const container = containers[0];
+
 		return container;
 	} catch (error) {
 		throw error;
@@ -597,7 +549,7 @@ export const getComposeContainer = async (
 		});
 
 		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
+			return null;
 		}
 
 		const container = containers[0];

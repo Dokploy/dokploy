@@ -1,7 +1,7 @@
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
 import { findScheduleById } from "@dokploy/server/services/schedule";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
-import { getComposeContainer, getServiceContainerIV2 } from "../docker/utils";
+import { getComposeContainer, getServiceContainer } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { createDeploymentSchedule } from "@dokploy/server/services/deployment";
@@ -45,16 +45,16 @@ export const runCommand = async (scheduleId: string) => {
 		let containerId = "";
 		let serverId = "";
 		if (scheduleType === "application" && application) {
-			const container = await getServiceContainerIV2(
+			const container = await getServiceContainer(
 				application.appName,
 				application.serverId,
 			);
-			containerId = container.Id;
+			containerId = container?.Id || "";
 			serverId = application.serverId || "";
 		}
 		if (scheduleType === "compose" && compose) {
 			const container = await getComposeContainer(compose, serviceName || "");
-			containerId = container.Id;
+			containerId = container?.Id || "";
 			serverId = compose.serverId || "";
 		}
 
@@ -64,8 +64,8 @@ export const runCommand = async (scheduleId: string) => {
 					serverId,
 					`
 					set -e
-					echo "Running command: docker exec ${containerId} ${shellType} -c \"${command}\"" >> ${deployment.logPath};
-					docker exec ${containerId} ${shellType} -c "${command}" >> ${deployment.logPath} 2>> ${deployment.logPath} || { 
+					echo "Running command: docker exec ${containerId} ${shellType} -c '${command}'" >> ${deployment.logPath};
+					docker exec ${containerId} ${shellType} -c '${command}' >> ${deployment.logPath} 2>> ${deployment.logPath} || { 
 						echo "❌ Command failed" >> ${deployment.logPath};
 						exit 1;
 					}
@@ -81,7 +81,7 @@ export const runCommand = async (scheduleId: string) => {
 
 			try {
 				writeStream.write(
-					`docker exec ${containerId} ${shellType} -c "${command}"\n`,
+					`docker exec ${containerId} ${shellType} -c ${command}\n`,
 				);
 				await spawnAsync(
 					"docker",

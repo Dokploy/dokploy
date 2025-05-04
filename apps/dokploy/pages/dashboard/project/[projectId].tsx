@@ -80,6 +80,7 @@ import {
 	Loader2,
 	PlusIcon,
 	Search,
+	ServerIcon,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -968,6 +969,11 @@ const Project = (
 															}}
 															className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border"
 														>
+															{service.serverId && (
+																<div className="absolute -left-1 -top-2">
+																	<ServerIcon className="size-4 text-muted-foreground" />
+																</div>
+															)}
 															<div className="absolute -right-1 -top-2">
 																<StatusTooltip status={service.status} />
 															</div>

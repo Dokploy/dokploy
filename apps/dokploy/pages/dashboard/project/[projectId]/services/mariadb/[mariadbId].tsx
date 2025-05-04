@@ -271,7 +271,7 @@ const Mariadb = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={mariadbId} type="mariadb" />
+											<ShowBackups id={mariadbId} databaseType="mariadb" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

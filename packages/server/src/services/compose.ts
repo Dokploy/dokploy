@@ -131,6 +131,12 @@ export const findComposeById = async (composeId: string) => {
 			bitbucket: true,
 			gitea: true,
 			server: true,
+			backups: {
+				with: {
+					destination: true,
+					deployments: true,
+				},
+			},
 		},
 	});
 	if (!result) {

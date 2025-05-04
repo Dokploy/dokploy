@@ -58,6 +58,7 @@ export const findPostgresById = async (postgresId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

@@ -1,15 +1,16 @@
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
+import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
-import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
-import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { ProjectLayout } from "@/components/layouts/project-layout";
@@ -218,18 +219,19 @@ const Service = (
 											className={cn(
 												"lg:grid lg:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "lg:grid-cols-8"
+													? "lg:grid-cols-9"
 													: data?.serverId
-														? "lg:grid-cols-7"
-														: "lg:grid-cols-8",
+														? "lg:grid-cols-8"
+														: "lg:grid-cols-9",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -245,6 +247,11 @@ const Service = (
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowEnvironment id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="backups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowBackups id={composeId} backupType="compose" />
 										</div>
 									</TabsContent>
 
@@ -326,13 +333,18 @@ const Service = (
 
 									<TabsContent value="deployments">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDeploymentsCompose composeId={composeId} />
+											<ShowDeployments
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
 										</div>
 									</TabsContent>
 
 									<TabsContent value="domains">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomainsCompose composeId={composeId} />
+											<ShowDomains id={composeId} type="compose" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

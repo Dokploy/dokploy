@@ -43,10 +43,10 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import type { CacheType } from "../../compose/domains/add-domain";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { cn } from "@/lib/utils";
+import type { CacheType } from "../domains/handle-domain";
 
 export const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },

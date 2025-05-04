@@ -318,9 +318,14 @@ const Service = (
 											/>
 										</div>
 									</TabsContent>
-									<TabsContent value="deployments" className="w-full">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDeployments applicationId={applicationId} />
+									<TabsContent value="deployments" className="w-full pt-2.5">
+										<div className="flex flex-col gap-4  border rounded-lg">
+											<ShowDeployments
+												id={applicationId}
+												type="application"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="preview-deployments" className="w-full">
@@ -330,7 +335,7 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="domains" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains applicationId={applicationId} />
+											<ShowDomains id={applicationId} type="application" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

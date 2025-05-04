@@ -70,6 +70,7 @@ export const initCronJobs = async () => {
 			mysql: true,
 			mongo: true,
 			user: true,
+			compose: true,
 		},
 	});
 
@@ -77,10 +78,10 @@ export const initCronJobs = async () => {
 		try {
 			if (backup.enabled) {
 				scheduleBackup(backup);
+				console.log(
+					`[Backup] ${backup.databaseType} Enabled with cron: [${backup.schedule}]`,
+				);
 			}
-			console.log(
-				`[Backup] ${backup.databaseType} Enabled with cron: [${backup.schedule}]`,
-			);
 		} catch (error) {
 			console.error(`[Backup] ${backup.databaseType} Error`, error);
 		}
