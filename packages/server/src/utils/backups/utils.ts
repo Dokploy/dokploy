@@ -21,9 +21,6 @@ export const scheduleBackup = (backup: BackupSchedule) => {
 		compose,
 	} = backup;
 	scheduleJob(backupId, schedule, async () => {
-		console.log("backup", backup);
-		console.log("databaseType", databaseType);
-		console.log("schedule", schedule);
 		if (backup.backupType === "database") {
 			if (databaseType === "postgres" && postgres) {
 				await runPostgresBackup(postgres, backup);
