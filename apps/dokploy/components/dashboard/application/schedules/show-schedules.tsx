@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ShowSchedulesLogs } from "./show-schedules-logs";
 import {
 	Tooltip,
 	TooltipContent,
@@ -26,6 +25,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 
 interface Props {
 	id: string;
@@ -88,7 +88,6 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 								schedule.serverId ||
 								schedule.application?.serverId ||
 								schedule.compose?.serverId;
-							const deployments = schedule.deployments;
 							return (
 								<div
 									key={schedule.scheduleId}
@@ -144,14 +143,15 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 									</div>
 
 									<div className="flex items-center gap-1.5">
-										<ShowSchedulesLogs
-											deployments={deployments || []}
+										<ShowDeploymentsModal
+											id={schedule.scheduleId}
+											type="schedule"
 											serverId={serverId || undefined}
 										>
 											<Button variant="ghost" size="icon">
 												<ClipboardList className="size-4  transition-colors " />
 											</Button>
-										</ShowSchedulesLogs>
+										</ShowDeploymentsModal>
 
 										<TooltipProvider delayDuration={0}>
 											<Tooltip>

@@ -195,3 +195,17 @@ export const apiFindAllByServer = schema
 		serverId: z.string().min(1),
 	})
 	.required();
+
+export const apiFindAllByType = z
+	.object({
+		id: z.string().min(1),
+		type: z.enum([
+			"application",
+			"compose",
+			"server",
+			"schedule",
+			"previewDeployment",
+			"backup",
+		]),
+	})
+	.required();

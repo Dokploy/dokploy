@@ -35,7 +35,7 @@ import {
 	PostgresqlIcon,
 } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { ShowSchedulesLogs } from "../../application/schedules/show-schedules-logs";
+import { ShowDeploymentsModal } from "../../application/deployments/show-deployments-modal";
 
 interface Props {
 	id: string;
@@ -179,12 +179,6 @@ export const ShowBackups = ({
 								)}
 								<div className="flex flex-col gap-6">
 									{postgres?.backups.map((backup) => {
-										const orderedDeployments = backup.deployments.sort(
-											(a, b) =>
-												new Date(b.createdAt).getTime() -
-												new Date(a.createdAt).getTime(),
-										);
-
 										const serverId =
 											"serverId" in postgres ? postgres.serverId : undefined;
 
@@ -285,8 +279,9 @@ export const ShowBackups = ({
 													</div>
 
 													<div className="flex flex-row md:flex-col gap-1.5">
-														<ShowSchedulesLogs
-															deployments={orderedDeployments}
+														<ShowDeploymentsModal
+															id={backup.backupId}
+															type="backup"
 															serverId={serverId || undefined}
 														>
 															<Button
@@ -296,7 +291,7 @@ export const ShowBackups = ({
 															>
 																<ClipboardList className="size-4  transition-colors " />
 															</Button>
-														</ShowSchedulesLogs>
+														</ShowDeploymentsModal>
 														<TooltipProvider delayDuration={0}>
 															<Tooltip>
 																<TooltipTrigger asChild>

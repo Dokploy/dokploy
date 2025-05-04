@@ -6,7 +6,6 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
-import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
@@ -334,7 +333,12 @@ const Service = (
 
 									<TabsContent value="deployments">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDeployments id={composeId} type="compose" />
+											<ShowDeployments
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
 										</div>
 									</TabsContent>
 
