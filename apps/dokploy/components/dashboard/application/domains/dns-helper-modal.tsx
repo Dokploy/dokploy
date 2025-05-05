@@ -94,7 +94,7 @@ export const DnsHelperModal = ({ domain, serverIp }: Props) => {
 									<li>
 										Test your domain by visiting:{" "}
 										{domain.host}
-										{typeof domain.path === 'string' && domain.path !== '/' && domain.path}
+										{typeof domain.path === 'string' && domain.path !== '/' && domain.path.substring(1)}
 									</li>
 									<li>Use a DNS lookup tool to verify your records</li>
 								</ul>
