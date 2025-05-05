@@ -140,7 +140,14 @@ export const DockerLogsId: React.FC<Props> = ({
 
 		ws.onmessage = (e) => {
 			if (!isCurrentConnection) return;
-			setRawLogs((prev) => prev + e.data);
+			setRawLogs((prev) => {
+				const updated = prev + e.data;
+				const splitLines = updated.split('\n');
+				if (splitLines.length > lines) {
+					return splitLines.slice(-lines).join('\n');
+				}
+				return updated;
+			});
 			setIsLoading(false);
 			if (noDataTimeout) clearTimeout(noDataTimeout);
 		};
