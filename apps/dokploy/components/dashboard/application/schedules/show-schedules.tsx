@@ -162,20 +162,16 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 														size="icon"
 														isLoading={isLoading}
 														onClick={async () => {
+															toast.success("Schedule run successfully");
+
 															await runManually({
 																scheduleId: schedule.scheduleId,
-															})
-																.then(async () => {
-																	toast.success("Schedule run successfully");
-
-																	await new Promise((resolve) =>
-																		setTimeout(resolve, 1500),
-																	);
-																	refetchSchedules();
-																})
-																.catch(() => {
-																	toast.error("Error running schedule:");
-																});
+															}).then(async () => {
+																await new Promise((resolve) =>
+																	setTimeout(resolve, 1500),
+																);
+																refetchSchedules();
+															});
 														}}
 													>
 														<Play className="size-4  transition-colors" />
