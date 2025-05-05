@@ -56,7 +56,9 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write(`Running command: ${postgresCommand}\n`);
 			await execAsync(postgresCommand);
 
-			await execAsync(`cp -r ${BASE_PATH}/* ${tempDir}/filesystem/`);
+			await execAsync(
+				`rsync -av --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
+			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
 
