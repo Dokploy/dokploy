@@ -331,8 +331,8 @@ const Service = (
 										</div>
 									</TabsContent>
 
-									<TabsContent value="deployments">
-										<div className="flex flex-col gap-4 pt-2.5">
+									<TabsContent value="deployments" className="w-full pt-2.5">
+										<div className="flex flex-col gap-4  border rounded-lg">
 											<ShowDeployments
 												id={composeId}
 												type="compose"
