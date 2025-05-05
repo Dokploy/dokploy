@@ -38,7 +38,9 @@ export const runComposeBackup = async (
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, backupCommand);
 		} else {
-			await execAsync(backupCommand);
+			await execAsync(backupCommand, {
+				shell: "/bin/bash",
+			});
 		}
 
 		await sendDatabaseBackupNotifications({
