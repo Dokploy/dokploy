@@ -85,7 +85,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 <a href="https://supafort.com/?ref=dokploy" target="_blank"><img src="https://supafort.com/build/q-4Ht4rBZR.webp" alt="Supafort.com"  height="50"/></a>
 
 
-<a href="https://agentdock.ai/?ref=dokploy" target="_blank"><img src=".github/sponsors/agentdock.jpg" alt="agentdock.ai"  height="85"/></a>
+<a href="https://agentdock.ai/?ref=dokploy" target="_blank"><img src=".github/sponsors/agentdock.png" alt="agentdock.ai"  height="85"/></a>
 
 </div>
 
