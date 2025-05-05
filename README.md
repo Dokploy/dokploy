@@ -80,14 +80,14 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ### Premium Supporters 🥇
 
-<div style="display: flex; gap: 30px; flex-wrap: wrap; flex-direction: row; align-items: center;">
-<div style="display: flex; gap: 30px; flex-wrap: wrap;">
-<a href="https://supafort.com/?ref=dokploy" target="_blank"><img src="https://supafort.com/build/q-4Ht4rBZR.webp" alt="Supafort.com" width="190"/></a>
-</div>
+<div style="display: flex; align-items: center; gap: 20px;">
 
-<div style="display: flex; gap: 30px; flex-wrap: wrap;">
+<a href="https://supafort.com/?ref=dokploy" target="_blank"><img src="https://supafort.com/build/q-4Ht4rBZR.webp" alt="Supafort.com" width="190"/></a>
+
+
+
 <a href="https://agentdock.ai/?ref=dokploy" target="_blank"><img src=".github/sponsors/agentdock.jpg" alt="agentdock.ai" width="140"/></a>
-</div>
+
 </div>
 
 <!-- Elite Contributors 🥈 -->
