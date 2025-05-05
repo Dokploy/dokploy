@@ -142,9 +142,9 @@ export const DockerLogsId: React.FC<Props> = ({
 			if (!isCurrentConnection) return;
 			setRawLogs((prev) => {
 				const updated = prev + e.data;
-				const splitLines = updated.split('\n');
+				const splitLines = updated.split("\n");
 				if (splitLines.length > lines) {
-					return splitLines.slice(-lines).join('\n');
+					return splitLines.slice(-lines).join("\n");
 				}
 				return updated;
 			});
