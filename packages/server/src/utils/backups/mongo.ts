@@ -35,7 +35,9 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		if (mongo.serverId) {
 			await execAsyncRemote(mongo.serverId, backupCommand);
 		} else {
-			await execAsync(backupCommand);
+			await execAsync(backupCommand, {
+				shell: "/bin/bash",
+			});
 		}
 
 		await sendDatabaseBackupNotifications({

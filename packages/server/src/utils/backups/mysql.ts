@@ -37,7 +37,9 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 		if (mysql.serverId) {
 			await execAsyncRemote(mysql.serverId, backupCommand);
 		} else {
-			await execAsync(backupCommand);
+			await execAsync(backupCommand, {
+				shell: "/bin/bash",
+			});
 		}
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
