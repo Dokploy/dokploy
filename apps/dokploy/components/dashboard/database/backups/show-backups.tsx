@@ -334,6 +334,7 @@ export const ShowBackups = ({
 														<HandleBackup
 															backupType={backup.backupType}
 															backupId={backup.backupId}
+															databaseType={backup.databaseType}
 															refetch={refetch}
 														/>
 														<DialogAction
