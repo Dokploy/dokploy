@@ -381,6 +381,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 													<CommandEmpty>No branch found.</CommandEmpty>
 
 													<CommandGroup>
+														{branches && branches.length === 0 && (
+															<CommandItem>No branches found.</CommandItem>
+														)}
 														{branches?.map((branch: GiteaBranch) => (
 															<CommandItem
 																value={branch.name}

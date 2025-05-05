@@ -145,10 +145,8 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 											{...field}
 											onChange={(e) => {
 												const val = e.target.value?.trim() || "";
-												form.setValue(
-													"appName",
-													`${slug}-${val.toLowerCase().replaceAll(" ", "-")}`,
-												);
+												const serviceName = slugify(val);
+												form.setValue("appName", `${slug}-${serviceName}`);
 												field.onChange(val);
 											}}
 										/>

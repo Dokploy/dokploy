@@ -6,6 +6,7 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	initCronJobs,
+	initSchedules,
 	initializeNetwork,
 	sendDokployRestartNotifications,
 	setupDirectories,
@@ -49,6 +50,7 @@ void app.prepare().then(async () => {
 			createDefaultServerTraefikConfig();
 			await migration();
 			await initCronJobs();
+			await initSchedules();
 			await sendDokployRestartNotifications();
 		}
 

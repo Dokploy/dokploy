@@ -15,7 +15,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.rol !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can create an organization",
@@ -86,7 +86,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.rol !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can update it",
@@ -109,7 +109,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.rol !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can delete it",
@@ -157,4 +157,31 @@ export const organizationRouter = createTRPCRouter({
 			orderBy: [desc(invitation.status), desc(invitation.expiresAt)],
 		});
 	}),
+	removeInvitation: adminProcedure
+		.input(z.object({ invitationId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const invitationResult = await db.query.invitation.findFirst({
+				where: eq(invitation.id, input.invitationId),
+			});
+
+			if (!invitationResult) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Invitation not found",
+				});
+			}
+
+			if (
+				invitationResult?.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to remove this invitation",
+				});
+			}
+
+			return await db
+				.delete(invitation)
+				.where(eq(invitation.id, input.invitationId));
+		}),
 });

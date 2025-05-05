@@ -363,10 +363,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value?.trim() || "";
-														form.setValue(
-															"appName",
-															`${slug}-${val.toLowerCase()}`,
-														);
+														const serviceName = slugify(val);
+														form.setValue("appName", `${slug}-${serviceName}`);
 														field.onChange(val);
 													}}
 												/>

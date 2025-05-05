@@ -36,6 +36,9 @@ export const ShowInvitations = () => {
 	const { data, isLoading, refetch } =
 		api.organization.allInvitations.useQuery();
 
+	const { mutateAsync: removeInvitation } =
+		api.organization.removeInvitation.useMutation();
+
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
@@ -182,6 +185,22 @@ export const ShowInvitations = () => {
 																						Cancel Invitation
 																					</DropdownMenuItem>
 																				)}
+
+																				<DropdownMenuItem
+																					className="w-full cursor-pointer"
+																					onSelect={async (_e) => {
+																						await removeInvitation({
+																							invitationId: invitation.id,
+																						}).then(() => {
+																							refetch();
+																							toast.success(
+																								"Invitation removed",
+																							);
+																						});
+																					}}
+																				>
+																					Remove Invitation
+																				</DropdownMenuItem>
 																			</>
 																		)}
 																	</DropdownMenuContent>

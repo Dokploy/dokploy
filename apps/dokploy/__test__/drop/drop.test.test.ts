@@ -36,6 +36,7 @@ const baseApp: ApplicationNested = {
 	watchPaths: [],
 	enableSubmodules: false,
 	applicationStatus: "done",
+	triggerType: "push",
 	appName: "",
 	autoDeploy: true,
 	serverId: "",
