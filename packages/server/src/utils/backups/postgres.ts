@@ -39,7 +39,9 @@ export const runPostgresBackup = async (
 		if (postgres.serverId) {
 			await execAsyncRemote(postgres.serverId, backupCommand);
 		} else {
-			await execAsync(backupCommand);
+			await execAsync(backupCommand, {
+				shell: "/bin/bash",
+			});
 		}
 
 		await sendDatabaseBackupNotifications({
