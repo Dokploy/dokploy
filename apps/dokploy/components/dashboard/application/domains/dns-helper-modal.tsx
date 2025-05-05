@@ -93,7 +93,6 @@ export const DnsHelperModal = ({ domain, serverIp }: Props) => {
 									<li>Wait for DNS propagation (usually 15-30 minutes)</li>
 									<li>
 										Test your domain by visiting:{" "}
-										{domain.https ? "https://" : "http://"}
 										{domain.host}
 										{domain.path || "/"}
 									</li>
