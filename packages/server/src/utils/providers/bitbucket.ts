@@ -156,11 +156,13 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
 
 	try {
-		const cloneCommand = `
+		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} && \
+			cd ${outputPath} && git lfs install || true && \
+			cd ${outputPath} && git lfs pull || true
 		`;
-		await execAsyncRemote(serverId, cloneCommand);
+		await execAsyncRemote(serverId, command);
 	} catch (error) {
 		throw error;
 	}
@@ -215,6 +217,8 @@ if ! git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--rec
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
+cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 
