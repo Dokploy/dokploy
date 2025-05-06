@@ -102,10 +102,7 @@ export const ProfileForm = () => {
 					keepValues: true,
 				},
 			);
-
-			form.reset({
-				allowImpersonation: data?.user?.allowImpersonation,
-			});
+			form.setValue("allowImpersonation", data?.user?.allowImpersonation);
 
 			if (data.user.email) {
 				generateSHA256Hash(data.user.email).then((hash) => {

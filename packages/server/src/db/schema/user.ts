@@ -57,6 +57,7 @@ export const users_temp = pgTable("user_temp", {
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
 	logCleanupCron: text("logCleanupCron"),
+	role: text("role").notNull().default("user"),
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
@@ -135,6 +136,8 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 const createSchema = createInsertSchema(users_temp, {
 	id: z.string().min(1),
 	isRegistered: z.boolean().optional(),
+}).omit({
+	role: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({

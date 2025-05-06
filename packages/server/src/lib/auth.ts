@@ -194,7 +194,6 @@ const { handler, api } = betterAuth({
 			},
 		},
 	},
-
 	plugins: [
 		apiKey({
 			enableMetadata: true,
@@ -232,7 +231,6 @@ const { handler, api } = betterAuth({
 export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
-	listUsers: api.listUsers,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {

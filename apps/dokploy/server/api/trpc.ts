@@ -31,7 +31,9 @@ import { ZodError } from "zod";
 
 interface CreateContextOptions {
 	user: (User & { role: "member" | "admin" | "owner"; ownerId: string }) | null;
-	session: (Session & { activeOrganizationId: string }) | null;
+	session:
+		| (Session & { activeOrganizationId: string; impersonatedBy?: string })
+		| null;
 	req: CreateNextContextOptions["req"];
 	res: CreateNextContextOptions["res"];
 }

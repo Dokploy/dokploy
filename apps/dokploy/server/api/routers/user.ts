@@ -1,6 +1,5 @@
 import {
 	IS_CLOUD,
-	auth,
 	createApiKey,
 	findOrganizationById,
 	findUserById,
@@ -92,42 +91,18 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult;
 	}),
-	listUsers: adminProcedure
-		.input(
-			z.object({
-				search: z.string().optional(),
-			}),
-		)
-		.query(async ({ ctx, input }) => {
-			try {
-				console.log(process.env.USER_ADMIN_ID, ctx.user.id);
-				if (process.env.USER_ADMIN_ID !== ctx.user.id) {
-					return [];
-				}
-				const users = await auth.listUsers({
-					query: {
-						limit: 100,
-						filterField: "allowImpersonation",
-						filterOperator: "eq",
-						filterValue: true,
-						...(input.search && {
-							searchField: "email",
-							searchOperator: "contains",
-							searchValue: input.search,
-						}),
-					},
-					// @ts-ignore
-					headers: {
-						cookie: ctx.req.headers.cookie,
-					},
-				});
-				console.log(users);
-				return users;
-			} catch (error) {
-				console.log(error);
-				throw error;
-			}
-		}),
+	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
+		if (!IS_CLOUD) {
+			return false;
+		}
+		if (
+			process.env.USER_ADMIN_ID === ctx.user.id ||
+			ctx.session?.impersonatedBy === process.env.USER_ADMIN_ID
+		) {
+			return true;
+		}
+		return false;
+	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(

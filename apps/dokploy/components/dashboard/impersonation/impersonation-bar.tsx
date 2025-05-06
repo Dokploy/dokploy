@@ -26,7 +26,6 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-	CommandSeparator,
 } from "@/components/ui/command";
 import {
 	Popover,
@@ -46,26 +45,52 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import copy from "copy-to-clipboard";
 import { api } from "@/utils/api";
-import type { RouterOutputs } from "@/utils/api";
 
-type User = RouterOutputs["user"]["listUsers"]["users"][number];
+type User = typeof authClient.$Infer.Session.user;
 
 export const ImpersonationBar = () => {
+	const [users, setUsers] = useState<User[]>([]);
 	const [selectedUser, setSelectedUser] = useState<User | null>(null);
 	const [isImpersonating, setIsImpersonating] = useState(false);
 	const [open, setOpen] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
 	const [showBar, setShowBar] = useState(false);
-	const [searchTerm, setSearchTerm] = useState("");
-	const [recentlyAccessed, setRecentlyAccessed] = useState<User[]>([]);
 	const { data } = api.user.get.useQuery();
-	const { data: users, isLoading } = api.user.listUsers.useQuery(
-		{
-			search: searchTerm,
-		},
-		{
-			enabled: open && !isImpersonating,
-		},
-	);
+
+	const fetchUsers = async (search?: string) => {
+		try {
+			const session = await authClient.getSession();
+			if (session?.data?.session?.impersonatedBy) {
+				return;
+			}
+			setIsLoading(true);
+			const response = await authClient.admin.listUsers({
+				query: {
+					limit: 30,
+					...(search && {
+						searchField: "email",
+						searchOperator: "contains",
+						searchValue: search,
+					}),
+				},
+			});
+
+			const filteredUsers = response.data?.users.filter(
+				// @ts-ignore
+				(user) => user.allowImpersonation && data?.user?.email !== user.email,
+			);
+
+			if (!response.error) {
+				// @ts-ignore
+				setUsers(filteredUsers || []);
+			}
+		} catch (error) {
+			console.error("Error fetching users:", error);
+			toast.error("Error loading users");
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	const handleImpersonate = async () => {
 		if (!selectedUser) return;
@@ -76,11 +101,6 @@ export const ImpersonationBar = () => {
 			});
 			setIsImpersonating(true);
 			setOpen(false);
-
-			setRecentlyAccessed((prev) => {
-				const filtered = prev.filter((u) => u.id !== selectedUser.id);
-				return [selectedUser, ...filtered].slice(0, 5);
-			});
 
 			toast.success("Successfully impersonating user", {
 				description: `You are now viewing as ${selectedUser.name || selectedUser.email}`,
@@ -121,7 +141,7 @@ export const ImpersonationBar = () => {
 		};
 
 		checkImpersonation();
-		// fetchUsers();
+		fetchUsers();
 	}, []);
 
 	return (
@@ -159,7 +179,7 @@ export const ImpersonationBar = () => {
 						showBar ? "translate-y-0" : "translate-y-full",
 					)}
 				>
-					<div className="flex items-center gap-4 px-20 w-full">
+					<div className="flex items-center gap-4 px-4 md:px-20 w-full">
 						<Logo className="w-10 h-10" />
 						{!isImpersonating ? (
 							<div className="flex items-center gap-2 w-full">
@@ -196,7 +216,7 @@ export const ImpersonationBar = () => {
 											<CommandInput
 												placeholder="Search users by email or name..."
 												onValueChange={(search) => {
-													setSearchTerm(search);
+													fetchUsers(search);
 												}}
 												className="h-9"
 											/>
@@ -208,46 +228,8 @@ export const ImpersonationBar = () => {
 												<>
 													<CommandEmpty>No users found.</CommandEmpty>
 													<CommandList>
-														{recentlyAccessed.length > 0 && !searchTerm && (
-															<>
-																<CommandGroup heading="Recently Accessed">
-																	{recentlyAccessed.map((user) => (
-																		<CommandItem
-																			key={user.id}
-																			value={user.email}
-																			onSelect={() => {
-																				setSelectedUser(user);
-																				setOpen(false);
-																			}}
-																		>
-																			<span className="flex items-center gap-2 flex-1">
-																				<UserIcon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-																				<span className="flex flex-col items-start">
-																					<span className="text-sm font-medium">
-																						{user.name || ""}
-																					</span>
-																					<span className="text-xs text-muted-foreground">
-																						{user.email} • {user.role}
-																					</span>
-																				</span>
-																			</span>
-																			<CheckIcon
-																				className={cn(
-																					"ml-auto h-4 w-4",
-																					selectedUser?.id === user.id
-																						? "opacity-100"
-																						: "opacity-0",
-																				)}
-																			/>
-																		</CommandItem>
-																	))}
-																</CommandGroup>
-																<CommandSeparator />
-															</>
-														)}
-
 														<CommandGroup heading="All Users">
-															{users?.users.map((user) => (
+															{users.map((user) => (
 																<CommandItem
 																	key={user.id}
 																	value={user.email}
@@ -295,8 +277,8 @@ export const ImpersonationBar = () => {
 								</Button>
 							</div>
 						) : (
-							<div className="flex items-center gap-4 w-full">
-								<div className="flex items-center gap-4 flex-1">
+							<div className="flex items-center gap-4 w-full flex-wrap">
+								<div className="flex items-center gap-4 flex-1 flex-wrap">
 									<Avatar className="h-10 w-10">
 										<AvatarImage
 											src={data?.user?.image || ""}
@@ -319,7 +301,7 @@ export const ImpersonationBar = () => {
 												{data?.user?.name || ""}
 											</span>
 										</div>
-										<div className="flex items-center gap-3 text-sm text-muted-foreground">
+										<div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
 											<span className="flex items-center gap-1">
 												<UserIcon className="h-3 w-3" />
 												{data?.user?.email} • {data?.role}
