@@ -138,9 +138,16 @@ export const getCustomGitCloneCommand = async (
 		enableSubmodules,
 	} = entity;
 
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
+
 	if (!customGitUrl || !customGitBranch) {
 		const command = `
-			echo  "Error: ❌ Repository not found" >> ${logPath};
+			echo "Error: ❌ Repository not found" >> ${logPath};
 			exit 1;
 		`;
 
@@ -175,9 +182,6 @@ export const getCustomGitCloneCommand = async (
 		}
 		command.push(`rm -rf ${outputPath};`);
 		command.push(`mkdir -p ${outputPath};`);
-		command.push(
-			`echo "Cloning Custom Git ${customGitUrl}" to ${outputPath}: ✅ >> ${logPath};`,
-		);
 		if (customGitSSHKeyId) {
 			const sshKey = await findSSHKeyById(customGitSSHKeyId);
 			const { port } = sanitizeRepoPathSSH(customGitUrl);
@@ -195,9 +199,10 @@ export const getCustomGitCloneCommand = async (
 			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
 				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
 				exit 1;
-			fi
-			`,
+			fi`,
 		);
+		command.push(`cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;`);
+		command.push(`cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;`);
 		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
 		return command.join("\n");
 	} catch (error) {
@@ -345,6 +350,8 @@ export const cloneGitRawRepository = async (entity: {
 				}),
 			},
 		});
+		await execAsync(`cd ${outputPath} && git lfs install || true;`);
+		await execAsync(`cd ${outputPath} && git lfs pull || true;`);
 	} catch (error) {
 		throw error;
 	}
@@ -415,7 +422,9 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
-			fi
+			fi;
+			cd ${outputPath} && git lfs install || true;
+			cd ${outputPath} && git lfs pull || true;
 			`,
 		);
 

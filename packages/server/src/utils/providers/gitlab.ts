@@ -220,7 +220,6 @@ export const getGitlabCloneCommand = async (
 	await refreshGitlabToken(gitlabId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
 	const repoclone = `${gitlab?.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
 	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
 
@@ -231,6 +230,8 @@ if ! git clone --branch ${gitlabBranch} --depth 1 ${enableSubmodules ? "--recurs
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
+cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 
@@ -411,7 +412,9 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} && \
+			cd ${outputPath} && git lfs install || true && \
+			cd ${outputPath} && git lfs pull || true
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
