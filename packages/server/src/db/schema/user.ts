@@ -59,6 +59,7 @@ export const users_temp = pgTable("user_temp", {
 	logCleanupCron: text("logCleanupCron"),
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
+	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {

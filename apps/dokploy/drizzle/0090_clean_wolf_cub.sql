@@ -1,0 +1,1 @@
+ALTER TABLE "user_temp" ADD COLUMN "allowImpersonation" boolean DEFAULT false NOT NULL;
