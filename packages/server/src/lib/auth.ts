@@ -3,7 +3,7 @@ import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
-import { apiKey, organization, twoFactor } from "better-auth/plugins";
+import { apiKey, organization, twoFactor, admin } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 import { db } from "../db";
@@ -187,9 +187,13 @@ const { handler, api } = betterAuth({
 				// required: true,
 				input: false,
 			},
+			allowImpersonation: {
+				fieldName: "allowImpersonation",
+				type: "boolean",
+				defaultValue: false,
+			},
 		},
 	},
-
 	plugins: [
 		apiKey({
 			enableMetadata: true,
@@ -214,6 +218,13 @@ const { handler, api } = betterAuth({
 				}
 			},
 		}),
+		...(IS_CLOUD
+			? [
+					admin({
+						adminUserIds: [process.env.USER_ADMIN_ID as string],
+					}),
+				]
+			: []),
 	],
 });
 

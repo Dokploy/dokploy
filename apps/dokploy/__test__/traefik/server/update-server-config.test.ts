@@ -16,6 +16,8 @@ import { beforeEach, expect, test, vi } from "vitest";
 const baseAdmin: User = {
 	https: false,
 	enablePaidFeatures: false,
+	allowImpersonation: false,
+	role: "user",
 	metricsConfig: {
 		containers: {
 			refreshRate: 20,
