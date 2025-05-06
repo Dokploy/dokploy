@@ -91,6 +91,18 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult;
 	}),
+	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
+		if (!IS_CLOUD) {
+			return false;
+		}
+		if (
+			process.env.USER_ADMIN_ID === ctx.user.id ||
+			ctx.session?.impersonatedBy === process.env.USER_ADMIN_ID
+		) {
+			return true;
+		}
+		return false;
+	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(
