@@ -109,7 +109,7 @@ export const getDockerCommand = (
 		}
 
 		for (const arg of args) {
-			commandArgs.push("--build-arg", arg);
+			commandArgs.push("--build-arg", `'${arg}'`);
 		}
 
 		/*
