@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -200,6 +201,22 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			</CardHeader>
 			<CardContent>
 				<Form {...form}>
+					<AlertBlock>
+						Builders can consume significant memory and CPU resources
+						(recommended: 4+ GB RAM and 2+ CPU cores). For production
+						environments, please review our{" "}
+						<a
+							href="https://docs.dokploy.com/docs/core/applications/going-production"
+							target="_blank"
+							rel="noreferrer"
+							className="font-medium underline underline-offset-4"
+						>
+							Production Guide
+						</a>{" "}
+						for best practices and optimization recommendations. Builders are
+						suitable for development and prototyping purposes when you have
+						sufficient resources available.
+					</AlertBlock>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-4 p-2"

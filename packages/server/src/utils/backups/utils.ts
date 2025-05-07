@@ -159,7 +159,10 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 		case "mysql": {
 			const mysql = backup.mysql;
 			if (backupType === "database" && mysql) {
-				return getMysqlBackupCommand(backup.database, mysql.databasePassword);
+				return getMysqlBackupCommand(
+					backup.database,
+					mysql.databaseRootPassword,
+				);
 			}
 			if (backupType === "compose" && backup.metadata?.mysql) {
 				return getMysqlBackupCommand(
