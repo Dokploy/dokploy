@@ -84,6 +84,7 @@ interface CloneGithubRepository {
 	logPath: string;
 	type?: "application" | "compose";
 	enableSubmodules: boolean;
+	enableLfs?: boolean;
 }
 export const cloneGithubRepository = async ({
 	logPath,
@@ -169,6 +170,7 @@ export const getGithubCloneCommand = async ({
 		githubId,
 		serverId,
 		enableSubmodules,
+		enableLfs,
 	} = entity;
 	const isCompose = type === "compose";
 	if (!serverId) {
@@ -228,8 +230,8 @@ if ! git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-subm
 	echo "❌ [ERROR] Fail to clone repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
-cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
-cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;
+${enableLfs ? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;` : ''}
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 

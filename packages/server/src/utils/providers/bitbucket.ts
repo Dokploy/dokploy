@@ -182,6 +182,7 @@ export const getBitbucketCloneCommand = async (
 		bitbucketId,
 		serverId,
 		enableSubmodules,
+		enableLfs,
 	} = entity;
 
 	if (!serverId) {
@@ -217,8 +218,8 @@ if ! git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--rec
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
-cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
-cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;
+${enableLfs ? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;` : ''}
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 
@@ -289,7 +290,7 @@ export const getBitbucketBranches = async (
 		const response = await fetch(url, {
 			method: "GET",
 			headers: {
-				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider?.appPassword}`).toString("base64")}`,
 			},
 		});
 

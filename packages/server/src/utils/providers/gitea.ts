@@ -120,6 +120,7 @@ export const getGiteaCloneCommand = async (
 		serverId,
 		gitea,
 		enableSubmodules,
+		enableLfs,
 	} = entity;
 
 	if (!serverId) {
@@ -161,8 +162,8 @@ export const getGiteaCloneCommand = async (
       exit 1;
     fi
 
-    cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
-    cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;
+    ${enableLfs ? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+    cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;` : ''}
     echo "Cloned ${repoClone} to ${outputPath}: ✅" >> ${logPath};
   `;
 
