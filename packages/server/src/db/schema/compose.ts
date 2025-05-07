@@ -75,6 +75,7 @@ export const compose = pgTable("compose", {
 	command: text("command").notNull().default(""),
 	//
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
+	enableLfs: boolean("enableLfs").notNull().default(false),
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
@@ -187,14 +188,35 @@ export const apiFetchServices = z.object({
 	type: z.enum(["fetch", "cache"]).optional().default("cache"),
 });
 
+export const apiSaveGitProvider = createSchema
+	.pick({
+		customGitBranch: true,
+		composeId: true,
+		customGitUrl: true,
+		customGitSSHKeyId: true,
+		composePath: true,
+		watchPaths: true,
+		enableSubmodules: true,
+		enableLfs: true,
+	})
+	.required();
+
 export const apiUpdateCompose = createSchema
 	.partial()
 	.extend({
-		composeId: z.string(),
-		composeFile: z.string().optional(),
+		composeId: z.string().min(1),
+		repository: z.string().optional(),
+		branch: z.string().optional(),
+		owner: z.string().optional(),
 		command: z.string().optional(),
-	})
-	.omit({ serverId: true });
+		suffix: z.string().optional(),
+		composeFile: z.string().optional(),
+		composePath: z.string().optional(),
+		watchPaths: z.array(z.string()).optional(),
+		triggerType: z.enum(["push", "tag"]).optional(),
+		enableSubmodules: z.boolean().optional(),
+		enableLfs: z.boolean().optional(),
+	});
 
 export const apiRandomizeCompose = createSchema
 	.pick({

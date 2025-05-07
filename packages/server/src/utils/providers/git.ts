@@ -124,6 +124,7 @@ export const getCustomGitCloneCommand = async (
 		customGitSSHKeyId?: string | null;
 		serverId: string | null;
 		enableSubmodules: boolean;
+		enableLfs?: boolean;
 	},
 	logPath: string,
 	isCompose = false,
@@ -136,6 +137,7 @@ export const getCustomGitCloneCommand = async (
 		customGitSSHKeyId,
 		serverId,
 		enableSubmodules,
+		enableLfs,
 	} = entity;
 
 	if (!serverId) {
@@ -196,13 +198,12 @@ export const getCustomGitCloneCommand = async (
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
-				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
+			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
+				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
-			fi`,
+			fi;
+				${entity.enableLfs ? `cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true;` : ''}`
 		);
-		command.push(`cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;`);
-		command.push(`cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;`);
 		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
 		return command.join("\n");
 	} catch (error) {
