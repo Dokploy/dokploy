@@ -60,6 +60,7 @@ const GithubProviderSchema = z.object({
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
+	enableLfs: z.boolean().default(false),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;

@@ -60,6 +60,7 @@ const BitbucketProviderSchema = z.object({
 	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().optional(),
+	enableLfs: z.boolean().optional(),
 });
 
 type BitbucketProvider = z.infer<typeof BitbucketProviderSchema>;
@@ -146,8 +147,9 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			bitbucketBuildPath: data.buildPath,
 			bitbucketId: data.bitbucketId,
 			applicationId,
-			watchPaths: data.watchPaths || [],
+			watchPaths: data.watchPaths || null,
 			enableSubmodules: data.enableSubmodules || false,
+			enableLfs: data.enableLfs || false,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -484,6 +486,21 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										/>
 									</FormControl>
 									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								</FormItem>
+							)}
+							/>
+						<FormField
+							control={form.control}
+							name="enableLfs"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Git LFS</FormLabel>
 								</FormItem>
 							)}
 						/>
