@@ -94,7 +94,8 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 		await mutateAsync({
 			customGitBranch: values.branch,
 			customGitUrl: values.repositoryURL,
-			customGitSSHKeyId: values.sshKey === "none" || !values.sshKey ? null : values.sshKey,
+			customGitSSHKeyId:
+				values.sshKey === "none" || !values.sshKey ? null : values.sshKey,
 			customGitBuildPath: values.buildPath,
 			applicationId,
 			watchPaths: values.watchPaths || [],

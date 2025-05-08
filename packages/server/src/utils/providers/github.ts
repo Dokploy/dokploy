@@ -230,8 +230,12 @@ if ! git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-subm
 	echo "❌ [ERROR] Fail to clone repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
-${enableLfs ? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
-cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;` : ''}
+${
+	enableLfs
+		? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;`
+		: ""
+}
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 

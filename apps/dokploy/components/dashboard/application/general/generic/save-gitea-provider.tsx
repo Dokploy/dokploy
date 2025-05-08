@@ -522,7 +522,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
-							/>
+						/>
 						<FormField
 							control={form.control}
 							name="enableLfs"

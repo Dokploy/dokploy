@@ -465,42 +465,42 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	saveGitProdiver: protectedProcedure
-        .input(
-            z.object({
-                customGitBranch: z.string().nullable(),
-                applicationId: z.string(),
-                customGitBuildPath: z.string().nullable(),
-                customGitUrl: z.string().nullable(),
-                customGitSSHKeyId: z.string().nullable(),
-                watchPaths: z.array(z.string()).nullable(),
-                enableSubmodules: z.boolean(),
-                enableLfs: z.boolean(),
-            })
-        )
-        .mutation(async ({ input, ctx }) => {
-            const application = await findApplicationById(input.applicationId);
-            if (
-                application.project.organizationId !== ctx.session.activeOrganizationId
-            ) {
-                throw new TRPCError({
-                    code: "UNAUTHORIZED",
-                    message: "You are not authorized to save this git provider",
-                });
-            }
-            await updateApplication(input.applicationId, {
-                customGitUrl: input.customGitUrl,
-                customGitBranch: input.customGitBranch,
-                customGitSSHKeyId: input.customGitSSHKeyId,
-                customGitBuildPath: input.customGitBuildPath,
-                enableSubmodules: input.enableSubmodules,
-                enableLfs: input.enableLfs,
-                applicationStatus: "idle",
-                sourceType: "git",
-                watchPaths: input.watchPaths,
-            });
+		.input(
+			z.object({
+				customGitBranch: z.string().nullable(),
+				applicationId: z.string(),
+				customGitBuildPath: z.string().nullable(),
+				customGitUrl: z.string().nullable(),
+				customGitSSHKeyId: z.string().nullable(),
+				watchPaths: z.array(z.string()).nullable(),
+				enableSubmodules: z.boolean(),
+				enableLfs: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this git provider",
+				});
+			}
+			await updateApplication(input.applicationId, {
+				customGitUrl: input.customGitUrl,
+				customGitBranch: input.customGitBranch,
+				customGitSSHKeyId: input.customGitSSHKeyId,
+				customGitBuildPath: input.customGitBuildPath,
+				enableSubmodules: input.enableSubmodules,
+				enableLfs: input.enableLfs,
+				applicationStatus: "idle",
+				sourceType: "git",
+				watchPaths: input.watchPaths,
+			});
 
-            return true;
-        }),
+			return true;
+		}),
 	markRunning: protectedProcedure
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {

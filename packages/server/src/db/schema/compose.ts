@@ -201,22 +201,20 @@ export const apiSaveGitProvider = createSchema
 	})
 	.required();
 
-export const apiUpdateCompose = createSchema
-	.partial()
-	.extend({
-		composeId: z.string().min(1),
-		repository: z.string().optional(),
-		branch: z.string().optional(),
-		owner: z.string().optional(),
-		command: z.string().optional(),
-		suffix: z.string().optional(),
-		composeFile: z.string().optional(),
-		composePath: z.string().optional(),
-		watchPaths: z.array(z.string()).optional(),
-		triggerType: z.enum(["push", "tag"]).optional(),
-		enableSubmodules: z.boolean().optional(),
-		enableLfs: z.boolean().optional(),
-	});
+export const apiUpdateCompose = createSchema.partial().extend({
+	composeId: z.string().min(1),
+	repository: z.string().optional(),
+	branch: z.string().optional(),
+	owner: z.string().optional(),
+	command: z.string().optional(),
+	suffix: z.string().optional(),
+	composeFile: z.string().optional(),
+	composePath: z.string().optional(),
+	watchPaths: z.array(z.string()).optional(),
+	triggerType: z.enum(["push", "tag"]).optional(),
+	enableSubmodules: z.boolean().optional(),
+	enableLfs: z.boolean().optional(),
+});
 
 export const apiRandomizeCompose = createSchema
 	.pick({

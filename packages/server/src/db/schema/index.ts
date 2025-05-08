@@ -19,16 +19,16 @@ export * from "./redis";
 export * from "./shared";
 // Export compose schema members explicitly to avoid naming conflicts
 export {
-  compose,
-  composeRelations,
-  apiCreateCompose,
-  apiCreateComposeByTemplate,
-  apiFindCompose,
-  apiDeleteCompose,
-  apiFetchServices,
-  apiSaveGitProvider,
-  apiUpdateCompose,
-  apiRandomizeCompose
+	compose,
+	composeRelations,
+	apiCreateCompose,
+	apiCreateComposeByTemplate,
+	apiFindCompose,
+	apiDeleteCompose,
+	apiFetchServices,
+	apiSaveGitProvider,
+	apiUpdateCompose,
+	apiRandomizeCompose,
 } from "./compose";
 export * from "./registry";
 export * from "./notification";
