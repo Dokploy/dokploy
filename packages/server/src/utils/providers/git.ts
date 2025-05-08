@@ -202,7 +202,7 @@ export const getCustomGitCloneCommand = async (
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
 			fi;
-				${entity.enableLfs ? `cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true;` : ''}`
+				${entity.enableLfs ? `cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true;` : ""}`,
 		);
 		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
 		return command.join("\n");

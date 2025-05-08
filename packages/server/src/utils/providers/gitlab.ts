@@ -231,8 +231,12 @@ if ! git clone --branch ${gitlabBranch} --depth 1 ${enableSubmodules ? "--recurs
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
-${enableLfs ? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
-cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;` : ''}
+${
+	enableLfs
+		? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;`
+		: ""
+}
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 
