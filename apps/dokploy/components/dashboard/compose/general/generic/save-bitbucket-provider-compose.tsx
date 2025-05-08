@@ -60,6 +60,7 @@ const BitbucketProviderSchema = z.object({
 	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
+	enableLfs: z.boolean().default(false),
 });
 
 type BitbucketProvider = z.infer<typeof BitbucketProviderSchema>;
@@ -87,6 +88,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 			branch: "",
 			watchPaths: [],
 			enableSubmodules: false,
+			enableLfs: false,
 		},
 		resolver: zodResolver(BitbucketProviderSchema),
 	});
@@ -134,6 +136,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 				bitbucketId: data.bitbucketId || "",
 				watchPaths: data.watchPaths || [],
 				enableSubmodules: data.enableSubmodules ?? false,
+				enableLfs: data.enableLfs ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -150,6 +153,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 			composeStatus: "idle",
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
+			enableLfs: data.enableLfs,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -486,6 +490,21 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 										/>
 									</FormControl>
 									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								</FormItem>
+							)}
+							/>
+						<FormField
+							control={form.control}
+							name="enableLfs"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable LFS</FormLabel>
 								</FormItem>
 							)}
 						/>

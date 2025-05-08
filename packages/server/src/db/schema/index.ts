@@ -17,7 +17,19 @@ export * from "./security";
 export * from "./port";
 export * from "./redis";
 export * from "./shared";
-export * from "./compose";
+// Export compose schema members explicitly to avoid naming conflicts
+export {
+  compose,
+  composeRelations,
+  apiCreateCompose,
+  apiCreateComposeByTemplate,
+  apiFindCompose,
+  apiDeleteCompose,
+  apiFetchServices,
+  apiSaveGitProvider,
+  apiUpdateCompose,
+  apiRandomizeCompose
+} from "./compose";
 export * from "./registry";
 export * from "./notification";
 export * from "./ssh-key";

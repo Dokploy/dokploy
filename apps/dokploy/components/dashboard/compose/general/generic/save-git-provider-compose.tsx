@@ -45,6 +45,7 @@ const GitProviderSchema = z.object({
 	sshKey: z.string().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
+	enableLfs: z.boolean().default(false),
 });
 
 type GitProvider = z.infer<typeof GitProviderSchema>;
@@ -68,6 +69,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 			sshKey: undefined,
 			watchPaths: [],
 			enableSubmodules: false,
+			enableLfs: false,
 		},
 		resolver: zodResolver(GitProviderSchema),
 	});
@@ -81,6 +83,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 				composePath: data.composePath,
 				watchPaths: data.watchPaths || [],
 				enableSubmodules: data.enableSubmodules ?? false,
+				enableLfs: data.enableLfs ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -96,6 +99,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 			composeStatus: "idle",
 			watchPaths: values.watchPaths || [],
 			enableSubmodules: values.enableSubmodules,
+			enableLfs: values.enableLfs,
 		})
 			.then(async () => {
 				toast.success("Git Provider Saved");
@@ -312,6 +316,21 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 									/>
 								</FormControl>
 								<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+							</FormItem>
+						)}
+						/>
+					<FormField
+						control={form.control}
+						name="enableLfs"
+						render={({ field }) => (
+							<FormItem className="flex items-center space-x-2">
+								<FormControl>
+									<Switch
+										checked={field.value}
+										onCheckedChange={field.onChange}
+									/>
+								</FormControl>
+								<FormLabel className="!mt-0">Enable Git LFS</FormLabel>
 							</FormItem>
 						)}
 					/>

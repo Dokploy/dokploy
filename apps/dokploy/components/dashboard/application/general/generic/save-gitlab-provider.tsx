@@ -62,6 +62,7 @@ const GitlabProviderSchema = z.object({
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
+	enableLfs: z.boolean().default(false),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -155,6 +156,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			gitlabPathNamespace: data.repository.gitlabPathNamespace,
 			watchPaths: data.watchPaths || [],
 			enableSubmodules: data.enableSubmodules,
+			enableLfs: data.enableLfs || false,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -500,6 +502,21 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 										/>
 									</FormControl>
 									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								</FormItem>
+							)}
+							/>
+						<FormField
+							control={form.control}
+							name="enableLfs"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Git LFS</FormLabel>
 								</FormItem>
 							)}
 						/>

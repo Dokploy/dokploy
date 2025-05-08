@@ -76,6 +76,7 @@ const GiteaProviderSchema = z.object({
 	giteaId: z.string().min(1, "Gitea Provider is required"),
 	watchPaths: z.array(z.string()).default([]),
 	enableSubmodules: z.boolean().optional(),
+	enableLfs: z.boolean().optional(),
 });
 
 type GiteaProvider = z.infer<typeof GiteaProviderSchema>;
@@ -170,6 +171,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			applicationId,
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules || false,
+			enableLfs: data.enableLfs || false,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -518,6 +520,21 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 										/>
 									</FormControl>
 									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								</FormItem>
+							)}
+							/>
+						<FormField
+							control={form.control}
+							name="enableLfs"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Git LFS</FormLabel>
 								</FormItem>
 							)}
 						/>

@@ -62,6 +62,7 @@ const GitlabProviderSchema = z.object({
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	enableSubmodules: z.boolean().default(false),
+	enableLfs: z.boolean().default(false),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -90,6 +91,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			branch: "",
 			watchPaths: [],
 			enableSubmodules: false,
+			enableLfs: false,
 		},
 		resolver: zodResolver(GitlabProviderSchema),
 	});
@@ -140,6 +142,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 				gitlabId: data.gitlabId || "",
 				watchPaths: data.watchPaths || [],
 				enableSubmodules: data.enableSubmodules ?? false,
+				enableLfs: data.enableLfs ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -158,6 +161,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			composeStatus: "idle",
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
+			enableLfs: data.enableLfs,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -502,6 +506,21 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 										/>
 									</FormControl>
 									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								</FormItem>
+							)}
+							/>
+						<FormField
+							control={form.control}
+							name="enableLfs"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable LFS</FormLabel>
 								</FormItem>
 							)}
 						/>

@@ -60,6 +60,7 @@ const GithubProviderSchema = z.object({
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
+	enableLfs: z.boolean().default(false),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -144,9 +145,10 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			owner: data.repository.owner,
 			buildPath: data.buildPath,
 			githubId: data.githubId,
-			watchPaths: data.watchPaths || [],
+			watchPaths: data.watchPaths || null,
 			triggerType: data.triggerType,
 			enableSubmodules: data.enableSubmodules,
+			enableLfs: data.enableLfs || false,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -524,6 +526,21 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 										/>
 									</FormControl>
 									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+								</FormItem>
+							)}
+							/>
+						<FormField
+							control={form.control}
+							name="enableLfs"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Git LFS</FormLabel>
 								</FormItem>
 							)}
 						/>
