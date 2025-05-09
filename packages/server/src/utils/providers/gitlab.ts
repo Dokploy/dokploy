@@ -417,9 +417,8 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} && \
-			cd ${outputPath} && git lfs install || true && \
-			cd ${outputPath} && git lfs pull || true
+			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			${compose.enableLfs ? `&& cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true` : ""}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
