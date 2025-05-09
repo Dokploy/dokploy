@@ -116,7 +116,7 @@ export const getComposeContainerCommand = (
 	composeType: "stack" | "docker-compose" | undefined,
 ) => {
 	if (composeType === "stack") {
-		return `docker ps -q --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "label=com.docker.swarm.service.name=${serviceName}" | head -n 1`;
+		return `docker ps -q --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "name=${appName}_${serviceName}*" | head -n 1`;
 	}
 	return `docker ps -q --filter "status=running" --filter "label=com.docker.compose.project=${appName}" --filter "label=com.docker.compose.service=${serviceName}" | head -n 1`;
 };
@@ -234,7 +234,7 @@ export const getBackupCommand = (
 	fi
 
 	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
-	
+
 	# Run the backup command and capture the exit status
 	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
@@ -244,14 +244,14 @@ export const getBackupCommand = (
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
 	echo "[$(date)] Starting upload to S3..." >> ${logPath};
-	
+
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;
 	}
-	
+
 	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
 	echo "Backup done ✅" >> ${logPath};
 	`;
