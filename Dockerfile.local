@@ -3,9 +3,17 @@ FROM dokploy-containerized:latest
 # Install Docker CLI and prepare for Docker installation
 RUN for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do apt-get remove -y $pkg; done && \
     apt-get update && \
-    apt-get install -y ca-certificates && \
+    apt-get install -y ca-certificates openssh-server && \
     rm -rf /var/lib/apt/lists/* && \
     install -m 0755 -d /etc/apt/keyrings
+
+# Set up SSH server
+RUN mkdir /var/run/sshd && \
+    echo 'root:password' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd && \
+    echo "export VISIBLE=now" >> /etc/profile
 
 # Add Docker's GPG key using ADD instruction
 ADD https://download.docker.com/linux/debian/gpg /etc/apt/keyrings/docker.asc
@@ -20,9 +28,10 @@ RUN chmod a+r /etc/apt/keyrings/docker.asc && \
   apt install fuse-overlayfs -y && \
   rm -rf /var/lib/apt/lists/*
 
-# Create the startup script for Docker
+# Create the startup script for Docker and SSH
 RUN echo "#!/bin/bash\n \
 rm -rf /var/run/docker.pid\n \
+/usr/sbin/sshd\n \
 dockerd &\n \
 counter=0\n \
 max_attempts=100\n \
@@ -38,6 +47,8 @@ done\n \
 docker swarm init\n \
 pnpm start" > /app/dockerd-entrypoint.sh && chmod +x /app/dockerd-entrypoint.sh
 
-# Start Docker daemon (for full DinD)
-CMD ["/bin/bash", "/app/dockerd-entrypoint.sh"]
+# Expose SSH port and Docker (if needed)
+EXPOSE 22
 
+# Start SSH + Docker + your app
+CMD ["/bin/bash", "/app/dockerd-entrypoint.sh"]
