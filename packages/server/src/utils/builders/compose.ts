@@ -35,7 +35,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 
 		if (compose.isolatedDeployment) {
 			await execAsync(
-				`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}`,
+				`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}`,
 			);
 		}
 
