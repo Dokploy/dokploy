@@ -95,8 +95,8 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 <div style="display: flex; align-items: center; gap: 20px;">
 
-  <a href="https://americancloud.com/?ref=dokploy" target="_blank" style="display: inline-block; background-color: #000; padding: 10px; border-radius: 10px;">
-    <img src=".github/sponsors/american-cloud.svg" alt="AmericanCloud" height="50"/>
+  <a href="https://americancloud.com/?ref=dokploy" target="_blank" style="display: inline-block; padding: 10px; border-radius: 10px;">
+    <img src=".github/sponsors/american-cloud.png" alt="AmericanCloud" height="70"/>
   </a>
 
 </div>
