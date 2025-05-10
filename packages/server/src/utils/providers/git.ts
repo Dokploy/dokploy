@@ -419,7 +419,9 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 				`,
 			);
 		}
-		const lfsCommand = enableLfs ? `cd ${outputPath} && git lfs install || true; cd ${outputPath} && git lfs pull || true;` : "";
+		const lfsCommand = enableLfs
+			? `cd ${outputPath} && git lfs install || true; cd ${outputPath} && git lfs pull || true;`
+			: "";
 		command.push(
 			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
 				echo "[ERROR] Fail to clone the repository ";
