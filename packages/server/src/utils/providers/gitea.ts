@@ -120,6 +120,7 @@ export const getGiteaCloneCommand = async (
 		serverId,
 		gitea,
 		enableSubmodules,
+		enableLfs,
 	} = entity;
 
 	if (!serverId) {
@@ -131,7 +132,7 @@ export const getGiteaCloneCommand = async (
 
 	if (!giteaId) {
 		const command = `
-		echo  "Error: ❌ Gitlab Provider not found" >> ${logPath};
+		echo  "Error: ❌ Gitea Provider not found" >> ${logPath};
 		exit 1;
 	`;
 
@@ -161,6 +162,12 @@ export const getGiteaCloneCommand = async (
       exit 1;
     fi
 
+    ${
+			enableLfs
+				? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+    cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;`
+				: ""
+		}
     echo "Cloned ${repoClone} to ${outputPath}: ✅" >> ${logPath};
   `;
 
@@ -324,6 +331,7 @@ export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
 		const command = `
 			rm -rf ${outputPath};
 			git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			${compose.enableLfs ? `&& cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true` : ""}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {

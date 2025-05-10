@@ -184,6 +184,7 @@ export const applications = pgTable("application", {
 		},
 	),
 	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
+	enableLfs: boolean("enableLfs").notNull().default(false),
 	dockerfile: text("dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
@@ -473,6 +474,7 @@ export const apiSaveGithubProvider = createSchema
 		githubId: true,
 		watchPaths: true,
 		enableSubmodules: true,
+		enableLfs: true,
 	})
 	.required()
 	.extend({
@@ -491,6 +493,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabPathNamespace: true,
 		watchPaths: true,
 		enableSubmodules: true,
+		enableLfs: true,
 	})
 	.required();
 
@@ -504,6 +507,7 @@ export const apiSaveBitbucketProvider = createSchema
 		applicationId: true,
 		watchPaths: true,
 		enableSubmodules: true,
+		enableLfs: true,
 	})
 	.required();
 
@@ -517,6 +521,7 @@ export const apiSaveGiteaProvider = createSchema
 		giteaId: true,
 		watchPaths: true,
 		enableSubmodules: true,
+		enableLfs: true,
 	})
 	.required();
 
@@ -538,6 +543,7 @@ export const apiSaveGitProvider = createSchema
 		customGitUrl: true,
 		watchPaths: true,
 		enableSubmodules: true,
+		enableLfs: true,
 	})
 	.required()
 	.merge(

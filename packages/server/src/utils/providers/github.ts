@@ -84,6 +84,7 @@ interface CloneGithubRepository {
 	logPath: string;
 	type?: "application" | "compose";
 	enableSubmodules: boolean;
+	enableLfs?: boolean;
 }
 export const cloneGithubRepository = async ({
 	logPath,
@@ -169,6 +170,7 @@ export const getGithubCloneCommand = async ({
 		githubId,
 		serverId,
 		enableSubmodules,
+		enableLfs,
 	} = entity;
 	const isCompose = type === "compose";
 	if (!serverId) {
@@ -228,6 +230,12 @@ if ! git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-subm
 	echo "❌ [ERROR] Fail to clone repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
+${
+	enableLfs
+		? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;`
+		: ""
+}
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 
@@ -307,6 +315,7 @@ export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
 		const command = `
 			rm -rf ${outputPath};
 			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			${compose.enableLfs ? `&& cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true` : ""}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {

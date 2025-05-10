@@ -124,6 +124,7 @@ export const getCustomGitCloneCommand = async (
 		customGitSSHKeyId?: string | null;
 		serverId: string | null;
 		enableSubmodules: boolean;
+		enableLfs?: boolean;
 	},
 	logPath: string,
 	isCompose = false,
@@ -136,11 +137,19 @@ export const getCustomGitCloneCommand = async (
 		customGitSSHKeyId,
 		serverId,
 		enableSubmodules,
+		enableLfs,
 	} = entity;
+
+	if (!serverId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Server not found",
+		});
+	}
 
 	if (!customGitUrl || !customGitBranch) {
 		const command = `
-			echo  "Error: ❌ Repository not found" >> ${logPath};
+			echo "Error: ❌ Repository not found" >> ${logPath};
 			exit 1;
 		`;
 
@@ -175,9 +184,6 @@ export const getCustomGitCloneCommand = async (
 		}
 		command.push(`rm -rf ${outputPath};`);
 		command.push(`mkdir -p ${outputPath};`);
-		command.push(
-			`echo "Cloning Custom Git ${customGitUrl}" to ${outputPath}: ✅ >> ${logPath};`,
-		);
 		if (customGitSSHKeyId) {
 			const sshKey = await findSSHKeyById(customGitSSHKeyId);
 			const { port } = sanitizeRepoPathSSH(customGitUrl);
@@ -192,11 +198,11 @@ export const getCustomGitCloneCommand = async (
 		}
 
 		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
-				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
+			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
+				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
-			fi
-			`,
+			fi;
+				${entity.enableLfs ? `cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true;` : ""}`,
 		);
 		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
 		return command.join("\n");
@@ -345,6 +351,8 @@ export const cloneGitRawRepository = async (entity: {
 				}),
 			},
 		});
+		await execAsync(`cd ${outputPath} && git lfs install || true;`);
+		await execAsync(`cd ${outputPath} && git lfs pull || true;`);
 	} catch (error) {
 		throw error;
 	}
@@ -358,6 +366,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 		customGitSSHKeyId,
 		serverId,
 		enableSubmodules,
+		enableLfs,
 	} = compose;
 
 	if (!serverId) {
@@ -410,12 +419,15 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 				`,
 			);
 		}
-
+		const lfsCommand = enableLfs
+			? `cd ${outputPath} && git lfs install || true; cd ${outputPath} && git lfs pull || true;`
+			: "";
 		command.push(
 			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
-			fi
+			fi;
+			${lfsCommand}
 			`,
 		);
 

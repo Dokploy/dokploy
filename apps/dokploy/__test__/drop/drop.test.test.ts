@@ -120,6 +120,7 @@ const baseApp: ApplicationNested = {
 	updateConfigSwarm: null,
 	username: null,
 	dockerContextPath: null,
+	enableLfs: false,
 };
 
 describe("unzipDrop using real zip files", () => {
