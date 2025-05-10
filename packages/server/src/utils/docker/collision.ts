@@ -2,7 +2,6 @@ import { findComposeById } from "@dokploy/server/services/compose";
 import { dump, load } from "js-yaml";
 import { addAppNameToAllServiceNames } from "./collision/root-network";
 import { generateRandomHash } from "./compose";
-import { addSuffixToAllVolumes } from "./compose/volume";
 import type { ComposeSpecification } from "./types";
 
 export const addAppNameToPreventCollision = (
@@ -12,7 +11,6 @@ export const addAppNameToPreventCollision = (
 	let updatedComposeData = { ...composeData };
 
 	updatedComposeData = addAppNameToAllServiceNames(updatedComposeData, appName);
-	updatedComposeData = addSuffixToAllVolumes(updatedComposeData, appName);
 	return updatedComposeData;
 };
 
