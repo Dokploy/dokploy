@@ -72,7 +72,7 @@ export const buildRailpack = async (
 					]
 				: []),
 			"--build-arg",
-			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55",
+			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.64",
 			"-f",
 			`${buildAppDirectory}/railpack-plan.json`,
 			"--output",
@@ -152,7 +152,7 @@ export const getRailpackCommand = (
 				]
 			: []),
 		"--build-arg",
-		"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.55",
+		"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.64",
 		"-f",
 		`${buildAppDirectory}/railpack-plan.json`,
 		"--output",

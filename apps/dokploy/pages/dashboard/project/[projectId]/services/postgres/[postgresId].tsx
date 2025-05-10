@@ -251,7 +251,11 @@ const Postgresql = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={postgresId} type="postgres" />
+											<ShowBackups
+												id={postgresId}
+												databaseType="postgres"
+												backupType="database"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

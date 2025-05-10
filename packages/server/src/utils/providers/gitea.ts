@@ -119,6 +119,7 @@ export const getGiteaCloneCommand = async (
 		giteaRepository,
 		serverId,
 		gitea,
+		enableSubmodules,
 	} = entity;
 
 	if (!serverId) {
@@ -155,7 +156,7 @@ export const getGiteaCloneCommand = async (
     rm -rf ${outputPath};
     mkdir -p ${outputPath};
     
-    if ! git clone --branch ${giteaBranch} --depth 1 --recurse-submodules ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+    if ! git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
       echo "❌ [ERROR] Failed to clone the repository ${repoClone}" >> ${logPath};
       exit 1;
     fi
@@ -174,7 +175,14 @@ export const cloneGiteaRepository = async (
 	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths();
 
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { appName, giteaBranch, giteaId, giteaOwner, giteaRepository } = entity;
+	const {
+		appName,
+		giteaBranch,
+		giteaId,
+		giteaOwner,
+		giteaRepository,
+		enableSubmodules,
+	} = entity;
 
 	if (!giteaId) {
 		throw new TRPCError({
@@ -211,7 +219,7 @@ export const cloneGiteaRepository = async (
 				giteaBranch!,
 				"--depth",
 				"1",
-				"--recurse-submodules",
+				...(enableSubmodules ? ["--recurse-submodules"] : []),
 				cloneUrl,
 				outputPath,
 				"--progress",
@@ -232,7 +240,14 @@ export const cloneGiteaRepository = async (
 };
 
 export const cloneRawGiteaRepository = async (entity: Compose) => {
-	const { appName, giteaRepository, giteaOwner, giteaBranch, giteaId } = entity;
+	const {
+		appName,
+		giteaRepository,
+		giteaOwner,
+		giteaBranch,
+		giteaId,
+		enableSubmodules,
+	} = entity;
 	const { COMPOSE_PATH } = paths();
 
 	if (!giteaId) {
@@ -265,7 +280,7 @@ export const cloneRawGiteaRepository = async (entity: Compose) => {
 			giteaBranch!,
 			"--depth",
 			"1",
-			"--recurse-submodules",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
@@ -283,6 +298,7 @@ export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
 		giteaBranch,
 		giteaId,
 		serverId,
+		enableSubmodules,
 	} = compose;
 
 	if (!serverId) {
@@ -307,7 +323,7 @@ export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${giteaBranch} --depth 1 ${cloneUrl} ${outputPath}
+			git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
@@ -346,27 +362,48 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 		}
 
 		const baseUrl = provider.giteaUrl.replace(/\/+$/, "");
-		const url = `${baseUrl}/api/v1/user/repos`;
+		const limit = 30;
+		let allRepos = 0;
+		let nextUrl = `${baseUrl}/api/v1/repos/search?limit=${limit}`;
 
-		const response = await fetch(url, {
-			headers: {
-				Accept: "application/json",
-				Authorization: `token ${provider.accessToken}`,
-			},
-		});
+		while (nextUrl) {
+			const response = await fetch(nextUrl, {
+				headers: {
+					Accept: "application/json",
+					Authorization: `token ${provider.accessToken}`,
+				},
+			});
 
-		if (!response.ok) {
-			throw new Error(
-				`Failed to connect to Gitea API: ${response.status} ${response.statusText}`,
-			);
+			if (!response.ok) {
+				throw new Error(
+					`Failed to connect to Gitea API: ${response.status} ${response.statusText}`,
+				);
+			}
+
+			const repos = await response.json();
+			allRepos += repos.data.length;
+
+			const linkHeader = response.headers.get("link");
+			nextUrl = "";
+
+			if (linkHeader) {
+				const nextLink = linkHeader
+					.split(",")
+					.find((link) => link.includes('rel="next"'));
+				if (nextLink) {
+					const matches = nextLink.match(/<([^>]+)>/);
+					if (matches?.[1]) {
+						nextUrl = matches[1];
+					}
+				}
+			}
 		}
 
-		const repos = await response.json();
 		await updateGitea(giteaId, {
 			lastAuthenticatedAt: Math.floor(Date.now() / 1000),
 		});
 
-		return repos.length;
+		return allRepos;
 	} catch (error) {
 		throw error;
 	}
@@ -378,38 +415,57 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	}
 
 	await refreshGiteaToken(giteaId);
-
 	const giteaProvider = await findGiteaById(giteaId);
 
 	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
-	const url = `${baseUrl}/api/v1/user/repos`;
+	const limit = 30;
+	let allRepositories: any[] = [];
+	let nextUrl = `${baseUrl}/api/v1/repos/search?limit=${limit}`;
 
-	const response = await fetch(url, {
-		headers: {
-			Accept: "application/json",
-			Authorization: `token ${giteaProvider.accessToken}`,
-		},
-	});
-
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch repositories: ${response.statusText}`,
+	while (nextUrl) {
+		const response = await fetch(nextUrl, {
+			headers: {
+				Accept: "application/json",
+				Authorization: `token ${giteaProvider.accessToken}`,
+			},
 		});
+
+		if (!response.ok) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Failed to fetch repositories: ${response.statusText}`,
+			});
+		}
+
+		const result = await response.json();
+		allRepositories = [...allRepositories, ...result.data];
+
+		const linkHeader = response.headers.get("link");
+		nextUrl = "";
+
+		if (linkHeader) {
+			const nextLink = linkHeader
+				.split(",")
+				.find((link) => link.includes('rel="next"'));
+			if (nextLink) {
+				const matches = nextLink.match(/<([^>]+)>/);
+				if (matches?.[1]) {
+					nextUrl = matches[1];
+				}
+			}
+		}
 	}
 
-	const repositories = await response.json();
-
-	const mappedRepositories = repositories.map((repo: any) => ({
-		id: repo.id,
-		name: repo.name,
-		url: repo.full_name,
-		owner: {
-			username: repo.owner.login,
-		},
-	}));
-
-	return mappedRepositories;
+	return (
+		allRepositories?.map((repo: any) => ({
+			id: repo.id,
+			name: repo.name,
+			url: repo.full_name,
+			owner: {
+				username: repo.owner.login,
+			},
+		})) || []
+	);
 };
 
 export const getGiteaBranches = async (input: {
@@ -441,7 +497,10 @@ export const getGiteaBranches = async (input: {
 
 	const branches = await response.json();
 
-	return branches.map((branch: any) => ({
+	if (!branches) {
+		return [];
+	}
+	return branches?.map((branch: any) => ({
 		id: branch.name,
 		name: branch.name,
 		commit: {

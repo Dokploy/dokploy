@@ -3,6 +3,7 @@ import {
 	type AnyPgColumn,
 	boolean,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -16,6 +17,9 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { users_temp } from "./user";
+import { compose } from "./compose";
+import { deployments } from "./deployment";
+import { generateAppName } from ".";
 export const databaseType = pgEnum("databaseType", [
 	"postgres",
 	"mariadb",
@@ -24,23 +28,34 @@ export const databaseType = pgEnum("databaseType", [
 	"web-server",
 ]);
 
+export const backupType = pgEnum("backupType", ["database", "compose"]);
+
 export const backups = pgTable("backup", {
 	backupId: text("backupId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
+	appName: text("appName")
+		.notNull()
+		.$defaultFn(() => generateAppName("backup"))
+		.unique(),
 	schedule: text("schedule").notNull(),
 	enabled: boolean("enabled"),
 	database: text("database").notNull(),
 	prefix: text("prefix").notNull(),
-
+	serviceName: text("serviceName"),
 	destinationId: text("destinationId")
 		.notNull()
 		.references(() => destinations.destinationId, { onDelete: "cascade" }),
-
 	keepLatestCount: integer("keepLatestCount"),
-
+	backupType: backupType("backupType").notNull().default("database"),
 	databaseType: databaseType("databaseType").notNull(),
+	composeId: text("composeId").references(
+		(): AnyPgColumn => compose.composeId,
+		{
+			onDelete: "cascade",
+		},
+	),
 	postgresId: text("postgresId").references(
 		(): AnyPgColumn => postgres.postgresId,
 		{
@@ -60,9 +75,29 @@ export const backups = pgTable("backup", {
 		onDelete: "cascade",
 	}),
 	userId: text("userId").references(() => users_temp.id),
+	// Only for compose backups
+	metadata: jsonb("metadata").$type<
+		| {
+				postgres?: {
+					databaseUser: string;
+				};
+				mariadb?: {
+					databaseUser: string;
+					databasePassword: string;
+				};
+				mongo?: {
+					databaseUser: string;
+					databasePassword: string;
+				};
+				mysql?: {
+					databaseRootPassword: string;
+				};
+		  }
+		| undefined
+	>(),
 });
 
-export const backupsRelations = relations(backups, ({ one }) => ({
+export const backupsRelations = relations(backups, ({ one, many }) => ({
 	destination: one(destinations, {
 		fields: [backups.destinationId],
 		references: [destinations.destinationId],
@@ -87,6 +122,11 @@ export const backupsRelations = relations(backups, ({ one }) => ({
 		fields: [backups.userId],
 		references: [users_temp.id],
 	}),
+	compose: one(compose, {
+		fields: [backups.composeId],
+		references: [compose.composeId],
+	}),
+	deployments: many(deployments),
 }));
 
 const createSchema = createInsertSchema(backups, {
@@ -103,6 +143,7 @@ const createSchema = createInsertSchema(backups, {
 	mysqlId: z.string().optional(),
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
+	metadata: z.any().optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
@@ -118,6 +159,10 @@ export const apiCreateBackup = createSchema.pick({
 	mongoId: true,
 	databaseType: true,
 	userId: true,
+	backupType: true,
+	composeId: true,
+	serviceName: true,
+	metadata: true,
 });
 
 export const apiFindOneBackup = createSchema
@@ -141,5 +186,44 @@ export const apiUpdateBackup = createSchema
 		destinationId: true,
 		database: true,
 		keepLatestCount: true,
+		serviceName: true,
+		metadata: true,
+		databaseType: true,
 	})
 	.required();
+
+export const apiRestoreBackup = z.object({
+	databaseId: z.string(),
+	databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo", "web-server"]),
+	backupType: z.enum(["database", "compose"]),
+	databaseName: z.string().min(1),
+	backupFile: z.string().min(1),
+	destinationId: z.string().min(1),
+	metadata: z
+		.object({
+			serviceName: z.string().optional(),
+			postgres: z
+				.object({
+					databaseUser: z.string(),
+				})
+				.optional(),
+			mariadb: z
+				.object({
+					databaseUser: z.string(),
+					databasePassword: z.string(),
+				})
+				.optional(),
+			mongo: z
+				.object({
+					databaseUser: z.string(),
+					databasePassword: z.string(),
+				})
+				.optional(),
+			mysql: z
+				.object({
+					databaseRootPassword: z.string(),
+				})
+				.optional(),
+		})
+		.optional(),
+});

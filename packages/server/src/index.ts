@@ -30,6 +30,7 @@ export * from "./services/github";
 export * from "./services/gitlab";
 export * from "./services/gitea";
 export * from "./services/server";
+export * from "./services/schedule";
 export * from "./services/application";
 export * from "./utils/databases/rebuild";
 export * from "./setup/config-paths";
@@ -49,6 +50,7 @@ export * from "./utils/backups/mysql";
 export * from "./utils/backups/postgres";
 export * from "./utils/backups/utils";
 export * from "./utils/backups/web-server";
+export * from "./utils/backups/compose";
 export * from "./templates/processors";
 
 export * from "./utils/notifications/build-error";
@@ -126,3 +128,6 @@ export {
 	stopLogCleanup,
 	getLogCleanupStatus,
 } from "./utils/access-log/handler";
+
+export * from "./utils/schedules/utils";
+export * from "./utils/schedules/index";

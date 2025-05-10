@@ -57,7 +57,7 @@ export const projectRouter = createTRPCRouter({
 		.input(apiCreateProject)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkProjectAccess(
 						ctx.user.id,
 						"create",
@@ -78,7 +78,7 @@ export const projectRouter = createTRPCRouter({
 					input,
 					ctx.session.activeOrganizationId,
 				);
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await addNewProject(
 						ctx.user.id,
 						project.projectId,
@@ -99,7 +99,7 @@ export const projectRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				const { accessedServices } = await findMemberById(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
@@ -118,14 +118,14 @@ export const projectRouter = createTRPCRouter({
 						eq(projects.organizationId, ctx.session.activeOrganizationId),
 					),
 					with: {
-						compose: {
-							where: buildServiceFilter(compose.composeId, accessedServices),
-						},
 						applications: {
 							where: buildServiceFilter(
 								applications.applicationId,
 								accessedServices,
 							),
+						},
+						compose: {
+							where: buildServiceFilter(compose.composeId, accessedServices),
 						},
 						mariadb: {
 							where: buildServiceFilter(mariadb.mariadbId, accessedServices),
@@ -164,8 +164,7 @@ export const projectRouter = createTRPCRouter({
 			return project;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		// console.log(ctx.user);
-		if (ctx.user.rol === "member") {
+		if (ctx.user.role === "member") {
 			const { accessedProjects, accessedServices } = await findMemberById(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
@@ -175,7 +174,7 @@ export const projectRouter = createTRPCRouter({
 				return [];
 			}
 
-			const query = await db.query.projects.findMany({
+			return await db.query.projects.findMany({
 				where: and(
 					sql`${projects.projectId} IN (${sql.join(
 						accessedProjects.map((projectId) => sql`${projectId}`),
@@ -213,8 +212,6 @@ export const projectRouter = createTRPCRouter({
 				},
 				orderBy: desc(projects.createdAt),
 			});
-
-			return query;
 		}
 
 		return await db.query.projects.findMany({
@@ -244,7 +241,7 @@ export const projectRouter = createTRPCRouter({
 		.input(apiRemoveProject)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkProjectAccess(
 						ctx.user.id,
 						"delete",
@@ -316,7 +313,7 @@ export const projectRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkProjectAccess(
 						ctx.user.id,
 						"create",
@@ -581,7 +578,7 @@ export const projectRouter = createTRPCRouter({
 					}
 				}
 
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await addNewProject(
 						ctx.user.id,
 						newProject.projectId,
@@ -604,10 +601,10 @@ function buildServiceFilter(
 	fieldName: AnyPgColumn,
 	accessedServices: string[],
 ) {
-	return accessedServices.length > 0
-		? sql`${fieldName} IN (${sql.join(
+	return accessedServices.length === 0
+		? sql`false`
+		: sql`${fieldName} IN (${sql.join(
 				accessedServices.map((serviceId) => sql`${serviceId}`),
 				sql`, `,
-			)})`
-		: sql`1 = 0`;
+			)})`;
 }

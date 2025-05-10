@@ -31,6 +31,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -58,6 +59,7 @@ const BitbucketProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	enableSubmodules: z.boolean().optional(),
 });
 
 type BitbucketProvider = z.infer<typeof BitbucketProviderSchema>;
@@ -84,6 +86,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			bitbucketId: "",
 			branch: "",
 			watchPaths: [],
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(BitbucketProviderSchema),
 	});
@@ -130,6 +133,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 				buildPath: data.bitbucketBuildPath || "/",
 				bitbucketId: data.bitbucketId || "",
 				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules || false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -143,6 +147,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			bitbucketId: data.bitbucketId,
 			applicationId,
 			watchPaths: data.watchPaths || [],
+			enableSubmodules: data.enableSubmodules || false,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -464,6 +469,21 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										</div>
 									</FormControl>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

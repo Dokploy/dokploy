@@ -252,7 +252,11 @@ const MySql = (
 										</TabsContent>
 										<TabsContent value="backups">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowBackups id={mysqlId} type="mysql" />
+												<ShowBackups
+													id={mysqlId}
+													databaseType="mysql"
+													backupType="database"
+												/>
 											</div>
 										</TabsContent>
 										<TabsContent value="advanced">
