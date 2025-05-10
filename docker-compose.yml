@@ -4,7 +4,10 @@ services:
     image: alexdev404/dokploy
     container_name: dokploy-app
     ports:
-      - "3000:3000"
+      - "3000:3000"  # Web Interface
+      - "3001:22"    # SSH for tunneling
+      - "8080:8080"  # Production
+      - "8081:8081"  # Development
     privileged: true
     restart: on-failure
     deploy:
