@@ -116,7 +116,7 @@ export const getComposeContainerCommand = (
 	composeType: "stack" | "docker-compose" | undefined,
 ) => {
 	if (composeType === "stack") {
-		return `docker ps -q --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "name=${appName}_${serviceName}*" | head -n 1`;
+		return `docker ps -q --filter "status=running" --filter "label=com.docker.stack.namespace=${appName}" --filter "label=com.docker.swarm.service.name=${appName}_${serviceName}" | head -n 1`;
 	}
 	return `docker ps -q --filter "status=running" --filter "label=com.docker.compose.project=${appName}" --filter "label=com.docker.compose.service=${serviceName}" | head -n 1`;
 };
