@@ -40,7 +40,7 @@
     "@oslojs/encoding": "1.1.0",
     "@oslojs/crypto": "1.0.1",
     "drizzle-dbml-generator": "0.10.0",
-    "better-auth": "1.2.6",
+    "better-auth": "v1.2.8-beta.7",
     "@faker-js/faker": "^8.4.1",
     "@octokit/auth-app": "^6.0.4",
     "@react-email/components": "^0.0.21",

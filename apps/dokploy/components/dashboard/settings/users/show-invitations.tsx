@@ -185,24 +185,21 @@ export const ShowInvitations = () => {
 																						Cancel Invitation
 																					</DropdownMenuItem>
 																				)}
-
-																				<DropdownMenuItem
-																					className="w-full cursor-pointer"
-																					onSelect={async (_e) => {
-																						await removeInvitation({
-																							invitationId: invitation.id,
-																						}).then(() => {
-																							refetch();
-																							toast.success(
-																								"Invitation removed",
-																							);
-																						});
-																					}}
-																				>
-																					Remove Invitation
-																				</DropdownMenuItem>
 																			</>
 																		)}
+																		<DropdownMenuItem
+																			className="w-full cursor-pointer"
+																			onSelect={async (_e) => {
+																				await removeInvitation({
+																					invitationId: invitation.id,
+																				}).then(() => {
+																					refetch();
+																					toast.success("Invitation removed");
+																				});
+																			}}
+																		>
+																			Remove Invitation
+																		</DropdownMenuItem>
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>

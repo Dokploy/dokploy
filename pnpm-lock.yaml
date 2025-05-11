@@ -266,8 +266,8 @@ importers:
         specifier: 5.1.1
         version: 5.1.1(encoding@0.1.13)
       better-auth:
-        specifier: 1.2.6
-        version: 1.2.6
+        specifier: v1.2.8-beta.7
+        version: 1.2.8-beta.7
       bl:
         specifier: 6.0.11
         version: 6.0.11
@@ -300,10 +300,10 @@ importers:
         version: 16.4.5
       drizzle-orm:
         specifier: ^0.39.1
-        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       drizzle-zod:
         specifier: 0.5.1
-        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
+        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
       fancy-ansi:
         specifier: ^0.1.3
         version: 0.1.3
@@ -544,7 +544,7 @@ importers:
         version: 16.4.5
       drizzle-orm:
         specifier: ^0.39.1
-        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       hono:
         specifier: ^4.5.8
         version: 4.5.8
@@ -640,8 +640,8 @@ importers:
         specifier: 5.1.1
         version: 5.1.1(encoding@0.1.13)
       better-auth:
-        specifier: 1.2.6
-        version: 1.2.6
+        specifier: v1.2.8-beta.7
+        version: 1.2.8-beta.7
       bl:
         specifier: 6.0.11
         version: 6.0.11
@@ -659,13 +659,13 @@ importers:
         version: 16.4.5
       drizzle-dbml-generator:
         specifier: 0.10.0
-        version: 0.10.0(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))
+        version: 0.10.0(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))
       drizzle-orm:
         specifier: ^0.39.1
-        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+        version: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       drizzle-zod:
         specifier: 0.5.1
-        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
+        version: 0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8)
       hi-base32:
         specifier: ^0.5.1
         version: 0.5.1
@@ -926,6 +926,9 @@ packages:
 
   '@better-auth/utils@0.2.4':
     resolution: {integrity: sha512-ayiX87Xd5sCHEplAdeMgwkA0FgnXsEZBgDn890XHHwSWNqqRZDYOq3uj2Ei2leTv1I2KbG5HHn60Ah1i2JWZjQ==}
+
+  '@better-auth/utils@0.2.5':
+    resolution: {integrity: sha512-uI2+/8h/zVsH8RrYdG8eUErbuGBk16rZKQfz8CjxQOyCE6v7BqFYEbFwvOkvl1KbUdxhqOnXp78+uE5h8qVEgQ==}
 
   '@better-fetch/fetch@1.1.18':
     resolution: {integrity: sha512-rEFOE1MYIsBmoMJtQbl32PGHHXuG2hDxvEd7rUHE0vCBoFQVSDqaVs9hkZEtHCxRoY+CljXKFCOuJ8uxqw1LcA==}
@@ -3836,11 +3839,11 @@ packages:
   before-after-hook@2.2.3:
     resolution: {integrity: sha512-NzUnlZexiaH/46WDhANlyR2bXRopNg4F/zuSA3OpZnllCUgRaOF2znDioDWrmbNVsuZk6l9pMquQB38cfBZwkQ==}
 
-  better-auth@1.2.6:
-    resolution: {integrity: sha512-RVy6nfNCXpohx49zP2ChUO3zN0nvz5UXuETJIhWU+dshBKpFMk4P4hAQauM3xqTJdd9hfeB5y+segmG1oYGTJQ==}
+  better-auth@1.2.8-beta.7:
+    resolution: {integrity: sha512-gVApvvhnPVqMCYYLMhxUfbTi5fJYfp9rcsoJSjjTOMV+CIc7KVlYN6Qo8E7ju1JeRU5ae1Wl1NdXrolRJHjmaQ==}
 
-  better-call@1.0.7:
-    resolution: {integrity: sha512-p5kEthErx3HsW9dCCvvEx+uuEdncn0ZrlqrOG3TkR1aVYgynpwYbTVU90nY8/UwfMhROzqZWs8vryainSQxrNg==}
+  better-call@1.0.9:
+    resolution: {integrity: sha512-Qfm0gjk0XQz0oI7qvTK1hbqTsBY4xV2hsHAxF8LZfUYl3RaECCIifXuVqtPpZJWvlCCMlQSvkvhhyuApGUba6g==}
 
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
@@ -5289,9 +5292,9 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  kysely@0.27.6:
-    resolution: {integrity: sha512-FIyV/64EkKhJmjgC0g2hygpBv5RNWVPyNCqSAD7eTCv6eFWNIi4PN1UvdSJGicN/o35bnevgis4Y0UDC0qi8jQ==}
-    engines: {node: '>=14.0.0'}
+  kysely@0.28.2:
+    resolution: {integrity: sha512-4YAVLoF0Sf0UTqlhgQMFU9iQECdah7n+13ANkiuVfRvlK+uI0Etbgd7bVP36dKlG+NXWbhGua8vnGt+sdhvT7A==}
+    engines: {node: '>=18.0.0'}
 
   leac@0.6.0:
     resolution: {integrity: sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg==}
@@ -7560,6 +7563,11 @@ snapshots:
   '@balena/dockerignore@1.0.2': {}
 
   '@better-auth/utils@0.2.4':
+    dependencies:
+      typescript: 5.8.3
+      uncrypto: 0.1.3
+
+  '@better-auth/utils@0.2.5':
     dependencies:
       typescript: 5.8.3
       uncrypto: 0.1.3
@@ -10540,22 +10548,22 @@ snapshots:
 
   before-after-hook@2.2.3: {}
 
-  better-auth@1.2.6:
+  better-auth@1.2.8-beta.7:
     dependencies:
-      '@better-auth/utils': 0.2.4
+      '@better-auth/utils': 0.2.5
       '@better-fetch/fetch': 1.1.18
       '@noble/ciphers': 0.6.0
       '@noble/hashes': 1.7.1
       '@simplewebauthn/browser': 13.1.0
       '@simplewebauthn/server': 13.1.1
-      better-call: 1.0.7
+      better-call: 1.0.9
       defu: 6.1.4
       jose: 5.9.6
-      kysely: 0.27.6
+      kysely: 0.28.2
       nanostores: 0.11.3
       zod: 3.24.1
 
-  better-call@1.0.7:
+  better-call@1.0.9:
     dependencies:
       '@better-fetch/fetch': 1.1.18
       rou3: 0.5.1
@@ -11169,9 +11177,9 @@ snapshots:
 
   drange@1.1.1: {}
 
-  drizzle-dbml-generator@0.10.0(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)):
+  drizzle-dbml-generator@0.10.0(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)):
     dependencies:
-      drizzle-orm: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+      drizzle-orm: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
 
   drizzle-kit@0.30.4:
     dependencies:
@@ -11182,18 +11190,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7):
+  drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7):
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
       '@types/react': 18.3.5
-      kysely: 0.27.6
+      kysely: 0.28.2
       postgres: 3.4.4
       react: 18.2.0
       sqlite3: 5.1.7
 
-  drizzle-zod@0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8):
+  drizzle-zod@0.5.1(drizzle-orm@0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7))(zod@3.23.8):
     dependencies:
-      drizzle-orm: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.27.6)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
+      drizzle-orm: 0.39.1(@opentelemetry/api@1.9.0)(@types/react@18.3.5)(kysely@0.28.2)(postgres@3.4.4)(react@18.2.0)(sqlite3@5.1.7)
       zod: 3.23.8
 
   eastasianwidth@0.2.0: {}
@@ -12082,7 +12090,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  kysely@0.27.6: {}
+  kysely@0.28.2: {}
 
   leac@0.6.0: {}
 

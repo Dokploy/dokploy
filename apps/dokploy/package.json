@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.22.3",
+	"version": "v0.22.4",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -92,7 +92,7 @@
 		"adm-zip": "^0.5.14",
 		"ai": "^4.0.23",
 		"bcrypt": "5.1.1",
-		"better-auth": "1.2.6",
+		"better-auth": "v1.2.8-beta.7",
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
 		"bullmq": "5.4.2",
