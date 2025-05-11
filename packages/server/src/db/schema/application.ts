@@ -27,7 +27,7 @@ import { server } from "./server";
 import { applicationStatus, certificateType, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-
+import { rollbacks } from "./rollbacks";
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -132,6 +132,8 @@ export const applications = pgTable("application", {
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
 	),
+	rollbackActive: boolean("rollbackActive").default(false),
+	limitRollback: integer("limitRollback").default(5),
 	buildArgs: text("buildArgs"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
@@ -274,6 +276,7 @@ export const applicationsRelations = relations(
 			references: [server.serverId],
 		}),
 		previewDeployments: many(previewDeployments),
+		rollbacks: many(rollbacks),
 	}),
 );
 

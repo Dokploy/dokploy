@@ -1,0 +1,1 @@
+ALTER TABLE "rollback" RENAME COLUMN "id" TO "version";
