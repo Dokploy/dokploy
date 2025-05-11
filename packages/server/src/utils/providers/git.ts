@@ -202,7 +202,7 @@ export const getCustomGitCloneCommand = async (
 				echo "[ERROR] Fail to clone the repository ";
 				exit 1;
 			fi;
-				${entity.enableLfs ? `cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true;` : ""}`,
+				${entity.enableLfs ? `cd ${outputPath} && git lfs install && cd ${outputPath} && git lfs pull ;` : ""}`,
 		);
 		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
 		return command.join("\n");
@@ -351,8 +351,8 @@ export const cloneGitRawRepository = async (entity: {
 				}),
 			},
 		});
-		await execAsync(`cd ${outputPath} && git lfs install || true;`);
-		await execAsync(`cd ${outputPath} && git lfs pull || true;`);
+		await execAsync(`cd ${outputPath} && git lfs install;`);
+		await execAsync(`cd ${outputPath} && git lfs pull;`);
 	} catch (error) {
 		throw error;
 	}
@@ -420,7 +420,7 @@ export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
 			);
 		}
 		const lfsCommand = enableLfs
-			? `cd ${outputPath} && git lfs install || true; cd ${outputPath} && git lfs pull || true;`
+			? `cd ${outputPath} && git lfs install; cd ${outputPath} && git lfs pull;`
 			: "";
 		command.push(
 			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then

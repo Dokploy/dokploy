@@ -232,8 +232,8 @@ if ! git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-subm
 fi
 ${
 	enableLfs
-		? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 || true;
-cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 || true;`
+		? `cd ${outputPath} && git lfs install >> ${logPath} 2>&1 ;
+cd ${outputPath} && git lfs pull >> ${logPath} 2>&1 ;`
 		: ""
 }
 echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
@@ -315,7 +315,7 @@ export const cloneRawGithubRepositoryRemote = async (compose: Compose) => {
 		const command = `
 			rm -rf ${outputPath};
 			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
-			${compose.enableLfs ? `&& cd ${outputPath} && git lfs install || true && cd ${outputPath} && git lfs pull || true` : ""}
+			${compose.enableLfs ? `&& cd ${outputPath} && git lfs install && cd ${outputPath} && git lfs pull ` : ""}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
