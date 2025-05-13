@@ -191,25 +191,14 @@ export const ShowDomains = ({ id, type }: Props) => {
 										<CardContent className="p-6">
 											<div className="flex flex-col gap-4">
 												{/* Service & Domain Info */}
-												<div className="flex items-start justify-between">
-													<div className="flex flex-col gap-2">
-														{item.serviceName && (
-															<Badge variant="outline" className="w-fit">
-																<Server className="size-3 mr-1" />
-																{item.serviceName}
-															</Badge>
-														)}
-
-														<Link
-															className="flex items-center gap-2 text-base font-medium hover:underline"
-															target="_blank"
-															href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
-														>
-															{item.host}
-															<ExternalLink className="size-4" />
-														</Link>
-													</div>
-													<div className="flex gap-2">
+												<div className="flex items-center justify-between flex-wrap gap-y-2">
+													{item.serviceName && (
+														<Badge variant="outline" className="w-fit">
+															<Server className="size-3 mr-1" />
+															{item.serviceName}
+														</Badge>
+													)}
+													<div className="flex gap-2 flex-wrap">
 														{!item.host.includes("traefik.me") && (
 															<DnsHelperModal
 																domain={{
@@ -265,6 +254,16 @@ export const ShowDomains = ({ id, type }: Props) => {
 															</Button>
 														</DialogAction>
 													</div>
+												</div>
+												<div className="w-full break-all">
+													<Link
+														className="flex items-center gap-2 text-base font-medium hover:underline"
+														target="_blank"
+														href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
+													>
+														{item.host}
+														<ExternalLink className="size-4 min-w-4" />
+													</Link>
 												</div>
 
 												{/* Domain Details */}
