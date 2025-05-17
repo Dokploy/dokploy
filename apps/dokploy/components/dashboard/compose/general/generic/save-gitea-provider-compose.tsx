@@ -142,7 +142,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: GiteaProvider) => {
 		await mutateAsync({
