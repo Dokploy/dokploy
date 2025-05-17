@@ -136,7 +136,7 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: BitbucketProvider) => {
 		await mutateAsync({
