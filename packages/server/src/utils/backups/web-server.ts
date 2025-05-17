@@ -3,7 +3,7 @@ import { execAsync } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path } from "./utils";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -51,10 +51,20 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			const postgresContainerId = containerId.trim();
 
-			const postgresCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database.sql'`;
+			// First dump the database inside the container
+			const dumpCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy -f /tmp/database.sql`;
+			writeStream.write(`Running dump command: ${dumpCommand}\n`);
+			await execAsync(dumpCommand);
 
-			writeStream.write(`Running command: ${postgresCommand}\n`);
-			await execAsync(postgresCommand);
+			// Then copy the file from the container to host
+			const copyCommand = `docker cp ${postgresContainerId}:/tmp/database.sql ${tempDir}/database.sql`;
+			writeStream.write(`Copying database dump: ${copyCommand}\n`);
+			await execAsync(copyCommand);
+
+			// Clean up the temp file in the container
+			const cleanupCommand = `docker exec ${postgresContainerId} rm -f /tmp/database.sql`;
+			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
+			await execAsync(cleanupCommand);
 
 			await execAsync(
 				`rsync -av --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
@@ -77,7 +87,11 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;
 		} finally {
-			await execAsync(`rm -rf ${tempDir}`);
+			try {
+				await rm(tempDir, { recursive: true, force: true });
+			} catch (cleanupError) {
+				console.error("Cleanup error:", cleanupError);
+			}
 		}
 	} catch (error) {
 		console.error("Backup error:", error);
