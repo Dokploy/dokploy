@@ -217,12 +217,12 @@ const Service = (
 									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
-												"lg:grid lg:w-fit max-md:overflow-y-scroll justify-start",
+												"xl:grid xl:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "lg:grid-cols-9"
+													? "xl:grid-cols-9"
 													: data?.serverId
-														? "lg:grid-cols-8"
-														: "lg:grid-cols-9",
+														? "xl:grid-cols-8"
+														: "xl:grid-cols-9",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
