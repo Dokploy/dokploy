@@ -3,7 +3,7 @@ import { execAsync } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path } from "./utils";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -87,7 +87,11 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;
 		} finally {
-			await execAsync(`rm -rf ${tempDir}`);
+			try {
+				await rm(tempDir, { recursive: true, force: true });
+			} catch (cleanupError) {
+				console.error("Cleanup error:", cleanupError);
+			}
 		}
 	} catch (error) {
 		console.error("Backup error:", error);
