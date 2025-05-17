@@ -262,7 +262,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 								<FormControl>
 									<div className="flex gap-2">
 										<Input
-											placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+											placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
 											onKeyDown={(e) => {
 												if (e.key === "Enter") {
 													e.preventDefault();
@@ -281,7 +281,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 											variant="secondary"
 											onClick={() => {
 												const input = document.querySelector(
-													'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+													'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
 												) as HTMLInputElement;
 												const value = input.value.trim();
 												if (value) {
