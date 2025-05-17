@@ -8,7 +8,7 @@ COPY . /usr/src/app
 WORKDIR /usr/src/app
 
 
-RUN apt-get update && apt-get install -y python3 make g++ git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3 make g++ git git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
