@@ -66,8 +66,12 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
 			await execAsync(cleanupCommand);
 
+			console.log(
+				`rsync -a --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
+			);
+
 			await execAsync(
-				`rsync -av --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				`rsync -a --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
 			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
