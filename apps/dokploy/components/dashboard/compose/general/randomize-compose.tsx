@@ -94,11 +94,7 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 			.then(async (data) => {
 				await utils.project.all.invalidate();
 				setCompose(data);
-				toast.success("Compose randomized");
 			})
-			.catch(() => {
-				toast.error("Error randomizing the compose");
-			});
 	};
 
 	return (
