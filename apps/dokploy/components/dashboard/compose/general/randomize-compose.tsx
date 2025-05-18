@@ -77,8 +77,8 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 			randomize: formData?.randomize || false,
 		})
 			.then(async (_data) => {
-				randomizeCompose();
-				refetch();
+				await randomizeCompose();
+				await refetch();
 				toast.success("Compose updated");
 			})
 			.catch(() => {
@@ -90,15 +90,10 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			suffix,
-		})
-			.then(async (data) => {
-				await utils.project.all.invalidate();
-				setCompose(data);
-				toast.success("Compose randomized");
-			})
-			.catch(() => {
-				toast.error("Error randomizing the compose");
-			});
+		}).then(async (data) => {
+			await utils.project.all.invalidate();
+			setCompose(data);
+		});
 	};
 
 	return (
