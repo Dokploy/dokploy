@@ -90,11 +90,10 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			suffix,
-		})
-			.then(async (data) => {
-				await utils.project.all.invalidate();
-				setCompose(data);
-			})
+		}).then(async (data) => {
+			await utils.project.all.invalidate();
+			setCompose(data);
+		});
 	};
 
 	return (

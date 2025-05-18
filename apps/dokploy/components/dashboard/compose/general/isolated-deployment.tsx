@@ -84,11 +84,10 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			suffix: data?.appName || "",
-		})
-			.then(async (data) => {
-				await utils.project.all.invalidate();
-				setCompose(data);
-			})
+		}).then(async (data) => {
+			await utils.project.all.invalidate();
+			setCompose(data);
+		});
 	};
 
 	return (
