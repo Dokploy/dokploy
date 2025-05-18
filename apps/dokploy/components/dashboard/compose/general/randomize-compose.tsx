@@ -77,8 +77,8 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 			randomize: formData?.randomize || false,
 		})
 			.then(async (_data) => {
-				randomizeCompose();
-				refetch();
+				await randomizeCompose();
+				await refetch();
 				toast.success("Compose updated");
 			})
 			.catch(() => {
