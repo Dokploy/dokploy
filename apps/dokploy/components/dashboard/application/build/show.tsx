@@ -12,6 +12,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -63,10 +64,11 @@ const mySchema = z.discriminatedUnion("buildType", [
 		publishDirectory: z.string().optional(),
 	}),
 	z.object({
-		buildType: z.literal(BuildType.static),
+		buildType: z.literal(BuildType.railpack),
 	}),
 	z.object({
-		buildType: z.literal(BuildType.railpack),
+		buildType: z.literal(BuildType.static),
+		isStaticSpa: z.boolean().default(false),
 	}),
 ]);
 
@@ -83,6 +85,7 @@ interface ApplicationData {
 	dockerBuildStage?: string | null;
 	herokuVersion?: string | null;
 	publishDirectory?: string | null;
+	isStaticSpa?: boolean | null;
 }
 
 function isValidBuildType(value: string): value is BuildType {
@@ -115,6 +118,7 @@ const resetData = (data: ApplicationData): AddTemplate => {
 		case BuildType.static:
 			return {
 				buildType: BuildType.static,
+				isStaticSpa: data.isStaticSpa ?? false,
 			};
 		case BuildType.railpack:
 			return {
@@ -174,6 +178,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.heroku_buildpacks
 					? data.herokuVersion
 					: null,
+			isStaticSpa:
+				data.buildType === BuildType.static ? data.isStaticSpa : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -358,6 +364,30 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												{...field}
 												value={field.value ?? ""}
 											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{buildType === BuildType.static && (
+							<FormField
+								control={form.control}
+								name="isStaticSpa"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<div className="flex items-center gap-x-2 p-2">
+												<Checkbox
+													id="checkboxIsStaticSpa"
+													value={String(field.value)}
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+												<FormLabel htmlFor="checkboxIsStaticSpa">
+													Single Page Application (SPA)
+												</FormLabel>
+											</div>
 										</FormControl>
 										<FormMessage />
 									</FormItem>

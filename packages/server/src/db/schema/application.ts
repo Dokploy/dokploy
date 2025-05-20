@@ -206,6 +206,7 @@ export const applications = pgTable("application", {
 	buildType: buildType("buildType").notNull().default("nixpacks"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
+	isStaticSpa: boolean('isStaticSpa'),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -409,6 +410,7 @@ const createSchema = createInsertSchema(applications, {
 	]),
 	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
+	isStaticSpa: z.boolean().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -461,7 +463,7 @@ export const apiSaveBuildType = createSchema
 		herokuVersion: true,
 	})
 	.required()
-	.merge(createSchema.pick({ publishDirectory: true }));
+	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
 export const apiSaveGithubProvider = createSchema
 	.pick({
