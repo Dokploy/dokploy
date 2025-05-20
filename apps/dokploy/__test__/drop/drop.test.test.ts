@@ -105,6 +105,7 @@ const baseApp: ApplicationNested = {
 	ports: [],
 	projectId: "",
 	publishDirectory: null,
+	isStaticSpa: null,
 	redirects: [],
 	refreshToken: "",
 	registry: null,
