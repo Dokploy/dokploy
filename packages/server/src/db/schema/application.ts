@@ -206,7 +206,7 @@ export const applications = pgTable("application", {
 	buildType: buildType("buildType").notNull().default("nixpacks"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
-	isStaticSpa: boolean('isStaticSpa'),
+	isStaticSpa: boolean("isStaticSpa"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),

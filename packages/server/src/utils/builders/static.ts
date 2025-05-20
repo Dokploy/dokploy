@@ -30,7 +30,7 @@ http {
     }
   }
 }
-`
+`;
 
 export const buildStatic = async (
 	application: ApplicationNested,
@@ -41,11 +41,7 @@ export const buildStatic = async (
 
 	try {
 		if (isStaticSpa) {
-			createFile(
-				buildAppDirectory,
-				"nginx.conf",
-				nginxSpaConfig,
-			);
+			createFile(buildAppDirectory, "nginx.conf", nginxSpaConfig);
 		}
 
 		createFile(
@@ -60,9 +56,9 @@ export const buildStatic = async (
 			[
 				"FROM nginx:alpine",
 				"WORKDIR /usr/share/nginx/html/",
-				isStaticSpa ? 'COPY nginx.conf /etc/nginx/nginx.conf' : '',
+				isStaticSpa ? "COPY nginx.conf /etc/nginx/nginx.conf" : "",
 				`COPY ${publishDirectory || "."} .`,
-				'CMD ["nginx", "-g", "daemon off;"]'
+				'CMD ["nginx", "-g", "daemon off;"]',
 			].join("\n"),
 		);
 
