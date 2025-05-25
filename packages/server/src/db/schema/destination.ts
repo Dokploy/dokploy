@@ -24,6 +24,7 @@ export const destinations = pgTable("destination", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
+	rcloneConfigFilePath: text("rcloneConfigFilePath"),
 });
 
 export const destinationsRelations = relations(
@@ -48,6 +49,7 @@ const createSchema = createInsertSchema(destinations, {
 	endpoint: z.string().optional(),
 	secretAccessKey: z.string().optional(),
 	region: z.string().optional(),
+	rcloneConfigFilePath: z.string().optional(),
 });
 
 export const apiCreateDestination = createSchema
@@ -61,6 +63,7 @@ export const apiCreateDestination = createSchema
 		region: true,
 		endpoint: true,
 		secretAccessKey: true,
+		rcloneConfigFilePath: true,
 	})
 	.required()
 	.extend({
@@ -91,6 +94,7 @@ export const apiUpdateDestination = createSchema
 		provider: true,
 		type: true,
 		rcloneConfig: true,
+		rcloneConfigFilePath: true,
 	})
 	.required()
 	.extend({

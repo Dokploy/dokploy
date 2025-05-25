@@ -264,10 +264,11 @@ export const getRcloneUploadCommand = (
 	prefix: string = ''
 ) => {
 	if (destination.type && destination.type !== 's3') {
-		// Use rcloneConfig as the remote
 		const remote = destination.rcloneConfig || '';
-		// e.g. rclone copyto "/tmp/file.zip" "gdrive,client_id=xxx,token=yyy:/backup/file.zip"
-		return `rclone copyto "${localFilePath}" "${remote}${prefix ? '/' + prefix : ''}/${remoteFileName}"`;
+		const configFlag = destination.rcloneConfigFilePath
+			? `--config ${destination.rcloneConfigFilePath} `
+			: '';
+		return `rclone copyto ${configFlag}"${localFilePath}" "${remote}${prefix ? '/' + prefix : ''}/${remoteFileName}"`;
 	} else {
 		// S3 logic
 		const rcloneFlags = getS3Credentials(destination);

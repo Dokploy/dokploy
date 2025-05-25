@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -48,6 +48,7 @@ const addDestination = z.object({
 	endpoint: z.string().optional(),
 	rcloneConfig: z.string().optional(),
 	serverId: z.string().optional(),
+	rcloneConfigFilePath: z.string().optional(),
 });
 
 type AddDestination = z.infer<typeof addDestination>;
@@ -108,6 +109,30 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			form.reset();
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, destination]);
+
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [configFileName, setConfigFileName] = useState<string | null>(null);
+
+	const onConfigFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		// Upload file to backend (implement API endpoint for this)
+		const formData = new FormData();
+		formData.append("file", file);
+		// Example: POST /api/destination/upload-config?destinationId=... (implement this endpoint)
+		const res = await fetch(`/api/destination/upload-config?destinationId=${destinationId || ''}`, {
+			method: "POST",
+			body: formData,
+		});
+		if (res.ok) {
+			const data = await res.json();
+			form.setValue("rcloneConfigFilePath", data.path);
+			setConfigFileName(file.name);
+			toast.success("Config file uploaded");
+		} else {
+			toast.error("Failed to upload config file");
+		}
+	};
 
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
@@ -397,6 +422,36 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									</FormItem>
 								)}
 							/>
+						)}
+						{form.watch("type") !== "s3" && (
+							<div>
+								<FormField
+									control={form.control}
+									name="rcloneConfigFilePath"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Rclone Config File (optional)</FormLabel>
+											<FormControl>
+												<div>
+													<input
+														type="file"
+														accept=".conf,.txt"
+														ref={fileInputRef}
+														onChange={onConfigFileChange}
+													/>
+													{field.value && (
+														<div className="text-xs mt-1">Current: {configFileName || field.value.split("/").pop()}</div>
+													)}
+												</div>
+											</FormControl>
+											<FormMessage />
+											<div className="text-xs text-muted-foreground mt-1">
+												See <a href="https://rclone.org/docs/#config-file" target="_blank" rel="noopener noreferrer" className="underline">rclone config file docs</a> for details.
+											</div>
+										</FormItem>
+									)}
+								/>
+							</div>
 						)}
 					</form>
 
