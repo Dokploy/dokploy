@@ -35,16 +35,18 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { S3_PROVIDERS } from "./constants";
+import { S3_PROVIDERS, DESTINATION_TYPES } from "./constants";
 
 const addDestination = z.object({
 	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
+	type: z.string().min(1, "Type is required"),
+	provider: z.string().optional(),
+	accessKeyId: z.string().optional(),
+	secretAccessKey: z.string().optional(),
+	bucket: z.string().optional(),
+	region: z.string().optional(),
+	endpoint: z.string().optional(),
+	rcloneConfig: z.string().optional(),
 	serverId: z.string().optional(),
 });
 
@@ -109,6 +111,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 
 	const onSubmit = async (data: AddDestination) => {
 		await mutateAsync({
+			type: data.type,
 			provider: data.provider || "",
 			accessKey: data.accessKeyId,
 			bucket: data.bucket,
@@ -116,6 +119,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			name: data.name,
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
+			rcloneConfig: data.rcloneConfig,
 			destinationId: destinationId || "",
 		})
 			.then(async () => {
@@ -244,116 +248,156 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 						/>
 						<FormField
 							control={form.control}
-							name="provider"
-							render={({ field }) => {
-								return (
+							name="type"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Destination Type</FormLabel>
+									<FormControl>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+											value={field.value}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Select a Destination Type" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												{DESTINATION_TYPES.map((type) => (
+													<SelectItem key={type.key} value={type.key}>
+														{type.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						{form.watch("type") === "s3" ? (
+							<>
+								<FormField
+									control={form.control}
+									name="provider"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Provider</FormLabel>
+											<FormControl>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value}
+													value={field.value}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a S3 Provider" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														{S3_PROVIDERS.map((s3Provider) => (
+															<SelectItem
+																key={s3Provider.key}
+																value={s3Provider.key}
+															>
+																{s3Provider.name}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="accessKeyId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Access Key Id</FormLabel>
+											<FormControl>
+												<Input placeholder={"xcas41dasde"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="secretAccessKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secret Access Key</FormLabel>
+											<FormControl>
+												<Input placeholder={"asd123asdasw"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Bucket</FormLabel>
+											<FormControl>
+												<Input placeholder={"dokploy-bucket"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="region"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Region</FormLabel>
+											<FormControl>
+												<Input placeholder={"us-east-1"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Endpoint</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"https://us.bucket.aws/s3"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						) : (
+							<FormField
+								control={form.control}
+								name="rcloneConfig"
+								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Provider</FormLabel>
+										<FormLabel>Rclone Config / Connection String</FormLabel>
 										<FormControl>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												value={field.value}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
+											<Input placeholder={"e.g. gdrive,client_id=xxx,client_secret=yyy,token=zzz:/backup"} {...field} />
 										</FormControl>
 										<FormMessage />
+										<div className="text-xs text-muted-foreground mt-1">
+											See <a href="https://rclone.org/docs/#connection-strings" target="_blank" rel="noopener noreferrer" className="underline">rclone connection string docs</a> for details.
+										</div>
 									</FormItem>
-								);
-							}}
-						/>
-
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+								)}
+							/>
+						)}
 					</form>
 
 					<DialogFooter

@@ -43,9 +43,26 @@ export const destinationRouter = createTRPCRouter({
 	testConnection: adminProcedure
 		.input(apiCreateDestination)
 		.mutation(async ({ input }) => {
-			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
-				input;
+			const { type, rcloneConfig, secretAccessKey, bucket, region, endpoint, accessKey, provider } = input;
 			try {
+				if (type && type !== 's3') {
+					// Use rcloneConfig as the remote for rclone command
+					const rcloneRemote = rcloneConfig || '';
+					const rcloneCommand = `rclone ls "${rcloneRemote}"`;
+					if (IS_CLOUD && !input.serverId) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server not found",
+						});
+					}
+					if (IS_CLOUD) {
+						await execAsyncRemote(input.serverId || "", rcloneCommand);
+					} else {
+						await execAsync(rcloneCommand);
+					}
+					return;
+				}
+				// S3 logic (existing)
 				const rcloneFlags = [
 					`--s3-access-key-id=${accessKey}`,
 					`--s3-secret-access-key=${secretAccessKey}`,
@@ -58,15 +75,13 @@ export const destinationRouter = createTRPCRouter({
 					rcloneFlags.unshift(`--s3-provider=${provider}`);
 				}
 				const rcloneDestination = `:s3:${bucket}`;
-				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-
+				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} \"${rcloneDestination}\"`;
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Server not found",
 					});
 				}
-
 				if (IS_CLOUD) {
 					await execAsyncRemote(input.serverId || "", rcloneCommand);
 				} else {

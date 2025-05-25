@@ -13,11 +13,13 @@ export const destinations = pgTable("destination", {
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
 	provider: text("provider"),
-	accessKey: text("accessKey").notNull(),
-	secretAccessKey: text("secretAccessKey").notNull(),
-	bucket: text("bucket").notNull(),
-	region: text("region").notNull(),
-	endpoint: text("endpoint").notNull(),
+	type: text("type").notNull().default('s3'),
+	rcloneConfig: text("rcloneConfig"),
+	accessKey: text("accessKey"),
+	secretAccessKey: text("secretAccessKey"),
+	bucket: text("bucket"),
+	region: text("region"),
+	endpoint: text("endpoint"),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
@@ -38,18 +40,22 @@ export const destinationsRelations = relations(
 const createSchema = createInsertSchema(destinations, {
 	destinationId: z.string(),
 	name: z.string().min(1),
-	provider: z.string(),
-	accessKey: z.string(),
-	bucket: z.string(),
-	endpoint: z.string(),
-	secretAccessKey: z.string(),
-	region: z.string(),
+	provider: z.string().optional(),
+	type: z.string().min(1),
+	rcloneConfig: z.string().optional(),
+	accessKey: z.string().optional(),
+	bucket: z.string().optional(),
+	endpoint: z.string().optional(),
+	secretAccessKey: z.string().optional(),
+	region: z.string().optional(),
 });
 
 export const apiCreateDestination = createSchema
 	.pick({
 		name: true,
 		provider: true,
+		type: true,
+		rcloneConfig: true,
 		accessKey: true,
 		bucket: true,
 		region: true,
@@ -83,6 +89,8 @@ export const apiUpdateDestination = createSchema
 		secretAccessKey: true,
 		destinationId: true,
 		provider: true,
+		type: true,
+		rcloneConfig: true,
 	})
 	.required()
 	.extend({

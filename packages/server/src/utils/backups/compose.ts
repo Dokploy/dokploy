@@ -3,7 +3,7 @@ import type { Compose } from "@dokploy/server/services/compose";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path, getBackupCommand } from "./utils";
+import { getS3Credentials, normalizeS3Path, getBackupCommand, getRcloneUploadCommand } from "./utils";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
@@ -26,10 +26,7 @@ export const runComposeBackup = async (
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-
+		const rcloneCommand = getRcloneUploadCommand(destination, '-', backupFileName, prefix);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
