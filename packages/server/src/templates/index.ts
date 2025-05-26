@@ -35,7 +35,7 @@ export const generateRandomDomain = ({
 	projectName,
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
-	const slugIp = serverIp.replaceAll(".", "-");
+	const slugIp = serverIp.replaceAll(".", "-").replaceAll(":", "-");
 
 	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
