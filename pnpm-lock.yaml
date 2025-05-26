@@ -363,7 +363,7 @@ importers:
         version: 1.2.0(zod@3.25.7)
       otpauth:
         specifier: ^9.2.3
-        version: 9.3.4
+        version: 9.4.0
       pino:
         specifier: 9.4.0
         version: 9.4.0
@@ -707,7 +707,7 @@ importers:
         version: 1.2.0(zod@3.25.7)
       otpauth:
         specifier: ^9.2.3
-        version: 9.3.4
+        version: 9.4.0
       pino:
         specifier: 9.4.0
         version: 9.4.0
