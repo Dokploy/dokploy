@@ -8,6 +8,7 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 import { runComposeBackup } from "./compose";
+import { logger } from "@dokploy/server/lib/logger";
 
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
@@ -222,6 +223,17 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+
+	logger.info(
+		{
+			containerSearch,
+			backupCommand,
+			rcloneCommand,
+			logPath,
+		},
+		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
+	);
+
 	return `
 	set -eo pipefail;
 	echo "[$(date)] Starting backup process..." >> ${logPath};
