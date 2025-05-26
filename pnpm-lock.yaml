@@ -364,6 +364,12 @@ importers:
       otpauth:
         specifier: ^9.2.3
         version: 9.3.4
+      pino:
+        specifier: 9.4.0
+        version: 9.4.0
+      pino-pretty:
+        specifier: 11.2.2
+        version: 11.2.2
       postgres:
         specifier: 3.4.4
         version: 3.4.4
@@ -702,6 +708,12 @@ importers:
       otpauth:
         specifier: ^9.2.3
         version: 9.3.4
+      pino:
+        specifier: 9.4.0
+        version: 9.4.0
+      pino-pretty:
+        specifier: 11.2.2
+        version: 11.2.2
       postgres:
         specifier: 3.4.4
         version: 3.4.4
