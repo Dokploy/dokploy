@@ -131,3 +131,13 @@ export const S3_PROVIDERS: Array<{
 		name: "Any other S3 compatible provider",
 	},
 ];
+
+export const DESTINATION_TYPES = [
+	{ key: "s3", name: "S3 Compatible (AWS, Wasabi, etc.)" },
+	{ key: "gdrive", name: "Google Drive" },
+	{ key: "onedrive", name: "Microsoft OneDrive" },
+	{ key: "ftp", name: "FTP" },
+	{ key: "sftp", name: "SFTP" },
+	{ key: "webdav", name: "WebDAV" },
+	// Add more as needed
+];

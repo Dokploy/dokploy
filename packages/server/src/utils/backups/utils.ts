@@ -268,3 +268,23 @@ export const getBackupCommand = (
 	echo "Backup done ✅" >> ${logPath};
 	`;
 };
+
+export const getRcloneUploadCommand = (
+	destination: Destination,
+	localFilePath: string,
+	remoteFileName: string,
+	prefix: string = ''
+) => {
+	if (destination.type && destination.type !== 's3') {
+		const remote = destination.rcloneConfig || '';
+		const configFlag = destination.rcloneConfigFilePath
+			? `--config ${destination.rcloneConfigFilePath} `
+			: '';
+		return `rclone copyto ${configFlag}"${localFilePath}" "${remote}${prefix ? '/' + prefix : ''}/${remoteFileName}"`;
+	} else {
+		// S3 logic
+		const rcloneFlags = getS3Credentials(destination);
+		const s3Path = `:s3:${destination.bucket}/${normalizeS3Path(prefix)}${remoteFileName}`;
+		return `rclone copyto ${rcloneFlags.join(' ')} "${localFilePath}" "${s3Path}"`;
+	}
+};

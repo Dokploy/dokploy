@@ -3,7 +3,7 @@ import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import { getBackupCommand, getS3Credentials, normalizeS3Path, getRcloneUploadCommand } from "./utils";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
@@ -23,11 +23,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 	});
 
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
-
+		const rcloneCommand = getRcloneUploadCommand(destination, '-', backupFileName, prefix);
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
