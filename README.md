@@ -148,19 +148,6 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
   <img src="https://dokploy.com/banner.png" alt="Watch the video" width="400" style="border-radius:20px;"/>
 </a>
 
-<!-- ## Supported OS
-
-- Ubuntu 24.04 LTS
-- Ubuntu 23.10
-- Ubuntu 22.04 LTS
-- Ubuntu 20.04 LTS
-- Ubuntu 18.04 LTS
-- Debian 12
-- Debian 11
-- Fedora 40
-- Centos 9
-- Centos 8 -->
-
 ## Contributing
 
 Check out the [Contributing Guide](CONTRIBUTING.md) for more information.
