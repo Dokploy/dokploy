@@ -39,7 +39,6 @@ export const ChatwootWidget = ({
 		// Configurar los settings de Chatwoot
 		window.chatwootSettings = {
 			position: "right",
-			darkMode: false,
 		};
 
 		(window as any).chatwootSDKReady = () => {
@@ -52,7 +51,6 @@ export const ChatwootWidget = ({
 						name: user.name,
 						avatar_url: user.avatarUrl,
 						phone_number: user.phoneNumber,
-						...user.customAttributes,
 					});
 				}
 			};

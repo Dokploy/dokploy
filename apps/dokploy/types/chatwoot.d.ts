@@ -1,27 +1,21 @@
 declare global {
 	interface Window {
 		chatwootSettings?: {
-			position?: "left" | "right";
-			type?: "standard" | "expanded_bubble";
-			launcherTitle?: string;
-			darkMode?: boolean;
 			hideMessageBubble?: boolean;
-			placement?: "right" | "left";
+			showUnreadMessagesDialog?: boolean;
+			position?: "left" | "right";
+			locale?: string;
+			useBrowserLanguage?: boolean;
+			type?: "standard" | "expanded_bubble";
+			darkMode?: "light" | "auto";
+			launcherTitle?: string;
 			showPopoutButton?: boolean;
-			widgetStyle?: "standard" | "bubble";
+			baseDomain?: string;
 		};
 		chatwootSDK?: {
 			run: (config: {
 				websiteToken: string;
 				baseUrl: string;
-				user?: {
-					identifier?: string;
-					name?: string;
-					email?: string;
-					phone?: string;
-					avatar_url?: string;
-					custom_attributes?: Record<string, any>;
-				};
 			}) => void;
 		};
 		$chatwoot?: {
@@ -29,8 +23,14 @@ declare global {
 				identifier: string,
 				userAttributes: Record<string, any>,
 			) => void;
+			setCustomAttributes: (attributes: Record<string, any>) => void;
 			reset: () => void;
-			toggle: () => void;
+			toggle: (state?: "open" | "close") => void;
+			popoutChatWindow: () => void;
+			toggleBubbleVisibility: (visibility: "show" | "hide") => void;
+			setLocale: (locale: string) => void;
+			setLabel: (label: string) => void;
+			removeLabel: (label: string) => void;
 		};
 		chatwootSDKReady?: () => void;
 	}
