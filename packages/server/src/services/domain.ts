@@ -1,3 +1,5 @@
+import dns from "node:dns";
+import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
@@ -7,8 +9,6 @@ import { type apiCreateDomain, domains } from "../db/schema";
 import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { findServerById } from "./server";
-import dns from "node:dns";
-import { promisify } from "node:util";
 
 export type Domain = typeof domains.$inferSelect;
 

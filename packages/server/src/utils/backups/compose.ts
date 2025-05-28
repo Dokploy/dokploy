@@ -1,13 +1,13 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Compose } from "@dokploy/server/services/compose";
-import { findProjectById } from "@dokploy/server/services/project";
-import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path, getBackupCommand } from "./utils";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
+import { findProjectById } from "@dokploy/server/services/project";
+import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runComposeBackup = async (
 	compose: Compose,

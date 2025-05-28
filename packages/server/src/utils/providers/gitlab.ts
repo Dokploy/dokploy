@@ -256,7 +256,7 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 			const isIncluded = groupName
 				.split(",")
 				.some((name) =>
-					full_path.toLowerCase().startsWith(name.trim().toLowerCase())
+					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
 
 			return isIncluded && kind === "group";
@@ -425,11 +425,10 @@ export const testGitlabConnection = async (
 
 		if (groupName) {
 			return groupName
-			.split(",")
-			.some((name) =>
-				full_path.toLowerCase().startsWith(name.trim().toLowerCase())
-			);
-
+				.split(",")
+				.some((name) =>
+					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
+				);
 		}
 		return kind === "user";
 	});

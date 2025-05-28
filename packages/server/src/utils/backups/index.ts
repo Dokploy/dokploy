@@ -11,10 +11,10 @@ import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup"
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, scheduleBackup } from "./utils";
 
-import type { BackupSchedule } from "@dokploy/server/services/backup";
-import { startLogCleanup } from "../access-log/handler";
 import { member } from "@dokploy/server/db/schema";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { eq } from "drizzle-orm";
+import { startLogCleanup } from "../access-log/handler";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");

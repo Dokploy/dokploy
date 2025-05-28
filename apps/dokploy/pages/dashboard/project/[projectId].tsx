@@ -18,6 +18,7 @@ import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 
 import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
+import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import {
 	Card,
 	CardContent,
@@ -93,7 +94,6 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 
 export type Services = {
 	appName: string;

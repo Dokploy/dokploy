@@ -10,11 +10,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
+import { backups } from "./backups";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
-import { server } from "./server";
 import { schedules } from "./schedule";
-import { backups } from "./backups";
+import { server } from "./server";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",

@@ -1,16 +1,16 @@
-import type { BackupSchedule } from "@dokploy/server/services/backup";
-import { execAsync } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
-import { findDestinationById } from "@dokploy/server/services/destination";
-import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import { createWriteStream } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { createWriteStream } from "node:fs";
+import { findDestinationById } from "@dokploy/server/services/destination";
+import { execAsync } from "../process/execAsync";
+import { getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {

@@ -2,6 +2,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Form,
 	FormControl,
@@ -12,7 +13,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -124,11 +124,12 @@ const resetData = (data: ApplicationData): AddTemplate => {
 			return {
 				buildType: BuildType.railpack,
 			};
-		default:
+		default: {
 			const buildType = data.buildType as BuildType;
 			return {
 				buildType,
 			} as AddTemplate;
+		}
 	}
 };
 

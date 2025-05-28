@@ -1,24 +1,24 @@
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
+import { removeJob, schedule } from "@/server/utils/backup";
+import { IS_CLOUD, scheduleJob } from "@dokploy/server";
+import { removeScheduleJob } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
+import { deployments } from "@dokploy/server/db/schema/deployment";
 import {
 	createScheduleSchema,
 	schedules,
 	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
-import { desc, eq } from "drizzle-orm";
-import { db } from "@dokploy/server/db";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { runCommand } from "@dokploy/server/index";
-import { deployments } from "@dokploy/server/db/schema/deployment";
 import {
+	createSchedule,
 	deleteSchedule,
 	findScheduleById,
-	createSchedule,
 	updateSchedule,
 } from "@dokploy/server/services/schedule";
-import { IS_CLOUD, scheduleJob } from "@dokploy/server";
-import { removeJob, schedule } from "@/server/utils/backup";
-import { removeScheduleJob } from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const scheduleRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createScheduleSchema)
