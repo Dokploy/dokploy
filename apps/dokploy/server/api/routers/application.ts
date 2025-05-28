@@ -330,6 +330,7 @@ export const applicationRouter = createTRPCRouter({
 				dockerContextPath: input.dockerContextPath,
 				dockerBuildStage: input.dockerBuildStage,
 				herokuVersion: input.herokuVersion,
+				isStaticSpa: input.isStaticSpa,
 			});
 
 			return true;

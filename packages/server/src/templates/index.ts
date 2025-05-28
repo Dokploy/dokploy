@@ -1,4 +1,4 @@
-import { randomBytes, createHmac } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -35,7 +35,7 @@ export const generateRandomDomain = ({
 	projectName,
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
-	const slugIp = serverIp.replaceAll(".", "-");
+	const slugIp = serverIp.replaceAll(".", "-").replaceAll(":", "-");
 
 	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };

@@ -1,4 +1,5 @@
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -7,6 +8,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import {
 	CheckCircle2,
@@ -21,17 +28,10 @@ import {
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { toast } from "sonner";
-import { AddDomain } from "./handle-domain";
 import { useState } from "react";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { toast } from "sonner";
 import { DnsHelperModal } from "./dns-helper-modal";
-import { Badge } from "@/components/ui/badge";
+import { AddDomain } from "./handle-domain";
 
 export type ValidationState = {
 	isLoading: boolean;

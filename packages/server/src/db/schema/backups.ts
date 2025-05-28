@@ -11,15 +11,15 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { generateAppName } from ".";
+import { compose } from "./compose";
+import { deployments } from "./deployment";
 import { destinations } from "./destination";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { users_temp } from "./user";
-import { compose } from "./compose";
-import { deployments } from "./deployment";
-import { generateAppName } from ".";
 export const databaseType = pgEnum("databaseType", [
 	"postgres",
 	"mariadb",

@@ -28,6 +28,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "pino": "9.4.0",
+    "pino-pretty": "11.2.2",
     "micromatch": "4.0.8",
     "@ai-sdk/anthropic": "^1.0.6",
     "@ai-sdk/azure": "^1.0.15",
