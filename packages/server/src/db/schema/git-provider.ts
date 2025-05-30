@@ -3,7 +3,7 @@ import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { organization } from "./account";
+import { organization, account } from "./account";
 import { bitbucket } from "./bitbucket";
 import { gitea } from "./gitea";
 import { github } from "./github";
@@ -29,6 +29,9 @@ export const gitProvider = pgTable("git_provider", {
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
+	userId: text("userId")
+		.notNull()
+		.references(() => account.userId, { onDelete: "cascade" }),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
@@ -51,6 +54,10 @@ export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 	organization: one(organization, {
 		fields: [gitProvider.organizationId],
 		references: [organization.id],
+	}),
+	account: one(account, {
+		fields: [gitProvider.userId],
+		references: [account.userId],
 	}),
 }));
 

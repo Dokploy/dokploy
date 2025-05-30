@@ -22,7 +22,11 @@ export const bitbucketRouter = createTRPCRouter({
 		.input(apiCreateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				return await createBitbucket(input, ctx.session.activeOrganizationId);
+				return await createBitbucket(
+					input,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -36,8 +40,9 @@ export const bitbucketRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
-				bitbucketProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+				(bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId &&
+					bitbucketProvider.gitProvider.userId !== ctx.session.userId)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -56,21 +61,28 @@ export const bitbucketRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter(
-			(provider) =>
-				provider.gitProvider.organizationId ===
-				ctx.session.activeOrganizationId,
-		);
+		result = result.filter((provider) => {
+			return (
+				provider.gitProvider.organizationId === ctx.session.activeOrganizationId &&
+				provider.gitProvider.userId === ctx.session.userId
+			);
+		});
 		return result;
 	}),
 
 	getBitbucketRepositories: protectedProcedure
 		.input(apiFindOneBitbucket)
 		.query(async ({ input, ctx }) => {
+			console.log({
+				activeOrganizationId: ctx.session.activeOrganizationId,
+				userId: ctx.session.userId,
+				bitbucketId: input.bitbucketId,
+			});
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
-				bitbucketProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+				(bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId &&
+					bitbucketProvider.gitProvider.userId !== ctx.session.userId)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -82,12 +94,11 @@ export const bitbucketRouter = createTRPCRouter({
 	getBitbucketBranches: protectedProcedure
 		.input(apiFindBitbucketBranches)
 		.query(async ({ input, ctx }) => {
-			const bitbucketProvider = await findBitbucketById(
-				input.bitbucketId || "",
-			);
+			const bitbucketProvider = await findBitbucketById(input.bitbucketId || "");
 			if (
-				bitbucketProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+				(bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId &&
+					bitbucketProvider.gitProvider.userId !== ctx.session.userId)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -102,8 +113,9 @@ export const bitbucketRouter = createTRPCRouter({
 			try {
 				const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 				if (
-					bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+					(bitbucketProvider.gitProvider.organizationId !==
+						ctx.session.activeOrganizationId &&
+						bitbucketProvider.gitProvider.userId !== ctx.session.userId)
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -125,8 +137,9 @@ export const bitbucketRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
-				bitbucketProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+				(bitbucketProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId &&
+					bitbucketProvider.gitProvider.userId !== ctx.session.userId)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
