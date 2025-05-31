@@ -303,7 +303,7 @@ export const cloudStorageDestinationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	
+
 	// Delete a cloud storage destination
 	delete: protectedProcedure
 		.input(apiDeleteCloudStorageDestination)
@@ -564,7 +564,7 @@ export const cloudStorageDestinationRouter = createTRPCRouter({
 					message: "Destination not found",
 				});
 			}
-			
+
 			let credentials: any = {};
 			try {
 				credentials = dest.config ? JSON.parse(dest.config) : {};

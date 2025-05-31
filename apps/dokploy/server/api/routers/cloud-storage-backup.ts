@@ -100,6 +100,16 @@ async function withSilentTokenRefresh(params: {
 				) {
 					console.log("Token expired or invalid, attempting refresh");
 					credentials.token = undefined;
+					// Update the config in database to reflect token removal
+					if (updateConfig) {
+						await db
+							.update(cloudStorageDestination)
+							.set({
+								config: JSON.stringify(credentials),
+								updatedAt: new Date(),
+							})
+							.where(eq(cloudStorageDestination.id, destination.id));
+					}
 				} else {
 					throw err;
 				}
@@ -222,9 +232,9 @@ export const cloudStorageBackupRouter = createTRPCRouter({
 						console.log("Parsed files:", files);
 
 						const backupFiles = files
-							.filter((file) => 
-								file.Name.endsWith(".zip") || 
-								file.Name.endsWith(".sql.gz")
+							.filter(
+								(file) =>
+									file.Name.endsWith(".zip") || file.Name.endsWith(".sql.gz"),
 							)
 							.map((file) => ({
 								path: file.Path,

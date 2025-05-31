@@ -275,10 +275,10 @@ export const executeCloudStorageRestore = async (
 
 			emit("Downloading backup file...");
 			const credentials = await getCloudStorageCredentials(destination);
-			
+
 			// Get just the filename without any provider prefix
-			const cleanFileName = fileName.replace(/^[^:]+:/, '');
-			
+			const cleanFileName = fileName.replace(/^[^:]+:/, "");
+
 			// Construct the full path for the cloud storage provider
 			const normalizedPrefix = normalizeCloudPath(backup.prefix || "");
 			const fullPath = `${destination.provider}:${normalizedPrefix}${cleanFileName}`;
@@ -387,7 +387,7 @@ export const executeCloudStorageRestore = async (
 			}
 
 			if (restoreCommand) {
-				emit(`Executing restore command...`);
+				emit("Executing restore command...");
 				await execAsync(restoreCommand);
 			}
 
@@ -499,4 +499,3 @@ export const keepLatestNCloudStorageBackups = async (
 		console.error("Error keeping latest backups:", error);
 	}
 };
-

@@ -249,7 +249,7 @@ export const CloudStorageDestinations = ({
 			if (!result.token) {
 				toast.success("Connection test successful");
 			}
-		} catch (err: any) {
+		} catch (_err: any) {
 			setConnectionTested(false);
 			form.setValue("token", "");
 			toast.error("Connection test failed", {

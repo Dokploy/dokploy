@@ -210,7 +210,8 @@ export const ShowCloudBackups = ({ databaseId, databaseType }: Props) => {
 														setActiveManualBackup(undefined);
 													}}
 												>
-													{isManualBackup && activeManualBackup === backup.id ? (
+													{isManualBackup &&
+													activeManualBackup === backup.id ? (
 														<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
 													) : (
 														<Play className="size-5 text-muted-foreground" />
