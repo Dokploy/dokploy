@@ -31,6 +31,7 @@ import { MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
+import { EditUserRole } from "./edit-role";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -126,6 +127,14 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
+
+																		{member.role !== "owner" && (
+																			<EditUserRole
+																				userId={member.user.id}
+																				currentRole={member.role}
+																				userEmail={member.user.email}
+																			/>
+																		)}
 
 																		{member.role !== "owner" && (
 																			<AddUserPermissions
