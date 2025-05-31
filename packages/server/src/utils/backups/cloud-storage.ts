@@ -26,26 +26,8 @@ export const normalizeCloudPath = (path: string): string => {
 	return cleaned ? `${cleaned}/` : "";
 };
 
-export const constructCloudStoragePath = (
-	provider: CloudStorageProvider,
-	prefix: string | null,
-	fileName: string,
-): string => {
-	const normalizedPrefix = normalizeCloudPath(prefix || "");
-
-	switch (provider) {
-		case "drive":
-		case "dropbox":
-		case "box":
-		case "ftp":
-			return `${provider}:${normalizedPrefix}${fileName}`;
-		case "sftp": {
-			const sftpPath = normalizedPrefix.replace(/^\/+/, "");
-			return `${provider}:${sftpPath}${fileName}`;
-		}
-		default:
-			throw new Error(`Unsupported provider: ${provider}`);
-	}
+export const isCloudStorage = (provider?: string): boolean => {
+	return ["drive", "dropbox", "box", "ftp", "sftp"].includes(provider || "");
 };
 
 export const getCloudStorageCredentials = async (
@@ -157,10 +139,6 @@ encoding = Slash,Del,Ctl,RightSpace,Dot`
 	return credentials;
 };
 
-export const isCloudStorage = (provider?: string): boolean => {
-	return ["drive", "dropbox", "box", "ftp", "sftp"].includes(provider || "");
-};
-
 export const executeCloudStorageBackup = async (
 	backup: CloudStorageBackup,
 	destination: CloudStorageDestination,
@@ -179,19 +157,19 @@ export const executeCloudStorageBackup = async (
 				case "postgres":
 					if (!backup.postgres)
 						throw new Error("PostgreSQL configuration missing");
-					backupCommand = `PGPASSWORD="${backup.postgres.password}" pg_dump -h ${backup.postgres.host} -p ${backup.postgres.port} -U ${backup.postgres.user} -d ${backup.database} | gzip | rclone rcat ${(await getCloudStorageCredentials(destination)).join(" ")} "${constructCloudStoragePath(destination.provider as CloudStorageProvider, backup.prefix || "", filename)}"`;
+					backupCommand = `PGPASSWORD="${backup.postgres.password}" pg_dump -h ${backup.postgres.host} -p ${backup.postgres.port} -U ${backup.postgres.user} -d ${backup.database} | gzip > ${tempDir}/${filename}`;
 					break;
 				case "mysql":
 					if (!backup.mysql) throw new Error("MySQL configuration missing");
-					backupCommand = `mysqldump -h ${backup.mysql.host} -P ${backup.mysql.port} -u ${backup.mysql.user} -p${backup.mysql.password} ${backup.database} | gzip | rclone rcat ${(await getCloudStorageCredentials(destination)).join(" ")} "${constructCloudStoragePath(destination.provider as CloudStorageProvider, backup.prefix || "", filename)}"`;
+					backupCommand = `mysqldump -h ${backup.mysql.host} -P ${backup.mysql.port} -u ${backup.mysql.user} -p${backup.mysql.password} ${backup.database} | gzip > ${tempDir}/${filename}`;
 					break;
 				case "mariadb":
 					if (!backup.mariadb) throw new Error("MariaDB configuration missing");
-					backupCommand = `mysqldump -h ${backup.mariadb.host} -P ${backup.mariadb.port} -u ${backup.mariadb.user} -p${backup.mariadb.password} ${backup.database} | gzip | rclone rcat ${(await getCloudStorageCredentials(destination)).join(" ")} "${constructCloudStoragePath(destination.provider as CloudStorageProvider, backup.prefix || "", filename)}"`;
+					backupCommand = `mysqldump -h ${backup.mariadb.host} -P ${backup.mariadb.port} -u ${backup.mariadb.user} -p${backup.mariadb.password} ${backup.database} | gzip > ${tempDir}/${filename}`;
 					break;
 				case "mongo":
 					if (!backup.mongo) throw new Error("MongoDB configuration missing");
-					backupCommand = `mongodump --host ${backup.mongo.host} --port ${backup.mongo.port} --username ${backup.mongo.user} --password ${backup.mongo.password} --db ${backup.database} --archive --gzip | rclone rcat ${(await getCloudStorageCredentials(destination)).join(" ")} "${constructCloudStoragePath(destination.provider as CloudStorageProvider, backup.prefix || "", filename)}"`;
+					backupCommand = `mongodump --host ${backup.mongo.host} --port ${backup.mongo.port} --username ${backup.mongo.user} --password ${backup.mongo.password} --db ${backup.database} --archive --gzip > ${tempDir}/${filename}`;
 					break;
 				case "web-server": {
 					const { BASE_PATH } = paths();
@@ -231,14 +209,11 @@ export const executeCloudStorageBackup = async (
 							`cd ${tempDir} && zip -r ${webServerFilename} *.sql filesystem/ > /dev/null 2>&1`,
 						);
 
-						const backupPath = constructCloudStoragePath(
-							destination.provider as CloudStorageProvider,
-							backup.prefix || "",
-							webServerFilename,
-						);
+						const normalizedPrefix = normalizeCloudPath(backup.prefix || "");
+						const backupPath = `${destination.provider}:${normalizedPrefix}${webServerFilename}`;
 
 						const credentials = await getCloudStorageCredentials(destination);
-						const rcloneCommand = `rclone copyto ${tempDir}/${webServerFilename} "${backupPath}" ${credentials.join(" ")}`;
+						const rcloneCommand = `rclone copyto ${credentials.join(" ")} "${tempDir}/${webServerFilename}" "${backupPath}"`;
 
 						await execAsync(rcloneCommand);
 						console.log(`Cloud storage backup completed: ${backupPath}`);
@@ -253,7 +228,14 @@ export const executeCloudStorageBackup = async (
 
 			if (backupCommand) {
 				await execAsync(backupCommand);
-				console.log(`Cloud storage backup completed: ${filename}`);
+				const normalizedPrefix = normalizeCloudPath(backup.prefix || "");
+				const backupPath = `${destination.provider}:${normalizedPrefix}${filename}`;
+
+				const credentials = await getCloudStorageCredentials(destination);
+				const rcloneCommand = `rclone copyto ${credentials.join(" ")} "${tempDir}/${filename}" "${backupPath}"`;
+				console.log(`Executing rclone command: ${rcloneCommand}`);
+				await execAsync(rcloneCommand);
+				console.log(`Cloud storage backup completed: ${backupPath}`);
 			}
 
 			if (backup.keepLatestCount) {
@@ -283,11 +265,26 @@ export const executeCloudStorageRestore = async (
 		await execAsync(`mkdir -p ${tempDir}`);
 
 		try {
-			const configPath = getRcloneConfigPath(
-				destination.organizationId,
-				destination.id,
-			);
-			const rcloneCommand = `rclone copy ${backupPath} ${tempDir} --config=${configPath}`;
+			emit("Starting restore...");
+			emit(`Backup path: ${backupPath}`);
+
+			const fileName = backupPath.split("/").pop();
+			if (!fileName) {
+				throw new Error("Invalid backup file path");
+			}
+
+			emit("Downloading backup file...");
+			const credentials = await getCloudStorageCredentials(destination);
+			
+			// Get just the filename without any provider prefix
+			const cleanFileName = fileName.replace(/^[^:]+:/, '');
+			
+			// Construct the full path for the cloud storage provider
+			const normalizedPrefix = normalizeCloudPath(backup.prefix || "");
+			const fullPath = `${destination.provider}:${normalizedPrefix}${cleanFileName}`;
+
+			const rcloneCommand = `rclone copyto ${credentials.join(" ")} "${fullPath}" "${tempDir}/${cleanFileName}"`;
+			emit(`Executing rclone command: ${rcloneCommand}`);
 			await execAsync(rcloneCommand);
 
 			let restoreCommand = "";
@@ -295,19 +292,23 @@ export const executeCloudStorageRestore = async (
 				case "postgres":
 					if (!backup.postgres)
 						throw new Error("PostgreSQL configuration missing");
-					restoreCommand = `psql -h ${backup.postgres.host} -p ${backup.postgres.port} -U ${backup.postgres.user} -d ${backup.database} < ${tempDir}/${backupPath.split("/").pop()}`;
+					emit("Restoring PostgreSQL database...");
+					restoreCommand = `gunzip -c ${tempDir}/${cleanFileName} | psql -h ${backup.postgres.host} -p ${backup.postgres.port} -U ${backup.postgres.user} -d ${backup.database}`;
 					break;
 				case "mysql":
 					if (!backup.mysql) throw new Error("MySQL configuration missing");
-					restoreCommand = `mysql -h ${backup.mysql.host} -P ${backup.mysql.port} -u ${backup.mysql.user} -p${backup.mysql.password} ${backup.database} < ${tempDir}/${backupPath.split("/").pop()}`;
+					emit("Restoring MySQL database...");
+					restoreCommand = `gunzip -c ${tempDir}/${cleanFileName} | mysql -h ${backup.mysql.host} -P ${backup.mysql.port} -u ${backup.mysql.user} -p${backup.mysql.password} ${backup.database}`;
 					break;
 				case "mariadb":
 					if (!backup.mariadb) throw new Error("MariaDB configuration missing");
-					restoreCommand = `mysql -h ${backup.mariadb.host} -P ${backup.mariadb.port} -u ${backup.mariadb.user} -p${backup.mariadb.password} ${backup.database} < ${tempDir}/${backupPath.split("/").pop()}`;
+					emit("Restoring MariaDB database...");
+					restoreCommand = `gunzip -c ${tempDir}/${cleanFileName} | mysql -h ${backup.mariadb.host} -P ${backup.mariadb.port} -u ${backup.mariadb.user} -p${backup.mariadb.password} ${backup.database}`;
 					break;
 				case "mongo":
 					if (!backup.mongo) throw new Error("MongoDB configuration missing");
-					restoreCommand = `mongorestore --host ${backup.mongo.host} --port ${backup.mongo.port} --username ${backup.mongo.user} --password ${backup.mongo.password} --db ${backup.database} ${tempDir}/${backup.database}`;
+					emit("Restoring MongoDB database...");
+					restoreCommand = `mongorestore --host ${backup.mongo.host} --port ${backup.mongo.port} --username ${backup.mongo.user} --password ${backup.mongo.password} --db ${backup.database} --archive=${tempDir}/${cleanFileName} --gzip`;
 					break;
 				case "web-server": {
 					if (!backup.webServer)
@@ -316,7 +317,7 @@ export const executeCloudStorageRestore = async (
 
 					emit("Extracting backup...");
 					await execAsync(
-						`cd ${tempDir} && unzip ${backupPath.split("/").pop()} > /dev/null 2>&1`,
+						`cd ${tempDir} && unzip ${cleanFileName} > /dev/null 2>&1`,
 					);
 
 					emit("Restoring filesystem...");
@@ -385,14 +386,19 @@ export const executeCloudStorageRestore = async (
 					throw new Error(`Unsupported database type: ${backup.databaseType}`);
 			}
 
-			await execAsync(restoreCommand);
-			await execAsync(`rm -rf ${tempDir}`);
-			emit(`Cloud storage restore completed: ${backupPath}`);
+			if (restoreCommand) {
+				emit(`Executing restore command...`);
+				await execAsync(restoreCommand);
+			}
+
+			emit("Restore completed successfully!");
 		} finally {
+			emit("Cleaning up temporary files...");
 			await execAsync(`rm -rf ${tempDir}`);
 		}
 	} catch (error) {
-		console.error(`Error executing cloud storage restore: ${error}`);
+		console.error("Error during cloud storage restore:", error);
+		emit(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
 		throw error;
 	}
 };
@@ -470,7 +476,6 @@ export function getRcloneConfigPath(
 	}
 	return join(configDir, `${destinationId}.conf`);
 }
-
 export const keepLatestNCloudStorageBackups = async (
 	backup: CloudStorageBackup,
 	destination: CloudStorageDestination,
@@ -494,3 +499,4 @@ export const keepLatestNCloudStorageBackups = async (
 		console.error("Error keeping latest backups:", error);
 	}
 };
+

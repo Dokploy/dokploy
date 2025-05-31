@@ -280,23 +280,25 @@ export const RestoreCloudBackup = ({ databaseId, databaseType }: Props) => {
 			const remoteName = (() => {
 				switch (selectedBackup.cloudStorageDestination?.provider) {
 					case "drive":
-						return "dokploy-drive";
+						return "drive";
 					case "dropbox":
-						return "dokploy-dropbox";
+						return "dropbox";
 					case "box":
-						return "dokploy-box";
+						return "box";
+					case "ftp":
+						return "ftp";
+					case "sftp":
+						return "sftp";
 					default:
 						return selectedBackup.cloudStorageDestination?.provider;
 				}
 			})();
 
-			const prefix = selectedBackup.prefix.startsWith("/")
-				? selectedBackup.prefix.slice(1)
-				: selectedBackup.prefix;
+			const backupPath = `${remoteName}:${values.backupFile}`;
 
 			await restoreBackup({
 				destinationId: selectedBackup.cloudStorageDestinationId,
-				backupFile: `${remoteName}:${prefix}/${values.backupFile}`,
+				backupFile: backupPath,
 				databaseType,
 				databaseName: values.databaseName,
 				metadata: values.metadata,
@@ -524,6 +526,7 @@ export const RestoreCloudBackup = ({ databaseId, databaseType }: Props) => {
 																		value={file.path}
 																		key={file.path}
 																		onSelect={() => {
+																			console.log("Selected file:", file.path);
 																			form.setValue("backupFile", file.path);
 																			setSearch("");
 																			setDebouncedSearchTerm("");

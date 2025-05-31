@@ -178,9 +178,9 @@ export const ShowCloudBackups = ({ databaseId, databaseType }: Props) => {
 												<Button
 													type="button"
 													variant="ghost"
-													isLoading={
-														isManualBackup && activeManualBackup === backup.id
-													}
+													// isLoading={
+													// 	isManualBackup && activeManualBackup === backup.id
+													// }
 													onClick={async () => {
 														setActiveManualBackup(backup.id);
 														await manualBackup({
