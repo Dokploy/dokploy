@@ -86,7 +86,7 @@ export const buildRailpack = async (
 		const env: { [key: string]: string } = {};
 		for (const pair of envVariables) {
 			const [key, value] = parseEnvironmentKeyValuePair(pair);
-			if (key && value.length > 0) {
+			if (key && value) {
 				buildArgs.push("--secret", `id=${key},env=${key}`);
 				env[key] = value;
 			}
@@ -166,7 +166,7 @@ export const getRailpackCommand = (
 	const exportEnvs = [];
 	for (const pair of envVariables) {
 		const [key, value] = parseEnvironmentKeyValuePair(pair);
-		if (key && value.length > 0) {
+		if (key && value) {
 			buildArgs.push("--secret", `id=${key},env=${key}`);
 			exportEnvs.push(`export ${key}='${value}'`);
 		}
