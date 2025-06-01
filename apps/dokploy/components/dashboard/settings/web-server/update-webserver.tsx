@@ -47,7 +47,7 @@ export const UpdateWebServer = () => {
 	const handleConfirm = async () => {
 		try {
 			setUpdating(true);
-			await updateServer();
+			await updateServer({ imageUrl: "" });
 
 			// Give some time for docker service restart before starting to check status
 			await new Promise((resolve) => setTimeout(resolve, 8000));
