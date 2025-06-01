@@ -119,6 +119,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					isValid: result.isValid,
 					error: result.error,
 					resolvedIp: result.resolvedIp,
+					cdnProvider: result.cdnProvider,
 					message: result.error && result.isValid ? result.error : undefined,
 				},
 			}));
@@ -355,7 +356,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
 																			{validationState.message
-																				? "Behind Cloudflare"
+																				? `Behind ${validationState.cdnProvider}`
 																				: "DNS Valid"}
 																		</>
 																	) : validationState?.error ? (
