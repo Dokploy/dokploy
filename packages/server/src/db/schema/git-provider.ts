@@ -3,7 +3,7 @@ import { pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { organization, account } from "./account";
+import { account, organization } from "./account";
 import { bitbucket } from "./bitbucket";
 import { gitea } from "./gitea";
 import { github } from "./github";
