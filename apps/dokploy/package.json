@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.22.6",
+	"version": "v0.22.7",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -36,6 +36,8 @@
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
+		"pino": "9.4.0",
+		"pino-pretty": "11.2.2",
 		"@ai-sdk/anthropic": "^1.0.6",
 		"@ai-sdk/azure": "^1.0.15",
 		"@ai-sdk/cohere": "^1.0.6",
@@ -186,7 +188,7 @@
 	},
 	"packageManager": "pnpm@9.5.0",
 	"engines": {
-		"node": "^20.9.0",
+		"node": "^20.16.0",
 		"pnpm": ">=9.5.0"
 	},
 	"lint-staged": {

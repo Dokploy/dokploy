@@ -4,11 +4,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
-import { deployments } from "./deployment";
-import { generateAppName } from "./utils";
 import { compose } from "./compose";
+import { deployments } from "./deployment";
 import { server } from "./server";
 import { users_temp } from "./user";
+import { generateAppName } from "./utils";
 export const shellTypes = pgEnum("shellType", ["bash", "sh"]);
 
 export const scheduleType = pgEnum("scheduleType", [

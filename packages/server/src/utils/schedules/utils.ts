@@ -1,14 +1,14 @@
+import { createWriteStream } from "node:fs";
+import path from "node:path";
+import { paths } from "@dokploy/server/constants";
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
+import { createDeploymentSchedule } from "@dokploy/server/services/deployment";
+import { updateDeploymentStatus } from "@dokploy/server/services/deployment";
 import { findScheduleById } from "@dokploy/server/services/schedule";
-import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
+import { scheduleJob as scheduleJobNode, scheduledJobs } from "node-schedule";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
-import { createDeploymentSchedule } from "@dokploy/server/services/deployment";
-import { createWriteStream } from "node:fs";
-import { updateDeploymentStatus } from "@dokploy/server/services/deployment";
-import { paths } from "@dokploy/server/constants";
-import path from "node:path";
 
 export const scheduleJob = (schedule: Schedule) => {
 	const { cronExpression, scheduleId } = schedule;

@@ -1,5 +1,6 @@
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,12 +10,11 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import { RocketIcon, Clock, Loader2 } from "lucide-react";
+import { Clock, Loader2, RocketIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
-import { Badge } from "@/components/ui/badge";
 
 interface Props {
 	id: string;

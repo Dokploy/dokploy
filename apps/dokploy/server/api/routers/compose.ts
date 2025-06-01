@@ -51,9 +51,9 @@ import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
-import { parse } from "toml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
+import { parse } from "toml";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 

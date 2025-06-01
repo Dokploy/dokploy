@@ -1,40 +1,6 @@
+import { AlertBlock } from "@/components/shared/alert-block";
+import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-	FormDescription,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-	Info,
-	PlusCircle,
-	PenBoxIcon,
-	RefreshCw,
-	DatabaseZap,
-} from "lucide-react";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Switch } from "@/components/ui/switch";
-import { useEffect, useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -42,10 +8,44 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { CodeEditor } from "@/components/shared/code-editor";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	DatabaseZap,
+	Info,
+	PenBoxIcon,
+	PlusCircle,
+	RefreshCw,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import type { CacheType } from "../domains/handle-domain";
 
 export const commonCronExpressions = [
