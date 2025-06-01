@@ -279,6 +279,17 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export const parseEnvironmentKeyValuePair = (
+	pair: string,
+): [string, string] => {
+	const [key, ...valueParts] = pair.split("=");
+	if (!key || !valueParts.length) {
+		throw new Error(`Invalid environment variable pair: ${pair}`);
+	}
+
+	return [key, valueParts.join("")];
+};
+
 export const getEnviromentVariablesObject = (
 	input: string | null,
 	projectEnv?: string | null,
@@ -288,7 +299,7 @@ export const getEnviromentVariablesObject = (
 	const jsonObject: Record<string, string> = {};
 
 	for (const pair of envs) {
-		const [key, value] = pair.split("=");
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
 		if (key && value) {
 			jsonObject[key] = value;
 		}
