@@ -31,6 +31,7 @@ import {
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
+	findGitProviderById,
 	findProjectById,
 	getApplicationStats,
 	mechanizeDockerContainer,
@@ -126,7 +127,45 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to access this application",
 				});
 			}
-			return application;
+
+			let hasGitProviderAccess = true;
+			let unauthorizedProvider: string | null = null;
+
+			const getGitProviderId = () => {
+				switch (application.sourceType) {
+					case "github":
+						return application.github?.gitProviderId;
+					case "gitlab":
+						return application.gitlab?.gitProviderId;
+					case "bitbucket":
+						return application.bitbucket?.gitProviderId;
+					case "gitea":
+						return application.gitea?.gitProviderId;
+					default:
+						return null;
+				}
+			};
+
+			const gitProviderId = getGitProviderId();
+
+			if (gitProviderId) {
+				try {
+					const gitProvider = await findGitProviderById(gitProviderId);
+					if (gitProvider.userId !== ctx.session.userId) {
+						hasGitProviderAccess = false;
+						unauthorizedProvider = application.sourceType;
+					}
+				} catch {
+					hasGitProviderAccess = false;
+					unauthorizedProvider = application.sourceType;
+				}
+			}
+
+			return {
+				...application,
+				hasGitProviderAccess,
+				unauthorizedProvider,
+			};
 		}),
 
 	reload: protectedProcedure
@@ -486,6 +525,67 @@ export const applicationRouter = createTRPCRouter({
 				applicationStatus: "idle",
 				watchPaths: input.watchPaths,
 				enableSubmodules: input.enableSubmodules,
+			});
+
+			return true;
+		}),
+	disconnectGitProvider: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to disconnect this git provider",
+				});
+			}
+
+			// Reset all git provider related fields
+			await updateApplication(input.applicationId, {
+				// GitHub fields
+				repository: null,
+				branch: null,
+				owner: null,
+				buildPath: "/",
+				githubId: null,
+				triggerType: "push",
+
+				// GitLab fields
+				gitlabRepository: null,
+				gitlabOwner: null,
+				gitlabBranch: null,
+				gitlabBuildPath: null,
+				gitlabId: null,
+				gitlabProjectId: null,
+				gitlabPathNamespace: null,
+
+				// Bitbucket fields
+				bitbucketRepository: null,
+				bitbucketOwner: null,
+				bitbucketBranch: null,
+				bitbucketBuildPath: null,
+				bitbucketId: null,
+
+				// Gitea fields
+				giteaRepository: null,
+				giteaOwner: null,
+				giteaBranch: null,
+				giteaBuildPath: null,
+				giteaId: null,
+
+				// Custom Git fields
+				customGitBranch: null,
+				customGitBuildPath: null,
+				customGitUrl: null,
+				customGitSSHKeyId: null,
+
+				// Common fields
+				sourceType: "github", // Reset to default
+				applicationStatus: "idle",
+				watchPaths: null,
+				enableSubmodules: false,
 			});
 
 			return true;

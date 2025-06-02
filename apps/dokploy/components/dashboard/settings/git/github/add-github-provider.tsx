@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 export const AddGithubProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: activeOrganization } = authClient.useActiveOrganization();
+	const { data: session } = authClient.useSession();
 	const { data } = api.user.get.useQuery();
 	const [manifest, setManifest] = useState("");
 	const [isOrganization, setIsOrganization] = useState(false);
@@ -27,7 +28,7 @@ export const AddGithubProvider = () => {
 		const url = document.location.origin;
 		const manifest = JSON.stringify(
 			{
-				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id}`,
+				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id}&userId=${session?.user?.id}`,
 				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}`,
 				url: origin,
 				hook_attributes: {
