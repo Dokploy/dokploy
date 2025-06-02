@@ -21,17 +21,29 @@ export const getDokployImageTag = () => {
 	return process.env.RELEASE_TAG || "latest";
 };
 
-export const getDokployImage = () => {
-	return `dokploy/dokploy:${getDokployImageTag()}`;
+export const getDokployImage = (customImage?: string) => {
+	return customImage || `dokploy/dokploy:${getDokployImageTag()}`;
 };
 
-export const pullLatestRelease = async () => {
-	const stream = await docker.pull(getDokployImage());
+export const pullRelease = async (customImage?: string) => {
+	const imageToPull = getDokployImage(customImage);
+	const stream = await docker.pull(imageToPull);
 	await new Promise((resolve, reject) => {
 		docker.modem.followProgress(stream, (err, res) =>
 			err ? reject(err) : resolve(res),
 		);
 	});
+};
+
+/** Pulls a custom Docker image and returns whether it was successful */
+export const pullCustomImage = async (imageUrl: string): Promise<boolean> => {
+	try {
+		await pullRelease(imageUrl);
+		return true;
+	} catch (error) {
+		console.error("Error pulling custom image:", error);
+		return false;
+	}
 };
 
 /** Returns Dokploy docker service image digest */
