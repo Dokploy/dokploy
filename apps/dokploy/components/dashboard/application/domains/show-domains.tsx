@@ -356,7 +356,8 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	) : validationState?.isValid ? (
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
-																			{validationState.message && validationState.cdnProvider
+																			{validationState.message &&
+																			validationState.cdnProvider
 																				? `Behind ${validationState.cdnProvider}`
 																				: "DNS Valid"}
 																		</>
