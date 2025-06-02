@@ -179,6 +179,14 @@ export const WelcomeSuscription = () => {
 											</li>
 											<li>
 												<a
+													href=" https://app.americancloud.com/register?ref=dokploy"
+													className="text-link underline"
+												>
+													American Cloud - Get $20 Credits
+												</a>
+											</li>
+											<li>
+												<a
 													href="https://m.do.co/c/db24efd43f35"
 													className="text-link underline"
 												>

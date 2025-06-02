@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
@@ -13,7 +14,6 @@ import type { RedisNested } from "../databases/redis";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
-import type { Compose } from "@dokploy/server/services/compose";
 
 interface RegistryAuth {
 	username: string;
@@ -279,6 +279,17 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export const parseEnvironmentKeyValuePair = (
+	pair: string,
+): [string, string] => {
+	const [key, ...valueParts] = pair.split("=");
+	if (!key || !valueParts.length) {
+		throw new Error(`Invalid environment variable pair: ${pair}`);
+	}
+
+	return [key, valueParts.join("")];
+};
+
 export const getEnviromentVariablesObject = (
 	input: string | null,
 	projectEnv?: string | null,
@@ -288,7 +299,7 @@ export const getEnviromentVariablesObject = (
 	const jsonObject: Record<string, string> = {};
 
 	for (const pair of envs) {
-		const [key, value] = pair.split("=");
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
 		if (key && value) {
 			jsonObject[key] = value;
 		}

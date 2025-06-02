@@ -17,7 +17,6 @@ const inter = Inter({ subsets: ["latin"] });
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
 	getLayout?: (page: ReactElement) => ReactNode;
-	// session: Session | null;
 	theme?: string;
 };
 
@@ -33,11 +32,13 @@ const MyApp = ({
 
 	return (
 		<>
-			<style jsx global>{`
-        :root {
-          --font-inter: ${inter.style.fontFamily};
-        }
-      `}</style>
+			<style jsx global>
+				{`
+					:root {
+						--font-inter: ${inter.style.fontFamily};
+					}
+				`}
+			</style>
 			<Head>
 				<title>Dokploy</title>
 			</Head>

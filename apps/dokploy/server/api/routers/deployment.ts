@@ -1,3 +1,4 @@
+import { db } from "@/server/db";
 import {
 	apiFindAllByApplication,
 	apiFindAllByCompose,
@@ -16,7 +17,6 @@ import {
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { db } from "@/server/db";
 
 export const deploymentRouter = createTRPCRouter({
 	all: protectedProcedure

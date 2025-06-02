@@ -156,6 +156,67 @@ export const HandleServers = ({ serverId }: Props) => {
 						remotely.
 					</DialogDescription>
 				</DialogHeader>
+				<div>
+					<p className="text-primary text-sm font-medium">
+						You will need to purchase or rent a Virtual Private Server (VPS) to
+						proceed, we recommend to use one of these providers since has been
+						heavily tested.
+					</p>
+					<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
+						<li>
+							<a
+								href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
+								className="text-link underline"
+							>
+								Hostinger - Get 20% Discount
+							</a>
+						</li>
+						<li>
+							<a
+								href=" https://app.americancloud.com/register?ref=dokploy"
+								className="text-link underline"
+							>
+								American Cloud - Get $20 Credits
+							</a>
+						</li>
+						<li>
+							<a
+								href="https://m.do.co/c/db24efd43f35"
+								className="text-link underline"
+							>
+								DigitalOcean - Get $200 Credits
+							</a>
+						</li>
+						<li>
+							<a
+								href="https://hetzner.cloud/?ref=vou4fhxJ1W2D"
+								className="text-link underline"
+							>
+								Hetzner - Get €20 Credits
+							</a>
+						</li>
+						<li>
+							<a
+								href="https://www.vultr.com/?ref=9679828"
+								className="text-link underline"
+							>
+								Vultr
+							</a>
+						</li>
+						<li>
+							<a
+								href="https://www.linode.com/es/pricing/#compute-shared"
+								className="text-link underline"
+							>
+								Linode
+							</a>
+						</li>
+					</ul>
+					<AlertBlock className="mt-4 px-4">
+						You are free to use whatever provider, but we recommend to use one
+						of the above, to avoid issues.
+					</AlertBlock>
+				</div>
 				{!canCreateMoreServers && (
 					<AlertBlock type="warning">
 						You cannot create more servers,{" "}

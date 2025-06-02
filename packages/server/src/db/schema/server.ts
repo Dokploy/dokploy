@@ -20,9 +20,9 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
+import { schedules } from "./schedule";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { schedules } from "./schedule";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 
 export const server = pgTable("server", {

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { generateSHA256Hash } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,7 +30,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Disable2FA } from "./disable-2fa";
 import { Enable2FA } from "./enable-2fa";
-import { Switch } from "@/components/ui/switch";
 
 const profileSchema = z.object({
 	email: z.string(),

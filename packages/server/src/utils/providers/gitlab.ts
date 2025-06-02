@@ -246,32 +246,18 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 
 	const gitlabProvider = await findGitlabById(gitlabId);
 
-	const response = await fetch(
-		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
-		{
-			headers: {
-				Authorization: `Bearer ${gitlabProvider.accessToken}`,
-			},
-		},
-	);
+	const allProjects = await validateGitlabProvider(gitlabProvider);
 
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch repositories: ${response.statusText}`,
-		});
-	}
-
-	const repositories = await response.json();
-
-	const filteredRepos = repositories.filter((repo: any) => {
+	const filteredRepos = allProjects.filter((repo: any) => {
 		const { full_path, kind } = repo.namespace;
 		const groupName = gitlabProvider.groupName?.toLowerCase();
 
 		if (groupName) {
 			const isIncluded = groupName
 				.split(",")
-				.some((name) => full_path.toLowerCase().includes(name));
+				.some((name) =>
+					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
+				);
 
 			return isIncluded && kind === "group";
 		}
@@ -432,23 +418,7 @@ export const testGitlabConnection = async (
 
 	const gitlabProvider = await findGitlabById(gitlabId);
 
-	const response = await fetch(
-		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
-		{
-			headers: {
-				Authorization: `Bearer ${gitlabProvider.accessToken}`,
-			},
-		},
-	);
-
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch repositories: ${response.statusText}`,
-		});
-	}
-
-	const repositories = await response.json();
+	const repositories = await validateGitlabProvider(gitlabProvider);
 
 	const filteredRepos = repositories.filter((repo: any) => {
 		const { full_path, kind } = repo.namespace;
@@ -456,10 +426,56 @@ export const testGitlabConnection = async (
 		if (groupName) {
 			return groupName
 				.split(",")
-				.some((name) => full_path.toLowerCase().includes(name));
+				.some((name) =>
+					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
+				);
 		}
 		return kind === "user";
 	});
 
 	return filteredRepos.length;
+};
+
+export const validateGitlabProvider = async (gitlabProvider: Gitlab) => {
+	try {
+		const allProjects = [];
+		let page = 1;
+		const perPage = 100; // GitLab's max per page is 100
+
+		while (true) {
+			const response = await fetch(
+				`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${page}&per_page=${perPage}`,
+				{
+					headers: {
+						Authorization: `Bearer ${gitlabProvider.accessToken}`,
+					},
+				},
+			);
+
+			if (!response.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Failed to fetch repositories: ${response.statusText}`,
+				});
+			}
+
+			const projects = await response.json();
+
+			if (projects.length === 0) {
+				break;
+			}
+
+			allProjects.push(...projects);
+			page++;
+
+			const total = response.headers.get("x-total");
+			if (total && allProjects.length >= Number.parseInt(total)) {
+				break;
+			}
+		}
+
+		return allProjects;
+	} catch (error) {
+		throw error;
+	}
 };

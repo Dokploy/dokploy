@@ -40,10 +40,10 @@ import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
+import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
-import { ShowSchedulesModal } from "./show-schedules-modal";
 
 export const ShowServers = () => {
 	const { t } = useTranslation("settings");

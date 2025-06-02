@@ -2,6 +2,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Form,
 	FormControl,
@@ -63,10 +64,11 @@ const mySchema = z.discriminatedUnion("buildType", [
 		publishDirectory: z.string().optional(),
 	}),
 	z.object({
-		buildType: z.literal(BuildType.static),
+		buildType: z.literal(BuildType.railpack),
 	}),
 	z.object({
-		buildType: z.literal(BuildType.railpack),
+		buildType: z.literal(BuildType.static),
+		isStaticSpa: z.boolean().default(false),
 	}),
 ]);
 
@@ -83,6 +85,7 @@ interface ApplicationData {
 	dockerBuildStage?: string | null;
 	herokuVersion?: string | null;
 	publishDirectory?: string | null;
+	isStaticSpa?: boolean | null;
 }
 
 function isValidBuildType(value: string): value is BuildType {
@@ -115,16 +118,18 @@ const resetData = (data: ApplicationData): AddTemplate => {
 		case BuildType.static:
 			return {
 				buildType: BuildType.static,
+				isStaticSpa: data.isStaticSpa ?? false,
 			};
 		case BuildType.railpack:
 			return {
 				buildType: BuildType.railpack,
 			};
-		default:
+		default: {
 			const buildType = data.buildType as BuildType;
 			return {
 				buildType,
 			} as AddTemplate;
+		}
 	}
 };
 
@@ -174,6 +179,8 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.heroku_buildpacks
 					? data.herokuVersion
 					: null,
+			isStaticSpa:
+				data.buildType === BuildType.static ? data.isStaticSpa : null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -358,6 +365,30 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 												{...field}
 												value={field.value ?? ""}
 											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{buildType === BuildType.static && (
+							<FormField
+								control={form.control}
+								name="isStaticSpa"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<div className="flex items-center gap-x-2 p-2">
+												<Checkbox
+													id="checkboxIsStaticSpa"
+													value={String(field.value)}
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+												<FormLabel htmlFor="checkboxIsStaticSpa">
+													Single Page Application (SPA)
+												</FormLabel>
+											</div>
 										</FormControl>
 										<FormMessage />
 									</FormItem>

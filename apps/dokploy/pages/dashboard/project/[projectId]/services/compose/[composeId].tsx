@@ -13,7 +13,7 @@ import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -217,12 +217,12 @@ const Service = (
 									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
-												"lg:grid lg:w-fit max-md:overflow-y-scroll justify-start",
+												"xl:grid xl:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "lg:grid-cols-9"
+													? "xl:grid-cols-9"
 													: data?.serverId
-														? "lg:grid-cols-8"
-														: "lg:grid-cols-9",
+														? "xl:grid-cols-8"
+														: "xl:grid-cols-9",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -366,7 +366,7 @@ const Service = (
 
 export default Service;
 Service.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(

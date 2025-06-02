@@ -51,9 +51,9 @@ import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
-import { parse } from "toml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
+import { parse } from "toml";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
@@ -439,7 +439,15 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			const projectName = slugify(`${project.name} ${input.id}`);
-			const generate = processTemplate(template.config, {
+			const appName = `${projectName}-${generatePassword(6)}`;
+			const config = {
+				...template.config,
+				variables: {
+					APP_NAME: appName,
+					...template.config.variables,
+				},
+			};
+			const generate = processTemplate(config, {
 				serverIp: serverIp,
 				projectName: projectName,
 			});
@@ -451,7 +459,7 @@ export const composeRouter = createTRPCRouter({
 				serverId: input.serverId,
 				name: input.id,
 				sourceType: "raw",
-				appName: `${projectName}-${generatePassword(6)}`,
+				appName: appName,
 				isolatedDeployment: true,
 			});
 
@@ -605,7 +613,15 @@ export const composeRouter = createTRPCRouter({
 					});
 				}
 
-				const processedTemplate = processTemplate(config, {
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: compose.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
 				});
@@ -675,7 +691,15 @@ export const composeRouter = createTRPCRouter({
 					});
 				}
 
-				const processedTemplate = processTemplate(config, {
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: compose.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
 				});
