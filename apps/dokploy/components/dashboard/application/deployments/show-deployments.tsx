@@ -10,13 +10,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import {
-	Clock,
-	Loader2,
-	RocketIcon,
-	Settings,
-	ArrowDownToLine,
-} from "lucide-react";
+import { Clock, Loader2, RocketIcon, Settings, RefreshCcw } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
@@ -210,7 +204,7 @@ export const ShowDeployments = ({
 														size="sm"
 														isLoading={isRollingBack}
 													>
-														<ArrowDownToLine className="size-4 text-primary group-hover:text-red-500" />
+														<RefreshCcw className="size-4 text-primary group-hover:text-red-500" />
 														Rollback
 													</Button>
 												</DialogAction>
