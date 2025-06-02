@@ -1,5 +1,5 @@
 {
-  "id": "f8bab14b-cdab-492b-9fe3-b9fc9e56239d",
+  "id": "7a6a6383-d13c-421b-b186-d49ced92153a",
   "prevId": "76eb8fe3-21c0-4544-962c-1ae18e8e6730",
   "version": "7",
   "dialect": "postgresql",
@@ -2184,6 +2184,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "rollbackId": {
+          "name": "rollbackId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2262,6 +2268,19 @@
           ],
           "columnsTo": [
             "backupId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_rollbackId_rollback_rollbackId_fk": {
+          "name": "deployment_rollbackId_rollback_rollbackId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "rollback",
+          "columnsFrom": [
+            "rollbackId"
+          ],
+          "columnsTo": [
+            "rollbackId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -5537,8 +5556,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "applicationId": {
-          "name": "applicationId",
+        "deploymentId": {
+          "name": "deploymentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -5564,15 +5583,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "rollback_applicationId_application_applicationId_fk": {
-          "name": "rollback_applicationId_application_applicationId_fk",
+        "rollback_deploymentId_deployment_deploymentId_fk": {
+          "name": "rollback_deploymentId_deployment_deploymentId_fk",
           "tableFrom": "rollback",
-          "tableTo": "application",
+          "tableTo": "deployment",
           "columnsFrom": [
-            "applicationId"
+            "deploymentId"
           ],
           "columnsTo": [
-            "applicationId"
+            "deploymentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"

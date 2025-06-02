@@ -7,6 +7,7 @@ import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { ApplicationNested } from "../utils/builders";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import type { CreateServiceOptions } from "dockerode";
+import { findDeploymentById } from "./deployment";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
@@ -31,7 +32,13 @@ export const createRollback = async (
 			})
 			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
 
-		const application = await findApplicationById(input.applicationId);
+		const deployment = await findDeploymentById(rollback.deploymentId);
+
+		if (!deployment?.applicationId) {
+			throw new Error("Deployment not found");
+		}
+
+		const application = await findApplicationById(deployment.applicationId);
 
 		await createRollbackImage(application, tagImage);
 
@@ -86,7 +93,13 @@ export const removeRollbackById = async (rollbackId: string) => {
 
 	if (result?.image) {
 		try {
-			const application = await findApplicationById(result.applicationId);
+			const deployment = await findDeploymentById(result.deploymentId);
+
+			if (!deployment?.applicationId) {
+				throw new Error("Deployment not found");
+			}
+
+			const application = await findApplicationById(deployment.applicationId);
 			await deleteRollbackImage(result.image, application.serverId);
 		} catch (error) {
 			console.error(error);
@@ -99,7 +112,13 @@ export const removeRollbackById = async (rollbackId: string) => {
 export const rollback = async (rollbackId: string) => {
 	const result = await findRollbackById(rollbackId);
 
-	const application = await findApplicationById(result.applicationId);
+	const deployment = await findDeploymentById(result.deploymentId);
+
+	if (!deployment?.applicationId) {
+		throw new Error("Deployment not found");
+	}
+
+	const application = await findApplicationById(deployment.applicationId);
 
 	await rollbackApplication(
 		application.appName,
@@ -122,7 +141,7 @@ const rollbackApplication = async (
 		TaskTemplate: {
 			ContainerSpec: {
 				Image: image,
-				Env: env.split("\n"),
+				// Env: env.split("\n"),
 			},
 		},
 	};

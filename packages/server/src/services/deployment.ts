@@ -34,20 +34,34 @@ import { findScheduleById } from "./schedule";
 
 export type Deployment = typeof deployments.$inferSelect;
 
-export const findDeploymentById = async (applicationId: string) => {
-	const application = await db.query.deployments.findFirst({
-		where: eq(deployments.applicationId, applicationId),
+export const findDeploymentById = async (deploymentId: string) => {
+	const deployment = await db.query.deployments.findFirst({
+		where: eq(deployments.deploymentId, deploymentId),
 		with: {
 			application: true,
 		},
 	});
-	if (!application) {
+	if (!deployment) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Deployment not found",
 		});
 	}
-	return application;
+	return deployment;
+};
+
+export const findDeploymentByApplicationId = async (applicationId: string) => {
+	const deployment = await db.query.deployments.findFirst({
+		where: eq(deployments.applicationId, applicationId),
+	});
+
+	if (!deployment) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Deployment not found",
+		});
+	}
+	return deployment;
 };
 
 export const createDeployment = async (

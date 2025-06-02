@@ -10,11 +10,20 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import { Clock, Loader2, RocketIcon } from "lucide-react";
+import {
+	Clock,
+	Loader2,
+	RocketIcon,
+	Settings,
+	ArrowDownToLine,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
+import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { toast } from "sonner";
 
 interface Props {
 	id: string;
@@ -57,6 +66,9 @@ export const ShowDeployments = ({
 			},
 		);
 
+	const { mutateAsync: rollback, isLoading: isRollingBack } =
+		api.rollback.rollback.useMutation();
+
 	const [url, setUrl] = React.useState("");
 	useEffect(() => {
 		setUrl(document.location.origin);
@@ -71,9 +83,18 @@ export const ShowDeployments = ({
 						See all the 10 last deployments for this {type}
 					</CardDescription>
 				</div>
-				{(type === "application" || type === "compose") && (
-					<CancelQueues id={id} type={type} />
-				)}
+				<div className="flex flex-row items-center gap-2">
+					{(type === "application" || type === "compose") && (
+						<CancelQueues id={id} type={type} />
+					)}
+					{type === "application" && (
+						<ShowRollbackSettings applicationId={id}>
+							<Button variant="outline">
+								Configure Rollbacks <Settings className="size-4" />
+							</Button>
+						</ShowRollbackSettings>
+					)}
+				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{refreshToken && (
@@ -154,13 +175,43 @@ export const ShowDeployments = ({
 										)}
 									</div>
 
-									<Button
-										onClick={() => {
-											setActiveLog(deployment);
-										}}
-									>
-										View
-									</Button>
+									<div className="flex flex-row items-center gap-2">
+										<Button
+											onClick={() => {
+												setActiveLog(deployment);
+											}}
+										>
+											View
+										</Button>
+
+										{deployment?.rollback && (
+											<DialogAction
+												title="Rollback to this deployment"
+												description="Are you sure you want to rollback to this deployment?"
+												type="default"
+												onClick={async () => {
+													await rollback({
+														rollbackId: deployment.rollback.rollbackId,
+													})
+														.then(() => {
+															toast.success("Rollback initiated successfully");
+														})
+														.catch(() => {
+															toast.error("Error initiating rollback");
+														});
+												}}
+											>
+												<Button
+													variant="secondary"
+													size="sm"
+													isLoading={isRollingBack}
+												>
+													<ArrowDownToLine className="size-4 text-primary group-hover:text-red-500" />
+													Rollback
+												</Button>
+											</DialogAction>
+										)}
+									</div>
 								</div>
 							</div>
 						))}

@@ -3,7 +3,7 @@ import { pgTable, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { applications } from "./application";
+import { deployments } from "./deployment";
 
 export const rollbacks = pgTable("rollback", {
 	rollbackId: text("rollbackId")
@@ -11,9 +11,9 @@ export const rollbacks = pgTable("rollback", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	env: text("env"),
-	applicationId: text("applicationId")
+	deploymentId: text("deploymentId")
 		.notNull()
-		.references(() => applications.applicationId, {
+		.references(() => deployments.deploymentId, {
 			onDelete: "cascade",
 		}),
 	version: serial(),
@@ -26,9 +26,9 @@ export const rollbacks = pgTable("rollback", {
 export type Rollback = typeof rollbacks.$inferSelect;
 
 export const rollbacksRelations = relations(rollbacks, ({ one }) => ({
-	application: one(applications, {
-		fields: [rollbacks.applicationId],
-		references: [applications.applicationId],
+	deployment: one(deployments, {
+		fields: [rollbacks.deploymentId],
+		references: [deployments.deploymentId],
 	}),
 }));
 

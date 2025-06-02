@@ -27,7 +27,6 @@ import { server } from "./server";
 import { applicationStatus, certificateType, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { rollbacks } from "./rollbacks";
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -277,7 +276,6 @@ export const applicationsRelations = relations(
 			references: [server.serverId],
 		}),
 		previewDeployments: many(previewDeployments),
-		rollbacks: many(rollbacks),
 	}),
 );
 

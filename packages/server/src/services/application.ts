@@ -224,12 +224,10 @@ export const deployApplication = async ({
 				application.project.env,
 			);
 
-			console.log(resolveEnvs);
-
 			await createRollback({
 				appName: application.appName,
 				env: resolveEnvs.join("\n"),
-				applicationId: applicationId,
+				deploymentId: deployment.deploymentId,
 			});
 		}
 
