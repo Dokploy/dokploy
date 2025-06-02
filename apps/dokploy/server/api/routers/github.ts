@@ -21,7 +21,7 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId &&
+					ctx.session.activeOrganizationId &&
 				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				throw new TRPCError({
@@ -37,7 +37,7 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId &&
+					ctx.session.activeOrganizationId &&
 				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				throw new TRPCError({
@@ -53,7 +53,7 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId || "");
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId &&
+					ctx.session.activeOrganizationId &&
 				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				//TODO: Remove this line when the cloud version is ready
@@ -74,8 +74,8 @@ export const githubRouter = createTRPCRouter({
 		result = result.filter(
 			(provider) =>
 				provider.gitProvider.organizationId ===
-				ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
+					ctx.session.activeOrganizationId &&
+				provider.gitProvider.userId === ctx.session.userId,
 		);
 
 		const filtered = result
@@ -99,7 +99,7 @@ export const githubRouter = createTRPCRouter({
 				const githubProvider = await findGithubById(input.githubId);
 				if (
 					githubProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
+						ctx.session.activeOrganizationId &&
 					githubProvider.gitProvider.userId === ctx.session.userId
 				) {
 					throw new TRPCError({
@@ -122,7 +122,7 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId &&
+					ctx.session.activeOrganizationId &&
 				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				throw new TRPCError({
