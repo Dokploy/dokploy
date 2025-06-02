@@ -184,33 +184,37 @@ export const ShowDeployments = ({
 											View
 										</Button>
 
-										{deployment?.rollback && (
-											<DialogAction
-												title="Rollback to this deployment"
-												description="Are you sure you want to rollback to this deployment?"
-												type="default"
-												onClick={async () => {
-													await rollback({
-														rollbackId: deployment.rollback.rollbackId,
-													})
-														.then(() => {
-															toast.success("Rollback initiated successfully");
+										{deployment?.rollback &&
+											deployment.status === "done" &&
+											type === "application" && (
+												<DialogAction
+													title="Rollback to this deployment"
+													description="Are you sure you want to rollback to this deployment?"
+													type="default"
+													onClick={async () => {
+														await rollback({
+															rollbackId: deployment.rollback.rollbackId,
 														})
-														.catch(() => {
-															toast.error("Error initiating rollback");
-														});
-												}}
-											>
-												<Button
-													variant="secondary"
-													size="sm"
-													isLoading={isRollingBack}
+															.then(() => {
+																toast.success(
+																	"Rollback initiated successfully",
+																);
+															})
+															.catch(() => {
+																toast.error("Error initiating rollback");
+															});
+													}}
 												>
-													<ArrowDownToLine className="size-4 text-primary group-hover:text-red-500" />
-													Rollback
-												</Button>
-											</DialogAction>
-										)}
+													<Button
+														variant="secondary"
+														size="sm"
+														isLoading={isRollingBack}
+													>
+														<ArrowDownToLine className="size-4 text-primary group-hover:text-red-500" />
+														Rollback
+													</Button>
+												</DialogAction>
+											)}
 									</div>
 								</div>
 							</div>
