@@ -40,7 +40,7 @@ export const ShowInvitations = () => {
 		api.organization.removeInvitation.useMutation();
 
 	return (
-		<div className="w-full">
+		<section className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
@@ -219,6 +219,6 @@ export const ShowInvitations = () => {
 					</CardContent>
 				</div>
 			</Card>
-		</div>
+		</section>
 	);
 };

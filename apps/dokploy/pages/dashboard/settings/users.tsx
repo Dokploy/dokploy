@@ -1,3 +1,4 @@
+import { ShowDangerZone } from "@/components/dashboard/settings/users/show-danger-zone";
 import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -14,6 +15,7 @@ const Page = () => {
 		<div className="flex flex-col gap-4 w-full">
 			<ShowUsers />
 			<ShowInvitations />
+			<ShowDangerZone />
 		</div>
 	);
 };

@@ -184,4 +184,81 @@ export const organizationRouter = createTRPCRouter({
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
 		}),
+		transferOwner: adminProcedure
+			.input(
+				z.object({
+					newOwnerId: z.string(),
+					confirmationText: z.string(),
+				}),
+			)
+			.mutation(async ({ input, ctx }) => {
+					const newOwnerMember = await db.query.member.findFirst({
+						where: and(
+							eq(member.userId, input.newOwnerId),
+							eq(member.organizationId, ctx.session.activeOrganizationId),
+						),
+						with: {
+							user: true,
+						},
+					});
+
+					if (!newOwnerMember) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "New owner not found in this organization",
+						});
+					}
+
+					if (input.confirmationText !== "TRANSFER OWNERSHIP") {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Confirmation text is incorrect",
+						});
+					}
+
+					if (ctx.user.id === input.newOwnerId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Cannot transfer ownership to yourself",
+						});
+					}
+
+					await db.transaction(async (tx) => {
+						await tx
+							.update(organization)
+							.set({
+								ownerId: input.newOwnerId
+							}).
+							where(eq(organization.id, ctx.session.activeOrganizationId))
+
+						await tx
+							.update(member)
+							.set({
+								role: "admin",
+							})
+							.where(
+								and(
+									eq(member.userId, ctx.user.id),
+									eq(member.organizationId, ctx.session.activeOrganizationId),
+								),
+							);
+
+						await tx
+							.update(member)
+							.set({
+								role: "owner",
+							})
+							.where(
+								and(
+									eq(member.userId, input.newOwnerId),
+									eq(member.organizationId, ctx.session.activeOrganizationId),
+								),
+							);
+					});
+
+					return {
+						success: true,
+						newOwner: newOwnerMember.user,
+					};
+			}),
 });
