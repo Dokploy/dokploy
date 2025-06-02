@@ -8,6 +8,7 @@ export interface CDNProvider {
 
 const isIPInCIDR = (ip: string, cidr: string): boolean => {
 	const [network, prefixLength] = cidr.split("/");
+	if (!network || !prefixLength) return false;
 	const prefix = Number.parseInt(prefixLength, 10);
 
 	// Convert IP addresses to 32-bit integers
