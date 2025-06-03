@@ -32,6 +32,7 @@ export * from "./services/gitea";
 export * from "./services/server";
 export * from "./services/schedule";
 export * from "./services/application";
+export * from "./services/rollbacks";
 export * from "./utils/databases/rebuild";
 export * from "./setup/config-paths";
 export * from "./setup/postgres-setup";

@@ -65,7 +65,11 @@ export const deploymentRouter = createTRPCRouter({
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
+				with: {
+					rollback: true,
+				},
 			});
+
 			return deploymentsList;
 		}),
 });
