@@ -24,23 +24,24 @@ export const createRollback = async (
 		}
 
 		const tagImage = `${input.appName}:v${rollback.version}`;
-
-		await tx
-			.update(rollbacks)
-			.set({
-				image: tagImage,
-			})
-			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
-
 		const deployment = await findDeploymentById(rollback.deploymentId);
 
 		if (!deployment?.applicationId) {
 			throw new Error("Deployment not found");
 		}
 
-		const application = await findApplicationById(deployment.applicationId);
+		const { deployments, bitbucket, github, gitlab, gitea, ...rest } =
+			await findApplicationById(deployment.applicationId);
 
-		await createRollbackImage(application, tagImage);
+		await tx
+			.update(rollbacks)
+			.set({
+				image: tagImage,
+				fullContext: JSON.stringify(rest),
+			})
+			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
+
+		await createRollbackImage(rest, tagImage);
 
 		return rollback;
 	});
@@ -123,7 +124,6 @@ export const rollback = async (rollbackId: string) => {
 	await rollbackApplication(
 		application.appName,
 		result.image || "",
-		result.env || "",
 		application.serverId,
 	);
 };
@@ -131,7 +131,6 @@ export const rollback = async (rollbackId: string) => {
 const rollbackApplication = async (
 	appName: string,
 	image: string,
-	env: string,
 	serverId?: string | null,
 ) => {
 	const docker = await getRemoteDocker(serverId);
@@ -141,7 +140,6 @@ const rollbackApplication = async (
 		TaskTemplate: {
 			ContainerSpec: {
 				Image: image,
-				// Env: env.split("\n"),
 			},
 		},
 	};

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, serial, text } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -10,7 +10,6 @@ export const rollbacks = pgTable("rollback", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	env: text("env"),
 	deploymentId: text("deploymentId")
 		.notNull()
 		.references(() => deployments.deploymentId, {
@@ -21,6 +20,7 @@ export const rollbacks = pgTable("rollback", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	fullContext: jsonb("fullContext"),
 });
 
 export type Rollback = typeof rollbacks.$inferSelect;

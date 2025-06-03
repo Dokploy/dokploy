@@ -41,10 +41,7 @@ import {
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import {
-	encodeBase64,
-	prepareEnvironmentVariables,
-} from "../utils/docker/utils";
+import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -219,14 +216,8 @@ export const deployApplication = async ({
 		await updateApplicationStatus(applicationId, "done");
 
 		if (application.rollbackActive) {
-			const resolveEnvs = prepareEnvironmentVariables(
-				application.env,
-				application.project.env,
-			);
-
 			await createRollback({
 				appName: application.appName,
-				env: resolveEnvs.join("\n"),
 				deploymentId: deployment.deploymentId,
 			});
 		}
