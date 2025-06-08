@@ -14,9 +14,7 @@ import {
 	FormField,
 	FormItem,
 	FormLabel,
-	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +53,6 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			rollbackActive: application?.rollbackActive ?? false,
-			limitRollback: application?.limitRollback ?? 5,
 		},
 	});
 
@@ -63,7 +60,6 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 		await updateApplication({
 			applicationId,
 			rollbackActive: data.rollbackActive,
-			limitRollback: data.limitRollback,
 		})
 			.then(() => {
 				toast.success("Rollback settings updated");
@@ -107,27 +103,6 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="limitRollback"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Maximum Rollbacks</FormLabel>
-									<FormControl>
-										<Input
-											type="number"
-											{...field}
-											onChange={(e) => field.onChange(Number(e.target.value))}
-										/>
-									</FormControl>
-									<FormDescription>
-										Number of rollback points to maintain (1-50)
-									</FormDescription>
-									<FormMessage />
 								</FormItem>
 							)}
 						/>

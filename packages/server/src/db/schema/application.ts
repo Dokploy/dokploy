@@ -132,7 +132,6 @@ export const applications = pgTable("application", {
 		false,
 	),
 	rollbackActive: boolean("rollbackActive").default(false),
-	limitRollback: integer("limitRollback").default(5),
 	buildArgs: text("buildArgs"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
