@@ -18,9 +18,6 @@ const { handler, api } = betterAuth({
 		provider: "pg",
 		schema: schema,
 	}),
-	logger: {
-		disabled: process.env.NODE_ENV === "production",
-	},
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
