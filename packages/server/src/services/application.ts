@@ -60,6 +60,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -213,6 +214,13 @@ export const deployApplication = async ({
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (application.rollbackActive) {
+			await createRollback({
+				appName: application.appName,
+				deploymentId: deployment.deploymentId,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.project.name,
