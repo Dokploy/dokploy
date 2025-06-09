@@ -31,6 +31,7 @@ import { MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
+import { EditUserRole } from "./edit-role";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -39,9 +40,9 @@ export const ShowUsers = () => {
 	const utils = api.useUtils();
 
 	return (
-		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
-				<div className="rounded-xl bg-background shadow-md ">
+		<section className="w-full">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
+				<div className="rounded-xl bg-background shadow-md">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Users className="size-6 text-muted-foreground self-center" />
@@ -60,14 +61,14 @@ export const ShowUsers = () => {
 						) : (
 							<>
 								{data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
+									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
 											Invite users to your Dokploy account
 										</span>
 									</div>
 								) : (
-									<div className="flex flex-col gap-4  min-h-[25vh]">
+									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<Table>
 											<TableCaption>See all users</TableCaption>
 											<TableHeader>
@@ -75,7 +76,6 @@ export const ShowUsers = () => {
 													<TableHead className="w-[100px]">Email</TableHead>
 													<TableHead className="text-center">Role</TableHead>
 													<TableHead className="text-center">2FA</TableHead>
-
 													<TableHead className="text-center">
 														Created At
 													</TableHead>
@@ -126,6 +126,14 @@ export const ShowUsers = () => {
 																		<DropdownMenuLabel>
 																			Actions
 																		</DropdownMenuLabel>
+
+																		{member.role !== "owner" && (
+																			<EditUserRole
+																				userId={member.user.id}
+																				currentRole={member.role}
+																				userEmail={member.user.email}
+																			/>
+																		)}
 
 																		{member.role !== "owner" && (
 																			<AddUserPermissions
@@ -180,8 +188,6 @@ export const ShowUsers = () => {
 																										userId: member.user.id,
 																									},
 																								);
-
-																							console.log(orgCount);
 
 																							if (orgCount === 1) {
 																								await mutateAsync({
@@ -245,6 +251,6 @@ export const ShowUsers = () => {
 					</CardContent>
 				</div>
 			</Card>
-		</div>
+		</section>
 	);
 };

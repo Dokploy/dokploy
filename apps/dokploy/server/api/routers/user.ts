@@ -362,4 +362,58 @@ export const userRouter = createTRPCRouter({
 
 			return organizations.length;
 		}),
+		updateRoleMember: adminProcedure
+		.input(
+			z.object({
+				userId: z.string(),
+				role: z.enum(["member", "admin"]),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {	
+				const targetMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, input.userId),
+						eq(member.organizationId, ctx.session.activeOrganizationId),
+					),
+				});
+	
+				if (!targetMember) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Member not found in this organization",
+					});
+				}
+	
+				if (ctx.user.id === input.userId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Cannot update your own role",
+					});
+				}
+
+				await db
+					.update(member)
+					.set({
+						role: input.role,
+					})
+					.where(
+						and(
+							eq(member.userId, input.userId),
+							eq(member.organizationId, ctx.session.activeOrganizationId),
+						),
+					);
+	
+				const updatedMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, input.userId),
+						eq(member.organizationId, ctx.session.activeOrganizationId),
+					),
+					with: {
+						user: true,
+					},
+				});
+	
+				return updatedMember;
+
+		}),
 });
