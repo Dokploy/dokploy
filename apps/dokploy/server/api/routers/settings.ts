@@ -33,7 +33,8 @@ import {
 	paths,
 	prepareEnvironmentVariables,
 	processLogs,
-	pullLatestRelease,
+	pullCustomImage,
+	pullRelease,
 	readConfig,
 	readConfigInPath,
 	readDirectory,
@@ -376,26 +377,28 @@ export const settingsRouter = createTRPCRouter({
 
 		return await getUpdateData();
 	}),
-	updateServer: adminProcedure.mutation(async () => {
-		if (IS_CLOUD) {
+	updateServer: adminProcedure
+		.input(z.object({ imageUrl: z.string().optional() }))
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+
+			await pullRelease(input.imageUrl);
+
+			// This causes restart of dokploy, thus it will not finish executing properly, so don't await it
+			// Status after restart is checked via frontend /api/health endpoint
+			void spawnAsync("docker", [
+				"service",
+				"update",
+				"--force",
+				"--image",
+				getDokployImage(input.imageUrl),
+				"dokploy",
+			]);
+
 			return true;
-		}
-
-		await pullLatestRelease();
-
-		// This causes restart of dokploy, thus it will not finish executing properly, so don't await it
-		// Status after restart is checked via frontend /api/health endpoint
-		void spawnAsync("docker", [
-			"service",
-			"update",
-			"--force",
-			"--image",
-			getDokployImage(),
-			"dokploy",
-		]);
-
-		return true;
-	}),
+		}),
 
 	getDokployVersion: protectedProcedure.query(() => {
 		return packageInfo.version;
@@ -834,6 +837,15 @@ export const settingsRouter = createTRPCRouter({
 	getLogCleanupStatus: adminProcedure.query(async () => {
 		return getLogCleanupStatus();
 	}),
+	pullCustomImage: adminProcedure
+		.input(z.object({ imageUrl: z.string() }))
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return false;
+			}
+			console.log("pulling custom image", input.imageUrl);
+			return await pullCustomImage(input.imageUrl);
+		}),
 });
 
 export const getTraefikPorts = async (serverId?: string) => {
