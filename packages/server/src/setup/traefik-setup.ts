@@ -124,6 +124,17 @@ export const initializeTraefik = async ({
 			console.log("No existing container to remove");
 		}
 
+		console.log(`Pulling image ${imageName}...`);
+		const stream = await docker.pull(imageName);
+		await new Promise((resolve, reject) => {
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-ignore
+			docker.modem.followProgress(stream, (err: Error, res: any) =>
+				err ? reject(err) : resolve(res),
+			);
+		});
+		console.log(`Image ${imageName} pulled successfully.`);
+
 		// Create and start the new container
 		try {
 			await docker.createContainer(settings);
