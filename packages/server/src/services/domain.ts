@@ -10,6 +10,7 @@ import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
 import { findServerById } from "./server";
+import type { ApplicationNested } from "../utils/builders";
 
 export type Domain = typeof domains.$inferSelect;
 
@@ -200,4 +201,45 @@ export const validateDomain = async (
 				error instanceof Error ? error.message : "Failed to resolve domain",
 		};
 	}
+};
+
+export const createMultiPathDomain = async (
+	applicationId: string,
+	domains: Array<{
+		host: string;
+		externalPath?: string;
+		internalPath: string;
+		port?: number;
+		https?: boolean;
+		stripPath?: boolean;
+	}>
+) => {
+	const app = await findApplicationById(applicationId);
+	if (!app) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Application not found",
+		});
+	}
+
+	const createdDomains = [];
+
+	for (const domainConfig of domains) {
+		const domain = await createDomain({
+			applicationId,
+			host: domainConfig.host,
+			path: domainConfig.externalPath || "/",
+			internalPath: domainConfig.internalPath,
+			port: domainConfig.port || 3000,
+			https: domainConfig.https || false,
+			stripPath: domainConfig.stripPath || false,
+			serviceName: app.appName,
+			domainType: "application",
+			certificateType: domainConfig.https ? "letsencrypt" : "none",
+		});
+
+		createdDomains.push(domain);
+	}
+
+	return createdDomains;
 };
