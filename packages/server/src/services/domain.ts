@@ -10,7 +10,6 @@ import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
 import { findServerById } from "./server";
-import type { ApplicationNested } from "../utils/builders";
 
 export type Domain = typeof domains.$inferSelect;
 
