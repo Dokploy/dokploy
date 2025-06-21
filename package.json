@@ -20,15 +20,15 @@
 		"format-and-lint:fix": "biome check . --write"
 	},
 	"devDependencies": {
-		"dotenv": "16.4.5",
-		"esbuild": "0.20.2",
-		"tsx": "4.16.2",
-		"lint-staged": "^15.2.7",
 		"@biomejs/biome": "1.9.4",
-		"lefthook": "1.8.4",
 		"@commitlint/cli": "^19.3.0",
 		"@commitlint/config-conventional": "^19.2.2",
-		"@types/node": "^18.17.0"
+		"@types/node": "^18.17.0",
+		"dotenv": "16.4.5",
+		"esbuild": "0.20.2",
+		"lefthook": "1.8.4",
+		"lint-staged": "^15.2.7",
+		"tsx": "4.16.2"
 	},
 	"packageManager": "pnpm@9.5.0",
 	"engines": {
