@@ -49,6 +49,8 @@ export const domain = z
 	.object({
 		host: z.string().min(1, { message: "Add a hostname" }),
 		path: z.string().min(1).optional(),
+		internalPath: z.string().optional(),
+		stripPath: z.boolean().optional(),
 		port: z
 			.number()
 			.min(1, { message: "Port must be at least 1" })
@@ -162,6 +164,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		defaultValues: {
 			host: "",
 			path: undefined,
+			internalPath: undefined,
+			stripPath: false,
 			port: undefined,
 			https: false,
 			certificateType: undefined,
@@ -182,6 +186,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				...data,
 				/* Convert null to undefined */
 				path: data?.path || undefined,
+				internalPath: data?.internalPath || undefined,
+				stripPath: data?.stripPath || false,
 				port: data?.port || undefined,
 				certificateType: data?.certificateType || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
@@ -194,6 +200,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			form.reset({
 				host: "",
 				path: undefined,
+				internalPath: undefined,
+				stripPath: false,
 				port: undefined,
 				https: false,
 				certificateType: undefined,
@@ -467,6 +475,47 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											</FormItem>
 										);
 									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="internalPath"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Internal Path</FormLabel>
+												<FormDescription>
+													The path where your application expects to receive requests internally (defaults to "/")
+												</FormDescription>
+												<FormControl>
+													<Input placeholder={"/"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="stripPath"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Strip Path</FormLabel>
+												<FormDescription>
+													Remove the external path from the request before forwarding to the application
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
 								/>
 
 								<FormField

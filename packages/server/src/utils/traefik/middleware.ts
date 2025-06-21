@@ -105,3 +105,97 @@ export const writeMiddleware = <T>(config: T) => {
 	const newYamlContent = dump(config);
 	writeFileSync(configPath, newYamlContent, "utf8");
 };
+
+export const createPathMiddlewares = async (
+	app: ApplicationNested,
+	domain: any
+) => {
+	let config: FileConfig;
+
+	if (app.serverId) {
+		try {
+			config = await loadRemoteMiddlewares(app.serverId);
+		} catch {
+			config = { http: { middlewares: {} } };
+		}
+	} else {
+		try {
+			config = loadMiddlewares<FileConfig>();
+		} catch {
+			config = { http: { middlewares: {} } };
+		}
+	}
+
+	const { appName } = app;
+	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
+
+	if (!config.http) {
+		config.http = { middlewares: {} };
+	}
+	if (!config.http.middlewares) {
+		config.http.middlewares = {};
+	}
+
+	// Add internal path prefix middleware
+	if (internalPath && internalPath !== "/" && internalPath !== path) {
+		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+		config.http.middlewares[middlewareName] = {
+			addPrefix: {
+				prefix: internalPath
+			}
+		};
+	}
+
+	// Strip external path middleware if needed
+	if (stripPath && path && path !== "/") {
+		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+		config.http.middlewares[middlewareName] = {
+			stripPrefix: {
+				prefixes: [path]
+			}
+		};
+	}
+
+	if (app.serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
+	} else {
+		writeMiddleware(config);
+	}
+};
+
+export const removePathMiddlewares = async (
+	app: ApplicationNested,
+	uniqueConfigKey: number
+) => {
+	let config: FileConfig;
+
+	if (app.serverId) {
+		try {
+			config = await loadRemoteMiddlewares(app.serverId);
+		} catch {
+			return;
+		}
+	} else {
+		try {
+			config = loadMiddlewares<FileConfig>();
+		} catch {
+			return;
+		}
+	}
+
+	const { appName } = app;
+
+	if (config.http?.middlewares) {
+		const addPrefixMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+		const stripPrefixMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+
+		delete config.http.middlewares[addPrefixMiddleware];
+		delete config.http.middlewares[stripPrefixMiddleware];
+	}
+
+	if (app.serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
+	} else {
+		writeMiddleware(config);
+	}
+};
