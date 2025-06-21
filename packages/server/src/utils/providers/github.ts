@@ -149,7 +149,7 @@ export const cloneGithubRepository = async ({
 		});
 		writeStream.write(`\nCloned ${repoclone}: ✅\n`);
 	} catch (error) {
-		writeStream.write(`ERROR Clonning: ${error}: ❌`);
+		writeStream.write(`ERROR Cloning: ${error}: ❌`);
 		throw error;
 	} finally {
 		writeStream.end();
