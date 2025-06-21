@@ -74,12 +74,7 @@ const Service = (
 		}
 	}, [router.query.tab]);
 
-	const { data } = api.compose.one.useQuery(
-		{ composeId },
-		{
-			refetchInterval: 5000,
-		},
-	);
+	const { data } = api.compose.one.useQuery({ composeId });
 
 	const { data: auth } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
