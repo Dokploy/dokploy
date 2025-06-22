@@ -39,6 +39,7 @@ export type ValidationState = {
 	error?: string;
 	resolvedIp?: string;
 	message?: string;
+	cdnProvider?: string;
 };
 
 export type ValidationStates = Record<string, ValidationState>;
@@ -119,6 +120,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					isValid: result.isValid,
 					error: result.error,
 					resolvedIp: result.resolvedIp,
+					cdnProvider: result.cdnProvider,
 					message: result.error && result.isValid ? result.error : undefined,
 				},
 			}));
@@ -354,8 +356,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	) : validationState?.isValid ? (
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
-																			{validationState.message
-																				? "Behind Cloudflare"
+																			{validationState.message &&
+																			validationState.cdnProvider
+																				? `Behind ${validationState.cdnProvider}`
 																				: "DNS Valid"}
 																		</>
 																	) : validationState?.error ? (

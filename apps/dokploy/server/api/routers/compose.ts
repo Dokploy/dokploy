@@ -496,7 +496,7 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
-			return null;
+			return compose;
 		}),
 
 	templates: publicProcedure

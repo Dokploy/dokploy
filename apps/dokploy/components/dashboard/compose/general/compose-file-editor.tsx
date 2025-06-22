@@ -44,8 +44,10 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		resolver: zodResolver(AddComposeFile),
 	});
 
+	const composeFile = form.watch("composeFile");
+
 	useEffect(() => {
-		if (data) {
+		if (data && !composeFile) {
 			form.reset({
 				composeFile: data.composeFile || "",
 			});
