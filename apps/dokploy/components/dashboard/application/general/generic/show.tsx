@@ -122,7 +122,7 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 				</CardHeader>
 				<CardContent>
 					<UnauthorizedGitProvider
-						application={application}
+						service={application}
 						onDisconnect={handleDisconnect}
 					/>
 				</CardContent>

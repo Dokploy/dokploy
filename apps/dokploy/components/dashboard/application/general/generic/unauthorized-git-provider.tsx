@@ -9,15 +9,17 @@ import { DialogAction } from "@/components/shared/dialog-action";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { RouterOutputs } from "@/utils/api";
 import { AlertCircle, GitBranch, Unlink } from "lucide-react";
 
-export const UnauthorizedGitProvider = ({
-	application,
-	onDisconnect,
-}: {
-	application: any;
+interface Props {
+	service:
+		| RouterOutputs["application"]["one"]
+		| RouterOutputs["compose"]["one"];
 	onDisconnect: () => void;
-}) => {
+}
+
+export const UnauthorizedGitProvider = ({ service, onDisconnect }: Props) => {
 	const getProviderIcon = (sourceType: string) => {
 		switch (sourceType) {
 			case "github":
@@ -36,35 +38,35 @@ export const UnauthorizedGitProvider = ({
 	};
 
 	const getRepositoryInfo = () => {
-		switch (application.sourceType) {
+		switch (service.sourceType) {
 			case "github":
 				return {
-					repo: application.repository,
-					branch: application.branch,
-					owner: application.owner,
+					repo: service.repository,
+					branch: service.branch,
+					owner: service.owner,
 				};
 			case "gitlab":
 				return {
-					repo: application.gitlabRepository,
-					branch: application.gitlabBranch,
-					owner: application.gitlabOwner,
+					repo: service.gitlabRepository,
+					branch: service.gitlabBranch,
+					owner: service.gitlabOwner,
 				};
 			case "bitbucket":
 				return {
-					repo: application.bitbucketRepository,
-					branch: application.bitbucketBranch,
-					owner: application.bitbucketOwner,
+					repo: service.bitbucketRepository,
+					branch: service.bitbucketBranch,
+					owner: service.bitbucketOwner,
 				};
 			case "gitea":
 				return {
-					repo: application.giteaRepository,
-					branch: application.giteaBranch,
-					owner: application.giteaOwner,
+					repo: service.giteaRepository,
+					branch: service.giteaBranch,
+					owner: service.giteaOwner,
 				};
 			case "git":
 				return {
-					repo: application.customGitUrl,
-					branch: application.customGitBranch,
+					repo: service.customGitUrl,
+					branch: service.customGitBranch,
 					owner: null,
 				};
 			default:
@@ -79,7 +81,7 @@ export const UnauthorizedGitProvider = ({
 			<Alert>
 				<AlertCircle className="h-4 w-4" />
 				<AlertDescription>
-					This application is connected to a {application.sourceType} repository
+					This application is connected to a {service.sourceType} repository
 					through a git provider that you don't have access to. You can see
 					basic repository information below, but cannot modify the
 					configuration.
@@ -89,9 +91,9 @@ export const UnauthorizedGitProvider = ({
 			<Card className="border-dashed border-2 border-muted-foreground/20 bg-transparent">
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
-						{getProviderIcon(application.sourceType)}
+						{getProviderIcon(service.sourceType)}
 						<span className="capitalize text-sm font-medium">
-							{application.sourceType} Repository
+							{service.sourceType} Repository
 						</span>
 					</CardTitle>
 				</CardHeader>
