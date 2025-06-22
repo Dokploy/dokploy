@@ -216,8 +216,12 @@ export const deployApplication = async ({
 		await updateApplicationStatus(applicationId, "done");
 
 		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
 			await createRollback({
-				appName: application.appName,
+				appName: tagImage || "",
 				deploymentId: deployment.deploymentId,
 			});
 		}

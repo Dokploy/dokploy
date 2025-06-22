@@ -673,6 +673,20 @@
       "when": 1750562292392,
       "tag": "0095_curly_justice",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1750566830268,
+      "tag": "0096_small_shaman",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1750567641441,
+      "tag": "0097_hard_lizard",
+      "breakpoints": true
     }
   ]
 }

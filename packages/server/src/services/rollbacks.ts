@@ -1,6 +1,10 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { type createRollbackSchema, rollbacks } from "../db/schema";
+import {
+	type createRollbackSchema,
+	rollbacks,
+	deployments as deploymentsSchema,
+} from "../db/schema";
 import type { z } from "zod";
 import { findApplicationById } from "./application";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
@@ -30,8 +34,14 @@ export const createRollback = async (
 			throw new Error("Deployment not found");
 		}
 
-		const { deployments, bitbucket, github, gitlab, gitea, ...rest } =
-			await findApplicationById(deployment.applicationId);
+		const {
+			deployments: _,
+			bitbucket,
+			github,
+			gitlab,
+			gitea,
+			...rest
+		} = await findApplicationById(deployment.applicationId);
 
 		await tx
 			.update(rollbacks)
@@ -40,6 +50,14 @@ export const createRollback = async (
 				fullContext: JSON.stringify(rest),
 			})
 			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
+
+		// Update the deployment to reference this rollback
+		await tx
+			.update(deploymentsSchema)
+			.set({
+				rollbackId: rollback.rollbackId,
+			})
+			.where(eq(deploymentsSchema.deploymentId, rollback.deploymentId));
 
 		await createRollbackImage(rest, tagImage);
 
@@ -65,12 +83,17 @@ const createRollbackImage = async (
 ) => {
 	const docker = await getRemoteDocker(application.serverId);
 
-	const result = docker.getImage(`${application.appName}:latest`);
+	const appTagName =
+		application.sourceType === "docker"
+			? application.dockerImage
+			: `${application.appName}:latest`;
 
-	const version = tagImage.split(":")[1];
+	const result = docker.getImage(appTagName || "");
+
+	const [repo, version] = tagImage.split(":");
 
 	await result.tag({
-		repo: tagImage,
+		repo,
 		tag: version,
 	});
 };
@@ -86,28 +109,34 @@ const deleteRollbackImage = async (image: string, serverId?: string | null) => {
 };
 
 export const removeRollbackById = async (rollbackId: string) => {
-	const result = await db
-		.delete(rollbacks)
-		.where(eq(rollbacks.rollbackId, rollbackId))
-		.returning()
-		.then((res) => res[0]);
+	const rollback = await findRollbackById(rollbackId);
 
-	if (result?.image) {
+	if (!rollback) {
+		throw new Error("Rollback not found");
+	}
+
+	if (rollback?.image) {
 		try {
-			const deployment = await findDeploymentById(result.deploymentId);
+			const deployment = await findDeploymentById(rollback.deploymentId);
 
 			if (!deployment?.applicationId) {
 				throw new Error("Deployment not found");
 			}
 
 			const application = await findApplicationById(deployment.applicationId);
-			await deleteRollbackImage(result.image, application.serverId);
+			await deleteRollbackImage(rollback.image, application.serverId);
+
+			await db
+				.delete(rollbacks)
+				.where(eq(rollbacks.rollbackId, rollbackId))
+				.returning()
+				.then((res) => res[0]);
 		} catch (error) {
 			console.error(error);
 		}
 	}
 
-	return result;
+	return rollback;
 };
 
 export const rollback = async (rollbackId: string) => {

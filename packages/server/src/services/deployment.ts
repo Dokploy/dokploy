@@ -31,6 +31,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { findScheduleById } from "./schedule";
+import { removeRollbackById } from "./rollbacks";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -495,6 +496,9 @@ const getDeploymentsByType = async (
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments[`${type}Id`], id),
 		orderBy: desc(deployments.createdAt),
+		with: {
+			rollback: true,
+		},
 	});
 	return deploymentList;
 };
@@ -529,6 +533,9 @@ const removeLastTenDeployments = async (
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
+				if (oldDeployment.rollbackId) {
+					await removeRollbackById(oldDeployment.rollbackId);
+				}
 
 				command += `
 				rm -rf ${logPath};
@@ -539,8 +546,11 @@ const removeLastTenDeployments = async (
 			await execAsyncRemote(serverId, command);
 		} else {
 			for (const oldDeployment of deploymentsToDelete) {
+				if (oldDeployment.rollbackId) {
+					await removeRollbackById(oldDeployment.rollbackId);
+				}
 				const logPath = path.join(oldDeployment.logPath);
-				if (existsSync(logPath)) {
+				if (existsSync(logPath) && !oldDeployment.errorMessage) {
 					await fsPromises.unlink(logPath);
 				}
 				await removeDeployment(oldDeployment.deploymentId);
