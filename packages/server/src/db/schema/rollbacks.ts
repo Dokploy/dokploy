@@ -4,6 +4,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { deployments } from "./deployment";
+import type { Application } from "@dokploy/server/services/application";
+import type { Project } from "@dokploy/server/services/project";
 
 export const rollbacks = pgTable("rollback", {
 	rollbackId: text("rollbackId")
@@ -20,7 +22,7 @@ export const rollbacks = pgTable("rollback", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	fullContext: jsonb("fullContext"),
+	fullContext: jsonb("fullContext").$type<Application & { project: Project }>(),
 });
 
 export type Rollback = typeof rollbacks.$inferSelect;
