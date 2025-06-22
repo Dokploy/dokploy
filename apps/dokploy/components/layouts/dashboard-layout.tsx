@@ -1,7 +1,7 @@
 import { api } from "@/utils/api";
 import { ImpersonationBar } from "../dashboard/impersonation/impersonation-bar";
-import Page from "./side";
 import { ChatwootWidget } from "../shared/ChatwootWidget";
+import Page from "./side";
 
 interface Props {
 	children: React.ReactNode;

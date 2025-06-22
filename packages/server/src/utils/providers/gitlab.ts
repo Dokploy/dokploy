@@ -132,7 +132,7 @@ export const cloneGitlabRepository = async (
 	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
 
 	try {
-		writeStream.write(`\nClonning Repo ${repoclone} to ${outputPath}: ✅\n`);
+		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
 		const cloneArgs = [
 			"clone",
 			"--branch",
@@ -152,7 +152,7 @@ export const cloneGitlabRepository = async (
 		});
 		writeStream.write(`\nCloned ${repoclone}: ✅\n`);
 	} catch (error) {
-		writeStream.write(`ERROR Clonning: ${error}: ❌`);
+		writeStream.write(`ERROR Cloning: ${error}: ❌`);
 		throw error;
 	} finally {
 		writeStream.end();

@@ -41,6 +41,7 @@ const addInvitation = z.object({
 		.min(1, "Email is required")
 		.email({ message: "Invalid email" }),
 	role: z.enum(["member", "admin"]),
+	notificationId: z.string().optional(),
 });
 
 type AddInvitation = z.infer<typeof addInvitation>;
@@ -49,6 +50,10 @@ export const AddInvitation = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const [isLoading, setIsLoading] = useState(false);
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: emailProviders } =
+		api.notification.getEmailProviders.useQuery();
+	const { mutateAsync: sendInvitation } = api.user.sendInvitation.useMutation();
 	const [error, setError] = useState<string | null>(null);
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 
@@ -56,6 +61,7 @@ export const AddInvitation = () => {
 		defaultValues: {
 			email: "",
 			role: "member",
+			notificationId: "",
 		},
 		resolver: zodResolver(addInvitation),
 	});
@@ -74,7 +80,20 @@ export const AddInvitation = () => {
 		if (result.error) {
 			setError(result.error.message || "");
 		} else {
-			toast.success("Invitation created");
+			if (!isCloud && data.notificationId) {
+				await sendInvitation({
+					invitationId: result.data.id,
+					notificationId: data.notificationId || "",
+				})
+					.then(() => {
+						toast.success("Invitation created and email sent");
+					})
+					.catch((error: any) => {
+						toast.error(error.message);
+					});
+			} else {
+				toast.success("Invitation created");
+			}
 			setError(null);
 			setOpen(false);
 		}
@@ -149,6 +168,47 @@ export const AddInvitation = () => {
 								);
 							}}
 						/>
+
+						{!isCloud && (
+							<FormField
+								control={form.control}
+								name="notificationId"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Email Provider</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select an email provider" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{emailProviders?.map((provider) => (
+														<SelectItem
+															key={provider.notificationId}
+															value={provider.notificationId}
+														>
+															{provider.name}
+														</SelectItem>
+													))}
+													<SelectItem value="none" disabled>
+														None
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Select the email provider to send the invitation
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
 						<DialogFooter className="flex w-full flex-row">
 							<Button
 								isLoading={isLoading}

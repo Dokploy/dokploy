@@ -825,6 +825,9 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
 			if (input.cronExpression) {
 				return startLogCleanup(input.cronExpression);
 			}

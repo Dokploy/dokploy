@@ -18,6 +18,8 @@ import { SaveGitProviderCompose } from "./save-git-provider-compose";
 import { SaveGiteaProviderCompose } from "./save-gitea-provider-compose";
 import { SaveGithubProviderCompose } from "./save-github-provider-compose";
 import { SaveGitlabProviderCompose } from "./save-gitlab-provider-compose";
+import { UnauthorizedGitProvider } from "@/components/dashboard/application/general/generic/unauthorized-git-provider";
+import { toast } from "sonner";
 
 type TabState = "github" | "git" | "raw" | "gitlab" | "bitbucket" | "gitea";
 interface Props {
@@ -34,11 +36,28 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 	const { data: giteaProviders, isLoading: isLoadingGitea } =
 		api.gitea.giteaProviders.useQuery();
 
-	const { data: compose } = api.compose.one.useQuery({ composeId });
+	const { mutateAsync: disconnectGitProvider } =
+		api.compose.disconnectGitProvider.useMutation();
+
+	const { data: compose, refetch } = api.compose.one.useQuery({ composeId });
 	const [tab, setSab] = useState<TabState>(compose?.sourceType || "github");
 
 	const isLoading =
 		isLoadingGithub || isLoadingGitlab || isLoadingBitbucket || isLoadingGitea;
+
+	const handleDisconnect = async () => {
+		try {
+			await disconnectGitProvider({ composeId });
+			toast.success("Repository disconnected successfully");
+			await refetch();
+		} catch (error) {
+			toast.error(
+				`Failed to disconnect repository: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`,
+			);
+		}
+	};
 
 	if (isLoading) {
 		return (
@@ -63,6 +82,37 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 							<span>Loading providers...</span>
 						</div>
 					</div>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	// Check if user doesn't have access to the current git provider
+	if (
+		compose &&
+		!compose.hasGitProviderAccess &&
+		compose.sourceType !== "raw"
+	) {
+		return (
+			<Card className="group relative w-full bg-transparent">
+				<CardHeader>
+					<CardTitle className="flex items-start justify-between">
+						<div className="flex flex-col gap-2">
+							<span className="flex flex-col space-y-0.5">Provider</span>
+							<p className="flex items-center text-sm font-normal text-muted-foreground">
+								Repository connection through unauthorized provider
+							</p>
+						</div>
+						<div className="hidden space-y-1 text-sm font-normal md:block">
+							<GitBranch className="size-6 text-muted-foreground" />
+						</div>
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<UnauthorizedGitProvider
+						service={compose}
+						onDisconnect={handleDisconnect}
+					/>
 				</CardContent>
 			</Card>
 		);

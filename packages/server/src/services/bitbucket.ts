@@ -13,6 +13,7 @@ export type Bitbucket = typeof bitbucket.$inferSelect;
 export const createBitbucket = async (
 	input: typeof apiCreateBitbucket._type,
 	organizationId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -21,6 +22,7 @@ export const createBitbucket = async (
 				providerType: "bitbucket",
 				organizationId: organizationId,
 				name: input.name,
+				userId: userId,
 			})
 			.returning()
 			.then((response) => response[0]);

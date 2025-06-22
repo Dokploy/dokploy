@@ -155,7 +155,7 @@ export const getGiteaCloneCommand = async (
 	const cloneCommand = `
     rm -rf ${outputPath};
     mkdir -p ${outputPath};
-    
+
     if ! git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
       echo "❌ [ERROR] Failed to clone the repository ${repoClone}" >> ${logPath};
       exit 1;
@@ -232,7 +232,7 @@ export const cloneGiteaRepository = async (
 		);
 		writeStream.write(`\nCloned ${repoClone}: ✅\n`);
 	} catch (error) {
-		writeStream.write(`ERROR Clonning: ${error}: ❌`);
+		writeStream.write(`ERROR Cloning: ${error}: ❌`);
 		throw error;
 	} finally {
 		writeStream.end();
