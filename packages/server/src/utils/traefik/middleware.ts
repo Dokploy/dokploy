@@ -6,6 +6,7 @@ import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
 import { writeTraefikConfigRemote } from "./application";
 import type { FileConfig } from "./file-types";
+import type { Domain } from "@dokploy/server/services/domain";
 
 export const addMiddleware = (config: FileConfig, middlewareName: string) => {
 	if (config.http?.routers) {
@@ -108,7 +109,7 @@ export const writeMiddleware = <T>(config: T) => {
 
 export const createPathMiddlewares = async (
 	app: ApplicationNested,
-	domain: any
+	domain: Domain,
 ) => {
 	let config: FileConfig;
 
@@ -141,8 +142,8 @@ export const createPathMiddlewares = async (
 		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
 		config.http.middlewares[middlewareName] = {
 			addPrefix: {
-				prefix: internalPath
-			}
+				prefix: internalPath,
+			},
 		};
 	}
 
@@ -151,8 +152,8 @@ export const createPathMiddlewares = async (
 		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
 		config.http.middlewares[middlewareName] = {
 			stripPrefix: {
-				prefixes: [path]
-			}
+				prefixes: [path],
+			},
 		};
 	}
 
@@ -165,7 +166,7 @@ export const createPathMiddlewares = async (
 
 export const removePathMiddlewares = async (
 	app: ApplicationNested,
-	uniqueConfigKey: number
+	uniqueConfigKey: number,
 ) => {
 	let config: FileConfig;
 
