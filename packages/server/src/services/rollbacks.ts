@@ -12,14 +12,16 @@ import type { ApplicationNested } from "../utils/builders";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import type { CreateServiceOptions } from "dockerode";
 import { findDeploymentById } from "./deployment";
+import { prepareEnvironmentVariables } from "../utils/docker/utils";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
 ) => {
 	await db.transaction(async (tx) => {
+		const { fullContext, ...other } = input;
 		const rollback = await tx
 			.insert(rollbacks)
-			.values(input)
+			.values(other)
 			.returning()
 			.then((res) => res[0]);
 
@@ -47,7 +49,7 @@ export const createRollback = async (
 			.update(rollbacks)
 			.set({
 				image: tagImage,
-				fullContext: JSON.stringify(rest),
+				fullContext: rest,
 			})
 			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
 
@@ -150,10 +152,16 @@ export const rollback = async (rollbackId: string) => {
 
 	const application = await findApplicationById(deployment.applicationId);
 
+	const envVariables = prepareEnvironmentVariables(
+		result?.fullContext?.env || "",
+		result.fullContext?.project?.env || "",
+	);
+
 	await rollbackApplication(
 		application.appName,
 		result.image || "",
 		application.serverId,
+		envVariables,
 	);
 };
 
@@ -161,6 +169,7 @@ const rollbackApplication = async (
 	appName: string,
 	image: string,
 	serverId?: string | null,
+	env: string[] = [],
 ) => {
 	const docker = await getRemoteDocker(serverId);
 
@@ -169,6 +178,7 @@ const rollbackApplication = async (
 		TaskTemplate: {
 			ContainerSpec: {
 				Image: image,
+				Env: env,
 			},
 		},
 	};
