@@ -6,7 +6,6 @@ import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
 	rollbackActive: false,
-	limitRollback: 5,
 	applicationId: "",
 	herokuVersion: "",
 	giteaRepository: "",

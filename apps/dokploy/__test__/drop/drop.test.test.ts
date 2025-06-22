@@ -121,7 +121,6 @@ const baseApp: ApplicationNested = {
 	updateConfigSwarm: null,
 	username: null,
 	dockerContextPath: null,
-	limitRollback: 5,
 	rollbackActive: false,
 };
 
