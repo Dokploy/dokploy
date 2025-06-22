@@ -112,7 +112,8 @@ export const createRouterConfig = async (
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
-	const { host, path, https, uniqueConfigKey, internalPath, stripPath } = domain;
+	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
+		domain;
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,

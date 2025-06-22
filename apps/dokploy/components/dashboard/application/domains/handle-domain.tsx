@@ -485,7 +485,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											<FormItem>
 												<FormLabel>Internal Path</FormLabel>
 												<FormDescription>
-													The path where your application expects to receive requests internally (defaults to "/")
+													The path where your application expects to receive
+													requests internally (defaults to "/")
 												</FormDescription>
 												<FormControl>
 													<Input placeholder={"/"} {...field} />
@@ -504,7 +505,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											<div className="space-y-0.5">
 												<FormLabel>Strip Path</FormLabel>
 												<FormDescription>
-													Remove the external path from the request before forwarding to the application
+													Remove the external path from the request before
+													forwarding to the application
 												</FormDescription>
 												<FormMessage />
 											</div>
