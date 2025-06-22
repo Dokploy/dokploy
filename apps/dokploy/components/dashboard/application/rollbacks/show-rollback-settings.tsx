@@ -25,7 +25,6 @@ import { z } from "zod";
 
 const formSchema = z.object({
 	rollbackActive: z.boolean(),
-	limitRollback: z.number().min(1).max(50),
 });
 
 type FormValues = z.infer<typeof formSchema>;
