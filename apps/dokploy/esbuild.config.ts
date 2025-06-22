@@ -21,6 +21,7 @@ try {
 			entryPoints: {
 				server: "server/server.ts",
 				"reset-password": "reset-password.ts",
+				"reset-2fa": "reset-2fa.ts",
 			},
 			bundle: true,
 			platform: "node",
