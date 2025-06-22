@@ -5,6 +5,7 @@ import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	rollbackActive: false,
 	applicationId: "",
 	herokuVersion: "",
 	giteaRepository: "",

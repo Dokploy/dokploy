@@ -38,7 +38,7 @@ const AddProjectSchema = z.object({
 			(name) => {
 				const trimmedName = name.trim();
 				const validNameRegex =
-					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_-]*[\p{L}\p{N}_-]$/u;
+					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
 				return validNameRegex.test(trimmedName);
 			},
 			{

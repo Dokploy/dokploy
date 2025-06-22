@@ -22,6 +22,7 @@ import {
 	findPostgresByBackupId,
 	findPostgresById,
 	findServerById,
+	keepLatestNBackups,
 	removeBackupById,
 	removeScheduleBackup,
 	runMariadbBackup,
@@ -197,6 +198,8 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const postgres = await findPostgresByBackupId(backup.backupId);
 				await runPostgresBackup(postgres, backup);
+
+				await keepLatestNBackups(backup, postgres?.serverId);
 				return true;
 			} catch (error) {
 				const message =
@@ -217,6 +220,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const mysql = await findMySqlByBackupId(backup.backupId);
 				await runMySqlBackup(mysql, backup);
+				await keepLatestNBackups(backup, mysql?.serverId);
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -233,6 +237,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const mariadb = await findMariadbByBackupId(backup.backupId);
 				await runMariadbBackup(mariadb, backup);
+				await keepLatestNBackups(backup, mariadb?.serverId);
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -249,6 +254,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const compose = await findComposeByBackupId(backup.backupId);
 				await runComposeBackup(compose, backup);
+				await keepLatestNBackups(backup, compose?.serverId);
 				return true;
 			} catch (error) {
 				throw new TRPCError({
@@ -265,6 +271,7 @@ export const backupRouter = createTRPCRouter({
 				const backup = await findBackupById(input.backupId);
 				const mongo = await findMongoByBackupId(backup.backupId);
 				await runMongoBackup(mongo, backup);
+				await keepLatestNBackups(backup, mongo?.serverId);
 				return true;
 			} catch (error) {
 				throw new TRPCError({

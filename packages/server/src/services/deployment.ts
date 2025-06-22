@@ -31,23 +31,38 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { findScheduleById } from "./schedule";
+import { removeRollbackById } from "./rollbacks";
 
 export type Deployment = typeof deployments.$inferSelect;
 
-export const findDeploymentById = async (applicationId: string) => {
-	const application = await db.query.deployments.findFirst({
-		where: eq(deployments.applicationId, applicationId),
+export const findDeploymentById = async (deploymentId: string) => {
+	const deployment = await db.query.deployments.findFirst({
+		where: eq(deployments.deploymentId, deploymentId),
 		with: {
 			application: true,
 		},
 	});
-	if (!application) {
+	if (!deployment) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Deployment not found",
 		});
 	}
-	return application;
+	return deployment;
+};
+
+export const findDeploymentByApplicationId = async (applicationId: string) => {
+	const deployment = await db.query.deployments.findFirst({
+		where: eq(deployments.applicationId, applicationId),
+	});
+
+	if (!deployment) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Deployment not found",
+		});
+	}
+	return deployment;
 };
 
 export const createDeployment = async (
@@ -481,6 +496,9 @@ const getDeploymentsByType = async (
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments[`${type}Id`], id),
 		orderBy: desc(deployments.createdAt),
+		with: {
+			rollback: true,
+		},
 	});
 	return deploymentList;
 };
@@ -515,6 +533,9 @@ const removeLastTenDeployments = async (
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
+				if (oldDeployment.rollbackId) {
+					await removeRollbackById(oldDeployment.rollbackId);
+				}
 
 				command += `
 				rm -rf ${logPath};
@@ -525,8 +546,11 @@ const removeLastTenDeployments = async (
 			await execAsyncRemote(serverId, command);
 		} else {
 			for (const oldDeployment of deploymentsToDelete) {
+				if (oldDeployment.rollbackId) {
+					await removeRollbackById(oldDeployment.rollbackId);
+				}
 				const logPath = path.join(oldDeployment.logPath);
-				if (existsSync(logPath)) {
+				if (existsSync(logPath) && !oldDeployment.errorMessage) {
 					await fsPromises.unlink(logPath);
 				}
 				await removeDeployment(oldDeployment.deploymentId);

@@ -15,6 +15,7 @@ import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
 import { schedules } from "./schedule";
 import { server } from "./server";
+import { rollbacks } from "./rollbacks";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
@@ -58,6 +59,10 @@ export const deployments = pgTable("deployment", {
 	backupId: text("backupId").references((): AnyPgColumn => backups.backupId, {
 		onDelete: "cascade",
 	}),
+	rollbackId: text("rollbackId").references(
+		(): AnyPgColumn => rollbacks.rollbackId,
+		{ onDelete: "cascade" },
+	),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -84,6 +89,10 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	backup: one(backups, {
 		fields: [deployments.backupId],
 		references: [backups.backupId],
+	}),
+	rollback: one(rollbacks, {
+		fields: [deployments.deploymentId],
+		references: [rollbacks.deploymentId],
 	}),
 }));
 
