@@ -86,6 +86,24 @@ export const domain = z
 				message: "Required",
 			});
 		}
+
+		// Validate stripPath requires a valid path
+		if (input.stripPath && (!input.path || input.path === "/")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["stripPath"],
+				message: "Strip path can only be enabled when a path other than '/' is specified",
+			});
+		}
+
+		// Validate internalPath starts with /
+		if (input.internalPath && input.internalPath !== "/" && !input.internalPath.startsWith("/")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["internalPath"],
+				message: "Internal path must start with '/'",
+			});
+		}
 	});
 
 type Domain = z.infer<typeof domain>;

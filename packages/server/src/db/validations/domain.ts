@@ -4,6 +4,8 @@ export const domain = z
 	.object({
 		host: z.string().min(1, { message: "Add a hostname" }),
 		path: z.string().min(1).optional(),
+		internalPath: z.string().optional(),
+		stripPath: z.boolean().optional(),
 		port: z
 			.number()
 			.min(1, { message: "Port must be at least 1" })
@@ -29,12 +31,32 @@ export const domain = z
 				message: "Required when certificate type is custom",
 			});
 		}
+
+		// Validate stripPath requires a valid path
+		if (input.stripPath && (!input.path || input.path === "/")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["stripPath"],
+				message: "Strip path can only be enabled when a path other than '/' is specified",
+			});
+		}
+
+		// Validate internalPath starts with /
+		if (input.internalPath && input.internalPath !== "/" && !input.internalPath.startsWith("/")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["internalPath"],
+				message: "Internal path must start with '/'",
+			});
+		}
 	});
 
 export const domainCompose = z
 	.object({
 		host: z.string().min(1, { message: "Host is required" }),
 		path: z.string().min(1).optional(),
+		internalPath: z.string().optional(),
+		stripPath: z.boolean().optional(),
 		port: z
 			.number()
 			.min(1, { message: "Port must be at least 1" })
@@ -59,6 +81,24 @@ export const domainCompose = z
 				code: z.ZodIssueCode.custom,
 				path: ["customCertResolver"],
 				message: "Required when certificate type is custom",
+			});
+		}
+
+		// Validate stripPath requires a valid path
+		if (input.stripPath && (!input.path || input.path === "/")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["stripPath"],
+				message: "Strip path can only be enabled when a path other than '/' is specified",
+			});
+		}
+
+		// Validate internalPath starts with /
+		if (input.internalPath && input.internalPath !== "/" && !input.internalPath.startsWith("/")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["internalPath"],
+				message: "Internal path must start with '/'",
 			});
 		}
 	});
