@@ -13,6 +13,7 @@ export type Github = typeof github.$inferSelect;
 export const createGithub = async (
 	input: typeof apiCreateGithub._type,
 	organizationId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -21,6 +22,7 @@ export const createGithub = async (
 				providerType: "github",
 				organizationId: organizationId,
 				name: input.name,
+				userId: userId,
 			})
 			.returning()
 			.then((response) => response[0]);

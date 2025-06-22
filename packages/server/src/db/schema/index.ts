@@ -34,3 +34,4 @@ export * from "./account";
 export * from "./schedule";
 export * from "./cloud-storage-destination";
 export * from "./cloud-storage-backup";
+export * from "./rollbacks";
