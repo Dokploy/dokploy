@@ -652,13 +652,6 @@
       "when": 1747713229160,
       "tag": "0092_stiff_the_watchers",
       "breakpoints": true
-    },
-    {
-      "idx": 93,
-      "version": "7",
-      "when": 1748419547200,
-      "tag": "0093_pale_guardsmen",
-      "breakpoints": true
     }
   ]
 }
