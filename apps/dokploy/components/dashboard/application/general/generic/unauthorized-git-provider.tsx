@@ -5,6 +5,7 @@ import {
 	GithubIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,11 +86,11 @@ export const UnauthorizedGitProvider = ({
 				</AlertDescription>
 			</Alert>
 
-			<Card>
+			<Card className="border-dashed border-2 border-muted-foreground/20 bg-transparent">
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
 						{getProviderIcon(application.sourceType)}
-						<span className="capitalize">
+						<span className="capitalize text-sm font-medium">
 							{application.sourceType} Repository
 						</span>
 					</CardTitle>
@@ -121,10 +122,19 @@ export const UnauthorizedGitProvider = ({
 					)}
 
 					<div className="pt-4 border-t">
-						<Button variant="outline" onClick={onDisconnect} className="w-full">
-							<Unlink className="size-4 mr-2" />
-							Disconnect Repository
-						</Button>
+						<DialogAction
+							title="Disconnect Repository"
+							description="Are you sure you want to disconnect this repository?"
+							type="default"
+							onClick={async () => {
+								onDisconnect();
+							}}
+						>
+							<Button variant="secondary" className="w-full">
+								<Unlink className="size-4 mr-2" />
+								Disconnect Repository
+							</Button>
+						</DialogAction>
 						<p className="text-xs text-muted-foreground mt-2">
 							Disconnecting will allow you to configure a new repository with
 							your own git providers.

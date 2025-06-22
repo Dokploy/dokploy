@@ -74,11 +74,6 @@ export const bitbucketRouter = createTRPCRouter({
 	getBitbucketRepositories: protectedProcedure
 		.input(apiFindOneBitbucket)
 		.query(async ({ input, ctx }) => {
-			console.log({
-				activeOrganizationId: ctx.session.activeOrganizationId,
-				userId: ctx.session.userId,
-				bitbucketId: input.bitbucketId,
-			});
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
