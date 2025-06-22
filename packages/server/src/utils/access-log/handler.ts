@@ -37,7 +37,8 @@ export const startLogCleanup = async (
 		}
 
 		return true;
-	} catch (_) {
+	} catch (error) {
+		console.error("Error starting log cleanup:", error);
 		return false;
 	}
 };

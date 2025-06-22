@@ -88,6 +88,7 @@ export const initCronJobs = async () => {
 	}
 
 	if (admin?.user.logCleanupCron) {
+		console.log("Starting log requests cleanup", admin.user.logCleanupCron);
 		await startLogCleanup(admin.user.logCleanupCron);
 	}
 };
