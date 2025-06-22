@@ -1,1 +1,0 @@
-ALTER TABLE "application" DROP COLUMN "limitRollback";
