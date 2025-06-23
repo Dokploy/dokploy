@@ -459,6 +459,15 @@ export const settingsRouter = createTRPCRouter({
 					throw new TRPCError({ code: "UNAUTHORIZED" });
 				}
 			}
+
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+
 			return readConfigInPath(input.path, input.serverId);
 		}),
 	getIp: protectedProcedure.query(async ({ ctx }) => {
