@@ -19,6 +19,7 @@ export const sendDatabaseBackupNotifications = async ({
 	type,
 	errorMessage,
 	organizationId,
+	databaseName
 }: {
 	projectName: string;
 	applicationName: string;
@@ -26,6 +27,7 @@ export const sendDatabaseBackupNotifications = async ({
 	type: "error" | "success";
 	organizationId: string;
 	errorMessage?: string;
+	databaseName: string;
 }) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -91,6 +93,11 @@ export const sendDatabaseBackupNotifications = async ({
 						inline: true,
 					},
 					{
+						name: decorate("`📂`", "Database Name"),
+						value: databaseName,
+						inline: true,
+					},
+					{
 						name: decorate("`📅`", "Date"),
 						value: `<t:${unixDate}:D>`,
 						inline: true,
@@ -136,6 +143,7 @@ export const sendDatabaseBackupNotifications = async ({
 				`${decorate("🛠️", `Project: ${projectName}`)}` +
 					`${decorate("⚙️", `Application: ${applicationName}`)}` +
 					`${decorate("❔", `Type: ${databaseType}`)}` +
+					`${decorate("📂", `Database Name: ${databaseName}`)}` +
 					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
 					`${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
 			);
@@ -150,7 +158,7 @@ export const sendDatabaseBackupNotifications = async ({
 				? `\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`
 				: "";
 
-			const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
+			const messageText = `<b>${statusEmoji} Database Backup ${typeStatus}</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${databaseType}\n<b>Database Name:</b> ${databaseName}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}${isError ? errorMsg : ""}`;
 
 			await sendTelegramNotification(telegram, messageText);
 		}
@@ -190,6 +198,10 @@ export const sendDatabaseBackupNotifications = async ({
 								title: "Type",
 								value: databaseType,
 								short: true,
+							},
+							{
+								title: "Database Name",
+								value: databaseName
 							},
 							{
 								title: "Time",
