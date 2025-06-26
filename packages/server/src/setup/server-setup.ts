@@ -141,38 +141,41 @@ ${validatePorts()}
 
 
 
-echo -e "3. Installing RClone. "
+echo -e "3. Checking memory and configuring swap if needed. "
+${checkMemoryAndSetupSwap()}
+
+echo -e "4. Installing RClone. "
 ${installRClone()}
 
-echo -e "4. Installing Docker. "
+echo -e "5. Installing Docker. "
 ${installDocker()}
 
-echo -e "5. Setting up Docker Swarm"
+echo -e "6. Setting up Docker Swarm"
 ${setupSwarm()}
 
-echo -e "6. Setting up Network"
+echo -e "7. Setting up Network"
 ${setupNetwork()}
 
-echo -e "7. Setting up Directories"
+echo -e "8. Setting up Directories"
 ${setupMainDirectory()}
 ${setupDirectories()}
 
-echo -e "8. Setting up Traefik"
+echo -e "9. Setting up Traefik"
 ${createTraefikConfig()}
 
-echo -e "9. Setting up Middlewares"
+echo -e "10. Setting up Middlewares"
 ${createDefaultMiddlewares()}
 
-echo -e "10. Setting up Traefik Instance"
+echo -e "11. Setting up Traefik Instance"
 ${createTraefikInstance()}
 
-echo -e "11. Installing Nixpacks"
+echo -e "12. Installing Nixpacks"
 ${installNixpacks()}
 
-echo -e "12. Installing Buildpacks"
+echo -e "13. Installing Buildpacks"
 ${installBuildpacks()}
 
-echo -e "13. Installing Railpack"
+echo -e "14. Installing Railpack"
 ${installRailpack()}
 				`;
 
@@ -626,5 +629,77 @@ const installBuildpacks = () => `
 		BUILDPACKS_VERSION=0.35.0
 		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 		echo "Buildpacks version $BUILDPACKS_VERSION installed ✅"
+	fi
+`;
+
+const checkMemoryAndSetupSwap = () => `
+	# Check available memory in MB
+	MEMORY_MB=$(free -m | awk 'NR==2{print $2}')
+	MEMORY_GB=$((MEMORY_MB / 1024))
+	
+	echo " - Detected memory: ${MEMORY_MB}MB (${MEMORY_GB}GB)"
+	
+	# If memory is less than 2GB (2048MB), setup swap
+	if [ "$MEMORY_MB" -lt 2048 ]; then
+		echo " - Memory is less than 2GB, checking swap configuration..."
+		
+		# Check if swap is already enabled
+		SWAP_TOTAL=$(free -m | awk 'NR==3{print $2}')
+		
+		if [ "$SWAP_TOTAL" -gt 0 ]; then
+			echo " - Swap is already enabled (${SWAP_TOTAL}MB) ✅"
+		else
+			echo " - No swap detected. Setting up swap file..."
+			
+			# Calculate swap size (4GB for systems with less than 2GB RAM)
+			SWAP_SIZE="4G"
+			SWAP_FILE="/swapfile"
+			
+			# Check if swap file already exists
+			if [ -f "$SWAP_FILE" ]; then
+				echo " - Swap file already exists, skipping creation"
+			else
+				# Create swap file
+				echo " - Creating ${SWAP_SIZE} swap file at ${SWAP_FILE}..."
+				
+				# Use fallocate if available, otherwise use dd
+				if command -v fallocate >/dev/null 2>&1; then
+					fallocate -l $SWAP_SIZE $SWAP_FILE >/dev/null 2>&1
+				else
+					dd if=/dev/zero of=$SWAP_FILE bs=1M count=4096 >/dev/null 2>&1
+				fi
+				
+				if [ $? -eq 0 ]; then
+					# Set correct permissions
+					chmod 600 $SWAP_FILE
+					
+					# Setup swap
+					mkswap $SWAP_FILE >/dev/null 2>&1
+					swapon $SWAP_FILE >/dev/null 2>&1
+					
+					# Add to fstab for persistence
+					if ! grep -q "$SWAP_FILE" /etc/fstab; then
+						echo "$SWAP_FILE none swap sw 0 0" >> /etc/fstab
+					fi
+					
+					# Verify swap is active
+					NEW_SWAP_TOTAL=$(free -m | awk 'NR==3{print $2}')
+					if [ "$NEW_SWAP_TOTAL" -gt 0 ]; then
+						echo " - Swap file created and activated successfully (${NEW_SWAP_TOTAL}MB) ✅"
+						
+						# Optimize swappiness for server use
+						echo "vm.swappiness=10" >> /etc/sysctl.conf
+						sysctl vm.swappiness=10 >/dev/null 2>&1
+						echo " - Swap swappiness set to 10 for optimal server performance ✅"
+					else
+						echo " - Failed to activate swap file ❌"
+					fi
+				else
+					echo " - Failed to create swap file ❌"
+				fi
+			fi
+		fi
+	else
+		echo " - Memory is sufficient (≥2GB), swap configuration not required ✅"
 	fi
 `;
