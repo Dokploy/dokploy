@@ -419,14 +419,26 @@ if ! [ -x "$(command -v docker)" ]; then
             systemctl enable docker >/dev/null 2>&1
             ;;
 	"opencloudos")
-	    dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo >/dev/null 2>&1
-            dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
+            # Special handling for OpenCloud OS
+            echo " - Installing Docker for OpenCloud OS..."
+            yum install -y docker >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
             fi
-            systemctl start docker >/dev/null 2>&1
+            
+            # Remove --live-restore parameter from Docker configuration if it exists
+            if [ -f "/etc/sysconfig/docker" ]; then
+                echo " - Removing --live-restore parameter from Docker configuration..."
+                sed -i 's/--live-restore[^[:space:]]*//' /etc/sysconfig/docker >/dev/null 2>&1
+                sed -i 's/--live-restore//' /etc/sysconfig/docker >/dev/null 2>&1
+                # Clean up any double spaces that might be left
+                sed -i 's/  */ /g' /etc/sysconfig/docker >/dev/null 2>&1
+            fi
+            
             systemctl enable docker >/dev/null 2>&1
+            systemctl start docker >/dev/null 2>&1
+            echo " - Docker configured for OpenCloud OS"
             ;;
         "alpine")
             apk add docker docker-cli-compose >/dev/null 2>&1
