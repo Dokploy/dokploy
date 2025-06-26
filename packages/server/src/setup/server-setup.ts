@@ -424,7 +424,7 @@ if ! [ -x "$(command -v docker)" ]; then
 	"opencloudos")
             # Special handling for OpenCloud OS
             echo " - Installing Docker for OpenCloud OS..."
-            yum install -y docker >/dev/null 2>&1
+            dnf install -y docker >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
