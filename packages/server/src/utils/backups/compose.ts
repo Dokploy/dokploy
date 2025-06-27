@@ -49,6 +49,7 @@ export const runComposeBackup = async (
 			databaseType: getDatabaseType(databaseType),
 			type: "success",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -62,6 +63,7 @@ export const runComposeBackup = async (
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
