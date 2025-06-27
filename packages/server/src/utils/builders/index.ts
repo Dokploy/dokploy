@@ -1,5 +1,4 @@
 import { createWriteStream } from "node:fs";
-import { join } from "node:path";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
@@ -211,16 +210,20 @@ export const mechanizeDockerContainer = async (
 
 const getImageName = (application: ApplicationNested) => {
 	const { appName, sourceType, dockerImage, registry } = application;
-
+	const imageName = `${appName}:latest`;
 	if (sourceType === "docker") {
 		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
 	}
 
 	if (registry) {
-		return join(registry.registryUrl, registry.imagePrefix || "", appName);
+		const { registryUrl, imagePrefix, username } = registry;
+		const registryTag = imagePrefix
+			? `${registryUrl}/${imagePrefix}/${imageName}`
+			: `${registryUrl}/${username}/${imageName}`;
+		return registryTag;
 	}
 
-	return `${appName}:latest`;
+	return imageName;
 };
 
 const getAuthConfig = (application: ApplicationNested) => {
