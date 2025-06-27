@@ -62,6 +62,7 @@ export const users_temp = pgTable("user_temp", {
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {
