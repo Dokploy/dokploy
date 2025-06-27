@@ -50,7 +50,7 @@ export const runPostgresBackup = async (
 			databaseType: "postgres",
 			type: "success",
 			organizationId: project.organizationId,
-			databaseName: backup.database
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -63,7 +63,7 @@ export const runPostgresBackup = async (
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
-			databaseName: backup.database
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");

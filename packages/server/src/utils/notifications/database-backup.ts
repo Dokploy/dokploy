@@ -19,7 +19,7 @@ export const sendDatabaseBackupNotifications = async ({
 	type,
 	errorMessage,
 	organizationId,
-	databaseName
+	databaseName,
 }: {
 	projectName: string;
 	applicationName: string;
@@ -201,7 +201,7 @@ export const sendDatabaseBackupNotifications = async ({
 							},
 							{
 								title: "Database Name",
-								value: databaseName
+								value: databaseName,
 							},
 							{
 								title: "Time",

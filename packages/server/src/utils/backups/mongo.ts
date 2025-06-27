@@ -46,7 +46,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			databaseType: "mongodb",
 			type: "success",
 			organizationId: project.organizationId,
-			databaseName: backup.database
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
@@ -59,7 +59,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
-			databaseName: backup.database
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
