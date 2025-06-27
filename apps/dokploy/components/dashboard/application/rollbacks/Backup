@@ -1,0 +1,30 @@
+Backup
+
+1. docker ps --filter "label=com.docker.swarm.service.name=license-namedbackups-abxelc" --format "{{.Names}}"
+2. docker run --rm \
+--volumes-from "license-namedbackups-abxelc.1.m3cxy78ocj3w0zu42kmgamc5y" \
+-v $(pwd):/backup \
+ubuntu \
+tar cvf /backup/backup.tar /var/lib/postgresql/data
+
+
+docker run --rm \
+  -v license-namedbackups-abxelc-data:/volume_data \
+  -v $(pwd):/backup \
+  ubuntu \
+  bash -c "cd /volume_data && tar cvf /backup/generic_backup.tar ."
+
+
+2. Restore
+
+docker stop license-namedbackups-abxelc
+
+docker volume rm license-namedbackups-abxelc.1.m3cxy78ocj3w0zu42kmgamc5y
+
+
+1. docker ps --filter "label=com.docker.swarm.service.name=license-namedbackups-abxelc" --format "{{.Names}}"
+2. docker run --rm \
+-v license-namedbackups-abxelc-data:/volume_data \
+-v $(pwd):/backup \
+ubuntu \
+bash -c "cd /volume_data && tar xvf /backup/generic_backup.tar && chown -R 999:999 ."
