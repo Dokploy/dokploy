@@ -63,6 +63,7 @@ import {
 } from "@/server/db/schema";
 import { removeJob, schedule } from "@/server/utils/backup";
 import packageInfo from "../../../package.json";
+import { getWorker as getDeploymentWorker } from "../../queues/deployments-queue";
 import { appRouter } from "../root";
 import {
 	adminProcedure,
@@ -840,12 +841,48 @@ export const settingsRouter = createTRPCRouter({
 	getLogCleanupStatus: adminProcedure.query(async () => {
 		return getLogCleanupStatus();
 	}),
-
-	getDokployCloudIps: adminProcedure.query(async () => {
-		if (!IS_CLOUD) {
-			return [];
+	changeBuildsConcurrency: adminProcedure
+		.input(
+			z.object({
+				concurrency: z.number(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			const worker = getDeploymentWorker();
+			if (!worker) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Deployment worker is not available. Please check server logs for details.",
+				});
+			}
+			const user = await findUserById(ctx.user.id);
+			if (!user) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "User not found",
+				});
+			}
+			await updateUser(user.id, {
+				buildsConcurrency: input.concurrency,
+			});
+			worker.concurrency = input.concurrency;
+			return true;
+		}),
+	getBuildsConcurrency: adminProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return 0;
 		}
-		const ips = process.env.DOKPLOY_CLOUD_IPS?.split(",");
-		return ips;
+		const worker = getDeploymentWorker();
+		if (!worker) {
+			console.error(
+				"Deployment worker is not available in getBuildsConcurrency",
+			);
+			return 0; // Return default concurrency when worker is not available
+		}
+		return worker.opts.concurrency;
 	}),
 });

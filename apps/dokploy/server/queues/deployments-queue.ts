@@ -17,106 +17,127 @@ import { type Job, Worker } from "bullmq";
 import type { DeploymentJob } from "./queue-types";
 import { redisConfig } from "./redis-connection";
 
-export const deploymentWorker = new Worker(
-	"deployments",
-	async (job: Job<DeploymentJob>) => {
-		try {
-			if (job.data.applicationType === "application") {
-				await updateApplicationStatus(job.data.applicationId, "running");
+// Singleton pattern - use a global variable to persist across module reloads
+declare global {
+	var __deploymentWorker: Worker | undefined;
+}
 
-				if (job.data.server) {
-					if (job.data.type === "redeploy") {
-						await rebuildRemoteApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "deploy") {
-						await deployRemoteApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					}
-				} else {
-					if (job.data.type === "redeploy") {
-						await rebuildApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "deploy") {
-						await deployApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					}
-				}
-			} else if (job.data.applicationType === "compose") {
-				await updateCompose(job.data.composeId, {
-					composeStatus: "running",
-				});
+export const getWorker = () => {
+	return global.__deploymentWorker;
+};
 
-				if (job.data.server) {
-					if (job.data.type === "redeploy") {
-						await rebuildRemoteCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "deploy") {
-						await deployRemoteCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
+export const createDeploymentWorker = (defaultConcurrency = 1) => {
+	// Check if worker already exists globally
+	if (global.__deploymentWorker) {
+		return global.__deploymentWorker;
+	}
+
+	global.__deploymentWorker = new Worker(
+		"deployments",
+		async (job: Job<DeploymentJob>) => {
+			try {
+				if (job.data.applicationType === "application") {
+					await updateApplicationStatus(job.data.applicationId, "running");
+
+					if (job.data.server) {
+						if (job.data.type === "redeploy") {
+							await rebuildRemoteApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						} else if (job.data.type === "deploy") {
+							await deployRemoteApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						}
+					} else {
+						if (job.data.type === "redeploy") {
+							await rebuildApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						} else if (job.data.type === "deploy") {
+							await deployApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						}
 					}
-				} else {
-					if (job.data.type === "deploy") {
-						await deployCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "redeploy") {
-						await rebuildCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
+				} else if (job.data.applicationType === "compose") {
+					await updateCompose(job.data.composeId, {
+						composeStatus: "running",
+					});
+
+					if (job.data.server) {
+						if (job.data.type === "redeploy") {
+							await rebuildRemoteCompose({
+								composeId: job.data.composeId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						} else if (job.data.type === "deploy") {
+							await deployRemoteCompose({
+								composeId: job.data.composeId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						}
+					} else {
+						if (job.data.type === "deploy") {
+							await deployCompose({
+								composeId: job.data.composeId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						} else if (job.data.type === "redeploy") {
+							await rebuildCompose({
+								composeId: job.data.composeId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+							});
+						}
+					}
+				} else if (job.data.applicationType === "application-preview") {
+					await updatePreviewDeployment(job.data.previewDeploymentId, {
+						previewStatus: "running",
+					});
+					if (job.data.server) {
+						if (job.data.type === "deploy") {
+							await deployRemotePreviewApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+								previewDeploymentId: job.data.previewDeploymentId,
+							});
+						}
+					} else {
+						if (job.data.type === "deploy") {
+							await deployPreviewApplication({
+								applicationId: job.data.applicationId,
+								titleLog: job.data.titleLog,
+								descriptionLog: job.data.descriptionLog,
+								previewDeploymentId: job.data.previewDeploymentId,
+							});
+						}
 					}
 				}
-			} else if (job.data.applicationType === "application-preview") {
-				await updatePreviewDeployment(job.data.previewDeploymentId, {
-					previewStatus: "running",
-				});
-				if (job.data.server) {
-					if (job.data.type === "deploy") {
-						await deployRemotePreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
-						});
-					}
-				} else {
-					if (job.data.type === "deploy") {
-						await deployPreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
-						});
-					}
-				}
+			} catch (error) {
+				console.log("Error", error);
 			}
-		} catch (error) {
-			console.log("Error", error);
-		}
-	},
-	{
-		autorun: false,
-		connection: redisConfig,
-	},
-);
+		},
+		{
+			autorun: false,
+			connection: redisConfig,
+			concurrency: defaultConcurrency,
+		},
+	);
+
+	global.__deploymentWorker.run();
+
+	return global.__deploymentWorker;
+};
