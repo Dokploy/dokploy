@@ -15,7 +15,7 @@ export const runComposeBackup = async (
 ) => {
 	const { projectId, name } = compose;
 	const project = await findProjectById(projectId);
-	const { prefix } = backup;
+	const { prefix, databaseType } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.dump.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
@@ -46,7 +46,7 @@ export const runComposeBackup = async (
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
-			databaseType: "mongodb",
+			databaseType: getDatabaseType(databaseType),
 			type: "success",
 			organizationId: project.organizationId,
 		});
@@ -57,7 +57,7 @@ export const runComposeBackup = async (
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
-			databaseType: "mongodb",
+			databaseType: getDatabaseType(databaseType),
 			type: "error",
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
@@ -67,4 +67,20 @@ export const runComposeBackup = async (
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
 	}
+};
+
+const getDatabaseType = (databaseType: BackupSchedule["databaseType"]) => {
+	if (databaseType === "mongo") {
+		return "mongodb";
+	}
+	if (databaseType === "postgres") {
+		return "postgres";
+	}
+	if (databaseType === "mariadb") {
+		return "mariadb";
+	}
+	if (databaseType === "mysql") {
+		return "mysql";
+	}
+	return "mongodb";
 };
