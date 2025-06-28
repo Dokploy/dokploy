@@ -837,6 +837,14 @@ export const settingsRouter = createTRPCRouter({
 	getLogCleanupStatus: adminProcedure.query(async () => {
 		return getLogCleanupStatus();
 	}),
+
+	getDokployCloudIps: adminProcedure.query(async () => {
+		if (!IS_CLOUD) {
+			return [];
+		}
+		const ips = process.env.DOKPLOY_CLOUD_IPS?.split(",");
+		return ips;
+	}),
 });
 
 export const getTraefikPorts = async (serverId?: string) => {

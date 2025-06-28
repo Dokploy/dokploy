@@ -99,6 +99,10 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
     <img src=".github/sponsors/american-cloud.png" alt="AmericanCloud" height="70"/>
   </a>
 
+  <a href="https://tolgee.io/?utm_source=github_dokploy&utm_medium=banner&utm_campaign=dokploy" target="_blank" style="display: inline-block; margin-right: 10px;">
+    <img src="https://dokploy.com/tolgee-logo.png" alt="Tolgee" height="80"/>
+  </a>
+
 </div>
 <!-- Elite Contributors 🥈 -->
 
