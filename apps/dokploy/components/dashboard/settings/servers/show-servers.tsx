@@ -141,7 +141,7 @@ export const ShowServers = () => {
 													</TableCaption>
 													<TableHeader>
 														<TableRow>
-															<TableHead className="w-[100px]">Name</TableHead>
+															<TableHead className="text-left">Name</TableHead>
 															{isCloud && (
 																<TableHead className="text-center">
 																	Status
@@ -173,7 +173,7 @@ export const ShowServers = () => {
 															const isActive = server.serverStatus === "active";
 															return (
 																<TableRow key={server.serverId}>
-																	<TableCell className="w-[100px]">
+																	<TableCell className="text-left">
 																		{server.name}
 																	</TableCell>
 																	{isCloud && (
