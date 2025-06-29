@@ -1,7 +1,6 @@
 packages:
-  - "apps/dokploy"
   - "apps/api"
+  - "apps/dokploy"
   - "apps/monitoring"
   - "apps/schedules"
-  - "apps/models"
   - "packages/server"
