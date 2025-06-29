@@ -5,6 +5,7 @@ import {
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	findAdmin,
 	initCronJobs,
 	initSchedules,
 	initializeNetwork,
@@ -13,6 +14,7 @@ import {
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
+import { createDeploymentWorker } from "./queues/deployments-queue";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -62,8 +64,16 @@ void app.prepare().then(async () => {
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
-			const { deploymentWorker } = await import("./queues/deployments-queue");
-			await deploymentWorker.run();
+			try {
+				const admin = await findAdmin();
+
+				const worker = createDeploymentWorker(
+					admin?.user?.buildsConcurrency || 1,
+				);
+				console.log("Deployment Worker Started Successfully:", !!worker);
+			} catch (error) {
+				console.error("Failed to create deployment worker:", error);
+			}
 		}
 	} catch (e) {
 		console.error("Main Server Error", e);

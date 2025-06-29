@@ -687,6 +687,13 @@
       "when": 1750567641441,
       "tag": "0097_hard_lizard",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1751041084476,
+      "tag": "0098_melted_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }
