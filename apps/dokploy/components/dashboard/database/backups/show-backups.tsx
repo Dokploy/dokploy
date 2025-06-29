@@ -34,6 +34,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { ShowDeploymentsModal } from "../../application/deployments/show-deployments-modal";
+import { ShowCloudBackups } from "./cloud-storage/show-cloud-backups";
 import { HandleBackup } from "./handle-backup";
 import { RestoreBackup } from "./restore-backup";
 
@@ -102,10 +103,10 @@ export const ShowBackups = ({
 				<div className="flex flex-col gap-0.5">
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<Database className="size-6 text-muted-foreground" />
-						Backups
+						S3 Backups
 					</CardTitle>
 					<CardDescription>
-						Add backups to your database to save the data to a different
+						Add S3 backups to your database to save the data to a different
 						provider.
 					</CardDescription>
 				</div>
@@ -151,7 +152,7 @@ export const ShowBackups = ({
 							<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 								<DatabaseBackup className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									No backups configured
+									No S3 backups configured
 								</span>
 								<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
 									<HandleBackup
@@ -376,6 +377,9 @@ export const ShowBackups = ({
 					</div>
 				)}
 			</CardContent>
+			{databaseType && (
+				<ShowCloudBackups databaseId={id} databaseType={databaseType} />
+			)}
 		</Card>
 	);
 };
