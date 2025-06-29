@@ -302,7 +302,7 @@ export const createDomainLabels = (
 		path,
 		customCertResolver,
 		stripPath,
-		internalPath
+		internalPath,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
@@ -315,20 +315,28 @@ export const createDomainLabels = (
 	// Validate stripPath - it should only be used when path is defined and not "/"
 	if (stripPath) {
 		if (!path || path === "/") {
-			console.warn(`stripPath is enabled but path is not defined or is "/" for domain ${host}`);
+			console.warn(
+				`stripPath is enabled but path is not defined or is "/" for domain ${host}`,
+			);
 		} else {
 			const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
-			labels.push(`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`);
+			labels.push(
+				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
+			);
 		}
 	}
 
 	// Validate internalPath - ensure it's a valid path format
 	if (internalPath && internalPath !== "/") {
 		if (!internalPath.startsWith("/")) {
-			console.warn(`internalPath "${internalPath}" should start with "/" and not be empty for domain ${host}`);
+			console.warn(
+				`internalPath "${internalPath}" should start with "/" and not be empty for domain ${host}`,
+			);
 		} else {
 			const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
-			labels.push(`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`);
+			labels.push(
+				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
+			);
 		}
 	}
 
