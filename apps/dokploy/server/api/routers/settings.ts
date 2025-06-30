@@ -845,13 +845,14 @@ export const settingsRouter = createTRPCRouter({
 		.input(
 			z.object({
 				concurrency: z.number(),
+				serverId: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
-			const worker = getDeploymentWorker();
+			const worker = getDeploymentWorker(input.serverId);
 			if (!worker) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -872,17 +873,23 @@ export const settingsRouter = createTRPCRouter({
 			worker.concurrency = input.concurrency;
 			return true;
 		}),
-	getBuildsConcurrency: adminProcedure.query(async () => {
-		if (IS_CLOUD) {
-			return 0;
-		}
-		const worker = getDeploymentWorker();
-		if (!worker) {
-			console.error(
-				"Deployment worker is not available in getBuildsConcurrency",
-			);
-			return 0; // Return default concurrency when worker is not available
-		}
-		return worker.opts.concurrency;
-	}),
+	getBuildsConcurrency: adminProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			if (IS_CLOUD) {
+				return 0;
+			}
+			const worker = getDeploymentWorker(input.serverId);
+			if (!worker) {
+				console.error(
+					"Deployment worker is not available in getBuildsConcurrency",
+				);
+				return 0; // Return default concurrency when worker is not available
+			}
+			return worker.opts.concurrency;
+		}),
 });

@@ -54,7 +54,7 @@ import {
 	applications,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import { cleanQueuesByApplication, getQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
@@ -244,7 +244,7 @@ export const applicationRouter = createTRPCRouter({
 			for (const operation of cleanupOperations) {
 				try {
 					await operation();
-				} catch (_) {}
+				} catch (_) { }
 			}
 
 			return result[0];
@@ -312,12 +312,11 @@ export const applicationRouter = createTRPCRouter({
 				server: !!application.serverId,
 			};
 
-			if (IS_CLOUD && application.serverId) {
+			const queue = getQueue(application.serverId);
+			if (application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
-				return true;
 			}
-			await myQueue.add(
+			await queue.add(
 				"deployments",
 				{ ...jobData },
 				{
@@ -668,7 +667,8 @@ export const applicationRouter = createTRPCRouter({
 
 				return true;
 			}
-			await myQueue.add(
+			const queue = getQueue(application.serverId);
+			await queue.add(
 				"deployments",
 				{ ...jobData },
 				{
@@ -761,7 +761,8 @@ export const applicationRouter = createTRPCRouter({
 				return true;
 			}
 
-			await myQueue.add(
+			const queue = getQueue(app.serverId);
+			await queue.add(
 				"deployments",
 				{ ...jobData },
 				{
