@@ -188,6 +188,17 @@ export const apiCreateDeploymentSchedule = schema
 		scheduleId: z.string().min(1),
 	});
 
+export const apiCreateDeploymentVolumeBackup = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		description: true,
+	})
+	.extend({
+		volumeBackupId: z.string().min(1),
+	});
+
 export const apiFindAllByApplication = schema
 	.pick({
 		applicationId: true,

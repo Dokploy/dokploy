@@ -13,6 +13,7 @@ import { postgres } from "./postgres";
 import { mariadb } from "./mariadb";
 import { destinations } from "./destination";
 import { deployments } from "./deployment";
+import { generateAppName } from "./utils";
 
 export const volumeBackups = pgTable("volume_backup", {
 	volumeBackupId: text("volumeBackupId")
@@ -23,6 +24,9 @@ export const volumeBackups = pgTable("volume_backup", {
 	volumeName: text("volumeName").notNull(),
 	prefix: text("prefix").notNull(),
 	serviceType: serviceType("serviceType").notNull().default("application"),
+	appName: text("appName")
+		.notNull()
+		.$defaultFn(() => generateAppName("volumeBackup")),
 	serviceName: text("serviceName"),
 	turnOff: boolean("turnOff").notNull().default(false),
 	cronExpression: text("cronExpression").notNull(),

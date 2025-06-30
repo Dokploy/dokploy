@@ -11,6 +11,15 @@ import type { z } from "zod";
 export const findVolumeBackupById = async (volumeBackupId: string) => {
 	const volumeBackup = await db.query.volumeBackups.findFirst({
 		where: eq(volumeBackups.volumeBackupId, volumeBackupId),
+		with: {
+			application: true,
+			postgres: true,
+			mysql: true,
+			mariadb: true,
+			mongo: true,
+			redis: true,
+			compose: true,
+		},
 	});
 
 	if (!volumeBackup) {

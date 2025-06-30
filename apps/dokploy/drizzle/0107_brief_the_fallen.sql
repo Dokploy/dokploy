@@ -1,0 +1,1 @@
+ALTER TABLE "volume_backup" ADD COLUMN "appName" text NOT NULL;
