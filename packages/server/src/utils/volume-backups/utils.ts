@@ -53,7 +53,6 @@ const backupVolume = async (
             ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
             docker stop $ID`;
 			startCommand = `
-            ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
             docker start $ID`;
 		}
 		return `
