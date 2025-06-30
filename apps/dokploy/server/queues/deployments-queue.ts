@@ -16,24 +16,42 @@ import {
 import { type Job, Worker } from "bullmq";
 import type { DeploymentJob } from "./queue-types";
 import { redisConfig } from "./redis-connection";
+import { DEFAULT_QUEUE } from "./queueSetup";
 
-// Singleton pattern - use a global variable to persist across module reloads
+// ------------------------------------------------------------------------------------------------
+// Worker management - per server instance
+// ------------------------------------------------------------------------------------------------
+
+// A map that keeps one worker per serverId ("default" key is for local deployments)
+type WorkersMap = Record<string, Worker>;
+
 declare global {
-	var __deploymentWorker: Worker | undefined;
+	// eslint-disable-next-line no-var, vars-on-top
+	var __deploymentWorkers: WorkersMap | undefined;
 }
 
-export const getWorker = () => {
-	return global.__deploymentWorker;
+export const getWorkersMap = (): WorkersMap => {
+	if (!global.__deploymentWorkers) {
+		global.__deploymentWorkers = {};
+	}
+	return global.__deploymentWorkers;
 };
 
-export const createDeploymentWorker = (defaultConcurrency = 1) => {
-	// Check if worker already exists globally
-	if (global.__deploymentWorker) {
-		return global.__deploymentWorker;
-	}
+export const getWorker = (serverId?: string): Worker | undefined => {
+	const key = serverId ?? DEFAULT_QUEUE;
+	return getWorkersMap()[key];
+};
 
-	global.__deploymentWorker = new Worker(
-		"deployments",
+const createWorker = (
+	queueName: string,
+	concurrency: number,
+	serverIdKey: string,
+) => {
+	const workers = getWorkersMap();
+	if (workers[serverIdKey]) return workers[serverIdKey];
+
+	const worker = new Worker<DeploymentJob>(
+		queueName,
 		async (job: Job<DeploymentJob>) => {
 			try {
 				if (job.data.applicationType === "application") {
@@ -133,11 +151,35 @@ export const createDeploymentWorker = (defaultConcurrency = 1) => {
 		{
 			autorun: false,
 			connection: redisConfig,
-			concurrency: defaultConcurrency,
+			concurrency,
 		},
 	);
 
-	global.__deploymentWorker.run();
+	worker.run();
+	workers[serverIdKey] = worker;
+	return worker;
+};
 
-	return global.__deploymentWorker;
+// ------------------------------------------------------------------------------------------------
+// Public helpers
+// ------------------------------------------------------------------------------------------------
+
+export const createDeploymentWorker = (defaultConcurrency = 1): Worker => {
+	return createWorker("deployments", defaultConcurrency, "default");
+};
+
+export const createServerDeploymentWorker = (
+	serverId: string,
+	concurrency = 1,
+): Worker => {
+	return createWorker(`deployments-${serverId}`, concurrency, serverId);
+};
+
+export const removeServerDeploymentWorker = (serverId: string) => {
+	const workers = getWorkersMap();
+
+	if (workers[serverId]) {
+		workers[serverId].close();
+		delete workers[serverId];
+	}
 };

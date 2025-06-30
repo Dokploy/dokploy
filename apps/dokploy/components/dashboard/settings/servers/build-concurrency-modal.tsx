@@ -42,10 +42,10 @@ const buildConcurrencySchema = z.object({
 
 type BuildConcurrencyForm = z.infer<typeof buildConcurrencySchema>;
 
-export const BuildConcurrencyModal = () => {
+export const BuildConcurrencyModal = ({ serverId }: { serverId?: string }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: buildsConcurrency, refetch } =
-		api.settings.getBuildsConcurrency.useQuery();
+		api.settings.getBuildsConcurrency.useQuery({ serverId });
 	const { mutateAsync: changeBuildsConcurrency, isLoading } =
 		api.settings.changeBuildsConcurrency.useMutation();
 
@@ -65,7 +65,7 @@ export const BuildConcurrencyModal = () => {
 	const onSubmit = async (data: BuildConcurrencyForm) => {
 		try {
 			const concurrency = Number.parseInt(data.concurrency, 10);
-			await changeBuildsConcurrency({ concurrency });
+			await changeBuildsConcurrency({ concurrency, serverId });
 			toast.success("Build concurrency updated successfully");
 			setIsOpen(false);
 			form.reset({
