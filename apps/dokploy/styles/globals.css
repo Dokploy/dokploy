@@ -243,6 +243,7 @@
 	color: currentColor !important;
 }
 
-.cm-content, .cm-lineWrapping {
-  @apply font-mono;
+.cm-content,
+.cm-lineWrapping {
+	@apply font-mono;
 }
