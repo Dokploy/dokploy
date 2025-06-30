@@ -1,6 +1,5 @@
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getComposeContainer } from "../docker/utils";
-import { findComposeById, paths, paths } from "../..";
+import { findComposeById } from "../..";
 
 export const createVolumeBackup = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -18,45 +17,49 @@ const backupVolume = async (
 ) => {
 	const { serviceType, volumeName, turnOff } = volumeBackup;
 
-	if (turnOff) {
-		return `docker run --rm \
+	const baseCommand = `
+    docker run --rm \
   -v ${volumeName}:/volume_data \
   -v $(pwd):/backup \
   ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${volumeName}.tar ."`;
+  bash -c "cd /volume_data && tar cvf /backup/${volumeName}.tar ."
+  `;
+
+	if (turnOff) {
+		return baseCommand;
 	}
 
 	if (serviceType === "application") {
 		return `
         docker service scale ${volumeBackup.application?.appName}=0
-        docker run --rm \
-  -v ${volumeName}:/volume_data \
-  -v $(pwd):/backup \
-  ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${volumeName}.tar .
-  docker service scale ${volumeBackup.application?.appName}=1
-  "`;
+        ${baseCommand}
+        docker service scale ${volumeBackup.application?.appName}=1
+  `;
 	}
 	if (serviceType === "compose") {
 		const compose = await findComposeById(
 			volumeBackup.compose?.composeId || "",
 		);
-        const { COMPOSE_PATH } = paths(!!compose.serverId);
 		let stopCommand = "";
+		let startCommand = "";
 
 		if (compose.composeType === "stack") {
-			stopCommand = `docker service scale ${compose.appName}_${volumeBackup.serviceName}=0`;
+			stopCommand = `
+            ACTUAL_REPLICAS=$(docker service inspect ${compose.appName}_${volumeBackup.serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
+            docker service scale ${compose.appName}_${volumeBackup.serviceName}=0`;
+			startCommand = `docker service scale ${compose.appName}_${volumeBackup.serviceName}=$ACTUAL_REPLICAS`;
 		} else {
-			stopCommand = `docker compose down --remove-orphans`;
+			stopCommand = `
+            ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
+            docker stop $ID`;
+			startCommand = `
+            ID=$(docker ps -q --filter "label=com.docker.compose.project=${compose.appName}" --filter "label=com.docker.compose.service=${volumeBackup.serviceName}")
+            docker start $ID`;
 		}
 		return `
-        
-        docker run --rm \
-  -v ${volumeName}:/volume_data \
-  -v $(pwd):/backup \
-  ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${volumeName}.tar ."`;
+        ${stopCommand}
+        ${baseCommand}
+        ${startCommand}
+  `;
 	}
-
-	return ``;
 };
