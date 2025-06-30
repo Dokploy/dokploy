@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -13,19 +13,16 @@ import { postgres } from "./postgres";
 import { mariadb } from "./mariadb";
 import { destinations } from "./destination";
 
-export const volumeBackupType = pgEnum("volumeBackupType", ["bind", "volume"]);
-
 export const volumeBackups = pgTable("volume_backup", {
 	volumeBackupId: text("volumeBackupId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
-	type: volumeBackupType("type").notNull().default("volume"),
-	volumeName: text("volumeName"),
-	hostPath: text("hostPath"),
+	volumeName: text("volumeName").notNull(),
 	prefix: text("prefix").notNull(),
 	serviceType: serviceType("serviceType").notNull().default("application"),
+	serviceName: text("serviceName"),
 	turnOff: boolean("turnOff").notNull().default(false),
 	cronExpression: text("cronExpression").notNull(),
 	keepLatestCount: integer("keepLatestCount"),
@@ -95,10 +92,8 @@ export const volumeBackupsRelations = relations(volumeBackups, ({ one }) => ({
 	}),
 }));
 
-export const createVolumeBackupSchema = createInsertSchema(
-	volumeBackups,
-).extend({
-	volumeName: z.string().min(1),
+export const createVolumeBackupSchema = createInsertSchema(volumeBackups).omit({
+	volumeBackupId: true,
 });
 
 export const updateVolumeBackupSchema = createVolumeBackupSchema.extend({

@@ -53,16 +53,12 @@ const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
 		cronExpression: z.string().min(1, "Cron expression is required"),
-		volumeName: z.string(),
-		hostPath: z.string(),
+		volumeName: z.string().min(1, "Volume name is required"),
 		prefix: z.string(),
 		keepLatestCount: z.coerce.number().optional(),
 		turnOff: z.boolean().default(false),
-		volumeBackupType: z.enum(["bind", "volume"]),
 		enabled: z.boolean().default(true),
-		serviceName: z.string(),
-		destinationId: z.string().min(1, "Destination required"),
-		scheduleType: z.enum([
+		serviceType: z.enum([
 			"application",
 			"compose",
 			"postgres",
@@ -71,9 +67,11 @@ const formSchema = z
 			"mysql",
 			"redis",
 		]),
+		serviceName: z.string(),
+		destinationId: z.string().min(1, "Destination required"),
 	})
 	.superRefine((data, ctx) => {
-		if (data.scheduleType === "compose" && !data.serviceName) {
+		if (data.serviceType === "compose" && !data.serviceName) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				message: "Service name is required",
@@ -110,18 +108,17 @@ export const HandleVolumeBackups = ({
 			name: "",
 			cronExpression: "",
 			volumeName: "",
-			hostPath: "",
 			prefix: "",
 			keepLatestCount: undefined,
 			turnOff: false,
-			volumeBackupType: "volume",
 			enabled: true,
 			serviceName: "",
+			serviceType: volumeBackupType,
 		},
 	});
 
-	const scheduleTypeForm = form.watch("scheduleType");
-
+	const serviceTypeForm = volumeBackupType;
+	const { data: destinations } = api.destination.all.useQuery();
 	const { data: volumeBackup } = api.volumeBackups.one.useQuery(
 		{ volumeBackupId: volumeBackupId || "" },
 		{ enabled: !!volumeBackupId },
@@ -150,14 +147,13 @@ export const HandleVolumeBackups = ({
 				name: volumeBackup.name,
 				cronExpression: volumeBackup.cronExpression,
 				volumeName: volumeBackup.volumeName || "",
-				hostPath: volumeBackup.hostPath || "",
 				prefix: volumeBackup.prefix,
-				keepLatestCount: volumeBackup.keepLatestCount,
+				keepLatestCount: volumeBackup.keepLatestCount || undefined,
 				turnOff: volumeBackup.turnOff,
-				volumeBackupType: volumeBackup.type,
-				enabled: volumeBackup.enabled,
+				enabled: volumeBackup.enabled || true,
 				serviceName: volumeBackup.serviceName || "",
 				destinationId: volumeBackup.destinationId,
+				serviceType: volumeBackup.serviceType,
 			});
 		}
 	}, [form, volumeBackup, volumeBackupId]);
@@ -173,6 +169,7 @@ export const HandleVolumeBackups = ({
 			...values,
 			destinationId: values.destinationId,
 			volumeBackupId: volumeBackupId || "",
+			serviceType: volumeBackupType,
 			...(volumeBackupType === "application" && {
 				applicationId: id || "",
 			}),
@@ -251,7 +248,7 @@ export const HandleVolumeBackups = ({
 				</DialogHeader>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-						{scheduleTypeForm === "compose" && (
+						{serviceTypeForm === "compose" && (
 							<div className="flex flex-col w-full gap-4">
 								{errorServices && (
 									<AlertBlock
@@ -436,6 +433,119 @@ export const HandleVolumeBackups = ({
 										expression
 									</FormDescription>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="destinationId"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Destination</FormLabel>
+									<Select
+										onValueChange={field.onChange}
+										defaultValue={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a destination" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{destinations?.map((destination) => (
+												<SelectItem
+													key={destination.destinationId}
+													value={destination.destinationId}
+												>
+													{destination.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormDescription>
+										Choose the backup destination where files will be stored
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="volumeName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Volume Name</FormLabel>
+									<FormControl>
+										<Input placeholder="my-volume-name" {...field} />
+									</FormControl>
+									<FormDescription>
+										The name of the Docker volume to backup
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="prefix"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Backup Prefix</FormLabel>
+									<FormControl>
+										<Input placeholder="backup-" {...field} />
+									</FormControl>
+									<FormDescription>
+										Prefix for backup files (optional)
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="keepLatestCount"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Keep Latest Count</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											placeholder="5"
+											{...field}
+											onChange={(e) =>
+												field.onChange(Number(e.target.value) || undefined)
+											}
+										/>
+									</FormControl>
+									<FormDescription>
+										Number of backup files to keep (optional)
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+
+						<FormField
+							control={form.control}
+							name="turnOff"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+										Turn Off Container During Backup
+									</FormLabel>
+									<FormDescription className="text-amber-600 dark:text-amber-400">
+										⚠️ The container will be temporarily stopped during backup to
+										prevent file corruption. This ensures data integrity but may
+										cause temporary service interruption.
+									</FormDescription>
 								</FormItem>
 							)}
 						/>

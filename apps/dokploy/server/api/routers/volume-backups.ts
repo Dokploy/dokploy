@@ -70,7 +70,7 @@ export const volumeBackupsRouter = createTRPCRouter({
 
 	runManually: protectedProcedure
 		.input(z.object({ volumeBackupId: z.string().min(1) }))
-		.mutation(async ({ input }) => {
+		.mutation(async () => {
 			// return await runVolumeBackupManually(input.volumeBackupId);
 		}),
 });

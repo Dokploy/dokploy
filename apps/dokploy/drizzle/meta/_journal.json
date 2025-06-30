@@ -729,6 +729,20 @@
       "when": 1751256796247,
       "tag": "0103_mean_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1751259486912,
+      "tag": "0104_robust_nighthawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1751259917258,
+      "tag": "0105_unknown_firelord",
+      "breakpoints": true
     }
   ]
 }
