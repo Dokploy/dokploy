@@ -337,14 +337,8 @@ const Service = (
 										<div className="flex flex-col gap-4  border rounded-lg">
 											<ShowVolumeBackups
 												id={applicationId}
-												volumeBackupType="application"
-											/>
-											{/* <ShowDeployments
-												id={applicationId}
 												type="application"
-												serverId={data?.serverId || ""}
-												refreshToken={data?.refreshToken || ""}
-											/> */}
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="preview-deployments" className="w-full">

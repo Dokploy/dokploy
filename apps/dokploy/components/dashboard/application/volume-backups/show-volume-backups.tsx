@@ -17,7 +17,6 @@ import {
 import { api } from "@/utils/api";
 import {
 	ClipboardList,
-	Clock,
 	DatabaseBackup,
 	Loader2,
 	Play,
@@ -29,19 +28,10 @@ import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 
 interface Props {
 	id: string;
-	volumeBackupType?:
-		| "application"
-		| "compose"
-		| "postgres"
-		| "mariadb"
-		| "mongo"
-		| "mysql";
+	type?: "application" | "compose" | "postgres" | "mariadb" | "mongo" | "mysql";
 }
 
-export const ShowVolumeBackups = ({
-	id,
-	volumeBackupType = "application",
-}: Props) => {
+export const ShowVolumeBackups = ({ id, type = "application" }: Props) => {
 	const {
 		data: volumeBackups,
 		isLoading: isLoadingVolumeBackups,
@@ -49,7 +39,7 @@ export const ShowVolumeBackups = ({
 	} = api.volumeBackups.list.useQuery(
 		{
 			id: id || "",
-			volumeBackupType,
+			volumeBackupType: type,
 		},
 		{
 			enabled: !!id,
@@ -79,7 +69,7 @@ export const ShowVolumeBackups = ({
 					</div>
 
 					{volumeBackups && volumeBackups.length > 0 && (
-						<HandleVolumeBackups id={id} volumeBackupType={volumeBackupType} />
+						<HandleVolumeBackups id={id} volumeBackupType={type} />
 					)}
 				</div>
 			</CardHeader>
@@ -109,7 +99,7 @@ export const ShowVolumeBackups = ({
 								>
 									<div className="flex items-start gap-3">
 										<div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/5">
-											<Clock className="size-4 text-primary/70" />
+											<DatabaseBackup className="size-4 text-primary/70" />
 										</div>
 										<div className="space-y-1.5">
 											<div className="flex items-center gap-2">
@@ -184,7 +174,7 @@ export const ShowVolumeBackups = ({
 										<HandleVolumeBackups
 											volumeBackupId={volumeBackup.volumeBackupId}
 											id={id}
-											volumeBackupType={volumeBackupType}
+											volumeBackupType={type}
 										/>
 
 										<DialogAction
@@ -198,7 +188,7 @@ export const ShowVolumeBackups = ({
 													.then(() => {
 														utils.volumeBackups.list.invalidate({
 															id,
-															volumeBackupType,
+															volumeBackupType: type,
 														});
 														toast.success("Volume backup deleted successfully");
 													})
@@ -230,7 +220,7 @@ export const ShowVolumeBackups = ({
 						<p className="text-sm text-muted-foreground mt-1">
 							Create your first volume backup to automate your workflows
 						</p>
-						<HandleVolumeBackups id={id} volumeBackupType={volumeBackupType} />
+						<HandleVolumeBackups id={id} volumeBackupType={type} />
 					</div>
 				)}
 			</CardContent>

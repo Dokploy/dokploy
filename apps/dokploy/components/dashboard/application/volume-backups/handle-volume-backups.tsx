@@ -78,6 +78,14 @@ const formSchema = z
 				path: ["serviceName"],
 			});
 		}
+
+		if (data.serviceType === "compose" && !data.serviceName) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Service name is required",
+				path: ["serviceName"],
+			});
+		}
 	});
 
 interface Props {
