@@ -15,9 +15,17 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Clock, DatabaseBackup, Loader2, Play, Trash2 } from "lucide-react";
+import {
+	ClipboardList,
+	Clock,
+	DatabaseBackup,
+	Loader2,
+	Play,
+	Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { HandleVolumeBackups } from "./handle-volume-backups";
+import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 
 interface Props {
 	id: string;
@@ -86,6 +94,14 @@ export const ShowVolumeBackups = ({
 				) : volumeBackups && volumeBackups.length > 0 ? (
 					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
 						{volumeBackups.map((volumeBackup) => {
+							const serverId =
+								volumeBackup.application?.serverId ||
+								volumeBackup.postgres?.serverId ||
+								volumeBackup.mysql?.serverId ||
+								volumeBackup.mariadb?.serverId ||
+								volumeBackup.mongo?.serverId ||
+								volumeBackup.redis?.serverId ||
+								volumeBackup.compose?.serverId;
 							return (
 								<div
 									key={volumeBackup.volumeBackupId}
@@ -116,34 +132,20 @@ export const ShowVolumeBackups = ({
 												>
 													Cron: {volumeBackup.cronExpression}
 												</Badge>
-												{/* {schedule.scheduleType !== "server" &&
-													schedule.scheduleType !== "dokploy-server" && (
-														<>
-															<span className="text-xs text-muted-foreground/50">
-																•
-															</span>
-															<Badge
-																variant="outline"
-																className="font-mono text-[10px] bg-transparent"
-															>
-																{schedule.shellType}
-															</Badge>
-														</>
-													)} */}
 											</div>
 										</div>
 									</div>
 
 									<div className="flex items-center gap-1.5">
-										{/* <ShowDeploymentsModal
-											id={schedule.scheduleId}
-											type="schedule"
+										<ShowDeploymentsModal
+											id={volumeBackup.volumeBackupId}
+											type="volumeBackup"
 											serverId={serverId || undefined}
 										>
 											<Button variant="ghost" size="icon">
 												<ClipboardList className="size-4  transition-colors " />
 											</Button>
-										</ShowDeploymentsModal> */}
+										</ShowDeploymentsModal>
 
 										<TooltipProvider delayDuration={0}>
 											<Tooltip>

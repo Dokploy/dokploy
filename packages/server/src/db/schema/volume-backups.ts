@@ -12,6 +12,7 @@ import { compose } from "./compose";
 import { postgres } from "./postgres";
 import { mariadb } from "./mariadb";
 import { destinations } from "./destination";
+import { deployments } from "./deployment";
 
 export const volumeBackups = pgTable("volume_backup", {
 	volumeBackupId: text("volumeBackupId")
@@ -61,36 +62,44 @@ export const volumeBackups = pgTable("volume_backup", {
 
 export type VolumeBackup = typeof volumeBackups.$inferSelect;
 
-export const volumeBackupsRelations = relations(volumeBackups, ({ one }) => ({
-	application: one(applications, {
-		fields: [volumeBackups.applicationId],
-		references: [applications.applicationId],
+export const volumeBackupsRelations = relations(
+	volumeBackups,
+	({ one, many }) => ({
+		application: one(applications, {
+			fields: [volumeBackups.applicationId],
+			references: [applications.applicationId],
+		}),
+		postgres: one(postgres, {
+			fields: [volumeBackups.postgresId],
+			references: [postgres.postgresId],
+		}),
+		mariadb: one(mariadb, {
+			fields: [volumeBackups.mariadbId],
+			references: [mariadb.mariadbId],
+		}),
+		mongo: one(mongo, {
+			fields: [volumeBackups.mongoId],
+			references: [mongo.mongoId],
+		}),
+		mysql: one(mysql, {
+			fields: [volumeBackups.mysqlId],
+			references: [mysql.mysqlId],
+		}),
+		redis: one(redis, {
+			fields: [volumeBackups.redisId],
+			references: [redis.redisId],
+		}),
+		compose: one(compose, {
+			fields: [volumeBackups.composeId],
+			references: [compose.composeId],
+		}),
+		destination: one(destinations, {
+			fields: [volumeBackups.destinationId],
+			references: [destinations.destinationId],
+		}),
+		deployments: many(deployments),
 	}),
-	postgres: one(postgres, {
-		fields: [volumeBackups.postgresId],
-		references: [postgres.postgresId],
-	}),
-	mariadb: one(mariadb, {
-		fields: [volumeBackups.mariadbId],
-		references: [mariadb.mariadbId],
-	}),
-	mongo: one(mongo, {
-		fields: [volumeBackups.mongoId],
-		references: [mongo.mongoId],
-	}),
-	mysql: one(mysql, {
-		fields: [volumeBackups.mysqlId],
-		references: [mysql.mysqlId],
-	}),
-	redis: one(redis, {
-		fields: [volumeBackups.redisId],
-		references: [redis.redisId],
-	}),
-	compose: one(compose, {
-		fields: [volumeBackups.composeId],
-		references: [compose.composeId],
-	}),
-}));
+);
 
 export const createVolumeBackupSchema = createInsertSchema(volumeBackups).omit({
 	volumeBackupId: true,

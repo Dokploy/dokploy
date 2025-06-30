@@ -16,6 +16,7 @@ import { previewDeployments } from "./preview-deployments";
 import { schedules } from "./schedule";
 import { server } from "./server";
 import { rollbacks } from "./rollbacks";
+import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
@@ -64,6 +65,10 @@ export const deployments = pgTable("deployment", {
 		(): AnyPgColumn => rollbacks.rollbackId,
 		{ onDelete: "cascade" },
 	),
+	volumeBackupId: text("volumeBackupId").references(
+		(): AnyPgColumn => volumeBackups.volumeBackupId,
+		{ onDelete: "cascade" },
+	),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -94,6 +99,10 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	rollback: one(rollbacks, {
 		fields: [deployments.deploymentId],
 		references: [rollbacks.deploymentId],
+	}),
+	volumeBackup: one(volumeBackups, {
+		fields: [deployments.volumeBackupId],
+		references: [volumeBackups.volumeBackupId],
 	}),
 }));
 
@@ -216,6 +225,7 @@ export const apiFindAllByType = z
 			"schedule",
 			"previewDeployment",
 			"backup",
+			"volumeBackup",
 		]),
 	})
 	.required();

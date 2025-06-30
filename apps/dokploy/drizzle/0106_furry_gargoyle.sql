@@ -1,0 +1,2 @@
+ALTER TABLE "deployment" ADD COLUMN "volumeBackupId" text;--> statement-breakpoint
+ALTER TABLE "deployment" ADD CONSTRAINT "deployment_volumeBackupId_volume_backup_volumeBackupId_fk" FOREIGN KEY ("volumeBackupId") REFERENCES "public"."volume_backup"("volumeBackupId") ON DELETE cascade ON UPDATE no action;

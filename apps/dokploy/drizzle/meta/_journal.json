@@ -743,6 +743,13 @@
       "when": 1751259917258,
       "tag": "0105_unknown_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1751260111986,
+      "tag": "0106_furry_gargoyle",
+      "breakpoints": true
     }
   ]
 }
