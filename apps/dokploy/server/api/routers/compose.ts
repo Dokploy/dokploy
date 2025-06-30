@@ -32,6 +32,7 @@ import {
 	findProjectById,
 	findServerById,
 	findUserById,
+	getComposeContainer,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
@@ -240,6 +241,27 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			return await loadServices(input.composeId, input.type);
+		}),
+	loadMountsByService: protectedProcedure
+		.input(
+			z.object({
+				composeId: z.string().min(1),
+				serviceName: z.string().min(1),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to load this compose",
+				});
+			}
+			const container = await getComposeContainer(compose, input.serviceName);
+			const mounts = container?.Mounts.filter(
+				(mount) => mount.Type === "volume" && mount.Source !== "",
+			);
+			return mounts;
 		}),
 	fetchSourceType: protectedProcedure
 		.input(apiFindCompose)

@@ -154,6 +154,18 @@ export const HandleVolumeBackups = ({
 		},
 	);
 
+	const serviceName = form.watch("serviceName");
+
+	const { data: mountsByService } = api.compose.loadMountsByService.useQuery(
+		{
+			composeId: id || "",
+			serviceName,
+		},
+		{
+			enabled: !!id && volumeBackupType === "compose" && !!serviceName,
+		},
+	);
+
 	useEffect(() => {
 		if (volumeBackupId && volumeBackup) {
 			form.reset({
@@ -261,117 +273,6 @@ export const HandleVolumeBackups = ({
 				</DialogHeader>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-						{serviceTypeForm === "compose" && (
-							<div className="flex flex-col w-full gap-4">
-								{errorServices && (
-									<AlertBlock
-										type="warning"
-										className="[overflow-wrap:anywhere]"
-									>
-										{errorServices?.message}
-									</AlertBlock>
-								)}
-								<FormField
-									control={form.control}
-									name="serviceName"
-									render={({ field }) => (
-										<FormItem className="w-full">
-											<FormLabel>Service Name</FormLabel>
-											<div className="flex gap-2">
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value || ""}
-												>
-													<FormControl>
-														<SelectTrigger>
-															<SelectValue placeholder="Select a service name" />
-														</SelectTrigger>
-													</FormControl>
-
-													<SelectContent>
-														{services?.map((service, index) => (
-															<SelectItem
-																value={service}
-																key={`${service}-${index}`}
-															>
-																{service}
-															</SelectItem>
-														))}
-														<SelectItem value="none" disabled>
-															Empty
-														</SelectItem>
-													</SelectContent>
-												</Select>
-												<TooltipProvider delayDuration={0}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="secondary"
-																type="button"
-																isLoading={isLoadingServices}
-																onClick={() => {
-																	if (cacheType === "fetch") {
-																		refetchServices();
-																	} else {
-																		setCacheType("fetch");
-																	}
-																}}
-															>
-																<RefreshCw className="size-4 text-muted-foreground" />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent
-															side="left"
-															sideOffset={5}
-															className="max-w-[10rem]"
-														>
-															<p>
-																Fetch: Will clone the repository and load the
-																services
-															</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-												<TooltipProvider delayDuration={0}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="secondary"
-																type="button"
-																isLoading={isLoadingServices}
-																onClick={() => {
-																	if (cacheType === "cache") {
-																		refetchServices();
-																	} else {
-																		setCacheType("cache");
-																	}
-																}}
-															>
-																<DatabaseZap className="size-4 text-muted-foreground" />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent
-															side="left"
-															sideOffset={5}
-															className="max-w-[10rem]"
-														>
-															<p>
-																Cache: If you previously deployed this compose,
-																it will read the services from the last
-																deployment/fetch from the repository
-															</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											</div>
-
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</div>
-						)}
-
 						<FormField
 							control={form.control}
 							name="name"
@@ -483,62 +384,207 @@ export const HandleVolumeBackups = ({
 								</FormItem>
 							)}
 						/>
-
-						{serviceTypeForm === "application" && (
+						{serviceTypeForm === "compose" && (
 							<>
-								<FormField
-									control={form.control}
-									name="volumeName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Volumes</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value || ""}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a volume name" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													{mounts?.map((mount) => (
-														<SelectItem
-															key={mount.mountId}
-															value={mount.volumeName || ""}
-														>
-															{mount.volumeName}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-											<FormDescription>
-												Choose the volume to backup, if you dont see the volume
-												here, you can type the volume name manually
-											</FormDescription>
-											<FormMessage />
-										</FormItem>
+								<div className="flex flex-col w-full gap-4">
+									{errorServices && (
+										<AlertBlock
+											type="warning"
+											className="[overflow-wrap:anywhere]"
+										>
+											{errorServices?.message}
+										</AlertBlock>
 									)}
-								/>
+									<FormField
+										control={form.control}
+										name="serviceName"
+										render={({ field }) => (
+											<FormItem className="w-full">
+												<FormLabel>Service Name</FormLabel>
+												<div className="flex gap-2">
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value || ""}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a service name" />
+															</SelectTrigger>
+														</FormControl>
 
-								<FormField
-									control={form.control}
-									name="volumeName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Volume Name</FormLabel>
-											<FormControl>
-												<Input placeholder="my-volume-name" {...field} />
-											</FormControl>
-											<FormDescription>
-												The name of the Docker volume to backup
-											</FormDescription>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+														<SelectContent>
+															{services?.map((service, index) => (
+																<SelectItem
+																	value={service}
+																	key={`${service}-${index}`}
+																>
+																	{service}
+																</SelectItem>
+															))}
+															<SelectItem value="none" disabled>
+																Empty
+															</SelectItem>
+														</SelectContent>
+													</Select>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "fetch") {
+																			refetchServices();
+																		} else {
+																			setCacheType("fetch");
+																		}
+																	}}
+																>
+																	<RefreshCw className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Fetch: Will clone the repository and load the
+																	services
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+													<TooltipProvider delayDuration={0}>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<Button
+																	variant="secondary"
+																	type="button"
+																	isLoading={isLoadingServices}
+																	onClick={() => {
+																		if (cacheType === "cache") {
+																			refetchServices();
+																		} else {
+																			setCacheType("cache");
+																		}
+																	}}
+																>
+																	<DatabaseZap className="size-4 text-muted-foreground" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent
+																side="left"
+																sideOffset={5}
+																className="max-w-[10rem]"
+															>
+																<p>
+																	Cache: If you previously deployed this
+																	compose, it will read the services from the
+																	last deployment/fetch from the repository
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								{mountsByService && mountsByService.length > 0 && (
+									<FormField
+										control={form.control}
+										name="volumeName"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Volumes</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value || ""}
+												>
+													<FormControl>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a volume name" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														{mountsByService?.map((volume) => (
+															<SelectItem
+																key={volume.Name}
+																value={volume.Name || ""}
+															>
+																{volume.Name}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												<FormDescription>
+													Choose the volume to backup, if you dont see the
+													volume here, you can type the volume name manually
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
 							</>
 						)}
+						{serviceTypeForm === "application" && (
+							<FormField
+								control={form.control}
+								name="volumeName"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Volumes</FormLabel>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value || ""}
+										>
+											<FormControl>
+												<SelectTrigger>
+													<SelectValue placeholder="Select a volume name" />
+												</SelectTrigger>
+											</FormControl>
+											<SelectContent>
+												{mounts?.map((mount) => (
+													<SelectItem
+														key={mount.mountId}
+														value={mount.volumeName || ""}
+													>
+														{mount.volumeName}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<FormDescription>
+											Choose the volume to backup, if you dont see the volume
+											here, you can type the volume name manually
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+
+						<FormField
+							control={form.control}
+							name="volumeName"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Volume Name</FormLabel>
+									<FormControl>
+										<Input placeholder="my-volume-name" {...field} />
+									</FormControl>
+									<FormDescription>
+										The name of the Docker volume to backup
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
 						<FormField
 							control={form.control}
