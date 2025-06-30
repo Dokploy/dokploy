@@ -166,12 +166,16 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 
 															await runManually({
 																scheduleId: schedule.scheduleId,
-															}).then(async () => {
-																await new Promise((resolve) =>
-																	setTimeout(resolve, 1500),
-																);
-																refetchSchedules();
-															});
+															})
+																.then(async () => {
+																	await new Promise((resolve) =>
+																		setTimeout(resolve, 1500),
+																	);
+																	refetchSchedules();
+																})
+																.catch(() => {
+																	toast.error("Error running schedule");
+																});
 														}}
 													>
 														<Play className="size-4  transition-colors" />

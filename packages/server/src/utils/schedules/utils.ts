@@ -2,7 +2,10 @@ import { createWriteStream } from "node:fs";
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Schedule } from "@dokploy/server/db/schema/schedule";
-import { createDeploymentSchedule } from "@dokploy/server/services/deployment";
+import {
+	createDeploymentSchedule,
+	updateDeployment,
+} from "@dokploy/server/services/deployment";
 import { updateDeploymentStatus } from "@dokploy/server/services/deployment";
 import { findScheduleById } from "@dokploy/server/services/schedule";
 import { scheduleJob as scheduleJobNode, scheduledJobs } from "node-schedule";
@@ -113,8 +116,16 @@ export const runCommand = async (scheduleId: string) => {
 			await spawnAsync(
 				"bash",
 				["-c", "./script.sh"],
-				(data) => {
+				async (data) => {
 					if (writeStream.writable) {
+						// we need to extract the PID and Schedule ID from the data
+						const pid = data.match(/PID: (\d+)/)?.[1];
+
+						if (pid) {
+							await updateDeployment(deployment.deploymentId, {
+								pid,
+							});
+						}
 						writeStream.write(data);
 					}
 				},
@@ -133,13 +144,21 @@ export const runCommand = async (scheduleId: string) => {
 			const command = `
 				set -e
 				echo "Running script" >> ${deployment.logPath};
-				bash -c ${fullPath}/script.sh >> ${deployment.logPath} 2>> ${deployment.logPath} || { 
+				bash -c ${fullPath}/script.sh 2>&1 | tee -a ${deployment.logPath} || { 
 					echo "❌ Command failed" >> ${deployment.logPath};
 					exit 1;
 				  }
 				echo "✅ Command executed successfully" >> ${deployment.logPath};
 			`;
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, command, async (data) => {
+				// we need to extract the PID and Schedule ID from the data
+				const pid = data.match(/PID: (\d+)/)?.[1];
+				if (pid) {
+					await updateDeployment(deployment.deploymentId, {
+						pid,
+					});
+				}
+			});
 		} catch (error) {
 			await updateDeploymentStatus(deployment.deploymentId, "error");
 			throw error;
