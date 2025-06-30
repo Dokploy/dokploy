@@ -3,6 +3,7 @@ import {
 	apiFindOneMount,
 	apiRemoveMount,
 	apiUpdateMount,
+	mounts,
 } from "@/server/db/schema";
 import {
 	createMount,
@@ -11,6 +12,9 @@ import {
 	updateMount,
 } from "@dokploy/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { z } from "zod";
+import { and, eq } from "drizzle-orm";
+import { db } from "@dokploy/server/db";
 
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -32,5 +36,15 @@ export const mountRouter = createTRPCRouter({
 		.input(apiUpdateMount)
 		.mutation(async ({ input }) => {
 			return await updateMount(input.mountId, input);
+		}),
+	allNamedByApplicationId: protectedProcedure
+		.input(z.object({ applicationId: z.string().min(1) }))
+		.query(async ({ input }) => {
+			return await db.query.mounts.findMany({
+				where: and(
+					eq(mounts.applicationId, input.applicationId),
+					eq(mounts.type, "volume"),
+				),
+			});
 		}),
 });

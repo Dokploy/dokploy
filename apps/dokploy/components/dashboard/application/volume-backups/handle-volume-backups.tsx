@@ -132,6 +132,11 @@ export const HandleVolumeBackups = ({
 		{ enabled: !!volumeBackupId },
 	);
 
+	const { data: mounts } = api.mounts.allNamedByApplicationId.useQuery(
+		{ applicationId: id || "" },
+		{ enabled: !!id },
+	);
+
 	const {
 		data: services,
 		isFetching: isLoadingServices,
@@ -479,22 +484,61 @@ export const HandleVolumeBackups = ({
 							)}
 						/>
 
-						<FormField
-							control={form.control}
-							name="volumeName"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Volume Name</FormLabel>
-									<FormControl>
-										<Input placeholder="my-volume-name" {...field} />
-									</FormControl>
-									<FormDescription>
-										The name of the Docker volume to backup
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{serviceTypeForm === "application" && (
+							<>
+								<FormField
+									control={form.control}
+									name="volumeName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Volumes</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value || ""}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a volume name" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{mounts?.map((mount) => (
+														<SelectItem
+															key={mount.mountId}
+															value={mount.volumeName || ""}
+														>
+															{mount.volumeName}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Choose the volume to backup, if you dont see the volume
+												here, you can type the volume name manually
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="volumeName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Volume Name</FormLabel>
+											<FormControl>
+												<Input placeholder="my-volume-name" {...field} />
+											</FormControl>
+											<FormDescription>
+												The name of the Docker volume to backup
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
 
 						<FormField
 							control={form.control}
