@@ -32,8 +32,9 @@ const backupVolume = async (
 	if (serviceType === "application") {
 		return `
         docker service scale ${volumeBackup.application?.appName}=0
+		ACTUAL_REPLICAS=$(docker service inspect ${volumeBackup.application?.appName} --format "{{.Spec.Mode.Replicated.Replicas}}")
         ${baseCommand}
-        docker service scale ${volumeBackup.application?.appName}=1
+        docker service scale ${volumeBackup.application?.appName}=$ACTUAL_REPLICAS
   `;
 	}
 	if (serviceType === "compose") {
