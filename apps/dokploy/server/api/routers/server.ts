@@ -18,6 +18,11 @@ import {
 	server,
 } from "@/server/db/schema";
 import {
+	createServerDeploymentWorker,
+	getWorkersMap,
+	removeServerDeploymentWorker,
+} from "@/server/queues/deployments-queue";
+import {
 	IS_CLOUD,
 	createServer,
 	defaultCommand,
@@ -56,6 +61,10 @@ export const serverRouter = createTRPCRouter({
 					input,
 					ctx.session.activeOrganizationId,
 				);
+				if (!IS_CLOUD) {
+					createServerDeploymentWorker(project.serverId, 1);
+					console.log("Deployment Worker added Successfully", getWorkersMap());
+				}
 				return project;
 			} catch (error) {
 				throw new TRPCError({
@@ -342,6 +351,12 @@ export const serverRouter = createTRPCRouter({
 					const admin = await findUserById(ctx.user.ownerId);
 
 					await updateServersBasedOnQuantity(admin.id, admin.serversQuantity);
+				} else {
+					removeServerDeploymentWorker(input.serverId);
+					console.log(
+						"Deployment Worker removed Successfully",
+						getWorkersMap(),
+					);
 				}
 
 				return currentServer;

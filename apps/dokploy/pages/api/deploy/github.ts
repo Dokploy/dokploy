@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import { getQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import {
 	IS_CLOUD,
@@ -128,7 +128,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-				await myQueue.add(
+				const queue = getQueue(app.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -165,8 +166,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-
-				await myQueue.add(
+				const queue = getQueue(composeApp.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -246,7 +247,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-				await myQueue.add(
+				const queue = getQueue(app.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -292,7 +294,8 @@ export default async function handler(
 					continue;
 				}
 
-				await myQueue.add(
+				const queue = getQueue(composeApp.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -405,7 +408,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-				await myQueue.add(
+				const queue = getQueue(app.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{

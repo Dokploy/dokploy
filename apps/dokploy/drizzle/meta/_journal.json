@@ -694,6 +694,13 @@
       "when": 1751041084476,
       "tag": "0098_melted_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1751295553654,
+      "tag": "0099_brown_molten_man",
+      "breakpoints": true
     }
   ]
 }

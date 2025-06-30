@@ -1,3 +1,4 @@
+import { BuildConcurrencyModal } from "@/components/dashboard/settings/servers/build-concurrency-modal";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -310,6 +311,12 @@ export const ShowServers = () => {
 																						<DropdownMenuLabel>
 																							Extra
 																						</DropdownMenuLabel>
+
+																						{!isCloud && (
+																							<BuildConcurrencyModal
+																								serverId={server.serverId}
+																							/>
+																						)}
 
 																						<ShowTraefikFileSystemModal
 																							serverId={server.serverId}
