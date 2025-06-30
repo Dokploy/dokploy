@@ -150,7 +150,7 @@ export const HandleVolumeBackups = ({
 				prefix: volumeBackup.prefix,
 				keepLatestCount: volumeBackup.keepLatestCount || undefined,
 				turnOff: volumeBackup.turnOff,
-				enabled: volumeBackup.enabled || true,
+				enabled: volumeBackup.enabled || false,
 				serviceName: volumeBackup.serviceName || "",
 				destinationId: volumeBackup.destinationId,
 				serviceType: volumeBackup.serviceType,
