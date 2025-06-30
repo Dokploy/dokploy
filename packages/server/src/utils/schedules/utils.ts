@@ -119,7 +119,7 @@ export const runCommand = async (scheduleId: string) => {
 				async (data) => {
 					if (writeStream.writable) {
 						// we need to extract the PID and Schedule ID from the data
-						const pid = data.match(/PID: (\d+)/)?.[1];
+						const pid = data?.match(/PID: (\d+)/)?.[1];
 
 						if (pid) {
 							await updateDeployment(deployment.deploymentId, {
@@ -152,7 +152,7 @@ export const runCommand = async (scheduleId: string) => {
 			`;
 			await execAsyncRemote(serverId, command, async (data) => {
 				// we need to extract the PID and Schedule ID from the data
-				const pid = data.match(/PID: (\d+)/)?.[1];
+				const pid = data?.match(/PID: (\d+)/)?.[1];
 				if (pid) {
 					await updateDeployment(deployment.deploymentId, {
 						pid,
