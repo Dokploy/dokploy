@@ -62,6 +62,8 @@ export const ShowDeployments = ({
 
 	const { mutateAsync: rollback, isLoading: isRollingBack } =
 		api.rollback.rollback.useMutation();
+	const { mutateAsync: killProcess, isLoading: isKillingProcess } =
+		api.deployment.killProcess.useMutation();
 
 	const [url, setUrl] = React.useState("");
 	useEffect(() => {
@@ -170,6 +172,32 @@ export const ShowDeployments = ({
 									</div>
 
 									<div className="flex flex-row items-center gap-2">
+										{deployment.pid && deployment.status === "running" && (
+											<DialogAction
+												title="Kill Process"
+												description="Are you sure you want to kill the process?"
+												type="default"
+												onClick={async () => {
+													await killProcess({
+														deploymentId: deployment.deploymentId,
+													})
+														.then(() => {
+															toast.success("Process killed successfully");
+														})
+														.catch(() => {
+															toast.error("Error killing process");
+														});
+												}}
+											>
+												<Button
+													variant="destructive"
+													size="sm"
+													isLoading={isKillingProcess}
+												>
+													Kill Process
+												</Button>
+											</DialogAction>
+										)}
 										<Button
 											onClick={() => {
 												setActiveLog(deployment);
