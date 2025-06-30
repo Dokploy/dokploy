@@ -35,6 +35,7 @@ export const server = pgTable("server", {
 	ipAddress: text("ipAddress").notNull(),
 	port: integer("port").notNull(),
 	username: text("username").notNull().default("root"),
+	buildsConcurrency: integer("buildsConcurrency").notNull().default(1),
 	appName: text("appName")
 		.notNull()
 		.$defaultFn(() => generateAppName("server")),
