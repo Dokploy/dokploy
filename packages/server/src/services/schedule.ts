@@ -109,7 +109,12 @@ export const updateSchedule = async (
 const handleScript = async (schedule: Schedule) => {
 	const { SCHEDULES_PATH } = paths(!!schedule?.serverId);
 	const fullPath = path.join(SCHEDULES_PATH, schedule?.appName || "");
-	const encodedContent = encodeBase64(schedule?.script || "");
+
+	// Add PID and Schedule ID echo by default to all scripts
+	const scriptWithPid = `echo "PID: $$ | Schedule ID: ${schedule.scheduleId}"
+${schedule?.script || ""}`;
+
+	const encodedContent = encodeBase64(scriptWithPid);
 	const script = `
 	 	 mkdir -p ${fullPath}
 	 	 rm -f ${fullPath}/script.sh

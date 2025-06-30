@@ -1,5 +1,5 @@
 {
-  "id": "6903c6d7-6a8f-4f52-9e29-52251005d1e8",
+  "id": "edde8c54-b715-4db6-bc3a-85d435226083",
   "prevId": "fdc95bd1-866c-4efd-9dce-20ed08f5b0b5",
   "version": "7",
   "dialect": "postgresql",
@@ -1209,20 +1209,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
-        },
-        "internalPath": {
-          "name": "internalPath",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'/'"
-        },
-        "stripPath": {
-          "name": "stripPath",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {},
@@ -2125,6 +2111,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "pid": {
+          "name": "pid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "applicationId": {
           "name": "applicationId",
