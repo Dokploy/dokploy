@@ -10,6 +10,7 @@ export * from "./services/mysql";
 export * from "./services/backup";
 export * from "./services/cluster";
 export * from "./services/settings";
+export * from "./services/volume-backups";
 export * from "./services/docker";
 export * from "./services/destination";
 export * from "./services/deployment";

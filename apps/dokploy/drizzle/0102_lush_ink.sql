@@ -1,0 +1,1 @@
+ALTER TABLE "backup" ADD COLUMN "turnOff" boolean DEFAULT false NOT NULL;

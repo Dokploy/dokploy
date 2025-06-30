@@ -14,6 +14,7 @@ import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
+import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
@@ -61,7 +62,8 @@ type TabState =
 	| "deployments"
 	| "domains"
 	| "monitoring"
-	| "preview-deployments";
+	| "preview-deployments"
+	| "volume-backups";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -234,6 +236,9 @@ const Service = (
 												Preview Deployments
 											</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="volume-backups">
+												Volume Backups
+											</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
@@ -326,6 +331,20 @@ const Service = (
 												serverId={data?.serverId || ""}
 												refreshToken={data?.refreshToken || ""}
 											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="volume-backups" className="w-full pt-2.5">
+										<div className="flex flex-col gap-4  border rounded-lg">
+											<ShowVolumeBackups
+												id={applicationId}
+												volumeBackupType="application"
+											/>
+											{/* <ShowDeployments
+												id={applicationId}
+												type="application"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/> */}
 										</div>
 									</TabsContent>
 									<TabsContent value="preview-deployments" className="w-full">
