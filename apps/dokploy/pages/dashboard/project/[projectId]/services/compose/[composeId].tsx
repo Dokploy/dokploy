@@ -216,10 +216,10 @@ const Service = (
 											className={cn(
 												"xl:grid xl:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "xl:grid-cols-9"
+													? "xl:grid-cols-10"
 													: data?.serverId
-														? "xl:grid-cols-8"
-														: "xl:grid-cols-9",
+														? "xl:grid-cols-9"
+														: "xl:grid-cols-10",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>

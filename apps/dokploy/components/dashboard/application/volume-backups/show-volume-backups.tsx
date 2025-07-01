@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { HandleVolumeBackups } from "./handle-volume-backups";
 import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
+import { RestoreVolumeBackups } from "./restore-volume-backups";
 
 interface Props {
 	id: string;
@@ -68,9 +69,14 @@ export const ShowVolumeBackups = ({ id, type = "application" }: Props) => {
 						</CardDescription>
 					</div>
 
-					{volumeBackups && volumeBackups.length > 0 && (
-						<HandleVolumeBackups id={id} volumeBackupType={type} />
-					)}
+					<div className="flex items-center gap-2">
+						{volumeBackups && volumeBackups.length > 0 && (
+							<HandleVolumeBackups id={id} volumeBackupType={type} />
+						)}
+						<div className="flex items-center gap-2">
+							<RestoreVolumeBackups id={id} type={type} />
+						</div>
+					</div>
 				</div>
 			</CardHeader>
 			<CardContent className="px-0">
@@ -220,7 +226,10 @@ export const ShowVolumeBackups = ({ id, type = "application" }: Props) => {
 						<p className="text-sm text-muted-foreground mt-1">
 							Create your first volume backup to automate your workflows
 						</p>
-						<HandleVolumeBackups id={id} volumeBackupType={type} />
+						<div className="flex items-center gap-2">
+							<HandleVolumeBackups id={id} volumeBackupType={type} />
+							<RestoreVolumeBackups id={id} type={type} />
+						</div>
 					</div>
 				)}
 			</CardContent>

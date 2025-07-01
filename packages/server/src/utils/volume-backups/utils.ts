@@ -97,6 +97,7 @@ const backupVolume = async (
 		if (compose.composeType === "stack") {
 			stopCommand = `
 			echo "Stopping compose to 0 replicas"
+			echo "Service name: ${compose.appName}_${volumeBackup.serviceName}"
             ACTUAL_REPLICAS=$(docker service inspect ${compose.appName}_${volumeBackup.serviceName} --format "{{.Spec.Mode.Replicated.Replicas}}")
             echo "Actual replicas: $ACTUAL_REPLICAS"
             docker service scale ${compose.appName}_${volumeBackup.serviceName}=0`;

@@ -5,6 +5,7 @@ import {
 	removeVolumeBackup,
 	createVolumeBackup,
 	runVolumeBackup,
+	findDestinationById,
 } from "@dokploy/server";
 import {
 	createVolumeBackupSchema,
@@ -15,6 +16,8 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
+import { restorePostgresBackup } from "@dokploy/server/utils/restore";
+import { observable } from "@trpc/server/observable";
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
@@ -87,5 +90,30 @@ export const volumeBackupsRouter = createTRPCRouter({
 				console.error(error);
 				return false;
 			}
+		}),
+	restoreVolumeBackupWithLogs: protectedProcedure
+		.meta({
+			openapi: {
+				enabled: false,
+				path: "/restore-volume-backup-with-logs",
+				method: "POST",
+				override: true,
+			},
+		})
+		.input(
+			z.object({
+				volumeBackupId: z.string().min(1),
+				destinationId: z.string().min(1),
+				volumeName: z.string().min(1),
+			}),
+		)
+		.subscription(async ({ input }) => {
+			const destination = await findDestinationById(input.destinationId);
+
+			return observable<string>((emit) => {
+				// restorePostgresBackup(postgres, destination, input, (log) => {
+				// 	emit.next(log);
+				// });
+			});
 		}),
 });
