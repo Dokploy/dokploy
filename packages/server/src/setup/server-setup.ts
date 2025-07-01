@@ -75,6 +75,10 @@ SYS_ARCH=$(uname -m)
 CURRENT_USER=$USER
 
 echo "Installing requirements for: OS: $OS_TYPE"
+
+# Environment variables for automation:
+# DOKPLOY_AUTO_SWAP=true - Automatically create swap file for low memory systems without prompting
+
 if [ $EUID != 0 ]; then
 	echo "Please run this script as root or with sudo ❌"
 	exit
@@ -639,7 +643,7 @@ const checkMemoryAndSetupSwap = () => `
 	
 	echo " - Detected memory: ${MEMORY_MB}MB (${MEMORY_GB}GB)"
 	
-	# If memory is less than 2GB (2048MB), setup swap
+	# If memory is less than 2GB (2048MB), offer to setup swap
 	if [ "$MEMORY_MB" -lt 2048 ]; then
 		echo " - Memory is less than 2GB, checking swap configuration..."
 		
@@ -649,7 +653,48 @@ const checkMemoryAndSetupSwap = () => `
 		if [ "$SWAP_TOTAL" -gt 0 ]; then
 			echo " - Swap is already enabled (${SWAP_TOTAL}MB) ✅"
 		else
-			echo " - No swap detected. Setting up swap file..."
+			echo " - No swap detected."
+			echo ""
+			echo "⚠️  WARNING: Your system has less than 2GB of memory (${MEMORY_MB}MB)."
+			echo "   This may cause issues when building large applications or running multiple containers."
+			echo "   It is recommended to enable swap to improve system stability."
+			echo ""
+			
+			# Check for non-interactive mode or environment variable
+			if [ "$DOKPLOY_AUTO_SWAP" = "true" ] || [ "$DOKPLOY_AUTO_SWAP" = "1" ]; then
+				echo " - Auto-swap mode enabled, creating swap file automatically..."
+				SWAP_CHOICE="y"
+			elif [ ! -t 0 ]; then
+				# Non-interactive mode (like CI/CD), default to yes
+				echo " - Non-interactive mode detected, creating swap file automatically..."
+				SWAP_CHOICE="y"
+			else
+				# Interactive prompt for swap setup
+				while true; do
+					echo -n "Would you like to create a 4GB swap file? [Y/n]: "
+					read -r SWAP_CHOICE
+					
+					# Default to yes if empty input
+					if [ -z "$SWAP_CHOICE" ]; then
+						SWAP_CHOICE="y"
+					fi
+					
+					case "$SWAP_CHOICE" in
+						[Yy]* )
+							echo " - Setting up swap file..."
+							break
+							;;
+						[Nn]* )
+							echo " - Skipping swap setup. Continuing without swap."
+							echo " - ⚠️  Note: You may encounter memory issues during builds."
+							return 0
+							;;
+						* )
+							echo " - Please answer yes (y) or no (n)."
+							;;
+					esac
+				done
+			fi
 			
 			# Calculate swap size (4GB for systems with less than 2GB RAM)
 			SWAP_SIZE="4G"
