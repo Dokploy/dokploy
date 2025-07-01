@@ -4,6 +4,7 @@ import {
 	updateVolumeBackup,
 	removeVolumeBackup,
 	createVolumeBackup,
+	runVolumeBackup,
 } from "@dokploy/server";
 import {
 	createVolumeBackupSchema,
@@ -79,7 +80,12 @@ export const volumeBackupsRouter = createTRPCRouter({
 
 	runManually: protectedProcedure
 		.input(z.object({ volumeBackupId: z.string().min(1) }))
-		.mutation(async () => {
-			// return await runVolumeBackupManually(input.volumeBackupId);
+		.mutation(async ({ input }) => {
+			try {
+				return await runVolumeBackup(input.volumeBackupId);
+			} catch (error) {
+				console.error(error);
+				return false;
+			}
 		}),
 });

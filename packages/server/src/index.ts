@@ -63,6 +63,8 @@ export * from "./utils/notifications/utils";
 export * from "./utils/notifications/docker-cleanup";
 export * from "./utils/notifications/server-threshold";
 
+export * from "./utils/volume-backups/utils";
+
 export * from "./utils/builders/index";
 export * from "./utils/builders/compose";
 export * from "./utils/builders/docker-file";

@@ -19,6 +19,7 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 			mongo: true,
 			redis: true,
 			compose: true,
+			destination: true,
 		},
 	});
 

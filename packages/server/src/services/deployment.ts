@@ -476,11 +476,11 @@ export const createDeploymentVolumeBackup = async (
 			"volumeBackup",
 			serverId,
 		);
-		const { SCHEDULES_PATH } = paths(!!serverId);
+		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${volumeBackup.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(
-			SCHEDULES_PATH,
+			VOLUME_BACKUPS_PATH,
 			volumeBackup.appName,
 			fileName,
 		);
@@ -489,15 +489,18 @@ export const createDeploymentVolumeBackup = async (
 			const server = await findServerById(serverId);
 
 			const command = `
-				mkdir -p ${SCHEDULES_PATH}/${volumeBackup.appName};
+				mkdir -p ${VOLUME_BACKUPS_PATH}/${volumeBackup.appName};
             	echo "Initializing volume backup" >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
 		} else {
-			await fsPromises.mkdir(path.join(SCHEDULES_PATH, volumeBackup.appName), {
-				recursive: true,
-			});
+			await fsPromises.mkdir(
+				path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName),
+				{
+					recursive: true,
+				},
+			);
 			await fsPromises.writeFile(logFilePath, "Initializing volume backup\n");
 		}
 
