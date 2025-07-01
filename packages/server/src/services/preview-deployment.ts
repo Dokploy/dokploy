@@ -171,7 +171,7 @@ export const createPreviewDeployment = async (
 	const runningComment = getIssueComment(
 		application.name,
 		"initializing",
-		generateDomain,
+		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
 	);
 
 	const issue = await octokit.rest.issues.createComment({

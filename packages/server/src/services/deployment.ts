@@ -40,6 +40,7 @@ export const findDeploymentById = async (deploymentId: string) => {
 		where: eq(deployments.deploymentId, deploymentId),
 		with: {
 			application: true,
+			schedule: true,
 		},
 	});
 	if (!deployment) {

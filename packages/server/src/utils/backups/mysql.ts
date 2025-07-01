@@ -47,6 +47,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			databaseType: "mysql",
 			type: "success",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
@@ -59,6 +60,7 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
