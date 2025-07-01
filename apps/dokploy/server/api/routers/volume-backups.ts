@@ -1,11 +1,10 @@
 import {
-	findVolumeBackupById,
 	IS_CLOUD,
 	updateVolumeBackup,
 	removeVolumeBackup,
 	createVolumeBackup,
 	runVolumeBackup,
-	findDestinationById,
+	findVolumeBackupById,
 } from "@dokploy/server";
 import {
 	createVolumeBackupSchema,
@@ -16,8 +15,12 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
-import { restorePostgresBackup } from "@dokploy/server/utils/restore";
 import { observable } from "@trpc/server/observable";
+import { restoreVolume } from "@dokploy/server/utils/volume-backups/utils";
+import {
+	execAsyncRemote,
+	execAsyncStream,
+} from "@dokploy/server/utils/process/execAsync";
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
@@ -102,18 +105,76 @@ export const volumeBackupsRouter = createTRPCRouter({
 		})
 		.input(
 			z.object({
-				volumeBackupId: z.string().min(1),
+				backupFileName: z.string().min(1),
 				destinationId: z.string().min(1),
 				volumeName: z.string().min(1),
+				id: z.string().min(1),
+				serviceType: z.enum(["application", "compose"]),
+				serverId: z.string().optional(),
 			}),
 		)
 		.subscription(async ({ input }) => {
-			const destination = await findDestinationById(input.destinationId);
-
 			return observable<string>((emit) => {
-				// restorePostgresBackup(postgres, destination, input, (log) => {
-				// 	emit.next(log);
-				// });
+				const runRestore = async () => {
+					try {
+						emit.next("🚀 Starting volume restore process...");
+						emit.next(`📂 Backup File: ${input.backupFileName}`);
+						emit.next(`🔧 Volume Name: ${input.volumeName}`);
+						emit.next(`🏷️ Service Type: ${input.serviceType}`);
+						emit.next(""); // Empty line for better readability
+
+						// Generate the restore command
+						const restoreCommand = await restoreVolume(
+							input.id,
+							input.destinationId,
+							input.volumeName,
+							input.backupFileName,
+							input.serverId || "",
+							input.serviceType,
+						);
+
+						emit.next("📋 Generated restore command:");
+						emit.next("▶️ Executing restore...");
+						emit.next(""); // Empty line
+
+						// Execute the restore command with real-time output
+						if (input.serverId) {
+							emit.next(`🌐 Executing on remote server: ${input.serverId}`);
+							await execAsyncRemote(input.serverId, restoreCommand, (data) => {
+								emit.next(data);
+							});
+						} else {
+							emit.next("🖥️ Executing on local server");
+							await execAsyncStream(restoreCommand, (data) => {
+								emit.next(data);
+							});
+						}
+
+						emit.next("");
+						emit.next("✅ Volume restore completed successfully!");
+						emit.next(
+							"🎉 All containers/services have been restarted with the restored volume.",
+						);
+					} catch (error) {
+						emit.next("");
+						emit.next("❌ Volume restore failed!");
+						emit.next(
+							`💥 Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+						);
+
+						if (error instanceof Error && error.stack) {
+							emit.next("📋 Stack trace:");
+							for (const line of error.stack.split("\n")) {
+								if (line.trim()) emit.next(`   ${line}`);
+							}
+						}
+					} finally {
+						emit.complete();
+					}
+				};
+
+				// Start the restore process
+				runRestore();
 			});
 		}),
 });

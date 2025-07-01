@@ -29,10 +29,15 @@ import { RestoreVolumeBackups } from "./restore-volume-backups";
 
 interface Props {
 	id: string;
-	type?: "application" | "compose" | "postgres" | "mariadb" | "mongo" | "mysql";
+	type?: "application" | "compose";
+	serverId?: string;
 }
 
-export const ShowVolumeBackups = ({ id, type = "application" }: Props) => {
+export const ShowVolumeBackups = ({
+	id,
+	type = "application",
+	serverId,
+}: Props) => {
 	const {
 		data: volumeBackups,
 		isLoading: isLoadingVolumeBackups,
@@ -74,7 +79,7 @@ export const ShowVolumeBackups = ({ id, type = "application" }: Props) => {
 							<HandleVolumeBackups id={id} volumeBackupType={type} />
 						)}
 						<div className="flex items-center gap-2">
-							<RestoreVolumeBackups id={id} type={type} />
+							<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
 						</div>
 					</div>
 				</div>
@@ -228,7 +233,7 @@ export const ShowVolumeBackups = ({ id, type = "application" }: Props) => {
 						</p>
 						<div className="flex items-center gap-2">
 							<HandleVolumeBackups id={id} volumeBackupType={type} />
-							<RestoreVolumeBackups id={id} type={type} />
+							<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
 						</div>
 					</div>
 				)}

@@ -262,7 +262,11 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="volumeBackups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowVolumeBackups id={composeId} type="compose" />
+											<ShowVolumeBackups
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="monitoring">

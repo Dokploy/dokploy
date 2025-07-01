@@ -47,35 +47,33 @@ import { formatBytes } from "../../database/backups/restore-backup";
 
 interface Props {
 	id: string;
-	type?: "application" | "compose" | "postgres" | "mariadb" | "mongo" | "mysql";
+	type: "application" | "compose";
 	serverId?: string;
 }
 
-const RestoreBackupSchema = z
-	.object({
-		destinationId: z
-			.string({
-				required_error: "Please select a destination",
-			})
-			.min(1, {
-				message: "Destination is required",
-			}),
-		backupFile: z
-			.string({
-				required_error: "Please select a backup file",
-			})
-			.min(1, {
-				message: "Backup file is required",
-			}),
-		volumeName: z
-			.string({
-				required_error: "Please enter a volume name",
-			})
-			.min(1, {
-				message: "Volume name is required",
-			}),
-	})
-	.superRefine((data, ctx) => {});
+const RestoreBackupSchema = z.object({
+	destinationId: z
+		.string({
+			required_error: "Please select a destination",
+		})
+		.min(1, {
+			message: "Destination is required",
+		}),
+	backupFile: z
+		.string({
+			required_error: "Please select a backup file",
+		})
+		.min(1, {
+			message: "Backup file is required",
+		}),
+	volumeName: z
+		.string({
+			required_error: "Please enter a volume name",
+		})
+		.min(1, {
+			message: "Volume name is required",
+		}),
+});
 
 export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
@@ -93,8 +91,9 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 		resolver: zodResolver(RestoreBackupSchema),
 	});
 
-	const destionationId = form.watch("destinationId");
+	const destinationId = form.watch("destinationId");
 	const volumeName = form.watch("volumeName");
+	const backupFile = form.watch("backupFile");
 
 	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
@@ -107,12 +106,12 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 
 	const { data: files = [], isLoading } = api.backup.listBackupFiles.useQuery(
 		{
-			destinationId: destionationId,
+			destinationId: destinationId,
 			search: debouncedSearchTerm,
 			serverId: serverId ?? "",
 		},
 		{
-			enabled: isOpen && !!destionationId,
+			enabled: isOpen && !!destinationId,
 		},
 	);
 
@@ -122,9 +121,12 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 
 	api.volumeBackups.restoreVolumeBackupWithLogs.useSubscription(
 		{
-			volumeBackupId: id,
-			destinationId: form.watch("destinationId"),
-			volumeName: volumeName,
+			id,
+			serviceType: type,
+			serverId,
+			destinationId,
+			volumeName,
+			backupFileName: backupFile,
 		},
 		{
 			enabled: isDeploying,
@@ -146,7 +148,7 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 		},
 	);
 
-	const onSubmit = async (data: z.infer<typeof RestoreBackupSchema>) => {
+	const onSubmit = async () => {
 		setIsDeploying(true);
 	};
 
@@ -246,10 +248,10 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 							name="backupFile"
 							render={({ field }) => (
 								<FormItem className="">
-									<FormLabel className="flex items-center justify-between">
+									<FormLabel className="flex items-center">
 										Search Backup Files
 										{field.value && (
-											<Badge variant="outline">
+											<Badge variant="outline" className="truncate w-52">
 												{field.value}
 												<Copy
 													className="ml-2 size-4 cursor-pointer"
@@ -273,7 +275,9 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{field.value || "Search and select a backup file"}
+													<span className="truncate text-left flex-1 w-52">
+														{field.value || "Search and select a backup file"}
+													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>

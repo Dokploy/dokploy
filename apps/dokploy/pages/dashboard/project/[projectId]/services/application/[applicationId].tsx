@@ -338,6 +338,7 @@ const Service = (
 											<ShowVolumeBackups
 												id={applicationId}
 												type="application"
+												serverId={data?.serverId || ""}
 											/>
 										</div>
 									</TabsContent>

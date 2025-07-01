@@ -415,7 +415,7 @@ export const RestoreBackup = ({
 									<FormLabel className="flex items-center justify-between">
 										Search Backup Files
 										{field.value && (
-											<Badge variant="outline">
+											<Badge variant="outline" className="truncate">
 												{field.value}
 												<Copy
 													className="ml-2 size-4 cursor-pointer"
@@ -439,7 +439,9 @@ export const RestoreBackup = ({
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{field.value || "Search and select a backup file"}
+													<span className="truncate text-left flex-1 w-52">
+														{field.value || "Search and select a backup file"}
+													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
