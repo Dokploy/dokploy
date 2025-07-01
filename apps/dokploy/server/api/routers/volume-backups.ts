@@ -155,19 +155,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 						emit.next(
 							"🎉 All containers/services have been restarted with the restored volume.",
 						);
-					} catch (error) {
+					} catch {
 						emit.next("");
 						emit.next("❌ Volume restore failed!");
-						emit.next(
-							`💥 Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-						);
-
-						if (error instanceof Error && error.stack) {
-							emit.next("📋 Stack trace:");
-							for (const line of error.stack.split("\n")) {
-								if (line.trim()) emit.next(`   ${line}`);
-							}
-						}
 					} finally {
 						emit.complete();
 					}
