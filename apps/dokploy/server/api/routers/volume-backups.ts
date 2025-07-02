@@ -6,6 +6,8 @@ import {
 	runVolumeBackup,
 	findVolumeBackupById,
 	restoreVolume,
+	scheduleVolumeBackup,
+	removeVolumeBackupJob,
 } from "@dokploy/server";
 import {
 	createVolumeBackupSchema,
@@ -21,6 +23,8 @@ import {
 	execAsyncRemote,
 	execAsyncStream,
 } from "@dokploy/server/utils/process/execAsync";
+import { removeJob, schedule, updateJob } from "@/server/utils/backup";
+import { TRPCError } from "@trpc/server";
 
 export const volumeBackupsRouter = createTRPCRouter({
 	list: protectedProcedure
@@ -55,7 +59,20 @@ export const volumeBackupsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input }) => {
-			return await createVolumeBackup(input);
+			const newVolumeBackup = await createVolumeBackup(input);
+
+			if (newVolumeBackup?.enabled) {
+				if (IS_CLOUD) {
+					await schedule({
+						cronSchedule: newVolumeBackup.cronExpression,
+						volumeBackupId: newVolumeBackup.volumeBackupId,
+						type: "volume-backup",
+					});
+				} else {
+					await scheduleVolumeBackup(newVolumeBackup.volumeBackupId);
+				}
+			}
+			return newVolumeBackup;
 		}),
 	one: protectedProcedure
 		.input(
@@ -73,15 +90,46 @@ export const volumeBackupsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			if (IS_CLOUD) {
-				return true;
-			}
 			return await removeVolumeBackup(input.volumeBackupId);
 		}),
 	update: protectedProcedure
 		.input(updateVolumeBackupSchema)
 		.mutation(async ({ input }) => {
-			return await updateVolumeBackup(input.volumeBackupId, input);
+			const updatedVolumeBackup = await updateVolumeBackup(
+				input.volumeBackupId,
+				input,
+			);
+
+			if (!updatedVolumeBackup) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Volume backup not found",
+				});
+			}
+
+			if (IS_CLOUD) {
+				if (updatedVolumeBackup.enabled) {
+					await updateJob({
+						cronSchedule: updatedVolumeBackup.cronExpression,
+						volumeBackupId: updatedVolumeBackup.volumeBackupId,
+						type: "volume-backup",
+					});
+				} else {
+					await removeJob({
+						cronSchedule: updatedVolumeBackup.cronExpression,
+						volumeBackupId: updatedVolumeBackup.volumeBackupId,
+						type: "volume-backup",
+					});
+				}
+			} else {
+				if (updatedVolumeBackup?.enabled) {
+					removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
+					scheduleVolumeBackup(updatedVolumeBackup.volumeBackupId);
+				} else {
+					removeVolumeBackupJob(updatedVolumeBackup.volumeBackupId);
+				}
+			}
+			return updatedVolumeBackup;
 		}),
 
 	runManually: protectedProcedure

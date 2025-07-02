@@ -7,7 +7,6 @@ import {
 import { db } from "../db";
 import { TRPCError } from "@trpc/server";
 import type { z } from "zod";
-import { scheduleBackup } from "../utils/backups/utils";
 
 export const findVolumeBackupById = async (volumeBackupId: string) => {
 	const volumeBackup = await db.query.volumeBackups.findFirst({
@@ -43,14 +42,6 @@ export const createVolumeBackup = async (
 		.returning()
 		.then((e) => e[0]);
 
-	await schedule({
-		cronSchedule: backup.schedule,
-		backupId: backup.backupId,
-		type: "backup",
-	});
-
-	scheduleBackup(backup);
-
 	return newVolumeBackup;
 };
 
@@ -64,8 +55,10 @@ export const updateVolumeBackup = async (
 	volumeBackupId: string,
 	volumeBackup: z.infer<typeof updateVolumeBackupSchema>,
 ) => {
-	await db
+	return await db
 		.update(volumeBackups)
 		.set(volumeBackup)
-		.where(eq(volumeBackups.volumeBackupId, volumeBackupId));
+		.where(eq(volumeBackups.volumeBackupId, volumeBackupId))
+		.returning()
+		.then((e) => e[0]);
 };

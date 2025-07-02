@@ -6,6 +6,19 @@ import {
 	updateDeploymentStatus,
 } from "../..";
 import { backupVolume } from "./backup";
+import { scheduleJob, scheduledJobs } from "node-schedule";
+
+export const scheduleVolumeBackup = async (volumeBackupId: string) => {
+	const volumeBackup = await findVolumeBackupById(volumeBackupId);
+	scheduleJob(volumeBackupId, volumeBackup.cronExpression, async () => {
+		await runVolumeBackup(volumeBackupId);
+	});
+};
+
+export const removeVolumeBackupJob = async (volumeBackupId: string) => {
+	const currentJob = scheduledJobs[volumeBackupId];
+	currentJob?.cancel();
+};
 
 export const runVolumeBackup = async (volumeBackupId: string) => {
 	const volumeBackup = await findVolumeBackupById(volumeBackupId);
