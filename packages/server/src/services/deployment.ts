@@ -538,9 +538,11 @@ const removeLastTenDeployments = async (
 					await removeRollbackById(oldDeployment.rollbackId);
 				}
 
-				command += `
-				rm -rf ${logPath};
-				`;
+				if (logPath !== ".") {
+					command += `
+					rm -rf ${logPath};
+					`;
+				}
 				await removeDeployment(oldDeployment.deploymentId);
 			}
 
@@ -551,7 +553,11 @@ const removeLastTenDeployments = async (
 					await removeRollbackById(oldDeployment.rollbackId);
 				}
 				const logPath = path.join(oldDeployment.logPath);
-				if (existsSync(logPath) && !oldDeployment.errorMessage) {
+				if (
+					existsSync(logPath) &&
+					!oldDeployment.errorMessage &&
+					logPath !== "."
+				) {
 					await fsPromises.unlink(logPath);
 				}
 				await removeDeployment(oldDeployment.deploymentId);
