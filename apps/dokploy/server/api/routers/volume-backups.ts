@@ -5,6 +5,7 @@ import {
 	createVolumeBackup,
 	runVolumeBackup,
 	findVolumeBackupById,
+	restoreVolume,
 } from "@dokploy/server";
 import {
 	createVolumeBackupSchema,
@@ -16,7 +17,6 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { db } from "@dokploy/server/db";
 import { eq } from "drizzle-orm";
 import { observable } from "@trpc/server/observable";
-import { restoreVolume } from "@dokploy/server/utils/volume-backups/utils";
 import {
 	execAsyncRemote,
 	execAsyncStream,

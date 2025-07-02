@@ -7,6 +7,7 @@ import {
 import { db } from "../db";
 import { TRPCError } from "@trpc/server";
 import type { z } from "zod";
+import { scheduleBackup } from "../utils/backups/utils";
 
 export const findVolumeBackupById = async (volumeBackupId: string) => {
 	const volumeBackup = await db.query.volumeBackups.findFirst({
@@ -39,7 +40,16 @@ export const createVolumeBackup = async (
 	const newVolumeBackup = await db
 		.insert(volumeBackups)
 		.values(volumeBackup)
-		.returning();
+		.returning()
+		.then((e) => e[0]);
+
+	await schedule({
+		cronSchedule: backup.schedule,
+		backupId: backup.backupId,
+		type: "backup",
+	});
+
+	scheduleBackup(backup);
 
 	return newVolumeBackup;
 };
