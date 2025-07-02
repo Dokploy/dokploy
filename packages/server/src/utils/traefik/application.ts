@@ -67,7 +67,7 @@ export const removeTraefikConfig = async (
 		if (fs.existsSync(configPath)) {
 			await fs.promises.unlink(configPath);
 		}
-	} catch (_error) {}
+	} catch {}
 };
 
 export const removeTraefikConfigRemote = async (
@@ -78,7 +78,7 @@ export const removeTraefikConfigRemote = async (
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		await execAsyncRemote(serverId, `rm ${configPath}`);
-	} catch (_error) {}
+	} catch {}
 };
 
 export const loadOrCreateConfig = (appName: string): FileConfig => {
@@ -110,7 +110,7 @@ export const loadOrCreateConfigRemote = async (
 			http: { routers: {}, services: {} },
 		};
 		return parsedConfig;
-	} catch (_err) {
+	} catch {
 		return fileConfig;
 	}
 };
@@ -132,7 +132,7 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
 		if (!stdout) return null;
 		return stdout;
-	} catch (_err) {
+	} catch {
 		return null;
 	}
 };
