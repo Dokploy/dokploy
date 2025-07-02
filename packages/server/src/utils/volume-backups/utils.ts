@@ -113,7 +113,9 @@ const backupVolume = async (
             docker stop $ID`;
 			startCommand = `
             echo "Starting compose container"
-            docker start $ID`;
+            docker start $ID
+			echo "Compose container started"
+			`;
 		}
 		return `
         ${stopCommand}

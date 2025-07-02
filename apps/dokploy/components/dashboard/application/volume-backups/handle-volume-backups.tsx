@@ -134,7 +134,7 @@ export const HandleVolumeBackups = ({
 
 	const { data: mounts } = api.mounts.allNamedByApplicationId.useQuery(
 		{ applicationId: id || "" },
-		{ enabled: !!id },
+		{ enabled: !!id && volumeBackupType === "application" },
 	);
 
 	const {
