@@ -3,18 +3,17 @@ import {
 	apiFindOneMount,
 	apiRemoveMount,
 	apiUpdateMount,
-	mounts,
 } from "@/server/db/schema";
 import {
 	createMount,
 	deleteMount,
+	findApplicationById,
 	findMountById,
+	getServiceContainer,
 	updateMount,
 } from "@dokploy/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
-import { db } from "@dokploy/server/db";
 
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -40,11 +39,11 @@ export const mountRouter = createTRPCRouter({
 	allNamedByApplicationId: protectedProcedure
 		.input(z.object({ applicationId: z.string().min(1) }))
 		.query(async ({ input }) => {
-			return await db.query.mounts.findMany({
-				where: and(
-					eq(mounts.applicationId, input.applicationId),
-					eq(mounts.type, "volume"),
-				),
-			});
+			const app = await findApplicationById(input.applicationId);
+			const container = await getServiceContainer(app.appName, app.serverId);
+			const mounts = container?.Mounts.filter(
+				(mount) => mount.Type === "volume" && mount.Source !== "",
+			);
+			return mounts;
 		}),
 });

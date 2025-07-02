@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import { formatBytes } from "../../database/backups/restore-backup";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Props {
 	id: string;
@@ -169,6 +170,9 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 					<DialogDescription>
 						Select a destination and search for volume backup files
 					</DialogDescription>
+					<AlertBlock>
+						Make sure the volume name is not being used by another container.
+					</AlertBlock>
 				</DialogHeader>
 
 				<Form {...form}>

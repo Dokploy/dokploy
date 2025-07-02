@@ -550,11 +550,8 @@ export const HandleVolumeBackups = ({
 											</FormControl>
 											<SelectContent>
 												{mounts?.map((mount) => (
-													<SelectItem
-														key={mount.mountId}
-														value={mount.volumeName || ""}
-													>
-														{mount.volumeName}
+													<SelectItem key={mount.Name} value={mount.Name || ""}>
+														{mount.Name}
 													</SelectItem>
 												))}
 											</SelectContent>
