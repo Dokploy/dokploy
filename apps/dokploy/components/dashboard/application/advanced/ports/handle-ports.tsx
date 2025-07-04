@@ -171,6 +171,32 @@ export const HandlePorts = ({
 							/>
 							<FormField
 								control={form.control}
+								name="publishMode"
+								render={({ field }) => {
+									return (
+										<FormItem className="md:col-span-2">
+											<FormLabel>Published Port Mode</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a publish mode for the port" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value={"ingress"}>Ingress</SelectItem>
+													<SelectItem value={"host"}>Host</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
 								name="targetPort"
 								render={({ field }) => (
 									<FormItem>
@@ -224,32 +250,7 @@ export const HandlePorts = ({
 									);
 								}}
 							/>
-							<FormField
-								control={form.control}
-								name="publishMode"
-								render={({ field }) => {
-									return (
-										<FormItem className="md:col-span-2">
-											<FormLabel>Protocol</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												value={field.value}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a publish mode for the port" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													<SelectItem value={"ingress"}>Ingress</SelectItem>
-													<SelectItem value={"host"}>Host</SelectItem>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
+
 						</div>
 					</form>
 
