@@ -60,7 +60,7 @@ export const ShowPorts = ({ applicationId }: Props) => {
 							{data?.ports.map((port) => (
 								<div key={port.portId}>
 									<div className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4">
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
+										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Published Port</span>
 												<span className="text-sm text-muted-foreground">
@@ -74,7 +74,7 @@ export const ShowPorts = ({ applicationId }: Props) => {
                         </span>
 											</div>
 											<div className="flex flex-col gap-1">
-												<span className="font-medium"> Target Port</span>
+												<span className="font-medium">Target Port</span>
 												<span className="text-sm text-muted-foreground">
 													{port.targetPort}
 												</span>
