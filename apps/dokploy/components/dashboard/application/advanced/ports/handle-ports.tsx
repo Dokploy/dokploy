@@ -35,6 +35,9 @@ import { z } from "zod";
 
 const AddPortSchema = z.object({
 	publishedPort: z.number().int().min(1).max(65535),
+	publishMode: z.enum(["ingress", "host"], {
+	  required_error: "Publish mode is required",
+  }),
 	targetPort: z.number().int().min(1).max(65535),
 	protocol: z.enum(["tcp", "udp"], {
 		required_error: "Protocol is required",
@@ -80,6 +83,7 @@ export const HandlePorts = ({
 	useEffect(() => {
 		form.reset({
 			publishedPort: data?.publishedPort ?? 0,
+			publishMode: data?.publishMode ?? "ingress",
 			targetPort: data?.targetPort ?? 0,
 			protocol: data?.protocol ?? "tcp",
 		});
@@ -213,6 +217,32 @@ export const HandlePorts = ({
 												<SelectContent>
 													<SelectItem value={"tcp"}>TCP</SelectItem>
 													<SelectItem value={"udp"}>UDP</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="publishMode"
+								render={({ field }) => {
+									return (
+										<FormItem className="md:col-span-2">
+											<FormLabel>Protocol</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a publish mode for the port" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value={"ingress"}>Ingress</SelectItem>
+													<SelectItem value={"host"}>Host</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormMessage />

@@ -694,6 +694,13 @@
       "when": 1751233265357,
       "tag": "0098_conscious_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1751643236788,
+      "tag": "0099_calm_mesmero",
+      "breakpoints": true
     }
   ]
 }
