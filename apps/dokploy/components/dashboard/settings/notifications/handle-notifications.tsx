@@ -1063,7 +1063,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										});
 									}
 									toast.success("Connection Success");
-								} catch (_err) {
+								} catch {
 									toast.error("Error testing the provider");
 								}
 							}}

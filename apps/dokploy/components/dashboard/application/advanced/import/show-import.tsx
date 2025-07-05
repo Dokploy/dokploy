@@ -107,7 +107,7 @@ export const ShowImport = ({ composeId }: Props) => {
 				composeId,
 			});
 			setShowModal(false);
-		} catch (_error) {
+		} catch {
 			toast.error("Error importing template");
 		}
 	};
@@ -126,7 +126,7 @@ export const ShowImport = ({ composeId }: Props) => {
 			});
 			setTemplateInfo(result);
 			setShowModal(true);
-		} catch (_error) {
+		} catch {
 			toast.error("Error processing template");
 		}
 	};
