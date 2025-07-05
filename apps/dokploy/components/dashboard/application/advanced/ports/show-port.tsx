@@ -70,7 +70,7 @@ export const ShowPorts = ({ applicationId }: Props) => {
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Published Port Mode</span>
 												<span className="text-sm text-muted-foreground">
-													{port.publishMode.toUpperCase()}
+													{port?.publishMode?.toUpperCase()}
 												</span>
 											</div>
 											<div className="flex flex-col gap-1">
