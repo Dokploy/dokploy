@@ -4,7 +4,6 @@ import { migration } from "@/server/db/migration";
 import { server as serverTable } from "@/server/db/schema";
 import {
 	IS_CLOUD,
-	type User,
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
@@ -73,14 +72,11 @@ void app.prepare().then(async () => {
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
 			try {
-				let admin:
-					| {
-							user: User;
-					  }
-					| undefined;
+				let concurrency = 1;
 
 				try {
-					admin = await findAdmin();
+					const admin = await findAdmin();
+					concurrency = admin?.user?.buildsConcurrency || 1;
 				} catch (error) {
 					console.error(
 						"Failed to find admin, might be first time running:",
@@ -89,9 +85,7 @@ void app.prepare().then(async () => {
 				}
 
 				// Default/local deployment worker using user-level concurrency
-				const worker = createDeploymentWorker(
-					admin?.user?.buildsConcurrency || 1,
-				);
+				const worker = createDeploymentWorker(concurrency);
 
 				if (!worker) {
 					console.error("Failed to create main deployment worker");
