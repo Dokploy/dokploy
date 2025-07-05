@@ -75,6 +75,24 @@ export const userRouter = createTRPCRouter({
 				},
 			});
 
+			// If user not found in the organization, deny access
+			if (!memberResult) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "User not found in this organization",
+				});
+			}
+
+			// Allow access if:
+			// 1. User is requesting their own information
+			// 2. User has owner role (admin permissions) AND user is in the same organization
+			if (memberResult.userId !== ctx.user.id && ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this user",
+				});
+			}
+
 			return memberResult;
 		}),
 	get: protectedProcedure.query(async ({ ctx }) => {
