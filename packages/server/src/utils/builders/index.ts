@@ -183,7 +183,7 @@ export const mechanizeDockerContainer = async (
 		RollbackConfig,
 		EndpointSpec: {
 			Ports: ports.map((port) => ({
-			  PublishMode: port.publishMode,
+				PublishMode: port.publishMode,
 				Protocol: port.protocol,
 				TargetPort: port.targetPort,
 				PublishedPort: port.publishedPort,

@@ -36,8 +36,8 @@ import { z } from "zod";
 const AddPortSchema = z.object({
 	publishedPort: z.number().int().min(1).max(65535),
 	publishMode: z.enum(["ingress", "host"], {
-	  required_error: "Publish mode is required",
-  }),
+		required_error: "Publish mode is required",
+	}),
 	targetPort: z.number().int().min(1).max(65535),
 	protocol: z.enum(["tcp", "udp"], {
 		required_error: "Protocol is required",
@@ -250,7 +250,6 @@ export const HandlePorts = ({
 									);
 								}}
 							/>
-
 						</div>
 					</form>
 

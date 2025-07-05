@@ -68,10 +68,10 @@ export const ShowPorts = ({ applicationId }: Props) => {
 												</span>
 											</div>
 											<div className="flex flex-col gap-1">
-                        <span className="font-medium">Published Port Mode</span>
-                        <span className="text-sm text-muted-foreground">
-                          {port.publishMode.toUpperCase()}
-                        </span>
+												<span className="font-medium">Published Port Mode</span>
+												<span className="text-sm text-muted-foreground">
+													{port.publishMode.toUpperCase()}
+												</span>
 											</div>
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Target Port</span>
@@ -85,7 +85,6 @@ export const ShowPorts = ({ applicationId }: Props) => {
 													{port.protocol.toUpperCase()}
 												</span>
 											</div>
-
 										</div>
 										<div className="flex flex-row gap-4">
 											<HandlePorts
