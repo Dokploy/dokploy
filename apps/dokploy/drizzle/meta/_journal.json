@@ -705,22 +705,8 @@
     {
       "idx": 100,
       "version": "7",
-      "when": 1751741736144,
-      "tag": "0100_purple_rogue",
-      "breakpoints": true
-    },
-    {
-      "idx": 101,
-      "version": "7",
-      "when": 1751751631943,
-      "tag": "0101_moaning_blazing_skull",
-      "breakpoints": true
-    },
-    {
-      "idx": 102,
-      "version": "7",
-      "when": 1751848685503,
-      "tag": "0102_opposite_grandmaster",
+      "when": 1751702430318,
+      "tag": "0100_spicy_violations",
       "breakpoints": true
     },
     {
