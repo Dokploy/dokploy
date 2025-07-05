@@ -37,6 +37,7 @@ import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
 import { scheduleRouter } from "./routers/schedule";
 import { rollbackRouter } from "./routers/rollbacks";
+import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
  * This is the primary router for your server.
  *
@@ -82,6 +83,7 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	schedule: scheduleRouter,
 	rollback: rollbackRouter,
+	volumeBackups: volumeBackupsRouter,
 });
 
 // export type definition of API

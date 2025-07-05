@@ -27,7 +27,8 @@ interface Props {
 		| "schedule"
 		| "server"
 		| "backup"
-		| "previewDeployment";
+		| "previewDeployment"
+		| "volumeBackup";
 	refreshToken?: string;
 	serverId?: string;
 }

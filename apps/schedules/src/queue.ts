@@ -42,6 +42,12 @@ export const scheduleJob = (job: QueueJob) => {
 				pattern: job.cronSchedule,
 			},
 		});
+	} else if (job.type === "volume-backup") {
+		jobQueue.add(job.volumeBackupId, job, {
+			repeat: {
+				pattern: job.cronSchedule,
+			},
+		});
 	}
 };
 
@@ -63,6 +69,13 @@ export const removeJob = async (data: QueueJob) => {
 	if (data.type === "schedule") {
 		const { scheduleId, cronSchedule } = data;
 		const result = await jobQueue.removeRepeatable(scheduleId, {
+			pattern: cronSchedule,
+		});
+		return result;
+	}
+	if (data.type === "volume-backup") {
+		const { volumeBackupId, cronSchedule } = data;
+		const result = await jobQueue.removeRepeatable(volumeBackupId, {
 			pattern: cronSchedule,
 		});
 		return result;
@@ -89,6 +102,10 @@ export const getJobRepeatable = async (
 		const job = repeatableJobs.find((j) => j.name === scheduleId);
 		return job ? job : null;
 	}
-
+	if (data.type === "volume-backup") {
+		const { volumeBackupId } = data;
+		const job = repeatableJobs.find((j) => j.name === volumeBackupId);
+		return job ? job : null;
+	}
 	return null;
 };

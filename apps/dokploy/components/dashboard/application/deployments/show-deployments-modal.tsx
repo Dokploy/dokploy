@@ -14,7 +14,8 @@ interface Props {
 		| "schedule"
 		| "server"
 		| "backup"
-		| "previewDeployment";
+		| "previewDeployment"
+		| "volumeBackup";
 	serverId?: string;
 	refreshToken?: string;
 	children?: React.ReactNode;

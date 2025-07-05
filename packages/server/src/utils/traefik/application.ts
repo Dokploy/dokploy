@@ -1,5 +1,7 @@
 import fs, { writeFileSync } from "node:fs";
 import path from "node:path";
+import { createReadStream } from "node:fs";
+import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
 import { dump, load } from "js-yaml";
@@ -137,39 +139,40 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 	}
 };
 
-export const readMonitoringConfig = (readAll = false) => {
+export const readMonitoringConfig = async (readAll = false) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (fs.existsSync(configPath)) {
 		if (!readAll) {
-			// Read first 500 lines
+			// Read first 500 lines using streams
 			let content = "";
-			let chunk = "";
 			let validCount = 0;
 
-			for (const char of fs.readFileSync(configPath, "utf8")) {
-				chunk += char;
-				if (char === "\n") {
-					try {
-						const trimmed = chunk.trim();
-						if (
-							trimmed !== "" &&
-							trimmed.startsWith("{") &&
-							trimmed.endsWith("}")
-						) {
-							const log = JSON.parse(trimmed);
-							if (log.ServiceName !== "dokploy-service-app@file") {
-								content += chunk;
-								validCount++;
-								if (validCount >= 500) {
-									break;
-								}
+			const fileStream = createReadStream(configPath, { encoding: "utf8" });
+			const readline = createInterface({
+				input: fileStream,
+				crlfDelay: Number.POSITIVE_INFINITY,
+			});
+
+			for await (const line of readline) {
+				try {
+					const trimmed = line.trim();
+					if (
+						trimmed !== "" &&
+						trimmed.startsWith("{") &&
+						trimmed.endsWith("}")
+					) {
+						const log = JSON.parse(trimmed);
+						if (log.ServiceName !== "dokploy-service-app@file") {
+							content += `${line}\n`;
+							validCount++;
+							if (validCount >= 500) {
+								break;
 							}
 						}
-					} catch {
-						// Ignore invalid JSON
 					}
-					chunk = "";
+				} catch {
+					// Ignore invalid JSON
 				}
 			}
 			return content;
