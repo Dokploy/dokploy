@@ -694,6 +694,13 @@
       "when": 1751233265357,
       "tag": "0098_conscious_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1751693569786,
+      "tag": "0099_wise_golden_guardian",
+      "breakpoints": true
     }
   ]
 }

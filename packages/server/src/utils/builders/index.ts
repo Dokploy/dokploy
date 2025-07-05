@@ -183,6 +183,7 @@ export const mechanizeDockerContainer = async (
 		RollbackConfig,
 		EndpointSpec: {
 			Ports: ports.map((port) => ({
+				PublishMode: port.publishMode,
 				Protocol: port.protocol,
 				TargetPort: port.targetPort,
 				PublishedPort: port.publishedPort,
@@ -203,7 +204,7 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch (_error: unknown) {
+	} catch {
 		await docker.createService(settings);
 	}
 };
