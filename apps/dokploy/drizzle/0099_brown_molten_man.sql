@@ -1,1 +1,0 @@
-ALTER TABLE "server" ADD COLUMN "buildsConcurrency" integer DEFAULT 1 NOT NULL;
