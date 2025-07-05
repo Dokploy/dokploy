@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.21.3",
+	"version": "v0.23.7",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -11,6 +11,7 @@
 		"build-next": "next build",
 		"setup": "tsx -r dotenv/config setup.ts && sleep 5 && pnpm run migration:run",
 		"reset-password": "node -r dotenv/config dist/reset-password.mjs",
+		"reset-2fa": "node -r dotenv/config dist/reset-2fa.mjs",
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
 		"dev-turbopack": "TURBOPACK=1 tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
@@ -92,7 +93,7 @@
 		"adm-zip": "^0.5.14",
 		"ai": "^4.0.23",
 		"bcrypt": "5.1.1",
-		"better-auth": "1.2.4",
+		"better-auth": "v1.2.8-beta.7",
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
 		"bullmq": "5.4.2",
@@ -125,6 +126,8 @@
 		"octokit": "3.1.2",
 		"ollama-ai-provider": "^1.1.0",
 		"otpauth": "^9.2.3",
+		"pino": "9.4.0",
+		"pino-pretty": "11.2.2",
 		"postgres": "3.4.4",
 		"public-ip": "6.0.2",
 		"qrcode": "^1.5.3",
@@ -145,13 +148,13 @@
 		"swagger-ui-react": "^5.17.14",
 		"tailwind-merge": "^2.2.0",
 		"tailwindcss-animate": "^1.0.7",
+		"toml": "3.0.0",
 		"undici": "^6.19.2",
 		"use-resize-observer": "9.1.0",
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
 		"zod": "^3.23.4",
-		"zod-form-data": "^2.0.2",
-		"toml": "3.0.0"
+		"zod-form-data": "^2.0.2"
 	},
 	"devDependencies": {
 		"@types/adm-zip": "^0.5.5",
@@ -186,7 +189,7 @@
 	},
 	"packageManager": "pnpm@9.5.0",
 	"engines": {
-		"node": "^20.9.0",
+		"node": "^20.16.0",
 		"pnpm": ">=9.5.0"
 	},
 	"lint-staged": {

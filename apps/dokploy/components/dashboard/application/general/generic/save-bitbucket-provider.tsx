@@ -31,6 +31,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -58,6 +59,7 @@ const BitbucketProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	bitbucketId: z.string().min(1, "Bitbucket Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	enableSubmodules: z.boolean().optional(),
 });
 
 type BitbucketProvider = z.infer<typeof BitbucketProviderSchema>;
@@ -84,6 +86,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			bitbucketId: "",
 			branch: "",
 			watchPaths: [],
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(BitbucketProviderSchema),
 	});
@@ -130,9 +133,10 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 				buildPath: data.bitbucketBuildPath || "/",
 				bitbucketId: data.bitbucketId || "",
 				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules || false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.applicationId, form]);
 
 	const onSubmit = async (data: BitbucketProvider) => {
 		await mutateAsync({
@@ -143,6 +147,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 			bitbucketId: data.bitbucketId,
 			applicationId,
 			watchPaths: data.watchPaths || [],
+			enableSubmodules: data.enableSubmodules || false,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -430,7 +435,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 									<FormControl>
 										<div className="flex gap-2">
 											<Input
-												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -449,7 +454,7 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 												variant="secondary"
 												onClick={() => {
 													const input = document.querySelector(
-														'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+														'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
 													) as HTMLInputElement;
 													const value = input.value.trim();
 													if (value) {
@@ -464,6 +469,21 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 										</div>
 									</FormControl>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

@@ -144,7 +144,8 @@ export const updateMount = async (
 			await deleteFileMount(mountId);
 			await createFileMount(mountId);
 		}
-		return mount;
+
+		return await findMountById(mountId);
 	});
 };
 
@@ -211,7 +212,7 @@ export const deleteFileMount = async (mountId: string) => {
 		} else {
 			await removeFileOrDirectory(fullPath);
 		}
-	} catch (_error) {}
+	} catch {}
 };
 
 export const getBaseFilesPath = async (mountId: string) => {

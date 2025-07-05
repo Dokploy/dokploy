@@ -5,6 +5,7 @@ import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	rollbackActive: false,
 	applicationId: "",
 	herokuVersion: "",
 	giteaRepository: "",
@@ -16,6 +17,7 @@ const baseApp: ApplicationNested = {
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
+	enableSubmodules: false,
 	serverId: "",
 	branch: null,
 	dockerBuildStage: "",
@@ -24,6 +26,7 @@ const baseApp: ApplicationNested = {
 	buildArgs: null,
 	isPreviewDeploymentsActive: false,
 	previewBuildArgs: null,
+	triggerType: "push",
 	previewCertificateType: "none",
 	previewEnv: null,
 	previewHttps: false,
@@ -83,6 +86,7 @@ const baseApp: ApplicationNested = {
 	ports: [],
 	projectId: "",
 	publishDirectory: null,
+	isStaticSpa: null,
 	redirects: [],
 	refreshToken: "",
 	registry: null,
@@ -115,6 +119,8 @@ const baseDomain: Domain = {
 	domainType: "application",
 	uniqueConfigKey: 1,
 	previewDeploymentId: "",
+	internalPath: "/",
+	stripPath: false,
 };
 
 const baseRedirect: Redirect = {

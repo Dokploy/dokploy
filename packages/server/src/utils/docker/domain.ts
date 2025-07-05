@@ -117,7 +117,7 @@ export const loadDockerComposeRemote = async (
 		if (!stdout) return null;
 		const parsedConfig = load(stdout) as ComposeSpecification;
 		return parsedConfig;
-	} catch (_err) {
+	} catch {
 		return null;
 	}
 };
@@ -249,6 +249,11 @@ export const addDomainToCompose = async (
 				labels.unshift("traefik.enable=true");
 			}
 			labels.unshift(...httpLabels);
+			if (!compose.isolatedDeployment) {
+				if (!labels.includes("traefik.docker.network=dokploy-network")) {
+					labels.unshift("traefik.docker.network=dokploy-network");
+				}
+			}
 		}
 
 		if (!compose.isolatedDeployment) {
@@ -296,6 +301,8 @@ export const createDomainLabels = (
 		certificateType,
 		path,
 		customCertResolver,
+		stripPath,
+		internalPath,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
@@ -304,6 +311,34 @@ export const createDomainLabels = (
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
+
+	// Validate stripPath - it should only be used when path is defined and not "/"
+	if (stripPath) {
+		if (!path || path === "/") {
+			console.warn(
+				`stripPath is enabled but path is not defined or is "/" for domain ${host}`,
+			);
+		} else {
+			const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+			labels.push(
+				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
+			);
+		}
+	}
+
+	// Validate internalPath - ensure it's a valid path format
+	if (internalPath && internalPath !== "/") {
+		if (!internalPath.startsWith("/")) {
+			console.warn(
+				`internalPath "${internalPath}" should start with "/" and not be empty for domain ${host}`,
+			);
+		} else {
+			const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+			labels.push(
+				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
+			);
+		}
+	}
 
 	if (entrypoint === "web" && https) {
 		labels.push(

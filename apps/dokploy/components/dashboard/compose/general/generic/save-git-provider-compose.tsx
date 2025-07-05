@@ -19,6 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -43,6 +44,7 @@ const GitProviderSchema = z.object({
 	branch: z.string().min(1, "Branch required"),
 	sshKey: z.string().optional(),
 	watchPaths: z.array(z.string()).optional(),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GitProvider = z.infer<typeof GitProviderSchema>;
@@ -65,6 +67,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 			composePath: "./docker-compose.yml",
 			sshKey: undefined,
 			watchPaths: [],
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GitProviderSchema),
 	});
@@ -77,6 +80,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 				repositoryURL: data.customGitUrl || "",
 				composePath: data.composePath,
 				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
 	}, [form.reset, data, form]);
@@ -91,6 +95,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 			composePath: values.composePath,
 			composeStatus: "idle",
 			watchPaths: values.watchPaths || [],
+			enableSubmodules: values.enableSubmodules,
 		})
 			.then(async () => {
 				toast.success("Git Provider Saved");
@@ -258,7 +263,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 								<FormControl>
 									<div className="flex gap-2">
 										<Input
-											placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+											placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
 											onKeyDown={(e) => {
 												if (e.key === "Enter") {
 													e.preventDefault();
@@ -277,7 +282,7 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 											variant="secondary"
 											onClick={() => {
 												const input = document.querySelector(
-													'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+													'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
 												) as HTMLInputElement;
 												const value = input.value.trim();
 												if (value) {
@@ -292,6 +297,21 @@ export const SaveGitProviderCompose = ({ composeId }: Props) => {
 									</div>
 								</FormControl>
 								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name="enableSubmodules"
+						render={({ field }) => (
+							<FormItem className="flex items-center space-x-2">
+								<FormControl>
+									<Switch
+										checked={field.value}
+										onCheckedChange={field.onChange}
+									/>
+								</FormControl>
+								<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 							</FormItem>
 						)}
 					/>

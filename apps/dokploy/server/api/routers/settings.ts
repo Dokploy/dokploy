@@ -79,6 +79,33 @@ export const settingsRouter = createTRPCRouter({
 		await execAsync(`docker service update --force ${stdout.trim()}`);
 		return true;
 	}),
+	cleanRedis: adminProcedure.mutation(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+
+		const { stdout: containerId } = await execAsync(
+			`docker ps --filter "name=dokploy-redis" --filter "status=running" -q | head -n 1`,
+		);
+
+		if (!containerId) {
+			throw new Error("Redis container not found");
+		}
+
+		const redisContainerId = containerId.trim();
+
+		await execAsync(`docker exec -i ${redisContainerId} redis-cli flushall`);
+		return true;
+	}),
+	reloadRedis: adminProcedure.mutation(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+
+		await execAsync("docker service scale dokploy-redis=0");
+		await execAsync("docker service scale dokploy-redis=1");
+		return true;
+	}),
 	reloadTraefik: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
@@ -380,7 +407,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.query(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					const canAccess = await canAccessToTraefikFiles(
 						ctx.user.id,
 						ctx.session.activeOrganizationId,
@@ -401,7 +428,7 @@ export const settingsRouter = createTRPCRouter({
 	updateTraefikFile: protectedProcedure
 		.input(apiModifyTraefikConfig)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				const canAccess = await canAccessToTraefikFiles(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
@@ -422,7 +449,7 @@ export const settingsRouter = createTRPCRouter({
 	readTraefikFile: protectedProcedure
 		.input(apiReadTraefikConfig)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				const canAccess = await canAccessToTraefikFiles(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
@@ -432,6 +459,15 @@ export const settingsRouter = createTRPCRouter({
 					throw new TRPCError({ code: "UNAUTHORIZED" });
 				}
 			}
+
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+
 			return readConfigInPath(input.path, input.serverId);
 		}),
 	getIp: protectedProcedure.query(async ({ ctx }) => {
@@ -573,14 +609,14 @@ export const settingsRouter = createTRPCRouter({
 			},
 		})
 		.input(apiReadStatsLogs)
-		.query(({ input }) => {
+		.query(async ({ input }) => {
 			if (IS_CLOUD) {
 				return {
 					data: [],
 					totalCount: 0,
 				};
 			}
-			const rawConfig = readMonitoringConfig(
+			const rawConfig = await readMonitoringConfig(
 				!!input.dateRange?.start && !!input.dateRange?.end,
 			);
 
@@ -616,11 +652,11 @@ export const settingsRouter = createTRPCRouter({
 				})
 				.optional(),
 		)
-		.query(({ input }) => {
+		.query(async ({ input }) => {
 			if (IS_CLOUD) {
 				return [];
 			}
-			const rawConfig = readMonitoringConfig(
+			const rawConfig = await readMonitoringConfig(
 				!!input?.dateRange?.start || !!input?.dateRange?.end,
 			);
 			const processedLogs = processLogs(rawConfig as string, input?.dateRange);
@@ -798,6 +834,9 @@ export const settingsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
 			if (input.cronExpression) {
 				return startLogCleanup(input.cronExpression);
 			}
@@ -806,6 +845,14 @@ export const settingsRouter = createTRPCRouter({
 
 	getLogCleanupStatus: adminProcedure.query(async () => {
 		return getLogCleanupStatus();
+	}),
+
+	getDokployCloudIps: adminProcedure.query(async () => {
+		if (!IS_CLOUD) {
+			return [];
+		}
+		const ips = process.env.DOKPLOY_CLOUD_IPS?.split(",");
+		return ips;
 	}),
 });
 

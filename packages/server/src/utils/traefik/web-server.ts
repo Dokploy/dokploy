@@ -37,9 +37,9 @@ export const updateServerTraefik = (
 				servers: [
 					{
 						url: `http://dokploy:${process.env.PORT || 3000}`,
-						passHostHeader: true,
 					},
 				],
+				passHostHeader: true,
 			},
 		},
 	};

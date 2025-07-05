@@ -11,10 +11,10 @@ import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup"
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, scheduleBackup } from "./utils";
 
-import type { BackupSchedule } from "@dokploy/server/services/backup";
-import { startLogCleanup } from "../access-log/handler";
 import { member } from "@dokploy/server/db/schema";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { eq } from "drizzle-orm";
+import { startLogCleanup } from "../access-log/handler";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
@@ -70,6 +70,7 @@ export const initCronJobs = async () => {
 			mysql: true,
 			mongo: true,
 			user: true,
+			compose: true,
 		},
 	});
 
@@ -77,16 +78,17 @@ export const initCronJobs = async () => {
 		try {
 			if (backup.enabled) {
 				scheduleBackup(backup);
+				console.log(
+					`[Backup] ${backup.databaseType} Enabled with cron: [${backup.schedule}]`,
+				);
 			}
-			console.log(
-				`[Backup] ${backup.databaseType} Enabled with cron: [${backup.schedule}]`,
-			);
 		} catch (error) {
 			console.error(`[Backup] ${backup.databaseType} Error`, error);
 		}
 	}
 
 	if (admin?.user.logCleanupCron) {
+		console.log("Starting log requests cleanup", admin.user.logCleanupCron);
 		await startLogCleanup(admin.user.logCleanupCron);
 	}
 };

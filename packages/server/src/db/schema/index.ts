@@ -31,3 +31,6 @@ export * from "./utils";
 export * from "./preview-deployments";
 export * from "./ai";
 export * from "./account";
+export * from "./schedule";
+export * from "./rollbacks";
+export * from "./volume-backups";

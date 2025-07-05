@@ -76,7 +76,7 @@ CURRENT_USER=$USER
 
 echo "Installing requirements for: OS: $OS_TYPE"
 if [ $EUID != 0 ]; then
-	echo "Please run this script as root or with sudo ❌" 
+	echo "Please run this script as root or with sudo ❌"
 	exit
 fi
 
@@ -116,7 +116,7 @@ if [ "$OS_TYPE" = 'amzn' ]; then
 fi
 
 case "$OS_TYPE" in
-arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles | opensuse-leap | opensuse-tumbleweed | almalinux | amzn | alpine) ;;
+arch | ubuntu | debian | raspbian | centos | fedora | rhel | ol | rocky | sles | opensuse-leap | opensuse-tumbleweed | almalinux | opencloudos | amzn | alpine) ;;
 *)
 	echo "This script only supports Debian, Redhat, Arch Linux, Alpine Linux, or SLES based operating systems for now."
 	exit
@@ -263,7 +263,7 @@ const setupMainDirectory = () => `
 		# Create the /etc/dokploy directory
 		mkdir -p /etc/dokploy
 		chmod 777 /etc/dokploy
-		
+
 		echo "Directory /etc/dokploy created ✅"
 	fi
 `;
@@ -276,16 +276,16 @@ export const setupSwarm = () => `
 			# Get IP address
 			get_ip() {
 				local ip=""
-				
+
 				# Try IPv4 with multiple services
 				# First attempt: ifconfig.io
 				ip=\$(curl -4s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
-				
+
 				# Second attempt: icanhazip.com
 				if [ -z "\$ip" ]; then
 					ip=\$(curl -4s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 				fi
-				
+
 				# Third attempt: ipecho.net
 				if [ -z "\$ip" ]; then
 					ip=\$(curl -4s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
@@ -295,12 +295,12 @@ export const setupSwarm = () => `
 				if [ -z "\$ip" ]; then
 					# Try IPv6 with ifconfig.io
 					ip=\$(curl -6s --connect-timeout 5 https://ifconfig.io 2>/dev/null)
-					
+
 					# Try IPv6 with icanhazip.com
 					if [ -z "\$ip" ]; then
 						ip=\$(curl -6s --connect-timeout 5 https://icanhazip.com 2>/dev/null)
 					fi
-					
+
 					# Try IPv6 with ipecho.net
 					if [ -z "\$ip" ]; then
 						ip=\$(curl -6s --connect-timeout 5 https://ipecho.net/plain 2>/dev/null)
@@ -356,20 +356,20 @@ const installUtilities = () => `
 
 	case "$OS_TYPE" in
 	arch)
-		pacman -Sy --noconfirm --needed curl wget git jq openssl >/dev/null || true
+		pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
 		sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
 		apk update >/dev/null
-		apk add curl wget git jq openssl sudo unzip tar >/dev/null
+		apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
 		;;
 	ubuntu | debian | raspbian)
 		DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null
-		DEBIAN_FRONTEND=noninteractive apt-get install -y unzip curl wget git jq openssl >/dev/null
+		DEBIAN_FRONTEND=noninteractive apt-get install -y unzip curl wget git git-lfs jq openssl >/dev/null
 		;;
-	centos | fedora | rhel | ol | rocky | almalinux | amzn)
+	centos | fedora | rhel | ol | rocky | almalinux | opencloudos | amzn)
 		if [ "$OS_TYPE" = "amzn" ]; then
-			dnf install -y wget git jq openssl >/dev/null
+			dnf install -y wget git git-lfs jq openssl >/dev/null
 		else
 			if ! command -v dnf >/dev/null; then
 				yum install -y dnf >/dev/null
@@ -377,12 +377,12 @@ const installUtilities = () => `
 			if ! command -v curl >/dev/null; then
 				dnf install -y curl >/dev/null
 			fi
-			dnf install -y wget git jq openssl unzip >/dev/null
+			dnf install -y wget git git-lfs jq openssl unzip >/dev/null
 		fi
 		;;
 	sles | opensuse-leap | opensuse-tumbleweed)
 		zypper refresh >/dev/null
-		zypper install -y curl wget git jq openssl >/dev/null
+		zypper install -y curl wget git git-lfs jq openssl >/dev/null
 		;;
 	*)
 		echo "This script only supports Debian, Redhat, Arch Linux, or SLES based operating systems for now."
@@ -417,6 +417,28 @@ if ! [ -x "$(command -v docker)" ]; then
             fi
             systemctl start docker >/dev/null 2>&1
             systemctl enable docker >/dev/null 2>&1
+            ;;
+	"opencloudos")
+            # Special handling for OpenCloud OS
+            echo " - Installing Docker for OpenCloud OS..."
+            dnf install -y docker >/dev/null 2>&1
+            if ! [ -x "$(command -v docker)" ]; then
+                echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
+                exit 1
+            fi
+            
+            # Remove --live-restore parameter from Docker configuration if it exists
+            if [ -f "/etc/sysconfig/docker" ]; then
+                echo " - Removing --live-restore parameter from Docker configuration..."
+                sed -i 's/--live-restore[^[:space:]]*//' /etc/sysconfig/docker >/dev/null 2>&1
+                sed -i 's/--live-restore//' /etc/sysconfig/docker >/dev/null 2>&1
+                # Clean up any double spaces that might be left
+                sed -i 's/  */ /g' /etc/sysconfig/docker >/dev/null 2>&1
+            fi
+            
+            systemctl enable docker >/dev/null 2>&1
+            systemctl start docker >/dev/null 2>&1
+            echo " - Docker configured for OpenCloud OS"
             ;;
         "alpine")
             apk add docker docker-cli-compose >/dev/null 2>&1
@@ -549,7 +571,7 @@ export const createTraefikInstance = () => {
 			sleep 8
 			echo "Traefik migrated to Standalone ✅"
 		fi
-			
+
 		if docker inspect dokploy-traefik > /dev/null 2>&1; then
 			echo "Traefik already exists ✅"
 		else
@@ -577,7 +599,7 @@ const installNixpacks = () => `
 	if command_exists nixpacks; then
 		echo "Nixpacks already installed ✅"
 	else
-	    export NIXPACKS_VERSION=1.29.1
+	    export NIXPACKS_VERSION=1.39.0
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
@@ -587,7 +609,7 @@ const installRailpack = () => `
 	if command_exists railpack; then
 		echo "Railpack already installed ✅"
 	else
-	    export RAILPACK_VERSION=0.0.37
+	    export RAILPACK_VERSION=0.0.64
 		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 		echo "Railpack version $RAILPACK_VERSION installed ✅"
 	fi

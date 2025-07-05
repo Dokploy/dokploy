@@ -1,10 +1,13 @@
 import {
 	IS_CLOUD,
 	createApiKey,
+	findAdmin,
+	findNotificationById,
 	findOrganizationById,
 	findUserById,
 	getUserByToken,
 	removeUserById,
+	sendEmailNotification,
 	updateUser,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
@@ -72,6 +75,24 @@ export const userRouter = createTRPCRouter({
 				},
 			});
 
+			// If user not found in the organization, deny access
+			if (!memberResult) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "User not found in this organization",
+				});
+			}
+
+			// Allow access if:
+			// 1. User is requesting their own information
+			// 2. User has owner role (admin permissions) AND user is in the same organization
+			if (memberResult.userId !== ctx.user.id && ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this user",
+				});
+			}
+
 			return memberResult;
 		}),
 	get: protectedProcedure.query(async ({ ctx }) => {
@@ -91,6 +112,18 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult;
 	}),
+	haveRootAccess: protectedProcedure.query(async ({ ctx }) => {
+		if (!IS_CLOUD) {
+			return false;
+		}
+		if (
+			process.env.USER_ADMIN_ID === ctx.user.id ||
+			ctx.session?.impersonatedBy === process.env.USER_ADMIN_ID
+		) {
+			return true;
+		}
+		return false;
+	}),
 	getBackups: adminProcedure.query(async ({ ctx }) => {
 		const memberResult = await db.query.member.findFirst({
 			where: and(
@@ -103,6 +136,7 @@ export const userRouter = createTRPCRouter({
 						backups: {
 							with: {
 								destination: true,
+								deployments: true,
 							},
 						},
 						apiKeys: true,
@@ -348,5 +382,60 @@ export const userRouter = createTRPCRouter({
 			});
 
 			return organizations.length;
+		}),
+	sendInvitation: adminProcedure
+		.input(
+			z.object({
+				invitationId: z.string().min(1),
+				notificationId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			if (IS_CLOUD) {
+				return;
+			}
+
+			const notification = await findNotificationById(input.notificationId);
+
+			const email = notification.email;
+
+			const currentInvitation = await db.query.invitation.findFirst({
+				where: eq(invitation.id, input.invitationId),
+			});
+
+			if (!email) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Email notification not found",
+				});
+			}
+
+			const admin = await findAdmin();
+			const host =
+				process.env.NODE_ENV === "development"
+					? "http://localhost:3000"
+					: admin.user.host;
+			const inviteLink = `${host}/invitation?token=${input.invitationId}`;
+
+			const organization = await findOrganizationById(
+				ctx.session.activeOrganizationId,
+			);
+
+			try {
+				await sendEmailNotification(
+					{
+						...email,
+						toAddresses: [currentInvitation?.email || ""],
+					},
+					"Invitation to join organization",
+					`
+				<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
+					`,
+				);
+			} catch (error) {
+				console.log(error);
+				throw error;
+			}
+			return inviteLink;
 		}),
 });

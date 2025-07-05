@@ -40,68 +40,84 @@ export const sendDokployRestartNotifications = async () => {
 			const decorate = (decoration: string, text: string) =>
 				`${discord.decoration ? decoration : ""} ${text}`.trim();
 
-			await sendDiscordNotification(discord, {
-				title: decorate(">", "`✅` Dokploy Server Restarted"),
-				color: 0x57f287,
-				fields: [
-					{
-						name: decorate("`📅`", "Date"),
-						value: `<t:${unixDate}:D>`,
-						inline: true,
+			try {
+				await sendDiscordNotification(discord, {
+					title: decorate(">", "`✅` Dokploy Server Restarted"),
+					color: 0x57f287,
+					fields: [
+						{
+							name: decorate("`📅`", "Date"),
+							value: `<t:${unixDate}:D>`,
+							inline: true,
+						},
+						{
+							name: decorate("`⌚`", "Time"),
+							value: `<t:${unixDate}:t>`,
+							inline: true,
+						},
+						{
+							name: decorate("`❓`", "Type"),
+							value: "Successful",
+							inline: true,
+						},
+					],
+					timestamp: date.toISOString(),
+					footer: {
+						text: "Dokploy Restart Notification",
 					},
-					{
-						name: decorate("`⌚`", "Time"),
-						value: `<t:${unixDate}:t>`,
-						inline: true,
-					},
-					{
-						name: decorate("`❓`", "Type"),
-						value: "Successful",
-						inline: true,
-					},
-				],
-				timestamp: date.toISOString(),
-				footer: {
-					text: "Dokploy Restart Notification",
-				},
-			});
+				});
+			} catch (error) {
+				console.log(error);
+			}
 		}
 
 		if (gotify) {
 			const decorate = (decoration: string, text: string) =>
 				`${gotify.decoration ? decoration : ""} ${text}\n`;
-			await sendGotifyNotification(
-				gotify,
-				decorate("✅", "Dokploy Server Restarted"),
-				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}`,
-			);
+			try {
+				await sendGotifyNotification(
+					gotify,
+					decorate("✅", "Dokploy Server Restarted"),
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}`,
+				);
+			} catch (error) {
+				console.log(error);
+			}
 		}
 
 		if (telegram) {
-			await sendTelegramNotification(
-				telegram,
-				`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
-			);
+			try {
+				await sendTelegramNotification(
+					telegram,
+					`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+				);
+			} catch (error) {
+				console.log(error);
+			}
 		}
 
 		if (slack) {
 			const { channel } = slack;
-			await sendSlackNotification(slack, {
-				channel: channel,
-				attachments: [
-					{
-						color: "#00FF00",
-						pretext: ":white_check_mark: *Dokploy Server Restarted*",
-						fields: [
-							{
-								title: "Time",
-								value: date.toLocaleString(),
-								short: true,
-							},
-						],
-					},
-				],
-			});
+			try {
+				await sendSlackNotification(slack, {
+					channel: channel,
+					attachments: [
+						{
+							color: "#00FF00",
+							pretext: ":white_check_mark: *Dokploy Server Restarted*",
+							fields: [
+								{
+									title: "Time",
+									value: date.toLocaleString(),
+									short: true,
+								},
+							],
+						},
+					],
+				});
+			} catch (error) {
+				console.log(error);
+			}
 		}
 	}
 };

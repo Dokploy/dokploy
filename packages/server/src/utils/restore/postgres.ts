@@ -1,17 +1,15 @@
+import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
+import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getRestoreCommand } from "./utils";
 
 export const restorePostgresBackup = async (
 	postgres: Postgres,
 	destination: Destination,
-	database: string,
-	backupFile: string,
+	backupInput: z.infer<typeof apiRestoreBackup>,
 	emit: (log: string) => void,
 ) => {
 	try {
@@ -20,30 +18,30 @@ export const restorePostgresBackup = async (
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
 
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const { Id: containerName } = serverId
-			? await getRemoteServiceContainer(serverId, appName)
-			: await getServiceContainer(appName);
+		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
 		emit("Starting restore...");
 		emit(`Backup path: ${backupPath}`);
 
-		const command = `\
-rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip | docker exec -i ${containerName} pg_restore -U ${databaseUser} -d ${database} --clean --if-exists`;
+		const command = getRestoreCommand({
+			appName,
+			credentials: {
+				database: backupInput.databaseName,
+				databaseUser,
+			},
+			type: "postgres",
+			rcloneCommand,
+			restoreType: "database",
+		});
 
 		emit(`Executing command: ${command}`);
 
 		if (serverId) {
-			const { stdout, stderr } = await execAsyncRemote(serverId, command);
-			emit(stdout);
-			emit(stderr);
+			await execAsyncRemote(serverId, command);
 		} else {
-			const { stdout, stderr } = await execAsync(command);
-			console.log("stdout", stdout);
-			console.log("stderr", stderr);
-			emit(stdout);
-			emit(stderr);
+			await execAsync(command);
 		}
 
 		emit("Restore completed successfully!");

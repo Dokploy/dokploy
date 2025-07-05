@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
@@ -100,7 +101,7 @@ export const containerExists = async (containerName: string) => {
 	try {
 		await container.inspect();
 		return true;
-	} catch (_error) {
+	} catch {
 		return false;
 	}
 };
@@ -211,7 +212,7 @@ export const cleanUpDockerBuilder = async (serverId?: string) => {
 };
 
 export const cleanUpSystemPrune = async (serverId?: string) => {
-	const command = "docker system prune --all --force --volumes";
+	const command = "docker system prune --force --volumes";
 	if (serverId) {
 		await execAsyncRemote(serverId, command);
 	} else {
@@ -278,6 +279,17 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export const parseEnvironmentKeyValuePair = (
+	pair: string,
+): [string, string] => {
+	const [key, ...valueParts] = pair.split("=");
+	if (!key || !valueParts.length) {
+		throw new Error(`Invalid environment variable pair: ${pair}`);
+	}
+
+	return [key, valueParts.join("")];
+};
+
 export const getEnviromentVariablesObject = (
 	input: string | null,
 	projectEnv?: string | null,
@@ -287,7 +299,7 @@ export const getEnviromentVariablesObject = (
 	const jsonObject: Record<string, string> = {};
 
 	for (const pair of envs) {
-		const [key, value] = pair.split("=");
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
 		if (key && value) {
 			jsonObject[key] = value;
 		}
@@ -493,32 +505,9 @@ export const getCreateFileCommand = (
 	`;
 };
 
-export const getServiceContainer = async (appName: string) => {
-	try {
-		const filter = {
-			status: ["running"],
-			label: [`com.docker.swarm.service.name=${appName}`],
-		};
-
-		const containers = await docker.listContainers({
-			filters: JSON.stringify(filter),
-		});
-
-		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
-		}
-
-		const container = containers[0];
-
-		return container;
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const getRemoteServiceContainer = async (
-	serverId: string,
+export const getServiceContainer = async (
 	appName: string,
+	serverId?: string | null,
 ) => {
 	try {
 		const filter = {
@@ -531,11 +520,50 @@ export const getRemoteServiceContainer = async (
 		});
 
 		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
+			return null;
 		}
 
 		const container = containers[0];
 
+		return container;
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const getComposeContainer = async (
+	compose: Compose,
+	serviceName: string,
+) => {
+	try {
+		const { appName, composeType, serverId } = compose;
+		// 1. Determine the correct labels based on composeType
+		const labels: string[] = [];
+		if (composeType === "stack") {
+			// Labels for Docker Swarm stack services
+			labels.push(`com.docker.stack.namespace=${appName}`);
+			labels.push(`com.docker.swarm.service.name=${appName}_${serviceName}`);
+		} else {
+			// Labels for Docker Compose projects (default)
+			labels.push(`com.docker.compose.project=${appName}`);
+			labels.push(`com.docker.compose.service=${serviceName}`);
+		}
+		const filter = {
+			status: ["running"],
+			label: labels,
+		};
+
+		const remoteDocker = await getRemoteDocker(serverId);
+		const containers = await remoteDocker.listContainers({
+			filters: JSON.stringify(filter),
+			limit: 1,
+		});
+
+		if (containers.length === 0 || !containers[0]) {
+			return null;
+		}
+
+		const container = containers[0];
 		return container;
 	} catch (error) {
 		throw error;

@@ -24,10 +24,9 @@ import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
 import { server } from "./server";
-import { applicationStatus, certificateType } from "./shared";
+import { applicationStatus, certificateType, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -132,6 +131,7 @@ export const applications = pgTable("application", {
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
 	),
+	rollbackActive: boolean("rollbackActive").default(false),
 	buildArgs: text("buildArgs"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
@@ -149,6 +149,7 @@ export const applications = pgTable("application", {
 	owner: text("owner"),
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
+	triggerType: triggerType("triggerType").default("push"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Gitlab
 	gitlabProjectId: integer("gitlabProjectId"),
@@ -182,6 +183,7 @@ export const applications = pgTable("application", {
 			onDelete: "set null",
 		},
 	),
+	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	dockerfile: text("dockerfile"),
 	dockerContextPath: text("dockerContextPath"),
 	dockerBuildStage: text("dockerBuildStage"),
@@ -204,6 +206,7 @@ export const applications = pgTable("application", {
 	buildType: buildType("buildType").notNull().default("nixpacks"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
+	isStaticSpa: boolean("isStaticSpa"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -407,6 +410,7 @@ const createSchema = createInsertSchema(applications, {
 	]),
 	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
+	isStaticSpa: z.boolean().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -459,7 +463,7 @@ export const apiSaveBuildType = createSchema
 		herokuVersion: true,
 	})
 	.required()
-	.merge(createSchema.pick({ publishDirectory: true }));
+	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
 export const apiSaveGithubProvider = createSchema
 	.pick({
@@ -470,8 +474,12 @@ export const apiSaveGithubProvider = createSchema
 		buildPath: true,
 		githubId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
-	.required();
+	.required()
+	.extend({
+		triggerType: z.enum(["push", "tag"]).default("push"),
+	});
 
 export const apiSaveGitlabProvider = createSchema
 	.pick({
@@ -484,6 +492,7 @@ export const apiSaveGitlabProvider = createSchema
 		gitlabProjectId: true,
 		gitlabPathNamespace: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -496,6 +505,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketId: true,
 		applicationId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -508,6 +518,7 @@ export const apiSaveGiteaProvider = createSchema
 		giteaRepository: true,
 		giteaId: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required();
 
@@ -528,6 +539,7 @@ export const apiSaveGitProvider = createSchema
 		customGitBuildPath: true,
 		customGitUrl: true,
 		watchPaths: true,
+		enableSubmodules: true,
 	})
 	.required()
 	.merge(

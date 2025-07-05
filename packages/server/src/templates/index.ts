@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -24,12 +24,18 @@ export interface Template {
 	domains: DomainSchema[];
 }
 
+export interface GenerateJWTOptions {
+	length?: number;
+	secret?: string;
+	payload?: Record<string, unknown> | undefined;
+}
+
 export const generateRandomDomain = ({
 	serverIp,
 	projectName,
 }: Schema): string => {
 	const hash = randomBytes(3).toString("hex");
-	const slugIp = serverIp.replaceAll(".", "-");
+	const slugIp = serverIp.replaceAll(".", "-").replaceAll(":", "-");
 
 	return `${projectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
@@ -61,8 +67,48 @@ export function generateBase64(bytes = 32): string {
 	return randomBytes(bytes).toString("base64");
 }
 
-export function generateJwt(length = 256): string {
-	return randomBytes(length).toString("hex");
+function safeBase64(str: string): string {
+	return str.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function objToJWTBase64(obj: any): string {
+	return safeBase64(
+		Buffer.from(JSON.stringify(obj), "utf8").toString("base64"),
+	);
+}
+
+export function generateJwt(options: GenerateJWTOptions = {}): string {
+	let { length, secret, payload = {} } = options;
+	if (length) {
+		return randomBytes(length).toString("hex");
+	}
+	const encodedHeader = objToJWTBase64({
+		alg: "HS256",
+		typ: "JWT",
+	});
+	if (!payload.iss) {
+		payload.iss = "dokploy";
+	}
+	if (!payload.iat) {
+		payload.iat = Math.floor(Date.now() / 1000);
+	}
+	if (!payload.exp) {
+		payload.exp = Math.floor(new Date("2030-01-01T00:00:00Z").getTime() / 1000);
+	}
+	const encodedPayload = objToJWTBase64({
+		iat: Math.floor(Date.now() / 1000),
+		exp: Math.floor(new Date("2030-01-01T00:00:00Z").getTime() / 1000),
+		...payload,
+	});
+	if (!secret) {
+		secret = randomBytes(32).toString("hex");
+	}
+	const signature = safeBase64(
+		createHmac("SHA256", secret)
+			.update(`${encodedHeader}.${encodedPayload}`)
+			.digest("base64"),
+	);
+
+	return `${encodedHeader}.${encodedPayload}.${signature}`;
 }
 
 /**

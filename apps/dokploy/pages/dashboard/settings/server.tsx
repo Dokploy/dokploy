@@ -1,16 +1,16 @@
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
+import { api } from "@/utils/api";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { api } from "@/utils/api";
-import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
-import { Card } from "@/components/ui/card";
 const Page = () => {
 	const { data: user } = api.user.get.useQuery();
 	return (
@@ -20,7 +20,11 @@ const Page = () => {
 				<WebServer />
 				<div className="w-full flex flex-col gap-4">
 					<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto w-full">
-						<ShowBackups id={user?.userId ?? ""} type="web-server" />
+						<ShowBackups
+							id={user?.userId ?? ""}
+							databaseType="web-server"
+							backupType="database"
+						/>
 					</Card>
 				</div>
 			</div>

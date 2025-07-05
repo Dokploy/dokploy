@@ -5,7 +5,7 @@ export const slugify = (text: string | undefined) => {
 		return "";
 	}
 
-	const cleanedText = text.trim().replace(/[^a-zA-Z0-9\s]/g, "");
+	const cleanedText = text.trim().replace(/[^a-zA-Z0-9\s]/g, "") || "service";
 
 	return slug(cleanedText, {
 		lower: true,

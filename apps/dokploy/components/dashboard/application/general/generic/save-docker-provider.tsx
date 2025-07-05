@@ -53,7 +53,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				registryURL: data.registryUrl || "",
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.applicationId, form]);
 
 	const onSubmit = async (values: DockerProvider) => {
 		await mutateAsync({

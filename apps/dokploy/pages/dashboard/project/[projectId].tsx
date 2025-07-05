@@ -10,7 +10,7 @@ import {
 	PostgresqlIcon,
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -18,6 +18,7 @@ import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 
 import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
+import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import {
 	Card,
 	CardContent,
@@ -80,6 +81,7 @@ import {
 	Loader2,
 	PlusIcon,
 	Search,
+	ServerIcon,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -92,7 +94,6 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 
 export type Services = {
 	appName: string;
@@ -365,7 +366,9 @@ const Project = (
 
 				switch (service.type) {
 					case "application":
-						await applicationActions.start.mutateAsync({ applicationId: serviceId });
+						await applicationActions.start.mutateAsync({
+							applicationId: serviceId,
+						});
 						break;
 					case "compose":
 						await composeActions.start.mutateAsync({ composeId: serviceId });
@@ -387,7 +390,7 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (_error) {
+			} catch {
 				toast.error(`Error starting service ${serviceId}`);
 			}
 		}
@@ -410,7 +413,9 @@ const Project = (
 
 				switch (service.type) {
 					case "application":
-						await applicationActions.stop.mutateAsync({ applicationId: serviceId });
+						await applicationActions.stop.mutateAsync({
+							applicationId: serviceId,
+						});
 						break;
 					case "compose":
 						await composeActions.stop.mutateAsync({ composeId: serviceId });
@@ -432,7 +437,7 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (_error) {
+			} catch {
 				toast.error(`Error stopping service ${serviceId}`);
 			}
 		}
@@ -964,6 +969,11 @@ const Project = (
 															}}
 															className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border"
 														>
+															{service.serverId && (
+																<div className="absolute -left-1 -top-2">
+																	<ServerIcon className="size-4 text-muted-foreground" />
+																</div>
+															)}
 															<div className="absolute -right-1 -top-2">
 																<StatusTooltip status={service.status} />
 															</div>
@@ -1054,7 +1064,7 @@ const Project = (
 
 export default Project;
 Project.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
@@ -1097,7 +1107,7 @@ export async function getServerSideProps(
 					projectId: params?.projectId,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

@@ -1,5 +1,4 @@
 import type { WriteStream } from "node:fs";
-import path, { join } from "node:path";
 import type { ApplicationNested } from "../builders";
 import { spawnAsync } from "../process/spawnAsync";
 
@@ -13,19 +12,22 @@ export const uploadImage = async (
 		throw new Error("Registry not found");
 	}
 
-	const { registryUrl, imagePrefix } = registry;
+	const { registryUrl, imagePrefix, username } = registry;
 	const { appName } = application;
 	const imageName = `${appName}:latest`;
 
 	const finalURL = registryUrl;
 
-	const registryTag = path
-		.join(registryUrl, join(imagePrefix || "", imageName))
-		.replace(/\/+/g, "/");
+	// Build registry tag in correct format: registry.com/owner/image:tag
+	// For ghcr.io: ghcr.io/username/image:tag
+	// For docker.io: docker.io/username/image:tag
+	const registryTag = imagePrefix
+		? `${registryUrl}/${imagePrefix}/${imageName}`
+		: `${registryUrl}/${username}/${imageName}`;
 
 	try {
 		writeStream.write(
-			`📦 [Enabled Registry] Uploading image to ${registry.registryType} | ${imageName} | ${finalURL}\n`,
+			`📦 [Enabled Registry] Uploading image to ${registry.registryType} | ${imageName} | ${finalURL} | ${registryTag}\n`,
 		);
 		const loginCommand = spawnAsync(
 			"docker",
@@ -67,15 +69,16 @@ export const uploadImageRemoteCommand = (
 		throw new Error("Registry not found");
 	}
 
-	const { registryUrl, imagePrefix } = registry;
+	const { registryUrl, imagePrefix, username } = registry;
 	const { appName } = application;
 	const imageName = `${appName}:latest`;
 
 	const finalURL = registryUrl;
 
-	const registryTag = path
-		.join(registryUrl, join(imagePrefix || "", imageName))
-		.replace(/\/+/g, "/");
+	// Build registry tag in correct format: registry.com/owner/image:tag
+	const registryTag = imagePrefix
+		? `${registryUrl}/${imagePrefix}/${imageName}`
+		: `${registryUrl}/${username}/${imageName}`;
 
 	try {
 		const command = `

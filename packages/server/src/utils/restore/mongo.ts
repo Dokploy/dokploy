@@ -1,17 +1,15 @@
+import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mongo } from "@dokploy/server/services/mongo";
+import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getRestoreCommand } from "./utils";
 
 export const restoreMongoBackup = async (
 	mongo: Mongo,
 	destination: Destination,
-	database: string,
-	backupFile: string,
+	backupInput: z.infer<typeof apiRestoreBackup>,
 	emit: (log: string) => void,
 ) => {
 	try {
@@ -19,34 +17,30 @@ export const restoreMongoBackup = async (
 
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
+		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
 
-		const { Id: containerName } = serverId
-			? await getRemoteServiceContainer(serverId, appName)
-			: await getServiceContainer(appName);
-
-		// For MongoDB, we need to first download the backup file since mongorestore expects a directory
-		const tempDir = "/tmp/dokploy-restore";
-		const fileName = backupFile.split("/").pop() || "backup.dump.gz";
-		const decompressedName = fileName.replace(".gz", "");
-
-		const downloadCommand = `\
-rm -rf ${tempDir} && \
-mkdir -p ${tempDir} && \
-rclone copy ${rcloneFlags.join(" ")} "${backupPath}" ${tempDir} && \
-cd ${tempDir} && \
-gunzip -f "${fileName}" && \
-docker exec -i ${containerName} mongorestore --username ${databaseUser} --password ${databasePassword} --authenticationDatabase admin --db ${database} --archive < "${decompressedName}" && \
-rm -rf ${tempDir}`;
+		const command = getRestoreCommand({
+			appName,
+			type: "mongo",
+			credentials: {
+				database: backupInput.databaseName,
+				databaseUser,
+				databasePassword,
+			},
+			restoreType: "database",
+			rcloneCommand,
+			backupFile: backupInput.backupFile,
+		});
 
 		emit("Starting restore...");
 
-		emit(`Executing command: ${downloadCommand}`);
+		emit(`Executing command: ${command}`);
 
 		if (serverId) {
-			await execAsyncRemote(serverId, downloadCommand);
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(downloadCommand);
+			await execAsync(command);
 		}
 
 		emit("Restore completed successfully!");

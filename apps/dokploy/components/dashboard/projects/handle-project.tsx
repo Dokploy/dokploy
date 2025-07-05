@@ -33,12 +33,23 @@ import { z } from "zod";
 const AddProjectSchema = z.object({
 	name: z
 		.string()
-		.min(1, {
-			message: "Name is required",
-		})
-		.regex(/^[a-zA-Z]/, {
+		.min(1, "Project name is required")
+		.refine(
+			(name) => {
+				const trimmedName = name.trim();
+				const validNameRegex =
+					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
+				return validNameRegex.test(trimmedName);
+			},
+			{
+				message:
+					"Project name must start and end with a letter, number, hyphen or underscore. Spaces are allowed in between.",
+			},
+		)
+		.refine((name) => !/^\d/.test(name.trim()), {
 			message: "Project name cannot start with a number",
-		}),
+		})
+		.transform((name) => name.trim()),
 	description: z.string().optional(),
 });
 

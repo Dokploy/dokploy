@@ -11,6 +11,16 @@ export const jobQueueSchema = z.discriminatedUnion("type", [
 		type: z.literal("server"),
 		serverId: z.string(),
 	}),
+	z.object({
+		cronSchedule: z.string(),
+		type: z.literal("schedule"),
+		scheduleId: z.string(),
+	}),
+	z.object({
+		cronSchedule: z.string(),
+		type: z.literal("volume-backup"),
+		volumeBackupId: z.string(),
+	}),
 ]);
 
 export type QueueJob = z.infer<typeof jobQueueSchema>;

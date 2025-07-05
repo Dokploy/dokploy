@@ -31,6 +31,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip,
 	TooltipContent,
@@ -60,6 +61,7 @@ const GitlabProviderSchema = z.object({
 	branch: z.string().min(1, "Branch is required"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -87,6 +89,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			gitlabId: "",
 			branch: "",
 			watchPaths: [],
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GitlabProviderSchema),
 	});
@@ -136,9 +139,10 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 				composePath: data.composePath,
 				gitlabId: data.gitlabId || "",
 				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: GitlabProvider) => {
 		await mutateAsync({
@@ -153,6 +157,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 			sourceType: "gitlab",
 			composeStatus: "idle",
 			watchPaths: data.watchPaths,
+			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -448,7 +453,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 									<FormControl>
 										<div className="flex gap-2">
 											<Input
-												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -467,7 +472,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												variant="secondary"
 												onClick={() => {
 													const input = document.querySelector(
-														'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+														'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
 													) as HTMLInputElement;
 													const value = input.value.trim();
 													if (value) {
@@ -482,6 +487,21 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 										</div>
 									</FormControl>
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

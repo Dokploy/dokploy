@@ -11,9 +11,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { account, apikey, organization } from "./account";
-import { projects } from "./project";
-import { certificateType } from "./shared";
 import { backups } from "./backups";
+import { projects } from "./project";
+import { schedules } from "./schedule";
+import { certificateType } from "./shared";
+import { paths } from "@dokploy/server/constants";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -55,9 +57,11 @@ export const users_temp = pgTable("user_temp", {
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
 	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	logCleanupCron: text("logCleanupCron"),
+	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
+	role: text("role").notNull().default("user"),
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
+	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {
@@ -127,11 +131,14 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	projects: many(projects),
 	apiKeys: many(apikey),
 	backups: many(backups),
+	schedules: many(schedules),
 }));
 
 const createSchema = createInsertSchema(users_temp, {
 	id: z.string().min(1),
 	isRegistered: z.boolean().optional(),
+}).omit({
+	role: true,
 });
 
 export const apiCreateUserInvitation = createSchema.pick({}).extend({
@@ -230,7 +237,31 @@ export const apiModifyTraefikConfig = z.object({
 	serverId: z.string().optional(),
 });
 export const apiReadTraefikConfig = z.object({
-	path: z.string().min(1),
+	path: z
+		.string()
+		.min(1)
+		.refine(
+			(path) => {
+				// Prevent directory traversal attacks
+				if (path.includes("../") || path.includes("..\\")) {
+					return false;
+				}
+
+				const { MAIN_TRAEFIK_PATH } = paths();
+				if (path.startsWith("/") && !path.startsWith(MAIN_TRAEFIK_PATH)) {
+					return false;
+				}
+				// Prevent null bytes and other dangerous characters
+				if (path.includes("\0") || path.includes("\x00")) {
+					return false;
+				}
+				return true;
+			},
+			{
+				message:
+					"Invalid path: path traversal or unauthorized directory access detected",
+			},
+		),
 	serverId: z.string().optional(),
 });
 
