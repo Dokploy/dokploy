@@ -1,5 +1,5 @@
 {
-  "id": "abe187f7-21c6-47c4-9492-038e866ded60",
+  "id": "c542b201-3fe5-41bf-877d-57e19299faf0",
   "prevId": "71f68c87-ddb4-4e8c-b9fc-1db7fbcedf56",
   "version": "7",
   "dialect": "postgresql",
@@ -987,6 +987,13 @@
           "notNull": true,
           "default": false
         },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "metricsConfig": {
           "name": "metricsConfig",
           "type": "jsonb",
@@ -1209,20 +1216,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
-        },
-        "internalPath": {
-          "name": "internalPath",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'/'"
-        },
-        "stripPath": {
-          "name": "stripPath",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {},
@@ -4419,6 +4412,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'root'"
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "appName": {
           "name": "appName",
