@@ -87,7 +87,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 					Services
 				</Button>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-6xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-10xl overflow-y-auto max-h-screen"}>
 				<DialogHeader>
 					<DialogTitle>Node Applications</DialogTitle>
 					<DialogDescription>
