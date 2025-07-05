@@ -9,6 +9,7 @@ import { validateRequest } from "@dokploy/server/lib/auth";
 import { Loader2 } from "lucide-react";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
+import {getLocale, serverSideTranslations} from "@/utils/i18n";
 
 const BASE_URL = "http://localhost:3001/metrics";
 
@@ -100,6 +101,7 @@ export async function getServerSideProps(
 		};
 	}
 	const { user } = await validateRequest(ctx.req);
+	const locale = await getLocale(ctx.req.cookies);
 	if (!user) {
 		return {
 			redirect: {
@@ -110,6 +112,8 @@ export async function getServerSideProps(
 	}
 
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale, ["settings"])),
+		},
 	};
 }
