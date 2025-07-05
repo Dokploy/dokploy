@@ -694,69 +694,6 @@
       "when": 1751233265357,
       "tag": "0098_conscious_chat",
       "breakpoints": true
-    },
-    {
-      "idx": 99,
-      "version": "7",
-      "when": 1751256324670,
-      "tag": "0099_eminent_phalanx",
-      "breakpoints": true
-    },
-    {
-      "idx": 100,
-      "version": "7",
-      "when": 1751256405233,
-      "tag": "0100_living_proudstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 101,
-      "version": "7",
-      "when": 1751256432021,
-      "tag": "0101_kind_black_tom",
-      "breakpoints": true
-    },
-    {
-      "idx": 102,
-      "version": "7",
-      "when": 1751256715662,
-      "tag": "0102_lush_ink",
-      "breakpoints": true
-    },
-    {
-      "idx": 103,
-      "version": "7",
-      "when": 1751256796247,
-      "tag": "0103_mean_jimmy_woo",
-      "breakpoints": true
-    },
-    {
-      "idx": 104,
-      "version": "7",
-      "when": 1751259486912,
-      "tag": "0104_robust_nighthawk",
-      "breakpoints": true
-    },
-    {
-      "idx": 105,
-      "version": "7",
-      "when": 1751259917258,
-      "tag": "0105_unknown_firelord",
-      "breakpoints": true
-    },
-    {
-      "idx": 106,
-      "version": "7",
-      "when": 1751260111986,
-      "tag": "0106_furry_gargoyle",
-      "breakpoints": true
-    },
-    {
-      "idx": 107,
-      "version": "7",
-      "when": 1751260608863,
-      "tag": "0107_brief_the_fallen",
-      "breakpoints": true
     }
   ]
 }

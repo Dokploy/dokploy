@@ -1,1 +1,0 @@
-ALTER TABLE "volume_backup" ADD COLUMN "serviceName" text;

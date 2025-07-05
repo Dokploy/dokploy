@@ -1,1 +1,0 @@
-ALTER TABLE "volume_backup" RENAME COLUMN "schedule" TO "cronExpression";
