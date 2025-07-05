@@ -390,7 +390,7 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (_error) {
+			} catch {
 				toast.error(`Error starting service ${serviceId}`);
 			}
 		}
@@ -437,7 +437,7 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (_error) {
+			} catch {
 				toast.error(`Error stopping service ${serviceId}`);
 			}
 		}
@@ -1107,7 +1107,7 @@ export async function getServerSideProps(
 					projectId: params?.projectId,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

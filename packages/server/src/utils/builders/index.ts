@@ -203,7 +203,7 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch (_error: unknown) {
+	} catch {
 		await docker.createService(settings);
 	}
 };

@@ -121,7 +121,7 @@ export const issueCommentExists = async ({
 			comment_id: comment_id,
 		});
 		return true;
-	} catch (_error) {
+	} catch {
 		return false;
 	}
 };

@@ -66,7 +66,7 @@ export const setupMonitoring = async (serverId: string) => {
 			await container.inspect();
 			await container.remove({ force: true });
 			console.log("Removed existing container");
-		} catch (_error) {
+		} catch {
 			// Container doesn't exist, continue
 		}
 
@@ -135,7 +135,7 @@ export const setupWebMonitoring = async (userId: string) => {
 			await container.inspect();
 			await container.remove({ force: true });
 			console.log("Removed existing container");
-		} catch (_error) {}
+		} catch {}
 
 		await docker.createContainer(settings);
 		const newContainer = docker.getContainer(containerName);
