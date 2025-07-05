@@ -253,6 +253,9 @@ export const addDomainToCompose = async (
 				if (!labels.includes("traefik.docker.network=dokploy-network")) {
 					labels.unshift("traefik.docker.network=dokploy-network");
 				}
+				if (!labels.includes("traefik.swarm.network=dokploy-network")) {
+					labels.unshift("traefik.swarm.network=dokploy-network");
+				}
 			}
 		}
 
