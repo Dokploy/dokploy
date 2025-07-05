@@ -101,7 +101,7 @@ export const containerExists = async (containerName: string) => {
 	try {
 		await container.inspect();
 		return true;
-	} catch (_error) {
+	} catch {
 		return false;
 	}
 };
