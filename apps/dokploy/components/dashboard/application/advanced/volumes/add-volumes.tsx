@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,6 +170,23 @@ export const AddVolumes = ({
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-8 "
 					>
+						{type === "bind" && (
+							<AlertBlock>
+								<div className="space-y-2">
+									<p>
+										Make sure the host path is a valid path and exists in the
+										host machine.
+									</p>
+									<p className="text-sm text-muted-foreground">
+										<strong>Cluster Warning:</strong> If you're using cluster
+										features, bind mounts may cause deployment failures since
+										the path must exist on all worker/manager nodes. Consider
+										using external tools to distribute the folder across nodes
+										or use named volumes instead.
+									</p>
+								</div>
+							</AlertBlock>
+						)}
 						<FormField
 							control={form.control}
 							defaultValue={form.control._defaultValues.type}
