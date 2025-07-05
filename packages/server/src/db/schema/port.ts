@@ -6,6 +6,7 @@ import { z } from "zod";
 import { applications } from "./application";
 
 export const protocolType = pgEnum("protocolType", ["tcp", "udp"]);
+export const publishModeType = pgEnum("publishModeType", ["ingress", "host"]);
 
 export const ports = pgTable("port", {
 	portId: text("portId")
@@ -13,6 +14,7 @@ export const ports = pgTable("port", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	publishedPort: integer("publishedPort").notNull(),
+	publishMode: publishModeType("publishMode").notNull().default("host"),
 	targetPort: integer("targetPort").notNull(),
 	protocol: protocolType("protocol").notNull(),
 
@@ -32,6 +34,7 @@ const createSchema = createInsertSchema(ports, {
 	portId: z.string().min(1),
 	applicationId: z.string().min(1),
 	publishedPort: z.number(),
+	publishMode: z.enum(["ingress", "host"]).default("ingress"),
 	targetPort: z.number(),
 	protocol: z.enum(["tcp", "udp"]).default("tcp"),
 });
@@ -39,6 +42,7 @@ const createSchema = createInsertSchema(ports, {
 export const apiCreatePort = createSchema
 	.pick({
 		publishedPort: true,
+		publishMode: true,
 		targetPort: true,
 		protocol: true,
 		applicationId: true,
@@ -55,6 +59,7 @@ export const apiUpdatePort = createSchema
 	.pick({
 		portId: true,
 		publishedPort: true,
+		publishMode: true,
 		targetPort: true,
 		protocol: true,
 	})
