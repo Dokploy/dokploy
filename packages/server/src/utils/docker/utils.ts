@@ -287,7 +287,7 @@ export const parseEnvironmentKeyValuePair = (
 		throw new Error(`Invalid environment variable pair: ${pair}`);
 	}
 
-	return [key, valueParts.join("")];
+	return [key, valueParts.join("=")];
 };
 
 export const getEnviromentVariablesObject = (
