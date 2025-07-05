@@ -1,5 +1,5 @@
 {
-  "id": "218e3c9b-ef86-4665-98af-56d65282b73b",
+  "id": "5eb3edc0-af70-42ba-9209-b2ddf9c83227",
   "prevId": "69f87478-2c7c-4e43-ad98-7718bcd91259",
   "version": "7",
   "dialect": "postgresql",
@@ -986,6 +986,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "metricsConfig": {
           "name": "metricsConfig",
@@ -3281,13 +3288,6 @@
           "notNull": true,
           "default": false
         },
-        "isolatedDeploymentsVolume": {
-          "name": "isolatedDeploymentsVolume",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "triggerType": {
           "name": "triggerType",
           "type": "triggerType",
@@ -4445,6 +4445,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'root'"
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "appName": {
           "name": "appName",
