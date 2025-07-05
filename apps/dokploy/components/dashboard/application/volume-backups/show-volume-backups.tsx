@@ -76,11 +76,18 @@ export const ShowVolumeBackups = ({
 
 					<div className="flex items-center gap-2">
 						{volumeBackups && volumeBackups.length > 0 && (
-							<HandleVolumeBackups id={id} volumeBackupType={type} />
+							<>
+								<HandleVolumeBackups id={id} volumeBackupType={type} />
+
+								<div className="flex items-center gap-2">
+									<RestoreVolumeBackups
+										id={id}
+										type={type}
+										serverId={serverId}
+									/>
+								</div>
+							</>
 						)}
-						<div className="flex items-center gap-2">
-							<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
-						</div>
 					</div>
 				</div>
 			</CardHeader>
