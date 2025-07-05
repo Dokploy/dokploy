@@ -1,5 +1,5 @@
 {
-  "id": "4d928914-5268-4921-aa21-c1b087cc15cc",
+  "id": "71f68c87-ddb4-4e8c-b9fc-1db7fbcedf56",
   "prevId": "edde8c54-b715-4db6-bc3a-85d435226083",
   "version": "7",
   "dialect": "postgresql",
@@ -1209,20 +1209,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
-        },
-        "internalPath": {
-          "name": "internalPath",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'/'"
-        },
-        "stripPath": {
-          "name": "stripPath",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {},
@@ -2846,6 +2832,14 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "publishMode": {
+          "name": "publishMode",
+          "type": "publishModeType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'host'"
         },
         "targetPort": {
           "name": "targetPort",
@@ -5728,6 +5722,14 @@
       "values": [
         "tcp",
         "udp"
+      ]
+    },
+    "public.publishModeType": {
+      "name": "publishModeType",
+      "schema": "public",
+      "values": [
+        "ingress",
+        "host"
       ]
     },
     "public.applicationStatus": {

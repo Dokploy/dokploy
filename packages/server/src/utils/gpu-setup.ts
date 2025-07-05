@@ -34,7 +34,7 @@ export async function checkGPUStatus(serverId?: string): Promise<GPUInfo> {
 			...gpuInfo,
 			...cudaInfo,
 		};
-	} catch (_error) {
+	} catch {
 		return {
 			driverInstalled: false,
 			driverVersion: undefined,
@@ -315,7 +315,7 @@ const setupLocalServer = async (daemonConfig: any) => {
 
 	try {
 		await execAsync(setupCommands);
-	} catch (_error) {
+	} catch {
 		throw new Error(
 			"Failed to configure GPU support. Please ensure you have sudo privileges and try again.",
 		);
