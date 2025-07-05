@@ -10,6 +10,7 @@ export * from "./services/mysql";
 export * from "./services/backup";
 export * from "./services/cluster";
 export * from "./services/settings";
+export * from "./services/volume-backups";
 export * from "./services/docker";
 export * from "./services/destination";
 export * from "./services/deployment";
@@ -132,5 +133,6 @@ export {
 
 export * from "./utils/schedules/utils";
 export * from "./utils/schedules/index";
+export * from "./utils/volume-backups/index";
 
 export * from "./lib/logger";

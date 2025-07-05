@@ -4,6 +4,7 @@ import { ShowDeployments } from "@/components/dashboard/application/deployments/
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
+import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
@@ -57,7 +58,8 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
-	| "monitoring";
+	| "monitoring"
+	| "volumeBackups";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -214,10 +216,10 @@ const Service = (
 											className={cn(
 												"xl:grid xl:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "xl:grid-cols-9"
+													? "xl:grid-cols-10"
 													: data?.serverId
-														? "xl:grid-cols-8"
-														: "xl:grid-cols-9",
+														? "xl:grid-cols-9"
+														: "xl:grid-cols-10",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -226,6 +228,9 @@ const Service = (
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="volumeBackups">
+												Volume Backups
+											</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
@@ -255,7 +260,15 @@ const Service = (
 											<ShowSchedules id={composeId} scheduleType="compose" />
 										</div>
 									</TabsContent>
-
+									<TabsContent value="volumeBackups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowVolumeBackups
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+											/>
+										</div>
+									</TabsContent>
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col border rounded-lg ">
@@ -342,6 +355,7 @@ const Service = (
 											<ShowDomains id={composeId} type="compose" />
 										</div>
 									</TabsContent>
+
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<AddCommandCompose composeId={composeId} />
