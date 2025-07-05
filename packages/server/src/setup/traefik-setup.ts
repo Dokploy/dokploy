@@ -124,26 +124,6 @@ export const initializeTraefik = async ({
 			console.log("No existing container to remove");
 		}
 
-		try {
-			await docker.getImage(imageName).inspect();
-			console.log(`Image ${imageName} already exists locally.`);
-		} catch (error: any) {
-			if (error?.statusCode === 404) {
-				console.log(`Image ${imageName} not found, pulling...`);
-				const stream = await docker.pull(imageName);
-				await new Promise((resolve, reject) => {
-					// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-					// @ts-ignore
-					docker.modem.followProgress(stream, (err: Error, res: any) =>
-						err ? reject(err) : resolve(res),
-					);
-				});
-				console.log(`Image ${imageName} pulled successfully.`);
-			} else {
-				throw error;
-			}
-		}
-
 		// Create and start the new container
 		try {
 			await docker.createContainer(settings);
