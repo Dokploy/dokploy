@@ -246,7 +246,9 @@ const Leaf = React.forwardRef<
 					aria-hidden="true"
 				/>
 			)}
-			<p className=" text-sm whitespace-normal font-mono">{item.name}</p>
+			<p className=" text-sm whitespace-normal font-mono text-left">
+				{item.name}
+			</p>
 		</button>
 	);
 });
