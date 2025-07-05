@@ -67,6 +67,7 @@ const baseAdmin: User = {
 	image: "",
 	updatedAt: new Date(),
 	twoFactorEnabled: false,
+	buildsConcurrency: 0,
 };
 
 beforeEach(() => {
