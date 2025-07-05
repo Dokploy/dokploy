@@ -184,12 +184,6 @@ export const applicationRouter = createTRPCRouter({
 					});
 				}
 
-				if (application.serverId) {
-					await stopServiceRemote(application.serverId, input.appName);
-				} else {
-					await stopService(input.appName);
-				}
-
 				await updateApplicationStatus(input.applicationId, "idle");
 				await mechanizeDockerContainer(application);
 				await updateApplicationStatus(input.applicationId, "done");
