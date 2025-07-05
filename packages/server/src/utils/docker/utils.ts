@@ -370,53 +370,53 @@ export const generateConfigContainer = (application: ApplicationNested) => {
 		}),
 		...(restartPolicySwarm
 			? {
-				RestartPolicy: restartPolicySwarm,
-			}
+					RestartPolicy: restartPolicySwarm,
+				}
 			: {}),
 		...(placementSwarm
 			? {
-				Placement: placementSwarm,
-			}
+					Placement: placementSwarm,
+				}
 			: {
-				// if app have mounts keep manager as constraint
-				Placement: {
-					Constraints: haveMounts ? ["node.role==manager"] : [],
-				},
-			}),
+					// if app have mounts keep manager as constraint
+					Placement: {
+						Constraints: haveMounts ? ["node.role==manager"] : [],
+					},
+				}),
 		...(labelsSwarm && {
 			Labels: labelsSwarm,
 		}),
 		...(modeSwarm
 			? {
-				Mode: modeSwarm,
-			}
+					Mode: modeSwarm,
+				}
 			: {
-				// use replicas value if no modeSwarm provided
-				Mode: {
-					Replicated: {
-						Replicas: replicas,
+					// use replicas value if no modeSwarm provided
+					Mode: {
+						Replicated: {
+							Replicas: replicas,
+						},
 					},
-				},
-			}),
+				}),
 		...(rollbackConfigSwarm && {
 			RollbackConfig: rollbackConfigSwarm,
 		}),
 		...(updateConfigSwarm
 			? { UpdateConfig: updateConfigSwarm }
 			: {
-				// default config if no updateConfigSwarm provided
-				UpdateConfig: {
-					Parallelism: 1,
-					Order: "start-first",
-				},
-			}),
+					// default config if no updateConfigSwarm provided
+					UpdateConfig: {
+						Parallelism: 1,
+						Order: "start-first",
+					},
+				}),
 		...(networkSwarm
 			? {
-				Networks: networkSwarm,
-			}
+					Networks: networkSwarm,
+				}
 			: {
-				Networks: [{ Target: "dokploy-network" }],
-			}),
+					Networks: [{ Target: "dokploy-network" }],
+				}),
 	};
 };
 
