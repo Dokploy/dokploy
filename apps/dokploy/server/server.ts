@@ -75,8 +75,8 @@ void app.prepare().then(async () => {
 			try {
 				let admin:
 					| {
-						user: User;
-					}
+							user: User;
+					  }
 					| undefined;
 
 				try {
