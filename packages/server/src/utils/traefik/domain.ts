@@ -10,6 +10,7 @@ import {
 	writeTraefikConfigRemote,
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
+import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
@@ -46,6 +47,8 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 
 	config.http.services[serviceName] = createServiceConfig(appName, domain);
 
+	await createPathMiddlewares(app, domain);
+
 	if (app.serverId) {
 		await writeTraefikConfigRemote(config, appName, app.serverId);
 	} else {
@@ -80,6 +83,8 @@ export const removeDomain = async (
 		delete config.http.services[serviceKey];
 	}
 
+	await removePathMiddlewares(application, uniqueKey);
+
 	// verify if is the last router if so we delete the router
 	if (
 		config?.http?.routers &&
@@ -107,13 +112,25 @@ export const createRouterConfig = async (
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
-	const { host, path, https, uniqueConfigKey } = domain;
+	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
+		domain;
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],
 	};
+
+	// Add path rewriting middleware if needed
+	if (internalPath && internalPath !== "/" && internalPath !== path) {
+		const pathMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+		routerConfig.middlewares?.push(pathMiddleware);
+	}
+
+	if (stripPath && path && path !== "/") {
+		const stripMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+		routerConfig.middlewares?.push(stripMiddleware);
+	}
 
 	if (entryPoint === "web" && https) {
 		routerConfig.middlewares = ["redirect-to-https"];
