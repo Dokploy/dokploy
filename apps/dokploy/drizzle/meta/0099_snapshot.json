@@ -1,5 +1,5 @@
 {
-  "id": "d95fe8f9-614d-4473-82f7-f2fb716a35b1",
+  "id": "71f68c87-ddb4-4e8c-b9fc-1db7fbcedf56",
   "prevId": "edde8c54-b715-4db6-bc3a-85d435226083",
   "version": "7",
   "dialect": "postgresql",
@@ -2838,7 +2838,8 @@
           "type": "publishModeType",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "'host'"
         },
         "targetPort": {
           "name": "targetPort",

@@ -14,7 +14,7 @@ export const ports = pgTable("port", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	publishedPort: integer("publishedPort").notNull(),
-	publishMode: publishModeType("publishMode").notNull(),
+	publishMode: publishModeType("publishMode").notNull().default("host"),
 	targetPort: integer("targetPort").notNull(),
 	protocol: protocolType("protocol").notNull(),
 
