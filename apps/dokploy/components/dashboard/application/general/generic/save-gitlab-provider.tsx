@@ -278,7 +278,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 														{repositories?.map((repo) => {
 															return (
 																<CommandItem
-																	value={repo.name}
+																	value={repo.url}
 																	key={repo.url}
 																	onSelect={() => {
 																		form.setValue("repository", {
@@ -299,7 +299,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																	<CheckIcon
 																		className={cn(
 																			"ml-auto h-4 w-4",
-																			repo.name === field.value.repo
+																			repo.url ===
+																				field.value.gitlabPathNamespace
 																				? "opacity-100"
 																				: "opacity-0",
 																		)}
