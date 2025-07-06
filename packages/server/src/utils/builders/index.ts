@@ -227,7 +227,7 @@ const getImageName = (application: ApplicationNested) => {
 	return imageName;
 };
 
-const getAuthConfig = (application: ApplicationNested) => {
+export const getAuthConfig = (application: ApplicationNested) => {
 	const { registry, username, password, sourceType, registryUrl } = application;
 
 	if (sourceType === "docker") {
