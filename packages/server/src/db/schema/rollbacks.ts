@@ -6,6 +6,9 @@ import { z } from "zod";
 import { deployments } from "./deployment";
 import type { Application } from "@dokploy/server/services/application";
 import type { Project } from "@dokploy/server/services/project";
+import type { Mount } from "@dokploy/server/services/mount";
+import type { Port } from "@dokploy/server/services/port";
+import type { Registry } from "@dokploy/server/services/registry";
 
 export const rollbacks = pgTable("rollback", {
 	rollbackId: text("rollbackId")
@@ -22,7 +25,14 @@ export const rollbacks = pgTable("rollback", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	fullContext: jsonb("fullContext").$type<Application & { project: Project }>(),
+	fullContext: jsonb("fullContext").$type<
+		Application & {
+			project: Project;
+			mounts: Mount[];
+			ports: Port[];
+			registry?: Registry | null;
+		}
+	>(),
 });
 
 export type Rollback = typeof rollbacks.$inferSelect;

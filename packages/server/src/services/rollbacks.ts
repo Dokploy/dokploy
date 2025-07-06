@@ -6,13 +6,22 @@ import {
 	deployments as deploymentsSchema,
 } from "../db/schema";
 import type { z } from "zod";
-import { findApplicationById } from "./application";
+import { type Application, findApplicationById } from "./application";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
-import type { ApplicationNested } from "../utils/builders";
+import { getAuthConfig, type ApplicationNested } from "../utils/builders";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import type { CreateServiceOptions } from "dockerode";
 import { findDeploymentById } from "./deployment";
-import { prepareEnvironmentVariables } from "../utils/docker/utils";
+import {
+	prepareEnvironmentVariables,
+	calculateResources,
+	generateBindMounts,
+	generateConfigContainer,
+	generateVolumeMounts,
+} from "../utils/docker/utils";
+import type { Project } from "./project";
+import type { Mount } from "./mount";
+import type { Port } from "./port";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
@@ -152,16 +161,16 @@ export const rollback = async (rollbackId: string) => {
 
 	const application = await findApplicationById(deployment.applicationId);
 
-	const envVariables = prepareEnvironmentVariables(
-		result?.fullContext?.env || "",
-		result.fullContext?.project?.env || "",
-	);
+	if (!result.fullContext) {
+		throw new Error("Rollback context not found");
+	}
 
+	// Use the full context for rollback
 	await rollbackApplication(
 		application.appName,
 		result.image || "",
 		application.serverId,
-		envVariables,
+		result.fullContext,
 	);
 };
 
@@ -169,18 +178,94 @@ const rollbackApplication = async (
 	appName: string,
 	image: string,
 	serverId?: string | null,
-	env: string[] = [],
+	fullContext?: Application & {
+		project: Project;
+		mounts: Mount[];
+		ports: Port[];
+	},
 ) => {
+	if (!fullContext) {
+		throw new Error("Full context is required for rollback");
+	}
+
 	const docker = await getRemoteDocker(serverId);
 
+	// Use the same configuration as mechanizeDockerContainer
+	const {
+		env,
+		mounts,
+		cpuLimit,
+		memoryLimit,
+		memoryReservation,
+		cpuReservation,
+		command,
+		ports,
+	} = fullContext;
+
+	const resources = calculateResources({
+		memoryLimit,
+		memoryReservation,
+		cpuLimit,
+		cpuReservation,
+	});
+
+	const volumesMount = generateVolumeMounts(mounts);
+
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+	} = generateConfigContainer(fullContext as ApplicationNested);
+
+	const bindsMount = generateBindMounts(mounts);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		fullContext.project.env,
+	);
+
+	// For rollback, we use the provided image instead of calculating it
+	const authConfig = getAuthConfig(fullContext as ApplicationNested);
+
 	const settings: CreateServiceOptions = {
+		authconfig: authConfig,
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: image,
-				Env: env,
+				Env: envVariables,
+				Mounts: [...volumesMount, ...bindsMount],
+				...(command
+					? {
+							Command: ["/bin/sh"],
+							Args: ["-c", command],
+						}
+					: {}),
+				Labels,
+			},
+			Networks,
+			RestartPolicy,
+			Placement,
+			Resources: {
+				...resources,
 			},
 		},
+		Mode,
+		RollbackConfig,
+		EndpointSpec: {
+			Ports: ports.map((port) => ({
+				PublishMode: port.publishMode,
+				Protocol: port.protocol,
+				TargetPort: port.targetPort,
+				PublishedPort: port.publishedPort,
+			})),
+		},
+		UpdateConfig,
 	};
 
 	try {
