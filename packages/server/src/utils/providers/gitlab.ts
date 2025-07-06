@@ -253,13 +253,11 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 		const groupName = gitlabProvider.groupName?.toLowerCase();
 
 		if (groupName) {
-			const isIncluded = groupName
+			return groupName
 				.split(",")
 				.some((name) =>
 					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
 				);
-
-			return isIncluded && kind === "group";
 		}
 		return kind === "user";
 	});
