@@ -15,8 +15,8 @@ import {
 } from "@dokploy/server";
 import { type Job, Worker } from "bullmq";
 import type { DeploymentJob } from "./queue-types";
-import { redisConfig } from "./redis-connection";
 import { DEFAULT_QUEUE } from "./queueSetup";
+import { redisConfig } from "./redis-connection";
 
 // ------------------------------------------------------------------------------------------------
 // Worker management - per server instance
@@ -165,7 +165,7 @@ const createWorker = (
 // ------------------------------------------------------------------------------------------------
 
 export const createDeploymentWorker = (defaultConcurrency = 1): Worker => {
-	return createWorker("deployments", defaultConcurrency, "default");
+	return createWorker(DEFAULT_QUEUE, defaultConcurrency, DEFAULT_QUEUE);
 };
 
 export const createServerDeploymentWorker = (
