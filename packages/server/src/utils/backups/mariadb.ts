@@ -1,13 +1,13 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
+import {
+	createDeploymentBackup,
+	updateDeploymentStatus,
+} from "@dokploy/server/services/deployment";
 import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
-import {
-	createDeploymentBackup,
-	updateDeploymentStatus,
-} from "@dokploy/server/services/deployment";
 
 export const runMariadbBackup = async (
 	mariadb: Mariadb,
@@ -48,6 +48,7 @@ export const runMariadbBackup = async (
 			databaseType: "mariadb",
 			type: "success",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
@@ -60,6 +61,7 @@ export const runMariadbBackup = async (
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;

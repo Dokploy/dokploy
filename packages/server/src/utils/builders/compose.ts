@@ -190,9 +190,10 @@ const createEnvFile = (compose: ComposeNested) => {
 		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
-	let envContent = env || "";
+	let envContent = `APP_NAME=${appName}\n`;
+	envContent += env || "";
 	if (!envContent.includes("DOCKER_CONFIG")) {
-		envContent += "\nDOCKER_CONFIG=/root/.docker/config.json";
+		envContent += "\nDOCKER_CONFIG=/root/.docker";
 	}
 
 	if (compose.randomize) {
@@ -219,9 +220,10 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
 
-	let envContent = env || "";
+	let envContent = `APP_NAME=${appName}\n`;
+	envContent += env || "";
 	if (!envContent.includes("DOCKER_CONFIG")) {
-		envContent += "\nDOCKER_CONFIG=/root/.docker/config.json";
+		envContent += "\nDOCKER_CONFIG=/root/.docker";
 	}
 
 	if (compose.randomize) {

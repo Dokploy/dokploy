@@ -1,13 +1,13 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Compose } from "@dokploy/server/services/compose";
-import { findProjectById } from "@dokploy/server/services/project";
-import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path, getBackupCommand } from "./utils";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
+import { findProjectById } from "@dokploy/server/services/project";
+import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runComposeBackup = async (
 	compose: Compose,
@@ -15,7 +15,7 @@ export const runComposeBackup = async (
 ) => {
 	const { projectId, name } = compose;
 	const project = await findProjectById(projectId);
-	const { prefix } = backup;
+	const { prefix, databaseType } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.dump.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
@@ -46,9 +46,10 @@ export const runComposeBackup = async (
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
-			databaseType: "mongodb",
+			databaseType: getDatabaseType(databaseType),
 			type: "success",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -57,14 +58,31 @@ export const runComposeBackup = async (
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
-			databaseType: "mongodb",
+			databaseType: getDatabaseType(databaseType),
 			type: "error",
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
 	}
+};
+
+const getDatabaseType = (databaseType: BackupSchedule["databaseType"]) => {
+	if (databaseType === "mongo") {
+		return "mongodb";
+	}
+	if (databaseType === "postgres") {
+		return "postgres";
+	}
+	if (databaseType === "mariadb") {
+		return "mariadb";
+	}
+	if (databaseType === "mysql") {
+		return "mysql";
+	}
+	return "mongodb";
 };

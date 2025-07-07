@@ -28,9 +28,11 @@ import {
 	deleteMount,
 	findComposeById,
 	findDomainsByComposeId,
+	findGitProviderById,
 	findProjectById,
 	findServerById,
 	findUserById,
+	getComposeContainer,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
@@ -51,9 +53,9 @@ import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { dump } from "js-yaml";
-import { parse } from "toml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
+import { parse } from "toml";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
@@ -119,7 +121,45 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to access this compose",
 				});
 			}
-			return compose;
+
+			let hasGitProviderAccess = true;
+			let unauthorizedProvider: string | null = null;
+
+			const getGitProviderId = () => {
+				switch (compose.sourceType) {
+					case "github":
+						return compose.github?.gitProviderId;
+					case "gitlab":
+						return compose.gitlab?.gitProviderId;
+					case "bitbucket":
+						return compose.bitbucket?.gitProviderId;
+					case "gitea":
+						return compose.gitea?.gitProviderId;
+					default:
+						return null;
+				}
+			};
+
+			const gitProviderId = getGitProviderId();
+
+			if (gitProviderId) {
+				try {
+					const gitProvider = await findGitProviderById(gitProviderId);
+					if (gitProvider.userId !== ctx.session.userId) {
+						hasGitProviderAccess = false;
+						unauthorizedProvider = compose.sourceType;
+					}
+				} catch {
+					hasGitProviderAccess = false;
+					unauthorizedProvider = compose.sourceType;
+				}
+			}
+
+			return {
+				...compose,
+				hasGitProviderAccess,
+				unauthorizedProvider,
+			};
 		}),
 
 	update: protectedProcedure
@@ -201,6 +241,27 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			return await loadServices(input.composeId, input.type);
+		}),
+	loadMountsByService: protectedProcedure
+		.input(
+			z.object({
+				composeId: z.string().min(1),
+				serviceName: z.string().min(1),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to load this compose",
+				});
+			}
+			const container = await getComposeContainer(compose, input.serviceName);
+			const mounts = container?.Mounts.filter(
+				(mount) => mount.Type === "volume" && mount.Source !== "",
+			);
+			return mounts;
 		}),
 	fetchSourceType: protectedProcedure
 		.input(apiFindCompose)
@@ -439,7 +500,15 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			const projectName = slugify(`${project.name} ${input.id}`);
-			const generate = processTemplate(template.config, {
+			const appName = `${projectName}-${generatePassword(6)}`;
+			const config = {
+				...template.config,
+				variables: {
+					APP_NAME: appName,
+					...template.config.variables,
+				},
+			};
+			const generate = processTemplate(config, {
 				serverIp: serverIp,
 				projectName: projectName,
 			});
@@ -451,7 +520,7 @@ export const composeRouter = createTRPCRouter({
 				serverId: input.serverId,
 				name: input.id,
 				sourceType: "raw",
-				appName: `${projectName}-${generatePassword(6)}`,
+				appName: appName,
 				isolatedDeployment: true,
 			});
 
@@ -488,7 +557,7 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
-			return null;
+			return compose;
 		}),
 
 	templates: publicProcedure
@@ -517,6 +586,61 @@ export const composeRouter = createTRPCRouter({
 			const allTags = githubTemplates.flatMap((template) => template.tags);
 			const uniqueTags = _.uniq(allTags);
 			return uniqueTags;
+		}),
+	disconnectGitProvider: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to disconnect this git provider",
+				});
+			}
+
+			// Reset all git provider related fields
+			await updateCompose(input.composeId, {
+				// GitHub fields
+				repository: null,
+				branch: null,
+				owner: null,
+				composePath: undefined,
+				githubId: null,
+				triggerType: "push",
+
+				// GitLab fields
+				gitlabRepository: null,
+				gitlabOwner: null,
+				gitlabBranch: null,
+				gitlabId: null,
+				gitlabProjectId: null,
+				gitlabPathNamespace: null,
+
+				// Bitbucket fields
+				bitbucketRepository: null,
+				bitbucketOwner: null,
+				bitbucketBranch: null,
+				bitbucketId: null,
+
+				// Gitea fields
+				giteaRepository: null,
+				giteaOwner: null,
+				giteaBranch: null,
+				giteaId: null,
+
+				// Custom Git fields
+				customGitBranch: null,
+				customGitUrl: null,
+				customGitSSHKeyId: null,
+
+				// Common fields
+				sourceType: "github", // Reset to default
+				composeStatus: "idle",
+				watchPaths: null,
+				enableSubmodules: false,
+			});
+
+			return true;
 		}),
 
 	move: protectedProcedure
@@ -605,7 +729,15 @@ export const composeRouter = createTRPCRouter({
 					});
 				}
 
-				const processedTemplate = processTemplate(config, {
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: compose.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
 				});
@@ -675,7 +807,15 @@ export const composeRouter = createTRPCRouter({
 					});
 				}
 
-				const processedTemplate = processTemplate(config, {
+				const configModified = {
+					...config,
+					variables: {
+						APP_NAME: compose.appName,
+						...config.variables,
+					},
+				};
+
+				const processedTemplate = processTemplate(configModified, {
 					serverIp: serverIp,
 					projectName: compose.appName,
 				});

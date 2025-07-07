@@ -104,7 +104,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		for (const operation of cleanupOperations) {
 			try {
 				await operation();
-			} catch (_error) {}
+			} catch {}
 		}
 		return deployment[0];
 	} catch (error) {
@@ -171,7 +171,7 @@ export const createPreviewDeployment = async (
 	const runningComment = getIssueComment(
 		application.name,
 		"initializing",
-		generateDomain,
+		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
 	);
 
 	const issue = await octokit.rest.issues.createComment({

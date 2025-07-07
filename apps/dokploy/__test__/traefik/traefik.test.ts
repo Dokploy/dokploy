@@ -5,6 +5,7 @@ import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	rollbackActive: false,
 	applicationId: "",
 	herokuVersion: "",
 	giteaRepository: "",
@@ -85,6 +86,7 @@ const baseApp: ApplicationNested = {
 	ports: [],
 	projectId: "",
 	publishDirectory: null,
+	isStaticSpa: null,
 	redirects: [],
 	refreshToken: "",
 	registry: null,
@@ -117,6 +119,8 @@ const baseDomain: Domain = {
 	domainType: "application",
 	uniqueConfigKey: 1,
 	previewDeploymentId: "",
+	internalPath: "/",
+	stripPath: false,
 };
 
 const baseRedirect: Redirect = {

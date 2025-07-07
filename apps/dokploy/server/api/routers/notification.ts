@@ -446,4 +446,12 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
+	getEmailProviders: adminProcedure.query(async ({ ctx }) => {
+		return await db.query.notifications.findMany({
+			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
+			with: {
+				email: true,
+			},
+		});
+	}),
 });

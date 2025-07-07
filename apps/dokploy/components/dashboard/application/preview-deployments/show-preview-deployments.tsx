@@ -24,9 +24,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../settings/web-server/show-modal-logs";
+import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 import { AddPreviewDomain } from "./add-preview-domain";
 import { ShowPreviewSettings } from "./show-preview-settings";
-import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 
 interface Props {
 	applicationId: string;

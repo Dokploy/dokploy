@@ -1,5 +1,6 @@
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,12 +10,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import { RocketIcon, Clock, Loader2 } from "lucide-react";
+import { Clock, Loader2, RocketIcon, Settings, RefreshCcw } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
-import { Badge } from "@/components/ui/badge";
+import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { toast } from "sonner";
 
 interface Props {
 	id: string;
@@ -24,7 +27,8 @@ interface Props {
 		| "schedule"
 		| "server"
 		| "backup"
-		| "previewDeployment";
+		| "previewDeployment"
+		| "volumeBackup";
 	refreshToken?: string;
 	serverId?: string;
 }
@@ -57,6 +61,11 @@ export const ShowDeployments = ({
 			},
 		);
 
+	const { mutateAsync: rollback, isLoading: isRollingBack } =
+		api.rollback.rollback.useMutation();
+	const { mutateAsync: killProcess, isLoading: isKillingProcess } =
+		api.deployment.killProcess.useMutation();
+
 	const [url, setUrl] = React.useState("");
 	useEffect(() => {
 		setUrl(document.location.origin);
@@ -71,9 +80,18 @@ export const ShowDeployments = ({
 						See all the 10 last deployments for this {type}
 					</CardDescription>
 				</div>
-				{(type === "application" || type === "compose") && (
-					<CancelQueues id={id} type={type} />
-				)}
+				<div className="flex flex-row items-center gap-2">
+					{(type === "application" || type === "compose") && (
+						<CancelQueues id={id} type={type} />
+					)}
+					{type === "application" && (
+						<ShowRollbackSettings applicationId={id}>
+							<Button variant="outline">
+								Configure Rollbacks <Settings className="size-4" />
+							</Button>
+						</ShowRollbackSettings>
+					)}
+				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{refreshToken && (
@@ -86,7 +104,7 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<span className="break-all text-muted-foreground">
-									{`${url}/api/deploy/${refreshToken}`}
+									{`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`}
 								</span>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
@@ -154,13 +172,73 @@ export const ShowDeployments = ({
 										)}
 									</div>
 
-									<Button
-										onClick={() => {
-											setActiveLog(deployment);
-										}}
-									>
-										View
-									</Button>
+									<div className="flex flex-row items-center gap-2">
+										{deployment.pid && deployment.status === "running" && (
+											<DialogAction
+												title="Kill Process"
+												description="Are you sure you want to kill the process?"
+												type="default"
+												onClick={async () => {
+													await killProcess({
+														deploymentId: deployment.deploymentId,
+													})
+														.then(() => {
+															toast.success("Process killed successfully");
+														})
+														.catch(() => {
+															toast.error("Error killing process");
+														});
+												}}
+											>
+												<Button
+													variant="destructive"
+													size="sm"
+													isLoading={isKillingProcess}
+												>
+													Kill Process
+												</Button>
+											</DialogAction>
+										)}
+										<Button
+											onClick={() => {
+												setActiveLog(deployment);
+											}}
+										>
+											View
+										</Button>
+
+										{deployment?.rollback &&
+											deployment.status === "done" &&
+											type === "application" && (
+												<DialogAction
+													title="Rollback to this deployment"
+													description="Are you sure you want to rollback to this deployment?"
+													type="default"
+													onClick={async () => {
+														await rollback({
+															rollbackId: deployment.rollback.rollbackId,
+														})
+															.then(() => {
+																toast.success(
+																	"Rollback initiated successfully",
+																);
+															})
+															.catch(() => {
+																toast.error("Error initiating rollback");
+															});
+													}}
+												>
+													<Button
+														variant="secondary"
+														size="sm"
+														isLoading={isRollingBack}
+													>
+														<RefreshCcw className="size-4 text-primary group-hover:text-red-500" />
+														Rollback
+													</Button>
+												</DialogAction>
+											)}
+									</div>
 								</div>
 							</div>
 						))}

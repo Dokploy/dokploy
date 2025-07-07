@@ -5,16 +5,23 @@ import {
 	findBackupById,
 	findScheduleById,
 	findServerById,
+	findVolumeBackupById,
 	keepLatestNBackups,
 	runCommand,
+	runComposeBackup,
 	runMariadbBackup,
 	runMongoBackup,
 	runMySqlBackup,
 	runPostgresBackup,
-	runComposeBackup,
+	runVolumeBackup,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/dist/db";
-import { backups, schedules, server } from "@dokploy/server/dist/db/schema";
+import {
+	backups,
+	schedules,
+	server,
+	volumeBackups,
+} from "@dokploy/server/dist/db/schema";
 import { and, eq } from "drizzle-orm";
 import { logger } from "./logger.js";
 import { scheduleJob } from "./queue.js";
@@ -92,6 +99,12 @@ export const runJobs = async (job: QueueJob) => {
 			const schedule = await findScheduleById(scheduleId);
 			if (schedule.enabled) {
 				await runCommand(schedule.scheduleId);
+			}
+		} else if (job.type === "volume-backup") {
+			const { volumeBackupId } = job;
+			const volumeBackup = await findVolumeBackupById(volumeBackupId);
+			if (volumeBackup.enabled) {
+				await runVolumeBackup(volumeBackupId);
 			}
 		}
 	} catch (error) {
@@ -183,5 +196,45 @@ export const initializeJobs = async () => {
 	logger.info(
 		{ Quantity: filteredSchedulesBasedOnServerStatus.length },
 		"Schedules Initialized",
+	);
+
+	const volumeBackupsResult = await db.query.volumeBackups.findMany({
+		where: eq(volumeBackups.enabled, true),
+		with: {
+			application: {
+				with: {
+					server: true,
+				},
+			},
+			compose: {
+				with: {
+					server: true,
+				},
+			},
+		},
+	});
+
+	const filteredVolumeBackupsBasedOnServerStatus = volumeBackupsResult.filter(
+		(volumeBackup) => {
+			if (volumeBackup.application) {
+				return volumeBackup.application.server?.serverStatus === "active";
+			}
+			if (volumeBackup.compose) {
+				return volumeBackup.compose.server?.serverStatus === "active";
+			}
+		},
+	);
+
+	for (const volumeBackup of filteredVolumeBackupsBasedOnServerStatus) {
+		scheduleJob({
+			volumeBackupId: volumeBackup.volumeBackupId,
+			type: "volume-backup",
+			cronSchedule: volumeBackup.cronExpression,
+		});
+	}
+
+	logger.info(
+		{ Quantity: filteredVolumeBackupsBasedOnServerStatus.length },
+		"Volume Backups Initialized",
 	);
 };

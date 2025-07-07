@@ -71,8 +71,8 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 			isolatedDeployment: formData?.isolatedDeployment || false,
 		})
 			.then(async (_data) => {
-				randomizeCompose();
-				refetch();
+				await randomizeCompose();
+				await refetch();
 				toast.success("Compose updated");
 			})
 			.catch(() => {
@@ -84,15 +84,10 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			suffix: data?.appName || "",
-		})
-			.then(async (data) => {
-				await utils.project.all.invalidate();
-				setCompose(data);
-				toast.success("Compose Isolated");
-			})
-			.catch(() => {
-				toast.error("Error isolating the compose");
-			});
+		}).then(async (data) => {
+			await utils.project.all.invalidate();
+			setCompose(data);
+		});
 	};
 
 	return (

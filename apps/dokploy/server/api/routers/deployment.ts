@@ -1,3 +1,4 @@
+import { db } from "@/server/db";
 import {
 	apiFindAllByApplication,
 	apiFindAllByCompose,
@@ -6,17 +7,21 @@ import {
 	deployments,
 } from "@/server/db/schema";
 import {
+	execAsync,
+	execAsyncRemote,
 	findAllDeploymentsByApplicationId,
 	findAllDeploymentsByComposeId,
 	findAllDeploymentsByServerId,
 	findApplicationById,
 	findComposeById,
+	findDeploymentById,
 	findServerById,
+	updateDeploymentStatus,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { db } from "@/server/db";
+import { z } from "zod";
 
 export const deploymentRouter = createTRPCRouter({
 	all: protectedProcedure
@@ -65,7 +70,37 @@ export const deploymentRouter = createTRPCRouter({
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
+				with: {
+					rollback: true,
+				},
 			});
+
 			return deploymentsList;
+		}),
+
+	killProcess: protectedProcedure
+		.input(
+			z.object({
+				deploymentId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const deployment = await findDeploymentById(input.deploymentId);
+
+			if (!deployment.pid) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Deployment is not running",
+				});
+			}
+
+			const command = `kill -9 ${deployment.pid}`;
+			if (deployment.schedule?.serverId) {
+				await execAsyncRemote(deployment.schedule.serverId, command);
+			} else {
+				await execAsync(command);
+			}
+
+			await updateDeploymentStatus(deployment.deploymentId, "error");
 		}),
 });

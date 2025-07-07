@@ -242,3 +242,8 @@
 	background-color: var(--terminal-paste) !important;
 	color: currentColor !important;
 }
+
+.cm-content,
+.cm-lineWrapping {
+	@apply font-mono;
+}

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20.9-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -29,7 +30,7 @@ WORKDIR /app
 # Set production
 ENV NODE_ENV=production
 
-RUN apt-get update && apt-get install -y curl unzip zip apache2-utils iproute2 rsync && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl unzip zip apache2-utils iproute2 rsync git-lfs && git lfs install && rm -rf /var/lib/apt/lists/*
 
 # Copy only the necessary files
 COPY --from=build /prod/dokploy/.next ./.next
@@ -49,7 +50,7 @@ RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm
 # Install Nixpacks and tsx
 # | VERBOSE=1 VERSION=1.21.0 bash
 
-ARG NIXPACKS_VERSION=1.35.0
+ARG NIXPACKS_VERSION=1.39.0
 RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
     && chmod +x install.sh \
     && ./install.sh \

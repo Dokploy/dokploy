@@ -12,6 +12,7 @@ import {
 	initializeNetwork,
 	initializeSwarm,
 } from "@dokploy/server/setup/setup";
+import { execAsync } from "@dokploy/server";
 (async () => {
 	try {
 		setupDirectories();
@@ -20,6 +21,7 @@ import {
 		await initializeNetwork();
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
+		await execAsync("docker pull traefik:v3.1.2");
 		await initializeTraefik();
 		await initializeRedis();
 		await initializePostgres();

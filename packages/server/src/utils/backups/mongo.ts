@@ -1,13 +1,13 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
+import {
+	createDeploymentBackup,
+	updateDeploymentStatus,
+} from "@dokploy/server/services/deployment";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
-import {
-	createDeploymentBackup,
-	updateDeploymentStatus,
-} from "@dokploy/server/services/deployment";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { projectId, name } = mongo;
@@ -46,6 +46,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			databaseType: "mongodb",
 			type: "success",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
@@ -58,6 +59,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;

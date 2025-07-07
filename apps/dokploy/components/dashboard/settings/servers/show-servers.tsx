@@ -40,10 +40,10 @@ import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
+import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
-import { ShowSchedulesModal } from "./show-schedules-modal";
 
 export const ShowServers = () => {
 	const { t } = useTranslation("settings");
@@ -141,7 +141,7 @@ export const ShowServers = () => {
 													</TableCaption>
 													<TableHeader>
 														<TableRow>
-															<TableHead className="w-[100px]">Name</TableHead>
+															<TableHead className="text-left">Name</TableHead>
 															{isCloud && (
 																<TableHead className="text-center">
 																	Status
@@ -173,7 +173,7 @@ export const ShowServers = () => {
 															const isActive = server.serverStatus === "active";
 															return (
 																<TableRow key={server.serverId}>
-																	<TableCell className="w-[100px]">
+																	<TableCell className="text-left">
 																		{server.name}
 																	</TableCell>
 																	{isCloud && (

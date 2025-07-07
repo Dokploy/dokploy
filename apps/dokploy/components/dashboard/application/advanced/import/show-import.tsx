@@ -107,7 +107,7 @@ export const ShowImport = ({ composeId }: Props) => {
 				composeId,
 			});
 			setShowModal(false);
-		} catch (_error) {
+		} catch {
 			toast.error("Error importing template");
 		}
 	};
@@ -126,7 +126,7 @@ export const ShowImport = ({ composeId }: Props) => {
 			});
 			setTemplateInfo(result);
 			setShowModal(true);
-		} catch (_error) {
+		} catch {
 			toast.error("Error processing template");
 		}
 	};
@@ -263,7 +263,7 @@ export const ShowImport = ({ composeId }: Props) => {
 														{templateInfo.template.envs.map((env, index) => (
 															<div
 																key={index}
-																className="rounded-lg border bg-card p-2 font-mono text-sm"
+																className="rounded-lg truncate border bg-card p-2 font-mono text-sm"
 															>
 																{env}
 															</div>
@@ -328,7 +328,7 @@ export const ShowImport = ({ composeId }: Props) => {
 						<DialogDescription>Mount File Content</DialogDescription>
 					</DialogHeader>
 
-					<ScrollArea className="h-[25vh] pr-4">
+					<ScrollArea className="h-[45vh] pr-4">
 						<CodeEditor
 							language="yaml"
 							value={selectedMount?.content || ""}

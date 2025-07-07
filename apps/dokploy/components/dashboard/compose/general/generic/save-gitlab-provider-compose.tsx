@@ -142,7 +142,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: GitlabProvider) => {
 		await mutateAsync({
@@ -280,7 +280,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 														{repositories?.map((repo) => {
 															return (
 																<CommandItem
-																	value={repo.name}
+																	value={repo.url}
 																	key={repo.url}
 																	onSelect={() => {
 																		form.setValue("repository", {
@@ -301,7 +301,8 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 																	<CheckIcon
 																		className={cn(
 																			"ml-auto h-4 w-4",
-																			repo.name === field.value.repo
+																			repo.url ===
+																				field.value.gitlabPathNamespace
 																				? "opacity-100"
 																				: "opacity-0",
 																		)}
@@ -453,7 +454,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 									<FormControl>
 										<div className="flex gap-2">
 											<Input
-												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -472,7 +473,7 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 												variant="secondary"
 												onClick={() => {
 													const input = document.querySelector(
-														'input[placeholder="Enter a path to watch (e.g., src/*, dist/*)"]',
+														'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
 													) as HTMLInputElement;
 													const value = input.value.trim();
 													if (value) {

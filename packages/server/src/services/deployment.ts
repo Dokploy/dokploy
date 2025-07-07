@@ -9,6 +9,7 @@ import {
 	type apiCreateDeploymentPreview,
 	type apiCreateDeploymentSchedule,
 	type apiCreateDeploymentServer,
+	type apiCreateDeploymentVolumeBackup,
 	deployments,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
@@ -24,30 +25,47 @@ import { type Compose, findComposeById, updateCompose } from "./compose";
 import { type Server, findServerById } from "./server";
 
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import { findBackupById } from "./backup";
 import {
 	type PreviewDeployment,
 	findPreviewDeploymentById,
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { findScheduleById } from "./schedule";
-import { findBackupById } from "./backup";
+import { removeRollbackById } from "./rollbacks";
+import { findVolumeBackupById } from "./volume-backups";
 
 export type Deployment = typeof deployments.$inferSelect;
 
-export const findDeploymentById = async (applicationId: string) => {
-	const application = await db.query.deployments.findFirst({
-		where: eq(deployments.applicationId, applicationId),
+export const findDeploymentById = async (deploymentId: string) => {
+	const deployment = await db.query.deployments.findFirst({
+		where: eq(deployments.deploymentId, deploymentId),
 		with: {
 			application: true,
+			schedule: true,
 		},
 	});
-	if (!application) {
+	if (!deployment) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Deployment not found",
 		});
 	}
-	return application;
+	return deployment;
+};
+
+export const findDeploymentByApplicationId = async (applicationId: string) => {
+	const deployment = await db.query.deployments.findFirst({
+		where: eq(deployments.applicationId, applicationId),
+	});
+
+	if (!deployment) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Deployment not found",
+		});
+	}
+	return deployment;
 };
 
 export const createDeployment = async (
@@ -442,6 +460,91 @@ export const createDeploymentSchedule = async (
 	}
 };
 
+export const createDeploymentVolumeBackup = async (
+	deployment: Omit<
+		typeof apiCreateDeploymentVolumeBackup._type,
+		"deploymentId" | "createdAt" | "status" | "logPath"
+	>,
+) => {
+	const volumeBackup = await findVolumeBackupById(deployment.volumeBackupId);
+
+	try {
+		const serverId =
+			volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
+		await removeLastTenDeployments(
+			deployment.volumeBackupId,
+			"volumeBackup",
+			serverId,
+		);
+		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
+		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
+		const fileName = `${volumeBackup.appName}-${formattedDateTime}.log`;
+		const logFilePath = path.join(
+			VOLUME_BACKUPS_PATH,
+			volumeBackup.appName,
+			fileName,
+		);
+
+		if (serverId) {
+			const server = await findServerById(serverId);
+
+			const command = `
+				mkdir -p ${VOLUME_BACKUPS_PATH}/${volumeBackup.appName};
+            	echo "Initializing volume backup" >> ${logFilePath};
+			`;
+
+			await execAsyncRemote(server.serverId, command);
+		} else {
+			await fsPromises.mkdir(
+				path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName),
+				{
+					recursive: true,
+				},
+			);
+			await fsPromises.writeFile(logFilePath, "Initializing volume backup\n");
+		}
+
+		const deploymentCreate = await db
+			.insert(deployments)
+			.values({
+				volumeBackupId: deployment.volumeBackupId,
+				title: deployment.title || "Deployment",
+				status: "running",
+				logPath: logFilePath,
+				description: deployment.description || "",
+				startedAt: new Date().toISOString(),
+			})
+			.returning();
+		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the deployment",
+			});
+		}
+		return deploymentCreate[0];
+	} catch (error) {
+		console.log(error);
+		await db
+			.insert(deployments)
+			.values({
+				volumeBackupId: deployment.volumeBackupId,
+				title: deployment.title || "Deployment",
+				status: "error",
+				logPath: "",
+				description: deployment.description || "",
+				errorMessage: `An error have occured: ${error instanceof Error ? error.message : error}`,
+				startedAt: new Date().toISOString(),
+				finishedAt: new Date().toISOString(),
+			})
+			.returning();
+
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error creating the deployment",
+		});
+	}
+};
+
 export const removeDeployment = async (deploymentId: string) => {
 	try {
 		const deployment = await db
@@ -476,11 +579,15 @@ const getDeploymentsByType = async (
 		| "server"
 		| "schedule"
 		| "previewDeployment"
-		| "backup",
+		| "backup"
+		| "volumeBackup",
 ) => {
 	const deploymentList = await db.query.deployments.findMany({
 		where: eq(deployments[`${type}Id`], id),
 		orderBy: desc(deployments.createdAt),
+		with: {
+			rollback: true,
+		},
 	});
 	return deploymentList;
 };
@@ -505,7 +612,8 @@ const removeLastTenDeployments = async (
 		| "server"
 		| "schedule"
 		| "previewDeployment"
-		| "backup",
+		| "backup"
+		| "volumeBackup",
 	serverId?: string | null,
 ) => {
 	const deploymentList = await getDeploymentsByType(id, type);
@@ -515,18 +623,30 @@ const removeLastTenDeployments = async (
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
+				if (oldDeployment.rollbackId) {
+					await removeRollbackById(oldDeployment.rollbackId);
+				}
 
-				command += `
-				rm -rf ${logPath};
-				`;
+				if (logPath !== ".") {
+					command += `
+					rm -rf ${logPath};
+					`;
+				}
 				await removeDeployment(oldDeployment.deploymentId);
 			}
 
 			await execAsyncRemote(serverId, command);
 		} else {
 			for (const oldDeployment of deploymentsToDelete) {
+				if (oldDeployment.rollbackId) {
+					await removeRollbackById(oldDeployment.rollbackId);
+				}
 				const logPath = path.join(oldDeployment.logPath);
-				if (existsSync(logPath)) {
+				if (
+					existsSync(logPath) &&
+					!oldDeployment.errorMessage &&
+					logPath !== "."
+				) {
 					await fsPromises.unlink(logPath);
 				}
 				await removeDeployment(oldDeployment.deploymentId);
