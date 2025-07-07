@@ -2,6 +2,7 @@ import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-no
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
@@ -24,6 +25,7 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	const { req, res } = ctx;
 	if (IS_CLOUD) {
 		return {
@@ -58,6 +60,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["common", "settings"])),
 		},
 	};
 }

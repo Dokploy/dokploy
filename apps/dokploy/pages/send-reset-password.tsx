@@ -13,9 +13,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
@@ -23,25 +25,13 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const loginSchema = z.object({
-	email: z
-		.string()
-		.min(1, {
-			message: "Email is required",
-		})
-		.email({
-			message: "Email must be a valid email",
-		}),
-});
-
-type Login = z.infer<typeof loginSchema>;
-
 type AuthResponse = {
 	is2FAEnabled: boolean;
 	authId: string;
 };
 
 export default function Home() {
+	const { t } = useTranslation("send-reset-password");
 	const [temp, _setTemp] = useState<AuthResponse>({
 		is2FAEnabled: false,
 		authId: "",
@@ -50,6 +40,20 @@ export default function Home() {
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const _router = useRouter();
+
+	const loginSchema = z.object({
+		email: z
+			.string()
+			.min(1, {
+				message: t("sendResetPassword.emailRequired"),
+			})
+			.email({
+				message: t("sendResetPassword.emailInvalid"),
+			}),
+	});
+
+	type Login = z.infer<typeof loginSchema>;
+
 	const form = useForm<Login>({
 		defaultValues: {
 			email: "",
@@ -68,10 +72,10 @@ export default function Home() {
 			redirectTo: "/reset-password",
 		});
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("sendResetPassword.errorOccurred"));
 			setIsLoading(false);
 		} else {
-			toast.success("Email sent", {
+			toast.success(t("sendResetPassword.emailSent"), {
 				duration: 2000,
 			});
 		}
@@ -82,12 +86,14 @@ export default function Home() {
 			<div className="flex flex-col items-center gap-4 w-full">
 				<Link href="/" className="flex flex-row items-center gap-2">
 					<Logo />
-					<span className="font-medium text-sm">Dokploy</span>
+					<span className="font-medium text-sm">
+						{t("sendResetPassword.brand")}
+					</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
-				<CardDescription>
-					Enter your email to reset your password
-				</CardDescription>
+				<CardTitle className="text-2xl font-bold">
+					{t("sendResetPassword.title")}
+				</CardTitle>
+				<CardDescription>{t("sendResetPassword.subtitle")}</CardDescription>
 
 				<div className="mx-auto w-full max-w-lg bg-transparent ">
 					<CardContent className="p-0">
@@ -108,9 +114,14 @@ export default function Home() {
 											name="email"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Email</FormLabel>
+													<FormLabel>{t("sendResetPassword.email")}</FormLabel>
 													<FormControl>
-														<Input placeholder="Email" {...field} />
+														<Input
+															placeholder={t(
+																"sendResetPassword.emailPlaceholder",
+															)}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -122,7 +133,7 @@ export default function Home() {
 											isLoading={isLoading}
 											className="w-full"
 										>
-											Send Reset Link
+											{t("sendResetPassword.sendResetLink")}
 										</Button>
 									</div>
 								</form>
@@ -135,7 +146,7 @@ export default function Home() {
 									className="hover:underline text-muted-foreground"
 									href="/"
 								>
-									Login
+									{t("sendResetPassword.login")}
 								</Link>
 							</div>
 						</div>
@@ -149,7 +160,9 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
+
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
+	const locale = getLocale(_context.req.cookies);
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
@@ -160,6 +173,11 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 	}
 
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale, [
+				"common",
+				"send-reset-password",
+			])),
+		},
 	};
 }
