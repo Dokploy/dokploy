@@ -10,15 +10,17 @@ import { cn } from "@/lib/utils";
 import { Command as CommandPrimitive } from "cmdk";
 import { debounce } from "lodash";
 import { CheckIcon, Hash } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import React, { useCallback, useRef } from "react";
 
-const lineCountOptions = [
-	{ label: "100 lines", value: 100 },
-	{ label: "300 lines", value: 300 },
-	{ label: "500 lines", value: 500 },
-	{ label: "1000 lines", value: 1000 },
-	{ label: "5000 lines", value: 5000 },
-] as const;
+const createLineCountOptions = (t: TFunction) =>
+	[
+		{ label: t("dashboard.docker.logs.nbLines", { count: 100 }), value: 100 },
+		{ label: t("dashboard.docker.logs.nbLines", { count: 300 }), value: 300 },
+		{ label: t("dashboard.docker.logs.nbLines", { count: 500 }), value: 500 },
+		{ label: t("dashboard.docker.logs.nbLines", { count: 1000 }), value: 1000 },
+		{ label: t("dashboard.docker.logs.nbLines", { count: 5000 }), value: 5000 },
+	] as const;
 
 interface LineCountFilterProps {
 	value: number;
@@ -29,8 +31,12 @@ interface LineCountFilterProps {
 export function LineCountFilter({
 	value,
 	onValueChange,
-	title = "Limit to",
+	title,
 }: LineCountFilterProps) {
+	const { t } = useTranslation("dashboard");
+	const lineCountOptions = createLineCountOptions(t);
+	const defaultTitle = t("dashboard.docker.logs.limitTo");
+
 	const [open, setOpen] = React.useState(false);
 	const [inputValue, setInputValue] = React.useState("");
 	const pendingValueRef = useRef<number | null>(null);
@@ -92,7 +98,7 @@ export function LineCountFilter({
 
 	const displayValue = isPresetValue
 		? lineCountOptions.find((option) => option.value === value)?.label
-		: `${value} lines`;
+		: t("dashboard.docker.logs.lineCount.customLines", { count: value });
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -102,7 +108,7 @@ export function LineCountFilter({
 					size="sm"
 					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
 				>
-					{title}
+					{title || defaultTitle}
 					<Separator orientation="vertical" className="mx-2 h-4" />
 					<div className="space-x-1 flex">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
@@ -116,7 +122,7 @@ export function LineCountFilter({
 					<div className="flex items-center border-b px-3">
 						<Hash className="mr-2 h-4 w-4 shrink-0 opacity-50" />
 						<CommandPrimitive.Input
-							placeholder="Number of lines"
+							placeholder={t("dashboard.docker.logs.numberOfLines")}
 							value={inputValue}
 							onValueChange={handleInputChange}
 							className="flex h-9 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
