@@ -21,6 +21,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import jsyaml from "js-yaml";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -58,6 +59,7 @@ export const validateAndFormatYAML = (yamlText: string) => {
 };
 
 export const UpdateTraefikConfig = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [open, setOpen] = useState(false);
 	const { data, refetch } = api.application.readTraefikConfig.useQuery(
 		{
@@ -89,7 +91,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		if (!valid) {
 			form.setError("traefikConfig", {
 				type: "manual",
-				message: error || "Invalid YAML",
+				message: error || t("dashboard.traefik.invalidYAML"),
 			});
 			return;
 		}
@@ -99,13 +101,13 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			traefikConfig: data.traefikConfig,
 		})
 			.then(async () => {
-				toast.success("Traefik config Updated");
+				toast.success(t("dashboard.traefik.traefikConfigUpdated"));
 				refetch();
 				setOpen(false);
 				form.reset();
 			})
 			.catch(() => {
-				toast.error("Error updating the Traefik config");
+				toast.error(t("dashboard.traefik.errorUpdatingTraefikConfig"));
 			});
 	};
 
@@ -120,12 +122,16 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			}}
 		>
 			<DialogTrigger asChild>
-				<Button isLoading={isLoading}>Modify</Button>
+				<Button isLoading={isLoading}>{t("dashboard.traefik.modify")}</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update traefik config</DialogTitle>
-					<DialogDescription>Update the traefik config</DialogDescription>
+					<DialogTitle>
+						{t("dashboard.traefik.updateTraefikConfig")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("dashboard.traefik.updateTraefikConfigDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -141,21 +147,16 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 								name="traefikConfig"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Traefik config</FormLabel>
+										<FormLabel>
+											{t("dashboard.traefik.traefikConfig")}
+										</FormLabel>
 										<FormControl>
 											<CodeEditor
 												lineWrapping
 												wrapperClassName="h-[35rem] font-mono"
-												placeholder={`http:
-routers:
-    router-name:
-        rule: Host('domain.com')
-        service: container-name
-        entryPoints:
-            - web
-        tls: false
-        middlewares: []
-                                                    `}
+												placeholder={t(
+													"dashboard.traefik.traefikConfigPlaceholder",
+												)}
 												{...field}
 											/>
 										</FormControl>
@@ -175,7 +176,7 @@ routers:
 							form="hook-form-update-traefik-config"
 							type="submit"
 						>
-							Update
+							{t("dashboard.traefik.update")}
 						</Button>
 					</DialogFooter>
 				</Form>

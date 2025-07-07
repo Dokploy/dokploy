@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -76,6 +77,7 @@ export const UpdateVolume = ({
 	refetch,
 	serviceType,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [isOpen, setIsOpen] = useState(false);
 	const _utils = api.useUtils();
 	const { data } = api.mounts.one.useQuery(
@@ -135,11 +137,11 @@ export const UpdateVolume = ({
 				mountId,
 			})
 				.then(() => {
-					toast.success("Mount Update");
+					toast.success(t("dashboard.volumes.mountUpdated"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error updating the Bind mount");
+					toast.error(t("dashboard.volumes.errorUpdatingBindMount"));
 				});
 		} else if (data.type === "volume") {
 			await mutateAsync({
@@ -149,11 +151,11 @@ export const UpdateVolume = ({
 				mountId,
 			})
 				.then(() => {
-					toast.success("Mount Update");
+					toast.success(t("dashboard.volumes.mountUpdated"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error updating the Volume mount");
+					toast.error(t("dashboard.volumes.errorUpdatingVolumeMount"));
 				});
 		} else if (data.type === "file") {
 			await mutateAsync({
@@ -164,11 +166,11 @@ export const UpdateVolume = ({
 				mountId,
 			})
 				.then(() => {
-					toast.success("Mount Update");
+					toast.success(t("dashboard.volumes.mountUpdated"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error updating the File mount");
+					toast.error(t("dashboard.volumes.errorUpdatingFileMount"));
 				});
 		}
 		refetch();
@@ -188,13 +190,15 @@ export const UpdateVolume = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>Update</DialogTitle>
-					<DialogDescription>Update the mount</DialogDescription>
+					<DialogTitle>{t("dashboard.volumes.update")}</DialogTitle>
+					<DialogDescription>
+						{t("dashboard.volumes.updateMount")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				{type === "file" && (
 					<AlertBlock type="warning">
-						Updating the mount will recreate the file or directory.
+						{t("dashboard.volumes.fileUpdateWarning")}
 					</AlertBlock>
 				)}
 
@@ -211,9 +215,14 @@ export const UpdateVolume = ({
 									name="hostPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Host Path</FormLabel>
+											<FormLabel>{t("dashboard.volumes.hostPath")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Host Path" {...field} />
+												<Input
+													placeholder={t(
+														"dashboard.volumes.hostPathPlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -227,10 +236,12 @@ export const UpdateVolume = ({
 									name="volumeName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Volume Name</FormLabel>
+											<FormLabel>{t("dashboard.volumes.volumeName")}</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Volume Name"
+													placeholder={t(
+														"dashboard.volumes.volumeNamePlaceholder",
+													)}
 													{...field}
 													value={field.value || ""}
 												/>
@@ -248,14 +259,14 @@ export const UpdateVolume = ({
 										name="content"
 										render={({ field }) => (
 											<FormItem className="max-w-full max-w-[45rem]">
-												<FormLabel>Content</FormLabel>
+												<FormLabel>{t("dashboard.volumes.content")}</FormLabel>
 												<FormControl>
 													<FormControl>
 														<CodeEditor
 															language="properties"
-															placeholder={`NODE_ENV=production
-PORT=3000
-`}
+															placeholder={t(
+																"dashboard.volumes.contentPlaceholder",
+															)}
 															className="h-96 font-mono w-full"
 															{...field}
 														/>
@@ -271,11 +282,13 @@ PORT=3000
 										name="filePath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>File Path</FormLabel>
+												<FormLabel>{t("dashboard.volumes.filePath")}</FormLabel>
 												<FormControl>
 													<Input
 														disabled
-														placeholder="Name of the file"
+														placeholder={t(
+															"dashboard.volumes.filePathPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -291,9 +304,14 @@ PORT=3000
 									name="mountPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Mount Path (In the container)</FormLabel>
+											<FormLabel>{t("dashboard.volumes.mountPath")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Mount Path" {...field} />
+												<Input
+													placeholder={t(
+														"dashboard.volumes.mountPathPlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -308,7 +326,7 @@ PORT=3000
 								// form="hook-form-update-volume"
 								type="submit"
 							>
-								Update
+								{t("dashboard.volumes.update")}
 							</Button>
 						</DialogFooter>
 					</form>

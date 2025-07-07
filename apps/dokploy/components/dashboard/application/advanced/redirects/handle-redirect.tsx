@@ -32,6 +32,7 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -86,6 +87,7 @@ export const HandleRedirect = ({
 	redirectId,
 	children = <PlusIcon className="w-4 h-4" />,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [isOpen, setIsOpen] = useState(false);
 	const [presetSelected, setPresetSelected] = useState("");
 
@@ -128,7 +130,11 @@ export const HandleRedirect = ({
 			redirectId: redirectId || "",
 		})
 			.then(async () => {
-				toast.success(redirectId ? "Redirect Updated" : "Redirect Created");
+				toast.success(
+					redirectId
+						? t("dashboard.redirects.redirectUpdated")
+						: t("dashboard.redirects.redirectCreated"),
+				);
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -141,8 +147,8 @@ export const HandleRedirect = ({
 			.catch(() => {
 				toast.error(
 					redirectId
-						? "Error updating the redirect"
-						: "Error creating the redirect",
+						? t("dashboard.redirects.errorUpdatingRedirect")
+						: t("dashboard.redirects.errorCreatingRedirect"),
 				);
 			});
 	};
@@ -181,23 +187,25 @@ export const HandleRedirect = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Redirects</DialogTitle>
+					<DialogTitle>{t("dashboard.redirects.redirects")}</DialogTitle>
 					<DialogDescription>
-						Redirects are used to redirect requests to another url.
+						{t("dashboard.redirects.redirectsDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<div className="md:col-span-2">
-					<Label>Presets</Label>
+					<Label>{t("dashboard.redirects.presets")}</Label>
 					<Select onValueChange={onPresetSelect} value={presetSelected}>
 						<SelectTrigger>
-							<SelectValue placeholder="No preset selected" />
+							<SelectValue
+								placeholder={t("dashboard.redirects.noPresetSelected")}
+							/>
 						</SelectTrigger>
 						<SelectContent>
 							{redirectPresets.map((preset) => (
 								<SelectItem key={preset.label} value={preset.id}>
-									{preset.label}
+									{t(`dashboard.redirects.presets.${preset.id}`)}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -218,9 +226,12 @@ export const HandleRedirect = ({
 								name="regex"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Regex</FormLabel>
+										<FormLabel>{t("dashboard.redirects.regex")}</FormLabel>
 										<FormControl>
-											<Input placeholder="^http://localhost/(.*)" {...field} />
+											<Input
+												placeholder={t("dashboard.redirects.regexPlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -232,9 +243,16 @@ export const HandleRedirect = ({
 								name="replacement"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Replacement</FormLabel>
+										<FormLabel>
+											{t("dashboard.redirects.replacement")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="http://mydomain/$${1}" {...field} />
+											<Input
+												placeholder={t(
+													"dashboard.redirects.replacementPlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -248,10 +266,11 @@ export const HandleRedirect = ({
 								render={({ field }) => (
 									<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 										<div className="space-y-0.5">
-											<FormLabel>Permanent</FormLabel>
+											<FormLabel>
+												{t("dashboard.redirects.permanent")}
+											</FormLabel>
 											<FormDescription>
-												Set the permanent option to true to apply a permanent
-												redirection.
+												{t("dashboard.redirects.permanentDescription")}
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -272,7 +291,9 @@ export const HandleRedirect = ({
 							form="hook-form-add-redirect"
 							type="submit"
 						>
-							{redirectId ? "Update" : "Create"}
+							{redirectId
+								? t("dashboard.redirects.update")
+								: t("dashboard.redirects.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 import { Paintbrush } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export const CancelQueues = ({ id, type }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { mutateAsync, isLoading } =
 		type === "application"
 			? api.application.cleanQueues.useMutation()
@@ -34,21 +36,23 @@ export const CancelQueues = ({ id, type }: Props) => {
 		<AlertDialog>
 			<AlertDialogTrigger asChild>
 				<Button variant="destructive" className="w-fit" isLoading={isLoading}>
-					Cancel Queues
+					{t("dashboard.deployments.cancelQueues")}
 					<Paintbrush className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						Are you sure to cancel the incoming deployments?
+						{t("dashboard.deployments.cancelQueuesConfirmation")}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This will cancel all the incoming deployments
+						{t("dashboard.deployments.cancelQueuesDescription")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>
+						{t("dashboard.deployments.cancel")}
+					</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
@@ -56,14 +60,14 @@ export const CancelQueues = ({ id, type }: Props) => {
 								composeId: id || "",
 							})
 								.then(() => {
-									toast.success("Queues are being cleaned");
+									toast.success(t("dashboard.deployments.queuesBeingCleaned"));
 								})
 								.catch((err) => {
 									toast.error(err.message);
 								});
 						}}
 					>
-						Confirm
+						{t("dashboard.deployments.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

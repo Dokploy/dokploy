@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 import type { RouterOutputs } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { ShowDeployment } from "../deployments/show-deployment";
 import { ShowDeployments } from "./show-deployments";
@@ -35,6 +36,7 @@ export const ShowDeploymentsModal = ({
 	refreshToken,
 	children,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
@@ -46,7 +48,7 @@ export const ShowDeploymentsModal = ({
 					children
 				) : (
 					<Button className="sm:w-auto w-full" size="sm" variant="outline">
-						View Logs
+						{t("dashboard.deployments.viewLogs")}
 					</Button>
 				)}
 			</DialogTrigger>

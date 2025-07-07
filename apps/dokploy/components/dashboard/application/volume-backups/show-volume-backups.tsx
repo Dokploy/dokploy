@@ -22,6 +22,7 @@ import {
 	Play,
 	Trash2,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 import { HandleVolumeBackups } from "./handle-volume-backups";
@@ -38,6 +39,7 @@ export const ShowVolumeBackups = ({
 	type = "application",
 	serverId,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const {
 		data: volumeBackups,
 		isLoading: isLoadingVolumeBackups,
@@ -66,11 +68,10 @@ export const ShowVolumeBackups = ({
 				<div className="flex justify-between items-center">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl font-bold flex items-center gap-2">
-							Volume Backups
+							{t("dashboard.volumeBackup.volumeBackups")}
 						</CardTitle>
 						<CardDescription>
-							Schedule volume backups to run automatically at specified
-							intervals.
+							{t("dashboard.volumeBackup.scheduleVolumeBackupsDescription")}
 						</CardDescription>
 					</div>
 
@@ -96,7 +97,7 @@ export const ShowVolumeBackups = ({
 					<div className="flex gap-4   w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
-							Loading volume backups...
+							{t("dashboard.volumeBackup.loadingVolumeBackups")}
 						</span>
 					</div>
 				) : volumeBackups && volumeBackups.length > 0 ? (
@@ -130,7 +131,9 @@ export const ShowVolumeBackups = ({
 													}
 													className="text-[10px] px-1 py-0"
 												>
-													{volumeBackup.enabled ? "Enabled" : "Disabled"}
+													{volumeBackup.enabled
+														? t("dashboard.volumeBackup.enabled")
+														: t("dashboard.volumeBackup.disabled")}
 												</Badge>
 											</div>
 											<div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -138,7 +141,8 @@ export const ShowVolumeBackups = ({
 													variant="outline"
 													className="font-mono text-[10px] bg-transparent"
 												>
-													Cron: {volumeBackup.cronExpression}
+													{t("dashboard.volumeBackup.cron")}:{" "}
+													{volumeBackup.cronExpression}
 												</Badge>
 											</div>
 										</div>
@@ -164,7 +168,11 @@ export const ShowVolumeBackups = ({
 														size="icon"
 														isLoading={isLoading}
 														onClick={async () => {
-															toast.success("Volume backup run successfully");
+															toast.success(
+																t(
+																	"dashboard.volumeBackup.volumeBackupRunSuccessfully",
+																),
+															);
 
 															await runManually({
 																volumeBackupId: volumeBackup.volumeBackupId,
@@ -176,7 +184,11 @@ export const ShowVolumeBackups = ({
 																	refetchVolumeBackups();
 																})
 																.catch(() => {
-																	toast.error("Error running volume backup");
+																	toast.error(
+																		t(
+																			"dashboard.volumeBackup.errorRunningVolumeBackup",
+																		),
+																	);
 																});
 														}}
 													>
@@ -184,7 +196,7 @@ export const ShowVolumeBackups = ({
 													</Button>
 												</TooltipTrigger>
 												<TooltipContent>
-													Run Manual Volume Backup
+													{t("dashboard.volumeBackup.runManualVolumeBackup")}
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -196,22 +208,32 @@ export const ShowVolumeBackups = ({
 										/>
 
 										<DialogAction
-											title="Delete Volume Backup"
-											description="Are you sure you want to delete this volume backup?"
+											title={t("dashboard.volumeBackup.deleteVolumeBackup")}
+											description={t(
+												"dashboard.volumeBackup.deleteVolumeBackupDescription",
+											)}
 											type="destructive"
 											onClick={async () => {
 												await deleteVolumeBackup({
 													volumeBackupId: volumeBackup.volumeBackupId,
 												})
-													.then(() => {
-														utils.volumeBackups.list.invalidate({
+													.then(async () => {
+														await utils.volumeBackups.list.invalidate({
 															id,
 															volumeBackupType: type,
 														});
-														toast.success("Volume backup deleted successfully");
+														toast.success(
+															t(
+																"dashboard.volumeBackup.volumeBackupDeletedSuccessfully",
+															),
+														);
 													})
 													.catch(() => {
-														toast.error("Error deleting volume backup");
+														toast.error(
+															t(
+																"dashboard.volumeBackup.errorDeletingVolumeBackup",
+															),
+														);
 													});
 											}}
 										>
@@ -230,18 +252,12 @@ export const ShowVolumeBackups = ({
 						})}
 					</div>
 				) : (
-					<div className="flex flex-col gap-2 items-center justify-center py-12  rounded-lg">
-						<DatabaseBackup className="size-8 mb-4 text-muted-foreground" />
-						<p className="text-lg font-medium text-muted-foreground">
-							No volume backups
-						</p>
-						<p className="text-sm text-muted-foreground mt-1">
-							Create your first volume backup to automate your workflows
-						</p>
-						<div className="flex items-center gap-2">
-							<HandleVolumeBackups id={id} volumeBackupType={type} />
-							<RestoreVolumeBackups id={id} type={type} serverId={serverId} />
-						</div>
+					<div className="flex flex-col items-center justify-center gap-3 min-h-[45vh]">
+						<DatabaseBackup className="size-8 text-muted-foreground" />
+						<span className="text-base text-muted-foreground">
+							{t("dashboard.volumeBackup.noVolumeBackups")}
+						</span>
+						<HandleVolumeBackups id={id} volumeBackupType={type} />
 					</div>
 				)}
 			</CardContent>

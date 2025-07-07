@@ -4,6 +4,7 @@ import { Form } from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { mutateAsync, isLoading } =
 		api.application.saveEnvironment.useMutation();
 
@@ -64,11 +66,11 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			applicationId,
 		})
 			.then(async () => {
-				toast.success("Environments Added");
+				toast.success(t("dashboard.environment.environmentsAdded"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error adding environment");
+				toast.error(t("dashboard.environment.errorAddingEnvironment"));
 			});
 	};
 
@@ -88,13 +90,13 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				>
 					<Secrets
 						name="env"
-						title="Environment Settings"
+						title={t("dashboard.environment.environmentSettings")}
 						description={
 							<span>
-								You can add environment variables to your resource.
+								{t("dashboard.environment.environmentDescription")}
 								{hasChanges && (
 									<span className="text-yellow-500 ml-2">
-										(You have unsaved changes)
+										{t("dashboard.environment.unsavedChanges")}
 									</span>
 								)}
 							</span>
@@ -104,17 +106,17 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 					{data?.buildType === "dockerfile" && (
 						<Secrets
 							name="buildArgs"
-							title="Build-time Variables"
+							title={t("dashboard.environment.buildTimeVariables")}
 							description={
 								<span>
-									Available only at build-time. See documentation&nbsp;
+									{t("dashboard.environment.buildTimeDescription")}&nbsp;
 									<a
 										className="text-primary"
 										href="https://docs.docker.com/build/guide/build-args/"
 										target="_blank"
 										rel="noopener noreferrer"
 									>
-										here
+										{t("dashboard.environment.here")}
 									</a>
 									.
 								</span>
@@ -125,7 +127,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 					<div className="flex flex-row justify-end gap-2">
 						{hasChanges && (
 							<Button type="button" variant="outline" onClick={handleCancel}>
-								Cancel
+								{t("dashboard.environment.cancel")}
 							</Button>
 						)}
 						<Button
@@ -134,7 +136,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 							type="submit"
 							disabled={!hasChanges}
 						>
-							Save
+							{t("dashboard.environment.save")}
 						</Button>
 					</div>
 				</form>

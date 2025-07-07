@@ -13,6 +13,7 @@ import { api } from "@/utils/api";
 import { type UploadFile, uploadFileSchema } from "@/utils/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TrashIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const SaveDragNDrop = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isLoading } =
@@ -52,11 +54,11 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 
 		await mutateAsync(formData)
 			.then(async () => {
-				toast.success("Deployment saved");
+				toast.success(t("dashboard.dragNDrop.deploymentSaved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the deployment");
+				toast.error(t("dashboard.dragNDrop.errorSavingDeployment"));
 			});
 	};
 
@@ -73,9 +75,14 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 							name="dropBuildPath"
 							render={({ field }) => (
 								<FormItem className="w-full ">
-									<FormLabel>Build Path</FormLabel>
+									<FormLabel>{t("dashboard.dragNDrop.buildPath")}</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder="Build Path" />
+										<Input
+											{...field}
+											placeholder={t(
+												"dashboard.dragNDrop.buildPathPlaceholder",
+											)}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -86,11 +93,11 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 							name="zip"
 							render={({ field }) => (
 								<FormItem className="w-full ">
-									<FormLabel>Zip file</FormLabel>
+									<FormLabel>{t("dashboard.dragNDrop.zipFile")}</FormLabel>
 									<FormControl>
 										<Dropzone
 											{...field}
-											dropMessage="Drop files or click here"
+											dropMessage={t("dashboard.dragNDrop.dropFilesOrClick")}
 											accept=".zip"
 											onChange={(e) => {
 												if (e instanceof FileList) {
@@ -105,7 +112,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 									{zip instanceof File && (
 										<div className="flex flex-row gap-4 items-center">
 											<span className="text-sm text-muted-foreground">
-												{zip.name} ({zip.size} bytes)
+												{zip.name} ({zip.size} {t("dashboard.dragNDrop.bytes")})
 											</span>
 											<Button
 												type="button"
@@ -132,7 +139,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 						isLoading={isLoading}
 						disabled={!zip || isLoading}
 					>
-						Deploy{" "}
+						{t("dashboard.dragNDrop.deploy")}
 					</Button>
 				</div>
 			</form>
