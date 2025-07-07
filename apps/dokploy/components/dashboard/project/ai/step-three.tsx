@@ -1,34 +1,46 @@
 import { CodeEditor } from "@/components/shared/code-editor";
+import { useTranslation } from "next-i18next";
 import ReactMarkdown from "react-markdown";
 import type { StepProps } from "./step-two";
 
 export const StepThree = ({ templateInfo }: StepProps) => {
+	const { t } = useTranslation("dashboard");
 	return (
 		<div className="flex flex-col h-full">
 			<div className="flex-grow">
 				<div className="space-y-6">
-					<h2 className="text-lg font-semibold">Step 3: Review and Finalize</h2>
+					<h2 className="text-lg font-semibold">
+						{t("dashboard.ai.stepThreeReviewAndFinalize")}
+					</h2>
 					<div className="space-y-4">
 						<div>
-							<h3 className="text-sm font-semibold">Name</h3>
+							<h3 className="text-sm font-semibold">
+								{t("dashboard.ai.name")}
+							</h3>
 							<p className="text-sm text-muted-foreground">
 								{templateInfo?.details?.name}
 							</p>
 						</div>
 						<div>
-							<h3 className="text-sm font-semibold">Description</h3>
+							<h3 className="text-sm font-semibold">
+								{t("dashboard.ai.description")}
+							</h3>
 							<ReactMarkdown className="text-sm text-muted-foreground">
 								{templateInfo?.details?.description}
 							</ReactMarkdown>
 						</div>
 						<div>
-							<h3 className="text-md font-semibold">Server</h3>
+							<h3 className="text-md font-semibold">
+								{t("dashboard.ai.server")}
+							</h3>
 							<p className="text-sm text-muted-foreground">
-								{templateInfo?.server?.name || "Dokploy Server"}
+								{templateInfo?.server?.name || t("dashboard.ai.dokployServer")}
 							</p>
 						</div>
 						<div className="space-y-2">
-							<h3 className="text-sm font-semibold">Docker Compose</h3>
+							<h3 className="text-sm font-semibold">
+								{t("dashboard.ai.dockerCompose")}
+							</h3>
 							<CodeEditor
 								lineWrapping
 								value={templateInfo?.details?.dockerCompose}
@@ -37,7 +49,9 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 							/>
 						</div>
 						<div>
-							<h3 className="text-sm font-semibold">Environment Variables</h3>
+							<h3 className="text-sm font-semibold">
+								{t("dashboard.ai.environmentVariables")}
+							</h3>
 							<ul className="list-disc pl-5">
 								{templateInfo?.details?.envVariables.map(
 									(
@@ -61,7 +75,9 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 							</ul>
 						</div>
 						<div>
-							<h3 className="text-sm font-semibold">Domains</h3>
+							<h3 className="text-sm font-semibold">
+								{t("dashboard.ai.domains")}
+							</h3>
 							<ul className="list-disc pl-5">
 								{templateInfo?.details?.domains.map(
 									(
@@ -86,7 +102,9 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 							</ul>
 						</div>
 						<div>
-							<h3 className="text-sm font-semibold">Configuration Files</h3>
+							<h3 className="text-sm font-semibold">
+								{t("dashboard.ai.configurationFiles")}
+							</h3>
 							<ul className="list-disc pl-5">
 								{templateInfo?.details?.configFiles.map((file, index) => (
 									<li key={index}>

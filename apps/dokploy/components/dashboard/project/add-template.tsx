@@ -66,6 +66,7 @@ import {
 	PuzzleIcon,
 	SearchIcon,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -78,6 +79,7 @@ interface Props {
 }
 
 export const AddTemplate = ({ projectId, baseUrl }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
@@ -145,7 +147,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<PuzzleIcon className="size-4 text-muted-foreground" />
-					<span>Template</span>
+					<span>{t("dashboard.template.template")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen sm:max-w-[90vw] p-0">
@@ -153,20 +155,22 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 					<div className="flex flex-col space-y-6">
 						<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
 							<div>
-								<DialogTitle>Create from Template</DialogTitle>
+								<DialogTitle>
+									{t("dashboard.template.createFromTemplate")}
+								</DialogTitle>
 								<DialogDescription>
-									Create an open source application from a template
+									{t("dashboard.template.createFromTemplateDescription")}
 								</DialogDescription>
 							</div>
 							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
 								<Input
-									placeholder="Search Template"
+									placeholder={t("dashboard.template.searchTemplate")}
 									onChange={(e) => setQuery(e.target.value)}
 									className="w-full sm:w-[200px]"
 									value={query}
 								/>
 								<Input
-									placeholder="Base URL (optional)"
+									placeholder={t("dashboard.template.baseUrlOptional")}
 									onChange={(e) =>
 										setCustomBaseUrl(e.target.value || undefined)
 									}
@@ -182,10 +186,12 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 											)}
 										>
 											{isLoadingTags
-												? "Loading...."
+												? t("dashboard.template.loadingTags")
 												: selectedTags.length > 0
-													? `Selected ${selectedTags.length} tags`
-													: "Select tag"}
+													? t("dashboard.template.selectedTags", {
+															count: selectedTags.length,
+														})
+													: t("dashboard.template.selectTag")}
 
 											<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
 										</Button>
@@ -193,15 +199,17 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 									<PopoverContent className="p-0" align="start">
 										<Command>
 											<CommandInput
-												placeholder="Search tag..."
+												placeholder={t("dashboard.template.searchTag")}
 												className="h-9"
 											/>
 											{isLoadingTags && (
 												<span className="py-6 text-center text-sm">
-													Loading Tags....
+													{t("dashboard.template.loadingTagsMessage")}
 												</span>
 											)}
-											<CommandEmpty>No tags found.</CommandEmpty>
+											<CommandEmpty>
+												{t("dashboard.template.noTagsFound")}
+											</CommandEmpty>
 											<ScrollArea className="h-96">
 												<CommandGroup>
 													{tags?.map((tag) => (
@@ -286,14 +294,14 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 							<div className="flex justify-center items-center w-full h-full flex-row gap-4">
 								<Loader2 className="size-8 text-muted-foreground animate-spin min-h-[60vh]" />
 								<div className="text-lg font-medium text-muted-foreground">
-									Loading templates...
+									{t("dashboard.template.loadingTemplates")}
 								</div>
 							</div>
 						) : templates.length === 0 ? (
 							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
 								<SearchIcon className="text-muted-foreground size-6" />
 								<div className="text-xl font-medium text-muted-foreground">
-									No templates found
+									{t("dashboard.template.noTemplatesFound")}
 								</div>
 							</div>
 						) : (
@@ -324,7 +332,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 											)}
 										>
 											<img
-												src={`${customBaseUrl || "https://templates.dokploy.com/"}/blueprints/${template?.id}/${template?.logo}`}
+												src={`${
+													customBaseUrl || "https://templates.dokploy.com/"
+												}/blueprints/${template?.id}/${template?.logo}`}
 												className={cn(
 													"object-contain",
 													viewMode === "detailed" ? "size-24" : "size-16",
@@ -411,18 +421,18 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															viewMode === "detailed" && "w-auto",
 														)}
 													>
-														Create
+														{t("dashboard.template.create")}
 													</Button>
 												</AlertDialogTrigger>
 												<AlertDialogContent>
 													<AlertDialogHeader>
 														<AlertDialogTitle>
-															Are you absolutely sure?
+															{t("dashboard.template.areYouSure")}
 														</AlertDialogTitle>
 														<AlertDialogDescription>
-															This will create an application from the{" "}
-															{template?.name} template and add it to your
-															project.
+															{t("dashboard.template.confirmDescription", {
+																name: template?.name,
+															})}
 														</AlertDialogDescription>
 
 														<div>
@@ -430,8 +440,11 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																<Tooltip>
 																	<TooltipTrigger asChild>
 																		<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																			Select a Server{" "}
-																			{!isCloud ? "(Optional)" : ""}
+																			{!isCloud
+																				? t(
+																						"dashboard.template.selectServerOptional",
+																					)
+																				: t("dashboard.template.selectServer")}
 																			<HelpCircle className="size-4 text-muted-foreground" />
 																		</Label>
 																	</TooltipTrigger>
@@ -441,9 +454,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																		side="top"
 																	>
 																		<span>
-																			If no server is selected, the application
-																			will be deployed on the server where the
-																			user is logged in.
+																			{t("dashboard.template.serverTooltip")}
 																		</span>
 																	</TooltipContent>
 																</Tooltip>
@@ -455,7 +466,11 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																}}
 															>
 																<SelectTrigger>
-																	<SelectValue placeholder="Select a Server" />
+																	<SelectValue
+																		placeholder={t(
+																			"dashboard.template.selectServerPlaceholder",
+																		)}
+																	/>
 																</SelectTrigger>
 																<SelectContent>
 																	<SelectGroup>
@@ -473,7 +488,8 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																			</SelectItem>
 																		))}
 																		<SelectLabel>
-																			Servers ({servers?.length})
+																			{t("dashboard.template.servers")} (
+																			{servers?.length})
 																		</SelectLabel>
 																	</SelectGroup>
 																</SelectContent>
@@ -481,7 +497,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 														</div>
 													</AlertDialogHeader>
 													<AlertDialogFooter>
-														<AlertDialogCancel>Cancel</AlertDialogCancel>
+														<AlertDialogCancel>
+															{t("dashboard.template.cancel")}
+														</AlertDialogCancel>
 														<AlertDialogAction
 															disabled={isLoading}
 															onClick={async () => {
@@ -492,21 +510,27 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																	baseUrl: customBaseUrl,
 																});
 																toast.promise(promise, {
-																	loading: "Setting up...",
+																	loading: t("dashboard.template.settingUp"),
 																	success: () => {
 																		utils.project.one.invalidate({
 																			projectId,
 																		});
 																		setOpen(false);
-																		return `${template.name} template created successfully`;
+																		return t(
+																			"dashboard.template.createdSuccessfully",
+																			{ name: template.name },
+																		);
 																	},
 																	error: () => {
-																		return `An error occurred deploying ${template.name} template`;
+																		return t(
+																			"dashboard.template.errorDeploying",
+																			{ name: template.name },
+																		);
 																	},
 																});
 															}}
 														>
-															Confirm
+															{t("dashboard.template.confirm")}
 														</AlertDialogAction>
 													</AlertDialogFooter>
 												</AlertDialogContent>

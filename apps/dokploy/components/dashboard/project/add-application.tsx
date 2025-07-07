@@ -39,29 +39,30 @@ import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Folder, HelpCircle } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const AddTemplateSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appName: z
-		.string()
-		.min(1, {
-			message: "App name is required",
-		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+const AddTemplateSchema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("dashboard.project.nameRequired"),
 		}),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
-});
+		appName: z
+			.string()
+			.min(1, {
+				message: t("dashboard.project.appNameRequired"),
+			})
+			.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+				message: t("dashboard.project.appNameRegex"),
+			}),
+		description: z.string().optional(),
+		serverId: z.string().optional(),
+	});
 
-type AddTemplate = z.infer<typeof AddTemplateSchema>;
+type AddTemplate = ReturnType<typeof AddTemplateSchema>["_type"];
 
 interface Props {
 	projectId: string;
@@ -69,6 +70,7 @@ interface Props {
 }
 
 export const AddApplication = ({ projectId, projectName }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [visible, setVisible] = useState(false);
@@ -84,7 +86,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 			appName: `${slug}-`,
 			description: "",
 		},
-		resolver: zodResolver(AddTemplateSchema),
+		resolver: zodResolver(AddTemplateSchema(t)),
 	});
 
 	const onSubmit = async (data: AddTemplate) => {
@@ -96,7 +98,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 			serverId: data.serverId,
 		})
 			.then(async () => {
-				toast.success("Service Created");
+				toast.success(t("dashboard.project.serviceCreated"));
 				form.reset();
 				setVisible(false);
 				await utils.project.one.invalidate({
@@ -104,7 +106,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error creating the service");
+				toast.error(t("dashboard.project.errorCreatingService"));
 			});
 	};
 
@@ -116,14 +118,14 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Folder className="size-4 text-muted-foreground" />
-					<span>Application</span>
+					<span>{t("dashboard.project.application")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Create</DialogTitle>
+					<DialogTitle>{t("dashboard.project.create")}</DialogTitle>
 					<DialogDescription>
-						Assign a name and description to your application
+						{t("dashboard.project.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -138,10 +140,10 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>{t("dashboard.project.name")}</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="Frontend"
+											placeholder={t("dashboard.project.namePlaceholder")}
 											{...field}
 											onChange={(e) => {
 												const val = e.target.value?.trim() || "";
@@ -164,7 +166,9 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server {!isCloud ? "(Optional)" : ""}
+													{!isCloud
+														? t("dashboard.project.selectServerOptional")
+														: t("dashboard.project.selectServer")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>
 											</TooltipTrigger>
@@ -173,10 +177,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 												align="start"
 												side="top"
 											>
-												<span>
-													If no server is selected, the application will be
-													deployed on the server where the user is logged in.
-												</span>
+												<span>{t("dashboard.project.serverTooltip")}</span>
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
@@ -186,7 +187,11 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 										defaultValue={field.value}
 									>
 										<SelectTrigger>
-											<SelectValue placeholder="Select a Server" />
+											<SelectValue
+												placeholder={t(
+													"dashboard.project.selectServerPlaceholder",
+												)}
+											/>
 										</SelectTrigger>
 										<SelectContent>
 											<SelectGroup>
@@ -203,7 +208,9 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 														</span>
 													</SelectItem>
 												))}
-												<SelectLabel>Servers ({servers?.length})</SelectLabel>
+												<SelectLabel>
+													{t("dashboard.project.servers")} ({servers?.length})
+												</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>
@@ -216,9 +223,12 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 							name="appName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>App Name</FormLabel>
+									<FormLabel>{t("dashboard.project.appName")}</FormLabel>
 									<FormControl>
-										<Input placeholder="my-app" {...field} />
+										<Input
+											placeholder={t("dashboard.project.appNamePlaceholder")}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -229,10 +239,12 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>{t("dashboard.project.description")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description of your service..."
+											placeholder={t(
+												"dashboard.project.descriptionPlaceholder",
+											)}
 											className="resize-none"
 											{...field}
 										/>
@@ -246,7 +258,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 
 					<DialogFooter>
 						<Button isLoading={isLoading} form="hook-form" type="submit">
-							Create
+							{t("dashboard.project.create")}
 						</Button>
 					</DialogFooter>
 				</Form>
