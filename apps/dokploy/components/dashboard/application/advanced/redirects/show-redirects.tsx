@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Split, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { HandleRedirect } from "./handle-redirect";
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowRedirects = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -33,16 +35,17 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
 				<div>
-					<CardTitle className="text-xl">Redirects</CardTitle>
+					<CardTitle className="text-xl">
+						{t("dashboard.redirects.redirects")}
+					</CardTitle>
 					<CardDescription>
-						If you want to redirect requests to this application use the
-						following config to setup the redirects
+						{t("dashboard.redirects.description")}
 					</CardDescription>
 				</div>
 
 				{data && data?.redirects.length > 0 && (
 					<HandleRedirect applicationId={applicationId}>
-						Add Redirect
+						{t("dashboard.redirects.addRedirect")}
 					</HandleRedirect>
 				)}
 			</CardHeader>
@@ -51,10 +54,10 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Split className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							No redirects configured
+							{t("dashboard.redirects.noRedirectsConfigured")}
 						</span>
 						<HandleRedirect applicationId={applicationId}>
-							Add Redirect
+							{t("dashboard.redirects.addRedirect")}
 						</HandleRedirect>
 					</div>
 				) : (
@@ -65,21 +68,29 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 									<div className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4">
 										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Regex</span>
+												<span className="font-medium">
+													{t("dashboard.redirects.regex")}
+												</span>
 												<span className="text-sm text-muted-foreground">
 													{redirect.regex}
 												</span>
 											</div>
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Replacement</span>
+												<span className="font-medium">
+													{t("dashboard.redirects.replacement")}
+												</span>
 												<span className="text-sm text-muted-foreground">
 													{redirect.replacement}
 												</span>
 											</div>
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Permanent</span>
+												<span className="font-medium">
+													{t("dashboard.redirects.permanent")}
+												</span>
 												<span className="text-sm text-muted-foreground">
-													{redirect.permanent ? "Yes" : "No"}
+													{redirect.permanent
+														? t("dashboard.redirects.yes")
+														: t("dashboard.redirects.no")}
 												</span>
 											</div>
 										</div>
@@ -90,8 +101,10 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 											/>
 
 											<DialogAction
-												title="Delete Redirect"
-												description="Are you sure you want to delete this redirect?"
+												title={t("dashboard.redirects.deleteRedirect")}
+												description={t(
+													"dashboard.redirects.deleteRedirectConfirmation",
+												)}
 												type="destructive"
 												onClick={async () => {
 													await deleteRedirect({
@@ -102,10 +115,16 @@ export const ShowRedirects = ({ applicationId }: Props) => {
 															utils.application.readTraefikConfig.invalidate({
 																applicationId,
 															});
-															toast.success("Redirect deleted successfully");
+															toast.success(
+																t(
+																	"dashboard.redirects.redirectDeletedSuccessfully",
+																),
+															);
 														})
 														.catch(() => {
-															toast.error("Error deleting redirect");
+															toast.error(
+																t("dashboard.redirects.errorDeletingRedirect"),
+															);
 														});
 												}}
 											>

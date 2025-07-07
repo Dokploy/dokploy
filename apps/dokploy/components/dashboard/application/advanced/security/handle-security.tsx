@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export const HandleSecurity = ({
 	securityId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data } = api.security.one.useQuery(
@@ -81,7 +83,11 @@ export const HandleSecurity = ({
 			securityId: securityId || "",
 		})
 			.then(async () => {
-				toast.success(securityId ? "Security Updated" : "Security Created");
+				toast.success(
+					securityId
+						? t("dashboard.security.securityUpdated")
+						: t("dashboard.security.securityCreated"),
+				);
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -93,8 +99,8 @@ export const HandleSecurity = ({
 			.catch(() => {
 				toast.error(
 					securityId
-						? "Error updating the security"
-						: "Error creating security",
+						? t("dashboard.security.errorUpdatingSecurity")
+						: t("dashboard.security.errorCreatingSecurity"),
 				);
 			});
 	};
@@ -116,9 +122,12 @@ export const HandleSecurity = ({
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Security</DialogTitle>
+					<DialogTitle>{t("dashboard.security.security")}</DialogTitle>
 					<DialogDescription>
-						{securityId ? "Update" : "Add"} security to your application
+						{securityId
+							? t("dashboard.security.update")
+							: t("dashboard.security.add")}{" "}
+						{t("dashboard.security.securityToApplication")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -135,9 +144,14 @@ export const HandleSecurity = ({
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>{t("dashboard.security.username")}</FormLabel>
 										<FormControl>
-											<Input placeholder="test1" {...field} />
+											<Input
+												placeholder={t(
+													"dashboard.security.usernamePlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -149,9 +163,14 @@ export const HandleSecurity = ({
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>{t("dashboard.security.password")}</FormLabel>
 										<FormControl>
-											<Input placeholder="test" {...field} />
+											<Input
+												placeholder={t(
+													"dashboard.security.passwordPlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -167,7 +186,9 @@ export const HandleSecurity = ({
 							form="hook-form-add-security"
 							type="submit"
 						>
-							{securityId ? "Update" : "Create"}
+							{securityId
+								? t("dashboard.security.update")
+								: t("dashboard.security.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

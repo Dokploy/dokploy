@@ -10,30 +10,33 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-
-const DockerProviderSchema = z.object({
-	dockerImage: z.string().min(1, {
-		message: "Docker image is required",
-	}),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	registryURL: z.string().optional(),
-});
-
-type DockerProvider = z.infer<typeof DockerProviderSchema>;
 
 interface Props {
 	applicationId: string;
 }
 
 export const SaveDockerProvider = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync } = api.application.saveDockerProvider.useMutation();
+
+	const DockerProviderSchema = z.object({
+		dockerImage: z.string().min(1, {
+			message: t("dashboard.dockerProvider.dockerImageRequired"),
+		}),
+		username: z.string().optional(),
+		password: z.string().optional(),
+		registryURL: z.string().optional(),
+	});
+
+	type DockerProvider = z.infer<typeof DockerProviderSchema>;
+
 	const form = useForm<DockerProvider>({
 		defaultValues: {
 			dockerImage: "",
@@ -64,11 +67,11 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 			registryUrl: values.registryURL || null,
 		})
 			.then(async () => {
-				toast.success("Docker Provider Saved");
+				toast.success(t("dashboard.dockerProvider.dockerProviderSaved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Docker provider");
+				toast.error(t("dashboard.dockerProvider.errorSavingDockerProvider"));
 			});
 	};
 
@@ -85,9 +88,16 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							name="dockerImage"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Docker Image</FormLabel>
+									<FormLabel>
+										{t("dashboard.dockerProvider.dockerImage")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="node:16" {...field} />
+										<Input
+											placeholder={t(
+												"dashboard.dockerProvider.dockerImagePlaceholder",
+											)}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -99,9 +109,16 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 						name="registryURL"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Registry URL</FormLabel>
+								<FormLabel>
+									{t("dashboard.dockerProvider.registryUrl")}
+								</FormLabel>
 								<FormControl>
-									<Input placeholder="Registry URL" {...field} />
+									<Input
+										placeholder={t(
+											"dashboard.dockerProvider.registryUrlPlaceholder",
+										)}
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -113,10 +130,14 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							name="username"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Username</FormLabel>
+									<FormLabel>
+										{t("dashboard.dockerProvider.username")}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="Username"
+											placeholder={t(
+												"dashboard.dockerProvider.usernamePlaceholder",
+											)}
 											autoComplete="username"
 											{...field}
 										/>
@@ -132,10 +153,14 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							name="password"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Password</FormLabel>
+									<FormLabel>
+										{t("dashboard.dockerProvider.password")}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="Password"
+											placeholder={t(
+												"dashboard.dockerProvider.passwordPlaceholder",
+											)}
 											autoComplete="one-time-code"
 											{...field}
 											type="password"
@@ -154,7 +179,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 						className="w-fit"
 						isLoading={form.formState.isSubmitting}
 					>
-						Save{" "}
+						{t("dashboard.dockerProvider.save")}
 					</Button>
 				</div>
 			</form>

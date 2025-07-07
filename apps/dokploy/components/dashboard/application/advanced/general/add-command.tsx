@@ -17,10 +17,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+
 interface Props {
 	applicationId: string;
 }
@@ -32,6 +34,7 @@ const AddRedirectSchema = z.object({
 type AddCommand = z.infer<typeof AddRedirectSchema>;
 
 export const AddCommand = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -64,13 +67,13 @@ export const AddCommand = ({ applicationId }: Props) => {
 			command: data?.command,
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(t("dashboard.command.commandUpdated"));
 				await utils.application.one.invalidate({
 					applicationId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(t("dashboard.command.errorUpdatingCommand"));
 			});
 	};
 
@@ -78,10 +81,11 @@ export const AddCommand = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Run Command</CardTitle>
+					<CardTitle className="text-xl">
+						{t("dashboard.command.runCommand")}
+					</CardTitle>
 					<CardDescription>
-						Run a custom command in the container after the application
-						initialized
+						{t("dashboard.command.description")}
 					</CardDescription>
 				</div>
 			</CardHeader>
@@ -97,9 +101,12 @@ export const AddCommand = ({ applicationId }: Props) => {
 								name="command"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Command</FormLabel>
+										<FormLabel>{t("dashboard.command.command")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Custom command" {...field} />
+											<Input
+												placeholder={t("dashboard.command.commandPlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -109,7 +116,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 						</div>
 						<div className="flex justify-end">
 							<Button isLoading={isLoading} type="submit" className="w-fit">
-								Save
+								{t("dashboard.command.save")}
 							</Button>
 						</div>
 					</form>

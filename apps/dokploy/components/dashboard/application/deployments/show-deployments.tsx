@@ -1,4 +1,5 @@
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,14 +11,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import { Clock, Loader2, RocketIcon, Settings, RefreshCcw } from "lucide-react";
+import { Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
-import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { toast } from "sonner";
 
 interface Props {
 	id: string;
@@ -46,6 +47,7 @@ export const ShowDeployments = ({
 	refreshToken,
 	serverId,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [activeLog, setActiveLog] = useState<
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
@@ -75,9 +77,11 @@ export const ShowDeployments = ({
 		<Card className="bg-background border-none">
 			<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 				<div className="flex flex-col gap-2">
-					<CardTitle className="text-xl">Deployments</CardTitle>
+					<CardTitle className="text-xl">
+						{t("dashboard.deployments.deployments")}
+					</CardTitle>
 					<CardDescription>
-						See all the 10 last deployments for this {type}
+						{t("dashboard.deployments.seeLastDeployments", { type })}
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center gap-2">
@@ -87,7 +91,8 @@ export const ShowDeployments = ({
 					{type === "application" && (
 						<ShowRollbackSettings applicationId={id}>
 							<Button variant="outline">
-								Configure Rollbacks <Settings className="size-4" />
+								{t("dashboard.deployments.configureRollbacks")}{" "}
+								<Settings className="size-4" />
 							</Button>
 						</ShowRollbackSettings>
 					)}
@@ -96,15 +101,14 @@ export const ShowDeployments = ({
 			<CardContent className="flex flex-col gap-4">
 				{refreshToken && (
 					<div className="flex flex-col gap-2 text-sm">
-						<span>
-							If you want to re-deploy this application use this URL in the
-							config of your git provider or docker
-						</span>
+						<span>{t("dashboard.deployments.redeployInstructions")}</span>
 						<div className="flex flex-row items-center gap-2 flex-wrap">
-							<span>Webhook URL: </span>
+							<span>{t("dashboard.deployments.webhookUrl")}: </span>
 							<div className="flex flex-row items-center gap-2">
 								<span className="break-all text-muted-foreground">
-									{`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`}
+									{`${url}/api/deploy${
+										type === "compose" ? "/compose" : ""
+									}/${refreshToken}`}
 								</span>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />
@@ -118,14 +122,14 @@ export const ShowDeployments = ({
 					<div className="flex w-full flex-row items-center justify-center gap-3 pt-10 min-h-[25vh]">
 						<Loader2 className="size-6 text-muted-foreground animate-spin" />
 						<span className="text-base text-muted-foreground">
-							Loading deployments...
+							{t("dashboard.deployments.loadingDeployments")}
 						</span>
 					</div>
 				) : deployments?.length === 0 ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10 min-h-[25vh]">
 						<RocketIcon className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							No deployments found
+							{t("dashboard.deployments.noDeploymentsFound")}
 						</span>
 					</div>
 				) : (
@@ -175,18 +179,26 @@ export const ShowDeployments = ({
 									<div className="flex flex-row items-center gap-2">
 										{deployment.pid && deployment.status === "running" && (
 											<DialogAction
-												title="Kill Process"
-												description="Are you sure you want to kill the process?"
+												title={t("dashboard.deployments.killProcess")}
+												description={t(
+													"dashboard.deployments.killProcessConfirmation",
+												)}
 												type="default"
 												onClick={async () => {
 													await killProcess({
 														deploymentId: deployment.deploymentId,
 													})
 														.then(() => {
-															toast.success("Process killed successfully");
+															toast.success(
+																t(
+																	"dashboard.deployments.processKilledSuccessfully",
+																),
+															);
 														})
 														.catch(() => {
-															toast.error("Error killing process");
+															toast.error(
+																t("dashboard.deployments.errorKillingProcess"),
+															);
 														});
 												}}
 											>
@@ -195,7 +207,7 @@ export const ShowDeployments = ({
 													size="sm"
 													isLoading={isKillingProcess}
 												>
-													Kill Process
+													{t("dashboard.deployments.killProcess")}
 												</Button>
 											</DialogAction>
 										)}
@@ -204,15 +216,19 @@ export const ShowDeployments = ({
 												setActiveLog(deployment);
 											}}
 										>
-											View
+											{t("dashboard.deployments.view")}
 										</Button>
 
 										{deployment?.rollback &&
 											deployment.status === "done" &&
 											type === "application" && (
 												<DialogAction
-													title="Rollback to this deployment"
-													description="Are you sure you want to rollback to this deployment?"
+													title={t(
+														"dashboard.deployments.rollbackToDeployment",
+													)}
+													description={t(
+														"dashboard.deployments.rollbackConfirmation",
+													)}
 													type="default"
 													onClick={async () => {
 														await rollback({
@@ -220,11 +236,17 @@ export const ShowDeployments = ({
 														})
 															.then(() => {
 																toast.success(
-																	"Rollback initiated successfully",
+																	t(
+																		"dashboard.deployments.rollbackInitiatedSuccessfully",
+																	),
 																);
 															})
 															.catch(() => {
-																toast.error("Error initiating rollback");
+																toast.error(
+																	t(
+																		"dashboard.deployments.errorInitiatingRollback",
+																	),
+																);
 															});
 													}}
 												>
@@ -234,7 +256,7 @@ export const ShowDeployments = ({
 														isLoading={isRollingBack}
 													>
 														<RefreshCcw className="size-4 text-primary group-hover:text-red-500" />
-														Rollback
+														{t("dashboard.deployments.rollback")}
 													</Button>
 												</DialogAction>
 											)}
