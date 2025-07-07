@@ -5,6 +5,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "next-i18next";
 
 interface Props {
 	status: "running" | "error" | "done" | "idle" | undefined | null;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export const StatusTooltip = ({ status, className }: Props) => {
+	const { t } = useTranslation("dashboard");
 	return (
 		<TooltipProvider delayDuration={0}>
 			<Tooltip>
@@ -42,10 +44,10 @@ export const StatusTooltip = ({ status, className }: Props) => {
 				</TooltipTrigger>
 				<TooltipContent align="center">
 					<span>
-						{status === "idle" && "Idle"}
-						{status === "error" && "Error"}
-						{status === "done" && "Done"}
-						{status === "running" && "Running"}
+						{status === "idle" && t("dashboard.status.idle")}
+						{status === "error" && t("dashboard.status.error")}
+						{status === "done" && t("dashboard.status.done")}
+						{status === "running" && t("dashboard.status.running")}
 					</span>
 				</TooltipContent>
 			</Tooltip>
