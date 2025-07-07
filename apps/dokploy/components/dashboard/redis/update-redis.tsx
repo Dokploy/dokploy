@@ -22,25 +22,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const updateRedisSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdateRedisSchema = (t: any) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("dashboard.redis.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateRedis = z.infer<typeof updateRedisSchema>;
+type UpdateRedis = z.infer<ReturnType<typeof createUpdateRedisSchema>>;
 
 interface Props {
 	redisId: string;
 }
 
 export const UpdateRedis = ({ redisId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
 		api.redis.update.useMutation();
@@ -57,7 +60,7 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		},
-		resolver: zodResolver(updateRedisSchema),
+		resolver: zodResolver(createUpdateRedisSchema(t)),
 	});
 	useEffect(() => {
 		if (data) {
@@ -75,13 +78,13 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Redis updated successfully");
+				toast.success(t("dashboard.redis.updatedSuccessfully"));
 				utils.redis.one.invalidate({
 					redisId: redisId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating Redis");
+				toast.error(t("dashboard.redis.errorUpdating"));
 			})
 			.finally(() => {});
 	};
@@ -99,8 +102,10 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Redis</DialogTitle>
-					<DialogDescription>Update the redis data</DialogDescription>
+					<DialogTitle>{t("dashboard.redis.modify")}</DialogTitle>
+					<DialogDescription>
+						{t("dashboard.redis.updateDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -117,9 +122,12 @@ export const UpdateRedis = ({ redisId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("dashboard.redis.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("dashboard.redis.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -131,10 +139,12 @@ export const UpdateRedis = ({ redisId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("dashboard.redis.description")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t(
+														"dashboard.redis.descriptionPlaceholder",
+													)}
 													className="resize-none"
 													{...field}
 												/>
@@ -150,7 +160,7 @@ export const UpdateRedis = ({ redisId }: Props) => {
 										form="hook-form-update-redis"
 										type="submit"
 									>
-										Update
+										{t("dashboard.redis.update")}
 									</Button>
 								</DialogFooter>
 							</form>
