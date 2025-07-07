@@ -79,6 +79,10 @@ export const compose = pgTable("compose", {
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
 	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
+	// Keep this for backward compatibility since we will not add the prefix anymore to volumes
+	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
+		.notNull()
+		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
