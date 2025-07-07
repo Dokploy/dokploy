@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ const schema = z.object({
 type Schema = z.infer<typeof schema>;
 
 export const IsolatedDeployment = ({ composeId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const [compose, setCompose] = useState<string>("");
 	const { mutateAsync, error, isError } =
@@ -73,10 +75,10 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 			.then(async (_data) => {
 				await randomizeCompose();
 				await refetch();
-				toast.success("Compose updated");
+				toast.success(t("dashboard.compose.composeUpdated"));
 			})
 			.catch(() => {
-				toast.error("Error updating the compose");
+				toast.error(t("dashboard.compose.errorUpdatingCompose"));
 			});
 	};
 
@@ -93,27 +95,21 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 	return (
 		<>
 			<DialogHeader>
-				<DialogTitle>Isolate Deployment</DialogTitle>
+				<DialogTitle>{t("dashboard.compose.isolatedDeployment")}</DialogTitle>
 				<DialogDescription>
-					Use this option to isolate the deployment of this compose file.
+					{t("dashboard.compose.isolatedDeploymentDescription")}
 				</DialogDescription>
 			</DialogHeader>
 			<div className="text-sm text-muted-foreground flex flex-col gap-2">
-				<span>
-					This feature creates an isolated environment for your deployment by
-					adding unique prefixes to all resources. It establishes a dedicated
-					network based on your compose file's name, ensuring your services run
-					in isolation. This prevents conflicts when running multiple instances
-					of the same template or services with identical names.
-				</span>
+				<span>{t("dashboard.compose.isolatedDeploymentExplanation")}</span>
 				<div className="space-y-4">
 					<div>
 						<h4 className="font-medium mb-2">
-							Resources that will be isolated:
+							{t("dashboard.compose.resourcesThatWillBeIsolated")}
 						</h4>
 						<ul className="list-disc list-inside">
-							<li>Docker volumes</li>
-							<li>Docker networks</li>
+							<li>{t("dashboard.compose.dockerVolumes")}</li>
+							<li>{t("dashboard.compose.dockerNetworks")}</li>
 						</ul>
 					</div>
 				</div>
@@ -143,10 +139,14 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 										<div className="space-y-0.5">
 											<FormLabel>
-												Enable Isolated Deployment ({data?.appName})
+												{t("dashboard.compose.enableIsolatedDeployment", {
+													appName: data?.appName,
+												})}
 											</FormLabel>
 											<FormDescription>
-												Enable isolated deployment to the compose file.
+												{t(
+													"dashboard.compose.enableIsolatedDeploymentDescription",
+												)}
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -166,12 +166,12 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 								type="submit"
 								className="lg:w-fit"
 							>
-								Save
+								{t("dashboard.compose.save")}
 							</Button>
 						</div>
 					</div>
 					<div className="flex flex-col gap-4">
-						<Label>Preview</Label>
+						<Label>{t("dashboard.compose.preview")}</Label>
 						<pre>
 							<CodeEditor
 								value={compose || ""}

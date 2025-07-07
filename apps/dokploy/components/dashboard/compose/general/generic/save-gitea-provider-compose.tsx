@@ -43,33 +43,36 @@ import { api } from "@/utils/api";
 import type { Repository } from "@/utils/gitea-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, Plus, X } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const GiteaProviderSchema = z.object({
-	composePath: z.string().min(1),
-	repository: z
-		.object({
-			repo: z.string().min(1, "Repo is required"),
-			owner: z.string().min(1, "Owner is required"),
-		})
-		.required(),
-	branch: z.string().min(1, "Branch is required"),
-	giteaId: z.string().min(1, "Gitea Provider is required"),
-	watchPaths: z.array(z.string()).optional(),
-	enableSubmodules: z.boolean().default(false),
-});
+const createGiteaProviderSchema = (t: any) =>
+	z.object({
+		composePath: z.string().min(1),
+		repository: z
+			.object({
+				repo: z.string().min(1, t("dashboard.compose.repoRequired")),
+				owner: z.string().min(1, t("dashboard.compose.ownerRequired")),
+			})
+			.required(),
+		branch: z.string().min(1, t("dashboard.compose.branchRequired")),
+		giteaId: z.string().min(1, t("dashboard.compose.giteaProviderRequired")),
+		watchPaths: z.array(z.string()).optional(),
+		enableSubmodules: z.boolean().default(false),
+	});
 
-type GiteaProvider = z.infer<typeof GiteaProviderSchema>;
+type GiteaProvider = z.infer<ReturnType<typeof createGiteaProviderSchema>>;
 
 interface Props {
 	composeId: string;
 }
 
 export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 	const { mutateAsync, isLoading: isSavingGiteaProvider } =
@@ -87,7 +90,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			watchPaths: [],
 			enableSubmodules: false,
 		},
-		resolver: zodResolver(GiteaProviderSchema),
+		resolver: zodResolver(createGiteaProviderSchema(t)),
 	});
 
 	const repository = form.watch("repository");
@@ -158,11 +161,11 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			enableSubmodules: data.enableSubmodules,
 		} as any)
 			.then(async () => {
-				toast.success("Service Provider Saved");
+				toast.success(t("dashboard.compose.giteaProviderSaved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Gitea provider");
+				toast.error(t("dashboard.compose.errorSavingGiteaProvider"));
 			});
 	};
 
@@ -181,7 +184,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							name="giteaId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Gitea Account</FormLabel>
+									<FormLabel>{t("dashboard.compose.giteaAccount")}</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -196,7 +199,11 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Gitea Account" />
+												<SelectValue
+													placeholder={t(
+														"dashboard.compose.selectGiteaAccount",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -221,7 +228,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>Repository</FormLabel>
+										<FormLabel>{t("dashboard.compose.repository")}</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`${giteaUrl}/${field.value.owner}/${field.value.repo}`}
@@ -230,7 +237,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GiteaIcon className="h-4 w-4" />
-												<span>View Repository</span>
+												<span>{t("dashboard.compose.viewRepository")}</span>
 											</Link>
 										)}
 									</div>
@@ -245,12 +252,13 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{isLoadingRepositories
-														? "Loading...."
+														? t("dashboard.compose.loading")
 														: field.value.owner
 															? repositories?.find(
 																	(repo) => repo.name === field.value.repo,
 																)?.name
-															: "Select repository"}
+															: t("dashboard.compose.selectRepository")}
+
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -258,15 +266,17 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search repository..."
+													placeholder={t("dashboard.compose.searchRepository")}
 													className="h-9"
 												/>
 												{isLoadingRepositories && (
 													<span className="py-6 text-center text-sm">
-														Loading Repositories....
+														{t("dashboard.compose.loadingRepositories")}
 													</span>
 												)}
-												<CommandEmpty>No repositories found.</CommandEmpty>
+												<CommandEmpty>
+													{t("dashboard.compose.noRepositoriesFound")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{repositories?.map((repo) => (
@@ -304,7 +314,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									</Popover>
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											Repository is required
+											{t("dashboard.compose.repositoryRequired")}
 										</p>
 									)}
 								</FormItem>
@@ -316,7 +326,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							name="branch"
 							render={({ field }) => (
 								<FormItem className="block w-full">
-									<FormLabel>Branch</FormLabel>
+									<FormLabel>{t("dashboard.compose.branch")}</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -328,12 +338,12 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{status === "loading" && fetchStatus === "fetching"
-														? "Loading...."
+														? t("dashboard.compose.loading")
 														: field.value
 															? branches?.find(
 																	(branch) => branch.name === field.value,
 																)?.name
-															: "Select branch"}
+															: t("dashboard.compose.selectBranch")}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -341,10 +351,12 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search branches..."
+													placeholder={t("dashboard.compose.searchBranches")}
 													className="h-9"
 												/>
-												<CommandEmpty>No branches found.</CommandEmpty>
+												<CommandEmpty>
+													{t("dashboard.compose.noBranchesFound")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{branches?.map((branch) => (
@@ -375,7 +387,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									</Popover>
 									{form.formState.errors.branch && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											Branch is required
+											{t("dashboard.compose.branchRequired")}
 										</p>
 									)}
 								</FormItem>
@@ -387,7 +399,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							name="composePath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Compose Path</FormLabel>
+									<FormLabel>{t("dashboard.compose.composePath")}</FormLabel>
 									<FormControl>
 										<Input placeholder="docker-compose.yml" {...field} />
 									</FormControl>
@@ -402,7 +414,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>Watch Paths</FormLabel>
+										<FormLabel>{t("dashboard.compose.watchPaths")}</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger>
@@ -411,10 +423,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													</div>
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														Add paths to watch for changes. When files in these
-														paths change, a new deployment will be triggered.
-													</p>
+													<p>{t("dashboard.compose.watchPathsTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -437,7 +446,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									<FormControl>
 										<div className="flex gap-2">
 											<Input
-												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
+												placeholder={t(
+													"dashboard.compose.watchPathsInputPlaceholder",
+												)}
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -457,7 +468,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 												size="icon"
 												onClick={() => {
 													const input = document.querySelector(
-														'input[placeholder*="Enter a path"]',
+														`input[placeholder*="${t(
+															"dashboard.compose.watchPathsInputPlaceholder",
+														)}"]`,
 													) as HTMLInputElement;
 													const path = input.value.trim();
 													if (path) {
@@ -485,7 +498,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="!mt-0">
+										{t("dashboard.compose.enableSubmodules")}
+									</FormLabel>
 								</FormItem>
 							)}
 						/>
@@ -493,7 +508,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 
 					<div className="flex justify-end">
 						<Button type="submit" isLoading={isSavingGiteaProvider}>
-							Save
+							{t("dashboard.compose.save")}
 						</Button>
 					</div>
 				</form>
