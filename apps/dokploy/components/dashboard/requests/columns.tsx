@@ -21,11 +21,11 @@ export const getStatusColor = (status: number) => {
 	return "destructive";
 };
 
-export const columns: ColumnDef<LogEntry>[] = [
+export const createColumns = (t: any): ColumnDef<LogEntry>[] => [
 	{
 		accessorKey: "level",
 		header: () => {
-			return <Button variant="ghost">Level</Button>;
+			return <Button variant="ghost">{t("dashboard.requests.level")}</Button>;
 		},
 		cell: ({ row }) => {
 			return <div>{row.original.level}</div>;
@@ -39,7 +39,7 @@ export const columns: ColumnDef<LogEntry>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Message
+					{t("dashboard.requests.message")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -59,12 +59,15 @@ export const columns: ColumnDef<LogEntry>[] = [
 					</div>
 					<div className="flex flex-row gap-3 w-full">
 						<Badge variant={getStatusColor(log.OriginStatus)}>
-							Status: {log.OriginStatus}
+							{t("dashboard.requests.status")}: {log.OriginStatus}
 						</Badge>
 						<Badge variant={"secondary"}>
-							Exec Time: {`${log.Duration / 1000000000}s`}
+							{t("dashboard.requests.execTime")}:{" "}
+							{`${log.Duration / 1000000000}s`}
 						</Badge>
-						<Badge variant={"secondary"}>IP: {log.ClientAddr}</Badge>
+						<Badge variant={"secondary"}>
+							{t("dashboard.requests.ip")}: {log.ClientAddr}
+						</Badge>
 					</div>
 				</div>
 			);
@@ -78,7 +81,7 @@ export const columns: ColumnDef<LogEntry>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Time
+					{t("dashboard.requests.time")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -95,3 +98,5 @@ export const columns: ColumnDef<LogEntry>[] = [
 		},
 	},
 ];
+
+export const columns = createColumns(() => {}); // This will be replaced by the actual translation function
