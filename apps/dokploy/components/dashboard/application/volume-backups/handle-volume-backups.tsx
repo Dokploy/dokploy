@@ -55,7 +55,7 @@ const formSchema = z
 		cronExpression: z.string().min(1, "Cron expression is required"),
 		volumeName: z.string().min(1, "Volume name is required"),
 		prefix: z.string(),
-		keepLatestCount: z.coerce.number().optional(),
+		// keepLatestCount: z.coerce.number().optional(),
 		turnOff: z.boolean().default(false),
 		enabled: z.boolean().default(true),
 		serviceType: z.enum([
@@ -117,7 +117,7 @@ export const HandleVolumeBackups = ({
 			cronExpression: "",
 			volumeName: "",
 			prefix: "",
-			keepLatestCount: undefined,
+			// keepLatestCount: undefined,
 			turnOff: false,
 			enabled: true,
 			serviceName: "",
@@ -173,7 +173,7 @@ export const HandleVolumeBackups = ({
 				cronExpression: volumeBackup.cronExpression,
 				volumeName: volumeBackup.volumeName || "",
 				prefix: volumeBackup.prefix,
-				keepLatestCount: volumeBackup.keepLatestCount || undefined,
+				// keepLatestCount: volumeBackup.keepLatestCount || undefined,
 				turnOff: volumeBackup.turnOff,
 				enabled: volumeBackup.enabled || false,
 				serviceName: volumeBackup.serviceName || "",
@@ -600,7 +600,7 @@ export const HandleVolumeBackups = ({
 							)}
 						/>
 
-						<FormField
+						{/* <FormField
 							control={form.control}
 							name="keepLatestCount"
 							render={({ field }) => (
@@ -622,7 +622,7 @@ export const HandleVolumeBackups = ({
 									<FormMessage />
 								</FormItem>
 							)}
-						/>
+						/> */}
 
 						<FormField
 							control={form.control}
