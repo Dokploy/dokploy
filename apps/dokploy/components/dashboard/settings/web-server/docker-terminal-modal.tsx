@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -43,6 +44,7 @@ interface Props {
 }
 
 export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
@@ -87,21 +89,27 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
-					<DialogTitle>Docker Terminal</DialogTitle>
+					<DialogTitle>
+						{t("settings.webServer.dockerTerminal.title")}
+					</DialogTitle>
 					<DialogDescription>
-						Easy way to access to docker container
+						{t("settings.webServer.dockerTerminal.description")}
 					</DialogDescription>
 				</DialogHeader>
-				<Label>Select a container to view logs</Label>
+				<Label>{t("settings.webServer.dockerTerminal.selectContainer")}</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("settings.webServer.dockerTerminal.connecting")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<SelectValue
+								placeholder={t(
+									"settings.webServer.dockerTerminal.selectContainer",
+								)}
+							/>
 						)}
 					</SelectTrigger>
 					<SelectContent>
@@ -117,7 +125,10 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 									</Badge>
 								</SelectItem>
 							))}
-							<SelectLabel>Containers ({data?.length})</SelectLabel>
+							<SelectLabel>
+								{t("settings.webServer.dockerTerminal.container")} (
+								{data?.length})
+							</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>
@@ -130,17 +141,19 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
 							<DialogTitle>
-								Are you sure you want to close the terminal?
+								{t("settings.webServer.dockerTerminal.title")}
 							</DialogTitle>
 							<DialogDescription>
-								By clicking the confirm button, the terminal will be closed.
+								{t("settings.webServer.dockerTerminal.description")}
 							</DialogDescription>
 						</DialogHeader>
 						<DialogFooter>
 							<Button variant="outline" onClick={handleCancel}>
-								Cancel
+								{t("settings.webServer.dockerTerminal.disconnect")}
 							</Button>
-							<Button onClick={handleConfirm}>Confirm</Button>
+							<Button onClick={handleConfirm}>
+								{t("settings.webServer.dockerTerminal.connect")}
+							</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>

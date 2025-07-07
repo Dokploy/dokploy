@@ -22,7 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
-import { useTranslation } from "next-i18next";
+import { type TFunction, useTranslation } from "next-i18next";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -34,23 +34,28 @@ interface Props {
 	serverId?: string;
 }
 
-const PortSchema = z.object({
-	targetPort: z.number().min(1, "Target port is required"),
-	publishedPort: z.number().min(1, "Published port is required"),
-});
+const PortSchema = (t: TFunction) =>
+	z.object({
+		targetPort: z
+			.number()
+			.min(1, t("settings.webServer.traefik.targetPortRequired")),
+		publishedPort: z
+			.number()
+			.min(1, t("settings.webServer.traefik.publishedPortRequired")),
+	});
+const TraefikPortsSchema = (t: TFunction) =>
+	z.object({
+		ports: z.array(PortSchema(t)),
+	});
 
-const TraefikPortsSchema = z.object({
-	ports: z.array(PortSchema),
-});
-
-type TraefikPortsForm = z.infer<typeof TraefikPortsSchema>;
+type TraefikPortsForm = ReturnType<typeof TraefikPortsSchema>["_type"];
 
 export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 	const { t } = useTranslation("settings");
 	const [open, setOpen] = useState(false);
 
 	const form = useForm<TraefikPortsForm>({
-		resolver: zodResolver(TraefikPortsSchema),
+		resolver: zodResolver(TraefikPortsSchema(t)),
 		defaultValues: {
 			ports: [],
 		},
@@ -110,8 +115,8 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										"settings.server.webServer.traefik.managePortsDescription",
 									)}
 									<span className="text-sm text-muted-foreground">
-										{fields.length} port mapping{fields.length !== 1 ? "s" : ""}{" "}
-										configured
+										{fields.length} {t("settings.webServer.traefik.addMapping")}
+										{fields.length !== 1 ? "s" : ""} configured
 									</span>
 								</div>
 								<Button
@@ -120,7 +125,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 									className="gap-2"
 								>
 									<Plus className="h-4 w-4" />
-									Add Mapping
+									{t("settings.webServer.traefik.addMapping")}
 								</Button>
 							</div>
 						</DialogDescription>
@@ -133,10 +138,10 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 									<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 										<ArrowRightLeft className="size-8 text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											No port mappings configured
+											{t("settings.webServer.traefik.noMappings")}
 										</span>
 										<p className="text-sm text-muted-foreground text-center">
-											Add one to get started
+											{t("settings.webServer.traefik.addOneToGetStarted")}
 										</p>
 									</div>
 								) : (
@@ -231,23 +236,28 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										<div className="flex flex-col gap-2">
 											<span className="text-sm">
 												<strong>
-													Each port mapping defines how external traffic reaches
-													your containers through Traefik.
+													{t("settings.webServer.traefik.mappingInfo")}
 												</strong>
 												<ul className="pt-2">
 													<li>
-														<strong>Target Port:</strong> The port inside your
-														container that the service is listening on.
+														<strong>
+															{t(
+																"settings.server.webServer.traefik.targetPort",
+															)}
+														</strong>{" "}
+														{t("settings.webServer.traefik.targetPortInfo")}
 													</li>
 													<li>
-														<strong>Published Port:</strong> The port on your
-														host machine that will be mapped to the target port.
+														<strong>
+															{t(
+																"settings.server.webServer.traefik.publishedPort",
+															)}
+														</strong>{" "}
+														{t("settings.webServer.traefik.publishedPortInfo")}
 													</li>
 												</ul>
 												<p className="mt-2">
-													All ports are bound directly to the host machine,
-													allowing Traefik to handle incoming traffic and route
-													it appropriately to your services.
+													{t("settings.webServer.traefik.allPortsInfo")}
 												</p>
 											</span>
 										</div>
@@ -261,7 +271,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 									className="text-sm"
 									isLoading={isLoading}
 								>
-									Save
+									{t("settings.webServer.traefik.save")}
 								</Button>
 							</DialogFooter>
 						</form>
