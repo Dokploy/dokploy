@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 
 const examples = [
 	"Make a personal blog",
@@ -23,6 +24,7 @@ const examples = [
 ];
 
 export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
+	const { t } = useTranslation("dashboard");
 	// Get servers from the API
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const hasServers = servers && servers.length > 0;
@@ -34,12 +36,16 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 		<div className="flex flex-col h-full gap-4">
 			<div className="">
 				<div className="space-y-4 ">
-					<h2 className="text-lg font-semibold">Step 1: Describe Your Needs</h2>
+					<h2 className="text-lg font-semibold">
+						{t("dashboard.ai.stepOneTitle")}
+					</h2>
 					<div className="space-y-2">
-						<Label htmlFor="user-needs">Describe your template needs</Label>
+						<Label htmlFor="user-needs">
+							{t("dashboard.ai.describeNeeds")}
+						</Label>
 						<Textarea
 							id="user-needs"
-							placeholder="Describe the type of template you need, its purpose, and any specific features you'd like to include."
+							placeholder={t("dashboard.ai.describeNeedsPlaceholder")}
 							value={templateInfo?.userInput}
 							onChange={(e) =>
 								setTemplateInfo({ ...templateInfo, userInput: e.target.value })
@@ -51,7 +57,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 					{hasServers && (
 						<div className="space-y-2">
 							<Label htmlFor="server-deploy">
-								Select the server where you want to deploy (optional)
+								{t("dashboard.ai.selectServerOptional")}
 							</Label>
 							<Select
 								value={templateInfo.server?.serverId}
@@ -66,7 +72,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 								}}
 							>
 								<SelectTrigger className="w-full">
-									<SelectValue placeholder="Select a server" />
+									<SelectValue placeholder={t("dashboard.ai.selectServer")} />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectGroup>
@@ -75,7 +81,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 												{server.name}
 											</SelectItem>
 										))}
-										<SelectLabel>Servers ({servers?.length})</SelectLabel>
+										<SelectLabel>
+											{t("dashboard.ai.servers")} ({servers?.length})
+										</SelectLabel>
 									</SelectGroup>
 								</SelectContent>
 							</Select>
@@ -83,7 +91,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 					)}
 
 					<div className="space-y-2">
-						<Label>Examples:</Label>
+						<Label>{t("dashboard.ai.examples")}:</Label>
 						<div className="flex flex-wrap gap-2">
 							{examples.map((example, index) => (
 								<Button
