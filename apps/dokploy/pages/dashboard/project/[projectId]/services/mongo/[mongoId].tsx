@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { HelpCircle, ServerOff } from "lucide-react";
@@ -39,6 +40,7 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import { useTranslation } from "next-i18next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -50,6 +52,7 @@ type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 const Mongo = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const { t } = useTranslation("dashboard");
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { mongoId, activeTab } = props;
 	const router = useRouter();
@@ -65,7 +68,10 @@ const Mongo = (
 		<div className="pb-10">
 			<BreadcrumbSidebar
 				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: t("dashboard.project.projects"),
+						href: "/dashboard/projects",
+					},
 					{
 						name: data?.project?.name || "",
 						href: `/dashboard/project/${projectId}`,
@@ -78,7 +84,8 @@ const Mongo = (
 			/>
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.project.name} | Dokploy
+					{t("dashboard.services.database")}: {data?.name} -{" "}
+					{data?.project.name} | Dokploy
 				</title>
 			</Head>
 			<div className="w-full">
@@ -115,7 +122,8 @@ const Mongo = (
 													: "destructive"
 										}
 									>
-										{data?.server?.name || "Dokploy Server"}
+										{data?.server?.name ||
+											t("dashboard.services.dokployServer")}
 									</Badge>
 									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
@@ -131,9 +139,7 @@ const Mongo = (
 													side="top"
 												>
 													<span>
-														You cannot, deploy this application because the
-														server is inactive, please upgrade your plan to add
-														more servers.
+														{t("dashboard.services.serverInactiveTooltip")}
 													</span>
 												</TooltipContent>
 											</Tooltip>
@@ -155,18 +161,17 @@ const Mongo = (
 									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
 										<ServerOff className="size-10 text-muted-foreground self-center" />
 										<span className="text-center text-base text-muted-foreground">
-											This service is hosted on the server {data.server.name},
-											but this server has been disabled because your current
-											plan doesn't include enough servers. Please purchase more
-											servers to regain access to this application.
+											{t("dashboard.services.serverInactiveMessage", {
+												serverName: data.server.name,
+											})}
 										</span>
 										<span className="text-center text-base text-muted-foreground">
-											Go to{" "}
+											{t("dashboard.services.goToBilling")}{" "}
 											<Link
 												href="/dashboard/settings/billing"
 												className="text-primary"
 											>
-												Billing
+												{t("dashboard.services.billing")}
 											</Link>
 										</span>
 									</div>
@@ -194,14 +199,26 @@ const Mongo = (
 														: "md:grid-cols-6",
 											)}
 										>
-											<TabsTrigger value="general">General</TabsTrigger>
-											<TabsTrigger value="environment">Environment</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="general">
+												{t("dashboard.services.general")}
+											</TabsTrigger>
+											<TabsTrigger value="environment">
+												{t("dashboard.services.environment")}
+											</TabsTrigger>
+											<TabsTrigger value="logs">
+												{t("dashboard.services.logs")}
+											</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+												<TabsTrigger value="monitoring">
+													{t("dashboard.services.monitoring")}
+												</TabsTrigger>
 											)}
-											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											<TabsTrigger value="backups">
+												{t("dashboard.services.backups")}
+											</TabsTrigger>
+											<TabsTrigger value="advanced">
+												{t("dashboard.services.advanced")}
+											</TabsTrigger>
 										</TabsList>
 									</div>
 
@@ -223,7 +240,11 @@ const Mongo = (
 												{data?.serverId && isCloud ? (
 													<ContainerPaidMonitoring
 														appName={data?.appName || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														baseUrl={`${
+															data?.serverId
+																? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}`
+																: "http://localhost:4500"
+														}`}
 														token={
 															data?.server?.metricsConfig?.server?.token || ""
 														}
@@ -302,6 +323,7 @@ Mongo.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ mongoId: string; activeTab: TabState }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
 
@@ -338,6 +360,7 @@ export async function getServerSideProps(
 					trpcState: helpers.dehydrate(),
 					mongoId: params?.mongoId,
 					activeTab: (activeTab || "general") as TabState,
+					...(await serverSideTranslations(locale, ["common", "dashboard"])),
 				},
 			};
 		} catch {
