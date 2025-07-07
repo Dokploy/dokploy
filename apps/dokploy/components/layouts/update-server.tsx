@@ -1,6 +1,7 @@
 import { api } from "@/utils/api";
 import type { IUpdateData } from "@dokploy/server/index";
 import { Download } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import UpdateServer from "../dashboard/settings/web-server/update-server";
@@ -14,6 +15,7 @@ import {
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UpdateServerButton = () => {
+	const { t } = useTranslation("dashboard");
 	const [updateData, setUpdateData] = useState<IUpdateData>({
 		latestVersion: null,
 		updateAvailable: false,
@@ -95,11 +97,11 @@ export const UpdateServerButton = () => {
 								<Download className="h-4 w-4 flex-shrink-0" />
 								{updateData ? (
 									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Update Available
+										{t("dashboard.updateServer.updateAvailable")}
 									</span>
 								) : (
 									<span className="font-medium truncate group-data-[collapsible=icon]:hidden">
-										Check for updates
+										{t("dashboard.updateServer.checkForUpdates")}
 									</span>
 								)}
 								{updateData && (
@@ -112,7 +114,7 @@ export const UpdateServerButton = () => {
 						</TooltipTrigger>
 						{updateData && (
 							<TooltipContent side="right" sideOffset={10}>
-								<p>Update Available</p>
+								<p>{t("dashboard.updateServer.updateAvailable")}</p>
 							</TooltipContent>
 						)}
 					</Tooltip>

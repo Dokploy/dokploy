@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import type React from "react";
 import { GithubIcon } from "../icons/data-tools-icons";
@@ -9,6 +10,8 @@ interface Props {
 	children: React.ReactNode;
 }
 export const OnboardingLayout = ({ children }: Props) => {
+	const { t } = useTranslation("common");
+
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
 			<div className="relative hidden h-full flex-col  p-10 text-primary dark:border-r lg:flex">
@@ -18,14 +21,11 @@ export const OnboardingLayout = ({ children }: Props) => {
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
 					<Logo className="size-10" />
-					Dokploy
+					{t("common.brand.dokploy")}
 				</Link>
 				<div className="relative z-20 mt-auto">
 					<blockquote className="space-y-2">
-						<p className="text-lg text-primary">
-							&ldquo;The Open Source alternative to Netlify, Vercel,
-							Heroku.&rdquo;
-						</p>
+						<p className="text-lg text-primary">{t("common.brand.tagline")}</p>
 					</blockquote>
 				</div>
 			</div>
