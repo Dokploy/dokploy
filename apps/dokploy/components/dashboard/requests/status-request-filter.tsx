@@ -17,6 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CheckIcon, PlusCircle } from "lucide-react";
+import { useTranslation } from "next-i18next";
 
 interface DataTableFacetedFilterProps {
 	value?: string[];
@@ -35,6 +36,7 @@ export function DataTableFacetedFilter({
 	title,
 	options,
 }: DataTableFacetedFilterProps) {
+	const { t } = useTranslation("dashboard");
 	const selectedValues = new Set(value as string[]);
 
 	return (
@@ -58,7 +60,7 @@ export function DataTableFacetedFilter({
 										variant="secondary"
 										className="rounded-sm px-1 font-normal"
 									>
-										{selectedValues.size} selected
+										{selectedValues.size} {t("dashboard.requests.selected")}
 									</Badge>
 								) : (
 									options
@@ -82,7 +84,9 @@ export function DataTableFacetedFilter({
 				<Command>
 					<CommandInput placeholder={title} />
 					<CommandList>
-						<CommandEmpty>No results found.</CommandEmpty>
+						<CommandEmpty>
+							{t("dashboard.requests.noResultsFound")}
+						</CommandEmpty>
 						<CommandGroup>
 							{options.map((option) => {
 								const isSelected = selectedValues.has(option.value);
@@ -125,7 +129,7 @@ export function DataTableFacetedFilter({
 										onSelect={() => setValue?.([])}
 										className="justify-center text-center"
 									>
-										Clear filters
+										{t("dashboard.requests.clearFilters")}
 									</CommandItem>
 								</CommandGroup>
 							</>

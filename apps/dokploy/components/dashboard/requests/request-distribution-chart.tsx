@@ -5,6 +5,7 @@ import {
 	ChartTooltipContent,
 } from "@/components/ui/chart";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import {
 	Area,
 	AreaChart,
@@ -21,19 +22,20 @@ export interface RequestDistributionChartProps {
 	};
 }
 
-const chartConfig = {
-	views: {
-		label: "Page Views",
-	},
-	count: {
-		label: "Count",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export const RequestDistributionChart = ({
 	dateRange,
 }: RequestDistributionChartProps) => {
+	const { t } = useTranslation("dashboard");
+	const chartConfig = {
+		views: {
+			label: t("dashboard.requests.pageViews"),
+		},
+		count: {
+			label: t("dashboard.requests.count"),
+			color: "hsl(var(--chart-1))",
+		},
+	} satisfies ChartConfig;
+
 	const { data: stats } = api.settings.readStats.useQuery(
 		{
 			dateRange: dateRange
