@@ -42,6 +42,7 @@ import {
 	Search,
 	TrashIcon,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
+	const { t } = useTranslation("common");
 	const utils = api.useUtils();
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
@@ -67,7 +69,7 @@ export const ShowProjects = () => {
 	return (
 		<>
 			<BreadcrumbSidebar
-				list={[{ name: "Projects", href: "/dashboard/projects" }]}
+				list={[{ name: t("dashboard.projects"), href: "/dashboard/projects" }]}
 			/>
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
@@ -76,10 +78,10 @@ export const ShowProjects = () => {
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									Projects
+									{t("dashboard.projects")}
 								</CardTitle>
 								<CardDescription>
-									Create and manage your projects
+									{t("project.createAndManage")}
 								</CardDescription>
 							</CardHeader>
 
@@ -93,14 +95,14 @@ export const ShowProjects = () => {
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							{isLoading ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
-									<span>Loading...</span>
+									<span>{t("loading")}</span>
 									<Loader2 className="animate-spin size-4" />
 								</div>
 							) : (
 								<>
 									<div className="w-full relative">
 										<Input
-											placeholder="Filter projects..."
+											placeholder={t("project.filterPlaceholder")}
 											value={searchQuery}
 											onChange={(e) => setSearchQuery(e.target.value)}
 											className="pr-10"
@@ -111,7 +113,7 @@ export const ShowProjects = () => {
 										<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
 											<FolderInput className="size-8 self-center text-muted-foreground" />
 											<span className="text-center font-medium text-muted-foreground">
-												No projects found
+												{t("project.noProjects")}
 											</span>
 										</div>
 									)}
@@ -163,7 +165,7 @@ export const ShowProjects = () => {
 																		{project.applications.length > 0 && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
-																					Applications
+																					{t("project.applications")}
 																				</DropdownMenuLabel>
 																				{project.applications.map((app) => (
 																					<div key={app.applicationId}>
@@ -184,7 +186,13 @@ export const ShowProjects = () => {
 																									<Link
 																										className="space-x-4 text-xs cursor-pointer justify-between"
 																										target="_blank"
-																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																										href={`${
+																											domain.https
+																												? "https"
+																												: "http"
+																										}://${domain.host}${
+																											domain.path
+																										}`}
 																									>
 																										<span className="truncate">
 																											{domain.host}
@@ -201,7 +209,7 @@ export const ShowProjects = () => {
 																		{project.compose.length > 0 && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
-																					Compose
+																					{t("project.compose")}
 																				</DropdownMenuLabel>
 																				{project.compose.map((comp) => (
 																					<div key={comp.composeId}>
@@ -222,7 +230,13 @@ export const ShowProjects = () => {
 																									<Link
 																										className="space-x-4 text-xs cursor-pointer justify-between"
 																										target="_blank"
-																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																										href={`${
+																											domain.https
+																												? "https"
+																												: "http"
+																										}://${domain.host}${
+																											domain.path
+																										}`}
 																									>
 																										<span className="truncate">
 																											{domain.host}
@@ -269,7 +283,7 @@ export const ShowProjects = () => {
 																				onClick={(e) => e.stopPropagation()}
 																			>
 																				<DropdownMenuLabel className="font-normal">
-																					Actions
+																					{t("project.actions")}
 																				</DropdownMenuLabel>
 																				<div
 																					onClick={(e) => e.stopPropagation()}
@@ -300,34 +314,38 @@ export const ShowProjects = () => {
 																									}
 																								>
 																									<TrashIcon className="size-4" />
-																									<span>Delete</span>
+																									<span>
+																										{t("button.delete")}
+																									</span>
 																								</DropdownMenuItem>
 																							</AlertDialogTrigger>
 																							<AlertDialogContent>
 																								<AlertDialogHeader>
 																									<AlertDialogTitle>
-																										Are you sure to delete this
-																										project?
+																										{t(
+																											"project.delete.confirm",
+																										)}
 																									</AlertDialogTitle>
 																									{!emptyServices ? (
 																										<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
 																											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 																											<span className="text-sm text-yellow-600 dark:text-yellow-400">
-																												You have active
-																												services, please delete
-																												them first
+																												{t(
+																													"project.delete.warning",
+																												)}
 																											</span>
 																										</div>
 																									) : (
 																										<AlertDialogDescription>
-																											This action cannot be
-																											undone
+																											{t(
+																												"project.delete.description",
+																											)}
 																										</AlertDialogDescription>
 																									)}
 																								</AlertDialogHeader>
 																								<AlertDialogFooter>
 																									<AlertDialogCancel>
-																										Cancel
+																										{t("button.cancel")}
 																									</AlertDialogCancel>
 																									<AlertDialogAction
 																										disabled={!emptyServices}
@@ -338,12 +356,16 @@ export const ShowProjects = () => {
 																											})
 																												.then(() => {
 																													toast.success(
-																														"Project deleted successfully",
+																														t(
+																															"project.delete.success",
+																														),
 																													);
 																												})
 																												.catch(() => {
 																													toast.error(
-																														"Error deleting this project",
+																														t(
+																															"project.delete.error",
+																														),
 																													);
 																												})
 																												.finally(() => {
@@ -351,7 +373,7 @@ export const ShowProjects = () => {
 																												});
 																										}}
 																									>
-																										Delete
+																										{t("button.delete")}
 																									</AlertDialogAction>
 																								</AlertDialogFooter>
 																							</AlertDialogContent>
@@ -366,13 +388,13 @@ export const ShowProjects = () => {
 															<CardFooter className="pt-4">
 																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
-																		Created
+																		{t("project.created")}
 																	</DateTooltip>
 																	<span>
 																		{totalServices}{" "}
 																		{totalServices === 1
-																			? "service"
-																			: "services"}
+																			? t("project.service")
+																			: t("project.services")}
 																	</span>
 																</div>
 															</CardFooter>

@@ -24,44 +24,48 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon, SquarePen } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const AddProjectSchema = z.object({
-	name: z
-		.string()
-		.min(1, "Project name is required")
-		.refine(
-			(name) => {
-				const trimmedName = name.trim();
-				const validNameRegex =
-					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
-				return validNameRegex.test(trimmedName);
-			},
-			{
-				message:
-					"Project name must start and end with a letter, number, hyphen or underscore. Spaces are allowed in between.",
-			},
-		)
-		.refine((name) => !/^\d/.test(name.trim()), {
-			message: "Project name cannot start with a number",
-		})
-		.transform((name) => name.trim()),
-	description: z.string().optional(),
-});
-
-type AddProject = z.infer<typeof AddProjectSchema>;
+type AddProject = {
+	name: string;
+	description?: string;
+};
 
 interface Props {
 	projectId?: string;
 }
 
 export const HandleProject = ({ projectId }: Props) => {
+	const { t } = useTranslation("common");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
+
+	const AddProjectSchema = z.object({
+		name: z
+			.string()
+			.min(1, t("project.name.required"))
+			.refine(
+				(name) => {
+					const trimmedName = name.trim();
+					const validNameRegex =
+						/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
+					return validNameRegex.test(trimmedName);
+				},
+				{
+					message: t("project.name.invalidFormat"),
+				},
+			)
+			.refine((name) => !/^\d/.test(name.trim()), {
+				message: t("project.name.noNumberStart"),
+			})
+			.transform((name) => name.trim()),
+		description: z.string().optional(),
+	});
 
 	const { mutateAsync, error, isError } = projectId
 		? api.project.update.useMutation()
@@ -99,7 +103,9 @@ export const HandleProject = ({ projectId }: Props) => {
 		})
 			.then(async (data) => {
 				await utils.project.all.invalidate();
-				toast.success(projectId ? "Project Updated" : "Project Created");
+				toast.success(
+					projectId ? t("project.update.success") : t("project.create.success"),
+				);
 				setIsOpen(false);
 				if (!projectId) {
 					router.push(`/dashboard/project/${data?.projectId}`);
@@ -109,7 +115,7 @@ export const HandleProject = ({ projectId }: Props) => {
 			})
 			.catch(() => {
 				toast.error(
-					projectId ? "Error updating a project" : "Error creating a project",
+					projectId ? t("project.update.error") : t("project.create.error"),
 				);
 			});
 	};
@@ -123,19 +129,21 @@ export const HandleProject = ({ projectId }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<SquarePen className="size-4" />
-						<span>Update</span>
+						<span>{t("project.update.button")}</span>
 					</DropdownMenuItem>
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						Create Project
+						{t("project.create")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:m:max-w-lg ">
 				<DialogHeader>
-					<DialogTitle>{projectId ? "Update" : "Add a"} project</DialogTitle>
-					<DialogDescription>The home of something big!</DialogDescription>
+					<DialogTitle>
+						{projectId ? t("project.update") : t("project.add")}
+					</DialogTitle>
+					<DialogDescription>{t("project.homeDescription")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
@@ -150,9 +158,12 @@ export const HandleProject = ({ projectId }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("project.name.label")}</FormLabel>
 										<FormControl>
-											<Input placeholder="Vandelay Industries" {...field} />
+											<Input
+												placeholder={t("project.name.placeholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -166,10 +177,10 @@ export const HandleProject = ({ projectId }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>{t("project.description.label")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description about your project..."
+											placeholder={t("project.description.placeholder")}
 											className="resize-none"
 											{...field}
 										/>
@@ -187,7 +198,9 @@ export const HandleProject = ({ projectId }: Props) => {
 							form="hook-form-add-project"
 							type="submit"
 						>
-							{projectId ? "Update" : "Create"}
+							{projectId
+								? t("project.update.button")
+								: t("project.create.button")}
 						</Button>
 					</DialogFooter>
 				</Form>
