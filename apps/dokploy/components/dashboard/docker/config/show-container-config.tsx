@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 
 interface Props {
 	containerId: string;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -32,14 +34,16 @@ export const ShowContainerConfig = ({ containerId, serverId }: Props) => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					View Config
+					{t("dashboard.docker.config.viewConfig")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className={"w-full md:w-[70vw] min-w-[70vw]"}>
 				<DialogHeader>
-					<DialogTitle>Container Config</DialogTitle>
+					<DialogTitle>
+						{t("dashboard.docker.config.containerConfig")}
+					</DialogTitle>
 					<DialogDescription>
-						See in detail the config of this container
+						{t("dashboard.docker.config.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="text-wrap rounded-lg border p-4 overflow-y-auto text-sm bg-card max-h-[80vh]">

@@ -34,8 +34,9 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { ChevronDown, Container } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import * as React from "react";
-import { columns } from "./colums";
+import { createColumns } from "./colums";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
@@ -45,6 +46,8 @@ interface Props {
 }
 
 export const ShowContainers = ({ serverId }: Props) => {
+	const { t } = useTranslation("dashboard");
+	const columns = createColumns(t);
 	const { data, isLoading } = api.docker.getContainers.useQuery({
 		serverId,
 	});
@@ -83,10 +86,10 @@ export const ShowContainers = ({ serverId }: Props) => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Container className="size-6 text-muted-foreground self-center" />
-							Docker Containers
+							{t("dashboard.docker.containers.title")}
 						</CardTitle>
 						<CardDescription>
-							See all the containers of your dokploy server
+							{t("dashboard.docker.containers.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -94,7 +97,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 							<div className="flex flex-col gap-4  w-full overflow-auto">
 								<div className="flex items-center gap-2 max-sm:flex-wrap">
 									<Input
-										placeholder="Filter by name..."
+										placeholder={t("dashboard.docker.containers.filterByName")}
 										value={
 											(table.getColumn("name")?.getFilterValue() as string) ??
 											""
@@ -112,7 +115,8 @@ export const ShowContainers = ({ serverId }: Props) => {
 												variant="outline"
 												className="sm:ml-auto max-sm:w-full"
 											>
-												Columns <ChevronDown className="ml-2 h-4 w-4" />
+												{t("dashboard.docker.containers.columns")}{" "}
+												<ChevronDown className="ml-2 h-4 w-4" />
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
@@ -140,13 +144,13 @@ export const ShowContainers = ({ serverId }: Props) => {
 									{isLoading ? (
 										<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
-												Loading...
+												{t("dashboard.docker.containers.loading")}
 											</span>
 										</div>
 									) : data?.length === 0 ? (
 										<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
-												No results.
+												{t("dashboard.docker.containers.noResults")}
 											</span>
 										</div>
 									) : (
@@ -195,11 +199,15 @@ export const ShowContainers = ({ serverId }: Props) => {
 															{isLoading ? (
 																<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 																	<span className="text-muted-foreground text-lg font-medium">
-																		Loading...
+																		{t("dashboard.docker.containers.loading")}
 																	</span>
 																</div>
 															) : (
-																<>No results.</>
+																<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
+																	<span className="text-muted-foreground text-lg font-medium">
+																		{t("dashboard.docker.containers.noResults")}
+																	</span>
+																</div>
 															)}
 														</TableCell>
 													</TableRow>

@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { FancyAnsi } from "fancy-ansi";
 import { escapeRegExp } from "lodash";
+import { useTranslation } from "next-i18next";
 import { type LogLine, getLogType } from "./utils";
 
 interface LogLineProps {
@@ -20,6 +21,7 @@ interface LogLineProps {
 const fancyAnsi = new FancyAnsi();
 
 export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
+	const { t } = useTranslation("dashboard");
 	const { timestamp, message, rawTimestamp } = log;
 	const { type, variant, color } = getLogType(message);
 
@@ -32,7 +34,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				year: "2-digit",
 				second: "2-digit",
 			})
-		: "--- No time found ---";
+		: t("dashboard.dockerLogs.noTimeFound");
 
 	const highlightMessage = (text: string, term: string) => {
 		if (!term) {
