@@ -20,32 +20,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const DockerProviderSchema = z.object({
-	externalPort: z.preprocess((a) => {
-		if (a !== null) {
-			const parsed = Number.parseInt(z.string().parse(a), 10);
-			return Number.isNaN(parsed) ? null : parsed;
-		}
-		return null;
-	}, z
-		.number()
-		.gte(0, "Range must be 0 - 65535")
-		.lte(65535, "Range must be 0 - 65535")
-		.nullable()),
-});
+const DockerProviderSchema = (t: any) =>
+	z.object({
+		externalPort: z.preprocess((a) => {
+			if (a !== null) {
+				const parsed = Number.parseInt(z.string().parse(a), 10);
+				return Number.isNaN(parsed) ? null : parsed;
+			}
+			return null;
+		}, z
+			.number()
+			.gte(0, t("dashboard.mariadb.externalPortRange"))
+			.lte(65535, t("dashboard.mariadb.externalPortRange"))
+			.nullable()),
+	});
 
-type DockerProvider = z.infer<typeof DockerProviderSchema>;
+type DockerProvider = z.infer<ReturnType<typeof DockerProviderSchema>>;
 
 interface Props {
 	mariadbId: string;
 }
 export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.mariadb.one.useQuery({ mariadbId });
 	const { mutateAsync, isLoading } = api.mariadb.saveExternalPort.useMutation();
@@ -53,7 +56,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 	const getIp = data?.server?.ipAddress || ip;
 	const form = useForm<DockerProvider>({
 		defaultValues: {},
-		resolver: zodResolver(DockerProviderSchema),
+		resolver: zodResolver(DockerProviderSchema(t)),
 	});
 
 	useEffect(() => {
@@ -70,11 +73,11 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 			mariadbId,
 		})
 			.then(async () => {
-				toast.success("External Port updated");
+				toast.success(t("dashboard.mariadb.externalPortUpdated"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the external port");
+				toast.error(t("dashboard.mariadb.errorSavingExternalPort"));
 			});
 	};
 
@@ -100,26 +103,26 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">External Credentials</CardTitle>
+						<CardTitle className="text-xl">
+							{t("dashboard.mariadb.externalCredentials")}
+						</CardTitle>
 						<CardDescription>
-							In order to make the database reachable trought internet is
-							required to set a port, make sure the port is not used by another
-							application or database
+							{t("dashboard.mariadb.externalCredentialsDescription")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">
 						{!getIp && (
 							<AlertBlock type="warning">
-								You need to set an IP address in your{" "}
+								{t("dashboard.mariadb.setIpAddressWarning")}{" "}
 								<Link
 									href="/dashboard/settings/server"
 									className="text-primary"
 								>
 									{data?.serverId
-										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
-										: "Web Server -> Server -> Update Server IP"}
+										? t("dashboard.mariadb.remoteServerUpdateIp")
+										: t("dashboard.mariadb.webServerUpdateIp")}
 								</Link>{" "}
-								to fix the database url connection.
+								{t("dashboard.mariadb.fixDatabaseUrl")}
 							</AlertBlock>
 						)}
 						<Form {...form}>
@@ -135,10 +138,14 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 											render={({ field }) => {
 												return (
 													<FormItem>
-														<FormLabel>External Port (Internet)</FormLabel>
+														<FormLabel>
+															{t("dashboard.mariadb.externalPort")}
+														</FormLabel>
 														<FormControl>
 															<Input
-																placeholder="3306"
+																placeholder={t(
+																	"dashboard.mariadb.externalPortPlaceholder",
+																)}
 																{...field}
 																value={field.value || ""}
 															/>
@@ -153,8 +160,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 								{!!data?.externalPort && (
 									<div className="grid w-full gap-8">
 										<div className="flex flex-col gap-3">
-											{/* jdbc:mariadb://5.161.59.207:3306/pixel-calculate?user=mariadb&password=HdVXfq6hM7W7F1 */}
-											<Label>External Host</Label>
+											<Label>{t("dashboard.mariadb.externalHost")}</Label>
 											<ToggleVisibilityInput value={connectionUrl} disabled />
 										</div>
 									</div>
@@ -162,7 +168,7 @@ export const ShowExternalMariadbCredentials = ({ mariadbId }: Props) => {
 
 								<div className="flex justify-end">
 									<Button type="submit" isLoading={isLoading}>
-										Save
+										{t("dashboard.mariadb.save")}
 									</Button>
 								</div>
 							</form>
