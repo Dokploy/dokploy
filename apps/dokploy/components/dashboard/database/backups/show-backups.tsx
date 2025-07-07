@@ -29,6 +29,7 @@ import {
 	Play,
 	Trash2,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ export const ShowBackups = ({
 	databaseType,
 	backupType = "database",
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [activeManualBackup, setActiveManualBackup] = useState<
 		string | undefined
 	>();
@@ -102,11 +104,10 @@ export const ShowBackups = ({
 				<div className="flex flex-col gap-0.5">
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<Database className="size-6 text-muted-foreground" />
-						Backups
+						{t("dashboard.backups.backups")}
 					</CardTitle>
 					<CardDescription>
-						Add backups to your database to save the data to a different
-						provider.
+						{t("dashboard.backups.backupsDescription")}
 					</CardDescription>
 				</div>
 
@@ -134,15 +135,14 @@ export const ShowBackups = ({
 					<div className="flex flex-col items-center gap-3 min-h-[35vh] justify-center">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground text-center">
-							To create a backup it is required to set at least 1 provider.
-							Please, go to{" "}
+							{t("dashboard.backups.providerRequired")}{" "}
 							<Link
 								href="/dashboard/settings/destinations"
 								className="text-foreground"
 							>
-								S3 Destinations
+								{t("dashboard.backups.s3Destinations")}
 							</Link>{" "}
-							to do so.
+							{t("dashboard.backups.toDoSo")}
 						</span>
 					</div>
 				) : (
@@ -151,7 +151,7 @@ export const ShowBackups = ({
 							<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 								<DatabaseBackup className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									No backups configured
+									{t("dashboard.backups.noBackupsConfigured")}
 								</span>
 								<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
 									<HandleBackup
@@ -173,8 +173,8 @@ export const ShowBackups = ({
 						) : (
 							<div className="flex flex-col pt-2 gap-4">
 								{backupType === "compose" && (
-									<AlertBlock title="Compose Backups">
-										Make sure the compose is running before creating a backup.
+									<AlertBlock title={t("dashboard.backups.composeBackups")}>
+										{t("dashboard.backups.composeBackupsWarning")}
 									</AlertBlock>
 								)}
 								<div className="flex flex-col gap-6">
@@ -224,7 +224,9 @@ export const ShowBackups = ({
 																		)}
 																	/>
 																	<span className="text-xs text-muted-foreground">
-																		{backup.enabled ? "Active" : "Inactive"}
+																		{backup.enabled
+																			? t("dashboard.backups.active")
+																			: t("dashboard.backups.inactive")}
 																	</span>
 																</div>
 															</div>
@@ -233,7 +235,7 @@ export const ShowBackups = ({
 														<div className="flex flex-wrap gap-x-8 gap-y-2">
 															<div className="min-w-[200px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Destination
+																	{t("dashboard.backups.destination")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.destination.name}
@@ -242,7 +244,7 @@ export const ShowBackups = ({
 
 															<div className="min-w-[150px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Database
+																	{t("dashboard.backups.database")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.database}
@@ -251,7 +253,7 @@ export const ShowBackups = ({
 
 															<div className="min-w-[120px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Schedule
+																	{t("dashboard.backups.schedule")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.schedule}
@@ -260,7 +262,7 @@ export const ShowBackups = ({
 
 															<div className="min-w-[150px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Prefix Storage
+																	{t("dashboard.backups.prefixStorage")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.prefix}
@@ -269,10 +271,11 @@ export const ShowBackups = ({
 
 															<div className="min-w-[100px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Keep Latest
+																	{t("dashboard.backups.keepLatest")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
-																	{backup.keepLatestCount || "All"}
+																	{backup.keepLatestCount ||
+																		t("dashboard.backups.all")}
 																</p>
 															</div>
 														</div>
@@ -311,12 +314,16 @@ export const ShowBackups = ({
 																			})
 																				.then(async () => {
 																					toast.success(
-																						"Manual Backup Successful",
+																						t(
+																							"dashboard.backups.manualBackupSuccessful",
+																						),
 																					);
 																				})
 																				.catch(() => {
 																					toast.error(
-																						"Error creating the manual backup",
+																						t(
+																							"dashboard.backups.errorCreatingManualBackup",
+																						),
 																					);
 																				});
 																			setActiveManualBackup(undefined);
@@ -326,7 +333,7 @@ export const ShowBackups = ({
 																	</Button>
 																</TooltipTrigger>
 																<TooltipContent>
-																	Run Manual Backup
+																	{t("dashboard.backups.runManualBackup")}
 																</TooltipContent>
 															</Tooltip>
 														</TooltipProvider>
@@ -338,8 +345,10 @@ export const ShowBackups = ({
 															refetch={refetch}
 														/>
 														<DialogAction
-															title="Delete Backup"
-															description="Are you sure you want to delete this backup?"
+															title={t("dashboard.backups.deleteBackup")}
+															description={t(
+																"dashboard.backups.deleteBackupConfirmation",
+															)}
 															type="destructive"
 															onClick={async () => {
 																await deleteBackup({
@@ -348,11 +357,17 @@ export const ShowBackups = ({
 																	.then(() => {
 																		refetch();
 																		toast.success(
-																			"Backup deleted successfully",
+																			t(
+																				"dashboard.backups.backupDeletedSuccessfully",
+																			),
 																		);
 																	})
 																	.catch(() => {
-																		toast.error("Error deleting backup");
+																		toast.error(
+																			t(
+																				"dashboard.backups.errorDeletingBackup",
+																			),
+																		);
 																	});
 															}}
 														>
