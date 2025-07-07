@@ -715,6 +715,13 @@
       "when": 1751751631943,
       "tag": "0101_moaning_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1751848685503,
+      "tag": "0102_opposite_grandmaster",
+      "breakpoints": true
     }
   ]
 }

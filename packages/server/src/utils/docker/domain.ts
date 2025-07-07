@@ -202,6 +202,7 @@ export const addDomainToCompose = async (
 	if (compose.isolatedDeployment) {
 		const randomized = randomizeDeployableSpecificationFile(
 			result,
+			compose.isolatedDeploymentsVolume,
 			compose.suffix || compose.appName,
 		);
 		result = randomized;
