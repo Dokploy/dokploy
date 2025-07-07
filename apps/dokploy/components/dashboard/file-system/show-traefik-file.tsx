@@ -14,6 +14,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export const ShowTraefikFile = ({ path, serverId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const {
 		data,
 		refetch,
@@ -71,7 +73,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 		if (!valid) {
 			form.setError("traefikConfig", {
 				type: "manual",
-				message: error || "Invalid YAML",
+				message: error || t("dashboard.traefik.invalidYAML"),
 			});
 			return;
 		}
@@ -82,11 +84,11 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 			serverId,
 		})
 			.then(async () => {
-				toast.success("Traefik config Updated");
+				toast.success(t("dashboard.traefik.configUpdated"));
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the Traefik config");
+				toast.error(t("dashboard.traefik.errorUpdatingConfig"));
 			});
 	};
 
@@ -102,7 +104,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 						{isLoadingFile ? (
 							<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 								<span className="text-muted-foreground text-lg font-medium">
-									Loading...
+									{t("common.loading")}
 								</span>
 								<Loader2 className="animate-spin size-8 text-muted-foreground" />
 							</div>
@@ -112,7 +114,7 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 								name="traefikConfig"
 								render={({ field }) => (
 									<FormItem className="relative">
-										<FormLabel>Traefik config</FormLabel>
+										<FormLabel>{t("dashboard.traefik.config")}</FormLabel>
 										<FormDescription className="break-all">
 											{path}
 										</FormDescription>
@@ -146,7 +148,9 @@ routers:
 													setCanEdit(!canEdit);
 												}}
 											>
-												{canEdit ? "Unlock" : "Lock"}
+												{canEdit
+													? t("dashboard.traefik.unlock")
+													: t("dashboard.traefik.lock")}
 											</Button>
 										</div>
 									</FormItem>
@@ -160,7 +164,7 @@ routers:
 							disabled={canEdit || isLoading}
 							type="submit"
 						>
-							Update
+							{t("dashboard.traefik.update")}
 						</Button>
 					</div>
 				</form>
