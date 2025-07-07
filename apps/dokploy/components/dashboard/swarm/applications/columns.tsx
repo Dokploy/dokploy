@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "next-i18next";
 import { ShowDockerModalStackLogs } from "../../docker/logs/show-docker-modal-stack-logs";
 
 export interface ApplicationList {
@@ -31,12 +32,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "ID",
 		accessorFn: (row) => row.ID,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					ID
+					{t("dashboard.swarm.columns.id")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -49,12 +51,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Name",
 		accessorFn: (row) => row.Name,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Name
+					{t("dashboard.swarm.columns.name")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -67,12 +70,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Image",
 		accessorFn: (row) => row.Image,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Image
+					{t("dashboard.swarm.columns.image")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -85,12 +89,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Mode",
 		accessorFn: (row) => row.Mode,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Mode
+					{t("dashboard.swarm.columns.mode")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -103,12 +108,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "CurrentState",
 		accessorFn: (row) => row.CurrentState,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Current State
+					{t("dashboard.swarm.columns.currentState")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -141,12 +147,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "DesiredState",
 		accessorFn: (row) => row.DesiredState,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Desired State
+					{t("dashboard.swarm.columns.desiredState")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -160,12 +167,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Replicas",
 		accessorFn: (row) => row.Replicas,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Replicas
+					{t("dashboard.swarm.columns.replicas")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -179,12 +187,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Ports",
 		accessorFn: (row) => row.Ports,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Ports
+					{t("dashboard.swarm.columns.ports")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -197,12 +206,13 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Errors",
 		accessorFn: (row) => row.Error,
 		header: ({ column }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<Button
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Errors
+					{t("dashboard.swarm.columns.errors")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -215,25 +225,31 @@ export const columns: ColumnDef<ApplicationList>[] = [
 		accessorKey: "Logs",
 		accessorFn: (row) => row.Error,
 		header: () => {
-			return <span>Logs</span>;
+			const { t } = useTranslation("dashboard");
+			return <span>{t("dashboard.swarm.columns.logs")}</span>;
 		},
 		cell: ({ row }) => {
+			const { t } = useTranslation("dashboard");
 			return (
 				<span className="w-[10rem]">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" className="h-8 w-8 p-0">
-								<span className="sr-only">Open menu</span>
+								<span className="sr-only">
+									{t("dashboard.swarm.columns.openMenu")}
+								</span>
 								<MoreHorizontal className="h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>Actions</DropdownMenuLabel>
+							<DropdownMenuLabel>
+								{t("dashboard.swarm.columns.actions")}
+							</DropdownMenuLabel>
 							<ShowDockerModalStackLogs
 								containerId={row.original.ID}
 								serverId={row.original.serverId}
 							>
-								View Logs
+								{t("dashboard.swarm.columns.viewLogs")}
 							</ShowDockerModalStackLogs>
 						</DropdownMenuContent>
 					</DropdownMenu>

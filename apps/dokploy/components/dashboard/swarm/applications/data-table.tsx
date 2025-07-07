@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React from "react";
 
 interface DataTableProps<TData, TValue> {
@@ -41,6 +42,7 @@ export function DataTable<TData, TValue>({
 	columns,
 	data,
 }: DataTableProps<TData, TValue>) {
+	const { t } = useTranslation("dashboard");
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[],
@@ -77,7 +79,7 @@ export function DataTable<TData, TValue>({
 			<div className="flex flex-col gap-4  </div>w-full overflow-auto">
 				<div className="flex items-center gap-2 max-sm:flex-wrap">
 					<Input
-						placeholder="Filter by name..."
+						placeholder={t("dashboard.swarm.dataTable.filterByName")}
 						value={(table.getColumn("Name")?.getFilterValue() as string) ?? ""}
 						onChange={(event) =>
 							table.getColumn("Name")?.setFilterValue(event.target.value)
@@ -87,7 +89,8 @@ export function DataTable<TData, TValue>({
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" className="sm:ml-auto max-sm:w-full">
-								Columns <ChevronDown className="ml-2 h-4 w-4" />
+								{t("dashboard.swarm.dataTable.columns")}
+								<ChevronDown className="ml-2 h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
@@ -153,16 +156,7 @@ export function DataTable<TData, TValue>({
 									colSpan={columns.length}
 									className="h-24 text-center"
 								>
-									No results.
-									{/* {isLoading ? (
-                    <div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-                      <span className="text-muted-foreground text-lg font-medium">
-                        Loading...
-                      </span>
-                    </div>
-                  ) : (
-                    <>No results.</>
-                  )} */}
+									{t("dashboard.swarm.dataTable.noResults")}
 								</TableCell>
 							</TableRow>
 						)}
@@ -178,7 +172,7 @@ export function DataTable<TData, TValue>({
 								onClick={() => table.previousPage()}
 								disabled={!table.getCanPreviousPage()}
 							>
-								Previous
+								{t("dashboard.swarm.dataTable.previous")}
 							</Button>
 							<Button
 								variant="outline"
@@ -186,7 +180,7 @@ export function DataTable<TData, TValue>({
 								onClick={() => table.nextPage()}
 								disabled={!table.getCanNextPage()}
 							>
-								Next
+								{t("dashboard.swarm.dataTable.next")}
 							</Button>
 						</div>
 					</div>
