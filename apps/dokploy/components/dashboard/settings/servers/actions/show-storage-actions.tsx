@@ -81,10 +81,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned images");
+									toast.success(t("settings.storage.imagesCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning images");
+									toast.error(t("settings.storage.errorCleaningImages"));
 								});
 						}}
 					>
@@ -99,10 +99,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned volumes");
+									toast.success(t("settings.storage.volumesCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning volumes");
+									toast.error(t("settings.storage.errorCleaningVolumes"));
 								});
 						}}
 					>
@@ -118,10 +118,12 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Stopped containers cleaned");
+									toast.success(t("settings.storage.stoppedContainersCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning stopped containers");
+									toast.error(
+										t("settings.storage.errorCleaningStoppedContainers"),
+									);
 								});
 						}}
 					>
@@ -137,10 +139,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned Docker Builder");
+									toast.success(t("settings.storage.dockerBuilderCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning Docker Builder");
+									toast.error(t("settings.storage.errorCleaningDockerBuilder"));
 								});
 						}}
 					>
@@ -154,10 +156,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 							onClick={async () => {
 								await cleanMonitoring()
 									.then(async () => {
-										toast.success("Cleaned Monitoring");
+										toast.success(t("settings.storage.monitoringCleaned"));
 									})
 									.catch(() => {
-										toast.error("Error cleaning Monitoring");
+										toast.error(t("settings.storage.errorCleaningMonitoring"));
 									});
 							}}
 						>
@@ -174,10 +176,10 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned all");
+									toast.success(t("settings.storage.allCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning all");
+									toast.error(t("settings.storage.errorCleaningAll"));
 								});
 						}}
 					>

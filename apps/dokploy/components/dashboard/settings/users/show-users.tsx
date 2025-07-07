@@ -29,10 +29,12 @@ import { api } from "@/utils/api";
 import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
 
 export const ShowUsers = () => {
+	const { t } = useTranslation("settings");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
@@ -45,16 +47,14 @@ export const ShowUsers = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Users className="size-6 text-muted-foreground self-center" />
-							Users
+							{t("settings.users.title")}
 						</CardTitle>
-						<CardDescription>
-							Add your users to your Dokploy account.
-						</CardDescription>
+						<CardDescription>{t("settings.users.description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.users.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -63,23 +63,33 @@ export const ShowUsers = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Invite users to your Dokploy account
+											{t("settings.users.inviteUsers")}
 										</span>
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<Table>
-											<TableCaption>See all users</TableCaption>
+											<TableCaption>
+												{t("settings.users.tableCaption")}
+											</TableCaption>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-[100px]">Email</TableHead>
-													<TableHead className="text-center">Role</TableHead>
-													<TableHead className="text-center">2FA</TableHead>
+													<TableHead className="w-[100px]">
+														{t("settings.users.email")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.users.role")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.users.twoFactor")}
+													</TableHead>
 
 													<TableHead className="text-center">
-														Created At
+														{t("settings.users.createdAt")}
 													</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
+													<TableHead className="text-right">
+														{t("settings.users.actions")}
+													</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -102,8 +112,8 @@ export const ShowUsers = () => {
 															</TableCell>
 															<TableCell className="text-center">
 																{member.user.twoFactorEnabled
-																	? "Enabled"
-																	: "Disabled"}
+																	? t("settings.users.enabled")
+																	: t("settings.users.disabled")}
 															</TableCell>
 															<TableCell className="text-center">
 																<span className="text-sm text-muted-foreground">
@@ -124,7 +134,7 @@ export const ShowUsers = () => {
 																	</DropdownMenuTrigger>
 																	<DropdownMenuContent align="end">
 																		<DropdownMenuLabel>
-																			Actions
+																			{t("settings.users.actions")}
 																		</DropdownMenuLabel>
 
 																		{member.role !== "owner" && (
@@ -137,8 +147,12 @@ export const ShowUsers = () => {
 																			<>
 																				{!isCloud && (
 																					<DialogAction
-																						title="Delete User"
-																						description="Are you sure you want to delete this user?"
+																						title={t(
+																							"settings.users.deleteUser",
+																						)}
+																						description={t(
+																							"settings.users.deleteUserDescription",
+																						)}
 																						type="destructive"
 																						onClick={async () => {
 																							await mutateAsync({
@@ -146,13 +160,17 @@ export const ShowUsers = () => {
 																							})
 																								.then(() => {
 																									toast.success(
-																										"User deleted successfully",
+																										t(
+																											"settings.users.userDeletedSuccessfully",
+																										),
 																									);
 																									refetch();
 																								})
 																								.catch(() => {
 																									toast.error(
-																										"Error deleting destination",
+																										t(
+																											"settings.users.errorDeletingDestination",
+																										),
 																									);
 																								});
 																						}}
@@ -163,14 +181,16 @@ export const ShowUsers = () => {
 																								e.preventDefault()
 																							}
 																						>
-																							Delete User
+																							{t("settings.users.deleteUser")}
 																						</DropdownMenuItem>
 																					</DialogAction>
 																				)}
 
 																				<DialogAction
-																					title="Unlink User"
-																					description="Are you sure you want to unlink this user?"
+																					title={t("settings.users.unlinkUser")}
+																					description={t(
+																						"settings.users.unlinkUserDescription",
+																					)}
 																					type="destructive"
 																					onClick={async () => {
 																						if (!isCloud) {
@@ -189,13 +209,17 @@ export const ShowUsers = () => {
 																								})
 																									.then(() => {
 																										toast.success(
-																											"User deleted successfully",
+																											t(
+																												"settings.users.userDeletedSuccessfully",
+																											),
 																										);
 																										refetch();
 																									})
 																									.catch(() => {
 																										toast.error(
-																											"Error deleting user",
+																											t(
+																												"settings.users.errorDeletingUser",
+																											),
 																										);
 																									});
 																								return;
@@ -211,12 +235,16 @@ export const ShowUsers = () => {
 
 																						if (!error) {
 																							toast.success(
-																								"User unlinked successfully",
+																								t(
+																									"settings.users.userUnlinkedSuccessfully",
+																								),
 																							);
 																							refetch();
 																						} else {
 																							toast.error(
-																								"Error unlinking user",
+																								t(
+																									"settings.users.errorUnlinkingUser",
+																								),
 																							);
 																						}
 																					}}
@@ -225,7 +253,7 @@ export const ShowUsers = () => {
 																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						Unlink User
+																						{t("settings.users.unlinkUser")}
 																					</DropdownMenuItem>
 																				</DialogAction>
 																			</>

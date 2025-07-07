@@ -56,7 +56,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Traefik Reloaded");
+									toast.success(t("settings.traefik.reloaded"));
 								})
 								.catch(() => {});
 						}}
@@ -93,20 +93,27 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							})
 								.then(async () => {
 									toast.success(
-										`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
+										haveTraefikDashboardPortEnabled
+											? t("settings.traefik.dashboardDisabled")
+											: t("settings.traefik.dashboardEnabled"),
 									);
 									refetchDashboard();
 								})
 								.catch(() => {
 									toast.error(
-										`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
+										haveTraefikDashboardPortEnabled
+											? t("settings.traefik.dashboardDisableError")
+											: t("settings.traefik.dashboardEnableError"),
 									);
 								});
 						}}
 						className="w-full cursor-pointer space-x-3"
 					>
 						<span>
-							{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"} Dashboard
+							{haveTraefikDashboardPortEnabled
+								? t("settings.traefik.disable")
+								: t("settings.traefik.enable")}{" "}
+							{t("settings.traefik.dashboard")}
 						</span>
 					</DropdownMenuItem>
 					<ManageTraefikPorts serverId={serverId}>

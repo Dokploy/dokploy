@@ -30,33 +30,36 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const AddRegistrySchema = z.object({
-	registryName: z.string().min(1, {
-		message: "Registry name is required",
-	}),
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
-	password: z.string().min(1, {
-		message: "Password is required",
-	}),
-	registryUrl: z.string(),
-	imagePrefix: z.string(),
-	serverId: z.string().optional(),
-});
+const AddRegistrySchema = (t: TFunction) =>
+	z.object({
+		registryName: z.string().min(1, {
+			message: t("settings.registry.add.registryNameRequired"),
+		}),
+		username: z.string().min(1, {
+			message: t("settings.registry.add.usernameRequired"),
+		}),
+		password: z.string().min(1, {
+			message: t("settings.registry.add.passwordRequired"),
+		}),
+		registryUrl: z.string(),
+		imagePrefix: z.string(),
+		serverId: z.string().optional(),
+	});
 
-type AddRegistry = z.infer<typeof AddRegistrySchema>;
+type AddRegistry = ReturnType<typeof AddRegistrySchema>["_type"];
 
 interface Props {
 	registryId?: string;
 }
 
 export const HandleRegistry = ({ registryId }: Props) => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
@@ -90,7 +93,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			registryName: "",
 			serverId: "",
 		},
-		resolver: zodResolver(AddRegistrySchema),
+		resolver: zodResolver(AddRegistrySchema(t)),
 	});
 
 	const password = form.watch("password");
@@ -133,12 +136,18 @@ export const HandleRegistry = ({ registryId }: Props) => {
 		})
 			.then(async (_data) => {
 				await utils.registry.all.invalidate();
-				toast.success(registryId ? "Registry updated" : "Registry added");
+				toast.success(
+					registryId
+						? t("settings.registry.add.updated")
+						: t("settings.registry.add.added"),
+				);
 				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error(
-					registryId ? "Error updating a registry" : "Error adding a registry",
+					registryId
+						? t("settings.registry.add.errorUpdating")
+						: t("settings.registry.add.errorAdding"),
 				);
 			});
 	};
@@ -157,15 +166,15 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add Registry
+						{t("settings.registry.addNotification")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add a external registry</DialogTitle>
+					<DialogTitle>{t("settings.registry.add.title")}</DialogTitle>
 					<DialogDescription>
-						Fill the next fields to add a external registry.
+						{t("settings.registry.add.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || testRegistryIsError) && (
@@ -187,9 +196,16 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="registryName"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Registry Name</FormLabel>
+										<FormLabel>
+											{t("settings.registry.add.registryName")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="Registry Name" {...field} />
+											<Input
+												placeholder={t(
+													"settings.registry.add.registryNamePlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -203,10 +219,12 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>{t("settings.registry.add.username")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Username"
+												placeholder={t(
+													"settings.registry.add.usernamePlaceholder",
+												)}
 												autoComplete="username"
 												{...field}
 											/>
@@ -223,10 +241,12 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>{t("settings.registry.add.password")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Password"
+												placeholder={t(
+													"settings.registry.add.passwordPlaceholder",
+												)}
 												autoComplete="one-time-code"
 												{...field}
 												type="password"
@@ -244,9 +264,16 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="imagePrefix"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Image Prefix</FormLabel>
+										<FormLabel>
+											{t("settings.registry.add.imagePrefix")}
+										</FormLabel>
 										<FormControl>
-											<Input {...field} placeholder="Image Prefix" />
+											<Input
+												{...field}
+												placeholder={t(
+													"settings.registry.add.imagePrefixPlaceholder",
+												)}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -260,10 +287,14 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="registryUrl"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Registry URL</FormLabel>
+										<FormLabel>
+											{t("settings.registry.add.registryUrl")}
+										</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="aws_account_id.dkr.ecr.us-west-2.amazonaws.com"
+												placeholder={t(
+													"settings.registry.add.registryUrlPlaceholder",
+												)}
 												{...field}
 											/>
 										</FormControl>
@@ -280,10 +311,13 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="serverId"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Server {!isCloud && "(Optional)"}</FormLabel>
+										<FormLabel>
+											{!isCloud
+												? t("settings.registry.add.serverOptional")
+												: t("settings.registry.add.server")}
+										</FormLabel>
 										<FormDescription>
-											Select a server to test the registry. this will run the
-											following command on the server
+											{t("settings.registry.add.serverDescription")}
 										</FormDescription>
 										<FormControl>
 											<Select
@@ -291,11 +325,17 @@ export const HandleRegistry = ({ registryId }: Props) => {
 												defaultValue={field.value}
 											>
 												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Select a server" />
+													<SelectValue
+														placeholder={t(
+															"settings.registry.add.serverPlaceholder",
+														)}
+													/>
 												</SelectTrigger>
 												<SelectContent>
 													<SelectGroup>
-														<SelectLabel>Servers</SelectLabel>
+														<SelectLabel>
+															{t("settings.registry.add.servers")}
+														</SelectLabel>
 														{servers?.map((server) => (
 															<SelectItem
 																key={server.serverId}
@@ -304,7 +344,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 																{server.name}
 															</SelectItem>
 														))}
-														<SelectItem value={"none"}>None</SelectItem>
+														<SelectItem value={"none"}>
+															{t("settings.registry.add.none")}
+														</SelectItem>
 													</SelectGroup>
 												</SelectContent>
 											</Select>
@@ -323,7 +365,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 									variant={"secondary"}
 									isLoading={isLoading}
 									onClick={async () => {
-										const validationResult = AddRegistrySchema.safeParse({
+										const validationResult = AddRegistrySchema(t).safeParse({
 											username,
 											password,
 											registryUrl,
@@ -353,20 +395,22 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										})
 											.then((data) => {
 												if (data) {
-													toast.success("Registry Tested Successfully");
+													toast.success(t("settings.registry.add.testSuccess"));
 												} else {
-													toast.error("Registry Test Failed");
+													toast.error(t("settings.registry.add.testFailed"));
 												}
 											})
 											.catch(() => {
-												toast.error("Error testing the registry");
+												toast.error(t("settings.registry.add.testError"));
 											});
 									}}
 								>
-									Test Registry
+									{t("settings.registry.add.testRegistry")}
 								</Button>
 								<Button isLoading={form.formState.isSubmitting} type="submit">
-									{registryId ? "Update" : "Create"}
+									{registryId
+										? t("settings.registry.add.update")
+										: t("settings.registry.add.create")}
 								</Button>
 							</div>
 						</DialogFooter>

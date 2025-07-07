@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useState } from "react";
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export const TerminalModal = ({ children, serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const [terminalKey, setTerminalKey] = useState<string>(getTerminalKey());
 	const isLocalServer = serverId === "local";
 
@@ -57,8 +59,12 @@ export const TerminalModal = ({ children, serverId }: Props) => {
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader className="flex flex-col gap-1">
-					<DialogTitle>Terminal ({data?.name ?? serverId})</DialogTitle>
-					<DialogDescription>Easy way to access the server</DialogDescription>
+					<DialogTitle>
+						{t("settings.webServer.terminal.title")} ({data?.name ?? serverId})
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.webServer.terminal.description")}
+					</DialogDescription>
 				</DialogHeader>
 
 				{isLocalServer && (

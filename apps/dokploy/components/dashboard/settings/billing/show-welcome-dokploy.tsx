@@ -6,9 +6,11 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 
 export const ShowWelcomeDokploy = () => {
+	const { t } = useTranslation("settings");
 	const { data } = api.user.get.useQuery();
 	const [open, setOpen] = useState(false);
 
@@ -44,11 +46,10 @@ export const ShowWelcomeDokploy = () => {
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
 						<DialogTitle className="text-2xl font-semibold text-center">
-							Welcome to Dokploy Cloud 🎉
+							{t("settings.billing.welcome.title")}
 						</DialogTitle>
 						<p className="text-center text-sm text-muted-foreground mt-2">
-							Unlock powerful features to streamline your deployments and manage
-							projects effortlessly.
+							{t("settings.billing.welcome.description")}
 						</p>
 					</DialogHeader>
 					<div className="mt-4 space-y-3 text-sm text-primary ">

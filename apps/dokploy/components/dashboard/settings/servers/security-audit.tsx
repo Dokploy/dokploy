@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Loader2, LockKeyhole, RefreshCw } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { StatusRow } from "./gpu-support";
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const SecurityAudit = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const { data, refetch, error, isLoading, isError } =
 		api.server.security.useQuery(
@@ -36,11 +38,11 @@ export const SecurityAudit = ({ serverId }: Props) => {
 								<div className="flex items-center gap-2">
 									<LockKeyhole className="size-5" />
 									<CardTitle className="text-xl">
-										Setup Security Suggestions
+										{t("settings.securityAudit.setupSecuritySuggestions")}
 									</CardTitle>
 								</div>
 								<CardDescription>
-									Check the security suggestions
+									{t("settings.securityAudit.checkSecuritySuggestions")}
 								</CardDescription>
 							</div>
 							<Button
@@ -52,7 +54,7 @@ export const SecurityAudit = ({ serverId }: Props) => {
 								}}
 							>
 								<RefreshCw className="size-4" />
-								Refresh
+								{t("settings.securityAudit.refresh")}
 							</Button>
 						</div>
 						<div className="flex items-center gap-2 w-full">
@@ -66,152 +68,164 @@ export const SecurityAudit = ({ serverId }: Props) => {
 
 					<CardContent className="flex flex-col gap-4">
 						<AlertBlock type="info" className="w-full">
-							Ubuntu/Debian OS support is currently supported (Experimental)
+							{t("settings.securityAudit.ubuntuDebianSupport")}
 						</AlertBlock>
 						{isLoading ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								<span>Checking Server configuration</span>
+								<span>
+									{t("settings.securityAudit.checkingServerConfiguration")}
+								</span>
 							</div>
 						) : (
 							<div className="grid w-full gap-4">
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">UFW</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.securityAudit.ufw")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										UFW (Uncomplicated Firewall) is a simple firewall that can
-										be used to block incoming and outgoing traffic from your
-										server.
+										{t("settings.securityAudit.ufwDescription")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="UFW Installed"
+											label={t("settings.securityAudit.ufwInstalled")}
 											isEnabled={data?.ufw?.installed}
 											description={
 												data?.ufw?.installed
-													? "Installed (Recommended)"
-													: "Not Installed (UFW should be installed for security)"
+													? t("settings.securityAudit.installedRecommended")
+													: t("settings.securityAudit.notInstalledUfw")
 											}
 										/>
 										<StatusRow
-											label="Status"
+											label={t("settings.securityAudit.status")}
 											isEnabled={data?.ufw?.active}
 											description={
 												data?.ufw?.active
-													? "Active (Recommended)"
-													: "Not Active (UFW should be enabled for security)"
+													? t("settings.securityAudit.activeRecommended")
+													: t("settings.securityAudit.notActiveUfw")
 											}
 										/>
 										<StatusRow
-											label="Default Incoming"
+											label={t("settings.securityAudit.defaultIncoming")}
 											isEnabled={data?.ufw?.defaultIncoming === "deny"}
 											description={
 												data?.ufw?.defaultIncoming === "deny"
-													? "Default: Deny (Recommended)"
-													: `Default: ${data?.ufw?.defaultIncoming} (Should be set to 'deny' for security)`
+													? t("settings.securityAudit.defaultDenyRecommended")
+													: t("settings.securityAudit.defaultShouldBeDeny", {
+															value: data?.ufw?.defaultIncoming,
+														})
 											}
 										/>
 									</div>
 								</div>
 
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">SSH</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.securityAudit.ssh")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										SSH (Secure Shell) is a protocol that allows you to securely
-										connect to a server and execute commands on it.
+										{t("settings.securityAudit.sshDescription")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="Enabled"
+											label={t("settings.securityAudit.enabled")}
 											isEnabled={data?.ssh?.enabled}
 											description={
 												data?.ssh?.enabled
-													? "Enabled"
-													: "Not Enabled (SSH should be enabled)"
+													? t("settings.securityAudit.enabled")
+													: t("settings.securityAudit.notEnabledSsh")
 											}
 										/>
 										<StatusRow
-											label="Key Auth"
+											label={t("settings.securityAudit.keyAuth")}
 											isEnabled={data?.ssh?.keyAuth}
 											description={
 												data?.ssh?.keyAuth
-													? "Enabled (Recommended)"
-													: "Not Enabled (Key Authentication should be enabled)"
+													? t("settings.securityAudit.keyAuthRecommended")
+													: t("settings.securityAudit.notEnabledKeyAuth")
 											}
 										/>
 										<StatusRow
-											label="Password Auth"
+											label={t("settings.securityAudit.passwordAuth")}
 											isEnabled={data?.ssh?.passwordAuth === "no"}
 											description={
 												data?.ssh?.passwordAuth === "no"
-													? "Disabled (Recommended)"
-													: "Enabled (Password Authentication should be disabled)"
+													? t("settings.securityAudit.disabledRecommended")
+													: t("settings.securityAudit.enabledPasswordAuth")
 											}
 										/>
 										<StatusRow
-											label="Use PAM"
+											label={t("settings.securityAudit.usePam")}
 											isEnabled={data?.ssh?.usePam === "no"}
 											description={
 												data?.ssh?.usePam === "no"
-													? "Disabled (Recommended for key-based auth)"
-													: "Enabled (Should be disabled when using key-based auth)"
+													? t(
+															"settings.securityAudit.disabledRecommendedKeyAuth",
+														)
+													: t("settings.securityAudit.enabledShouldBeDisabled")
 											}
 										/>
 									</div>
 								</div>
 
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">Fail2Ban</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.securityAudit.fail2ban")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										Fail2Ban (Fail2Ban) is a service that can be used to prevent
-										brute force attacks on your server.
+										{t("settings.securityAudit.fail2banDescription")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="Installed"
+											label={t("settings.securityAudit.installed")}
 											isEnabled={data?.fail2ban?.installed}
 											description={
 												data?.fail2ban?.installed
-													? "Installed (Recommended)"
-													: "Not Installed (Fail2Ban should be installed for protection against brute force attacks)"
+													? t("settings.securityAudit.installedRecommended")
+													: t("settings.securityAudit.notInstalledFail2ban")
 											}
 										/>
 
 										<StatusRow
-											label="Enabled"
+											label={t("settings.securityAudit.enabled")}
 											isEnabled={data?.fail2ban?.enabled}
 											description={
 												data?.fail2ban?.enabled
-													? "Enabled (Recommended)"
-													: "Not Enabled (Fail2Ban service should be enabled)"
+													? t("settings.securityAudit.installedRecommended")
+													: t("settings.securityAudit.notEnabledFail2ban")
 											}
 										/>
 										<StatusRow
-											label="Active"
+											label={t("settings.securityAudit.status")}
 											isEnabled={data?.fail2ban?.active}
 											description={
 												data?.fail2ban?.active
-													? "Active (Recommended)"
-													: "Not Active (Fail2Ban service should be running)"
+													? t("settings.securityAudit.activeRecommended")
+													: t("settings.securityAudit.notActiveFail2ban")
 											}
 										/>
 
 										<StatusRow
-											label="SSH Protection"
+											label={t("settings.securityAudit.sshProtection")}
 											isEnabled={data?.fail2ban?.sshEnabled === "true"}
 											description={
 												data?.fail2ban?.sshEnabled === "true"
-													? "Enabled (Recommended)"
-													: "Not Enabled (SSH protection should be enabled to prevent brute force attacks)"
+													? t("settings.securityAudit.keyAuthRecommended")
+													: t("settings.securityAudit.notEnabledSshProtection")
 											}
 										/>
 
 										<StatusRow
-											label="SSH Mode"
+											label={t("settings.securityAudit.sshMode")}
 											isEnabled={data?.fail2ban?.sshMode === "aggressive"}
 											description={
 												data?.fail2ban?.sshMode === "aggressive"
-													? "Aggressive Mode (Recommended)"
-													: `Mode: ${data?.fail2ban?.sshMode || "Not Set"} (Aggressive mode recommended for better protection)`
+													? t(
+															"settings.securityAudit.aggressiveModeRecommended",
+														)
+													: t("settings.securityAudit.modeNotSet", {
+															value: data?.fail2ban?.sshMode || "Not Set",
+														})
 											}
 										/>
 									</div>

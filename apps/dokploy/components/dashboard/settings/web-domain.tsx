@@ -27,38 +27,38 @@ import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GlobeIcon } from "lucide-react";
-import { useTranslation } from "next-i18next";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const addServerDomain = z
-	.object({
-		domain: z.string(),
-		letsEncryptEmail: z.string(),
-		https: z.boolean().optional(),
-		certificateType: z.enum(["letsencrypt", "none", "custom"]),
-	})
-	.superRefine((data, ctx) => {
-		if (data.https && !data.certificateType) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["certificateType"],
-				message: "Required",
-			});
-		}
-		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message:
-					"LetsEncrypt email is required when certificate type is letsencrypt",
-				path: ["letsEncryptEmail"],
-			});
-		}
-	});
+const addServerDomain = (t: TFunction) =>
+	z
+		.object({
+			domain: z.string(),
+			letsEncryptEmail: z.string(),
+			https: z.boolean().optional(),
+			certificateType: z.enum(["letsencrypt", "none", "custom"]),
+		})
+		.superRefine((data, ctx) => {
+			if (data.https && !data.certificateType) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["certificateType"],
+					message: t("settings.server.domain.form.required"),
+				});
+			}
+			if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: t("settings.server.domain.form.letsEncryptEmailRequired"),
+					path: ["letsEncryptEmail"],
+				});
+			}
+		});
 
-type AddServerDomain = z.infer<typeof addServerDomain>;
+type AddServerDomain = ReturnType<typeof addServerDomain>["_type"];
 
 export const WebDomain = () => {
 	const { t } = useTranslation("settings");
@@ -73,7 +73,7 @@ export const WebDomain = () => {
 			letsEncryptEmail: "",
 			https: false,
 		},
-		resolver: zodResolver(addServerDomain),
+		resolver: zodResolver(addServerDomain(t)),
 	});
 	const https = form.watch("https");
 	useEffect(() => {
@@ -96,10 +96,10 @@ export const WebDomain = () => {
 		})
 			.then(async () => {
 				await refetch();
-				toast.success("Domain Assigned");
+				toast.success(t("settings.domain.assigned"));
 			})
 			.catch(() => {
-				toast.error("Error assigning the domain");
+				toast.error(t("settings.domain.assignError"));
 			});
 	};
 
@@ -136,7 +136,9 @@ export const WebDomain = () => {
 												<FormControl>
 													<Input
 														className="w-full"
-														placeholder={"dokploy.com"}
+														placeholder={t(
+															"settings.server.domain.form.domainPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -158,7 +160,9 @@ export const WebDomain = () => {
 												<FormControl>
 													<Input
 														className="w-full"
-														placeholder={"Dp4kz@example.com"}
+														placeholder={t(
+															"settings.server.domain.form.letsEncryptEmailPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -173,9 +177,9 @@ export const WebDomain = () => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm w-full col-span-2">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>{t("settings.domain.https")}</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t("settings.domain.httpsDescription")}
 												</FormDescription>
 												<FormMessage />
 											</div>

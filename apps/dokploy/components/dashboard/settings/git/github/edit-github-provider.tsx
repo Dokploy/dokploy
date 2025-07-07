@@ -21,24 +21,27 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-});
+const Schema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.gitProviders.github.update.nameRequired"),
+		}),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = ReturnType<typeof Schema>["_type"];
 
 interface Props {
 	githubId: string;
 }
 
 export const EditGithubProvider = ({ githubId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data: github } = api.github.one.useQuery(
 		{
 			githubId,
@@ -56,7 +59,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 		defaultValues: {
 			name: "",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(Schema(t)),
 	});
 
 	useEffect(() => {
@@ -73,11 +76,11 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Github updated successfully");
+				toast.success(t("settings.gitProviders.github.update.success"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Github");
+				toast.error(t("settings.gitProviders.github.update.error"));
 			});
 	};
 
@@ -95,7 +98,8 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update Github <GithubIcon className="size-5" />
+						{t("settings.gitProviders.github.update.title")}{" "}
+						<GithubIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -113,10 +117,14 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.github.update.name")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t(
+														"settings.gitProviders.github.update.namePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -142,10 +150,10 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 												});
 										}}
 									>
-										Test Connection
+										{t("settings.gitProviders.github.update.testConnection")}
 									</Button>
 									<Button type="submit" isLoading={form.formState.isSubmitting}>
-										Update
+										{t("settings.gitProviders.github.update.update")}
 									</Button>
 								</div>
 							</div>

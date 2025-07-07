@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { AlertCircle, Link, Loader2, ShieldCheck, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { AddCertificate } from "./add-certificate";
 import { getCertificateChainInfo, getExpirationStatus } from "./utils";
 
 export const ShowCertificates = () => {
+	const { t } = useTranslation("settings");
 	const { mutateAsync, isLoading: isRemoving } =
 		api.certificates.remove.useMutation();
 	const { data, isLoading, refetch } = api.certificates.all.useQuery();
@@ -26,23 +28,20 @@ export const ShowCertificates = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ShieldCheck className="size-6 text-muted-foreground self-center" />
-							Certificates
+							{t("settings.certificates.title")}
 						</CardTitle>
 						<CardDescription>
-							Create certificates in the Traefik directory
+							{t("settings.certificates.description")}
 						</CardDescription>
 
 						<AlertBlock type="warning">
-							Certificates are created in the Traefik directory. Traefik uses
-							these certificates to secure your applications. Using invalid
-							certificates can break your Traefik instance, preventing access to
-							your applications.
+							{t("settings.certificates.warning")}
 						</AlertBlock>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.certificates.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -51,7 +50,7 @@ export const ShowCertificates = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<ShieldCheck className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any certificates created
+											{t("settings.certificates.noCertificates")}
 										</span>
 										<AddCertificate />
 									</div>
@@ -80,7 +79,8 @@ export const ShowCertificates = () => {
 																		<div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted/50">
 																			<Link className="size-3 text-muted-foreground" />
 																			<span className="text-xs text-muted-foreground">
-																				Chain ({chainInfo.count})
+																				{t("settings.certificates.chain")} (
+																				{chainInfo.count})
 																			</span>
 																		</div>
 																	)}
@@ -94,7 +94,9 @@ export const ShowCertificates = () => {
 																		{certificate.autoRenew &&
 																			expiration.status !== "valid" && (
 																				<span className="text-xs text-emerald-500 ml-1">
-																					(Auto-renewal enabled)
+																					{t(
+																						"settings.certificates.autoRenewalEnabled",
+																					)}
 																				</span>
 																			)}
 																	</div>
@@ -103,8 +105,12 @@ export const ShowCertificates = () => {
 
 															<div className="flex flex-row gap-1">
 																<DialogAction
-																	title="Delete Certificate"
-																	description="Are you sure you want to delete this certificate?"
+																	title={t(
+																		"settings.certificates.delete.title",
+																	)}
+																	description={t(
+																		"settings.certificates.delete.description",
+																	)}
 																	type="destructive"
 																	onClick={async () => {
 																		await mutateAsync({
@@ -112,13 +118,17 @@ export const ShowCertificates = () => {
 																		})
 																			.then(() => {
 																				toast.success(
-																					"Certificate deleted successfully",
+																					t(
+																						"settings.certificates.delete.success",
+																					),
 																				);
 																				refetch();
 																			})
 																			.catch(() => {
 																				toast.error(
-																					"Error deleting certificate",
+																					t(
+																						"settings.certificates.delete.error",
+																					),
 																				);
 																			});
 																	}}

@@ -22,6 +22,7 @@ import {
 	MinusIcon,
 	PlusIcon,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -38,6 +39,7 @@ export const calculatePrice = (count: number, isAnnual = false) => {
 	return count * 3.5;
 };
 export const ShowBilling = () => {
+	const { t } = useTranslation("settings");
 	const { data: servers } = api.server.count.useQuery();
 	const { data: admin } = api.user.get.useQuery();
 	const { data, isLoading } = api.stripe.getProducts.useQuery();
@@ -81,9 +83,11 @@ export const ShowBilling = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<CreditCard className="size-6 text-muted-foreground self-center" />
-							Billing
+							{t("settings.billing.title")}
 						</CardTitle>
-						<CardDescription>Manage your subscription</CardDescription>
+						<CardDescription>
+							{t("settings.billing.description")}
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						<div className="flex flex-col gap-4 w-full">
@@ -94,16 +98,29 @@ export const ShowBilling = () => {
 								onValueChange={(e) => setIsAnnual(e === "annual")}
 							>
 								<TabsList>
-									<TabsTrigger value="monthly">Monthly</TabsTrigger>
-									<TabsTrigger value="annual">Annual</TabsTrigger>
+									<TabsTrigger value="monthly">
+										{t("settings.billing.monthly")}
+									</TabsTrigger>
+									<TabsTrigger value="annual">
+										{t("settings.billing.annual")}
+									</TabsTrigger>
 								</TabsList>
 							</Tabs>
 							{admin?.user.stripeSubscriptionId && (
 								<div className="space-y-2 flex flex-col">
-									<h3 className="text-lg font-medium">Servers Plan</h3>
+									<h3 className="text-lg font-medium">
+										{t("settings.billing.serversPlan")}
+									</h3>
 									<p className="text-sm text-muted-foreground">
-										You have {servers} server on your plan of{" "}
-										{admin?.user.serversQuantity} servers
+										{(servers ?? 0) === 1
+											? t("settings.billing.serversOnPlan", {
+													servers: servers ?? 0,
+													maxServers,
+												})
+											: t("settings.billing.serversOnPlanPlural", {
+													servers: servers ?? 0,
+													maxServers,
+												})}
 									</p>
 									<div>
 										<Progress value={safePercentage} className="max-w-lg" />
@@ -112,8 +129,7 @@ export const ShowBilling = () => {
 										<div className="flex flex-row gap-4 p-2 bg-yellow-50 dark:bg-yellow-950 rounded-lg items-center">
 											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 											<span className="text-sm text-yellow-600 dark:text-yellow-400">
-												You have reached the maximum number of servers you can
-												create, please upgrade your plan to add more servers.
+												{t("settings.billing.maxServersReached")}
 											</span>
 										</div>
 									)}
@@ -121,10 +137,10 @@ export const ShowBilling = () => {
 							)}
 							<div className="flex flex-col gap-1.5 mt-4">
 								<span className="text-base text-primary">
-									Need Help? We are here to help you.
+									{t("settings.billing.needHelp")}
 								</span>
 								<span className="text-sm text-muted-foreground">
-									Join to our Discord server and we will help you.
+									{t("settings.billing.joinDiscord")}
 								</span>
 								<Button className="rounded-full bg-[#5965F2] hover:bg-[#4A55E0] w-fit">
 									<Link
@@ -141,13 +157,13 @@ export const ShowBilling = () => {
 										>
 											<path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
 										</svg>
-										Join Discord
+										{t("settings.billing.joinDiscordButton")}
 									</Link>
 								</Button>
 							</div>
 							{isLoading ? (
 								<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
-									Loading...
+									{t("settings.billing.loading")}
 									<Loader2 className="animate-spin" />
 								</span>
 							) : (
@@ -166,7 +182,7 @@ export const ShowBilling = () => {
 												>
 													{isAnnual && (
 														<div className="mb-4 flex flex-row items-center gap-2">
-															<Badge>Recommended 🚀</Badge>
+															<Badge>{t("settings.billing.recommended")}</Badge>
 														</div>
 													)}
 													{isAnnual ? (
@@ -185,7 +201,7 @@ export const ShowBilling = () => {
 																{(
 																	calculatePrice(serverQuantity, isAnnual) / 12
 																).toFixed(2)}{" "}
-																/ Month USD
+																{t("settings.billing.perMonth")}
 															</p>
 														</div>
 													) : (
@@ -216,13 +232,15 @@ export const ShowBilling = () => {
 														)}
 													>
 														{[
-															"All the features of Dokploy",
-															"Unlimited deployments",
-															"Self-hosted on your own infrastructure",
-															"Full access to all deployment features",
-															"Dokploy integration",
-															"Backups",
-															"All Incoming features",
+															t("settings.billing.features.allFeatures"),
+															t(
+																"settings.billing.features.unlimitedDeployments",
+															),
+															t("settings.billing.features.selfHosted"),
+															t("settings.billing.features.fullAccess"),
+															t("settings.billing.features.integration"),
+															t("settings.billing.features.backups"),
+															t("settings.billing.features.incoming"),
 														].map((feature) => (
 															<li
 																key={feature}
@@ -236,7 +254,7 @@ export const ShowBilling = () => {
 													<div className="flex flex-col gap-2 mt-4">
 														<div className="flex items-center gap-2 justify-center">
 															<span className="text-sm text-muted-foreground">
-																{serverQuantity} Servers
+																{serverQuantity} {t("settings.billing.servers")}
 															</span>
 														</div>
 
@@ -290,7 +308,7 @@ export const ShowBilling = () => {
 																		window.open(session.url);
 																	}}
 																>
-																	Manage Subscription
+																	{t("settings.billing.manageSubscription")}
 																</Button>
 															)}
 
@@ -303,7 +321,7 @@ export const ShowBilling = () => {
 																		}}
 																		disabled={serverQuantity < 1}
 																	>
-																		Subscribe
+																		{t("settings.billing.subscribe")}
 																	</Button>
 																</div>
 															)}

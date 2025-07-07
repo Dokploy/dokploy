@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ interface Props {
 }
 
 export const EditTraefikEnv = ({ children, serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const [canEdit, setCanEdit] = useState(true);
 
 	const { data } = api.settings.readTraefikEnv.useQuery({
@@ -68,10 +70,10 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 			serverId,
 		})
 			.then(async () => {
-				toast.success("Traefik Env Updated");
+				toast.success(t("settings.webServer.editTraefikEnv.saved"));
 			})
 			.catch(() => {
-				toast.error("Error updating the Traefik env");
+				toast.error(t("settings.webServer.editTraefikEnv.error"));
 			});
 	};
 
@@ -80,9 +82,11 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update Traefik Environment</DialogTitle>
+					<DialogTitle>
+						{t("settings.webServer.editTraefikEnv.title")}
+					</DialogTitle>
 					<DialogDescription>
-						Update the traefik environment variables
+						{t("settings.webServer.editTraefikEnv.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -128,7 +132,9 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 													setCanEdit(!canEdit);
 												}}
 											>
-												{canEdit ? "Unlock" : "Lock"}
+												{canEdit
+													? t("settings.webServer.editTraefikEnv.unlock")
+													: t("settings.webServer.editTraefikEnv.lock")}
 											</Button>
 										</div>
 									</FormItem>
@@ -144,7 +150,7 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 							form="hook-form-update-server-traefik-config"
 							type="submit"
 						>
-							Update
+							{t("settings.webServer.editTraefikEnv.save")}
 						</Button>
 					</DialogFooter>
 				</Form>

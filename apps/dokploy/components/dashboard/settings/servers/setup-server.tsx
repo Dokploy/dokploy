@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
 import { CopyIcon, ExternalLinkIcon, ServerIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export const SetupServer = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: server } = api.server.one.useQuery(
 		{
@@ -85,32 +87,31 @@ export const SetupServer = ({ serverId }: Props) => {
 					className="w-full cursor-pointer "
 					onSelect={(e) => e.preventDefault()}
 				>
-					Setup Server
+					{t("settings.setupServer.setupServer")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
 						<DialogTitle className="flex items-center gap-2">
-							<ServerIcon className="size-5" /> Setup Server
+							<ServerIcon className="size-5" />{" "}
+							{t("settings.setupServer.setupServer")}
 						</DialogTitle>
 						<p className="text-muted-foreground text-sm">
-							To setup a server, please click on the button below.
+							{t("settings.setupServer.description")}
 						</p>
 					</div>
 				</DialogHeader>
 				{!server?.sshKeyId ? (
 					<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 						<AlertBlock type="warning">
-							Please add a SSH Key to your server before setting up the server.
-							you can assign a SSH Key to your server in Edit Server.
+							{t("settings.setupServer.addSshKeyWarning")}
 						</AlertBlock>
 					</div>
 				) : (
 					<div id="hook-form-add-gitlab" className="grid w-full gap-4">
 						<AlertBlock type="warning">
-							Using a root user is required to ensure everything works as
-							expected.
+							{t("settings.setupServer.rootUserRequired")}
 						</AlertBlock>
 
 						<Tabs defaultValue="ssh-keys">
@@ -120,14 +121,26 @@ export const SetupServer = ({ serverId }: Props) => {
 									isCloud ? "grid-cols-6" : "grid-cols-5",
 								)}
 							>
-								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
-								<TabsTrigger value="deployments">Deployments</TabsTrigger>
-								<TabsTrigger value="validate">Validate</TabsTrigger>
-								<TabsTrigger value="audit">Security</TabsTrigger>
+								<TabsTrigger value="ssh-keys">
+									{t("settings.setupServer.sshKeys")}
+								</TabsTrigger>
+								<TabsTrigger value="deployments">
+									{t("settings.setupServer.deployments")}
+								</TabsTrigger>
+								<TabsTrigger value="validate">
+									{t("settings.setupServer.validate")}
+								</TabsTrigger>
+								<TabsTrigger value="audit">
+									{t("settings.setupServer.audit")}
+								</TabsTrigger>
 								{isCloud && (
-									<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+									<TabsTrigger value="monitoring">
+										{t("settings.setupServer.monitoring")}
+									</TabsTrigger>
 								)}
-								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
+								<TabsTrigger value="gpu-setup">
+									{t("settings.setupServer.gpuSetup")}
+								</TabsTrigger>
 							</TabsList>
 							<TabsContent
 								value="ssh-keys"
@@ -135,29 +148,30 @@ export const SetupServer = ({ serverId }: Props) => {
 							>
 								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
 									<p className="text-primary text-base font-semibold">
-										You have two options to add SSH Keys to your server:
+										{t("settings.setupServer.twoOptions")}
 									</p>
 
 									<ul>
-										<li>
-											1. Add the public SSH Key when you create a server in your
-											preffered provider (Hostinger, Digital Ocean, Hetzner,
-											etc){" "}
-										</li>
-										<li>2. Add The SSH Key to Server Manually</li>
+										<li>{t("settings.setupServer.option1")} </li>
+										<li>{t("settings.setupServer.option2")}</li>
 									</ul>
 									<div className="flex flex-col gap-4 w-full overflow-auto">
 										<div className="flex relative flex-col gap-2 overflow-y-auto">
 											<div className="text-sm text-primary flex flex-row gap-2 items-center">
-												Copy Public Key ({server?.sshKey?.name})
+												{t("settings.setupServer.copyPublicKey", {
+													name: server?.sshKey?.name,
+												})}
 												<button
 													type="button"
 													className="right-2 top-8"
 													onClick={() => {
 														copy(
-															server?.sshKey?.publicKey || "Generate a SSH Key",
+															server?.sshKey?.publicKey ||
+																t("settings.setupServer.generateSshKey"),
 														);
-														toast.success("SSH Copied to clipboard");
+														toast.success(
+															t("settings.setupServer.sshCopiedToClipboard"),
+														);
 													}}
 												>
 													<CopyIcon className="size-4 text-muted-foreground" />
@@ -168,23 +182,24 @@ export const SetupServer = ({ serverId }: Props) => {
 
 									<div className="flex flex-col gap-2 w-full mt-2 border rounded-lg p-4">
 										<span className="text-base font-semibold text-primary">
-											Automatic process
+											{t("settings.setupServer.automaticProcess")}
 										</span>
 										<Link
 											href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
 											target="_blank"
 											className="text-primary flex flex-row gap-2"
 										>
-											View Tutorial <ExternalLinkIcon className="size-4" />
+											{t("settings.setupServer.viewTutorial")}{" "}
+											<ExternalLinkIcon className="size-4" />
 										</Link>
 									</div>
 									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
 										<span className="text-base font-semibold text-primary">
-											Manual process
+											{t("settings.setupServer.manualProcess")}
 										</span>
 										<ul>
 											<li className="items-center flex gap-1">
-												1. Login to your server{" "}
+												{t("settings.setupServer.loginToServer")}{" "}
 												<span className="text-primary bg-secondary p-1 rounded-lg">
 													ssh {server?.username}@{server?.ipAddress}
 												</span>
@@ -194,14 +209,16 @@ export const SetupServer = ({ serverId }: Props) => {
 														copy(
 															`ssh ${server?.username}@${server?.ipAddress}`,
 														);
-														toast.success("Copied to clipboard");
+														toast.success(
+															t("settings.setupServer.copiedToClipboard"),
+														);
 													}}
 												>
 													<CopyIcon className="size-4" />
 												</button>
 											</li>
 											<li>
-												2. When you are logged in run the following command
+												{t("settings.setupServer.runCommand")}
 												<div className="flex  relative flex-col gap-4 w-full mt-2">
 													<CodeEditor
 														lineWrapping
@@ -217,7 +234,9 @@ export const SetupServer = ({ serverId }: Props) => {
 															copy(
 																`echo "${server?.sshKey?.publicKey}" >> ~/.ssh/authorized_keys`,
 															);
-															toast.success("Copied to clipboard");
+															toast.success(
+																t("settings.setupServer.copiedToClipboard"),
+															);
 														}}
 													>
 														<CopyIcon className="size-4" />
@@ -225,31 +244,27 @@ export const SetupServer = ({ serverId }: Props) => {
 												</div>
 											</li>
 											<li className="mt-1">
-												3. You're done, you can test the connection by entering
-												to the terminal or by setting up the server tab.
+												{t("settings.setupServer.youreDone")}
 											</li>
 										</ul>
 									</div>
 									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
 										<span className="text-base font-semibold text-primary">
-											Supported Distros:
+											{t("settings.setupServer.supportedDistros")}
 										</span>
-										<p>
-											We strongly recommend to use the following distros to
-											ensure the best experience:
-										</p>
+										<p>{t("settings.setupServer.distrosDescription")}</p>
 										<ul>
-											<li>1. Ubuntu 24.04 LTS</li>
-											<li>2. Ubuntu 23.10 LTS </li>
-											<li>3. Ubuntu 22.04 LTS</li>
-											<li>4. Ubuntu 20.04 LTS</li>
-											<li>5. Ubuntu 18.04 LTS</li>
-											<li>6. Debian 12</li>
-											<li>7. Debian 11</li>
-											<li>8. Debian 10</li>
-											<li>9. Fedora 40</li>
-											<li>10. Centos 9</li>
-											<li>11. Centos 8</li>
+											<li>{t("settings.setupServer.ubuntu2404")}</li>
+											<li>{t("settings.setupServer.ubuntu2310")}</li>
+											<li>{t("settings.setupServer.ubuntu2204")}</li>
+											<li>{t("settings.setupServer.ubuntu2004")}</li>
+											<li>{t("settings.setupServer.ubuntu1804")}</li>
+											<li>{t("settings.setupServer.debian12")}</li>
+											<li>{t("settings.setupServer.debian11")}</li>
+											<li>{t("settings.setupServer.debian10")}</li>
+											<li>{t("settings.setupServer.fedora40")}</li>
+											<li>{t("settings.setupServer.centos9")}</li>
+											<li>{t("settings.setupServer.centos8")}</li>
 										</ul>
 									</div>
 								</div>
@@ -262,11 +277,10 @@ export const SetupServer = ({ serverId }: Props) => {
 												<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
 													<div className="flex flex-col gap-1">
 														<CardTitle className="text-xl">
-															Setup Server
+															{t("settings.setupServer.setupServer")}
 														</CardTitle>
 														<CardDescription>
-															To setup a server, please click on the button
-															below.
+															{t("settings.setupServer.description")}
 														</CardDescription>
 													</div>
 												</div>
@@ -274,21 +288,25 @@ export const SetupServer = ({ serverId }: Props) => {
 											<CardContent className="flex flex-col gap-4 min-h-[25vh] items-center">
 												<div className="flex flex-col gap-4 items-center h-full max-w-xl mx-auto min-h-[25vh] justify-center">
 													<span className="text-sm text-muted-foreground text-center">
-														When your server is ready, you can click on the
-														button below, to directly run the script we use for
-														setup the server or directly modify the script
+														{t("settings.setupServer.serverReady")}
 													</span>
 													<div className="flex flex-row gap-2">
 														<EditScript serverId={server?.serverId || ""} />
 														<DialogAction
-															title={"Setup Server?"}
+															title={t(
+																"settings.setupServer.setupServerQuestion",
+															)}
 															type="default"
-															description="This will setup the server and all associated data"
+															description={t(
+																"settings.setupServer.setupServerDescription",
+															)}
 															onClick={async () => {
 																setIsDeploying(true);
 															}}
 														>
-															<Button>Setup Server</Button>
+															<Button>
+																{t("settings.setupServer.setupServer")}
+															</Button>
 														</DialogAction>
 													</div>
 												</div>

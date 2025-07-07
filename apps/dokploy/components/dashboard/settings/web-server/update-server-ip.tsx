@@ -27,6 +27,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RefreshCw } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ interface Props {
 }
 
 export const UpdateServerIp = ({ children }: Props) => {
+	const { t } = useTranslation("settings");
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data } = api.user.get.useQuery();
@@ -79,12 +81,12 @@ export const UpdateServerIp = ({ children }: Props) => {
 			serverIp: data.serverIp,
 		})
 			.then(async () => {
-				toast.success("Server IP Updated");
+				toast.success(t("settings.webServer.updateServerIp.updated"));
 				await utils.user.get.invalidate();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the IP of the server");
+				toast.error(t("settings.webServer.updateServerIp.error"));
 			});
 	};
 
@@ -93,8 +95,12 @@ export const UpdateServerIp = ({ children }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Update Server IP</DialogTitle>
-					<DialogDescription>Update the IP of the server</DialogDescription>
+					<DialogTitle>
+						{t("settings.webServer.updateServerIp.title")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.webServer.updateServerIp.description")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -108,7 +114,9 @@ export const UpdateServerIp = ({ children }: Props) => {
 							name="serverIp"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Server IP</FormLabel>
+									<FormLabel>
+										{t("settings.webServer.updateServerIp.currentIp")}
+									</FormLabel>
 									<FormControl className="flex gap-2">
 										<div>
 											<Input {...field} />
@@ -129,7 +137,11 @@ export const UpdateServerIp = ({ children }: Props) => {
 														sideOffset={5}
 														className="max-w-[11rem]"
 													>
-														<p>Set current public IP</p>
+														<p>
+															{t(
+																"settings.webServer.updateServerIp.setCurrentIp",
+															)}
+														</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -150,7 +162,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 							form="hook-form-update-server-ip"
 							type="submit"
 						>
-							Update
+							{t("settings.webServer.updateServerIp.update")}
 						</Button>
 					</DialogFooter>
 				</Form>

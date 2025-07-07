@@ -20,26 +20,29 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const PasswordSchema = z.object({
-	password: z.string().min(8, {
-		message: "Password is required",
-	}),
-});
+const createPasswordSchema = (t: TFunction) =>
+	z.object({
+		password: z.string().min(8, {
+			message: t("settings.twoFactor.passwordRequired"),
+		}),
+	});
 
-type PasswordForm = z.infer<typeof PasswordSchema>;
+type PasswordForm = z.infer<ReturnType<typeof createPasswordSchema>>;
 
 export const Disable2FA = () => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 
 	const form = useForm<PasswordForm>({
-		resolver: zodResolver(PasswordSchema),
+		resolver: zodResolver(createPasswordSchema(t)),
 		defaultValues: {
 			password: "",
 		},
@@ -60,14 +63,14 @@ export const Disable2FA = () => {
 				return;
 			}
 
-			toast.success("2FA disabled successfully");
+			toast.success(t("settings.twoFactor.disabledSuccessfully"));
 			utils.user.get.invalidate();
 			setIsOpen(false);
 		} catch {
 			form.setError("password", {
-				message: "Connection error. Please try again.",
+				message: t("settings.twoFactor.connectionError"),
 			});
-			toast.error("Connection error. Please try again.");
+			toast.error(t("settings.twoFactor.connectionError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -76,14 +79,15 @@ export const Disable2FA = () => {
 	return (
 		<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
 			<AlertDialogTrigger asChild>
-				<Button variant="destructive">Disable 2FA</Button>
+				<Button variant="destructive">{t("settings.twoFactor.disable")}</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogTitle>
+						{t("settings.twoFactor.disableTitle")}
+					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This action cannot be undone. This will permanently disable
-						Two-Factor Authentication for your account.
+						{t("settings.twoFactor.disableDescription")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 
@@ -97,16 +101,16 @@ export const Disable2FA = () => {
 							name="password"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Password</FormLabel>
+									<FormLabel>{t("settings.twoFactor.password")}</FormLabel>
 									<FormControl>
 										<Input
 											type="password"
-											placeholder="Enter your password"
+											placeholder={t("settings.twoFactor.passwordPlaceholder")}
 											{...field}
 										/>
 									</FormControl>
 									<FormDescription>
-										Enter your password to disable 2FA
+										{t("settings.twoFactor.passwordDescription")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -121,10 +125,10 @@ export const Disable2FA = () => {
 									setIsOpen(false);
 								}}
 							>
-								Cancel
+								{t("settings.twoFactor.cancel")}
 							</Button>
 							<Button type="submit" variant="destructive" isLoading={isLoading}>
-								Disable 2FA
+								{t("settings.twoFactor.disable")}
 							</Button>
 						</div>
 					</form>

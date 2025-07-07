@@ -23,6 +23,7 @@ import {
 	Loader2,
 	Trash2,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { toast } from "sonner";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
@@ -36,6 +37,7 @@ import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
 import { Badge } from "@/components/ui/badge";
 
 export const ShowGitProviders = () => {
+	const { t } = useTranslation("settings");
 	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
 		api.gitProvider.remove.useMutation();
@@ -48,7 +50,9 @@ export const ShowGitProviders = () => {
 	) => {
 		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
 		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+			redirectUri,
+		)}&response_type=code&scope=${encodeURIComponent(scope)}`;
 		return authUrl;
 	};
 
@@ -59,16 +63,16 @@ export const ShowGitProviders = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<GitBranch className="size-6 text-muted-foreground self-center" />
-							Git Providers
+							{t("settings.gitProviders.title")}
 						</CardTitle>
 						<CardDescription>
-							Connect your Git provider for authentication.
+							{t("settings.gitProviders.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.gitProviders.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -77,7 +81,7 @@ export const ShowGitProviders = () => {
 									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 										<GitBranch className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											Create your first Git Provider
+											{t("settings.gitProviders.createFirst")}
 										</span>
 										<div>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
@@ -94,7 +98,7 @@ export const ShowGitProviders = () => {
 									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<div className="flex flex-col gap-2 rounded-lg ">
 											<span className="text-base font-medium">
-												Available Providers
+												{t("settings.gitProviders.availableProviders")}
 											</span>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
@@ -215,50 +219,71 @@ export const ShowGitProviders = () => {
 																		</Link>
 																	</div>
 																)}
-
-																{isGithub && haveGithubRequirements && (
+																{haveGitlabRequirements && isGitlab && (
+																	<div className="flex flex-col  gap-1">
+																		<Link
+																			href={gitProvider.gitlab?.gitlabUrl}
+																			target="_blank"
+																			className={buttonVariants({
+																				size: "icon",
+																				variant: "ghost",
+																			})}
+																		>
+																			<ExternalLinkIcon className="size-4 text-primary" />
+																		</Link>
+																	</div>
+																)}
+																{isGithub && (
 																	<EditGithubProvider
-																		githubId={gitProvider.github?.githubId}
-																	/>
-																)}
-
-																{isGitlab && (
-																	<EditGitlabProvider
-																		gitlabId={gitProvider.gitlab?.gitlabId}
-																	/>
-																)}
-
-																{isBitbucket && (
-																	<EditBitbucketProvider
-																		bitbucketId={
-																			gitProvider.bitbucket?.bitbucketId
+																		githubId={
+																			gitProvider.github?.githubId || ""
 																		}
 																	/>
 																)}
-
-																{isGitea && (
-																	<EditGiteaProvider
-																		giteaId={gitProvider.gitea?.giteaId}
+																{isGitlab && (
+																	<EditGitlabProvider
+																		gitlabId={
+																			gitProvider.gitlab?.gitlabId || ""
+																		}
 																	/>
 																)}
-
+																{isBitbucket && (
+																	<EditBitbucketProvider
+																		bitbucketId={
+																			gitProvider.bitbucket?.bitbucketId || ""
+																		}
+																	/>
+																)}
+																{isGitea && (
+																	<EditGiteaProvider
+																		giteaId={gitProvider.gitea?.giteaId || ""}
+																	/>
+																)}
 																<DialogAction
-																	title="Delete Git Provider"
-																	description="Are you sure you want to delete this Git Provider?"
+																	title={t(
+																		"settings.gitProviders.delete.title",
+																	)}
+																	description={t(
+																		"settings.gitProviders.delete.description",
+																	)}
 																	type="destructive"
 																	onClick={async () => {
 																		await mutateAsync({
 																			gitProviderId: gitProvider.gitProviderId,
 																		})
 																			.then(() => {
-																				toast.success(
-																					"Git Provider deleted successfully",
-																				);
 																				refetch();
+																				toast.success(
+																					t(
+																						"settings.gitProviders.delete.success",
+																					),
+																				);
 																			})
 																			.catch(() => {
 																				toast.error(
-																					"Error deleting Git Provider",
+																					t(
+																						"settings.gitProviders.delete.error",
+																					),
 																				);
 																			});
 																	}}
@@ -266,7 +291,7 @@ export const ShowGitProviders = () => {
 																	<Button
 																		variant="ghost"
 																		size="icon"
-																		className="group hover:bg-red-500/10"
+																		className="group hover:bg-red-500/10 "
 																		isLoading={isRemoving}
 																	>
 																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
@@ -277,10 +302,6 @@ export const ShowGitProviders = () => {
 													</div>
 												);
 											})}
-										</div>
-
-										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											{/* <AddCertificate /> */}
 										</div>
 									</div>
 								)}

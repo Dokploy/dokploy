@@ -21,28 +21,31 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	gitlabUrl: z.string().url({
-		message: "Invalid Gitlab URL",
-	}),
-	groupName: z.string().optional(),
-});
+const Schema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.gitProviders.gitlab.update.nameRequired"),
+		}),
+		gitlabUrl: z.string().url({
+			message: t("settings.gitProviders.gitlab.update.urlRequired"),
+		}),
+		groupName: z.string().optional(),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = ReturnType<typeof Schema>["_type"];
 
 interface Props {
 	gitlabId: string;
 }
 
 export const EditGitlabProvider = ({ gitlabId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data: gitlab, refetch } = api.gitlab.one.useQuery(
 		{
 			gitlabId,
@@ -62,7 +65,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(Schema(t)),
 	});
 
 	const groupName = form.watch("groupName");
@@ -85,12 +88,12 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Gitlab updated successfully");
+				toast.success(t("settings.gitProviders.gitlab.update.success"));
 				setIsOpen(false);
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating Gitlab");
+				toast.error(t("settings.gitProviders.gitlab.update.error"));
 			});
 	};
 
@@ -108,7 +111,8 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update GitLab <GitlabIcon className="size-5" />
+						{t("settings.gitProviders.gitlab.update.title")}{" "}
+						<GitlabIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -126,10 +130,14 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitlab.update.name")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t(
+														"settings.gitProviders.gitlab.update.namePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -142,9 +150,16 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									name="gitlabUrl"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Gitlab Url</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitlab.update.url")}
+											</FormLabel>
 											<FormControl>
-												<Input placeholder="https://gitlab.com" {...field} />
+												<Input
+													placeholder={t(
+														"settings.gitProviders.gitlab.update.urlPlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -157,11 +172,13 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>
-												Group Name (Optional, Comma-Separated List)
+												{t("settings.gitProviders.gitlab.update.groupName")}
 											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization/group access use the slugish name of the group eg: my-org"
+													placeholder={t(
+														"settings.gitProviders.gitlab.update.groupNamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -188,10 +205,10 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 												});
 										}}
 									>
-										Test Connection
+										{t("settings.gitProviders.gitlab.update.testConnection")}
 									</Button>
 									<Button type="submit" isLoading={form.formState.isSubmitting}>
-										Update
+										{t("settings.gitProviders.gitlab.update.update")}
 									</Button>
 								</div>
 							</div>
