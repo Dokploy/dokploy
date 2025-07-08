@@ -3,13 +3,13 @@ import { docker } from "../constants";
 export const initializeSwarm = async () => {
 	const swarmInitialized = await dockerSwarmInitialized();
 	if (swarmInitialized) {
-		console.log("Swarm is already initilized");
+		console.log("Swarm is already initialized");
 	} else {
 		await docker.swarmInit({
 			AdvertiseAddr: "127.0.0.1",
 			ListenAddr: "0.0.0.0",
 		});
-		console.log("Swarm was initilized");
+		console.log("Swarm was initialized");
 	}
 };
 
@@ -26,14 +26,14 @@ export const dockerSwarmInitialized = async () => {
 export const initializeNetwork = async () => {
 	const networkInitialized = await dockerNetworkInitialized();
 	if (networkInitialized) {
-		console.log("Network is already initilized");
+		console.log("Network is already initialized");
 	} else {
 		await docker.createNetwork({
 			Attachable: true,
 			Name: "dokploy-network",
 			Driver: "overlay",
 		});
-		console.log("Network was initilized");
+		console.log("Network was initialized");
 	}
 };
 
