@@ -54,13 +54,15 @@ export const PERMISSIONS = {
 	},
 } as const;
 
-const getAllPermissionNames = () => {
-	return Object.values(PERMISSIONS).flatMap((category) =>
-		Object.values(category).map((permission) => permission.name),
-	);
-};
-
-export const ownerPermissions = getAllPermissionNames();
+export const ownerPermissions = [
+	PERMISSIONS.PROJECT.VIEW.name,
+	PERMISSIONS.PROJECT.CREATE.name,
+	PERMISSIONS.PROJECT.DELETE.name,
+	PERMISSIONS.SERVICE.VIEW.name,
+	PERMISSIONS.SERVICE.CREATE.name,
+	PERMISSIONS.SERVICE.DELETE.name,
+	PERMISSIONS.TRAEFIK.ACCESS.name,
+];
 
 export const adminPermissions = [
 	PERMISSIONS.PROJECT.VIEW.name,

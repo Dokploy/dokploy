@@ -6,7 +6,14 @@ import {
 	role,
 	updateRoleSchema,
 } from "@/server/db/schema";
-import { createRole, removeRoleById, updateRoleById } from "@dokploy/server";
+import {
+	adminPermissions,
+	createRole,
+	memberPermissions,
+	ownerPermissions,
+	removeRoleById,
+	updateRoleById,
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
@@ -59,17 +66,10 @@ export const roleRouter = createTRPCRouter({
 			return await updateRoleById(input.roleId, input);
 		}),
 	getDefaultRoles: protectedProcedure.query(async ({ ctx }) => {
-		const result = await db.query.role.findMany({
-			where: and(
-				eq(role.organizationId, ctx.session.activeOrganizationId),
-				eq(role.isSystem, true),
-			),
-		});
-
 		return {
-			owner: result.find((r) => r.name === "owner"),
-			admin: result.find((r) => r.name === "admin"),
-			member: result.find((r) => r.name === "member"),
+			owner: ownerPermissions,
+			admin: adminPermissions,
+			member: memberPermissions,
 		};
 	}),
 });
