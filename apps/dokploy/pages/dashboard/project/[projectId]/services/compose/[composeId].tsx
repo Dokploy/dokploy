@@ -102,14 +102,14 @@ const Service = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex flex-col gap-4">
 							<CardHeader className="flex flex-row justify-between items-center">
 								<div className="flex flex-col">
 									<CardTitle className="text-xl flex flex-row gap-2">
 										<div className="relative flex flex-row gap-4">
-											<div className="absolute -right-1  -top-2">
+											<div className="absolute -right-1 -top-2">
 												<StatusTooltip status={data?.composeStatus} />
 											</div>
 
@@ -331,7 +331,7 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4  border rounded-lg">
+										<div className="flex flex-col gap-4 border rounded-lg">
 											<ShowDeployments
 												id={composeId}
 												type="compose"

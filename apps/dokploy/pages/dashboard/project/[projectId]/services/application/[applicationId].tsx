@@ -111,13 +111,13 @@ const Service = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="flex flex-row justify-between items-center">
 							<div className="flex flex-col">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
-										<div className="absolute -right-1  -top-2">
+										<div className="absolute -right-1 -top-2">
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
@@ -299,7 +299,7 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="logs">
-										<div className="flex flex-col gap-4  pt-2.5">
+										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowDockerLogs
 												appName={data?.appName || ""}
 												serverId={data?.serverId || ""}
@@ -307,7 +307,7 @@ const Service = (
 										</div>
 									</TabsContent>
 									<TabsContent value="schedules">
-										<div className="flex flex-col gap-4  pt-2.5">
+										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowSchedules
 												id={applicationId}
 												scheduleType="application"
@@ -315,7 +315,7 @@ const Service = (
 										</div>
 									</TabsContent>
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4  border rounded-lg">
+										<div className="flex flex-col gap-4 border rounded-lg">
 											<ShowDeployments
 												id={applicationId}
 												type="application"
@@ -325,7 +325,7 @@ const Service = (
 										</div>
 									</TabsContent>
 									<TabsContent value="volume-backups" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4  border rounded-lg">
+										<div className="flex flex-col gap-4 border rounded-lg">
 											<ShowVolumeBackups
 												id={applicationId}
 												type="application"
