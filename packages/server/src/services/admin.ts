@@ -46,21 +46,21 @@ export const isAdminPresent = async () => {
 	return true;
 };
 
-export const findAdmin = async () => {
-	const admin = await db.query.member.findFirst({
+export const findOwner = async () => {
+	const owner = await db.query.member.findFirst({
 		where: eq(member.role, "owner"),
 		with: {
 			user: true,
 		},
 	});
 
-	if (!admin) {
+	if (!owner) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: "Admin not found",
+			message: "Owner not found",
 		});
 	}
-	return admin;
+	return owner;
 };
 
 export const getUserByToken = async (token: string) => {
@@ -107,10 +107,10 @@ export const getDokployUrl = async () => {
 	if (IS_CLOUD) {
 		return "https://app.dokploy.com";
 	}
-	const admin = await findAdmin();
+	const owner = await findOwner();
 
-	if (admin.user.host) {
-		return `https://${admin.user.host}`;
+	if (owner.user.host) {
+		return `https://${owner.user.host}`;
 	}
-	return `http://${admin.user.serverIp}:${process.env.PORT}`;
+	return `http://${owner.user.serverIp}:${process.env.PORT}`;
 };

@@ -1,7 +1,7 @@
 import {
 	IS_CLOUD,
 	createApiKey,
-	findAdmin,
+	findOwner,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
@@ -410,11 +410,11 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			const admin = await findAdmin();
+			const owner = await findOwner();
 			const host =
 				process.env.NODE_ENV === "development"
 					? "http://localhost:3000"
-					: admin.user.host;
+					: owner.user.host;
 			const inviteLink = `${host}/invitation?token=${input.invitationId}`;
 
 			const organization = await findOrganizationById(
