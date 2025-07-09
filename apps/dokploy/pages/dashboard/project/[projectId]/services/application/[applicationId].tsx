@@ -219,7 +219,7 @@ const Service = (
 									}}
 								>
 									<div className="flex flex-row items-center justify-between w-full overflow-auto">
-										<TabsList className="flex gap-8 justify-start">
+										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
