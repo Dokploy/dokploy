@@ -218,17 +218,9 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
+									<div className="flex flex-row items-center justify-between w-full overflow-auto">
 										<TabsList
-											className={cn(
-												"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
-												isCloud && data?.serverId
-													? "md:grid-cols-7"
-													: data?.serverId
-														? "md:grid-cols-6"
-														: "md:grid-cols-7",
-											)}
-										>
+											className="flex gap-8 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
