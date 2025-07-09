@@ -13,6 +13,7 @@ export * from "./services/settings";
 export * from "./services/volume-backups";
 export * from "./services/docker";
 export * from "./services/destination";
+export * from "./services/role";
 export * from "./services/deployment";
 export * from "./services/mount";
 export * from "./services/certificate";

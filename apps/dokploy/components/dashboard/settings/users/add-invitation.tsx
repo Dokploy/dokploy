@@ -157,6 +157,7 @@ export const AddInvitation = () => {
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
+												<SelectItem value="admin">Admin</SelectItem>
 												<SelectItem value="member">Member</SelectItem>
 											</SelectContent>
 										</Select>

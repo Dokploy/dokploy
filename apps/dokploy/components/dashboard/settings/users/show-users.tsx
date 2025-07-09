@@ -31,6 +31,7 @@ import { MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
+import { AddUserPermissionsV2 } from "./add-permissions-v2";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -92,12 +93,12 @@ export const ShowUsers = () => {
 															<TableCell className="text-center">
 																<Badge
 																	variant={
-																		member.role === "owner"
+																		member.role.name === "owner"
 																			? "default"
 																			: "secondary"
 																	}
 																>
-																	{member.role}
+																	{member.role.name}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
@@ -128,9 +129,14 @@ export const ShowUsers = () => {
 																		</DropdownMenuLabel>
 
 																		{member.role !== "owner" && (
-																			<AddUserPermissions
-																				userId={member.user.id}
-																			/>
+																			<>
+																				<AddUserPermissions
+																					userId={member.user.id}
+																				/>
+																				<AddUserPermissionsV2
+																					userId={member.user.id}
+																				/>
+																			</>
 																		)}
 
 																		{member.role !== "owner" && (

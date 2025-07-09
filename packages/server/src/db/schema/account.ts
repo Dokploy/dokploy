@@ -10,6 +10,7 @@ import { nanoid } from "nanoid";
 import { projects } from "./project";
 import { server } from "./server";
 import { users_temp } from "./user";
+import { role } from "./rbac";
 
 export const account = pgTable("account", {
 	id: text("id")
@@ -92,6 +93,9 @@ export const member = pgTable("member", {
 		.notNull()
 		.references(() => users_temp.id, { onDelete: "cascade" }),
 	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
+	roleId: text("roleId")
+		.notNull()
+		.references(() => role.roleId, { onDelete: "cascade" }), // Referencia a la nueva tabla de roles
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	// Permissions
@@ -126,6 +130,10 @@ export const memberRelations = relations(member, ({ one }) => ({
 	user: one(users_temp, {
 		fields: [member.userId],
 		references: [users_temp.id],
+	}),
+	role: one(role, {
+		fields: [member.roleId],
+		references: [role.roleId],
 	}),
 }));
 

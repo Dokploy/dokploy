@@ -54,6 +54,7 @@ export const userRouter = createTRPCRouter({
 			where: eq(member.organizationId, ctx.session.activeOrganizationId),
 			with: {
 				user: true,
+				role: true,
 			},
 			orderBy: [asc(member.createdAt)],
 		});
@@ -437,5 +438,47 @@ export const userRouter = createTRPCRouter({
 				throw error;
 			}
 			return inviteLink;
+		}),
+	assignRole: adminProcedure
+		.input(
+			z.object({
+				userId: z.string(),
+				roleId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const organization = await findOrganizationById(
+					ctx.session.activeOrganizationId,
+				);
+
+				if (organization?.ownerId !== ctx.user.ownerId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not allowed to assign roles",
+					});
+				}
+
+				const memberResult = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, input.userId),
+						eq(member.organizationId, ctx.session.activeOrganizationId),
+					),
+				});
+
+				if (!memberResult) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Member not found",
+					});
+				}
+
+				await db
+					.update(member)
+					.set({ roleId: input.roleId })
+					.where(eq(member.id, memberResult.id));
+			} catch (error) {
+				throw error;
+			}
 		}),
 });

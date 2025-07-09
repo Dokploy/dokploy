@@ -38,6 +38,7 @@ import { userRouter } from "./routers/user";
 import { scheduleRouter } from "./routers/schedule";
 import { rollbackRouter } from "./routers/rollbacks";
 import { volumeBackupsRouter } from "./routers/volume-backups";
+import { roleRouter } from "./routers/role";
 /**
  * This is the primary router for your server.
  *
@@ -84,6 +85,7 @@ export const appRouter = createTRPCRouter({
 	schedule: scheduleRouter,
 	rollback: rollbackRouter,
 	volumeBackups: volumeBackupsRouter,
+	role: roleRouter,
 });
 
 // export type definition of API
