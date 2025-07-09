@@ -23,7 +23,7 @@ const config = {
 				sans: ["var(--font-inter)", ...defaultTheme.fontFamily.sans],
 			},
 			screens: {
-				"3xl": "120rem",
+				"3xl": "1920px",
 			},
 			maxWidth: {
 				"2xl": "40rem",
