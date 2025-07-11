@@ -9,6 +9,8 @@
 	"settings.server.domain.form.certificate.placeholder": "Select a certificate",
 	"settings.server.domain.form.certificateOptions.none": "None",
 	"settings.server.domain.form.certificateOptions.letsencrypt": "Let's Encrypt",
+	"settings.server.domain.form.domainPlaceholder": "dokploy.example.com",
+	"settings.server.domain.form.letsEncryptEmailPlaceholder": "example@example.com",
 
 	"settings.server.webServer.title": "Web Server",
 	"settings.server.webServer.description": "Reload or clean the web server.",
