@@ -19,6 +19,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: application, refetch } = api.application.one.useQuery(
 		{
@@ -62,12 +64,12 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 			rollbackActive: data.rollbackActive,
 		})
 			.then(() => {
-				toast.success("Rollback settings updated");
+				toast.success(t("dashboard.rollback.settingsUpdated"));
 				setIsOpen(false);
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Failed to update rollback settings");
+				toast.error(t("dashboard.rollback.failedToUpdateSettings"));
 			});
 	};
 
@@ -76,15 +78,11 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Rollback Settings</DialogTitle>
+					<DialogTitle>{t("dashboard.rollback.rollbackSettings")}</DialogTitle>
 					<DialogDescription>
-						Configure how rollbacks work for this application
+						{t("dashboard.rollback.configureRollbacksDescription")}
 					</DialogDescription>
-					<AlertBlock>
-						Having rollbacks enabled increases storage usage. Be careful with
-						this option. Note that manually cleaning the cache may delete
-						rollback images, making them unavailable for future rollbacks.
-					</AlertBlock>
+					<AlertBlock>{t("dashboard.rollback.rollbackWarning")}</AlertBlock>
 				</DialogHeader>
 
 				<Form {...form}>
@@ -96,10 +94,10 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
 									<div className="space-y-0.5">
 										<FormLabel className="text-base">
-											Enable Rollbacks
+											{t("dashboard.rollback.enableRollbacks")}
 										</FormLabel>
 										<FormDescription>
-											Allow rolling back to previous deployments
+											{t("dashboard.rollback.allowRollingBackDescription")}
 										</FormDescription>
 									</div>
 									<FormControl>
@@ -113,7 +111,7 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 						/>
 
 						<Button type="submit" className="w-full" isLoading={isLoading}>
-							Save Settings
+							{t("dashboard.rollback.saveSettings")}
 						</Button>
 					</form>
 				</Form>

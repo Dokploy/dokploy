@@ -8,6 +8,7 @@ import {
 import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
 import { CopyIcon, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export const AddWorker = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data, isLoading, error, isError } = api.cluster.addWorker.useQuery({
 		serverId,
 	});
@@ -22,8 +24,10 @@ export const AddWorker = ({ serverId }: Props) => {
 	return (
 		<CardContent className="sm:max-w-4xl   flex flex-col gap-4 px-0">
 			<DialogHeader>
-				<DialogTitle>Add a new worker</DialogTitle>
-				<DialogDescription>Add a new worker</DialogDescription>
+				<DialogTitle>{t("settings.cluster.add.worker.title")}</DialogTitle>
+				<DialogDescription>
+					{t("settings.cluster.add.worker.description")}
+				</DialogDescription>
 			</DialogHeader>
 			{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 			{isLoading ? (
@@ -31,7 +35,7 @@ export const AddWorker = ({ serverId }: Props) => {
 			) : (
 				<>
 					<div className="flex flex-col gap-2.5 text-sm">
-						<span>1. Go to your new server and run the following command</span>
+						<span>{t("settings.cluster.add.step1")}</span>
 						<span className="bg-muted rounded-lg p-2 flex justify-between">
 							curl https://get.docker.com | sh -s -- --version {data?.version}
 							<button
@@ -41,7 +45,7 @@ export const AddWorker = ({ serverId }: Props) => {
 									copy(
 										`curl https://get.docker.com | sh -s -- --version ${data?.version}`,
 									);
-									toast.success("Copied to clipboard");
+									toast.success(t("settings.cluster.add.copied"));
 								}}
 							>
 								<CopyIcon className="h-4 w-4 cursor-pointer" />
@@ -50,10 +54,7 @@ export const AddWorker = ({ serverId }: Props) => {
 					</div>
 
 					<div className="flex flex-col gap-2.5 text-sm">
-						<span>
-							2. Run the following command to add the node(worker) to your
-							cluster
-						</span>
+						<span>{t("settings.cluster.add.step2.worker")}</span>
 
 						<span className="bg-muted rounded-lg p-2  flex">
 							{data?.command}
@@ -62,7 +63,7 @@ export const AddWorker = ({ serverId }: Props) => {
 								className="self-start"
 								onClick={() => {
 									copy(data?.command || "");
-									toast.success("Copied to clipboard");
+									toast.success(t("settings.cluster.add.copied"));
 								}}
 							>
 								<CopyIcon className="h-4 w-4 cursor-pointer" />

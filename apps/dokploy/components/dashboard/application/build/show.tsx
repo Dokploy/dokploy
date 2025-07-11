@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Cog } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -134,6 +135,7 @@ const resetData = (data: ApplicationData): AddTemplate => {
 };
 
 export const ShowBuildChooseForm = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { mutateAsync, isLoading } =
 		api.application.saveBuildType.useMutation();
 	const { data, refetch } = api.application.one.useQuery(
@@ -183,11 +185,11 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 		})
 			.then(async () => {
-				toast.success("Build type saved");
+				toast.success(t("dashboard.application.build.buildTypeSaved"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the build type");
+				toast.error(t("dashboard.application.build.errorSavingBuildType"));
 			});
 	};
 
@@ -196,9 +198,11 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
-						<span className="flex flex-col space-y-0.5">Build Type</span>
+						<span className="flex flex-col space-y-0.5">
+							{t("dashboard.application.build.buildType")}
+						</span>
 						<p className="flex items-center text-sm font-normal text-muted-foreground">
-							Select the way of building your code
+							{t("dashboard.application.build.buildTypeDescription")}
 						</p>
 					</div>
 					<div className="hidden space-y-1 text-sm font-normal md:block">
@@ -209,20 +213,16 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			<CardContent>
 				<Form {...form}>
 					<AlertBlock>
-						Builders can consume significant memory and CPU resources
-						(recommended: 4+ GB RAM and 2+ CPU cores). For production
-						environments, please review our{" "}
+						{t("dashboard.application.build.resourceWarning")}{" "}
 						<a
 							href="https://docs.dokploy.com/docs/core/applications/going-production"
 							target="_blank"
 							rel="noreferrer"
 							className="font-medium underline underline-offset-4"
 						>
-							Production Guide
+							{t("dashboard.application.build.productionGuide")}
 						</a>{" "}
-						for best practices and optimization recommendations. Builders are
-						suitable for development and prototyping purposes when you have
-						sufficient resources available.
+						{t("dashboard.application.build.resourceWarningEnd")}
 					</AlertBlock>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
@@ -234,31 +234,35 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							defaultValue={form.control._defaultValues.buildType}
 							render={({ field }) => (
 								<FormItem className="space-y-3">
-									<FormLabel>Build Type</FormLabel>
+									<FormLabel>
+										{t("dashboard.application.build.buildType")}
+									</FormLabel>
 									<FormControl>
 										<RadioGroup
 											onValueChange={field.onChange}
 											value={field.value}
 											className="flex flex-col space-y-1"
 										>
-											{Object.entries(buildTypeDisplayMap).map(
-												([value, label]) => (
-													<FormItem
-														key={value}
-														className="flex items-center space-x-3 space-y-0"
-													>
-														<FormControl>
-															<RadioGroupItem value={value} />
-														</FormControl>
-														<FormLabel className="font-normal">
-															{label}
-															{value === BuildType.railpack && (
-																<Badge className="ml-2 px-1 text-xs">New</Badge>
-															)}
-														</FormLabel>
-													</FormItem>
-												),
-											)}
+											{Object.entries(buildTypeDisplayMap).map(([value]) => (
+												<FormItem
+													key={value}
+													className="flex items-center space-x-3 space-y-0"
+												>
+													<FormControl>
+														<RadioGroupItem value={value} />
+													</FormControl>
+													<FormLabel className="font-normal">
+														{t(
+															`dashboard.application.build.buildTypes.${value}`,
+														)}
+														{value === BuildType.railpack && (
+															<Badge className="ml-2 px-1 text-xs">
+																{t("dashboard.application.build.new")}
+															</Badge>
+														)}
+													</FormLabel>
+												</FormItem>
+											))}
 										</RadioGroup>
 									</FormControl>
 									<FormMessage />
@@ -271,10 +275,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 								name="herokuVersion"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Heroku Version (Optional)</FormLabel>
+										<FormLabel>
+											{t("dashboard.application.build.herokuVersion")}
+										</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Heroku Version (Default: 24)"
+												placeholder={t(
+													"dashboard.application.build.herokuVersionPlaceholder",
+												)}
 												{...field}
 												value={field.value ?? ""}
 											/>
@@ -291,10 +299,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									name="dockerfile"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Docker File</FormLabel>
+											<FormLabel>
+												{t("dashboard.application.build.dockerFile")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker file"
+													placeholder={t(
+														"dashboard.application.build.dockerFilePlaceholder",
+													)}
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -308,10 +320,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									name="dockerContextPath"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Docker Context Path</FormLabel>
+											<FormLabel>
+												{t("dashboard.application.build.dockerContextPath")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Path of your docker context (default: .)"
+													placeholder={t(
+														"dashboard.application.build.dockerContextPathPlaceholder",
+													)}
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -326,16 +342,20 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<div className="space-y-0.5">
-												<FormLabel>Docker Build Stage</FormLabel>
+												<FormLabel>
+													{t("dashboard.application.build.dockerBuildStage")}
+												</FormLabel>
 												<FormDescription>
-													Allows you to target a specific stage in a Multi-stage
-													Dockerfile. If empty, Docker defaults to build the
-													last defined stage.
+													{t(
+														"dashboard.application.build.dockerBuildStageDescription",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
 												<Input
-													placeholder="E.g. production"
+													placeholder={t(
+														"dashboard.application.build.dockerBuildStagePlaceholder",
+													)}
 													{...field}
 													value={field.value ?? ""}
 												/>
@@ -352,16 +372,20 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<div className="space-y-0.5">
-											<FormLabel>Publish Directory</FormLabel>
+											<FormLabel>
+												{t("dashboard.application.build.publishDirectory")}
+											</FormLabel>
 											<FormDescription>
-												Allows you to serve a single directory via NGINX after
-												the build phase. Useful if the final build assets should
-												be served as a static site.
+												{t(
+													"dashboard.application.build.publishDirectoryDescription",
+												)}
 											</FormDescription>
 										</div>
 										<FormControl>
 											<Input
-												placeholder="Publish Directory"
+												placeholder={t(
+													"dashboard.application.build.publishDirectoryPlaceholder",
+												)}
 												{...field}
 												value={field.value ?? ""}
 											/>
@@ -386,7 +410,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													onCheckedChange={field.onChange}
 												/>
 												<FormLabel htmlFor="checkboxIsStaticSpa">
-													Single Page Application (SPA)
+													{t(
+														"dashboard.application.build.singlePageApplication",
+													)}
 												</FormLabel>
 											</div>
 										</FormControl>
@@ -397,7 +423,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 						)}
 						<div className="flex w-full justify-end">
 							<Button isLoading={isLoading} type="submit">
-								Save
+								{t("dashboard.application.build.save")}
 							</Button>
 						</div>
 					</form>

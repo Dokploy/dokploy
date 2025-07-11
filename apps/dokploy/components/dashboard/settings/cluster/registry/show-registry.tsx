@@ -9,10 +9,12 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Loader2, Package, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { HandleRegistry } from "./handle-registry";
 
 export const ShowRegistry = () => {
+	const { t } = useTranslation("settings");
 	const { mutateAsync, isLoading: isRemoving } =
 		api.registry.remove.useMutation();
 	const { data, isLoading, refetch } = api.registry.all.useQuery();
@@ -24,16 +26,16 @@ export const ShowRegistry = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Package className="size-6 text-muted-foreground self-center" />
-							Docker Registry
+							{t("settings.registry.title")}
 						</CardTitle>
 						<CardDescription>
-							Manage your Docker Registry configurations
+							{t("settings.registry.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.registry.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -42,7 +44,7 @@ export const ShowRegistry = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Package className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
-											You don't have any registry configurations
+											{t("settings.registry.noRegistries")}
 										</span>
 										<HandleRegistry />
 									</div>
@@ -74,8 +76,10 @@ export const ShowRegistry = () => {
 															/>
 
 															<DialogAction
-																title="Delete Registry"
-																description="Are you sure you want to delete this registry configuration?"
+																title={t("settings.registry.delete.title")}
+																description={t(
+																	"settings.registry.delete.description",
+																)}
 																type="destructive"
 																onClick={async () => {
 																	await mutateAsync({
@@ -83,13 +87,13 @@ export const ShowRegistry = () => {
 																	})
 																		.then(() => {
 																			toast.success(
-																				"Registry configuration deleted successfully",
+																				t("settings.registry.delete.success"),
 																			);
 																			refetch();
 																		})
 																		.catch(() => {
 																			toast.error(
-																				"Error deleting registry configuration",
+																				t("settings.registry.delete.error"),
 																			);
 																		});
 																}}

@@ -28,6 +28,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Server } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -47,6 +48,7 @@ const AddRedirectchema = z.object({
 type AddCommand = z.infer<typeof AddRedirectchema>;
 
 export const ShowClusterSettings = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -87,13 +89,13 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 			replicas: data?.replicas,
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(t("dashboard.cluster.commandUpdated"));
 				await utils.application.one.invalidate({
 					applicationId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(t("dashboard.cluster.errorUpdatingCommand"));
 			});
 	};
 
@@ -101,17 +103,18 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Cluster Settings</CardTitle>
+					<CardTitle className="text-xl">
+						{t("dashboard.cluster.clusterSettings")}
+					</CardTitle>
 					<CardDescription>
-						Add the registry and the replicas of the application
+						{t("dashboard.cluster.description")}
 					</CardDescription>
 				</div>
 				<AddSwarmSettings applicationId={applicationId} />
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<AlertBlock type="info">
-					Please remember to click Redeploy after modify the cluster settings to
-					apply the changes.
+					{t("dashboard.cluster.redeployReminder")}
 				</AlertBlock>
 				<Form {...form}>
 					<form
@@ -124,10 +127,10 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 								name="replicas"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Replicas</FormLabel>
+										<FormLabel>{t("dashboard.cluster.replicas")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="1"
+												placeholder={t("dashboard.cluster.replicasPlaceholder")}
 												{...field}
 												onChange={(e) => {
 													const value = e.target.value;
@@ -149,15 +152,14 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 								<div className="flex flex-col items-center gap-3">
 									<Server className="size-8 text-muted-foreground" />
 									<span className="text-base text-muted-foreground">
-										To use a cluster feature, you need to configure at least a
-										registry first. Please, go to{" "}
+										{t("dashboard.cluster.noRegistriesWarning")}{" "}
 										<Link
 											href="/dashboard/settings/cluster"
 											className="text-foreground"
 										>
-											Settings
+											{t("dashboard.cluster.settings")}
 										</Link>{" "}
-										to do so.
+										{t("dashboard.cluster.toConfigure")}
 									</span>
 								</div>
 							</div>
@@ -168,13 +170,19 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 									name="registryId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Select a registry</FormLabel>
+											<FormLabel>
+												{t("dashboard.cluster.selectRegistry")}
+											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												defaultValue={field.value}
 											>
 												<SelectTrigger>
-													<SelectValue placeholder="Select a registry" />
+													<SelectValue
+														placeholder={t(
+															"dashboard.cluster.selectRegistryPlaceholder",
+														)}
+													/>
 												</SelectTrigger>
 												<SelectContent>
 													<SelectGroup>
@@ -186,9 +194,13 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 																{registry.registryName}
 															</SelectItem>
 														))}
-														<SelectItem value={"none"}>None</SelectItem>
+														<SelectItem value={"none"}>
+															{t("dashboard.cluster.none")}
+														</SelectItem>
 														<SelectLabel>
-															Registries ({registries?.length})
+															{t("dashboard.cluster.registries", {
+																count: registries?.length || 0,
+															})}
 														</SelectLabel>
 													</SelectGroup>
 												</SelectContent>
@@ -201,7 +213,7 @@ export const ShowClusterSettings = ({ applicationId }: Props) => {
 
 						<div className="flex justify-end">
 							<Button isLoading={isLoading} type="submit" className="w-fit">
-								Save
+								{t("dashboard.cluster.save")}
 							</Button>
 						</div>
 					</form>

@@ -2,6 +2,7 @@ import { ShowBilling } from "@/components/dashboard/settings/billing/show-billin
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
@@ -21,6 +22,7 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
@@ -59,6 +61,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["common", "settings"])),
 		},
 	};
 }

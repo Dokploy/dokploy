@@ -28,6 +28,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HelpCircle, Settings } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -185,6 +186,7 @@ interface Props {
 }
 
 export const AddSwarmSettings = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -255,11 +257,11 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			networkSwarm: data.networkSwarm,
 		})
 			.then(async () => {
-				toast.success("Swarm settings updated");
+				toast.success(t("dashboard.swarm.swarmSettingsUpdated"));
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the swarm settings");
+				toast.error(t("dashboard.swarm.errorUpdatingSwarmSettings"));
 			});
 	};
 	return (
@@ -267,21 +269,20 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="cursor-pointer w-fit">
 					<Settings className="size-4 text-muted-foreground" />
-					Swarm Settings
+					{t("dashboard.swarm.swarmSettings")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-5xl p-0">
 				<DialogHeader className="p-6">
-					<DialogTitle>Swarm Settings</DialogTitle>
+					<DialogTitle>{t("dashboard.swarm.swarmSettings")}</DialogTitle>
 					<DialogDescription>
-						Update certain settings using a json object.
+						{t("dashboard.swarm.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<div className="px-4">
 					<AlertBlock type="info">
-						Changing settings such as placements may cause the logs/monitoring
-						to be unavailable.
+						{t("dashboard.swarm.settingsWarning")}
 					</AlertBlock>
 				</div>
 
@@ -296,12 +297,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="healthCheckSwarm"
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
-									<FormLabel>Health Check</FormLabel>
+									<FormLabel>{t("dashboard.swarm.healthCheck")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -352,12 +353,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="restartPolicySwarm"
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
-									<FormLabel>Restart Policy</FormLabel>
+									<FormLabel>{t("dashboard.swarm.restartPolicy")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -388,7 +389,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"Delay" : 10000,
 	"MaxAttempts" : 10,
 	"Window" : 10000
-}                                                  `}
+}`}
 											className="h-[12rem] font-mono"
 											{...field}
 											value={field?.value || ""}
@@ -406,12 +407,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="placementSwarm"
 							render={({ field }) => (
 								<FormItem className="relative   max-lg:px-4 lg:pl-6 ">
-									<FormLabel>Placement</FormLabel>
+									<FormLabel>{t("dashboard.swarm.placement")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -454,7 +455,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 		"Architecture" : "amd64",
 		"OS" : "linux"
 	}]
-}                                                `}
+}`}
 											className="h-[21rem] font-mono"
 											{...field}
 											value={field?.value || ""}
@@ -472,12 +473,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="updateConfigSwarm"
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
-									<FormLabel>Update Config</FormLabel>
+									<FormLabel>{t("dashboard.swarm.updateConfig")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -530,12 +531,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="rollbackConfigSwarm"
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
-									<FormLabel>Rollback Config</FormLabel>
+									<FormLabel>{t("dashboard.swarm.rollbackConfig")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -588,12 +589,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="modeSwarm"
 							render={({ field }) => (
 								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
-									<FormLabel>Mode</FormLabel>
+									<FormLabel>{t("dashboard.swarm.mode")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -651,12 +652,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="networkSwarm"
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
-									<FormLabel>Network</FormLabel>
+									<FormLabel>{t("dashboard.swarm.network")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -710,12 +711,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							name="labelsSwarm"
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
-									<FormLabel>Labels</FormLabel>
+									<FormLabel>{t("dashboard.swarm.labels")}</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("dashboard.swarm.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -759,7 +760,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 								form="hook-form-add-permissions"
 								type="submit"
 							>
-								Update
+								{t("dashboard.swarm.update")}
 							</Button>
 						</DialogFooter>
 					</form>

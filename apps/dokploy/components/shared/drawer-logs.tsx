@@ -6,6 +6,7 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useRef, useState } from "react";
 import { TerminalLine } from "../dashboard/docker/logs/terminal-line";
 import type { LogLine } from "../dashboard/docker/logs/utils";
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
+	const { t } = useTranslation("common");
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [autoScroll, setAutoScroll] = useState(true);
 	const scrollToBottom = () => {
@@ -49,8 +51,10 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 		>
 			<SheetContent className="sm:max-w-[740px]  flex flex-col">
 				<SheetHeader>
-					<SheetTitle>Deployment Logs</SheetTitle>
-					<SheetDescription>Details of the request log entry.</SheetDescription>
+					<SheetTitle>{t("common.logs.deploymentLogs")}</SheetTitle>
+					<SheetDescription>
+						{t("common.logs.detailsDescription")}
+					</SheetDescription>
 				</SheetHeader>
 				<div
 					ref={scrollRef}

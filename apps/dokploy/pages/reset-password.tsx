@@ -13,9 +13,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
@@ -23,40 +25,43 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const loginSchema = z
-	.object({
-		password: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.min(8, {
-				message: "Password must be at least 8 characters",
-			}),
-		confirmPassword: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.min(8, {
-				message: "Password must be at least 8 characters",
-			}),
-	})
-	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
-		path: ["confirmPassword"],
-	});
-
-type Login = z.infer<typeof loginSchema>;
-
 interface Props {
 	tokenResetPassword: string;
 }
+
 export default function Home({ tokenResetPassword }: Props) {
+	const { t } = useTranslation("reset-password");
 	const [token, setToken] = useState<string | null>(tokenResetPassword);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
+
+	const loginSchema = z
+		.object({
+			password: z
+				.string()
+				.min(1, {
+					message: t("resetPassword.passwordRequired"),
+				})
+				.min(8, {
+					message: t("resetPassword.passwordMinLength"),
+				}),
+			confirmPassword: z
+				.string()
+				.min(1, {
+					message: t("resetPassword.passwordRequired"),
+				})
+				.min(8, {
+					message: t("resetPassword.passwordMinLength"),
+				}),
+		})
+		.refine((data) => data.password === data.confirmPassword, {
+			message: t("resetPassword.passwordsDoNotMatch"),
+			path: ["confirmPassword"],
+		});
+
+	type Login = z.infer<typeof loginSchema>;
+
 	const form = useForm<Login>({
 		defaultValues: {
 			password: "",
@@ -85,9 +90,9 @@ export default function Home({ tokenResetPassword }: Props) {
 		});
 
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("resetPassword.errorOccurred"));
 		} else {
-			toast.success("Password reset successfully");
+			toast.success(t("resetPassword.passwordResetSuccessfully"));
 			router.push("/");
 		}
 		setIsLoading(false);
@@ -99,11 +104,9 @@ export default function Home({ tokenResetPassword }: Props) {
 					<Link href="/" className="flex flex-row items-center gap-2">
 						<Logo className="size-12" />
 					</Link>
-					Reset Password
+					{t("resetPassword.title")}
 				</CardTitle>
-				<CardDescription>
-					Enter your email to reset your password
-				</CardDescription>
+				<CardDescription>{t("resetPassword.subtitle")}</CardDescription>
 
 				<div className="w-full">
 					<CardContent className="p-0">
@@ -123,11 +126,11 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="password"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Password</FormLabel>
+												<FormLabel>{t("resetPassword.password")}</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Password"
+														placeholder={t("resetPassword.passwordPlaceholder")}
 														{...field}
 													/>
 												</FormControl>
@@ -140,11 +143,15 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="confirmPassword"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Confirm Password</FormLabel>
+												<FormLabel>
+													{t("resetPassword.confirmPassword")}
+												</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Password"
+														placeholder={t(
+															"resetPassword.confirmPasswordPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -158,12 +165,12 @@ export default function Home({ tokenResetPassword }: Props) {
 										isLoading={isLoading}
 										className="w-full"
 									>
-										Confirm
+										{t("resetPassword.confirm")}
 									</Button>
 								</div>
 
 								<div className="text-center text-sm flex gap-2 text-muted-foreground">
-									<Link href="/">Sign in</Link>
+									<Link href="/">{t("resetPassword.signIn")}</Link>
 								</div>
 							</form>
 						</Form>
@@ -177,7 +184,9 @@ export default function Home({ tokenResetPassword }: Props) {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
+
 export async function getServerSideProps(context: GetServerSidePropsContext) {
+	const locale = getLocale(context.req.cookies);
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
@@ -200,6 +209,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 	return {
 		props: {
 			tokenResetPassword: token,
+			...(await serverSideTranslations(locale, ["common", "reset-password"])),
 		},
 	};
 }

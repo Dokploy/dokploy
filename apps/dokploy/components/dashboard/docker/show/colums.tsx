@@ -10,12 +10,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Badge } from "@/components/ui/badge";
+import type { TFunction } from "next-i18next";
 import { ShowContainerConfig } from "../config/show-container-config";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";
 import type { Container } from "./show-containers";
 
-export const columns: ColumnDef<Container>[] = [
+export const createColumns = (t: TFunction): ColumnDef<Container>[] => [
 	{
 		accessorKey: "name",
 		header: ({ column }) => {
@@ -24,7 +25,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Name
+					{t("dashboard.docker.columns.name")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -41,7 +42,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					State
+					{t("dashboard.docker.columns.state")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -73,7 +74,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Status
+					{t("dashboard.docker.columns.status")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -90,7 +91,7 @@ export const columns: ColumnDef<Container>[] = [
 					variant="ghost"
 					onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
 				>
-					Image
+					{t("dashboard.docker.columns.image")}
 					<ArrowUpDown className="ml-2 h-4 w-4" />
 				</Button>
 			);
@@ -107,17 +108,21 @@ export const columns: ColumnDef<Container>[] = [
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button variant="ghost" className="h-8 w-8 p-0">
-							<span className="sr-only">Open menu</span>
+							<span className="sr-only">
+								{t("dashboard.docker.columns.openMenu")}
+							</span>
 							<MoreHorizontal className="h-4 w-4" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						<DropdownMenuLabel>Actions</DropdownMenuLabel>
+						<DropdownMenuLabel>
+							{t("dashboard.docker.columns.actions")}
+						</DropdownMenuLabel>
 						<ShowDockerModalLogs
 							containerId={container.containerId}
 							serverId={container.serverId}
 						>
-							View Logs
+							{t("dashboard.docker.columns.viewLogs")}
 						</ShowDockerModalLogs>
 						<ShowContainerConfig
 							containerId={container.containerId}
@@ -127,7 +132,7 @@ export const columns: ColumnDef<Container>[] = [
 							containerId={container.containerId}
 							serverId={container.serverId || ""}
 						>
-							Terminal
+							{t("dashboard.docker.columns.terminal")}
 						</DockerTerminalModal>
 					</DropdownMenuContent>
 				</DropdownMenu>

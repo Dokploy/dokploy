@@ -39,30 +39,31 @@ import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircuitBoard, HelpCircle } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const AddComposeSchema = z.object({
-	composeType: z.enum(["docker-compose", "stack"]).optional(),
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appName: z
-		.string()
-		.min(1, {
-			message: "App name is required",
-		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+const AddComposeSchema = (t: TFunction) =>
+	z.object({
+		composeType: z.enum(["docker-compose", "stack"]).optional(),
+		name: z.string().min(1, {
+			message: t("dashboard.compose.nameRequired"),
 		}),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
-});
+		appName: z
+			.string()
+			.min(1, {
+				message: t("dashboard.compose.appNameRequired"),
+			})
+			.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+				message: t("dashboard.compose.appNameRegex"),
+			}),
+		description: z.string().optional(),
+		serverId: z.string().optional(),
+	});
 
-type AddCompose = z.infer<typeof AddComposeSchema>;
+type AddCompose = ReturnType<typeof AddComposeSchema>["_type"];
 
 interface Props {
 	projectId: string;
@@ -70,6 +71,7 @@ interface Props {
 }
 
 export const AddCompose = ({ projectId, projectName }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -85,7 +87,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 			composeType: "docker-compose",
 			appName: `${slug}-`,
 		},
-		resolver: zodResolver(AddComposeSchema),
+		resolver: zodResolver(AddComposeSchema(t)),
 	});
 
 	useEffect(() => {
@@ -102,14 +104,14 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 			serverId: data.serverId,
 		})
 			.then(async () => {
-				toast.success("Compose Created");
+				toast.success(t("dashboard.compose.composeCreated"));
 				setVisible(false);
 				await utils.project.one.invalidate({
 					projectId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error creating the compose");
+				toast.error(t("dashboard.compose.errorCreatingCompose"));
 			});
 	};
 
@@ -121,14 +123,14 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<CircuitBoard className="size-4 text-muted-foreground" />
-					<span>Compose</span>
+					<span>{t("dashboard.compose.compose")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-xl">
 				<DialogHeader>
-					<DialogTitle>Create Compose</DialogTitle>
+					<DialogTitle>{t("dashboard.compose.createCompose")}</DialogTitle>
 					<DialogDescription>
-						Assign a name and description to your compose
+						{t("dashboard.compose.assignNameAndDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -145,10 +147,10 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("dashboard.compose.name")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Frontend"
+												placeholder={t("dashboard.compose.namePlaceholder")}
 												{...field}
 												onChange={(e) => {
 													const val = e.target.value?.trim() || "";
@@ -172,7 +174,9 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server {!isCloud ? "(Optional)" : ""}
+													{!isCloud
+														? t("dashboard.compose.selectServerOptional")
+														: t("dashboard.compose.selectServer")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>
 											</TooltipTrigger>
@@ -181,10 +185,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 												align="start"
 												side="top"
 											>
-												<span>
-													If no server is selected, the application will be
-													deployed on the server where the user is logged in.
-												</span>
+												<span>{t("dashboard.compose.serverTooltip")}</span>
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
@@ -194,7 +195,11 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 										defaultValue={field.value}
 									>
 										<SelectTrigger>
-											<SelectValue placeholder="Select a Server" />
+											<SelectValue
+												placeholder={t(
+													"dashboard.compose.selectServerPlaceholder",
+												)}
+											/>
 										</SelectTrigger>
 										<SelectContent>
 											<SelectGroup>
@@ -211,7 +216,9 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 														</span>
 													</SelectItem>
 												))}
-												<SelectLabel>Servers ({servers?.length})</SelectLabel>
+												<SelectLabel>
+													{t("dashboard.compose.servers")} ({servers?.length})
+												</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
 									</Select>
@@ -224,9 +231,12 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 							name="appName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>App Name</FormLabel>
+									<FormLabel>{t("dashboard.compose.appName")}</FormLabel>
 									<FormControl>
-										<Input placeholder="my-app" {...field} />
+										<Input
+											placeholder={t("dashboard.compose.appNamePlaceholder")}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -237,21 +247,25 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 							name="composeType"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Compose Type</FormLabel>
+									<FormLabel>{t("dashboard.compose.composeType")}</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a compose type" />
+												<SelectValue
+													placeholder={t("dashboard.compose.selectComposeType")}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
 											<SelectItem value="docker-compose">
-												Docker Compose
+												{t("dashboard.compose.dockerCompose")}
 											</SelectItem>
-											<SelectItem value="stack">Stack</SelectItem>
+											<SelectItem value="stack">
+												{t("dashboard.compose.stack")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									<FormMessage />
@@ -263,10 +277,12 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>{t("dashboard.compose.description")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description of your service..."
+											placeholder={t(
+												"dashboard.compose.descriptionPlaceholder",
+											)}
 											className="resize-none"
 											{...field}
 										/>
@@ -280,7 +296,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 
 					<DialogFooter>
 						<Button isLoading={isLoading} form="hook-form" type="submit">
-							Create
+							{t("dashboard.compose.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

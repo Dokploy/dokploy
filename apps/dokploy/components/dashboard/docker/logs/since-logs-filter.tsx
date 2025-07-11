@@ -15,35 +15,39 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 
 export type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
 
-const timeRanges: Array<{ label: string; value: TimeFilter }> = [
-	{
-		label: "All time",
-		value: "all",
-	},
-	{
-		label: "Last hour",
-		value: "1h",
-	},
-	{
-		label: "Last 6 hours",
-		value: "6h",
-	},
-	{
-		label: "Last 24 hours",
-		value: "24h",
-	},
-	{
-		label: "Last 7 days",
-		value: "168h",
-	},
-	{
-		label: "Last 30 days",
-		value: "720h",
-	},
-] as const;
+const createTimeRanges = (
+	t: any,
+): Array<{ label: string; value: TimeFilter }> =>
+	[
+		{
+			label: t("dashboard.docker.logs.timeRanges.allTime"),
+			value: "all",
+		},
+		{
+			label: t("dashboard.docker.logs.timeRanges.lastHour"),
+			value: "1h",
+		},
+		{
+			label: t("dashboard.docker.logs.timeRanges.last6Hours"),
+			value: "6h",
+		},
+		{
+			label: t("dashboard.docker.logs.timeRanges.last24Hours"),
+			value: "24h",
+		},
+		{
+			label: t("dashboard.docker.logs.timeRanges.last7Days"),
+			value: "168h",
+		},
+		{
+			label: t("dashboard.docker.logs.timeRanges.last30Days"),
+			value: "720h",
+		},
+	] as const;
 
 interface SinceLogsFilterProps {
 	value: TimeFilter;
@@ -58,11 +62,14 @@ export function SinceLogsFilter({
 	onValueChange,
 	showTimestamp,
 	onTimestampChange,
-	title = "Time range",
+	title,
 }: SinceLogsFilterProps) {
+	const { t } = useTranslation("dashboard");
+	const timeRanges = createTimeRanges(t);
+	const defaultTitle = t("dashboard.docker.logs.timeRange");
 	const selectedLabel =
 		timeRanges.find((range) => range.value === value)?.label ??
-		"Select time range";
+		t("dashboard.docker.logs.selectTimeRange");
 
 	return (
 		<Popover>
@@ -72,7 +79,7 @@ export function SinceLogsFilter({
 					size="sm"
 					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
 				>
-					{title}
+					{title || defaultTitle}
 					<Separator orientation="vertical" className="mx-2 h-4" />
 					<div className="space-x-1 flex">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
@@ -115,7 +122,9 @@ export function SinceLogsFilter({
 				</Command>
 				<Separator className="my-2" />
 				<div className="p-2 flex items-center justify-between">
-					<span className="text-sm">Show timestamps</span>
+					<span className="text-sm">
+						{t("dashboard.docker.logs.showTimestamps")}
+					</span>
 					<Switch checked={showTimestamp} onCheckedChange={onTimestampChange} />
 				</div>
 			</PopoverContent>

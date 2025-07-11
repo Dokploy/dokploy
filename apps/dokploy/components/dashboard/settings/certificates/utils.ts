@@ -94,14 +94,19 @@ export const extractExpirationDate = (certData: string): Date | null => {
 	}
 };
 
-export const getExpirationStatus = (certData: string) => {
+export const getExpirationStatus = (
+	certData: string,
+	t?: (key: string) => string,
+) => {
 	const expirationDate = extractExpirationDate(certData);
 
 	if (!expirationDate)
 		return {
 			status: "unknown" as const,
 			className: "text-muted-foreground",
-			message: "Could not determine expiration",
+			message: t
+				? t("settings.certificates.utils.unknown")
+				: "Could not determine expiration",
 		};
 
 	const now = new Date();
@@ -113,11 +118,14 @@ export const getExpirationStatus = (certData: string) => {
 		return {
 			status: "expired" as const,
 			className: "text-red-500",
-			message: `Expired on ${expirationDate.toLocaleDateString([], {
-				year: "numeric",
-				month: "long",
-				day: "numeric",
-			})}`,
+			message: `${t ? t("settings.certificates.utils.expired") : "Expired on"} ${expirationDate.toLocaleDateString(
+				[],
+				{
+					year: "numeric",
+					month: "long",
+					day: "numeric",
+				},
+			)}`,
 		};
 	}
 
@@ -125,18 +133,21 @@ export const getExpirationStatus = (certData: string) => {
 		return {
 			status: "warning" as const,
 			className: "text-yellow-500",
-			message: `Expires in ${daysUntilExpiration} days`,
+			message: `${t ? t("settings.certificates.utils.expiresIn") : "Expires in"} ${daysUntilExpiration} ${t ? t("settings.certificates.utils.days") : "days"}`,
 		};
 	}
 
 	return {
 		status: "valid" as const,
 		className: "text-muted-foreground",
-		message: `Expires ${expirationDate.toLocaleDateString([], {
-			year: "numeric",
-			month: "long",
-			day: "numeric",
-		})}`,
+		message: `${t ? t("settings.certificates.utils.expires") : "Expires"} ${expirationDate.toLocaleDateString(
+			[],
+			{
+				year: "numeric",
+				month: "long",
+				day: "numeric",
+			},
+		)}`,
 	};
 };
 

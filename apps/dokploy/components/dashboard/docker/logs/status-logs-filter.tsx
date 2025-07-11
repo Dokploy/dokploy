@@ -14,6 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import type React from "react";
 
 interface StatusLogsFilterProps {
@@ -33,6 +34,7 @@ export function StatusLogsFilter({
 	title,
 	options,
 }: StatusLogsFilterProps) {
+	const { t } = useTranslation("dashboard");
 	const selectedValues = new Set(value as string[]);
 	const allSelected = selectedValues.size === 0;
 
@@ -40,7 +42,7 @@ export function StatusLogsFilter({
 		if (allSelected) {
 			return (
 				<Badge variant="blank" className="rounded-sm px-1 font-normal">
-					All
+					{t("dashboard.docker.logs.all")}
 				</Badge>
 			);
 		}
@@ -111,7 +113,7 @@ export function StatusLogsFilter({
 								>
 									<CheckIcon className={cn("h-4 w-4")} />
 								</div>
-								<Badge variant="blank">All</Badge>
+								<Badge variant="blank">{t("dashboard.docker.logs.all")}</Badge>
 							</CommandItem>
 							{options.map((option) => {
 								const isSelected = selectedValues.has(option.value);

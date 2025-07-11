@@ -2,6 +2,7 @@ import { ShowGitProviders } from "@/components/dashboard/settings/git/show-git-p
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
@@ -24,6 +25,7 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
@@ -66,11 +68,14 @@ export async function getServerSideProps(
 		return {
 			props: {
 				trpcState: helpers.dehydrate(),
+				...(await serverSideTranslations(locale, ["common", "settings"])),
 			},
 		};
 	} catch {
 		return {
-			props: {},
+			props: {
+				...(await serverSideTranslations(locale, ["common", "settings"])),
+			},
 		};
 	}
 }

@@ -28,6 +28,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -57,6 +58,7 @@ export const HandlePorts = ({
 	portId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
@@ -96,7 +98,11 @@ export const HandlePorts = ({
 			portId: portId || "",
 		})
 			.then(async () => {
-				toast.success(portId ? "Port Updated" : "Port Created");
+				toast.success(
+					portId
+						? t("dashboard.ports.portUpdated")
+						: t("dashboard.ports.portCreated"),
+				);
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -104,7 +110,9 @@ export const HandlePorts = ({
 			})
 			.catch(() => {
 				toast.error(
-					portId ? "Error updating the port" : "Error creating the port",
+					portId
+						? t("dashboard.ports.errorUpdatingPort")
+						: t("dashboard.ports.errorCreatingPort"),
 				);
 			});
 	};
@@ -126,9 +134,9 @@ export const HandlePorts = ({
 			</DialogTrigger>
 			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Ports</DialogTitle>
+					<DialogTitle>{t("dashboard.ports.ports")}</DialogTitle>
 					<DialogDescription>
-						Ports are used to expose your application to the internet.
+						{t("dashboard.ports.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -145,10 +153,12 @@ export const HandlePorts = ({
 								name="publishedPort"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Published Port</FormLabel>
+										<FormLabel>{t("dashboard.ports.publishedPort")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="1-65535"
+												placeholder={t(
+													"dashboard.ports.publishedPortPlaceholder",
+												)}
 												{...field}
 												value={field.value?.toString() || ""}
 												onChange={(e) => {
@@ -175,19 +185,29 @@ export const HandlePorts = ({
 								render={({ field }) => {
 									return (
 										<FormItem className="md:col-span-2">
-											<FormLabel>Published Port Mode</FormLabel>
+											<FormLabel>
+												{t("dashboard.ports.publishedPortMode")}
+											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a publish mode for the port" />
+														<SelectValue
+															placeholder={t(
+																"dashboard.ports.publishModePlaceholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value={"ingress"}>Ingress</SelectItem>
-													<SelectItem value={"host"}>Host</SelectItem>
+													<SelectItem value={"ingress"}>
+														{t("dashboard.ports.ingress")}
+													</SelectItem>
+													<SelectItem value={"host"}>
+														{t("dashboard.ports.host")}
+													</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormMessage />
@@ -200,10 +220,10 @@ export const HandlePorts = ({
 								name="targetPort"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Target Port</FormLabel>
+										<FormLabel>{t("dashboard.ports.targetPort")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="1-65535"
+												placeholder={t("dashboard.ports.targetPortPlaceholder")}
 												{...field}
 												value={field.value?.toString() || ""}
 												onChange={(e) => {
@@ -230,19 +250,27 @@ export const HandlePorts = ({
 								render={({ field }) => {
 									return (
 										<FormItem className="md:col-span-2">
-											<FormLabel>Protocol</FormLabel>
+											<FormLabel>{t("dashboard.ports.protocol")}</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a protocol" />
+														<SelectValue
+															placeholder={t(
+																"dashboard.ports.protocolPlaceholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value={"tcp"}>TCP</SelectItem>
-													<SelectItem value={"udp"}>UDP</SelectItem>
+													<SelectItem value={"tcp"}>
+														{t("dashboard.ports.tcp")}
+													</SelectItem>
+													<SelectItem value={"udp"}>
+														{t("dashboard.ports.udp")}
+													</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormMessage />
@@ -259,7 +287,9 @@ export const HandlePorts = ({
 							form="hook-form-add-port"
 							type="submit"
 						>
-							{portId ? "Update" : "Create"}
+							{portId
+								? t("dashboard.ports.update")
+								: t("dashboard.ports.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

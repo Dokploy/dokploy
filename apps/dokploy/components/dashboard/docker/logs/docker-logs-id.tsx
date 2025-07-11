@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { Download as DownloadIcon, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React, { useEffect, useRef } from "react";
 import { LineCountFilter } from "./line-count-filter";
 import { SinceLogsFilter, type TimeFilter } from "./since-logs-filter";
@@ -43,6 +44,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	serverId,
 	runType,
 }) => {
+	const { t } = useTranslation("dashboard");
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -179,7 +181,9 @@ export const DockerLogsId: React.FC<Props> = ({
 		const logContent = filteredLogs
 			.map(
 				({ timestamp, message }: { timestamp: Date | null; message: string }) =>
-					`${timestamp?.toISOString() || "No timestamp"} ${message}`,
+					`${
+						timestamp?.toISOString() || t("dashboard.dockerLogs.noTimestamp")
+					} ${message}`,
 			)
 			.join("\n");
 
@@ -247,13 +251,13 @@ export const DockerLogsId: React.FC<Props> = ({
 							<StatusLogsFilter
 								value={typeFilter}
 								setValue={setTypeFilter}
-								title="Log type"
+								title={t("dashboard.dockerLogs.logType")}
 								options={priorities}
 							/>
 
 							<Input
 								type="search"
-								placeholder="Search logs..."
+								placeholder={t("dashboard.dockerLogs.searchLogs")}
 								value={search}
 								onChange={handleSearch}
 								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
@@ -268,7 +272,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							disabled={filteredLogs.length === 0 || !data?.Name}
 						>
 							<DownloadIcon className="mr-2 h-4 w-4" />
-							Download logs
+							{t("dashboard.dockerLogs.downloadLogs")}
 						</Button>
 					</div>
 					<div
@@ -291,7 +295,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							</div>
 						) : (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
-								No logs found
+								{t("dashboard.dockerLogs.noLogsFound")}
 							</div>
 						)}
 					</div>

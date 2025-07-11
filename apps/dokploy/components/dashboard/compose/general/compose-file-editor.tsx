@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -20,13 +21,14 @@ interface Props {
 	composeId: string;
 }
 
-const AddComposeFile = z.object({
+const schema = z.object({
 	composeFile: z.string(),
 });
 
-type AddComposeFile = z.infer<typeof AddComposeFile>;
+type AddComposeFile = z.infer<typeof schema>;
 
 export const ComposeFileEditor = ({ composeId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const { data, refetch } = api.compose.one.useQuery(
 		{
@@ -41,7 +43,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		defaultValues: {
 			composeFile: "",
 		},
-		resolver: zodResolver(AddComposeFile),
+		resolver: zodResolver(schema),
 	});
 
 	const composeFile = form.watch("composeFile");
@@ -59,7 +61,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		if (!valid) {
 			form.setError("composeFile", {
 				type: "manual",
-				message: error || "Invalid YAML",
+				message: error || t("dashboard.compose.invalidYAML"),
 			});
 			return;
 		}
@@ -71,14 +73,14 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			sourceType: "raw",
 		})
 			.then(async () => {
-				toast.success("Compose config Updated");
+				toast.success(t("dashboard.compose.composeFileSaved"));
 				refetch();
 				await utils.compose.getConvertedCompose.invalidate({
 					composeId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the Compose config");
+				toast.error(t("dashboard.compose.errorSavingComposeFile"));
 			});
 	};
 
@@ -119,14 +121,9 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 												value={field.value}
 												className="font-mono"
 												wrapperClassName="compose-file-editor"
-												placeholder={`version: '3'
-services:
-    web:
-    image: nginx
-    ports:
-        - "80:80"
-    
-    `}
+												placeholder={t(
+													"dashboard.compose.composeFilePlaceholder",
+												)}
 												onChange={(value) => {
 													field.onChange(value);
 												}}
@@ -151,7 +148,7 @@ services:
 						isLoading={isLoading}
 						className="lg:w-fit w-full"
 					>
-						Save
+						{t("dashboard.compose.save")}
 					</Button>
 				</div>
 			</div>

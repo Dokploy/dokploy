@@ -10,16 +10,19 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { Package, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import type { ServiceType } from "../show-resources";
 import { AddVolumes } from "./add-volumes";
 import { UpdateVolume } from "./update-volume";
+
 interface Props {
 	id: string;
 	type: ServiceType | "compose";
 }
 
 export const ShowVolumes = ({ id, type }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -42,16 +45,17 @@ export const ShowVolumes = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
 				<div>
-					<CardTitle className="text-xl">Volumes</CardTitle>
+					<CardTitle className="text-xl">
+						{t("dashboard.volumes.volumes")}
+					</CardTitle>
 					<CardDescription>
-						If you want to persist data in this service use the following config
-						to setup the volumes
+						{t("dashboard.volumes.description")}
 					</CardDescription>
 				</div>
 
 				{data && data?.mounts.length > 0 && (
 					<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
-						Add Volume
+						{t("dashboard.volumes.addVolume")}
 					</AddVolumes>
 				)}
 			</CardHeader>
@@ -60,17 +64,16 @@ export const ShowVolumes = ({ id, type }: Props) => {
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Package className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							No volumes/mounts configured
+							{t("dashboard.volumes.noVolumesConfigured")}
 						</span>
 						<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
-							Add Volume
+							{t("dashboard.volumes.addVolume")}
 						</AddVolumes>
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 gap-4">
 						<AlertBlock type="warning">
-							Please remember to click Redeploy after adding, editing, or
-							deleting a mount to apply the changes.
+							{t("dashboard.volumes.redeployReminder")}
 						</AlertBlock>
 						<div className="flex flex-col gap-6">
 							{data?.mounts.map((mount) => (
@@ -82,14 +85,18 @@ export const ShowVolumes = ({ id, type }: Props) => {
 										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
 										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Mount Type</span>
+												<span className="font-medium">
+													{t("dashboard.volumes.mountType")}
+												</span>
 												<span className="text-sm text-muted-foreground">
 													{mount.type.toUpperCase()}
 												</span>
 											</div>
 											{mount.type === "volume" && (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">Volume Name</span>
+													<span className="font-medium">
+														{t("dashboard.volumes.volumeName")}
+													</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.volumeName}
 													</span>
@@ -98,7 +105,9 @@ export const ShowVolumes = ({ id, type }: Props) => {
 
 											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">Content</span>
+													<span className="font-medium">
+														{t("dashboard.volumes.content")}
+													</span>
 													<span className="text-sm text-muted-foreground line-clamp-[10] whitespace-break-spaces">
 														{mount.content}
 													</span>
@@ -106,7 +115,9 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											)}
 											{mount.type === "bind" && (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">Host Path</span>
+													<span className="font-medium">
+														{t("dashboard.volumes.hostPath")}
+													</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.hostPath}
 													</span>
@@ -114,14 +125,18 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											)}
 											{mount.type === "file" ? (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">File Path</span>
+													<span className="font-medium">
+														{t("dashboard.volumes.filePath")}
+													</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.filePath}
 													</span>
 												</div>
 											) : (
 												<div className="flex flex-col gap-1">
-													<span className="font-medium">Mount Path</span>
+													<span className="font-medium">
+														{t("dashboard.volumes.mountPath")}
+													</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.mountPath}
 													</span>
@@ -136,8 +151,10 @@ export const ShowVolumes = ({ id, type }: Props) => {
 												serviceType={type}
 											/>
 											<DialogAction
-												title="Delete Volume"
-												description="Are you sure you want to delete this volume?"
+												title={t("dashboard.volumes.deleteVolume")}
+												description={t(
+													"dashboard.volumes.deleteVolumeConfirmation",
+												)}
 												type="destructive"
 												onClick={async () => {
 													await deleteVolume({
@@ -145,10 +162,16 @@ export const ShowVolumes = ({ id, type }: Props) => {
 													})
 														.then(() => {
 															refetch();
-															toast.success("Volume deleted successfully");
+															toast.success(
+																t(
+																	"dashboard.volumes.volumeDeletedSuccessfully",
+																),
+															);
 														})
 														.catch(() => {
-															toast.error("Error deleting volume");
+															toast.error(
+																t("dashboard.volumes.errorDeletingVolume"),
+															);
 														});
 												}}
 											>

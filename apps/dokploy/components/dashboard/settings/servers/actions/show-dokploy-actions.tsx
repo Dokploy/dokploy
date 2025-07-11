@@ -42,10 +42,10 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await reloadServer()
 								.then(async () => {
-									toast.success("Server Reloaded");
+									toast.success(t("settings.dokploy.serverReloaded"));
 								})
 								.catch(() => {
-									toast.success("Server Reloaded");
+									toast.success(t("settings.dokploy.serverReloaded"));
 								});
 						}}
 						className="cursor-pointer"
@@ -78,14 +78,14 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await cleanRedis()
 								.then(async () => {
-									toast.success("Redis cleaned");
+									toast.success(t("settings.dokploy.redisCleaned"));
 								})
 								.catch(() => {
-									toast.error("Error cleaning Redis");
+									toast.error(t("settings.dokploy.errorCleaningRedis"));
 								});
 						}}
 					>
-						Clean Redis
+						{t("settings.dokploy.cleanRedis")}
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -93,14 +93,14 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await reloadRedis()
 								.then(async () => {
-									toast.success("Redis reloaded");
+									toast.success(t("settings.dokploy.redisReloaded"));
 								})
 								.catch(() => {
-									toast.error("Error reloading Redis");
+									toast.error(t("settings.dokploy.errorReloadingRedis"));
 								});
 						}}
 					>
-						Reload Redis
+						{t("settings.dokploy.reloadRedis")}
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

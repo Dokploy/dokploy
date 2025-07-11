@@ -41,12 +41,13 @@ import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, Database } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-type DbType = typeof mySchema._type.type;
+type DbType = ReturnType<typeof createMySchema>["_type"]["type"];
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mongo: "mongo:6",
@@ -66,61 +67,65 @@ const databasesUserDefaultPlaceholder: Record<
 	postgres: "postgres",
 };
 
-const baseDatabaseSchema = z.object({
-	name: z.string().min(1, "Name required"),
-	appName: z
-		.string()
-		.min(1, {
-			message: "App name is required",
-		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
-		}),
-	databasePassword: z.string(),
-	dockerImage: z.string(),
-	description: z.string().nullable(),
-	serverId: z.string().nullable(),
-});
+const createBaseDatabaseSchema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, t("dashboard.project.addDatabase.nameRequired")),
+		appName: z
+			.string()
+			.min(1, {
+				message: t("dashboard.project.addDatabase.appNameRequired"),
+			})
+			.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+				message: t("dashboard.project.addDatabase.appNameRegex"),
+			}),
+		databasePassword: z.string(),
+		dockerImage: z.string(),
+		description: z.string().nullable(),
+		serverId: z.string().nullable(),
+	});
 
-const mySchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("postgres"),
-			databaseName: z.string().default("postgres"),
-			databaseUser: z.string().default("postgres"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mongo"),
-			databaseUser: z.string().default("mongo"),
-			replicaSets: z.boolean().default(false),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("redis"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mysql"),
-			databaseRootPassword: z.string().default(""),
-			databaseUser: z.string().default("mysql"),
-			databaseName: z.string().default("mysql"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mariadb"),
-			dockerImage: z.string().default("mariadb:4"),
-			databaseRootPassword: z.string().default(""),
-			databaseUser: z.string().default("mariadb"),
-			databaseName: z.string().default("mariadb"),
-		})
-		.merge(baseDatabaseSchema),
-]);
+const createMySchema = (t: TFunction) => {
+	const baseDatabaseSchema = createBaseDatabaseSchema(t);
+
+	return z.discriminatedUnion("type", [
+		z
+			.object({
+				type: z.literal("postgres"),
+				databaseName: z.string().default("postgres"),
+				databaseUser: z.string().default("postgres"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mongo"),
+				databaseUser: z.string().default("mongo"),
+				replicaSets: z.boolean().default(false),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("redis"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mysql"),
+				databaseRootPassword: z.string().default(""),
+				databaseUser: z.string().default("mysql"),
+				databaseName: z.string().default("mysql"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mariadb"),
+				dockerImage: z.string().default("mariadb:4"),
+				databaseRootPassword: z.string().default(""),
+				databaseUser: z.string().default("mariadb"),
+				databaseName: z.string().default("mariadb"),
+			})
+			.merge(baseDatabaseSchema),
+	]);
+};
 
 const databasesMap = {
 	postgres: {
@@ -145,14 +150,16 @@ const databasesMap = {
 	},
 };
 
-type AddDatabase = z.infer<typeof mySchema>;
-
 interface Props {
 	projectId: string;
 	projectName?: string;
 }
 
 export const AddDatabase = ({ projectId, projectName }: Props) => {
+	const { t } = useTranslation("dashboard");
+	const mySchema = createMySchema(t);
+	type AddDatabase = z.infer<typeof mySchema>;
+
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -205,9 +212,10 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseName: data.databaseName || "postgres",
-
 				databaseUser:
-					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+					data.databaseUser ||
+					databasesUserDefaultPlaceholder[data.type] ||
+					"postgres",
 				serverId: data.serverId,
 			});
 		} else if (data.type === "mongo") {
@@ -215,7 +223,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseUser:
-					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+					data.databaseUser ||
+					databasesUserDefaultPlaceholder[data.type] ||
+					"mongo",
 				serverId: data.serverId,
 				replicaSets: data.replicaSets,
 			});
@@ -233,7 +243,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseRootPassword: data.databaseRootPassword,
 				databaseName: data.databaseName || "mariadb",
 				databaseUser:
-					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+					data.databaseUser ||
+					databasesUserDefaultPlaceholder[data.type] ||
+					"mariadb",
 				serverId: data.serverId,
 			});
 		} else if (data.type === "mysql") {
@@ -242,7 +254,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databasePassword: data.databasePassword,
 				databaseName: data.databaseName || "mysql",
 				databaseUser:
-					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+					data.databaseUser ||
+					databasesUserDefaultPlaceholder[data.type] ||
+					"mysql",
 				databaseRootPassword: data.databaseRootPassword,
 				serverId: data.serverId,
 			});
@@ -251,7 +265,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 		if (promise) {
 			await promise
 				.then(async () => {
-					toast.success("Database Created");
+					toast.success(t("dashboard.project.addDatabase.databaseCreated"));
 					form.reset({
 						type: "postgres",
 						dockerImage: "",
@@ -268,10 +282,11 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					});
 				})
 				.catch(() => {
-					toast.error("Error creating a database");
+					toast.error(t("dashboard.project.addDatabase.errorCreatingDatabase"));
 				});
 		}
 	};
+
 	return (
 		<Dialog open={visible} onOpenChange={setVisible}>
 			<DialogTrigger className="w-full">
@@ -280,12 +295,14 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Database className="size-4 text-muted-foreground" />
-					<span>Database</span>
+					<span>{t("dashboard.project.addDatabase.menuLabel")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="max-h-screen md:max-h-[90vh]  overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Databases</DialogTitle>
+					<DialogTitle>
+						{t("dashboard.project.addDatabase.dialogTitle")}
+					</DialogTitle>
 				</DialogHeader>
 
 				<Form {...form}>
@@ -301,7 +318,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 							render={({ field }) => (
 								<FormItem className="space-y-3">
 									<FormLabel className="text-muted-foreground">
-										Select a database
+										{t("dashboard.project.addDatabase.selectDatabase")}
 									</FormLabel>
 									<FormControl>
 										<RadioGroup
@@ -326,7 +343,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
 															>
 																{value.icon}
-																{value.label}
+																{t(
+																	`dashboard.project.addDatabase.databasesMap.${key}`,
+																)}
 															</Label>
 														</div>
 													</FormControl>
@@ -348,7 +367,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 						/>
 						<div className="flex flex-col gap-4">
 							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Fill the next fields.
+								{t("dashboard.project.addDatabase.fillFields")}
 							</FormLabel>
 							<div className="flex flex-col gap-2">
 								<FormField
@@ -356,10 +375,14 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("dashboard.project.addDatabase.name")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Name"
+													placeholder={t(
+														"dashboard.project.addDatabase.namePlaceholder",
+													)}
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value?.trim() || "";
@@ -379,13 +402,19 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									name="serverId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Select a Server</FormLabel>
+											<FormLabel>
+												{t("dashboard.project.addDatabase.selectServer")}
+											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												defaultValue={field.value || ""}
 											>
 												<SelectTrigger>
-													<SelectValue placeholder="Select a Server" />
+													<SelectValue
+														placeholder={t(
+															"dashboard.project.addDatabase.selectServerPlaceholder",
+														)}
+													/>
 												</SelectTrigger>
 												<SelectContent>
 													<SelectGroup>
@@ -398,7 +427,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 															</SelectItem>
 														))}
 														<SelectLabel>
-															Servers ({servers?.length})
+															{t("dashboard.project.addDatabase.serversLabel", {
+																count: servers?.length || 0,
+															})}
 														</SelectLabel>
 													</SelectGroup>
 												</SelectContent>
@@ -412,9 +443,16 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									name="appName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>App Name</FormLabel>
+											<FormLabel>
+												{t("dashboard.project.addDatabase.appName")}
+											</FormLabel>
 											<FormControl>
-												<Input placeholder="my-app" {...field} />
+												<Input
+													placeholder={t(
+														"dashboard.project.addDatabase.appNamePlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -426,11 +464,15 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>
+												{t("dashboard.project.addDatabase.description")}
+											</FormLabel>
 											<FormControl>
 												<Textarea
 													className="h-24"
-													placeholder="Description"
+													placeholder={t(
+														"dashboard.project.addDatabase.descriptionPlaceholder",
+													)}
 													{...field}
 													value={field.value || ""}
 												/>
@@ -448,9 +490,16 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										name="databaseName"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Database Name</FormLabel>
+												<FormLabel>
+													{t("dashboard.project.addDatabase.databaseName")}
+												</FormLabel>
 												<FormControl>
-													<Input placeholder="Database Name" {...field} />
+													<Input
+														placeholder={t(
+															"dashboard.project.addDatabase.databaseNamePlaceholder",
+														)}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />
@@ -467,10 +516,18 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										name="databaseUser"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Database User</FormLabel>
+												<FormLabel>
+													{t("dashboard.project.addDatabase.databaseUser")}
+												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder={`Default ${databasesUserDefaultPlaceholder[type]}`}
+														placeholder={t(
+															"dashboard.project.addDatabase.databaseUserPlaceholder",
+															{
+																defaultUser:
+																	databasesUserDefaultPlaceholder[type],
+															},
+														)}
 														autoComplete="off"
 														{...field}
 													/>
@@ -487,11 +544,15 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									name="databasePassword"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Database Password</FormLabel>
+											<FormLabel>
+												{t("dashboard.project.addDatabase.databasePassword")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="password"
-													placeholder="******************"
+													placeholder={t(
+														"dashboard.project.addDatabase.databasePasswordPlaceholder",
+													)}
 													autoComplete="one-time-code"
 													{...field}
 												/>
@@ -507,11 +568,17 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										name="databaseRootPassword"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Database Root password</FormLabel>
+												<FormLabel>
+													{t(
+														"dashboard.project.addDatabase.databaseRootPassword",
+													)}
+												</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="******************"
+														placeholder={t(
+															"dashboard.project.addDatabase.databaseRootPasswordPlaceholder",
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -529,10 +596,18 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Docker image</FormLabel>
+												<FormLabel>
+													{t("dashboard.project.addDatabase.dockerImage")}
+												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder={`Default ${dockerImageDefaultPlaceholder[type]}`}
+														placeholder={t(
+															"dashboard.project.addDatabase.dockerImagePlaceholder",
+															{
+																defaultImage:
+																	dockerImageDefaultPlaceholder[type],
+															},
+														)}
 														{...field}
 													/>
 												</FormControl>
@@ -551,7 +626,11 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 											return (
 												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 													<div className="space-y-0.5">
-														<FormLabel>Use Replica Sets</FormLabel>
+														<FormLabel>
+															{t(
+																"dashboard.project.addDatabase.useReplicaSets",
+															)}
+														</FormLabel>
 													</div>
 													<FormControl>
 														<Switch
@@ -576,7 +655,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 							form="hook-form"
 							type="submit"
 						>
-							Create
+							{t("dashboard.project.addDatabase.create")}
 						</Button>
 					</DialogFooter>
 				</Form>
