@@ -24,7 +24,7 @@ import {
 	apiUpdateTelegram,
 	notifications,
 	server,
-	users_temp,
+	users,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
@@ -345,9 +345,9 @@ export const notificationRouter = createTRPCRouter({
 				if (input.ServerType === "Dokploy") {
 					const result = await db
 						.select()
-						.from(users_temp)
+						.from(users)
 						.where(
-							sql`${users_temp.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+							sql`${users.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
 						);
 
 					if (!result?.[0]?.id) {

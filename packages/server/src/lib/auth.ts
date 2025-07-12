@@ -107,8 +107,8 @@ const { handler, api } = betterAuth({
 						),
 					});
 
-					const userTemp = await db.query.users_temp.findFirst({
-						where: eq(schema.users_temp.email, user.email),
+					const userTemp = await db.query.users.findFirst({
+						where: eq(schema.users.email, user.email),
 					});
 
 					const member = await db.query.member.findFirst({
@@ -225,7 +225,7 @@ const { handler, api } = betterAuth({
 		updateAge: 60 * 60 * 24,
 	},
 	user: {
-		modelName: "users_temp",
+		modelName: "users",
 		additionalFields: {
 			role: {
 				type: "string",

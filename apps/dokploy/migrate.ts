@@ -24,7 +24,7 @@
 // 		});
 // 		for (const admin of admins) {
 // 			const user = await db
-// 				.insert(schema.users_temp)
+// 				.insert(schema.users)
 // 				.values({
 // 					id: admin.adminId,
 // 					email: admin.auth.email,
@@ -74,7 +74,7 @@
 
 // 			for (const member of admin.users) {
 // 				const userTemp = await db
-// 					.insert(schema.users_temp)
+// 					.insert(schema.users)
 // 					.values({
 // 						id: member.userId,
 // 						email: member.auth.email,

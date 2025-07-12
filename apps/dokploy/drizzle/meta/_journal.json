@@ -743,6 +743,13 @@
       "when": 1752080331479,
       "tag": "0105_clammy_leopardon",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1752358951289,
+      "tag": "0106_low_fat_cobra",
+      "breakpoints": true
     }
   ]
 }

@@ -3,15 +3,15 @@ import {
 	invitation,
 	member,
 	organization,
-	users_temp,
+	users,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 
 export const findUserById = async (userId: string) => {
-	const user = await db.query.users_temp.findFirst({
-		where: eq(users_temp.id, userId),
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, userId),
 		// with: {
 		// 	account: true,
 		// },
@@ -84,8 +84,8 @@ export const getUserByToken = async (token: string) => {
 		});
 	}
 
-	const userAlreadyExists = await db.query.users_temp.findFirst({
-		where: eq(users_temp.email, user?.email || ""),
+	const userAlreadyExists = await db.query.users.findFirst({
+		where: eq(users.email, user?.email || ""),
 	});
 
 	const { expiresAt, ...rest } = user;
@@ -98,8 +98,8 @@ export const getUserByToken = async (token: string) => {
 
 export const removeUserById = async (userId: string) => {
 	await db
-		.delete(users_temp)
-		.where(eq(users_temp.id, userId))
+		.delete(users)
+		.where(eq(users.id, userId))
 		.returning()
 		.then((res) => res[0]);
 };
