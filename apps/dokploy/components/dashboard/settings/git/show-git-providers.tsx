@@ -96,7 +96,7 @@ export const ShowGitProviders = () => {
 												Available Providers
 											</span>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
-												<div className="flex items-center gap-4 p-3.5 rounded-lg bg-background border w-full">
+												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
 													<AddGithubProvider />
 													<AddGitlabProvider />
 													<AddBitbucketProvider />
