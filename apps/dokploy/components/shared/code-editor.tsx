@@ -168,8 +168,8 @@ export const CodeEditor = ({
 					props.lineWrapping ? EditorView.lineWrapping : [],
 					language === "yaml"
 						? autocompletion({
-							override: [dockerComposeComplete],
-						})
+								override: [dockerComposeComplete],
+							})
 						: [],
 				]}
 				{...props}
