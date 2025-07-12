@@ -76,6 +76,7 @@ export const gitlabRouter = createTRPCRouter({
 					gitProvider: {
 						...provider.gitProvider,
 					},
+					gitlabUrl: provider.gitlabUrl,
 				};
 			});
 
