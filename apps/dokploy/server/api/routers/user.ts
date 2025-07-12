@@ -444,6 +444,8 @@ export const userRouter = createTRPCRouter({
 			z.object({
 				userId: z.string(),
 				roleId: z.string(),
+				accessedProjects: z.array(z.string()).optional(),
+				accessedServices: z.array(z.string()).optional(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -475,7 +477,11 @@ export const userRouter = createTRPCRouter({
 
 				await db
 					.update(member)
-					.set({ roleId: input.roleId })
+					.set({
+						roleId: input.roleId,
+						accessedProjects: input.accessedProjects || [],
+						accessedServices: input.accessedServices || [],
+					})
 					.where(eq(member.id, memberResult.id));
 			} catch (error) {
 				throw error;

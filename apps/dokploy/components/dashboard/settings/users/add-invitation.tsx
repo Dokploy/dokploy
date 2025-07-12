@@ -49,6 +49,7 @@ type AddInvitation = z.infer<typeof addInvitation>;
 export const AddInvitation = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
+	const { data: roles } = api.role.all.useQuery();
 	const [isLoading, setIsLoading] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: emailProviders } =
@@ -157,8 +158,13 @@ export const AddInvitation = () => {
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												<SelectItem value="admin">Admin</SelectItem>
 												<SelectItem value="member">Member</SelectItem>
+												<SelectItem value="admin">Admin</SelectItem>
+												{roles?.map((role) => (
+													<SelectItem key={role.name} value={role.name}>
+														{role.name}
+													</SelectItem>
+												))}
 											</SelectContent>
 										</Select>
 										<FormDescription>

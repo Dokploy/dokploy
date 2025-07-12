@@ -2,7 +2,7 @@ import type { IncomingMessage } from "node:http";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin, apiKey, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -12,6 +12,7 @@ import { getUserByToken } from "../services/admin";
 import { updateUser } from "../services/user";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
+import { createDefaultRoles } from "../services/role";
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -86,6 +87,48 @@ const { handler, api } = betterAuth({
 			});
 		},
 	},
+	hooks: {
+		after: createAuthMiddleware(async (ctx) => {
+			if (ctx.path === "/organization/accept-invitation") {
+				const invitationId = ctx.body.invitationId;
+
+				if (invitationId) {
+					const user = await getUserByToken(invitationId);
+					if (!user) {
+						throw new APIError("BAD_REQUEST", {
+							message: "User not found",
+						});
+					}
+
+					const role = await db.query.role.findFirst({
+						where: and(
+							eq(schema.role.name, user.role || "member"),
+							eq(schema.role.organizationId, user.organizationId),
+						),
+					});
+
+					const userTemp = await db.query.users_temp.findFirst({
+						where: eq(schema.users_temp.email, user.email),
+					});
+
+					const member = await db.query.member.findFirst({
+						where: and(
+							eq(schema.member.userId, userTemp?.id || ""),
+							eq(schema.member.organizationId, user.organizationId),
+						),
+					});
+
+					await db
+						.update(schema.member)
+						.set({
+							roleId: role?.roleId || "",
+						})
+						.where(eq(schema.member.userId, member?.userId || ""))
+						.returning();
+				}
+			}
+		}),
+	},
 	databaseHooks: {
 		user: {
 			create: {
@@ -135,11 +178,21 @@ const { handler, api } = betterAuth({
 								.returning()
 								.then((res) => res[0]);
 
+							await createDefaultRoles(organization?.id || "");
+
+							const ownerRole = await tx.query.role.findFirst({
+								where: and(
+									eq(schema.role.name, "owner"),
+									eq(schema.role.organizationId, organization?.id || ""),
+								),
+							});
+
 							await tx.insert(schema.member).values({
 								userId: user.id,
 								organizationId: organization?.id || "",
 								role: "owner",
 								createdAt: new Date(),
+								roleId: ownerRole?.roleId || "",
 							});
 						});
 					}

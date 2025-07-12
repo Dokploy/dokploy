@@ -73,6 +73,7 @@ export const getUserByToken = async (token: string) => {
 			expiresAt: true,
 			role: true,
 			inviterId: true,
+			organizationId: true,
 		},
 	});
 

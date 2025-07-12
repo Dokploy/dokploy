@@ -93,12 +93,12 @@ export const ShowUsers = () => {
 															<TableCell className="text-center">
 																<Badge
 																	variant={
-																		member.role.name === "owner"
+																		member?.role?.name === "owner"
 																			? "default"
 																			: "secondary"
 																	}
 																>
-																	{member.role.name}
+																	{member?.role?.name}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">

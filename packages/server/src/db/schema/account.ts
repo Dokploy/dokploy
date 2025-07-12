@@ -93,9 +93,7 @@ export const member = pgTable("member", {
 		.notNull()
 		.references(() => users_temp.id, { onDelete: "cascade" }),
 	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
-	roleId: text("roleId")
-		.notNull()
-		.references(() => role.roleId, { onDelete: "cascade" }), // Referencia a la nueva tabla de roles
+	roleId: text("roleId").references(() => role.roleId, { onDelete: "cascade" }),
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	// Permissions
