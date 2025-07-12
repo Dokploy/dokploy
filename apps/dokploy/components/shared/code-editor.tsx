@@ -147,7 +147,7 @@ export const CodeEditor = ({
 }: Props) => {
 	const { resolvedTheme } = useTheme();
 	return (
-		<div className={cn("relative overflow-auto", wrapperClassName)}>
+		<div className={cn("overflow-auto", wrapperClassName)}>
 			<CodeMirror
 				basicSetup={{
 					lineNumbers,
@@ -175,14 +175,15 @@ export const CodeEditor = ({
 				{...props}
 				editable={!props.disabled}
 				className={cn(
-					"w-full h-full text-sm leading-relaxed",
+					"w-full h-full text-sm leading-relaxed relative",
 					`cm-theme-${resolvedTheme}`,
 					className,
 				)}
-			/>
-			{props.disabled && (
-				<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)] h-full" />
-			)}
+			>
+				{props.disabled && (
+					<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)] h-full" />
+				)}
+			</CodeMirror>
 		</div>
 	);
 };
