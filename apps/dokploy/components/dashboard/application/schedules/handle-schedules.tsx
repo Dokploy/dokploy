@@ -234,8 +234,8 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			<DialogContent
 				className={cn(
 					scheduleTypeForm === "dokploy-server" || scheduleTypeForm === "server"
-					? "sm:max-w-2xl"
-					: "sm:max-w-lg",
+						? "sm:max-w-2xl"
+						: "sm:max-w-lg",
 				)}
 			>
 				<DialogHeader>
@@ -438,82 +438,82 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 
 						{(scheduleTypeForm === "application" ||
 							scheduleTypeForm === "compose") && (
-								<>
-									<FormField
-										control={form.control}
-										name="shellType"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="flex items-center gap-2">
-													Shell Type
-												</FormLabel>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value}
-												>
-													<FormControl>
-														<SelectTrigger>
-															<SelectValue placeholder="Select shell type" />
-														</SelectTrigger>
-													</FormControl>
-													<SelectContent>
-														<SelectItem value="bash">Bash</SelectItem>
-														<SelectItem value="sh">Sh</SelectItem>
-													</SelectContent>
-												</Select>
-												<FormDescription>
-													Choose the shell to execute your command
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="command"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel className="flex items-center gap-2">
-													Command
-												</FormLabel>
-												<FormControl>
-													<Input placeholder="npm run backup" {...field} />
-												</FormControl>
-												<FormDescription>
-													The command to execute in your container
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</>
-							)}
-
-						{(scheduleTypeForm === "dokploy-server" ||
-							scheduleTypeForm === "server") && (
+							<>
 								<FormField
 									control={form.control}
-									name="script"
+									name="shellType"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Script</FormLabel>
-											<FormControl>
+											<FormLabel className="flex items-center gap-2">
+												Shell Type
+											</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
 												<FormControl>
-													<CodeEditor
-														language="shell"
-														placeholder={`# This is a comment
-echo "Hello, world!"
-`}
-														className="h-96 font-mono"
-														{...field}
-													/>
+													<SelectTrigger>
+														<SelectValue placeholder="Select shell type" />
+													</SelectTrigger>
 												</FormControl>
-											</FormControl>
+												<SelectContent>
+													<SelectItem value="bash">Bash</SelectItem>
+													<SelectItem value="sh">Sh</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Choose the shell to execute your command
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
-							)}
+								<FormField
+									control={form.control}
+									name="command"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel className="flex items-center gap-2">
+												Command
+											</FormLabel>
+											<FormControl>
+												<Input placeholder="npm run backup" {...field} />
+											</FormControl>
+											<FormDescription>
+												The command to execute in your container
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
+						)}
+
+						{(scheduleTypeForm === "dokploy-server" ||
+							scheduleTypeForm === "server") && (
+							<FormField
+								control={form.control}
+								name="script"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Script</FormLabel>
+										<FormControl>
+											<FormControl>
+												<CodeEditor
+													language="shell"
+													placeholder={`# This is a comment
+echo "Hello, world!"
+`}
+													className="h-96 font-mono"
+													{...field}
+												/>
+											</FormControl>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						<FormField
 							control={form.control}
