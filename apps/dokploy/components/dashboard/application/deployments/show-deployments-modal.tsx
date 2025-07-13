@@ -50,7 +50,7 @@ export const ShowDeploymentsModal = ({
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl p-0">
+			<DialogContent className="sm:max-w-5xl p-0">
 				<ShowDeployments
 					id={id}
 					type={type}

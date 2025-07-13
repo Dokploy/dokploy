@@ -283,7 +283,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					<span>Database</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen md:max-h-[90vh]  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="md:max-h-[90vh]  sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Databases</DialogTitle>
 				</DialogHeader>

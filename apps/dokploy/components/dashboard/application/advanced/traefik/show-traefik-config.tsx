@@ -48,7 +48,7 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 					</div>
 				) : (
 					<div className="flex flex-col pt-2 relative">
-						<div className="flex flex-col gap-6 max-h-[35rem] min-h-[10rem] overflow-y-auto">
+						<div className="flex flex-col gap-6 max-h-[35rem] min-h-[10rem]">
 							<CodeEditor
 								lineWrapping
 								value={data || "Empty"}

@@ -117,12 +117,12 @@ export const CreateSSHKey = () => {
 										Option 2
 									</span>
 									<div className="flex flex-col gap-4 w-full overflow-auto">
-										<div className="flex relative flex-col gap-2 overflow-y-auto">
+										<div className="flex relative flex-col gap-2">
 											<div className="text-sm text-primary flex flex-row gap-2 items-center">
 												Copy Public Key
 												<button
 													type="button"
-													className=" right-2 top-8"
+													className="right-2 top-8"
 													onClick={() => {
 														copy(
 															cloudSSHKey?.publicKey || "Generate a SSH Key",
