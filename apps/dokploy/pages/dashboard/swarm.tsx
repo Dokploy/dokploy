@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
+import { PERMISSIONS } from "@dokploy/server/lib/permissions";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -53,12 +54,8 @@ export async function getServerSideProps(
 	try {
 		await helpers.project.all.prefetch();
 
-		if (user.role === "member") {
-			const userR = await helpers.user.one.fetch({
-				userId: user.id,
-			});
-
-			if (!userR?.canAccessToDocker) {
+		if (user.role?.name === "member" || !user?.role?.isSystem) {
+			if (!user?.role?.permissions?.includes(PERMISSIONS.DOCKER.VIEW.name)) {
 				return {
 					redirect: {
 						permanent: true,

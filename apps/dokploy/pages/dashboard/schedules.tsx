@@ -39,7 +39,7 @@ export async function getServerSideProps(
 		};
 	}
 	const { user } = await validateRequest(ctx.req);
-	if (!user || user.role !== "owner") {
+	if (!user || (user.role?.name !== "owner" && user.role?.name !== "admin")) {
 		return {
 			redirect: {
 				permanent: true,

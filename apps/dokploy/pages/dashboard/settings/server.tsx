@@ -59,7 +59,7 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	if (user.role === "member") {
+	if (user.role?.name === "member" || !user?.role?.isSystem) {
 		return {
 			redirect: {
 				permanent: true,

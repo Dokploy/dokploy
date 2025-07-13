@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 
 import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@dokploy/server";
+import { PERMISSIONS } from "@dokploy/server/lib/permissions";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -49,12 +50,12 @@ export async function getServerSideProps(
 	try {
 		await helpers.project.all.prefetch();
 		await helpers.settings.isCloud.prefetch();
-		if (user.role === "member") {
-			const userR = await helpers.user.one.fetch({
-				userId: user.id,
-			});
-
-			if (!userR?.canAccessToGitProviders) {
+		if (user.role?.name === "member" || !user?.role?.isSystem) {
+			if (
+				!user?.role?.permissions?.includes(
+					PERMISSIONS.GIT_PROVIDERS.ACCESS.name,
+				)
+			) {
 				return {
 					redirect: {
 						permanent: true,

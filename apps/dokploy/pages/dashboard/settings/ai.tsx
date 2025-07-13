@@ -44,7 +44,7 @@ export async function getServerSideProps(
 
 	await helpers.user.get.prefetch();
 
-	if (!user || user.role === "member") {
+	if (!user || (user.role?.name !== "owner" && user.role?.name !== "admin")) {
 		return {
 			redirect: {
 				permanent: true,

@@ -54,13 +54,8 @@ export async function getServerSideProps(
 	try {
 		await helpers.project.all.prefetch();
 
-
-		if (user.role?.name === "member" || user?.role?.) {
-			const userR = await helpers.user.one.fetch({
-				userId: user.id,
-			});
-
-			if (!userR?.role?.permissions?.includes(PERMISSIONS.DOCKER.VIEW.name)) {
+		if (user.role?.name === "member" || !user?.role?.isSystem) {
+			if (!user?.role?.permissions?.includes(PERMISSIONS.DOCKER.VIEW.name)) {
 				return {
 					redirect: {
 						permanent: true,

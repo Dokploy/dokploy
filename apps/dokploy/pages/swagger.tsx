@@ -1,12 +1,10 @@
-import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server";
-import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext, NextPage } from "next";
 import dynamic from "next/dynamic";
 import "swagger-ui-react/swagger-ui.css";
 import { useEffect, useState } from "react";
-import superjson from "superjson";
+import { PERMISSIONS } from "@dokploy/server/lib/permissions";
 
 const SwaggerUI = dynamic(() => import("swagger-ui-react"), { ssr: false });
 
@@ -71,8 +69,7 @@ const Home: NextPage = () => {
 
 export default Home;
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-	const { req, res } = context;
-	const { user, session } = await validateRequest(context.req);
+	const { user } = await validateRequest(context.req);
 	if (!user) {
 		return {
 			redirect: {
@@ -81,23 +78,9 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			},
 		};
 	}
-	const helpers = createServerSideHelpers({
-		router: appRouter,
-		ctx: {
-			req: req as any,
-			res: res as any,
-			db: null as any,
-			session: session as any,
-			user: user as any,
-		},
-		transformer: superjson,
-	});
-	if (user.role === "member") {
-		const userR = await helpers.user.one.fetch({
-			userId: user.id,
-		});
 
-		if (!userR?.canAccessToAPI) {
+	if (user.role?.name === "member" || !user?.role?.isSystem) {
+		if (!user?.role?.permissions?.includes(PERMISSIONS.API.ACCESS.name)) {
 			return {
 				redirect: {
 					permanent: true,

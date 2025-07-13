@@ -16,6 +16,7 @@ import {
 	findWebServer,
 	updateWebServer,
 } from "@dokploy/server/services/web-server";
+import type { Role } from "../db/schema/rbac";
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -409,15 +410,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 		};
 	}
 
-	const mockSession = {
-		session: {
-			...session.session,
-		},
-		user: {
-			...session.user,
-			ownerId: session.user.ownerId,
-		},
-	};
+	let role: Role | null = null;
 	if (session?.user) {
 		const member = await db.query.member.findFirst({
 			where: and(
@@ -432,17 +425,22 @@ export const validateRequest = async (request: IncomingMessage) => {
 				organization: true,
 			},
 		});
-
-		if (member?.role) {
-			mockSession.user.role = member.role;
-		}
-
+		role = member?.role || null;
 		if (member) {
-			mockSession.user.ownerId = member.organization.ownerId;
+			session.user.ownerId = member.organization.ownerId;
 		} else {
-			mockSession.user.ownerId = session.user.id;
+			session.user.ownerId = session.user.id;
 		}
 	}
-
+	const mockSession = {
+		session: {
+			...session.session,
+		},
+		user: {
+			...session.user,
+			role,
+			ownerId: session.user.ownerId,
+		},
+	};
 	return mockSession;
 };
