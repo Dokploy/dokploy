@@ -1,3 +1,59 @@
+import {
+	defaultStatements,
+	memberAc,
+	ownerAc,
+	adminAc,
+} from "better-auth/plugins/organization/access";
+import { createAccessControl } from "better-auth/plugins/access";
+
+/**
+ * make sure to use `as const` so typescript can infer the type correctly
+ */
+const statement = {
+	...defaultStatements,
+	project: ["view", "create", "delete"],
+	service: ["view", "create", "delete"],
+	traefik_files: ["access"],
+	docker: ["access"],
+	api: ["access"],
+	schedules: ["access"],
+	git_providers: ["access"],
+	ssh_keys: ["access"],
+} as const;
+
+export const ac = createAccessControl(statement);
+
+export const owner = ac.newRole({
+	...ownerAc.statements,
+	// inherit all the statements from the statements object
+	project: ["create", "view", "delete"],
+	service: ["create", "view", "delete"],
+	traefik_files: ["access"],
+	docker: ["access"],
+	api: ["access"],
+	schedules: ["access"],
+	git_providers: ["access"],
+	ssh_keys: ["access"],
+});
+
+export const admin = ac.newRole({
+	...adminAc.statements,
+	project: ["create", "view", "delete"],
+	service: ["create", "view", "delete"],
+	traefik_files: ["access"],
+	docker: ["access"],
+	api: ["access"],
+	schedules: ["access"],
+	git_providers: ["access"],
+	ssh_keys: ["access"],
+});
+
+export const member = ac.newRole({
+	...memberAc.statements,
+	project: ["create", "view", "delete"],
+	service: ["create", "view", "delete"],
+});
+
 export const PERMISSIONS = {
 	PROJECT: {
 		VIEW: {

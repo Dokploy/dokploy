@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
-import { invitation, member, organization, role } from "@/server/db/schema";
-import { createDefaultRoles, IS_CLOUD } from "@dokploy/server/index";
+import { invitation, member, organization } from "@/server/db/schema";
+import { IS_CLOUD } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -38,18 +38,12 @@ export const organizationRouter = createTRPCRouter({
 					message: "Failed to create organization",
 				});
 			}
-			await createDefaultRoles(result.id);
-
-			const ownerRole = await db.query.role.findFirst({
-				where: and(eq(role.name, "owner"), eq(role.organizationId, result.id)),
-			});
 
 			await db.insert(member).values({
 				organizationId: result.id,
 				role: "owner",
 				createdAt: new Date(),
 				userId: ctx.user.id,
-				roleId: ownerRole?.roleId || "",
 			});
 			return result;
 		}),

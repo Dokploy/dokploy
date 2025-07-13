@@ -10,7 +10,7 @@ import { nanoid } from "nanoid";
 import { projects } from "./project";
 import { server } from "./server";
 import { users } from "./user";
-import { role } from "./rbac";
+// import { role } from "./rbac";
 
 export const account = pgTable("account", {
 	id: text("id")
@@ -92,8 +92,8 @@ export const member = pgTable("member", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
-	role: text("role"),
-	roleId: text("roleId").references(() => role.roleId, { onDelete: "cascade" }),
+	role: text("role").$type<"owner" | "member" | "admin">(),
+	// roleId: text("roleId").references(() => role.roleId, { onDelete: "cascade" }),
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	// Permissions
@@ -116,10 +116,10 @@ export const memberRelations = relations(member, ({ one }) => ({
 		fields: [member.userId],
 		references: [users.id],
 	}),
-	role: one(role, {
-		fields: [member.roleId],
-		references: [role.roleId],
-	}),
+	// role: one(role, {
+	// 	fields: [member.roleId],
+	// 	references: [role.roleId],
+	// }),
 }));
 
 export const invitation = pgTable("invitation", {

@@ -30,7 +30,7 @@ export * from "./server";
 export * from "./utils";
 export * from "./preview-deployments";
 export * from "./ai";
-export * from "./rbac";
+// export * from "./rbac";
 export * from "./account";
 export * from "./schedule";
 export * from "./rollbacks";

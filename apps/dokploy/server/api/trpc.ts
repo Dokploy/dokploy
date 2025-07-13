@@ -30,17 +30,7 @@ import { ZodError } from "zod";
  */
 
 interface CreateContextOptions {
-	user:
-		| (User & {
-				role: {
-					roleId: string;
-					name: string;
-					permissions: string[];
-					isSystem: boolean;
-				};
-				ownerId: string;
-		  })
-		| null;
+	user: (User & { role: "member" | "admin" | "owner"; ownerId: string }) | null;
 	session:
 		| (Session & { activeOrganizationId: string; impersonatedBy?: string })
 		| null;
@@ -192,7 +182,7 @@ export const uploadProcedure = async (opts: any) => {
 };
 
 export const cliProcedure = t.procedure.use(({ ctx, next }) => {
-	if (!ctx.session || !ctx.user || ctx.user.role.name !== "owner") {
+	if (!ctx.session || !ctx.user || ctx.user.role !== "owner") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({
@@ -206,11 +196,7 @@ export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-	if (
-		!ctx.session ||
-		!ctx.user ||
-		(ctx.user.role.name !== "owner" && ctx.user.role.name !== "admin")
-	) {
+	if (!ctx.session || !ctx.user || ctx.user.role !== "owner") {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 	return next({

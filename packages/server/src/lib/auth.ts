@@ -2,7 +2,7 @@ import type { IncomingMessage } from "node:http";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError } from "better-auth/api";
 import { admin, apiKey, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -11,12 +11,7 @@ import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
-import { createDefaultRoles } from "../services/role";
-import {
-	findWebServer,
-	updateWebServer,
-} from "@dokploy/server/services/web-server";
-import type { Role } from "../db/schema/rbac";
+import { findWebServer, updateWebServer } from "../services/web-server";
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -84,48 +79,6 @@ const { handler, api } = betterAuth({
 			});
 		},
 	},
-	hooks: {
-		after: createAuthMiddleware(async (ctx) => {
-			if (ctx.path === "/organization/accept-invitation") {
-				const invitationId = ctx.body.invitationId;
-
-				if (invitationId) {
-					const user = await getUserByToken(invitationId);
-					if (!user) {
-						throw new APIError("BAD_REQUEST", {
-							message: "User not found",
-						});
-					}
-
-					const role = await db.query.role.findFirst({
-						where: and(
-							eq(schema.role.name, user.role || "member"),
-							eq(schema.role.organizationId, user.organizationId),
-						),
-					});
-
-					const userTemp = await db.query.users.findFirst({
-						where: eq(schema.users.email, user.email),
-					});
-
-					const member = await db.query.member.findFirst({
-						where: and(
-							eq(schema.member.userId, userTemp?.id || ""),
-							eq(schema.member.organizationId, user.organizationId),
-						),
-					});
-
-					await db
-						.update(schema.member)
-						.set({
-							roleId: role?.roleId || "",
-						})
-						.where(eq(schema.member.userId, member?.userId || ""))
-						.returning();
-				}
-			}
-		}),
-	},
 	databaseHooks: {
 		user: {
 			create: {
@@ -135,25 +88,14 @@ const { handler, api } = betterAuth({
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
 							const user = await getUserByToken(xDokployToken);
-
 							if (!user) {
 								throw new APIError("BAD_REQUEST", {
 									message: "User not found",
 								});
 							}
 						} else {
-							const ownerRole = await db.query.role.findFirst({
-								where: and(eq(schema.role.name, "owner")),
-							});
-
-							if (!ownerRole) {
-								throw new APIError("BAD_REQUEST", {
-									message: "Owner role not found",
-								});
-							}
-
 							const isAdminPresent = await db.query.member.findFirst({
-								where: and(eq(schema.member.roleId, ownerRole.roleId)),
+								where: eq(schema.member.role, "owner"),
 							});
 							if (isAdminPresent) {
 								throw new APIError("BAD_REQUEST", {
@@ -164,11 +106,8 @@ const { handler, api } = betterAuth({
 					}
 				},
 				after: async (user) => {
-					const ownerRole = await db.query.role.findFirst({
-						where: and(eq(schema.role.name, "owner")),
-					});
 					const isAdminPresent = await db.query.member.findFirst({
-						where: and(eq(schema.member.roleId, ownerRole?.roleId || "")),
+						where: eq(schema.member.role, "owner"),
 					});
 
 					if (!IS_CLOUD) {
@@ -189,20 +128,11 @@ const { handler, api } = betterAuth({
 								.returning()
 								.then((res) => res[0]);
 
-							await createDefaultRoles(organization?.id || "");
-
-							const ownerRole = await tx.query.role.findFirst({
-								where: and(
-									eq(schema.role.name, "owner"),
-									eq(schema.role.organizationId, organization?.id || ""),
-								),
-							});
-
 							await tx.insert(schema.member).values({
 								userId: user.id,
 								organizationId: organization?.id || "",
+								role: "owner",
 								createdAt: new Date(),
-								roleId: ownerRole?.roleId || "",
 							});
 						});
 					}
@@ -216,7 +146,6 @@ const { handler, api } = betterAuth({
 						where: eq(schema.member.userId, session.userId),
 						orderBy: desc(schema.member.createdAt),
 						with: {
-							role: true,
 							organization: true,
 						},
 					});
@@ -225,7 +154,6 @@ const { handler, api } = betterAuth({
 						data: {
 							...session,
 							activeOrganizationId: member?.organization.id,
-							roleId: member?.roleId,
 						},
 					};
 				},
@@ -237,9 +165,9 @@ const { handler, api } = betterAuth({
 		updateAge: 60 * 60 * 24,
 	},
 	user: {
-		modelName: "users",
+		modelName: "users_temp",
 		additionalFields: {
-			roleId: {
+			role: {
 				type: "string",
 				// required: true,
 				input: false,
@@ -293,7 +221,6 @@ const { handler, api } = betterAuth({
 export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
-	createInvitation: api.createInvitation,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {
@@ -348,7 +275,6 @@ export const validateRequest = async (request: IncomingMessage) => {
 				),
 				with: {
 					organization: true,
-					role: true,
 				},
 			});
 
@@ -381,7 +307,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 					createdAt,
 					updatedAt,
 					twoFactorEnabled,
-					role: member?.role,
+					role: member?.role || "member",
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
 				},
 			};
@@ -410,7 +336,6 @@ export const validateRequest = async (request: IncomingMessage) => {
 		};
 	}
 
-	let role: Role | null = null;
 	if (session?.user) {
 		const member = await db.query.member.findFirst({
 			where: and(
@@ -421,26 +346,17 @@ export const validateRequest = async (request: IncomingMessage) => {
 				),
 			),
 			with: {
-				role: true,
 				organization: true,
 			},
 		});
-		role = member?.role || null;
+
+		session.user.role = member?.role || "member";
 		if (member) {
 			session.user.ownerId = member.organization.ownerId;
 		} else {
 			session.user.ownerId = session.user.id;
 		}
 	}
-	const mockSession = {
-		session: {
-			...session.session,
-		},
-		user: {
-			...session.user,
-			role,
-			ownerId: session.user.ownerId,
-		},
-	};
-	return mockSession;
+
+	return session;
 };
