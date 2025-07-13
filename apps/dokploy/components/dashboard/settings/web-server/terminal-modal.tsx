@@ -53,7 +53,7 @@ export const TerminalModal = ({ children, serverId }: Props) => {
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent
-				className="max-h-screen  overflow-y-auto sm:max-w-7xl"
+				className=" sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader className="flex flex-col gap-1">

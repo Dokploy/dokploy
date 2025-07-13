@@ -20,7 +20,7 @@ export const ShowDockerContainersModal = ({ serverId }: Props) => {
 					Show Docker Containers
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-7xl  ">
 				<div className="grid w-full gap-1">
 					<ShowContainers serverId={serverId} />
 				</div>

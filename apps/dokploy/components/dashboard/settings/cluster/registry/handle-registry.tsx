@@ -161,7 +161,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl max-h-screen overflow-y-auto">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add a external registry</DialogTitle>
 					<DialogDescription>

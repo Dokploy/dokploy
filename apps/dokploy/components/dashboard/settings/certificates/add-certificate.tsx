@@ -106,7 +106,7 @@ export const AddCertificate = () => {
 					Add Certificate
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className=" sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add New Certificate</DialogTitle>
 					<DialogDescription>

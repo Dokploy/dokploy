@@ -60,7 +60,7 @@ export const WelcomeSuscription = () => {
 
 	return (
 		<Dialog open={isOpen}>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-7xl min-h-[75vh]">
+			<DialogContent className="sm:max-w-7xl min-h-[75vh]">
 				{showConfetti ?? "Flaso"}
 				<div className="flex justify-center items-center w-full">
 					{showConfetti && (

@@ -408,7 +408,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className=" sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>
 						{notificationId ? "Update" : "Add"} Notification

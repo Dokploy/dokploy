@@ -78,7 +78,7 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
+			<DialogContent className=" sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Update Traefik Environment</DialogTitle>
 					<DialogDescription>
