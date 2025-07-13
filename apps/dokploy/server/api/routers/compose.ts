@@ -31,7 +31,7 @@ import {
 	findGitProviderById,
 	findProjectById,
 	findServerById,
-	findUserById,
+	findWebServer,
 	getComposeContainer,
 	loadServices,
 	randomizeComposeFile,
@@ -487,8 +487,8 @@ export const composeRouter = createTRPCRouter({
 
 			const template = await fetchTemplateFiles(input.id, input.baseUrl);
 
-			const admin = await findUserById(ctx.user.ownerId);
-			let serverIp = admin.serverIp || "127.0.0.1";
+			const webServer = await findWebServer();
+			let serverIp = webServer.serverIp || "127.0.0.1";
 
 			const project = await findProjectById(input.projectId);
 
@@ -709,8 +709,8 @@ export const composeRouter = createTRPCRouter({
 				const decodedData = Buffer.from(input.base64, "base64").toString(
 					"utf-8",
 				);
-				const admin = await findUserById(ctx.user.ownerId);
-				let serverIp = admin.serverIp || "127.0.0.1";
+				const webServer = await findWebServer();
+				let serverIp = webServer.serverIp || "127.0.0.1";
 
 				if (compose.serverId) {
 					const server = await findServerById(compose.serverId);
@@ -785,8 +785,8 @@ export const composeRouter = createTRPCRouter({
 					await removeDomainById(domain.domainId);
 				}
 
-				const admin = await findUserById(ctx.user.ownerId);
-				let serverIp = admin.serverIp || "127.0.0.1";
+				const webServer = await findWebServer();
+				let serverIp = webServer.serverIp || "127.0.0.1";
 
 				if (compose.serverId) {
 					const server = await findServerById(compose.serverId);

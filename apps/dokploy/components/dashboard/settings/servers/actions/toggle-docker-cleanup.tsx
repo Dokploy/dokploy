@@ -7,7 +7,7 @@ interface Props {
 	serverId?: string;
 }
 export const ToggleDockerCleanup = ({ serverId }: Props) => {
-	const { data, refetch } = api.user.get.useQuery(undefined, {
+	const { data, refetch } = api.webServer.get.useQuery(undefined, {
 		enabled: !serverId,
 	});
 
@@ -20,9 +20,9 @@ export const ToggleDockerCleanup = ({ serverId }: Props) => {
 		},
 	);
 
-	const enabled = data?.user.enableDockerCleanup || server?.enableDockerCleanup;
+	const enabled = data?.enableDockerCleanup || server?.enableDockerCleanup;
 
-	const { mutateAsync } = api.settings.updateDockerCleanup.useMutation();
+	const { mutateAsync } = api.webServer.updateDockerCleanup.useMutation();
 
 	const handleToggle = async (checked: boolean) => {
 		try {

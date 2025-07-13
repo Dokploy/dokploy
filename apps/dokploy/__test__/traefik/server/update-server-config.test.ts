@@ -5,7 +5,8 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import type { FileConfig, User } from "@dokploy/server";
+import type { FileConfig } from "@dokploy/server";
+import type { WebServer } from "@dokploy/server/db/schema";
 import {
 	createDefaultServerTraefikConfig,
 	loadOrCreateConfig,
@@ -13,11 +14,8 @@ import {
 } from "@dokploy/server";
 import { beforeEach, expect, test, vi } from "vitest";
 
-const baseAdmin: User = {
+const baseAdmin: WebServer = {
 	https: false,
-	enablePaidFeatures: false,
-	allowImpersonation: false,
-	role: "user",
 	metricsConfig: {
 		containers: {
 			refreshRate: 20,
@@ -40,10 +38,6 @@ const baseAdmin: User = {
 			urlCallback: "",
 		},
 	},
-	cleanupCacheApplications: false,
-	cleanupCacheOnCompose: false,
-	cleanupCacheOnPreviews: false,
-	createdAt: new Date(),
 	serverIp: null,
 	certificateType: "none",
 	host: null,
@@ -51,22 +45,7 @@ const baseAdmin: User = {
 	sshPrivateKey: null,
 	enableDockerCleanup: false,
 	logCleanupCron: null,
-	serversQuantity: 0,
-	stripeCustomerId: "",
-	stripeSubscriptionId: "",
-	banExpires: new Date(),
-	banned: true,
-	banReason: "",
-	email: "",
-	expirationDate: "",
-	id: "",
-	isRegistered: false,
-	name: "",
-	createdAt2: new Date().toISOString(),
-	emailVerified: false,
-	image: "",
-	updatedAt: new Date(),
-	twoFactorEnabled: false,
+	webServerId: "1",
 };
 
 beforeEach(() => {
@@ -85,8 +64,6 @@ test("Should apply redirect-to-https", () => {
 	updateServerTraefik(
 		{
 			...baseAdmin,
-			https: true,
-			certificateType: "letsencrypt",
 		},
 		"example.com",
 	);

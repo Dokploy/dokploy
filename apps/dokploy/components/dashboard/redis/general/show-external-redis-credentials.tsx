@@ -46,11 +46,11 @@ interface Props {
 	redisId: string;
 }
 export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
-	const { data: ip } = api.settings.getIp.useQuery();
+	const { data: webServer } = api.webServer.get.useQuery();
 	const { data, refetch } = api.redis.one.useQuery({ redisId });
 	const { mutateAsync, isLoading } = api.redis.saveExternalPort.useMutation();
 	const [connectionUrl, setConnectionUrl] = useState("");
-	const getIp = data?.server?.ipAddress || ip;
+	const getIp = data?.server?.ipAddress || webServer?.serverIp;
 
 	const form = useForm<DockerProvider>({
 		defaultValues: {},

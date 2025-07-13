@@ -24,7 +24,7 @@ import {
 	apiUpdateTelegram,
 	notifications,
 	server,
-	users,
+	webServer,
 } from "@/server/db/schema";
 import {
 	IS_CLOUD,
@@ -345,19 +345,19 @@ export const notificationRouter = createTRPCRouter({
 				if (input.ServerType === "Dokploy") {
 					const result = await db
 						.select()
-						.from(users)
+						.from(webServer)
 						.where(
-							sql`${users.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+							sql`${webServer.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
 						);
 
-					if (!result?.[0]?.id) {
+					if (!result?.[0]?.webServerId) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Token not found",
 						});
 					}
 
-					organizationId = result?.[0]?.id;
+					organizationId = result?.[0]?.webServerId;
 					ServerName = "Dokploy";
 				} else {
 					const result = await db

@@ -20,7 +20,7 @@ const Dashboard = () => {
 		false,
 	);
 
-	const { data: monitoring, isLoading } = api.user.getMetricsToken.useQuery();
+	const { data: webServer, isLoading } = api.webServer.get.useQuery();
 	return (
 		<div className="space-y-4 pb-10">
 			{/* <AlertBlock>
@@ -59,12 +59,12 @@ const Dashboard = () => {
 								<ShowPaidMonitoring
 									BASE_URL={
 										process.env.NODE_ENV === "production"
-											? `http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}/metrics`
+											? `http://${webServer?.serverIp}:${webServer?.metricsConfig?.server?.port}/metrics`
 											: BASE_URL
 									}
 									token={
 										process.env.NODE_ENV === "production"
-											? monitoring?.metricsConfig?.server?.token
+											? webServer?.metricsConfig?.server?.token
 											: DEFAULT_TOKEN
 									}
 								/>

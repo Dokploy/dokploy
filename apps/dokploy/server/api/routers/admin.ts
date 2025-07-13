@@ -3,7 +3,7 @@ import {
 	IS_CLOUD,
 	findUserById,
 	setupWebMonitoring,
-	updateUser,
+	updateWebServer,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { adminProcedure, createTRPCRouter } from "../trpc";
@@ -27,7 +27,8 @@ export const adminRouter = createTRPCRouter({
 					});
 				}
 
-				await updateUser(user.id, {
+				await updateWebServer({
+					// @ts-expect-error - TODO: fix this
 					metricsConfig: {
 						server: {
 							type: "Dokploy",
@@ -52,7 +53,7 @@ export const adminRouter = createTRPCRouter({
 					},
 				});
 
-				const currentServer = await setupWebMonitoring(user.id);
+				const currentServer = await setupWebMonitoring();
 				return currentServer;
 			} catch (error) {
 				throw error;

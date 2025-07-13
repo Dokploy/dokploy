@@ -71,7 +71,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const [validationStates, setValidationStates] = useState<ValidationStates>(
 		{},
 	);
-	const { data: ip } = api.settings.getIp.useQuery();
+	const { data: webServer } = api.webServer.get.useQuery();
 
 	const {
 		data,
@@ -110,7 +110,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 			const result = await validateDomain({
 				domain: host,
 				serverIp:
-					application?.server?.ipAddress?.toString() || ip?.toString() || "",
+					application?.server?.ipAddress?.toString() ||
+					webServer?.serverIp?.toString() ||
+					"",
 			});
 
 			setValidationStates((prev) => ({
@@ -210,7 +212,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																}}
 																serverIp={
 																	application?.server?.ipAddress?.toString() ||
-																	ip?.toString()
+																	webServer?.serverIp?.toString()
 																}
 															/>
 														)}

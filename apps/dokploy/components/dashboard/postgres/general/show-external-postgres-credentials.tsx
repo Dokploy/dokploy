@@ -46,11 +46,11 @@ interface Props {
 	postgresId: string;
 }
 export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
-	const { data: ip } = api.settings.getIp.useQuery();
+	const { data: webServer } = api.webServer.get.useQuery();
 	const { data, refetch } = api.postgres.one.useQuery({ postgresId });
 	const { mutateAsync, isLoading } =
 		api.postgres.saveExternalPort.useMutation();
-	const getIp = data?.server?.ipAddress || ip;
+	const getIp = data?.server?.ipAddress || webServer?.serverIp;
 	const [connectionUrl, setConnectionUrl] = useState("");
 
 	const form = useForm<DockerProvider>({
