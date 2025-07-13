@@ -206,7 +206,6 @@ export const cliProcedure = t.procedure.use(({ ctx, next }) => {
 });
 
 export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-	console.log("adminProcedure", ctx.session, ctx.user);
 	if (
 		!ctx.session ||
 		!ctx.user ||

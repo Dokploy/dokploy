@@ -92,6 +92,7 @@ export const member = pgTable("member", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
+	role: text("role"),
 	roleId: text("roleId").references(() => role.roleId, { onDelete: "cascade" }),
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
@@ -122,12 +123,14 @@ export const memberRelations = relations(member, ({ one }) => ({
 }));
 
 export const invitation = pgTable("invitation", {
-	id: text("id").primaryKey(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
 	organizationId: text("organization_id")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	email: text("email").notNull(),
-	role: text("role").$type<"owner" | "member" | "admin">(),
+	role: text("role"),
 	status: text("status").notNull(),
 	expiresAt: timestamp("expires_at").notNull(),
 	inviterId: text("inviter_id")

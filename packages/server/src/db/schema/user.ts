@@ -32,10 +32,7 @@ export const users = pgTable("users", {
 	expirationDate: text("expirationDate")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	createdAt: text("createdAt")
-		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
-	// createdAt: timestamp("created_at").defaultNow(),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
 	// Auth
 	twoFactorEnabled: boolean("two_factor_enabled"),
 	email: text("email").notNull().unique(),
@@ -44,7 +41,7 @@ export const users = pgTable("users", {
 	banned: boolean("banned"),
 	banReason: text("ban_reason"),
 	banExpires: timestamp("ban_expires"),
-	updatedAt: timestamp("updated_at").notNull(),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	role: text("role").notNull().default("user"),
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),

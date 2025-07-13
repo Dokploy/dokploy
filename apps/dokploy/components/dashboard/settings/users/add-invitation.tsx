@@ -50,12 +50,14 @@ export const AddInvitation = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: roles } = api.role.all.useQuery();
-	const [isLoading, setIsLoading] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: emailProviders } =
 		api.notification.getEmailProviders.useQuery();
-	const { mutateAsync: sendInvitation } = api.user.sendInvitation.useMutation();
-	const [error, setError] = useState<string | null>(null);
+	const {
+		mutateAsync: createInvitation,
+		isLoading,
+		error,
+	} = api.user.createInvitation.useMutation();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 
 	const form = useForm<AddInvitation>({
@@ -71,36 +73,20 @@ export const AddInvitation = () => {
 	}, [form, form.formState.isSubmitSuccessful, form.reset]);
 
 	const onSubmit = async (data: AddInvitation) => {
-		setIsLoading(true);
-		const result = await authClient.organization.inviteMember({
+		await createInvitation({
 			email: data.email.toLowerCase(),
 			role: data.role,
-			organizationId: activeOrganization?.id,
-		});
-
-		if (result.error) {
-			setError(result.error.message || "");
-		} else {
-			if (!isCloud && data.notificationId) {
-				await sendInvitation({
-					invitationId: result.data.id,
-					notificationId: data.notificationId || "",
-				})
-					.then(() => {
-						toast.success("Invitation created and email sent");
-					})
-					.catch((error: any) => {
-						toast.error(error.message);
-					});
-			} else {
+			organizationId: activeOrganization?.id || "",
+			notificationId: data.notificationId || "",
+		})
+			.then(() => {
 				toast.success("Invitation created");
-			}
-			setError(null);
-			setOpen(false);
-		}
+			})
+			.catch((error: any) => {
+				toast.error(error.message);
+			});
 
 		utils.organization.allInvitations.invalidate();
-		setIsLoading(false);
 	};
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -114,7 +100,7 @@ export const AddInvitation = () => {
 					<DialogTitle>Add Invitation</DialogTitle>
 					<DialogDescription>Invite a new user</DialogDescription>
 				</DialogHeader>
-				{error && <AlertBlock type="error">{error}</AlertBlock>}
+				{error && <AlertBlock type="error">{error.message}</AlertBlock>}
 
 				<Form {...form}>
 					<form

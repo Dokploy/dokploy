@@ -135,6 +135,7 @@ const { handler, api } = betterAuth({
 							context?.request?.headers?.get("x-dokploy-token");
 						if (xDokployToken) {
 							const user = await getUserByToken(xDokployToken);
+
 							if (!user) {
 								throw new APIError("BAD_REQUEST", {
 									message: "User not found",
@@ -220,8 +221,6 @@ const { handler, api } = betterAuth({
 						},
 					});
 
-					console.log(member);
-
 					return {
 						data: {
 							...session,
@@ -294,6 +293,7 @@ const { handler, api } = betterAuth({
 export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
+	createInvitation: api.createInvitation,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {

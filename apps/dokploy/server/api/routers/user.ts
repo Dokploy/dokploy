@@ -29,6 +29,7 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
+import { sendEmail } from "@dokploy/server/verification/send-verification-email";
 
 const apiCreateApiKey = z.object({
 	name: z.string().min(1),
@@ -86,7 +87,10 @@ export const userRouter = createTRPCRouter({
 			// Allow access if:
 			// 1. User is requesting their own information
 			// 2. User has owner role (admin permissions) AND user is in the same organization
-			if (memberResult.userId !== ctx.user.id && ctx.user.role !== "owner") {
+			if (
+				memberResult.userId !== ctx.user.id &&
+				ctx.user.role?.name !== "owner"
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this user",
@@ -362,6 +366,83 @@ export const userRouter = createTRPCRouter({
 			});
 
 			return organizations.length;
+		}),
+	createInvitation: adminProcedure
+		.input(
+			z.object({
+				email: z.string().email(),
+				role: z.string(),
+				organizationId: z.string(),
+				notificationId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const organization = await findOrganizationById(input.organizationId);
+			if (organization?.ownerId !== ctx.user.ownerId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to create invitations",
+				});
+			}
+			const invitationResult = await db
+				.insert(invitation)
+				.values({
+					email: input.email,
+					role: input.role,
+					organizationId: input.organizationId,
+					status: "pending",
+					// 24 hours
+					expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+					inviterId: ctx.user.id,
+				})
+				.returning()
+				.then(([invitation]) => invitation);
+
+			const webServer = await findWebServer();
+
+			let host = "";
+
+			if (process.env.NODE_ENV === "development") {
+				host = "http://localhost:3000";
+			} else {
+				host = webServer.host || "";
+			}
+
+			if (IS_CLOUD) {
+				host = "https://app.dokploy.com";
+			}
+
+			const inviteLink = `${host}/invitation?token=${invitationResult?.id}`;
+			if (IS_CLOUD) {
+				await sendEmail({
+					email: invitationResult?.email || "",
+					subject: "Invitation to join organization",
+					text: `
+				<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
+				`,
+				});
+			} else if (input.notificationId) {
+				const notification = await findNotificationById(input.notificationId);
+
+				const email = notification.email;
+
+				if (!email) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Email notification not found",
+					});
+				}
+				await sendEmailNotification(
+					{
+						...email,
+						toAddresses: [invitationResult?.email || ""],
+					},
+					"Invitation to join organization",
+					`
+				<p>You are invited to join ${organization?.name || "organization"} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
+					`,
+				);
+			}
 		}),
 	sendInvitation: adminProcedure
 		.input(

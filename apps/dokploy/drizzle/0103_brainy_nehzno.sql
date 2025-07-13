@@ -64,7 +64,6 @@ BEGIN
 END $$;
 
 
-
 --> statement-breakpoint
 ALTER TABLE "user_temp" RENAME TO "users";--> statement-breakpoint
 ALTER TABLE "users" DROP CONSTRAINT "user_temp_email_unique";--> statement-breakpoint
@@ -88,6 +87,9 @@ ALTER TABLE "two_factor" DROP CONSTRAINT "two_factor_user_id_user_temp_id_fk";
 --> statement-breakpoint
 ALTER TABLE "schedule" DROP CONSTRAINT "schedule_userId_user_temp_id_fk";
 --> statement-breakpoint
+ALTER TABLE "users" ALTER COLUMN "created_at" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "users" ALTER COLUMN "updated_at" SET DEFAULT now();--> statement-breakpoint
+ALTER TABLE "member" ALTER COLUMN "role" DROP NOT NULL;--> statement-breakpoint
 ALTER TABLE "member" ADD COLUMN "roleId" text;--> statement-breakpoint
 ALTER TABLE "member_role" ADD CONSTRAINT "member_role_organizationId_organization_id_fk" FOREIGN KEY ("organizationId") REFERENCES "public"."organization"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "backup" ADD CONSTRAINT "backup_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -111,12 +113,12 @@ BEGIN
         WHERE id = mem.id;
     END LOOP;
 END $$;
-ALTER TABLE "member" ALTER COLUMN "roleId" SET NOT NULL;
 
 
 ALTER TABLE "organization" ADD CONSTRAINT "organization_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "two_factor" ADD CONSTRAINT "two_factor_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "schedule" ADD CONSTRAINT "schedule_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+
 
 --> statement-breakpoint
 CREATE TABLE "web_server" (
@@ -160,7 +162,7 @@ INNER JOIN "organization" o ON u.id = o.owner_id
 LIMIT 1;
 
 
-ALTER TABLE "users" DROP COLUMN "created_at";--> statement-breakpoint
+ALTER TABLE "users" DROP COLUMN "createdAt";--> statement-breakpoint
 ALTER TABLE "users" DROP COLUMN "serverIp";--> statement-breakpoint
 ALTER TABLE "users" DROP COLUMN "certificateType";--> statement-breakpoint
 ALTER TABLE "users" DROP COLUMN "https";--> statement-breakpoint
@@ -173,7 +175,6 @@ ALTER TABLE "users" DROP COLUMN "metricsConfig";--> statement-breakpoint
 ALTER TABLE "users" DROP COLUMN "cleanupCacheApplications";--> statement-breakpoint
 ALTER TABLE "users" DROP COLUMN "cleanupCacheOnPreviews";--> statement-breakpoint
 ALTER TABLE "users" DROP COLUMN "cleanupCacheOnCompose";--> statement-breakpoint
-ALTER TABLE "member" DROP COLUMN "role";--> statement-breakpoint
 ALTER TABLE "member" DROP COLUMN "canCreateProjects";--> statement-breakpoint
 ALTER TABLE "member" DROP COLUMN "canAccessToSSHKeys";--> statement-breakpoint
 ALTER TABLE "member" DROP COLUMN "canCreateServices";--> statement-breakpoint

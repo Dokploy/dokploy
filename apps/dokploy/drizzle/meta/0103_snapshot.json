@@ -1,5 +1,5 @@
 {
-  "id": "56c5008e-c689-4a20-9f3d-06a06e9a5e39",
+  "id": "6b7b9d76-9e2d-4251-9a3e-8a337076714e",
   "prevId": "218e3c9b-ef86-4665-98af-56d65282b73b",
   "version": "7",
   "dialect": "postgresql",
@@ -852,11 +852,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
         "two_factor_enabled": {
           "name": "two_factor_enabled",
@@ -904,7 +905,8 @@
           "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
         "role": {
           "name": "role",
@@ -5150,6 +5152,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "roleId": {
           "name": "roleId",
