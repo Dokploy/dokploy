@@ -675,9 +675,11 @@ export const AddUserPermissionsV2 = ({ userId }: Props) => {
 										render={() => (
 											<FormItem>
 												<FormLabel>Permissions</FormLabel>
-												<Card>
+												<Card className=" bg-transparent">
 													<CardHeader>
-														<CardTitle>Available Permissions</CardTitle>
+														<CardTitle className="text-sm">
+															Available Permissions
+														</CardTitle>
 														<CardDescription>
 															Select the permissions for this role
 														</CardDescription>
