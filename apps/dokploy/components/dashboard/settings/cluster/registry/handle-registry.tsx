@@ -316,7 +316,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 							/>
 						</div>
 
-						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2 mt-6">
+						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2">
 							<div className="flex flex-row gap-2 justify-between">
 								<Button
 									type="button"
