@@ -292,7 +292,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>

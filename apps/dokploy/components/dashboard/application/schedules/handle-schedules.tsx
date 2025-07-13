@@ -232,7 +232,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			</DialogTrigger>
 			<DialogContent
 				className={cn(
-					"max-h-screen overflow-y-auto",
+					"overflow-y-auto",
 					scheduleTypeForm === "dokploy-server" || scheduleTypeForm === "server"
 						? "max-h-[95vh] sm:max-w-2xl"
 						: " sm:max-w-lg",
