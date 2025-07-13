@@ -1,1 +1,0 @@
-ALTER TABLE "member" ALTER COLUMN "roleId" DROP NOT NULL;

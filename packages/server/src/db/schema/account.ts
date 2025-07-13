@@ -92,24 +92,10 @@ export const member = pgTable("member", {
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
-	role: text("role").notNull().$type<"owner" | "member" | "admin">(),
 	roleId: text("roleId").references(() => role.roleId, { onDelete: "cascade" }),
 	createdAt: timestamp("created_at").notNull(),
 	teamId: text("team_id"),
 	// Permissions
-	canCreateProjects: boolean("canCreateProjects").notNull().default(false),
-	canAccessToSSHKeys: boolean("canAccessToSSHKeys").notNull().default(false),
-	canCreateServices: boolean("canCreateServices").notNull().default(false),
-	canDeleteProjects: boolean("canDeleteProjects").notNull().default(false),
-	canDeleteServices: boolean("canDeleteServices").notNull().default(false),
-	canAccessToDocker: boolean("canAccessToDocker").notNull().default(false),
-	canAccessToAPI: boolean("canAccessToAPI").notNull().default(false),
-	canAccessToGitProviders: boolean("canAccessToGitProviders")
-		.notNull()
-		.default(false),
-	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
-		.notNull()
-		.default(false),
 	accessedProjects: text("accesedProjects")
 		.array()
 		.notNull()

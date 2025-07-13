@@ -110,7 +110,7 @@ export const defaultPermissions = [
 	},
 ] as const;
 
-export const role = pgTable("organization_role", {
+export const role = pgTable("member_role", {
 	roleId: text("roleId")
 		.primaryKey()
 		.$defaultFn(() => nanoid()),

@@ -726,36 +726,8 @@
     {
       "idx": 103,
       "version": "7",
-      "when": 1752043274261,
-      "tag": "0103_misty_shockwave",
-      "breakpoints": true
-    },
-    {
-      "idx": 104,
-      "version": "7",
-      "when": 1752046360607,
-      "tag": "0104_dusty_miss_america",
-      "breakpoints": true
-    },
-    {
-      "idx": 105,
-      "version": "7",
-      "when": 1752080331479,
-      "tag": "0105_clammy_leopardon",
-      "breakpoints": true
-    },
-    {
-      "idx": 106,
-      "version": "7",
-      "when": 1752358951289,
-      "tag": "0106_low_fat_cobra",
-      "breakpoints": true
-    },
-    {
-      "idx": 107,
-      "version": "7",
-      "when": 1752359583291,
-      "tag": "0107_clever_cobalt_man",
+      "when": 1752386222325,
+      "tag": "0103_living_hemingway",
       "breakpoints": true
     }
   ]
