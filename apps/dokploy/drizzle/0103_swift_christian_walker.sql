@@ -98,6 +98,22 @@ ALTER TABLE "apikey" ADD CONSTRAINT "apikey_user_id_users_id_fk" FOREIGN KEY ("u
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_inviter_id_users_id_fk" FOREIGN KEY ("inviter_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "member" ADD CONSTRAINT "member_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "member" ADD CONSTRAINT "member_roleId_member_role_roleId_fk" FOREIGN KEY ("roleId") REFERENCES "public"."member_role"("roleId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+
+-- Update existing members with corresponding roles based on their current role type
+DO $$
+DECLARE
+    mem RECORD;
+BEGIN
+    FOR mem IN SELECT m.id, m.organization_id, m.role as role_type FROM "member" m
+    LOOP
+        UPDATE "member"
+        SET "roleId" = mem.organization_id || '_' || mem.role_type
+        WHERE id = mem.id;
+    END LOOP;
+END $$;
+ALTER TABLE "member" ALTER COLUMN "roleId" SET NOT NULL;
+
+
 ALTER TABLE "organization" ADD CONSTRAINT "organization_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "two_factor" ADD CONSTRAINT "two_factor_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "schedule" ADD CONSTRAINT "schedule_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
