@@ -142,7 +142,7 @@ export const AddUserPermissionsV2 = ({ userId }: Props) => {
 
 	const isFullAccessRole =
 		selectedRole &&
-		(selectedRole.name === "owner" || selectedRole.name === "admin"); // Owner permission indicator
+		(selectedRole.name === "owner" || selectedRole.name === "admin");
 
 	const onAssignRole = async (data: AssignRoleForm) => {
 		try {
@@ -266,49 +266,63 @@ export const AddUserPermissionsV2 = ({ userId }: Props) => {
 															<h4 className="text-sm font-medium">
 																Default Roles
 															</h4>
-															{defaultRoles?.roles?.map((role) => (
-																<FormItem
-																	key={role.roleId}
-																	className="flex items-center space-x-3 space-y-0"
-																>
-																	<FormControl>
-																		<RadioGroupItem value={role.roleId || ""} />
-																	</FormControl>
-																	<FormLabel className="font-normal">
-																		<div className="flex items-center gap-2">
-																			<span className="font-medium capitalize">
-																				{role.name}
-																			</span>
-																			{role.name === "owner" && (
-																				<Badge
-																					variant="default"
-																					className="text-xs"
-																				>
-																					Full Access
-																				</Badge>
+															{defaultRoles?.roles?.map((role) => {
+																const isOwner = role.name === "owner";
+																const isAdmin = role.name === "admin";
+																if (isOwner) {
+																	return null;
+																}
+																return (
+																	<FormItem
+																		key={role.roleId}
+																		className="flex items-center space-x-3 space-y-0"
+																	>
+																		<FormControl>
+																			<RadioGroupItem
+																				value={role.roleId || ""}
+																				disabled={isOwner}
+																			/>
+																		</FormControl>
+																		<FormLabel className="font-normal">
+																			<div className="flex items-center gap-2">
+																				<span className="font-medium capitalize">
+																					{role.name}
+																				</span>
+																				{isAdmin && (
+																					<Badge
+																						variant="default"
+																						className="text-xs"
+																					>
+																						Full Access
+																					</Badge>
+																				)}
+																			</div>
+																			<div className="text-xs text-muted-foreground">
+																				{role.description}
+																			</div>
+																			{!isOwner && (
+																				<div className="flex flex-wrap gap-1 mt-1">
+																					{role.permissions?.map(
+																						(permission) => (
+																							<Badge
+																								key={permission.name}
+																								variant={
+																									isOwner
+																										? "default"
+																										: "secondary"
+																								}
+																								className="text-xs"
+																							>
+																								{permission.description}
+																							</Badge>
+																						),
+																					)}
+																				</div>
 																			)}
-																		</div>
-																		<div className="text-xs text-muted-foreground">
-																			{role.description}
-																		</div>
-																		<div className="flex flex-wrap gap-1 mt-1">
-																			{role.permissions?.map((permission) => (
-																				<Badge
-																					key={permission.name}
-																					variant={
-																						role.name === "owner"
-																							? "default"
-																							: "secondary"
-																					}
-																					className="text-xs"
-																				>
-																					{permission.description}
-																				</Badge>
-																			))}
-																		</div>
-																	</FormLabel>
-																</FormItem>
-															))}
+																		</FormLabel>
+																	</FormItem>
+																);
+															})}
 														</div>
 
 														<Separator />
@@ -608,7 +622,7 @@ export const AddUserPermissionsV2 = ({ userId }: Props) => {
 
 								<DialogFooter>
 									<Button type="submit" disabled={isAssigningRole}>
-										{isAssigningRole ? "Assigning..." : "Assign Role"}
+										{isAssigningRole ? "Assigning..." : "Save Role"}
 									</Button>
 								</DialogFooter>
 							</form>
