@@ -138,7 +138,7 @@ export function LineCountFilter({
 							}}
 						/>
 					</div>
-					<CommandPrimitive.List className="max-h-[300px] overflow-y-auto overflow-x-hidden">
+					<CommandPrimitive.List className="max-h-[300px] overflow-x-hidden">
 						<CommandPrimitive.Group className="px-2 py-1.5">
 							{lineCountOptions.map((option) => {
 								const isSelected = value === option.value;
