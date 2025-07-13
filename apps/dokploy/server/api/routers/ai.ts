@@ -162,7 +162,7 @@ export const aiRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.session.activeOrganizationId,
 					input.projectId,
@@ -215,7 +215,7 @@ export const aiRouter = createTRPCRouter({
 				}
 			}
 
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await addNewService(
 					ctx.session.activeOrganizationId,
 					ctx.user.ownerId,

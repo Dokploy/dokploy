@@ -41,7 +41,7 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiCreatePostgres)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -65,7 +65,7 @@ export const postgresRouter = createTRPCRouter({
 					});
 				}
 				const newPostgres = await createPostgres(input);
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await addNewService(
 						ctx.user.id,
 						newPostgres.postgresId,
@@ -96,7 +96,7 @@ export const postgresRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOnePostgres)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.postgresId,
@@ -244,7 +244,7 @@ export const postgresRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.postgresId,

@@ -44,6 +44,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import superjson from "superjson";
+import { Permissions } from "@/components/dashboard/shared/Permissions";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
@@ -57,7 +58,6 @@ const Mariadb = (
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mariadb.one.useQuery({ mariadbId });
-	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -142,9 +142,9 @@ const Mariadb = (
 								</div>
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMariadb mariadbId={mariadbId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									<Permissions permissions={["service:delete"]}>
 										<DeleteService id={mariadbId} type="mariadb" />
-									)}
+									</Permissions>
 								</div>
 							</div>
 						</CardHeader>

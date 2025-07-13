@@ -64,7 +64,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiCreateCompose)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -88,7 +88,7 @@ export const composeRouter = createTRPCRouter({
 				}
 				const newService = await createCompose(input);
 
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await addNewService(
 						ctx.user.id,
 						newService.composeId,
@@ -105,7 +105,7 @@ export const composeRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.composeId,
@@ -177,7 +177,7 @@ export const composeRouter = createTRPCRouter({
 	delete: protectedProcedure
 		.input(apiDeleteCompose)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.composeId,
@@ -469,7 +469,7 @@ export const composeRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.projectId,
@@ -524,7 +524,7 @@ export const composeRouter = createTRPCRouter({
 				isolatedDeployment: true,
 			});
 
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await addNewService(
 					ctx.user.id,
 					compose.composeId,

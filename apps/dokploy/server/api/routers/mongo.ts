@@ -41,7 +41,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(apiCreateMongo)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -65,7 +65,7 @@ export const mongoRouter = createTRPCRouter({
 					});
 				}
 				const newMongo = await createMongo(input);
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await addNewService(
 						ctx.user.id,
 						newMongo.mongoId,
@@ -96,7 +96,7 @@ export const mongoRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMongo)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mongoId,
@@ -261,7 +261,7 @@ export const mongoRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOneMongo)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mongoId,

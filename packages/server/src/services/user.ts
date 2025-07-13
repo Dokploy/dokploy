@@ -3,6 +3,7 @@ import { apikey, member, users } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
+import { PERMISSIONS } from "../lib/permissions";
 
 export type User = typeof users.$inferSelect;
 
@@ -44,13 +45,16 @@ export const canPerformCreationService = async (
 	projectId: string,
 	organizationId: string,
 ) => {
-	const { accessedProjects, canCreateServices } = await findMemberById(
+	const { accessedProjects, role } = await findMemberById(
 		userId,
 		organizationId,
 	);
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
-	if (canCreateServices && haveAccessToProject) {
+	if (
+		role?.permissions?.includes(PERMISSIONS.SERVICE.CREATE.name) &&
+		haveAccessToProject
+	) {
 		return true;
 	}
 
@@ -77,13 +81,16 @@ export const canPeformDeleteService = async (
 	serviceId: string,
 	organizationId: string,
 ) => {
-	const { accessedServices, canDeleteServices } = await findMemberById(
+	const { accessedServices, role } = await findMemberById(
 		userId,
 		organizationId,
 	);
 	const haveAccessToService = accessedServices.includes(serviceId);
 
-	if (canDeleteServices && haveAccessToService) {
+	if (
+		role?.permissions?.includes(PERMISSIONS.SERVICE.DELETE.name) &&
+		haveAccessToService
+	) {
 		return true;
 	}
 
@@ -94,9 +101,9 @@ export const canPerformCreationProject = async (
 	userId: string,
 	organizationId: string,
 ) => {
-	const { canCreateProjects } = await findMemberById(userId, organizationId);
+	const { role } = await findMemberById(userId, organizationId);
 
-	if (canCreateProjects) {
+	if (role?.permissions?.includes(PERMISSIONS.PROJECT.CREATE.name)) {
 		return true;
 	}
 
@@ -107,9 +114,9 @@ export const canPerformDeleteProject = async (
 	userId: string,
 	organizationId: string,
 ) => {
-	const { canDeleteProjects } = await findMemberById(userId, organizationId);
+	const { role } = await findMemberById(userId, organizationId);
 
-	if (canDeleteProjects) {
+	if (role?.permissions?.includes(PERMISSIONS.PROJECT.DELETE.name)) {
 		return true;
 	}
 
@@ -135,11 +142,8 @@ export const canAccessToTraefikFiles = async (
 	userId: string,
 	organizationId: string,
 ) => {
-	const { canAccessToTraefikFiles } = await findMemberById(
-		userId,
-		organizationId,
-	);
-	return canAccessToTraefikFiles;
+	const { role } = await findMemberById(userId, organizationId);
+	return role?.permissions?.includes(PERMISSIONS.TRAEFIK.ACCESS.name);
 };
 
 export const checkServiceAccess = async (
@@ -183,7 +187,7 @@ export const checkServiceAccess = async (
 };
 
 export const checkProjectAccess = async (
-	authId: string,
+	userId: string,
 	action: "create" | "delete" | "access",
 	organizationId: string,
 	projectId?: string,
@@ -192,16 +196,16 @@ export const checkProjectAccess = async (
 	switch (action) {
 		case "access":
 			hasPermission = await canPerformAccessProject(
-				authId,
+				userId,
 				projectId as string,
 				organizationId,
 			);
 			break;
 		case "create":
-			hasPermission = await canPerformCreationProject(authId, organizationId);
+			hasPermission = await canPerformCreationProject(userId, organizationId);
 			break;
 		case "delete":
-			hasPermission = await canPerformDeleteProject(authId, organizationId);
+			hasPermission = await canPerformDeleteProject(userId, organizationId);
 			break;
 		default:
 			hasPermission = false;
@@ -225,6 +229,7 @@ export const findMemberById = async (
 		),
 		with: {
 			user: true,
+			role: true,
 		},
 	});
 

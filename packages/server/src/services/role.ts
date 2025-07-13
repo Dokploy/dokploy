@@ -1,15 +1,17 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import {
-	adminPermissions,
 	type createRoleSchema,
 	member,
-	memberPermissions,
-	ownerPermissions,
 	role,
 	type updateRoleSchema,
 } from "../db/schema";
 import type { z } from "zod";
+import {
+	adminPermissions,
+	memberPermissions,
+	ownerPermissions,
+} from "../lib/permissions";
 
 export const createRole = async (
 	input: z.infer<typeof createRoleSchema>,

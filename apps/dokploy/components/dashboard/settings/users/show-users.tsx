@@ -30,7 +30,6 @@ import { format } from "date-fns";
 import { MoreHorizontal, Users } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { AddUserPermissions } from "./add-permissions";
 import { AddUserPermissionsV2 } from "./add-permissions-v2";
 
 export const ShowUsers = () => {
@@ -135,9 +134,6 @@ export const ShowUsers = () => {
 																			</DropdownMenuLabel>
 
 																			<>
-																				<AddUserPermissions
-																					userId={member.user.id}
-																				/>
 																				<AddUserPermissionsV2
 																					userId={member.user.id}
 																				/>

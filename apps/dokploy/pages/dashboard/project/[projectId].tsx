@@ -94,6 +94,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import { Permissions } from "@/components/dashboard/shared/Permissions";
 
 export type Services = {
 	appName: string;
@@ -221,7 +222,6 @@ const Project = (
 ) => {
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
-	const { data: auth } = api.user.get.useQuery();
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
 			return localStorage.getItem("servicesSort") || "createdAt-desc";
@@ -736,30 +736,27 @@ const Project = (
 															Stop
 														</Button>
 													</DialogAction>
-													{(auth?.role === "owner" ||
-														auth?.canDeleteServices) && (
-														<>
-															<DialogAction
-																title="Delete Services"
-																description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
-																type="destructive"
-																onClick={handleBulkDelete}
+													<Permissions permissions={["project:delete"]}>
+														<DialogAction
+															title="Delete Services"
+															description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+															type="destructive"
+															onClick={handleBulkDelete}
+														>
+															<Button
+																variant="ghost"
+																className="w-full justify-start text-destructive"
 															>
-																<Button
-																	variant="ghost"
-																	className="w-full justify-start text-destructive"
-																>
-																	<Trash2 className="mr-2 h-4 w-4" />
-																	Delete
-																</Button>
-															</DialogAction>
-															<DuplicateProject
-																projectId={projectId}
-																services={applications}
-																selectedServiceIds={selectedServices}
-															/>
-														</>
-													)}
+																<Trash2 className="mr-2 h-4 w-4" />
+																Delete
+															</Button>
+														</DialogAction>
+														<DuplicateProject
+															projectId={projectId}
+															services={applications}
+															selectedServiceIds={selectedServices}
+														/>
+													</Permissions>
 
 													<Dialog
 														open={isMoveDialogOpen}

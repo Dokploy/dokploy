@@ -43,6 +43,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import superjson from "superjson";
+import { Permissions } from "@/components/dashboard/shared/Permissions";
 
 type TabState = "projects" | "monitoring" | "settings" | "advanced";
 
@@ -55,8 +56,6 @@ const Redis = (
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.redis.one.useQuery({ redisId });
-
-	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -142,9 +141,9 @@ const Redis = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateRedis redisId={redisId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									<Permissions permissions={["service:delete"]}>
 										<DeleteService id={redisId} type="redis" />
-									)}
+									</Permissions>
 								</div>
 							</div>
 						</CardHeader>

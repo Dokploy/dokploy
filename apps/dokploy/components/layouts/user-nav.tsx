@@ -23,6 +23,8 @@ import { ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/router";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
+import { Permissions } from "../dashboard/shared/Permissions";
+import { PERMISSIONS } from "@dokploy/server/lib/permissions";
 
 const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
@@ -98,7 +100,7 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
+							<Permissions permissions={[PERMISSIONS.TRAEFIK.ACCESS.name]}>
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -107,8 +109,9 @@ export const UserNav = () => {
 								>
 									Traefik
 								</DropdownMenuItem>
-							)}
-							{(data?.role === "owner" || data?.canAccessToDocker) && (
+							</Permissions>
+
+							<Permissions permissions={[PERMISSIONS.DOCKER.VIEW.name]}>
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -119,11 +122,11 @@ export const UserNav = () => {
 								>
 									Docker
 								</DropdownMenuItem>
-							)}
+							</Permissions>
 						</>
 					) : (
 						<>
-							{data?.role === "owner" && (
+							{data?.role?.name === "owner" && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -136,7 +139,7 @@ export const UserNav = () => {
 						</>
 					)}
 				</DropdownMenuGroup>
-				{isCloud && data?.role === "owner" && (
+				{isCloud && data?.role?.name === "owner" && (
 					<DropdownMenuItem
 						className="cursor-pointer"
 						onClick={() => {
@@ -154,9 +157,6 @@ export const UserNav = () => {
 							await authClient.signOut().then(() => {
 								router.push("/");
 							});
-							// await mutateAsync().then(() => {
-							// 	router.push("/");
-							// });
 						}}
 					>
 						Log out

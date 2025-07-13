@@ -44,6 +44,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import superjson from "superjson";
+import { Permissions } from "@/components/dashboard/shared/Permissions";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
@@ -56,8 +57,6 @@ const Mongo = (
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mongo.one.useQuery({ mongoId });
-
-	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -143,9 +142,9 @@ const Mongo = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateMongo mongoId={mongoId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									<Permissions permissions={["service:delete"]}>
 										<DeleteService id={mongoId} type="mongo" />
-									)}
+									</Permissions>
 								</div>
 							</div>
 						</CardHeader>

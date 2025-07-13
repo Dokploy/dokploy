@@ -14,7 +14,7 @@ export const ShowWelcomeDokploy = () => {
 
 	const { data: isCloud, isLoading } = api.settings.isCloud.useQuery();
 
-	if (!isCloud || data?.role !== "admin") {
+	if (!isCloud || data?.role?.name !== "admin") {
 		return null;
 	}
 
@@ -23,14 +23,14 @@ export const ShowWelcomeDokploy = () => {
 			!isLoading &&
 			isCloud &&
 			!localStorage.getItem("hasSeenCloudWelcomeModal") &&
-			data?.role === "owner"
+			data?.role?.name === "owner"
 		) {
 			setOpen(true);
 		}
 	}, [isCloud, isLoading]);
 
 	const handleClose = (isOpen: boolean) => {
-		if (data?.role === "owner") {
+		if (data?.role?.name === "owner") {
 			setOpen(isOpen);
 			if (!isOpen) {
 				localStorage.setItem("hasSeenCloudWelcomeModal", "true"); // Establece el flag al cerrar el modal

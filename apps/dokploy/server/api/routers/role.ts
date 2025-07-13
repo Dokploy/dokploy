@@ -5,9 +5,9 @@ import {
 	createRoleSchema,
 	role,
 	updateRoleSchema,
-	defaultPermissions,
 } from "@/server/db/schema";
 import { createRole, removeRoleById, updateRoleById } from "@dokploy/server";
+import { defaultPermissions } from "@dokploy/server/lib/permissions";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 

@@ -3,6 +3,7 @@ import {
 	invitation,
 	member,
 	organization,
+	role,
 	users,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -13,9 +14,6 @@ import { findWebServer } from "./web-server";
 export const findUserById = async (userId: string) => {
 	const user = await db.query.users.findFirst({
 		where: eq(users.id, userId),
-		// with: {
-		// 	account: true,
-		// },
 	});
 	if (!user) {
 		throw new TRPCError({
@@ -37,8 +35,12 @@ export const findOrganizationById = async (organizationId: string) => {
 };
 
 export const isAdminPresent = async () => {
+	const ownerRole = await db.query.role.findFirst({
+		where: eq(role.name, "owner"),
+	});
+
 	const admin = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
+		where: eq(member.roleId, ownerRole?.roleId || ""),
 	});
 
 	if (!admin) {
@@ -48,8 +50,12 @@ export const isAdminPresent = async () => {
 };
 
 export const findOwner = async () => {
+	const ownerRole = await db.query.role.findFirst({
+		where: eq(role.name, "owner"),
+	});
+
 	const owner = await db.query.member.findFirst({
-		where: eq(member.role, "owner"),
+		where: eq(member.roleId, ownerRole?.roleId || ""),
 		with: {
 			user: true,
 		},

@@ -57,7 +57,7 @@ export const projectRouter = createTRPCRouter({
 		.input(apiCreateProject)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await checkProjectAccess(
 						ctx.user.id,
 						"create",
@@ -78,7 +78,7 @@ export const projectRouter = createTRPCRouter({
 					input,
 					ctx.session.activeOrganizationId,
 				);
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await addNewProject(
 						ctx.user.id,
 						project.projectId,
@@ -99,7 +99,7 @@ export const projectRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneProject)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				const { accessedServices } = await findMemberById(
 					ctx.user.id,
 					ctx.session.activeOrganizationId,
@@ -164,7 +164,7 @@ export const projectRouter = createTRPCRouter({
 			return project;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		if (ctx.user.role === "member") {
+		if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 			const { accessedProjects, accessedServices } = await findMemberById(
 				ctx.user.id,
 				ctx.session.activeOrganizationId,
@@ -241,7 +241,7 @@ export const projectRouter = createTRPCRouter({
 		.input(apiRemoveProject)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await checkProjectAccess(
 						ctx.user.id,
 						"delete",
@@ -314,7 +314,7 @@ export const projectRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await checkProjectAccess(
 						ctx.user.id,
 						"create",
@@ -649,7 +649,10 @@ export const projectRouter = createTRPCRouter({
 					}
 				}
 
-				if (!input.duplicateInSameProject && ctx.user.role === "member") {
+				if (
+					!input.duplicateInSameProject &&
+					(ctx.user.role.name === "member" || !ctx.user.role.isSystem)
+				) {
 					await addNewProject(
 						ctx.user.id,
 						targetProject.projectId,

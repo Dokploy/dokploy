@@ -140,8 +140,18 @@ const { handler, api } = betterAuth({
 								});
 							}
 						} else {
+							const ownerRole = await db.query.role.findFirst({
+								where: and(eq(schema.role.name, "owner")),
+							});
+
+							if (!ownerRole) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Owner role not found",
+								});
+							}
+
 							const isAdminPresent = await db.query.member.findFirst({
-								where: eq(schema.member.role, "owner"),
+								where: and(eq(schema.member.roleId, ownerRole.roleId)),
 							});
 							if (isAdminPresent) {
 								throw new APIError("BAD_REQUEST", {
@@ -152,8 +162,11 @@ const { handler, api } = betterAuth({
 					}
 				},
 				after: async (user) => {
+					const ownerRole = await db.query.role.findFirst({
+						where: and(eq(schema.role.name, "owner")),
+					});
 					const isAdminPresent = await db.query.member.findFirst({
-						where: eq(schema.member.role, "owner"),
+						where: and(eq(schema.member.roleId, ownerRole?.roleId || "")),
 					});
 
 					if (!IS_CLOUD) {
@@ -186,7 +199,6 @@ const { handler, api } = betterAuth({
 							await tx.insert(schema.member).values({
 								userId: user.id,
 								organizationId: organization?.id || "",
-								role: "owner",
 								createdAt: new Date(),
 								roleId: ownerRole?.roleId || "",
 							});
@@ -202,14 +214,18 @@ const { handler, api } = betterAuth({
 						where: eq(schema.member.userId, session.userId),
 						orderBy: desc(schema.member.createdAt),
 						with: {
+							role: true,
 							organization: true,
 						},
 					});
+
+					console.log(member);
 
 					return {
 						data: {
 							...session,
 							activeOrganizationId: member?.organization.id,
+							roleId: member?.roleId,
 						},
 					};
 				},
@@ -223,7 +239,7 @@ const { handler, api } = betterAuth({
 	user: {
 		modelName: "users",
 		additionalFields: {
-			role: {
+			roleId: {
 				type: "string",
 				// required: true,
 				input: false,
@@ -331,6 +347,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 				),
 				with: {
 					organization: true,
+					role: true,
 				},
 			});
 
@@ -363,7 +380,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 					createdAt,
 					updatedAt,
 					twoFactorEnabled,
-					role: member?.role || "member",
+					role: member?.role,
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
 				},
 			};
@@ -392,6 +409,15 @@ export const validateRequest = async (request: IncomingMessage) => {
 		};
 	}
 
+	const mockSession = {
+		session: {
+			...session.session,
+		},
+		user: {
+			...session.user,
+			ownerId: session.user.ownerId,
+		},
+	};
 	if (session?.user) {
 		const member = await db.query.member.findFirst({
 			where: and(
@@ -402,17 +428,21 @@ export const validateRequest = async (request: IncomingMessage) => {
 				),
 			),
 			with: {
+				role: true,
 				organization: true,
 			},
 		});
 
-		session.user.role = member?.role || "member";
+		if (member?.role) {
+			mockSession.user.role = member.role;
+		}
+
 		if (member) {
-			session.user.ownerId = member.organization.ownerId;
+			mockSession.user.ownerId = member.organization.ownerId;
 		} else {
-			session.user.ownerId = session.user.id;
+			mockSession.user.ownerId = session.user.id;
 		}
 	}
 
-	return session;
+	return mockSession;
 };

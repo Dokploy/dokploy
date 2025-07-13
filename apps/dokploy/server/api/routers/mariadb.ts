@@ -41,7 +41,7 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiCreateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -65,7 +65,7 @@ export const mariadbRouter = createTRPCRouter({
 					});
 				}
 				const newMariadb = await createMariadb(input);
-				if (ctx.user.role === "member") {
+				if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 					await addNewService(
 						ctx.user.id,
 						newMariadb.mariadbId,
@@ -92,7 +92,7 @@ export const mariadbRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mariadbId,
@@ -219,7 +219,7 @@ export const mariadbRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.role === "member") {
+			if (ctx.user.role.name === "member" || !ctx.user.role.isSystem) {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mariadbId,

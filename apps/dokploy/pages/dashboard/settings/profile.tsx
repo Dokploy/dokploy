@@ -1,27 +1,23 @@
 import { ShowApiKeys } from "@/components/dashboard/settings/api/show-api-keys";
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-
 import { appRouter } from "@/server/api/root";
-import { api } from "@/utils/api";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { Permissions } from "@/components/dashboard/shared/Permissions";
 
 const Page = () => {
-	const { data } = api.user.get.useQuery();
-
-	// const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
-				{(data?.canAccessToAPI || data?.role === "owner") && <ShowApiKeys />}
-
-				{/* {isCloud && <RemoveSelfAccount />} */}
+				<Permissions permissions={["api:access"]}>
+					<ShowApiKeys />
+				</Permissions>
 			</div>
 		</div>
 	);

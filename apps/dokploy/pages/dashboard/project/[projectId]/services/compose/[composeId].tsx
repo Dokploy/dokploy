@@ -33,7 +33,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server/lib/auth";
@@ -51,6 +50,7 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
+import { Permissions } from "@/components/dashboard/shared/Permissions";
 
 type TabState =
 	| "projects"
@@ -78,7 +78,6 @@ const Service = (
 
 	const { data } = api.compose.one.useQuery({ composeId });
 
-	const { data: auth } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
@@ -171,9 +170,9 @@ const Service = (
 									<div className="flex flex-row gap-2 justify-end">
 										<UpdateCompose composeId={composeId} />
 
-										{(auth?.role === "owner" || auth?.canDeleteServices) && (
+										<Permissions permissions={["service:delete"]}>
 											<DeleteService id={composeId} type="compose" />
-										)}
+										</Permissions>
 									</div>
 								</div>
 							</CardHeader>

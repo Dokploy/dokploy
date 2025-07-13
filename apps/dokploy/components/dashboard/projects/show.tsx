@@ -47,11 +47,12 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+import { PERMISSIONS } from "@dokploy/server/lib/permissions";
+import { Permissions } from "../shared/Permissions";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
 	const { data, isLoading } = api.project.all.useQuery();
-	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -83,11 +84,11 @@ export const ShowProjects = () => {
 								</CardDescription>
 							</CardHeader>
 
-							{(auth?.role === "owner" || auth?.canCreateProjects) && (
+							<Permissions permissions={[PERMISSIONS.PROJECT.CREATE.name]}>
 								<div className="">
 									<HandleProject />
 								</div>
-							)}
+							</Permissions>
 						</div>
 
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
@@ -289,8 +290,11 @@ export const ShowProjects = () => {
 																				<div
 																					onClick={(e) => e.stopPropagation()}
 																				>
-																					{(auth?.role === "owner" ||
-																						auth?.canDeleteProjects) && (
+																					<Permissions
+																						permissions={[
+																							PERMISSIONS.PROJECT.DELETE.name,
+																						]}
+																					>
 																						<AlertDialog>
 																							<AlertDialogTrigger className="w-full">
 																								<DropdownMenuItem
@@ -356,7 +360,7 @@ export const ShowProjects = () => {
 																								</AlertDialogFooter>
 																							</AlertDialogContent>
 																						</AlertDialog>
-																					)}
+																					</Permissions>
 																				</div>
 																			</DropdownMenuContent>
 																		</DropdownMenu>

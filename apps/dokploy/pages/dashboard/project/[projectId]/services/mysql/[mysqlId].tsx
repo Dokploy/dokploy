@@ -29,7 +29,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server/lib/auth";
@@ -44,6 +43,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
 import superjson from "superjson";
+import { Permissions } from "@/components/dashboard/shared/Permissions";
+import { cn } from "@/lib/utils";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
@@ -56,7 +57,6 @@ const MySql = (
 	const { projectId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
-	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -143,9 +143,9 @@ const MySql = (
 
 									<div className="flex flex-row gap-2 justify-end">
 										<UpdateMysql mysqlId={mysqlId} />
-										{(auth?.role === "owner" || auth?.canDeleteServices) && (
+										<Permissions permissions={["service:delete"]}>
 											<DeleteService id={mysqlId} type="mysql" />
-										)}
+										</Permissions>
 									</div>
 								</div>
 							</CardHeader>
