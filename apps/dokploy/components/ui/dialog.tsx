@@ -62,20 +62,28 @@ const DialogContent = React.forwardRef<
 		};
 	}, [open]);
 
-	const handleOverlayClick = React.useCallback((e: React.MouseEvent) => {
-		if (e.target === e.currentTarget && onOpenChange) {
+	// Handle outside interactions properly with Command components
+	const handleInteractOutside = React.useCallback((e: Event) => {
+		if (onOpenChange) {
 			onOpenChange(false);
 		}
 	}, [onOpenChange]);
 
 	const hasPaddingOverride = className?.includes("p-0");
 	
+	// Separate DialogFooter from other children for proper layout
+	const childrenArray = React.Children.toArray(children);
+	const dialogFooter = childrenArray.find((child) => 
+		React.isValidElement(child) && child.type === DialogFooter
+	);
+	const otherChildren = childrenArray.filter((child) => 
+		!(React.isValidElement(child) && child.type === DialogFooter)
+	);
+	
 	return (
 		<DialogPortal>
-			<div 
-				className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-				onClick={handleOverlayClick}
-			/>
+			{/* Custom overlay for modal=false - no click handler to avoid Command conflicts */}
+			<div className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
 			<DialogPrimitive.Content
 				ref={ref}
 				className={cn(
@@ -83,12 +91,17 @@ const DialogContent = React.forwardRef<
 					"flex flex-col max-h-[90vh]",
 					className,
 				)}
-				onPointerDownOutside={(e) => {
-					const originalEvent = e.detail.originalEvent;
-					const target = originalEvent.target as HTMLElement;
-					if (target.closest('[data-radix-popper-content-wrapper]')) {
+				onInteractOutside={(e) => {
+					const target = e.target as HTMLElement;
+					// Don't close when clicking inside popovers, dropdowns, or command components
+					if (target.closest('[data-radix-popper-content-wrapper]') || 
+					    target.closest('[cmdk-root]') ||
+					    target.closest('[data-radix-command-root]')) {
 						e.preventDefault();
+						return;
 					}
+					// Use our custom handler for modal=false behavior
+					handleInteractOutside(e);
 				}}
 				{...props}
 			>
@@ -99,8 +112,15 @@ const DialogContent = React.forwardRef<
 						!hasPaddingOverride && "p-6"
 					)}
 				>
-					{children}
+					{otherChildren}
 				</div>
+				
+				{/* DialogFooter outside scrollable area with proper spacing */}
+				{dialogFooter && (
+					<div className="p-6 pt-0 border-t border-border/50">
+						{dialogFooter}
+					</div>
+				)}
 				
 				<DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
 					<X className="h-4 w-4" />
@@ -132,7 +152,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={cn(
-			"flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+			"flex flex-col-reverse mt-4 sm:flex-row sm:justify-end sm:space-x-2",
 			className,
 		)}
 		{...props}
