@@ -204,7 +204,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className=" sm:max-w-2xl">
+			<DialogContent classname="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>
 						{destinationId ? "Update" : "Add"} Destination

@@ -91,7 +91,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 							return (
 								<div
 									key={schedule.scheduleId}
-									className=" flex items-center justify-between rounded-lg border p-3 transition-colors bg-muted/50"
+									classname="flex items-center justify-between rounded-lg border p-3 transition-colors bg-muted/50"
 								>
 									<div className="flex items-start gap-3">
 										<div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/5">

@@ -289,7 +289,7 @@ export const WelcomeSuscription = () => {
 									<div className="flex flex-col gap-6">
 										<div className="flex flex-col gap-2">
 											<h2 className="text-lg font-semibold">You're All Set!</h2>
-											<p className=" text-muted-foreground">
+											<p classname="text-muted-foreground">
 												Did you know you can deploy any number of applications
 												that your server can handle?
 											</p>

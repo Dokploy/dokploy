@@ -143,7 +143,7 @@ export const ShowPaidMonitoring = ({
 							? queryError.message
 							: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly."}
 					</p>
-					<p className=" text-sm text-muted-foreground">URL: {BASE_URL}</p>
+					<p classname="text-sm text-muted-foreground">URL: {BASE_URL}</p>
 				</div>
 			</div>
 		);

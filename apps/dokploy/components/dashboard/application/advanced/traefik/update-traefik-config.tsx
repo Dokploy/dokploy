@@ -122,7 +122,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			<DialogTrigger asChild>
 				<Button isLoading={isLoading}>Modify</Button>
 			</DialogTrigger>
-			<DialogContent className=" sm:max-w-4xl">
+			<DialogContent classname="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Update traefik config</DialogTitle>
 					<DialogDescription>Update the traefik config</DialogDescription>
