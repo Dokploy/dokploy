@@ -30,6 +30,9 @@ export const setupMonitoring = async (serverId: string) => {
 			// PidMode: "host",
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
+			RestartPolicy: {
+				Name: "always",
+			},
 			PortBindings: {
 				[`${server.metricsConfig.server.port}/tcp`]: [
 					{
@@ -103,6 +106,9 @@ export const setupWebMonitoring = async () => {
 			// PidMode: "host",
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
+			RestartPolicy: {
+				Name: "always",
+			},
 			PortBindings: {
 				[`${webServer?.metricsConfig?.server?.port}/tcp`]: [
 					{
