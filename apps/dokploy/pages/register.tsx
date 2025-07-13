@@ -131,7 +131,7 @@ const Register = ({ isCloud }: Props) => {
 					</CardDescription>
 					<div className="mx-auto w-full max-w-lg bg-transparent">
 						{isError && (
-							<div className=" my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
+							<div className="my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 								<AlertTriangle className="text-red-600 dark:text-red-400" />
 								<span className="text-sm text-red-600 dark:text-red-400">
 									{error}

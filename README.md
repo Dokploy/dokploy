@@ -60,8 +60,6 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 <div>
   <a href="https://www.hostinger.com/vps-hosting?ref=dokploy"><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="300"/></a>
   <a href="https://www.lxaer.com/?ref=dokploy"><img src=".github/sponsors/lxaer.png" alt="LX Aer" width="100"/></a>
-  <a href="https://mandarin3d.com/?ref=dokploy"><img src=".github/sponsors/mandarin.png" alt="Mandarin" width="100"/></a>
-  <a href="https://lightnode.com/?ref=dokploy"><img src=".github/sponsors/light-node.webp" alt="Lightnode" width="300"/></a>
 </div>
 
 <!-- Premium Supporters 🥇 -->
@@ -89,25 +87,18 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 ### Supporting Members 🥉
 
 <div>
-  <a href="https://lightspeed.run/?ref=dokploy"><img src="https://github.com/lightspeedrun.png" width="60px" alt="Lightspeed.run"/></a>
+
   <a href="https://cloudblast.io/?ref=dokploy"><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Cloudblast.io"/></a>
-  <a href="https://startupfa.me/?ref=dokploy"><img src=".github/sponsors/startupfame.png" width="65px" alt="Startupfame"/></a>
-  <a href="https://itsdb-center.com?ref=dokploy"><img src=".github/sponsors/its.png" width="65px" alt="Itsdb-center"/></a>
-  <a href="https://openalternative.co/?ref=dokploy"><img src=".github/sponsors/openalternative.png" width="65px" alt="Openalternative"/></a>
+
   <a href="https://synexa.ai/?ref=dokploy"><img src=".github/sponsors/synexa.png" width="65px" alt="Synexa"/></a>
 </div>
 
 ### Community Backers 🤝
 
-<div>
-  <a href="https://steamsets.com/?ref=dokploy"><img src="https://avatars.githubusercontent.com/u/111978405?s=200&v=4" width="60px" alt="Steamsets.com"/></a>
-  <a href="https://rivo.gg/?ref=dokploy"><img src="https://avatars.githubusercontent.com/u/126797452?s=200&v=4" width="60px" alt="Rivo.gg"/></a>
-  <a href="https://photoquest.wedding/?ref=dokploy"><img src="https://photoquest.wedding/favicon/android-chrome-512x512.png" width="60px" alt="Rivo.gg"/></a>
-</div>
 
 #### Organizations:
 
-[![Sponsors on Open Collective](https://opencollective.com/dokploy/organizations.svg?width=890)](https://opencollective.com/dokploy)
+[Sponsors on Open Collective](https://opencollective.com/dokploy)
 
 #### Individuals:
 

@@ -21,13 +21,13 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
-		"@commitlint/cli": "^19.3.0",
-		"@commitlint/config-conventional": "^19.2.2",
-		"@types/node": "^18.17.0",
+		"@commitlint/cli": "^19.8.1",
+		"@commitlint/config-conventional": "^19.8.1",
+		"@types/node": "^18.19.104",
 		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
 		"lefthook": "1.8.4",
-		"lint-staged": "^15.2.7",
+		"lint-staged": "^15.5.2",
 		"tsx": "4.16.2"
 	},
 	"packageManager": "pnpm@9.5.0",

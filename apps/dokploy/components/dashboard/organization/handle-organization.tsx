@@ -155,7 +155,7 @@ export function AddOrganization({ organizationId }: Props) {
 							control={form.control}
 							name="logo"
 							render={({ field }) => (
-								<FormItem className=" gap-4">
+								<FormItem className="gap-4">
 									<FormLabel className="text-right">Logo URL</FormLabel>
 									<FormControl>
 										<Input
@@ -169,7 +169,7 @@ export function AddOrganization({ organizationId }: Props) {
 								</FormItem>
 							)}
 						/>
-						<DialogFooter className="mt-4">
+						<DialogFooter>
 							<Button type="submit" isLoading={isLoading}>
 								{organizationId ? "Update organization" : "Create organization"}
 							</Button>

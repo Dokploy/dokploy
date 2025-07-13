@@ -270,8 +270,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-5xl p-0">
-				<DialogHeader className="p-6">
+			<DialogContent className="sm:max-w-5xl p-0">
+				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
 						Update certain settings using a json object.
@@ -753,7 +753,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							)}
 						/>
 
-						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border p-2 ">
+						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
 								isLoading={isLoading}
 								form="hook-form-add-permissions"

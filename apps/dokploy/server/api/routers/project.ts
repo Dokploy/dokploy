@@ -360,11 +360,17 @@ export const projectRouter = createTRPCRouter({
 									redirects,
 									previewDeployments,
 									mounts,
+									appName,
 									...application
 								} = await findApplicationById(id);
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
 
 								const newApplication = await createApplication({
 									...application,
+									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${application.name} (copy)`
 										: application.name,
@@ -424,11 +430,17 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "postgres": {
-								const { postgresId, mounts, backups, ...postgres } =
+								const { postgresId, mounts, backups, appName, ...postgres } =
 									await findPostgresById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
 
 								const newPostgres = await createPostgres({
 									...postgres,
+									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${postgres.name} (copy)`
 										: postgres.name,
@@ -454,10 +466,17 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mariadb": {
-								const { mariadbId, mounts, backups, ...mariadb } =
+								const { mariadbId, mounts, backups, appName, ...mariadb } =
 									await findMariadbById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newMariadb = await createMariadb({
 									...mariadb,
+									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${mariadb.name} (copy)`
 										: mariadb.name,
@@ -483,10 +502,17 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mongo": {
-								const { mongoId, mounts, backups, ...mongo } =
+								const { mongoId, mounts, backups, appName, ...mongo } =
 									await findMongoById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newMongo = await createMongo({
 									...mongo,
+									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${mongo.name} (copy)`
 										: mongo.name,
@@ -512,10 +538,17 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mysql": {
-								const { mysqlId, mounts, backups, ...mysql } =
+								const { mysqlId, mounts, backups, appName, ...mysql } =
 									await findMySqlById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newMysql = await createMysql({
 									...mysql,
+									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${mysql.name} (copy)`
 										: mysql.name,
@@ -541,9 +574,17 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "redis": {
-								const { redisId, mounts, ...redis } = await findRedisById(id);
+								const { redisId, mounts, appName, ...redis } =
+									await findRedisById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newRedis = await createRedis({
 									...redis,
+									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${redis.name} (copy)`
 										: redis.name,
@@ -562,10 +603,17 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "compose": {
-								const { composeId, mounts, domains, ...compose } =
+								const { composeId, mounts, domains, appName, ...compose } =
 									await findComposeById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newCompose = await createCompose({
 									...compose,
+									appName: newAppName,
 									name: input.duplicateInSameProject
 										? `${compose.name} (copy)`
 										: compose.name,
