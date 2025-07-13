@@ -9,10 +9,13 @@ import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
-import { updateUser } from "../services/user";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 import { createDefaultRoles } from "../services/role";
+import {
+	findWebServer,
+	updateWebServer,
+} from "@dokploy/server/services/web-server";
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -32,19 +35,12 @@ const { handler, api } = betterAuth({
 	},
 	...(!IS_CLOUD && {
 		async trustedOrigins() {
-			const admin = await db.query.member.findFirst({
-				where: eq(schema.member.role, "owner"),
-				with: {
-					user: true,
-				},
-			});
+			const admin = await findWebServer();
 
 			if (admin) {
 				return [
-					...(admin.user.serverIp
-						? [`http://${admin.user.serverIp}:3000`]
-						: []),
-					...(admin.user.host ? [`https://${admin.user.host}`] : []),
+					...(admin.serverIp ? [`http://${admin.serverIp}:3000`] : []),
+					...(admin.host ? [`https://${admin.host}`] : []),
 				];
 			}
 			return [];
@@ -161,7 +157,7 @@ const { handler, api } = betterAuth({
 					});
 
 					if (!IS_CLOUD) {
-						await updateUser(user.id, {
+						await updateWebServer({
 							serverIp: await getPublicIpWithFallback(),
 						});
 					}

@@ -6,8 +6,8 @@ import { generateObject } from "ai";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { IS_CLOUD } from "../constants";
-import { findOrganizationById } from "./admin";
 import { findServerById } from "./server";
+import { findWebServer } from "./web-server";
 
 export const getAiSettingsByOrganizationId = async (organizationId: string) => {
 	const aiSettings = await db.query.ai.findMany({
@@ -53,18 +53,12 @@ export const deleteAiSettings = async (aiId: string) => {
 };
 
 interface Props {
-	organizationId: string;
 	aiId: string;
 	input: string;
 	serverId?: string | undefined;
 }
 
-export const suggestVariants = async ({
-	organizationId,
-	aiId,
-	input,
-	serverId,
-}: Props) => {
+export const suggestVariants = async ({ aiId, input, serverId }: Props) => {
 	try {
 		const aiSettings = await getAiSettingById(aiId);
 		if (!aiSettings || !aiSettings.isEnabled) {
@@ -79,8 +73,8 @@ export const suggestVariants = async ({
 
 		let ip = "";
 		if (!IS_CLOUD) {
-			const organization = await findOrganizationById(organizationId);
-			ip = organization?.owner.serverIp || "";
+			const webServer = await findWebServer();
+			ip = webServer?.serverIp || "";
 		}
 
 		if (serverId) {

@@ -35,3 +35,4 @@ export * from "./account";
 export * from "./schedule";
 export * from "./rollbacks";
 export * from "./volume-backups";
+export * from "./web-server";

@@ -1,12 +1,17 @@
 import { db } from "@/server/db";
 import {
+	apiAssignDomain,
 	apiEnableDashboard,
 	apiModifyTraefikConfig,
 	apiReadStatsLogs,
 	apiReadTraefikConfig,
+	apiSaveSSHKey,
 	apiServerSchema,
 	apiTraefikConfig,
+	apiUpdateDockerCleanup,
+	updateWebServerSchema,
 } from "@/server/db/schema";
+import { removeJob, schedule } from "@/server/utils/backup";
 import {
 	DEFAULT_UPDATE_DATA,
 	IS_CLOUD,
@@ -19,6 +24,7 @@ import {
 	execAsync,
 	execAsyncRemote,
 	findServerById,
+	findWebServer,
 	getDokployImage,
 	getDokployImageTag,
 	getLogCleanupStatus,
@@ -35,21 +41,25 @@ import {
 	readMainConfig,
 	readMonitoringConfig,
 	recreateDirectory,
+	sendDockerCleanupNotifications,
 	spawnAsync,
 	startLogCleanup,
 	stopLogCleanup,
+	updateLetsEncryptEmail,
+	updateServerById,
+	updateServerTraefik,
+	updateWebServer,
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
 } from "@dokploy/server";
 import { checkGPUStatus, setupGPUSupport } from "@dokploy/server";
-import { generateOpenApiDocument } from "@dokploy/trpc-openapi";
 import { TRPCError } from "@trpc/server";
 import { sql } from "drizzle-orm";
 import { dump, load } from "js-yaml";
+import { scheduleJob, scheduledJobs } from "node-schedule";
 import { z } from "zod";
 import packageInfo from "../../../package.json";
-import { appRouter } from "../root";
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -57,7 +67,15 @@ import {
 	publicProcedure,
 } from "../trpc";
 
-export const settingsRouter = createTRPCRouter({
+export const webServerRouter = createTRPCRouter({
+	get: adminProcedure.query(async () => {
+		return await findWebServer();
+	}),
+	update: adminProcedure
+		.input(updateWebServerSchema)
+		.mutation(async ({ input }) => {
+			return await updateWebServer(input);
+		}),
 	reloadServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
@@ -176,6 +194,142 @@ export const settingsRouter = createTRPCRouter({
 		await recreateDirectory(MONITORING_PATH);
 		return true;
 	}),
+	saveSSHPrivateKey: adminProcedure
+		.input(apiSaveSSHKey)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			await updateWebServer({
+				sshPrivateKey: input.sshPrivateKey,
+			});
+
+			return true;
+		}),
+	getIp: protectedProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+		const webServer = await findWebServer();
+		return webServer?.serverIp;
+	}),
+	assignDomainServer: adminProcedure
+		.input(apiAssignDomain)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			const webServer = await updateWebServer({
+				host: input.host,
+				...(input.letsEncryptEmail && {
+					letsEncryptEmail: input.letsEncryptEmail,
+				}),
+				certificateType: input.certificateType,
+				https: input.https,
+			});
+
+			if (!webServer) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "User not found",
+				});
+			}
+
+			updateServerTraefik(webServer, input.host);
+			if (input.letsEncryptEmail) {
+				updateLetsEncryptEmail(input.letsEncryptEmail);
+			}
+
+			return webServer;
+		}),
+	cleanSSHPrivateKey: adminProcedure.mutation(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+		await updateWebServer({
+			sshPrivateKey: null,
+		});
+		return true;
+	}),
+	updateDockerCleanup: adminProcedure
+		.input(apiUpdateDockerCleanup)
+		.mutation(async ({ input, ctx }) => {
+			if (input.serverId) {
+				await updateServerById(input.serverId, {
+					enableDockerCleanup: input.enableDockerCleanup,
+				});
+
+				const server = await findServerById(input.serverId);
+
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this server",
+					});
+				}
+
+				if (server.enableDockerCleanup) {
+					const server = await findServerById(input.serverId);
+					if (server.serverStatus === "inactive") {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Server is inactive",
+						});
+					}
+					if (IS_CLOUD) {
+						await schedule({
+							cronSchedule: "0 0 * * *",
+							serverId: input.serverId,
+							type: "server",
+						});
+					} else {
+						scheduleJob(server.serverId, "0 0 * * *", async () => {
+							console.log(
+								`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
+							);
+							await cleanUpUnusedImages(server.serverId);
+							await cleanUpDockerBuilder(server.serverId);
+							await cleanUpSystemPrune(server.serverId);
+							await sendDockerCleanupNotifications(server.organizationId);
+						});
+					}
+				} else {
+					if (IS_CLOUD) {
+						await removeJob({
+							cronSchedule: "0 0 * * *",
+							serverId: input.serverId,
+							type: "server",
+						});
+					} else {
+						const currentJob = scheduledJobs[server.serverId];
+						currentJob?.cancel();
+					}
+				}
+			} else if (!IS_CLOUD) {
+				const userUpdated = await updateWebServer({
+					enableDockerCleanup: input.enableDockerCleanup,
+				});
+
+				if (userUpdated?.enableDockerCleanup) {
+					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
+						console.log(
+							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
+						);
+						await cleanUpUnusedImages();
+						await cleanUpDockerBuilder();
+						await cleanUpSystemPrune();
+						await sendDockerCleanupNotifications(
+							ctx.session.activeOrganizationId,
+						);
+					});
+				} else {
+					const currentJob = scheduledJobs["docker-cleanup"];
+					currentJob?.cancel();
+				}
+			}
+
+			return true;
+		}),
 
 	readTraefikConfig: adminProcedure.query(() => {
 		if (IS_CLOUD) {
@@ -331,76 +485,6 @@ export const settingsRouter = createTRPCRouter({
 			return readConfigInPath(input.path, input.serverId);
 		}),
 
-	getOpenApiDocument: protectedProcedure.query(
-		async ({ ctx }): Promise<unknown> => {
-			const protocol = ctx.req.headers["x-forwarded-proto"];
-			const url = `${protocol}://${ctx.req.headers.host}/api`;
-			const openApiDocument = generateOpenApiDocument(appRouter, {
-				title: "tRPC OpenAPI",
-				version: "1.0.0",
-				baseUrl: url,
-				docsUrl: `${url}/settings.getOpenApiDocument`,
-				tags: [
-					"admin",
-					"docker",
-					"compose",
-					"registry",
-					"cluster",
-					"user",
-					"domain",
-					"destination",
-					"backup",
-					"deployment",
-					"mounts",
-					"certificates",
-					"settings",
-					"security",
-					"redirects",
-					"port",
-					"project",
-					"application",
-					"mysql",
-					"postgres",
-					"redis",
-					"mongo",
-					"mariadb",
-					"sshRouter",
-					"gitProvider",
-					"bitbucket",
-					"github",
-					"gitlab",
-					"gitea",
-				],
-			});
-
-			openApiDocument.info = {
-				title: "Dokploy API",
-				description: "Endpoints for dokploy",
-				version: "1.0.0",
-			};
-
-			// Add security schemes configuration
-			openApiDocument.components = {
-				...openApiDocument.components,
-				securitySchemes: {
-					apiKey: {
-						type: "apiKey",
-						in: "header",
-						name: "x-api-key",
-						description: "API key authentication",
-					},
-				},
-			};
-
-			// Apply security globally to all endpoints
-			openApiDocument.security = [
-				{
-					apiKey: [],
-				},
-			];
-			return openApiDocument;
-		},
-	),
 	readTraefikEnv: adminProcedure
 		.input(apiServerSchema)
 		.query(async ({ input }) => {

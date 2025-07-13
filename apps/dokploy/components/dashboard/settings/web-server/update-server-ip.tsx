@@ -46,15 +46,15 @@ interface Props {
 export const UpdateServerIp = ({ children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { data } = api.user.get.useQuery();
+	const { data } = api.webServer.get.useQuery();
 	const { data: ip } = api.server.publicIp.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
-		api.user.update.useMutation();
+		api.webServer.update.useMutation();
 
 	const form = useForm<Schema>({
 		defaultValues: {
-			serverIp: data?.user.serverIp || "",
+			serverIp: data?.serverIp || "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -62,7 +62,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				serverIp: data.user.serverIp || "",
+				serverIp: data.serverIp || "",
 			});
 		}
 	}, [form, form.reset, data]);

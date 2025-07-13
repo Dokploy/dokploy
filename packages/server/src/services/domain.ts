@@ -6,10 +6,10 @@ import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
-import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
 import { findServerById } from "./server";
+import { findWebServer } from "./web-server";
 
 export type Domain = typeof domains.$inferSelect;
 
@@ -43,7 +43,6 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 
 export const generateTraefikMeDomain = async (
 	appName: string,
-	userId: string,
 	serverId?: string,
 ) => {
 	if (serverId) {
@@ -60,9 +59,9 @@ export const generateTraefikMeDomain = async (
 			projectName: appName,
 		});
 	}
-	const admin = await findUserById(userId);
+	const webServer = await findWebServer();
 	return generateRandomDomain({
-		serverIp: admin?.serverIp || "",
+		serverIp: webServer?.serverIp || "",
 		projectName: appName,
 	});
 };

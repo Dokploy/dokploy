@@ -1,14 +1,13 @@
 import {
 	IS_CLOUD,
 	createApiKey,
-	findOwner,
 	findNotificationById,
 	findOrganizationById,
-	findUserById,
 	getUserByToken,
 	removeUserById,
 	sendEmailNotification,
 	updateUser,
+	findWebServer,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
@@ -148,19 +147,6 @@ export const userRouter = createTRPCRouter({
 
 		return memberResult?.user;
 	}),
-	getServerMetrics: protectedProcedure.query(async ({ ctx }) => {
-		const memberResult = await db.query.member.findFirst({
-			where: and(
-				eq(member.userId, ctx.user.id),
-				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
-			),
-			with: {
-				user: true,
-			},
-		});
-
-		return memberResult?.user;
-	}),
 	update: protectedProcedure
 		.input(apiUpdateUser)
 		.mutation(async ({ input, ctx }) => {
@@ -200,14 +186,6 @@ export const userRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			return await getUserByToken(input.token);
 		}),
-	getMetricsToken: protectedProcedure.query(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.ownerId);
-		return {
-			serverIp: user.serverIp,
-			enabledFeatures: user.enablePaidFeatures,
-			metricsConfig: user?.metricsConfig,
-		};
-	}),
 	remove: protectedProcedure
 		.input(
 			z.object({
@@ -411,11 +389,11 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			const owner = await findOwner();
+			const webServer = await findWebServer();
 			const host =
 				process.env.NODE_ENV === "development"
 					? "http://localhost:3000"
-					: owner.user.host;
+					: webServer.host;
 			const inviteLink = `${host}/invitation?token=${input.invitationId}`;
 
 			const organization = await findOrganizationById(

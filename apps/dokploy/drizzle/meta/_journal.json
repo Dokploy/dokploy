@@ -750,6 +750,13 @@
       "when": 1752358951289,
       "tag": "0106_low_fat_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1752359583291,
+      "tag": "0107_clever_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
+import { findWebServer } from "./web-server";
 
 export const findUserById = async (userId: string) => {
 	const user = await db.query.users.findFirst({
@@ -108,10 +109,10 @@ export const getDokployUrl = async () => {
 	if (IS_CLOUD) {
 		return "https://app.dokploy.com";
 	}
-	const owner = await findOwner();
+	const webServer = await findWebServer();
 
-	if (owner.user.host) {
-		return `https://${owner.user.host}`;
+	if (webServer.host) {
+		return `https://${webServer.host}`;
 	}
-	return `http://${owner.user.serverIp}:${process.env.PORT}`;
+	return `http://${webServer.serverIp}:${process.env.PORT}`;
 };

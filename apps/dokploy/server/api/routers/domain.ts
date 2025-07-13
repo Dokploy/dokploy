@@ -13,9 +13,9 @@ import {
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
-	findOrganizationById,
 	findPreviewDeploymentById,
 	findServerById,
+	findWebServer,
 	generateTraefikMeDomain,
 	manageDomain,
 	removeDomain,
@@ -93,25 +93,19 @@ export const domainRouter = createTRPCRouter({
 		}),
 	generateDomain: protectedProcedure
 		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
-		.mutation(async ({ input, ctx }) => {
-			return generateTraefikMeDomain(
-				input.appName,
-				ctx.user.ownerId,
-				input.serverId,
-			);
+		.mutation(async ({ input }) => {
+			return generateTraefikMeDomain(input.appName, input.serverId);
 		}),
 	canGenerateTraefikMeDomains: protectedProcedure
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input, ctx }) => {
-			const organization = await findOrganizationById(
-				ctx.session.activeOrganizationId,
-			);
+		.query(async ({ input }) => {
+			const webServer = await findWebServer();
 
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				return server.ipAddress;
 			}
-			return organization?.owner.serverIp;
+			return webServer?.serverIp;
 		}),
 
 	update: protectedProcedure

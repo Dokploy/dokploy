@@ -2,7 +2,6 @@ import { relations } from "drizzle-orm";
 import {
 	boolean,
 	integer,
-	jsonb,
 	pgTable,
 	text,
 	timestamp,
@@ -14,7 +13,6 @@ import { account, apikey, organization } from "./account";
 import { backups } from "./backups";
 import { projects } from "./project";
 import { schedules } from "./schedule";
-import { certificateType } from "./shared";
 import { paths } from "@dokploy/server/constants";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -22,8 +20,6 @@ import { paths } from "@dokploy/server/constants";
  *
  * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
  */
-
-// OLD TABLE
 
 // TEMP
 export const users = pgTable("users", {
@@ -36,10 +32,10 @@ export const users = pgTable("users", {
 	expirationDate: text("expirationDate")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	createdAt2: text("createdAt")
+	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	createdAt: timestamp("created_at").defaultNow(),
+	// createdAt: timestamp("created_at").defaultNow(),
 	// Auth
 	twoFactorEnabled: boolean("two_factor_enabled"),
 	email: text("email").notNull().unique(),
@@ -49,74 +45,10 @@ export const users = pgTable("users", {
 	banReason: text("ban_reason"),
 	banExpires: timestamp("ban_expires"),
 	updatedAt: timestamp("updated_at").notNull(),
-	// Admin
-	serverIp: text("serverIp"),
-	certificateType: certificateType("certificateType").notNull().default("none"),
-	https: boolean("https").notNull().default(false),
-	host: text("host"),
-	letsEncryptEmail: text("letsEncryptEmail"),
-	sshPrivateKey: text("sshPrivateKey"),
-	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
 	role: text("role").notNull().default("user"),
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
-	metricsConfig: jsonb("metricsConfig")
-		.$type<{
-			server: {
-				type: "Dokploy" | "Remote";
-				refreshRate: number;
-				port: number;
-				token: string;
-				urlCallback: string;
-				retentionDays: number;
-				cronJob: string;
-				thresholds: {
-					cpu: number;
-					memory: number;
-				};
-			};
-			containers: {
-				refreshRate: number;
-				services: {
-					include: string[];
-					exclude: string[];
-				};
-			};
-		}>()
-		.notNull()
-		.default({
-			server: {
-				type: "Dokploy",
-				refreshRate: 60,
-				port: 4500,
-				token: "",
-				retentionDays: 2,
-				cronJob: "",
-				urlCallback: "",
-				thresholds: {
-					cpu: 0,
-					memory: 0,
-				},
-			},
-			containers: {
-				refreshRate: 60,
-				services: {
-					include: [],
-					exclude: [],
-				},
-			},
-		}),
-	cleanupCacheApplications: boolean("cleanupCacheApplications")
-		.notNull()
-		.default(false),
-	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
-		.notNull()
-		.default(false),
-	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
-		.notNull()
-		.default(false),
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
@@ -199,33 +131,6 @@ export const apiFindOneUserByAuth = createSchema
 		// authId: true,
 	})
 	.required();
-export const apiSaveSSHKey = createSchema
-	.pick({
-		sshPrivateKey: true,
-	})
-	.required();
-
-export const apiAssignDomain = createSchema
-	.pick({
-		host: true,
-		certificateType: true,
-		letsEncryptEmail: true,
-		https: true,
-	})
-	.required()
-	.partial({
-		letsEncryptEmail: true,
-		https: true,
-	});
-
-export const apiUpdateDockerCleanup = createSchema
-	.pick({
-		enableDockerCleanup: true,
-	})
-	.required()
-	.extend({
-		serverId: z.string().optional(),
-	});
 
 export const apiTraefikConfig = z.object({
 	traefikConfig: z.string().min(1),

@@ -1,11 +1,11 @@
 import { findServerById } from "@dokploy/server/services/server";
 import type { ContainerCreateOptions } from "dockerode";
 import { IS_CLOUD } from "../constants";
-import { findUserById } from "../services/admin";
 import { getDokployImageTag } from "../services/settings";
 import { pullImage, pullRemoteImage } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
+import { findWebServer } from "../services/web-server";
 
 export const setupMonitoring = async (serverId: string) => {
 	const server = await findServerById(serverId);
@@ -80,8 +80,8 @@ export const setupMonitoring = async (serverId: string) => {
 	}
 };
 
-export const setupWebMonitoring = async (userId: string) => {
-	const user = await findUserById(userId);
+export const setupWebMonitoring = async () => {
+	const webServer = await findWebServer();
 
 	const containerName = "dokploy-monitoring";
 	let imageName = "dokploy/monitoring:latest";
@@ -96,7 +96,7 @@ export const setupWebMonitoring = async (userId: string) => {
 
 	const settings: ContainerCreateOptions = {
 		name: containerName,
-		Env: [`METRICS_CONFIG=${JSON.stringify(user?.metricsConfig)}`],
+		Env: [`METRICS_CONFIG=${JSON.stringify(webServer?.metricsConfig)}`],
 		Image: imageName,
 		HostConfig: {
 			// Memory: 100 * 1024 * 1024, // 100MB en bytes
@@ -104,9 +104,9 @@ export const setupWebMonitoring = async (userId: string) => {
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
 			PortBindings: {
-				[`${user?.metricsConfig?.server?.port}/tcp`]: [
+				[`${webServer?.metricsConfig?.server?.port}/tcp`]: [
 					{
-						HostPort: user?.metricsConfig?.server?.port.toString(),
+						HostPort: webServer?.metricsConfig?.server?.port.toString(),
 					},
 				],
 			},
@@ -120,7 +120,7 @@ export const setupWebMonitoring = async (userId: string) => {
 			// NetworkMode: "host",
 		},
 		ExposedPorts: {
-			[`${user?.metricsConfig?.server?.port}/tcp`]: {},
+			[`${webServer?.metricsConfig?.server?.port}/tcp`]: {},
 		},
 	};
 	const docker = await getRemoteDocker();

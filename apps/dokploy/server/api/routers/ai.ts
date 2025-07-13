@@ -147,11 +147,10 @@ export const aiRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ input }) => {
 			try {
 				return await suggestVariants({
 					...input,
-					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
