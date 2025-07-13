@@ -222,7 +222,7 @@ export const AddCertificate = () => {
 						/>
 					</form>
 
-					<DialogFooter className="flex w-full flex-row !justify-end pt-3">
+					<DialogFooter className="flex w-full flex-row !justify-end">
 						<Button
 							isLoading={isLoading}
 							form="hook-form-add-certificate"

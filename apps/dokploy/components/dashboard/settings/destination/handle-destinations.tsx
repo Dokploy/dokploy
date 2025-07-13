@@ -359,7 +359,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					<DialogFooter
 						className={cn(
 							isCloud ? "!flex-col" : "flex-row",
-							"flex w-full  !justify-between pt-3 gap-4",
+							"flex w-full  !justify-between gap-4",
 						)}
 					>
 						{isCloud ? (
