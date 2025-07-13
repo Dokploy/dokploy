@@ -84,9 +84,14 @@ export type ApplicationWithGitlab = InferResultType<
 
 export type ComposeWithGitlab = InferResultType<"compose", { gitlab: true }>;
 
-export type GitlabInfo = ApplicationWithGitlab['gitlab'] | ComposeWithGitlab['gitlab'];
+export type GitlabInfo =
+	| ApplicationWithGitlab["gitlab"]
+	| ComposeWithGitlab["gitlab"];
 
-const getGitlabRepoClone = (gitlab: GitlabInfo, gitlabPathNamespace: string | null) => {
+const getGitlabRepoClone = (
+	gitlab: GitlabInfo,
+	gitlabPathNamespace: string | null,
+) => {
 	const repoClone = `${gitlab?.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
 	return repoClone;
 };
@@ -96,7 +101,6 @@ const getGitlabCloneUrl = (gitlab: GitlabInfo, repoClone: string) => {
 	const cloneUrl = `http${isSecure ? "s" : ""}://oauth2:${gitlab?.accessToken}@${repoClone}`;
 	return cloneUrl;
 };
- 
 
 export const cloneGitlabRepository = async (
 	entity: ApplicationWithGitlab | ComposeWithGitlab,
