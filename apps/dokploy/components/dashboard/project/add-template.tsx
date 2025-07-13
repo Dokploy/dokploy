@@ -148,7 +148,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 					<span>Template</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen sm:max-w-[90vw] p-0">
+			<DialogContent className="sm:max-w-[90vw] p-0">
 				<DialogHeader className="sticky top-0 z-10 bg-background p-6 border-b">
 					<div className="flex flex-col space-y-6">
 						<div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

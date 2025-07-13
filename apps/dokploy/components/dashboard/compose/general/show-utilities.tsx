@@ -23,7 +23,7 @@ export const ShowUtilities = ({ composeId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="ghost">Show Utilities</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl">
+			<DialogContent className="sm:max-w-5xl">
 				<DialogHeader>
 					<DialogTitle>Utilities </DialogTitle>
 					<DialogDescription>Modify the application data</DialogDescription>
