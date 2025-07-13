@@ -99,7 +99,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Modify Compose</DialogTitle>
 					<DialogDescription>Update the compose data</DialogDescription>

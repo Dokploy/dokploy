@@ -955,7 +955,7 @@ const Project = (
 											</div>
 										) : (
 											<div className="flex w-full flex-col gap-4">
-												<div className=" gap-5 pb-10  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+												<div className="gap-5 pb-10  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
 													{filteredServices?.map((service) => (
 														<Card
 															key={service.id}

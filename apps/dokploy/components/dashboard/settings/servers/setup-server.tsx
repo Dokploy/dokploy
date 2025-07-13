@@ -88,7 +88,7 @@ export const SetupServer = ({ serverId }: Props) => {
 					Setup Server
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-4xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
 						<DialogTitle className="flex items-center gap-2">
@@ -147,12 +147,12 @@ export const SetupServer = ({ serverId }: Props) => {
 										<li>2. Add The SSH Key to Server Manually</li>
 									</ul>
 									<div className="flex flex-col gap-4 w-full overflow-auto">
-										<div className="flex relative flex-col gap-2 overflow-y-auto">
+										<div className="flex relative flex-col gap-2">
 											<div className="text-sm text-primary flex flex-row gap-2 items-center">
 												Copy Public Key ({server?.sshKey?.name})
 												<button
 													type="button"
-													className=" right-2 top-8"
+													className="right-2 top-8"
 													onClick={() => {
 														copy(
 															server?.sshKey?.publicKey || "Generate a SSH Key",

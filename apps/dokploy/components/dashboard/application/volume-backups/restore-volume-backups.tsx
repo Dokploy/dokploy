@@ -161,7 +161,7 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 					Restore Volume Backup
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />

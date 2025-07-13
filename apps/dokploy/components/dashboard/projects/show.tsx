@@ -158,7 +158,7 @@ export const ShowProjects = () => {
 																		</Button>
 																	</DropdownMenuTrigger>
 																	<DropdownMenuContent
-																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
+																		className="w-[200px] space-y-2 max-h-[400px]"
 																		onClick={(e) => e.stopPropagation()}
 																	>
 																		{project.applications.length > 0 && (
@@ -266,7 +266,7 @@ export const ShowProjects = () => {
 																				</Button>
 																			</DropdownMenuTrigger>
 																			<DropdownMenuContent
-																				className="w-[200px] space-y-2 overflow-y-auto max-h-[280px]"
+																				className="w-[200px] space-y-2 max-h-[280px]"
 																				onClick={(e) => e.stopPropagation()}
 																			>
 																				<DropdownMenuLabel className="font-normal">

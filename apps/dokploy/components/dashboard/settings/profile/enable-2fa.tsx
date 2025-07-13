@@ -186,7 +186,7 @@ export const Enable2FA = () => {
 					Enable 2FA
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-xl">
+			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>2FA Setup</DialogTitle>
 					<DialogDescription>
