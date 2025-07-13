@@ -88,7 +88,6 @@ import { Button } from "../ui/button";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
-// The types of the queries we are going to use
 type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
 
 type SingleNavItem = {
@@ -102,10 +101,6 @@ type SingleNavItem = {
 	}) => boolean;
 };
 
-// NavItem type
-// Consists of a single item or a group of items
-// If `isSingle` is true or undefined, the item is a single item
-// If `isSingle` is false, the item is a group of items
 type NavItem =
 	| SingleNavItem
 	| {
@@ -119,8 +114,6 @@ type NavItem =
 			}) => boolean;
 	  };
 
-// ExternalLink type
-// Represents an external link item (used for the help section)
 type ExternalLink = {
 	name: string;
 	url: string;
@@ -131,18 +124,12 @@ type ExternalLink = {
 	}) => boolean;
 };
 
-// Menu type
-// Consists of home, settings, and help items
 type Menu = {
 	home: NavItem[];
 	settings: NavItem[];
 	help: ExternalLink[];
 };
 
-// Menu items
-// Consists of unfiltered home, settings, and help items
-// The items are filtered based on the user's role and permissions
-// The `isEnabled` function is called to determine if the item should be displayed
 const MENU: Menu = {
 	home: [
 		{
@@ -206,62 +193,6 @@ const MENU: Menu = {
 			isEnabled: ({ auth, isCloud }) =>
 				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
-
-		// Legacy unused menu, adjusted to the new structure
-		// {
-		// 	isSingle: true,
-		// 	title: "Projects",
-		// 	url: "/dashboard/projects",
-		// 	icon: Folder,
-		// },
-		// {
-		// 	isSingle: true,
-		// 	title: "Monitoring",
-		// 	icon: BarChartHorizontalBigIcon,
-		// 	url: "/dashboard/settings/monitoring",
-		// },
-		// {
-		//   isSingle: false,
-		//   title: "Settings",
-		//   icon: Settings2,
-		//   items: [
-		//     {
-		//       title: "Profile",
-		//       url: "/dashboard/settings/profile",
-		//     },
-		//     {
-		//       title: "Users",
-		//       url: "/dashboard/settings/users",
-		//     },
-		//     {
-		//       title: "SSH Key",
-		//       url: "/dashboard/settings/ssh-keys",
-		//     },
-		//     {
-		//       title: "Git",
-		//       url: "/dashboard/settings/git-providers",
-		//     },
-		//   ],
-		// },
-		// {
-		//   isSingle: false,
-		//   title: "Integrations",
-		//   icon: BlocksIcon,
-		//   items: [
-		//     {
-		//       title: "S3 Destinations",
-		//       url: "/dashboard/settings/destinations",
-		//     },
-		//     {
-		//       title: "Registry",
-		//       url: "/dashboard/settings/registry",
-		//     },
-		//     {
-		//       title: "Notifications",
-		//       url: "/dashboard/settings/notifications",
-		//     },
-		//   ],
-		// },
 	],
 
 	settings: [
@@ -505,6 +436,7 @@ function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
+	console.log(user);
 	const { data: session } = authClient.useSession();
 
 	const {

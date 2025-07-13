@@ -59,7 +59,7 @@ export const removeRoleById = async (roleId: string) => {
 	});
 
 	if (members.length > 0) {
-		throw new Error("Cannot delete role with members");
+		throw new Error("Cannot delete role with assigned members");
 	}
 
 	await db.delete(role).where(eq(role.roleId, roleId));
@@ -75,6 +75,10 @@ export const updateRoleById = async (
 
 	if (!currentRole) {
 		throw new Error("Role not found");
+	}
+
+	if (currentRole.isSystem) {
+		throw new Error("Cannot update system role");
 	}
 
 	await db.update(role).set(input).where(eq(role.roleId, roleId));

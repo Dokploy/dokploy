@@ -52,6 +52,12 @@ export const PERMISSIONS = {
 			description: "Access API",
 		},
 	},
+	SCHEDULES: {
+		ACCESS: {
+			name: "schedules:access",
+			description: "Access schedules",
+		},
+	},
 } as const;
 
 export const ownerPermissions = [
@@ -62,6 +68,7 @@ export const ownerPermissions = [
 	PERMISSIONS.SERVICE.CREATE,
 	PERMISSIONS.SERVICE.DELETE,
 	PERMISSIONS.TRAEFIK.ACCESS,
+	PERMISSIONS.SCHEDULES.ACCESS,
 ] as const;
 
 export const adminPermissions = [
@@ -74,6 +81,7 @@ export const adminPermissions = [
 	PERMISSIONS.TRAEFIK.ACCESS,
 	PERMISSIONS.DOCKER.VIEW,
 	PERMISSIONS.API.ACCESS,
+	PERMISSIONS.SCHEDULES.ACCESS,
 ] as const;
 
 export const memberPermissions = [

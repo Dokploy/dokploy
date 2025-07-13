@@ -102,6 +102,7 @@ export const userRouter = createTRPCRouter({
 				eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
 			),
 			with: {
+				role: true,
 				user: {
 					with: {
 						apiKeys: true,
