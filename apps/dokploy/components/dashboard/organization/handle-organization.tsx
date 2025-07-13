@@ -169,7 +169,7 @@ export function AddOrganization({ organizationId }: Props) {
 								</FormItem>
 							)}
 						/>
-						<DialogFooter className="mt-4">
+						<DialogFooter>
 							<Button type="submit" isLoading={isLoading}>
 								{organizationId ? "Update organization" : "Create organization"}
 							</Button>
