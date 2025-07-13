@@ -171,7 +171,7 @@ export const ShowBilling = () => {
 													)}
 													{isAnnual ? (
 														<div className="flex flex-row gap-2 items-center">
-															<p classname="text-2xl font-semibold tracking-tight text-primary ">
+															<p className="text-2xl font-semibold tracking-tight text-primary ">
 																${" "}
 																{calculatePrice(
 																	serverQuantity,
@@ -180,7 +180,7 @@ export const ShowBilling = () => {
 																USD
 															</p>
 															|
-															<p classname="text-base font-semibold tracking-tight text-muted-foreground">
+															<p className="text-base font-semibold tracking-tight text-muted-foreground">
 																${" "}
 																{(
 																	calculatePrice(serverQuantity, isAnnual) / 12
@@ -189,7 +189,7 @@ export const ShowBilling = () => {
 															</p>
 														</div>
 													) : (
-														<p classname="text-2xl font-semibold tracking-tight text-primary ">
+														<p className="text-2xl font-semibold tracking-tight text-primary ">
 															${" "}
 															{calculatePrice(serverQuantity, isAnnual).toFixed(
 																2,

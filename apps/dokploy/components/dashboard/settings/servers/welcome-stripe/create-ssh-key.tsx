@@ -122,7 +122,7 @@ export const CreateSSHKey = () => {
 												Copy Public Key
 												<button
 													type="button"
-													classname="right-2 top-8"
+													className="right-2 top-8"
 													onClick={() => {
 														copy(
 															cloudSSHKey?.publicKey || "Generate a SSH Key",

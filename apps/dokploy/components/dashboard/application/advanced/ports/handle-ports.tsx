@@ -124,7 +124,7 @@ export const HandlePorts = ({
 					<Button>{children}</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent classname="sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Ports</DialogTitle>
 					<DialogDescription>

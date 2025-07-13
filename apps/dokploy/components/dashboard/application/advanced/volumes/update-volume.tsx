@@ -186,7 +186,7 @@ export const UpdateVolume = ({
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent classname="sm:max-w-3xl">
+			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Update</DialogTitle>
 					<DialogDescription>Update the mount</DialogDescription>

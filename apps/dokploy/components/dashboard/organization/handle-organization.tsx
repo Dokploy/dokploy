@@ -155,7 +155,7 @@ export function AddOrganization({ organizationId }: Props) {
 							control={form.control}
 							name="logo"
 							render={({ field }) => (
-								<FormItem classname="gap-4">
+								<FormItem className="gap-4">
 									<FormLabel className="text-right">Logo URL</FormLabel>
 									<FormControl>
 										<Input

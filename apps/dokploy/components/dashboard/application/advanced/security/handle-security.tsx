@@ -114,7 +114,7 @@ export const HandleSecurity = ({
 					<Button>{children}</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent classname="sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Security</DialogTitle>
 					<DialogDescription>

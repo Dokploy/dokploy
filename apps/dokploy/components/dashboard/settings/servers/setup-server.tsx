@@ -152,7 +152,7 @@ export const SetupServer = ({ serverId }: Props) => {
 												Copy Public Key ({server?.sshKey?.name})
 												<button
 													type="button"
-													classname="right-2 top-8"
+													className="right-2 top-8"
 													onClick={() => {
 														copy(
 															server?.sshKey?.publicKey || "Generate a SSH Key",

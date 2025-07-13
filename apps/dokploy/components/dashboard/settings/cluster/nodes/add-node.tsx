@@ -27,7 +27,7 @@ export const AddNode = ({ serverId }: Props) => {
 					Add Node
 				</Button>
 			</DialogTrigger>
-			<DialogContent classname="sm:max-w-4xl">
+			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Add Node</DialogTitle>
 					<DialogDescription className="flex flex-col gap-2">
