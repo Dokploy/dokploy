@@ -1,5 +1,5 @@
 {
-  "id": "6f7f4450-7a3f-4827-981d-1a609d1091e0",
+  "id": "56c5008e-c689-4a20-9f3d-06a06e9a5e39",
   "prevId": "218e3c9b-ef86-4665-98af-56d65282b73b",
   "version": "7",
   "dialect": "postgresql",
@@ -4737,6 +4737,14 @@
           "nullsNotDistinct": false,
           "columns": [
             "name"
+          ]
+        },
+        "role_name_unique": {
+          "name": "role_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name",
+            "organizationId"
           ]
         }
       },

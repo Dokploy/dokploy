@@ -8,8 +8,10 @@ CREATE TABLE "member_role" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	"organizationId" text NOT NULL,
-	CONSTRAINT "member_role_name_unique" UNIQUE("name")
+	CONSTRAINT "member_role_name_unique" UNIQUE("name"),
+	CONSTRAINT "role_name_unique" UNIQUE("name","organizationId")
 );
+
 -- Create default roles for each organization
 DO $$
 DECLARE
@@ -18,7 +20,7 @@ BEGIN
     FOR org IN SELECT id FROM "organization"
     LOOP
         -- Insert owner role
-        INSERT INTO "organization_role" ("roleId", "name", "description", "canDelete", "is_system", "permissions", "created_at", "updated_at", "organizationId")
+        INSERT INTO "member_role" ("roleId", "name", "description", "canDelete", "is_system", "permissions", "created_at", "updated_at", "organizationId")
         VALUES (
             org.id || '_owner',
             'owner',
@@ -32,7 +34,7 @@ BEGIN
         );
 
         -- Insert admin role
-        INSERT INTO "organization_role" ("roleId", "name", "description", "canDelete", "is_system", "permissions", "created_at", "updated_at", "organizationId")
+        INSERT INTO "member_role" ("roleId", "name", "description", "canDelete", "is_system", "permissions", "created_at", "updated_at", "organizationId")
         VALUES (
             org.id || '_admin',
             'admin',
@@ -46,7 +48,7 @@ BEGIN
         );
 
         -- Insert member role
-        INSERT INTO "organization_role" ("roleId", "name", "description", "canDelete", "is_system", "permissions", "created_at", "updated_at", "organizationId")
+        INSERT INTO "member_role" ("roleId", "name", "description", "canDelete", "is_system", "permissions", "created_at", "updated_at", "organizationId")
         VALUES (
             org.id || '_member',
             'member',
@@ -60,7 +62,6 @@ BEGIN
         );
     END LOOP;
 END $$;
-
 
 
 
@@ -97,27 +98,9 @@ ALTER TABLE "apikey" ADD CONSTRAINT "apikey_user_id_users_id_fk" FOREIGN KEY ("u
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_inviter_id_users_id_fk" FOREIGN KEY ("inviter_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "member" ADD CONSTRAINT "member_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "member" ADD CONSTRAINT "member_roleId_member_role_roleId_fk" FOREIGN KEY ("roleId") REFERENCES "public"."member_role"("roleId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-
--- Update existing members with corresponding roles based on their current role type
-DO $$
-DECLARE
-    mem RECORD;
-BEGIN
-    FOR mem IN SELECT m.id, m.organization_id, m.role as role_type FROM "member" m
-    LOOP
-        UPDATE "member"
-        SET "roleId" = mem.organization_id || '_' || mem.role_type
-        WHERE id = mem.id;
-    END LOOP;
-END $$;
-ALTER TABLE "member" ALTER COLUMN "roleId" SET NOT NULL;
-
-
 ALTER TABLE "organization" ADD CONSTRAINT "organization_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "two_factor" ADD CONSTRAINT "two_factor_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "schedule" ADD CONSTRAINT "schedule_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-
-
 
 --> statement-breakpoint
 CREATE TABLE "web_server" (
@@ -133,7 +116,6 @@ CREATE TABLE "web_server" (
 	"metricsConfig" jsonb DEFAULT '{"server":{"type":"Dokploy","refreshRate":60,"port":4500,"token":"","retentionDays":2,"cronJob":"","urlCallback":"","thresholds":{"cpu":0,"memory":0}},"containers":{"refreshRate":60,"services":{"include":[],"exclude":[]}}}'::jsonb NOT NULL
 );
 
--- Migrar datos del usuario owner único hacia web_server
 INSERT INTO "web_server" (
 	"webServerId", 
 	"serverIp", 
