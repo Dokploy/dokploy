@@ -271,7 +271,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-5xl p-0">
-				<DialogHeader className="p-6">
+				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
 						Update certain settings using a json object.
