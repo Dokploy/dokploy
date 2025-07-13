@@ -185,7 +185,7 @@ export const ShowImport = ({ composeId }: Props) => {
 								</Button>
 							</div>
 							<Dialog open={showModal} onOpenChange={setShowModal}>
-								<DialogContent className="max-h-[80vh] max-w-[50vw] overflow-y-auto">
+								<DialogContent className="max-h-[80vh] max-w-[50vw]">
 									<DialogHeader>
 										<DialogTitle className="text-2xl font-bold">
 											Template Information
