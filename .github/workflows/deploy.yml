@@ -2,7 +2,8 @@ name: Build Docker images
 
 on:
   push:
-    branches: ["canary", "main", "feat/monitoring"]
+    branches: [main, canary]
+  workflow_dispatch:
 
 jobs:
   build-and-push-cloud-image:
