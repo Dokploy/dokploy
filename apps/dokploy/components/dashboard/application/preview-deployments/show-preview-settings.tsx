@@ -330,7 +330,12 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 													</FormLabel>
 													<FormDescription>
 														Require collaborator permissions to preview
-														deployments.
+														deployments, valid roles are:
+														<ul>
+															<li>Admin</li>
+															<li>Maintain</li>
+															<li>Write</li>
+														</ul>
 													</FormDescription>
 												</div>
 												<FormControl>
