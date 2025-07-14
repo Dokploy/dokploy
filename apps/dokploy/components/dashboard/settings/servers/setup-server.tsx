@@ -147,7 +147,7 @@ export const SetupServer = ({ serverId }: Props) => {
 										<li>2. Add The SSH Key to Server Manually</li>
 									</ul>
 									<div className="flex flex-col gap-4 w-full overflow-auto">
-										<div className="flex relative flex-col gap-2">
+										<div className="flex relative flex-col gap-2 overflow-y-auto">
 											<div className="text-sm text-primary flex flex-row gap-2 items-center">
 												Copy Public Key ({server?.sshKey?.name})
 												<button
