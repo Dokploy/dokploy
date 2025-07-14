@@ -29,6 +29,7 @@ const baseApp: ApplicationNested = {
 	herokuVersion: "",
 	giteaBranch: "",
 	giteaBuildPath: "",
+	previewRequireCollaboratorPermissions: false,
 	giteaId: "",
 	giteaOwner: "",
 	giteaRepository: "",

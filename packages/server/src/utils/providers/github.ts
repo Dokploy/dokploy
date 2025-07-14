@@ -45,6 +45,49 @@ export const getGithubToken = async (
 	return installation.token;
 };
 
+/**
+ * Check if a GitHub user has write/admin permissions on a repository
+ * This is used to validate PR authors before allowing preview deployments
+ */
+export const checkUserRepositoryPermissions = async (
+	githubProvider: Github,
+	owner: string,
+	repo: string,
+	username: string,
+): Promise<{ hasWriteAccess: boolean; permission: string | null }> => {
+	try {
+		const octokit = authGithub(githubProvider);
+
+		// Check if user is a collaborator with write permissions
+		const { data: permission } =
+			await octokit.rest.repos.getCollaboratorPermissionLevel({
+				owner,
+				repo,
+				username,
+			});
+
+		// Allow only users with 'write', 'admin', or 'maintain' permissions
+		// Currently exists Read, Triage, Write, Maintain, Admin
+		const allowedPermissions = ["write", "admin", "maintain"];
+		const hasWriteAccess = allowedPermissions.includes(permission.permission);
+
+		return {
+			hasWriteAccess,
+			permission: permission.permission,
+		};
+	} catch (error) {
+		// If user is not a collaborator, GitHub API returns 404
+		console.warn(
+			`User ${username} is not a collaborator of ${owner}/${repo}:`,
+			error,
+		);
+		return {
+			hasWriteAccess: false,
+			permission: null,
+		};
+	}
+};
+
 export const haveGithubRequirements = (githubProvider: Github) => {
 	return !!(
 		githubProvider?.githubAppId &&
