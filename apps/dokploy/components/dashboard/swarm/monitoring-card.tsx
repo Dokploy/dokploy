@@ -128,7 +128,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 										</div>
 									</TooltipTrigger>
 									<TooltipContent>
-										<div className="max-h-48">
+										<div className="max-h-48 overflow-y-auto">
 											{activeNodes.map((node) => (
 												<div key={node.ID} className="flex items-center gap-2">
 													{node.Hostname}
@@ -162,7 +162,7 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 										</div>
 									</TooltipTrigger>
 									<TooltipContent>
-										<div className="max-h-48">
+										<div className="max-h-48 overflow-y-auto">
 											{managerNodes.map((node) => (
 												<div key={node.ID} className="flex items-center gap-2">
 													{node.Hostname}
