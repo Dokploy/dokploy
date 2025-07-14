@@ -443,7 +443,7 @@ export default async function handler(
 
 			for (const app of secureApps) {
 				const previewLimit = app?.previewLimit || 0;
-				if (app?.previewDeployments?.length >= previewLimit) {
+				if (app?.previewDeployments?.length > previewLimit) {
 					continue;
 				}
 				const previewDeploymentResult =
