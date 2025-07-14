@@ -1,6 +1,6 @@
 {
-  "id": "84fb0854-3c32-4cbb-bd47-f4b9a448db29",
-  "prevId": "8bf085dd-e054-4ae6-811b-1d1a68dab752",
+  "id": "eb8757ed-8e33-4c3c-bfd4-fff7f18d4d90",
+  "prevId": "d1e4809b-a6bd-44a0-a28c-0d8dde26c919",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -475,13 +475,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'nixpacks'"
-        },
-        "railpackVersion": {
-          "name": "railpackVersion",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0.2.2'"
         },
         "herokuVersion": {
           "name": "herokuVersion",
@@ -1000,6 +993,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "metricsConfig": {
           "name": "metricsConfig",
@@ -4459,6 +4459,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'root'"
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "appName": {
           "name": "appName",
