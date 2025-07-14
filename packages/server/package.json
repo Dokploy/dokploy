@@ -105,5 +105,10 @@
     "tsc-alias": "1.8.10",
     "tsx": "^4.16.2",
     "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": "^20.16.0",
+    "pnpm": ">=9.12.0"
   }
 }
