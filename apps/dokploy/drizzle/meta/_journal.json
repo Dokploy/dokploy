@@ -722,6 +722,13 @@
       "when": 1751858284187,
       "tag": "0102_good_prism",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1752492857067,
+      "tag": "0103_simple_cerise",
+      "breakpoints": true
     }
   ]
 }
