@@ -105,7 +105,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
+			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Update GitLab <GitlabIcon className="size-5" />
@@ -156,7 +156,9 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									name="groupName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Group Name (Optional)</FormLabel>
+											<FormLabel>
+												Group Name (Optional, Comma-Separated List)
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="For organization/group access use the slugish name of the group eg: my-org"

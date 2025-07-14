@@ -71,8 +71,8 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 			isolatedDeployment: formData?.isolatedDeployment || false,
 		})
 			.then(async (_data) => {
-				randomizeCompose();
-				refetch();
+				await randomizeCompose();
+				await refetch();
 				toast.success("Compose updated");
 			})
 			.catch(() => {
@@ -84,15 +84,10 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			suffix: data?.appName || "",
-		})
-			.then(async (data) => {
-				await utils.project.all.invalidate();
-				setCompose(data);
-				toast.success("Compose Isolated");
-			})
-			.catch(() => {
-				toast.error("Error isolating the compose");
-			});
+		}).then(async (data) => {
+			await utils.project.all.invalidate();
+			setCompose(data);
+		});
 	};
 
 	return (
@@ -147,9 +142,11 @@ export const IsolatedDeployment = ({ composeId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="mt-4 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 										<div className="space-y-0.5">
-											<FormLabel>Enable Randomize ({data?.appName})</FormLabel>
+											<FormLabel>
+												Enable Isolated Deployment ({data?.appName})
+											</FormLabel>
 											<FormDescription>
-												Enable randomize to the compose file.
+												Enable isolated deployment to the compose file.
 											</FormDescription>
 										</div>
 										<FormControl>

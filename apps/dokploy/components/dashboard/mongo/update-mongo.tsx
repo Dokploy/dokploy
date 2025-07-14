@@ -99,7 +99,7 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Modify MongoDB</DialogTitle>
 					<DialogDescription>Update the MongoDB data</DialogDescription>
@@ -121,7 +121,7 @@ export const UpdateMongo = ({ mongoId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input placeholder="Tesla" {...field} />
+												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
 
 											<FormMessage />

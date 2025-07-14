@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -108,6 +110,20 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">
+						{!getIp && (
+							<AlertBlock type="warning">
+								You need to set an IP address in your{" "}
+								<Link
+									href="/dashboard/settings/server"
+									className="text-primary"
+								>
+									{data?.serverId
+										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
+										: "Web Server -> Server -> Update Server IP"}
+								</Link>{" "}
+								to fix the database url connection.
+							</AlertBlock>
+						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}

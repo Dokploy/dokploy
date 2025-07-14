@@ -19,13 +19,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
@@ -44,7 +37,6 @@ interface Props {
 const PortSchema = z.object({
 	targetPort: z.number().min(1, "Target port is required"),
 	publishedPort: z.number().min(1, "Published port is required"),
-	publishMode: z.enum(["ingress", "host"]),
 });
 
 const TraefikPortsSchema = z.object({
@@ -88,7 +80,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 	}, [currentPorts, form]);
 
 	const handleAddPort = () => {
-		append({ targetPort: 0, publishedPort: 0, publishMode: "host" });
+		append({ targetPort: 0, publishedPort: 0 });
 	};
 
 	const onSubmit = async (data: TraefikPortsForm) => {
@@ -99,9 +91,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 			});
 			toast.success(t("settings.server.webServer.traefik.portsUpdated"));
 			setOpen(false);
-		} catch (_error) {
-			toast.error(t("settings.server.webServer.traefik.portsUpdateError"));
-		}
+		} catch {}
 	};
 
 	return (
@@ -154,7 +144,7 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										<div className="grid gap-4">
 											{fields.map((field, index) => (
 												<Card key={field.id}>
-													<CardContent className="grid grid-cols-[1fr_1fr_1.5fr_auto] gap-4 p-4 transparent">
+													<CardContent className="grid grid-cols-[1fr_1fr_auto] gap-4 p-4 transparent">
 														<FormField
 															control={form.control}
 															name={`ports.${index}.targetPort`}
@@ -169,9 +159,15 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																		<Input
 																			type="number"
 																			{...field}
-																			onChange={(e) =>
-																				field.onChange(Number(e.target.value))
-																			}
+																			onChange={(e) => {
+																				const value = e.target.value;
+																				field.onChange(
+																					value === ""
+																						? undefined
+																						: Number(value),
+																				);
+																			}}
+																			value={field.value || ""}
 																			className="w-full dark:bg-black"
 																			placeholder="e.g. 8080"
 																		/>
@@ -195,46 +191,19 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																		<Input
 																			type="number"
 																			{...field}
-																			onChange={(e) =>
-																				field.onChange(Number(e.target.value))
-																			}
+																			onChange={(e) => {
+																				const value = e.target.value;
+																				field.onChange(
+																					value === ""
+																						? undefined
+																						: Number(value),
+																				);
+																			}}
+																			value={field.value || ""}
 																			className="w-full dark:bg-black"
 																			placeholder="e.g. 80"
 																		/>
 																	</FormControl>
-																	<FormMessage />
-																</FormItem>
-															)}
-														/>
-
-														<FormField
-															control={form.control}
-															name={`ports.${index}.publishMode`}
-															render={({ field }) => (
-																<FormItem>
-																	<FormLabel className="text-sm font-medium text-muted-foreground">
-																		{t(
-																			"settings.server.webServer.traefik.publishMode",
-																		)}
-																	</FormLabel>
-																	<Select
-																		onValueChange={field.onChange}
-																		value={field.value}
-																	>
-																		<FormControl>
-																			<SelectTrigger className="dark:bg-black">
-																				<SelectValue />
-																			</SelectTrigger>
-																		</FormControl>
-																		<SelectContent>
-																			<SelectItem value="host">
-																				Host Mode
-																			</SelectItem>
-																			<SelectItem value="ingress">
-																				Ingress Mode
-																			</SelectItem>
-																		</SelectContent>
-																	</Select>
 																	<FormMessage />
 																</FormItem>
 															)}
@@ -263,30 +232,23 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 											<span className="text-sm">
 												<strong>
 													Each port mapping defines how external traffic reaches
-													your containers.
+													your containers through Traefik.
 												</strong>
 												<ul className="pt-2">
 													<li>
-														<strong>Host Mode:</strong> Directly binds the port
-														to the host machine.
-														<ul className="p-2 list-inside list-disc">
-															<li>
-																Best for single-node deployments or when you
-																need guaranteed port availability.
-															</li>
-														</ul>
+														<strong>Target Port:</strong> The port inside your
+														container that the service is listening on.
 													</li>
 													<li>
-														<strong>Ingress Mode:</strong> Routes through Docker
-														Swarm's load balancer.
-														<ul className="p-2 list-inside list-disc">
-															<li>
-																Recommended for multi-node deployments and
-																better scalability.
-															</li>
-														</ul>
+														<strong>Published Port:</strong> The port on your
+														host machine that will be mapped to the target port.
 													</li>
 												</ul>
+												<p className="mt-2">
+													All ports are bound directly to the host machine,
+													allowing Traefik to handle incoming traffic and route
+													it appropriately to your services.
+												</p>
 											</span>
 										</div>
 									</AlertBlock>

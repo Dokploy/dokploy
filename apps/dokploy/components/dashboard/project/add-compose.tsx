@@ -124,7 +124,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 					<span>Compose</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-xl">
+			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>Create Compose</DialogTitle>
 					<DialogDescription>
@@ -152,10 +152,8 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 												{...field}
 												onChange={(e) => {
 													const val = e.target.value?.trim() || "";
-													form.setValue(
-														"appName",
-														`${slug}-${val.toLowerCase()}`,
-													);
+													const serviceName = slugify(val);
+													form.setValue("appName", `${slug}-${serviceName}`);
 													field.onChange(val);
 												}}
 											/>

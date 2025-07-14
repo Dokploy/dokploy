@@ -1,5 +1,3 @@
-import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -10,9 +8,9 @@ import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/g
 import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MariadbIcon } from "@/components/icons/data-tools-icons";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -184,7 +182,7 @@ const Mariadb = (
 										router.push(newPath, undefined, { shallow: true });
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
@@ -273,16 +271,15 @@ const Mariadb = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={mariadbId} type="mariadb" />
+											<ShowBackups id={mariadbId} databaseType="mariadb" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<div className="flex w-full flex-col gap-5">
-												<ShowCustomCommand id={mariadbId} type="mariadb" />
-												<ShowVolumes id={mariadbId} type="mariadb" />
-												<ShowResources id={mariadbId} type="mariadb" />
-											</div>
+											<ShowDatabaseAdvancedSettings
+												id={mariadbId}
+												type="mariadb"
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -297,7 +294,7 @@ const Mariadb = (
 
 export default Mariadb;
 Mariadb.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
@@ -341,7 +338,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

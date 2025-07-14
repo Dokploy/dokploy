@@ -4,14 +4,17 @@ import {
 	apiCreateMySql,
 	apiDeployMySql,
 	apiFindOneMySql,
+	apiRebuildMysql,
 	apiResetMysql,
 	apiSaveEnvironmentVariablesMySql,
 	apiSaveExternalPortMySql,
 	apiUpdateMySql,
+	mysql as mysqlTable,
 } from "@/server/db/schema";
 
 import { TRPCError } from "@trpc/server";
 
+import { db } from "@/server/db";
 import { cancelJobs } from "@/server/utils/backup";
 import {
 	IS_CLOUD,
@@ -23,6 +26,7 @@ import {
 	findBackupsByDbId,
 	findMySqlById,
 	findProjectById,
+	rebuildDatabase,
 	removeMySqlById,
 	removeService,
 	startService,
@@ -32,13 +36,15 @@ import {
 	updateMySqlById,
 } from "@dokploy/server";
 import { observable } from "@trpc/server/observable";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMySql)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -63,7 +69,7 @@ export const mysqlRouter = createTRPCRouter({
 				}
 
 				const newMysql = await createMysql(input);
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
 						newMysql.mysqlId,
@@ -94,7 +100,7 @@ export const mysqlRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMySql)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mysqlId,
@@ -254,7 +260,7 @@ export const mysqlRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mysqlId,
@@ -329,6 +335,64 @@ export const mysqlRouter = createTRPCRouter({
 					message: "Update: Error updating MySQL",
 				});
 			}
+
+			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				mysqlId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mysql",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the mysql's projectId
+			const updatedMysql = await db
+				.update(mysqlTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(mysqlTable.mysqlId, input.mysqlId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedMysql) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move mysql",
+				});
+			}
+
+			return updatedMysql;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildMysql)
+		.mutation(async ({ input, ctx }) => {
+			const mysql = await findMySqlById(input.mysqlId);
+			if (mysql.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this MySQL database",
+				});
+			}
+
+			await rebuildDatabase(mysql.mysqlId, "mysql");
 
 			return true;
 		}),

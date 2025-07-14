@@ -1,18 +1,16 @@
-import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
 import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
 import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
 import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
 import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
+import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -184,7 +182,7 @@ const Postgresql = (
 										router.push(newPath, undefined, { shallow: true });
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
@@ -235,33 +233,9 @@ const Postgresql = (
 													/>
 												) : (
 													<>
-														{/* {monitoring?.enabledFeatures && (
-															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
-																<Label className="text-muted-foreground">
-																	Change Monitoring
-																</Label>
-																<Switch
-																	checked={toggleMonitoring}
-																	onCheckedChange={setToggleMonitoring}
-																/>
-															</div>
-														)}
-
-														{toggleMonitoring ? (
-															<ContainerPaidMonitoring
-																appName={data?.appName || ""}
-																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																token={
-																	monitoring?.metricsConfig?.server?.token || ""
-																}
-															/>
-														) : (
-															<div> */}
 														<ContainerFreeMonitoring
 															appName={data?.appName || ""}
 														/>
-														{/* </div> */}
-														{/* )} */}
 													</>
 												)}
 											</div>
@@ -277,16 +251,19 @@ const Postgresql = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={postgresId} type="postgres" />
+											<ShowBackups
+												id={postgresId}
+												databaseType="postgres"
+												backupType="database"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<div className="flex w-full flex-col gap-5 ">
-												<ShowCustomCommand id={postgresId} type="postgres" />
-												<ShowVolumes id={postgresId} type="postgres" />
-												<ShowResources id={postgresId} type="postgres" />
-											</div>
+											<ShowDatabaseAdvancedSettings
+												id={postgresId}
+												type="postgres"
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -301,7 +278,7 @@ const Postgresql = (
 
 export default Postgresql;
 Postgresql.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
@@ -344,7 +321,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

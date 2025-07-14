@@ -1,13 +1,16 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangePostgresStatus,
 	apiCreatePostgres,
 	apiDeployPostgres,
 	apiFindOnePostgres,
+	apiRebuildPostgres,
 	apiResetPostgres,
 	apiSaveEnvironmentVariablesPostgres,
 	apiSaveExternalPortPostgres,
 	apiUpdatePostgres,
+	postgres as postgresTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 import {
@@ -20,6 +23,7 @@ import {
 	findBackupsByDbId,
 	findPostgresById,
 	findProjectById,
+	rebuildDatabase,
 	removePostgresById,
 	removeService,
 	startService,
@@ -30,13 +34,14 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreatePostgres)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -60,7 +65,7 @@ export const postgresRouter = createTRPCRouter({
 					});
 				}
 				const newPostgres = await createPostgres(input);
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
 						newPostgres.postgresId,
@@ -91,7 +96,7 @@ export const postgresRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOnePostgres)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.postgresId,
@@ -239,7 +244,7 @@ export const postgresRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.postgresId,
@@ -349,6 +354,68 @@ export const postgresRouter = createTRPCRouter({
 					message: "Error updating Postgres",
 				});
 			}
+
+			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				postgresId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (
+				postgres.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this postgres",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the postgres's projectId
+			const updatedPostgres = await db
+				.update(postgresTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(postgresTable.postgresId, input.postgresId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedPostgres) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move postgres",
+				});
+			}
+
+			return updatedPostgres;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildPostgres)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (
+				postgres.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this Postgres database",
+				});
+			}
+
+			await rebuildDatabase(postgres.postgresId, "postgres");
 
 			return true;
 		}),

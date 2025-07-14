@@ -35,6 +35,7 @@ export const findBackupById = async (backupId: string) => {
 			mariadb: true,
 			mongo: true,
 			destination: true,
+			compose: true,
 		},
 	});
 	if (!backup) {

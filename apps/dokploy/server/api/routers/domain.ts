@@ -13,12 +13,15 @@ import {
 	findDomainById,
 	findDomainsByApplicationId,
 	findDomainsByComposeId,
+	findOrganizationById,
 	findPreviewDeploymentById,
+	findServerById,
 	generateTraefikMeDomain,
 	manageDomain,
 	removeDomain,
 	removeDomainById,
 	updateDomainById,
+	validateDomain,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -54,7 +57,10 @@ export const domainRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error creating the domain",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error creating the domain",
 					cause: error,
 				});
 			}
@@ -93,6 +99,19 @@ export const domainRouter = createTRPCRouter({
 				ctx.user.ownerId,
 				input.serverId,
 			);
+		}),
+	canGenerateTraefikMeDomains: protectedProcedure
+		.input(z.object({ serverId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			const organization = await findOrganizationById(
+				ctx.session.activeOrganizationId,
+			);
+
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				return server.ipAddress;
+			}
+			return organization?.owner.serverIp;
 		}),
 
 	update: protectedProcedure
@@ -208,5 +227,16 @@ export const domainRouter = createTRPCRouter({
 			}
 
 			return result;
+		}),
+
+	validateDomain: protectedProcedure
+		.input(
+			z.object({
+				domain: z.string(),
+				serverIp: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			return validateDomain(input.domain, input.serverIp);
 		}),
 });

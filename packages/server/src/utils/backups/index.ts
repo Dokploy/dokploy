@@ -1,3 +1,4 @@
+import path from "node:path";
 import { getAllServers } from "@dokploy/server/services/server";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
@@ -7,19 +8,29 @@ import {
 	cleanUpUnusedImages,
 } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
-import { runMariadbBackup } from "./mariadb";
-import { runMongoBackup } from "./mongo";
-import { runMySqlBackup } from "./mysql";
-import { runPostgresBackup } from "./postgres";
-import { findAdmin } from "../../services/admin";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { getS3Credentials, scheduleBackup } from "./utils";
+
+import { member } from "@dokploy/server/db/schema";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
+import { eq } from "drizzle-orm";
 import { startLogCleanup } from "../access-log/handler";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");
 
-	const admin = await findAdmin();
+	const admin = await db.query.member.findFirst({
+		where: eq(member.role, "owner"),
+		with: {
+			user: true,
+		},
+	});
 
-	if (admin?.user.enableDockerCleanup) {
+	if (!admin) {
+		return;
+	}
+
+	if (admin.user.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
@@ -51,126 +62,68 @@ export const initCronJobs = async () => {
 		}
 	}
 
-	const pgs = await db.query.postgres.findMany({
+	const backups = await db.query.backups.findMany({
 		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
+			destination: true,
+			postgres: true,
+			mariadb: true,
+			mysql: true,
+			mongo: true,
+			user: true,
+			compose: true,
 		},
 	});
-	for (const pg of pgs) {
-		for (const backup of pg.backups) {
-			const { schedule, backupId, enabled, database } = backup;
-			if (enabled) {
+
+	for (const backup of backups) {
+		try {
+			if (backup.enabled) {
+				scheduleBackup(backup);
 				console.log(
-					`[Backup] Postgres DB ${pg.name} for ${database} Activated`,
+					`[Backup] ${backup.databaseType} Enabled with cron: [${backup.schedule}]`,
 				);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`PG-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					runPostgresBackup(pg, backup);
-				});
 			}
-		}
-	}
-
-	const mariadbs = await db.query.mariadb.findMany({
-		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
-		},
-	});
-
-	for (const maria of mariadbs) {
-		for (const backup of maria.backups) {
-			const { schedule, backupId, enabled, database } = backup;
-			if (enabled) {
-				console.log(
-					`[Backup] MariaDB DB ${maria.name} for ${database} Activated`,
-				);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`MARIADB-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					await runMariadbBackup(maria, backup);
-				});
-			}
-		}
-	}
-
-	const mongodbs = await db.query.mongo.findMany({
-		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
-		},
-	});
-
-	for (const mongo of mongodbs) {
-		for (const backup of mongo.backups) {
-			const { schedule, backupId, enabled } = backup;
-			if (enabled) {
-				console.log(`[Backup] MongoDB DB ${mongo.name} Activated`);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`MONGO-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					await runMongoBackup(mongo, backup);
-				});
-			}
-		}
-	}
-
-	const mysqls = await db.query.mysql.findMany({
-		with: {
-			backups: {
-				with: {
-					destination: true,
-					postgres: true,
-					mariadb: true,
-					mysql: true,
-					mongo: true,
-				},
-			},
-		},
-	});
-
-	for (const mysql of mysqls) {
-		for (const backup of mysql.backups) {
-			const { schedule, backupId, enabled } = backup;
-			if (enabled) {
-				console.log(`[Backup] MySQL DB ${mysql.name} Activated`);
-				scheduleJob(backupId, schedule, async () => {
-					console.log(
-						`MYSQL-SERVER[${new Date().toLocaleString()}] Running Backup ${backupId}`,
-					);
-					await runMySqlBackup(mysql, backup);
-				});
-			}
+		} catch (error) {
+			console.error(`[Backup] ${backup.databaseType} Error`, error);
 		}
 	}
 
 	if (admin?.user.logCleanupCron) {
+		console.log("Starting log requests cleanup", admin.user.logCleanupCron);
 		await startLogCleanup(admin.user.logCleanupCron);
+	}
+};
+
+export const keepLatestNBackups = async (
+	backup: BackupSchedule,
+	serverId?: string | null,
+) => {
+	// 0 also immediately returns which is good as the empty "keep latest" field in the UI
+	// is saved as 0 in the database
+	if (!backup.keepLatestCount) return;
+
+	try {
+		const rcloneFlags = getS3Credentials(backup.destination);
+		const backupFilesPath = path.join(
+			`:s3:${backup.destination.bucket}`,
+			backup.prefix,
+		);
+
+		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
+		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
+		// when we pipe the above command with this one, we only get the list of files we want to delete
+		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
+		// this command deletes the files
+		// to test the deletion before actually deleting we can add --dry-run before ${backupFilesPath}/{}
+		const rcloneDelete = `rclone delete ${rcloneFlags.join(" ")} ${backupFilesPath}/{}`;
+
+		const rcloneCommand = `${rcloneList} | ${sortAndPickUnwantedBackups} ${rcloneDelete}`;
+
+		if (serverId) {
+			await execAsyncRemote(serverId, rcloneCommand);
+		} else {
+			await execAsync(rcloneCommand);
+		}
+	} catch (error) {
+		console.error(error);
 	}
 };

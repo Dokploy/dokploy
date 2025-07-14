@@ -112,15 +112,17 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 				toast.error("Error generating the SSH Key");
 			});
 
-	const downloadKey = (
-		content: string,
-		defaultFilename: string,
-		keyType: "private" | "public",
-	) => {
+	const downloadKey = (content: string, keyType: "private" | "public") => {
 		const keyName = form.watch("name");
+		const publicKey = form.watch("publicKey");
+
+		// Extract algorithm type from public key
+		const isEd25519 = publicKey.startsWith("ssh-ed25519");
+		const defaultName = isEd25519 ? "id_ed25519" : "id_rsa";
+
 		const filename = keyName
-			? `${keyName}${sshKeyId ? `_${sshKeyId}` : ""}_${keyType}_${defaultFilename}`
-			: `${keyType}_${defaultFilename}`;
+			? `${keyName}${sshKeyId ? `_${sshKeyId}` : ""}_${keyType}_${defaultName}${keyType === "public" ? ".pub" : ""}`
+			: `${defaultName}${keyType === "public" ? ".pub" : ""}`;
 		const blob = new Blob([content], { type: "text/plain" });
 		const url = window.URL.createObjectURL(blob);
 		const a = document.createElement("a");
@@ -150,7 +152,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>SSH Key</DialogTitle>
 					<DialogDescription className="space-y-4">
@@ -273,7 +275,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 										variant="outline"
 										size="default"
 										onClick={() =>
-											downloadKey(form.watch("privateKey"), "id_rsa", "private")
+											downloadKey(form.watch("privateKey"), "private")
 										}
 										className="flex items-center gap-2"
 									>
@@ -287,11 +289,7 @@ export const HandleSSHKeys = ({ sshKeyId }: Props) => {
 										variant="outline"
 										size="default"
 										onClick={() =>
-											downloadKey(
-												form.watch("publicKey"),
-												"id_rsa.pub",
-												"public",
-											)
+											downloadKey(form.watch("publicKey"), "public")
 										}
 										className="flex items-center gap-2"
 									>

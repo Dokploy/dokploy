@@ -115,7 +115,7 @@ export const AddGitlabProvider = () => {
 					<span>GitLab</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-2xl  ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						GitLab Provider <GitlabIcon className="size-5" />
@@ -248,7 +248,9 @@ export const AddGitlabProvider = () => {
 									name="groupName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Group Name (Optional)</FormLabel>
+											<FormLabel>
+												Group Name (Optional, Comma-Separated List)
+											</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="For organization/group access use the slugish name of the group eg: my-org"

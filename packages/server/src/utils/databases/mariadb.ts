@@ -31,7 +31,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		mounts,
 	} = mariadb;
 
-	const defaultMariadbEnv = `MARIADB_DATABASE=${databaseName}\nMARIADB_USER=${databaseUser}\nMARIADB_PASSWORD=${databasePassword}\nMARIADB_ROOT_PASSWORD=${databaseRootPassword}${
+	const defaultMariadbEnv = `MARIADB_DATABASE="${databaseName}"\nMARIADB_USER="${databaseUser}"\nMARIADB_PASSWORD="${databasePassword}"\nMARIADB_ROOT_PASSWORD="${databaseRootPassword}"${
 		env ? `\n${env}` : ""
 	}`;
 	const resources = calculateResources({
@@ -98,7 +98,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
 		});
-	} catch (_error) {
+	} catch {
 		await docker.createService(settings);
 	}
 };

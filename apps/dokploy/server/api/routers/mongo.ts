@@ -1,13 +1,16 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangeMongoStatus,
 	apiCreateMongo,
 	apiDeployMongo,
 	apiFindOneMongo,
+	apiRebuildMongo,
 	apiResetMongo,
 	apiSaveEnvironmentVariablesMongo,
 	apiSaveExternalPortMongo,
 	apiUpdateMongo,
+	mongo as mongoTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 import {
@@ -28,15 +31,17 @@ import {
 	stopServiceRemote,
 	updateMongoById,
 } from "@dokploy/server";
+import { rebuildDatabase } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMongo)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -60,7 +65,7 @@ export const mongoRouter = createTRPCRouter({
 					});
 				}
 				const newMongo = await createMongo(input);
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
 						newMongo.mongoId,
@@ -91,7 +96,7 @@ export const mongoRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMongo)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mongoId,
@@ -256,7 +261,7 @@ export const mongoRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOneMongo)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mongoId,
@@ -333,6 +338,64 @@ export const mongoRouter = createTRPCRouter({
 					message: "Update: Error updating Mongo",
 				});
 			}
+
+			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				mongoId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mongo",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the mongo's projectId
+			const updatedMongo = await db
+				.update(mongoTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(mongoTable.mongoId, input.mongoId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedMongo) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move mongo",
+				});
+			}
+
+			return updatedMongo;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildMongo)
+		.mutation(async ({ input, ctx }) => {
+			const mongo = await findMongoById(input.mongoId);
+			if (mongo.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this MongoDB database",
+				});
+			}
+
+			await rebuildDatabase(mongo.mongoId, "mongo");
 
 			return true;
 		}),

@@ -14,7 +14,10 @@ import {
 import { beforeEach, expect, test, vi } from "vitest";
 
 const baseAdmin: User = {
+	https: false,
 	enablePaidFeatures: false,
+	allowImpersonation: false,
+	role: "user",
 	metricsConfig: {
 		containers: {
 			refreshRate: 20,
@@ -73,7 +76,6 @@ beforeEach(() => {
 
 test("Should read the configuration file", () => {
 	const config: FileConfig = loadOrCreateConfig("dokploy");
-
 	expect(config.http?.routers?.["dokploy-router-app"]?.service).toBe(
 		"dokploy-service-app",
 	);
@@ -83,6 +85,7 @@ test("Should apply redirect-to-https", () => {
 	updateServerTraefik(
 		{
 			...baseAdmin,
+			https: true,
 			certificateType: "letsencrypt",
 		},
 		"example.com",

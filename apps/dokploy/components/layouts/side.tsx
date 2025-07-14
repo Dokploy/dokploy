@@ -10,6 +10,7 @@ import {
 	ChevronRight,
 	ChevronsUpDown,
 	CircleHelp,
+	Clock,
 	CreditCard,
 	Database,
 	Folder,
@@ -157,6 +158,14 @@ const MENU: Menu = {
 			icon: BarChartHorizontalBigIcon,
 			// Only enabled in non-cloud environments
 			isEnabled: ({ isCloud }) => !isCloud,
+		},
+		{
+			isSingle: true,
+			title: "Schedules",
+			url: "/dashboard/schedules",
+			icon: Clock,
+			// Only enabled in non-cloud environments
+			isEnabled: ({ isCloud, auth }) => !isCloud && auth?.role === "owner",
 		},
 		{
 			isSingle: true,
@@ -496,7 +505,6 @@ function SidebarLogo() {
 	const { state } = useSidebar();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
-	// const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 	const { data: session } = authClient.useSession();
 
 	const {
@@ -772,6 +780,7 @@ export default function Page({ children }: Props) {
 	const pathname = usePathname();
 	const _currentPath = router.pathname;
 	const { data: auth } = api.user.get.useQuery();
+	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -908,7 +917,7 @@ export default function Page({ children }: Props) {
 					</SidebarGroup>
 					<SidebarGroup>
 						<SidebarGroupLabel>Settings</SidebarGroupLabel>
-						<SidebarMenu className="gap-2">
+						<SidebarMenu className="gap-1">
 							{filteredSettings.map((item) => {
 								const isSingle = item.isSingle !== false;
 								const isActive = isSingle
@@ -1028,6 +1037,16 @@ export default function Page({ children }: Props) {
 						<SidebarMenuItem>
 							<UserNav />
 						</SidebarMenuItem>
+						{dokployVersion && (
+							<>
+								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+									Version {dokployVersion}
+								</div>
+								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
+									{dokployVersion}
+								</div>
+							</>
+						)}
 					</SidebarMenu>
 				</SidebarFooter>
 				<SidebarRail />
@@ -1058,7 +1077,7 @@ export default function Page({ children }: Props) {
 					</header>
 				)}
 
-				<div className="flex flex-col w-full gap-4 p-4 pt-0">{children}</div>
+				<div className="flex flex-col w-full p-4 pt-0">{children}</div>
 			</SidebarInset>
 		</SidebarProvider>
 	);

@@ -283,7 +283,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					<span>Database</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen md:max-h-[90vh]  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="md:max-h-[90vh]  sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Databases</DialogTitle>
 				</DialogHeader>
@@ -363,10 +363,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value?.trim() || "";
-														form.setValue(
-															"appName",
-															`${slug}-${val.toLowerCase()}`,
-														);
+														const serviceName = slugify(val);
+														form.setValue("appName", `${slug}-${serviceName}`);
 														field.onChange(val);
 													}}
 												/>
@@ -494,7 +492,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<Input
 													type="password"
 													placeholder="******************"
-													autoComplete="off"
+													autoComplete="one-time-code"
 													{...field}
 												/>
 											</FormControl>

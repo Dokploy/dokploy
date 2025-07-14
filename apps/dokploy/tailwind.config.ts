@@ -15,12 +15,15 @@ const config = {
 			center: true,
 			padding: "2rem",
 			screens: {
-				"2xl": "1400px",
+				"2xl": "87.5rem",
 			},
 		},
 		extend: {
 			fontFamily: {
 				sans: ["var(--font-inter)", ...defaultTheme.fontFamily.sans],
+			},
+			screens: {
+				"3xl": "1920px",
 			},
 			maxWidth: {
 				"2xl": "40rem",

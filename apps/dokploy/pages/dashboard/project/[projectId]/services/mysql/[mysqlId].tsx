@@ -1,5 +1,3 @@
-import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -10,9 +8,9 @@ import { ShowExternalMysqlCredentials } from "@/components/dashboard/mysql/gener
 import { ShowGeneralMysql } from "@/components/dashboard/mysql/general/show-general-mysql";
 import { ShowInternalMysqlCredentials } from "@/components/dashboard/mysql/general/show-internal-mysql-credentials";
 import { UpdateMysql } from "@/components/dashboard/mysql/update-mysql";
-import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MysqlIcon } from "@/components/icons/data-tools-icons";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -185,7 +183,7 @@ const MySql = (
 											router.push(newPath, undefined, { shallow: true });
 										}}
 									>
-										<div className="flex flex-row items-center justify-between  w-full gap-4">
+										<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 											<TabsList
 												className={cn(
 													"md:grid md:w-fit max-md:overflow-y-scroll justify-start ",
@@ -236,33 +234,9 @@ const MySql = (
 														/>
 													) : (
 														<>
-															{/* {monitoring?.enabledFeatures && (
-															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
-																<Label className="text-muted-foreground">
-																	Change Monitoring
-																</Label>
-																<Switch
-																	checked={toggleMonitoring}
-																	onCheckedChange={setToggleMonitoring}
-																/>
-															</div>
-														)}
-
-														{toggleMonitoring ? (
-															<ContainerPaidMonitoring
-																appName={data?.appName || ""}
-																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																token={
-																	monitoring?.metricsConfig?.server?.token || ""
-																}
-															/>
-														) : (
-															<div> */}
 															<ContainerFreeMonitoring
 																appName={data?.appName || ""}
 															/>
-															{/* </div> */}
-															{/* )} */}
 														</>
 													)}
 												</div>
@@ -278,16 +252,19 @@ const MySql = (
 										</TabsContent>
 										<TabsContent value="backups">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowBackups id={mysqlId} type="mysql" />
+												<ShowBackups
+													id={mysqlId}
+													databaseType="mysql"
+													backupType="database"
+												/>
 											</div>
 										</TabsContent>
 										<TabsContent value="advanced">
 											<div className="flex flex-col gap-4 pt-2.5">
-												<div className="flex w-full flex-col gap-5">
-													<ShowCustomCommand id={mysqlId} type="mysql" />
-													<ShowVolumes id={mysqlId} type="mysql" />
-													<ShowResources id={mysqlId} type="mysql" />
-												</div>
+												<ShowDatabaseAdvancedSettings
+													id={mysqlId}
+													type="mysql"
+												/>
 											</div>
 										</TabsContent>
 									</Tabs>
@@ -303,7 +280,7 @@ const MySql = (
 
 export default MySql;
 MySql.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
@@ -347,7 +324,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

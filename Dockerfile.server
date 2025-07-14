@@ -1,7 +1,9 @@
-FROM node:20.9-slim AS base
+# syntax=docker/dockerfile:1
+FROM node:20.16.0-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
+RUN corepack prepare pnpm@9.12.0 --activate
 
 FROM base AS build
 COPY . /usr/src/app

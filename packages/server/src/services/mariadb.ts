@@ -5,7 +5,7 @@ import {
 	mariadb,
 } from "@dokploy/server/db/schema";
 import { buildAppName } from "@dokploy/server/db/schema";
-import { generatePassword } from "@dokploy/server/templates/utils";
+import { generatePassword } from "@dokploy/server/templates";
 import { buildMariadb } from "@dokploy/server/utils/databases/mariadb";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
@@ -63,6 +63,7 @@ export const findMariadbById = async (mariadbId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

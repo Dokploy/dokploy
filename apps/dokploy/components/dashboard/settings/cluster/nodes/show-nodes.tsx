@@ -32,13 +32,25 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { Boxes, HelpCircle, LockIcon, MoreHorizontal } from "lucide-react";
+import {
+	Boxes,
+	HelpCircle,
+	Loader2,
+	LockIcon,
+	MoreHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AddNode } from "./add-node";
 import { ShowNodeData } from "./show-node-data";
 
-export const ShowNodes = () => {
-	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery();
+interface Props {
+	serverId?: string;
+}
+
+export const ShowNodes = ({ serverId }: Props) => {
+	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery({
+		serverId,
+	});
 	const { data: registry } = api.registry.all.useQuery();
 
 	const { mutateAsync: deleteNode } = api.cluster.removeWorker.useMutation();
@@ -58,21 +70,24 @@ export const ShowNodes = () => {
 						</div>
 						{haveAtLeastOneRegistry && (
 							<div className="flex flex-row gap-2">
-								<AddNode />
+								<AddNode serverId={serverId} />
 							</div>
 						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t min-h-[35vh]">
-						{haveAtLeastOneRegistry ? (
+						{isLoading ? (
+							<div className="flex items-center justify-center w-full h-[40vh]">
+								<Loader2 className="size-8 animate-spin text-muted-foreground" />
+							</div>
+						) : haveAtLeastOneRegistry ? (
 							<div className="grid md:grid-cols-1 gap-4">
-								{isLoading && <div>Loading...</div>}
 								<Table>
 									<TableCaption>
 										A list of your managers / workers.
 									</TableCaption>
 									<TableHeader>
 										<TableRow>
-											<TableHead className="w-[100px]">Hostname</TableHead>
+											<TableHead className="text-left">Hostname</TableHead>
 											<TableHead className="text-right">Status</TableHead>
 											<TableHead className="text-right">Role</TableHead>
 											<TableHead className="text-right">Availability</TableHead>
@@ -89,7 +104,7 @@ export const ShowNodes = () => {
 											const isManager = node.Spec.Role === "manager";
 											return (
 												<TableRow key={node.ID}>
-													<TableCell className="w-[100px]">
+													<TableCell className="text-left">
 														{node.Description.Hostname}
 													</TableCell>
 													<TableCell className="text-right">
@@ -129,7 +144,7 @@ export const ShowNodes = () => {
 															<DropdownMenuContent align="end">
 																<DropdownMenuLabel>Actions</DropdownMenuLabel>
 																<ShowNodeData data={node} />
-																{node?.ManagerStatus?.Leader && (
+																{!node?.ManagerStatus?.Leader && (
 																	<DialogAction
 																		title="Delete Node"
 																		description="Are you sure you want to delete this node from the cluster?"
@@ -137,6 +152,7 @@ export const ShowNodes = () => {
 																		onClick={async () => {
 																			await deleteNode({
 																				nodeId: node.ID,
+																				serverId,
 																			})
 																				.then(() => {
 																					refetch();

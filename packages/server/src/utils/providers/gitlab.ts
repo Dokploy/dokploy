@@ -84,14 +84,38 @@ export type ApplicationWithGitlab = InferResultType<
 
 export type ComposeWithGitlab = InferResultType<"compose", { gitlab: true }>;
 
+export type GitlabInfo =
+	| ApplicationWithGitlab["gitlab"]
+	| ComposeWithGitlab["gitlab"];
+
+const getGitlabRepoClone = (
+	gitlab: GitlabInfo,
+	gitlabPathNamespace: string | null,
+) => {
+	const repoClone = `${gitlab?.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
+	return repoClone;
+};
+
+const getGitlabCloneUrl = (gitlab: GitlabInfo, repoClone: string) => {
+	const isSecure = gitlab?.gitlabUrl.startsWith("https://");
+	const cloneUrl = `http${isSecure ? "s" : ""}://oauth2:${gitlab?.accessToken}@${repoClone}`;
+	return cloneUrl;
+};
+
 export const cloneGitlabRepository = async (
 	entity: ApplicationWithGitlab | ComposeWithGitlab,
 	logPath: string,
 	isCompose = false,
 ) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { appName, gitlabBranch, gitlabId, gitlab, gitlabPathNamespace } =
-		entity;
+	const {
+		appName,
+		gitlabBranch,
+		gitlabId,
+		gitlab,
+		gitlabPathNamespace,
+		enableSubmodules,
+	} = entity;
 
 	if (!gitlabId) {
 		throw new TRPCError({
@@ -122,33 +146,30 @@ export const cloneGitlabRepository = async (
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const repoclone = `${gitlab?.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
-	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
-
+	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
+	const cloneUrl = getGitlabCloneUrl(gitlab, repoClone);
 	try {
-		writeStream.write(`\nClonning Repo ${repoclone} to ${outputPath}: ✅\n`);
-		await spawnAsync(
-			"git",
-			[
-				"clone",
-				"--branch",
-				gitlabBranch!,
-				"--depth",
-				"1",
-				"--recurse-submodules",
-				cloneUrl,
-				outputPath,
-				"--progress",
-			],
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-		);
-		writeStream.write(`\nCloned ${repoclone}: ✅\n`);
+		writeStream.write(`\nCloning Repo ${repoClone} to ${outputPath}: ✅\n`);
+		const cloneArgs = [
+			"clone",
+			"--branch",
+			gitlabBranch!,
+			"--depth",
+			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
+			cloneUrl,
+			outputPath,
+			"--progress",
+		];
+
+		await spawnAsync("git", cloneArgs, (data) => {
+			if (writeStream.writable) {
+				writeStream.write(data);
+			}
+		});
+		writeStream.write(`\nCloned ${repoClone}: ✅\n`);
 	} catch (error) {
-		writeStream.write(`ERROR Clonning: ${error}: ❌`);
+		writeStream.write(`ERROR Cloning: ${error}: ❌`);
 		throw error;
 	} finally {
 		writeStream.end();
@@ -167,6 +188,7 @@ export const getGitlabCloneCommand = async (
 		gitlabId,
 		serverId,
 		gitlab,
+		enableSubmodules,
 	} = entity;
 
 	if (!serverId) {
@@ -216,17 +238,16 @@ export const getGitlabCloneCommand = async (
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const repoclone = `${gitlab?.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
-	const cloneUrl = `https://oauth2:${gitlab?.accessToken}@${repoclone}`;
-
+	const repoClone = getGitlabRepoClone(gitlab, gitlabPathNamespace);
+	const cloneUrl = getGitlabCloneUrl(gitlab, repoClone);
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${gitlabBranch} --depth 1 --recurse-submodules --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
+if ! git clone --branch ${gitlabBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+	echo "❌ [ERROR] Fail to clone the repository ${repoClone}" >> ${logPath};
 	exit 1;
 fi
-echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
+echo "Cloned ${repoClone} to ${outputPath}: ✅" >> ${logPath};
 	`;
 
 	return cloneCommand;
@@ -241,30 +262,18 @@ export const getGitlabRepositories = async (gitlabId?: string) => {
 
 	const gitlabProvider = await findGitlabById(gitlabId);
 
-	const response = await fetch(
-		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
-		{
-			headers: {
-				Authorization: `Bearer ${gitlabProvider.accessToken}`,
-			},
-		},
-	);
+	const allProjects = await validateGitlabProvider(gitlabProvider);
 
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch repositories: ${response.statusText}`,
-		});
-	}
-
-	const repositories = await response.json();
-
-	const filteredRepos = repositories.filter((repo: any) => {
+	const filteredRepos = allProjects.filter((repo: any) => {
 		const { full_path, kind } = repo.namespace;
 		const groupName = gitlabProvider.groupName?.toLowerCase();
 
 		if (groupName) {
-			return full_path.toLowerCase().includes(groupName) && kind === "group";
+			return groupName
+				.split(",")
+				.some((name) =>
+					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
+				);
 		}
 		return kind === "user";
 	});
@@ -326,7 +335,13 @@ export const getGitlabBranches = async (input: {
 };
 
 export const cloneRawGitlabRepository = async (entity: Compose) => {
-	const { appName, gitlabBranch, gitlabId, gitlabPathNamespace } = entity;
+	const {
+		appName,
+		gitlabBranch,
+		gitlabId,
+		gitlabPathNamespace,
+		enableSubmodules,
+	} = entity;
 
 	if (!gitlabId) {
 		throw new TRPCError({
@@ -341,30 +356,35 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
-	const gitlabUrl = gitlabProvider.gitlabUrl;
-	// What happen with oauth in self hosted instances?
-	const repoclone = `${gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
-	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
-
+	const repoClone = getGitlabRepoClone(gitlabProvider, gitlabPathNamespace);
+	const cloneUrl = getGitlabCloneUrl(gitlabProvider, repoClone);
 	try {
-		await spawnAsync("git", [
+		const cloneArgs = [
 			"clone",
 			"--branch",
 			gitlabBranch!,
 			"--depth",
 			"1",
-			"--recurse-submodules",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
-		]);
+		];
+		await spawnAsync("git", cloneArgs);
 	} catch (error) {
 		throw error;
 	}
 };
 
 export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
-	const { appName, gitlabPathNamespace, branch, gitlabId, serverId } = compose;
+	const {
+		appName,
+		gitlabPathNamespace,
+		branch,
+		gitlabId,
+		serverId,
+		enableSubmodules,
+	} = compose;
 
 	if (!serverId) {
 		throw new TRPCError({
@@ -383,12 +403,12 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	await refreshGitlabToken(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
-	const repoclone = `${gitlabProvider.gitlabUrl.replace(/^https?:\/\//, "")}/${gitlabPathNamespace}.git`;
-	const cloneUrl = `https://oauth2:${gitlabProvider?.accessToken}@${repoclone}`;
+	const repoClone = getGitlabRepoClone(gitlabProvider, gitlabPathNamespace);
+	const cloneUrl = getGitlabCloneUrl(gitlabProvider, repoClone);
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${branch} --depth 1 --recurse-submodules ${cloneUrl} ${outputPath}
+			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
@@ -409,32 +429,64 @@ export const testGitlabConnection = async (
 
 	const gitlabProvider = await findGitlabById(gitlabId);
 
-	const response = await fetch(
-		`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${0}&per_page=${100}`,
-		{
-			headers: {
-				Authorization: `Bearer ${gitlabProvider.accessToken}`,
-			},
-		},
-	);
-
-	if (!response.ok) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Failed to fetch repositories: ${response.statusText}`,
-		});
-	}
-
-	const repositories = await response.json();
+	const repositories = await validateGitlabProvider(gitlabProvider);
 
 	const filteredRepos = repositories.filter((repo: any) => {
 		const { full_path, kind } = repo.namespace;
 
 		if (groupName) {
-			return full_path.toLowerCase().includes(groupName) && kind === "group";
+			return groupName
+				.split(",")
+				.some((name) =>
+					full_path.toLowerCase().startsWith(name.trim().toLowerCase()),
+				);
 		}
 		return kind === "user";
 	});
 
 	return filteredRepos.length;
+};
+
+export const validateGitlabProvider = async (gitlabProvider: Gitlab) => {
+	try {
+		const allProjects = [];
+		let page = 1;
+		const perPage = 100; // GitLab's max per page is 100
+
+		while (true) {
+			const response = await fetch(
+				`${gitlabProvider.gitlabUrl}/api/v4/projects?membership=true&owned=true&page=${page}&per_page=${perPage}`,
+				{
+					headers: {
+						Authorization: `Bearer ${gitlabProvider.accessToken}`,
+					},
+				},
+			);
+
+			if (!response.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Failed to fetch repositories: ${response.statusText}`,
+				});
+			}
+
+			const projects = await response.json();
+
+			if (projects.length === 0) {
+				break;
+			}
+
+			allProjects.push(...projects);
+			page++;
+
+			const total = response.headers.get("x-total");
+			if (total && allProjects.length >= Number.parseInt(total)) {
+				break;
+			}
+		}
+
+		return allProjects;
+	} catch (error) {
+		throw error;
+	}
 };

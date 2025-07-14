@@ -1,13 +1,16 @@
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangeMariaDBStatus,
 	apiCreateMariaDB,
 	apiDeployMariaDB,
 	apiFindOneMariaDB,
+	apiRebuildMariadb,
 	apiResetMariadb,
 	apiSaveEnvironmentVariablesMariaDB,
 	apiSaveExternalPortMariaDB,
 	apiUpdateMariaDB,
+	mariadb as mariadbTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
 import {
@@ -28,15 +31,17 @@ import {
 	stopServiceRemote,
 	updateMariadbById,
 } from "@dokploy/server";
+import { rebuildDatabase } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
 						input.projectId,
@@ -60,7 +65,7 @@ export const mariadbRouter = createTRPCRouter({
 					});
 				}
 				const newMariadb = await createMariadb(input);
-				if (ctx.user.rol === "member") {
+				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
 						newMariadb.mariadbId,
@@ -87,7 +92,7 @@ export const mariadbRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.query(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mariadbId,
@@ -214,7 +219,7 @@ export const mariadbRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
-			if (ctx.user.rol === "member") {
+			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
 					input.mariadbId,
@@ -320,6 +325,63 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
+			return true;
+		}),
+	move: protectedProcedure
+		.input(
+			z.object({
+				mariadbId: z.string(),
+				targetProjectId: z.string(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move this mariadb",
+				});
+			}
+
+			const targetProject = await findProjectById(input.targetProjectId);
+			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to move to this project",
+				});
+			}
+
+			// Update the mariadb's projectId
+			const updatedMariadb = await db
+				.update(mariadbTable)
+				.set({
+					projectId: input.targetProjectId,
+				})
+				.where(eq(mariadbTable.mariadbId, input.mariadbId))
+				.returning()
+				.then((res) => res[0]);
+
+			if (!updatedMariadb) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to move mariadb",
+				});
+			}
+
+			return updatedMariadb;
+		}),
+	rebuild: protectedProcedure
+		.input(apiRebuildMariadb)
+		.mutation(async ({ input, ctx }) => {
+			const mariadb = await findMariadbById(input.mariadbId);
+			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to rebuild this MariaDB database",
+				});
+			}
+
+			await rebuildDatabase(mariadb.mariadbId, "mariadb");
 			return true;
 		}),
 });

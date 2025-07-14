@@ -12,11 +12,13 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
+import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +62,8 @@ type TabState =
 	| "deployments"
 	| "domains"
 	| "monitoring"
-	| "preview-deployments";
+	| "preview-deployments"
+	| "volume-backups";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -108,13 +111,13 @@ const Service = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="flex flex-row justify-between items-center">
 							<div className="flex flex-col">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
-										<div className="absolute -right-1  -top-2">
+										<div className="absolute -right-1 -top-2">
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
@@ -215,22 +218,17 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
-										<TabsList
-											className={cn(
-												"flex gap-8 justify-start max-xl:overflow-x-scroll overflow-y-hidden",
-												isCloud && data?.serverId
-													? "md:grid-cols-7"
-													: data?.serverId
-														? "md:grid-cols-6"
-														: "md:grid-cols-7",
-											)}
-										>
+									<div className="flex flex-row items-center justify-between w-full overflow-auto">
+										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="preview-deployments">
 												Preview Deployments
+											</TabsTrigger>
+											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="volume-backups">
+												Volume Backups
 											</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
@@ -301,16 +299,38 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="logs">
-										<div className="flex flex-col gap-4  pt-2.5">
+										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowDockerLogs
 												appName={data?.appName || ""}
 												serverId={data?.serverId || ""}
 											/>
 										</div>
 									</TabsContent>
-									<TabsContent value="deployments" className="w-full">
+									<TabsContent value="schedules">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDeployments applicationId={applicationId} />
+											<ShowSchedules
+												id={applicationId}
+												scheduleType="application"
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="deployments" className="w-full pt-2.5">
+										<div className="flex flex-col gap-4 border rounded-lg">
+											<ShowDeployments
+												id={applicationId}
+												type="application"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="volume-backups" className="w-full pt-2.5">
+										<div className="flex flex-col gap-4 border rounded-lg">
+											<ShowVolumeBackups
+												id={applicationId}
+												type="application"
+												serverId={data?.serverId || ""}
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="preview-deployments" className="w-full">
@@ -320,7 +340,7 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="domains" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains applicationId={applicationId} />
+											<ShowDomains id={applicationId} type="application" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
@@ -348,7 +368,7 @@ const Service = (
 
 export default Service;
 Service.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
@@ -398,7 +418,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

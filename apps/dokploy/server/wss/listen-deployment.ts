@@ -61,7 +61,6 @@ export const setupDeploymentLogsWebSocketServer = (
 							}
 							stream
 								.on("close", () => {
-									console.log("Connection closed ✅");
 									client.end();
 									ws.close();
 								})
@@ -86,7 +85,6 @@ export const setupDeploymentLogsWebSocketServer = (
 					});
 
 				ws.on("close", () => {
-					console.log("Connection closed ✅, From WS");
 					client.end();
 				});
 			} else {
@@ -103,7 +101,7 @@ export const setupDeploymentLogsWebSocketServer = (
 					ws.close();
 				});
 			}
-		} catch (_error) {
+		} catch {
 			// @ts-ignore
 			// const errorMessage = error?.message as unknown as string;
 			// ws.send(errorMessage);

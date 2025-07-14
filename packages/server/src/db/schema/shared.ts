@@ -10,4 +10,7 @@ export const applicationStatus = pgEnum("applicationStatus", [
 export const certificateType = pgEnum("certificateType", [
 	"letsencrypt",
 	"none",
+	"custom",
 ]);
+
+export const triggerType = pgEnum("triggerType", ["push", "tag"]);

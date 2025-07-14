@@ -5,7 +5,7 @@ import {
 	postgres,
 } from "@dokploy/server/db/schema";
 import { buildAppName } from "@dokploy/server/db/schema";
-import { generatePassword } from "@dokploy/server/templates/utils";
+import { generatePassword } from "@dokploy/server/templates";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
@@ -58,6 +58,7 @@ export const findPostgresById = async (postgresId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

@@ -1,5 +1,3 @@
-import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
-import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -10,9 +8,9 @@ import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/gener
 import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ShowCustomCommand } from "@/components/dashboard/postgres/advanced/show-custom-command";
+import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
 import { MongodbIcon } from "@/components/icons/data-tools-icons";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
@@ -185,7 +183,7 @@ const Mongo = (
 										router.push(newPath, undefined, { shallow: true });
 									}}
 								>
-									<div className="flex flex-row items-center justify-between  w-full gap-4">
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
 										<TabsList
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
@@ -274,16 +272,16 @@ const Mongo = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={mongoId} type="mongo" />
+											<ShowBackups
+												id={mongoId}
+												databaseType="mongo"
+												backupType="database"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<div className="flex w-full flex-col gap-5 ">
-												<ShowCustomCommand id={mongoId} type="mongo" />
-												<ShowVolumes id={mongoId} type="mongo" />
-												<ShowResources id={mongoId} type="mongo" />
-											</div>
+											<ShowDatabaseAdvancedSettings id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -298,7 +296,7 @@ const Mongo = (
 
 export default Mongo;
 Mongo.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
@@ -342,7 +340,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

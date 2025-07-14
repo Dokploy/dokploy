@@ -28,7 +28,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		mounts,
 	} = redis;
 
-	const defaultRedisEnv = `REDIS_PASSWORD=${databasePassword}${
+	const defaultRedisEnv = `REDIS_PASSWORD="${databasePassword}"${
 		env ? `\n${env}` : ""
 	}`;
 	const resources = calculateResources({
@@ -95,7 +95,7 @@ export const buildRedis = async (redis: RedisNested) => {
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
 		});
-	} catch (_error) {
+	} catch {
 		await docker.createService(settings);
 	}
 };

@@ -6,10 +6,9 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	initCronJobs,
+	initSchedules,
+	initVolumeBackupsCronJobs,
 	initializeNetwork,
-	initializePostgres,
-	initializeRedis,
-	initializeTraefik,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -24,6 +23,7 @@ import { setupTerminalWebSocketServer } from "./wss/terminal";
 
 config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
+const HOST = process.env.HOST || "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
@@ -49,15 +49,10 @@ void app.prepare().then(async () => {
 			await initializeNetwork();
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
-			await initializePostgres();
-			await initializeTraefik();
-			await initializeRedis();
-
-			initCronJobs();
-
-			// Timeout to wait for the database to be ready
-			await new Promise((resolve) => setTimeout(resolve, 7000));
 			await migration();
+			await initCronJobs();
+			await initSchedules();
+			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
 		}
 
@@ -65,8 +60,8 @@ void app.prepare().then(async () => {
 			await migration();
 		}
 
-		server.listen(PORT);
-		console.log("Server Started:", PORT);
+		server.listen(PORT, HOST);
+		console.log(`Server Started on: http://${HOST}:${PORT}`);
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
 			const { deploymentWorker } = await import("./queues/deployments-queue");

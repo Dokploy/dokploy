@@ -1,5 +1,6 @@
 import {
 	containerRestart,
+	findServerById,
 	getConfig,
 	getContainers,
 	getContainersByAppLabel,
@@ -9,6 +10,9 @@ import {
 } from "@dokploy/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { TRPCError } from "@trpc/server";
+
+export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 
 export const dockerRouter = createTRPCRouter({
 	getContainers: protectedProcedure
@@ -17,14 +21,23 @@ export const dockerRouter = createTRPCRouter({
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
 			return await getContainers(input.serverId);
 		}),
 
 	restartContainer: protectedProcedure
 		.input(
 			z.object({
-				containerId: z.string().min(1),
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
 			}),
 		)
 		.mutation(async ({ input }) => {
@@ -34,11 +47,20 @@ export const dockerRouter = createTRPCRouter({
 	getConfig: protectedProcedure
 		.input(
 			z.object({
-				containerId: z.string().min(1),
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
 			return await getConfig(input.containerId, input.serverId);
 		}),
 
@@ -48,11 +70,17 @@ export const dockerRouter = createTRPCRouter({
 				appType: z
 					.union([z.literal("stack"), z.literal("docker-compose")])
 					.optional(),
-				appName: z.string().min(1),
+				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
 			return await getContainersByAppNameMatch(
 				input.appName,
 				input.appType,
@@ -63,33 +91,56 @@ export const dockerRouter = createTRPCRouter({
 	getContainersByAppLabel: protectedProcedure
 		.input(
 			z.object({
-				appName: z.string().min(1),
+				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
 				serverId: z.string().optional(),
+				type: z.enum(["standalone", "swarm"]),
 			}),
 		)
-		.query(async ({ input }) => {
-			return await getContainersByAppLabel(input.appName, input.serverId);
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getContainersByAppLabel(
+				input.appName,
+				input.type,
+				input.serverId,
+			);
 		}),
 
 	getStackContainersByAppName: protectedProcedure
 		.input(
 			z.object({
-				appName: z.string().min(1),
+				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
 			return await getStackContainersByAppName(input.appName, input.serverId);
 		}),
 
 	getServiceContainersByAppName: protectedProcedure
 		.input(
 			z.object({
-				appName: z.string().min(1),
+				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
 				serverId: z.string().optional(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
 			return await getServiceContainersByAppName(input.appName, input.serverId);
 		}),
 });

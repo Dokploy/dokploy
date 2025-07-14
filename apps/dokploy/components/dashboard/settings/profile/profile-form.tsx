@@ -10,6 +10,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { generateSHA256Hash } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +36,7 @@ const profileSchema = z.object({
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
+	allowImpersonation: z.boolean().optional().default(false),
 });
 
 type Profile = z.infer<typeof profileSchema>;
@@ -56,6 +59,8 @@ const randomImages = [
 export const ProfileForm = () => {
 	const _utils = api.useUtils();
 	const { data, refetch, isLoading } = api.user.get.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
 	const {
 		mutateAsync,
 		isLoading: isUpdating,
@@ -78,18 +83,26 @@ export const ProfileForm = () => {
 			password: "",
 			image: data?.user?.image || "",
 			currentPassword: "",
+			allowImpersonation: data?.user?.allowImpersonation || false,
 		},
 		resolver: zodResolver(profileSchema),
 	});
 
 	useEffect(() => {
 		if (data) {
-			form.reset({
-				email: data?.user?.email || "",
-				password: "",
-				image: data?.user?.image || "",
-				currentPassword: "",
-			});
+			form.reset(
+				{
+					email: data?.user?.email || "",
+					password: form.getValues("password") || "",
+					image: data?.user?.image || "",
+					currentPassword: form.getValues("currentPassword") || "",
+					allowImpersonation: data?.user?.allowImpersonation,
+				},
+				{
+					keepValues: true,
+				},
+			);
+			form.setValue("allowImpersonation", data?.user?.allowImpersonation);
 
 			if (data.user.email) {
 				generateSHA256Hash(data.user.email).then((hash) => {
@@ -97,8 +110,7 @@ export const ProfileForm = () => {
 				});
 			}
 		}
-		form.reset();
-	}, [form, form.reset, data]);
+	}, [form, data]);
 
 	const onSubmit = async (values: Profile) => {
 		await mutateAsync({
@@ -106,11 +118,17 @@ export const ProfileForm = () => {
 			password: values.password || undefined,
 			image: values.image,
 			currentPassword: values.currentPassword || undefined,
+			allowImpersonation: values.allowImpersonation,
 		})
 			.then(async () => {
 				await refetch();
 				toast.success("Profile Updated");
-				form.reset();
+				form.reset({
+					email: values.email,
+					password: "",
+					image: values.image,
+					currentPassword: "",
+				});
 			})
 			.catch(() => {
 				toast.error("Error updating the profile");
@@ -246,7 +264,34 @@ export const ProfileForm = () => {
 													</FormItem>
 												)}
 											/>
+											{isCloud && (
+												<FormField
+													control={form.control}
+													name="allowImpersonation"
+													render={({ field }) => (
+														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+															<div className="space-y-0.5">
+																<FormLabel>Allow Impersonation</FormLabel>
+																<FormDescription>
+																	Enable this option to allow Dokploy Cloud
+																	administrators to temporarily access your
+																	account for troubleshooting and support
+																	purposes. This helps them quickly identify and
+																	resolve any issues you may encounter.
+																</FormDescription>
+															</div>
+															<FormControl>
+																<Switch
+																	checked={field.value}
+																	onCheckedChange={field.onChange}
+																/>
+															</FormControl>
+														</FormItem>
+													)}
+												/>
+											)}
 										</div>
+
 										<div className="flex items-center justify-end gap-2">
 											<Button type="submit" isLoading={isUpdating}>
 												{t("settings.common.save")}

@@ -126,7 +126,7 @@ export const DeleteService = ({ id, type }: Props) => {
 					<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Are you absolutely sure?</DialogTitle>
 					<DialogDescription>

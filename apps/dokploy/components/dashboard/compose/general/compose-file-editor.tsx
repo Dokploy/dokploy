@@ -44,8 +44,10 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		resolver: zodResolver(AddComposeFile),
 	});
 
+	const composeFile = form.watch("composeFile");
+
 	useEffect(() => {
-		if (data) {
+		if (data && !composeFile) {
 			form.reset({
 				composeFile: data.composeFile || "",
 			});
@@ -75,10 +77,26 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 					composeId,
 				});
 			})
-			.catch((_e) => {
+			.catch(() => {
 				toast.error("Error updating the Compose config");
 			});
 	};
+
+	// Add keyboard shortcut for Ctrl+S/Cmd+S
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading) {
+				e.preventDefault();
+				form.handleSubmit(onSubmit)();
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [form, onSubmit, isLoading]);
+
 	return (
 		<>
 			<div className="w-full flex flex-col gap-4 ">
@@ -97,6 +115,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 										<div className="flex flex-col gap-4 w-full outline-none focus:outline-none overflow-auto">
 											<CodeEditor
 												// disabled
+												language="yaml"
 												value={field.value}
 												className="font-mono"
 												wrapperClassName="compose-file-editor"

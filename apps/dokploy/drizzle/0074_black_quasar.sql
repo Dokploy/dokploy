@@ -1,0 +1,1 @@
+ALTER TABLE "application" RENAME COLUMN "previewCertificateProvider" TO "previewCustomCertResolver";

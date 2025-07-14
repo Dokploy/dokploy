@@ -7,10 +7,13 @@ import {
 import {
 	createMount,
 	deleteMount,
+	findApplicationById,
 	findMountById,
+	getServiceContainer,
 	updateMount,
 } from "@dokploy/server";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { z } from "zod";
 
 export const mountRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -31,7 +34,16 @@ export const mountRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateMount)
 		.mutation(async ({ input }) => {
-			await updateMount(input.mountId, input);
-			return true;
+			return await updateMount(input.mountId, input);
+		}),
+	allNamedByApplicationId: protectedProcedure
+		.input(z.object({ applicationId: z.string().min(1) }))
+		.query(async ({ input }) => {
+			const app = await findApplicationById(input.applicationId);
+			const container = await getServiceContainer(app.appName, app.serverId);
+			const mounts = container?.Mounts.filter(
+				(mount) => mount.Type === "volume" && mount.Source !== "",
+			);
+			return mounts;
 		}),
 });

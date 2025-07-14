@@ -103,7 +103,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					projectId,
 				});
 			})
-			.catch((_e) => {
+			.catch(() => {
 				toast.error("Error creating the service");
 			});
 	};
@@ -119,7 +119,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					<span>Application</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Create</DialogTitle>
 					<DialogDescription>
@@ -145,10 +145,8 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 											{...field}
 											onChange={(e) => {
 												const val = e.target.value?.trim() || "";
-												form.setValue(
-													"appName",
-													`${slug}-${val.toLowerCase().replaceAll(" ", "-")}`,
-												);
+												const serviceName = slugify(val);
+												form.setValue("appName", `${slug}-${serviceName}`);
 												field.onChange(val);
 											}}
 										/>

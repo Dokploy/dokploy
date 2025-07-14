@@ -27,6 +27,10 @@ import {
 	getCustomGitCloneCommand,
 } from "@dokploy/server/utils/providers/git";
 import {
+	cloneGiteaRepository,
+	getGiteaCloneCommand,
+} from "@dokploy/server/utils/providers/gitea";
+import {
 	cloneGithubRepository,
 	getGithubCloneCommand,
 } from "@dokploy/server/utils/providers/github";
@@ -56,6 +60,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -111,6 +116,7 @@ export const findApplicationById = async (applicationId: string) => {
 			gitlab: true,
 			github: true,
 			bitbucket: true,
+			gitea: true,
 			server: true,
 			previewDeployments: true,
 		},
@@ -182,12 +188,6 @@ export const deployApplication = async ({
 	});
 
 	try {
-		// const admin = await findUserById(application.project.userId);
-
-		// if (admin.cleanupCacheApplications) {
-		// 	await cleanupFullDocker(application?.serverId);
-		// }
-
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
 				...application,
@@ -196,6 +196,9 @@ export const deployApplication = async ({
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitlab") {
 			await cloneGitlabRepository(application, deployment.logPath);
+			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "gitea") {
+			await cloneGiteaRepository(application, deployment.logPath);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "bitbucket") {
 			await cloneBitbucketRepository(application, deployment.logPath);
@@ -211,6 +214,17 @@ export const deployApplication = async ({
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
+			await createRollback({
+				appName: tagImage || "",
+				deploymentId: deployment.deploymentId,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.project.name,
@@ -257,11 +271,6 @@ export const rebuildApplication = async ({
 	});
 
 	try {
-		// const admin = await findUserById(application.project.userId);
-
-		// if (admin.cleanupCacheApplications) {
-		// 	await cleanupFullDocker(application?.serverId);
-		// }
 		if (application.sourceType === "github") {
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitlab") {
@@ -306,11 +315,6 @@ export const deployRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
-			// const admin = await findUserById(application.project.userId);
-
-			// if (admin.cleanupCacheApplications) {
-			// 	await cleanupFullDocker(application?.serverId);
-			// }
 			let command = "set -e;";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
@@ -325,6 +329,8 @@ export const deployRemoteApplication = async ({
 					application,
 					deployment.logPath,
 				);
+			} else if (application.sourceType === "gitea") {
+				command += await getGiteaCloneCommand(application, deployment.logPath);
 			} else if (application.sourceType === "git") {
 				command += await getCustomGitCloneCommand(
 					application,
@@ -343,6 +349,17 @@ export const deployRemoteApplication = async ({
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
+			await createRollback({
+				appName: tagImage || "",
+				deploymentId: deployment.deploymentId,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.project.name,
@@ -453,7 +470,7 @@ export const deployPreviewApplication = async ({
 		}
 
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain}`;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.sourceType === "github") {
@@ -571,15 +588,10 @@ export const deployRemotePreviewApplication = async ({
 		}
 
 		application.appName = previewDeployment.appName;
-		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain}`;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.serverId) {
-			// const admin = await findUserById(application.project.userId);
-
-			// if (admin.cleanupCacheOnPreviews) {
-			// 	await cleanupFullDocker(application?.serverId);
-			// }
 			let command = "set -e;";
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
@@ -648,11 +660,6 @@ export const rebuildRemoteApplication = async ({
 
 	try {
 		if (application.serverId) {
-			// const admin = await findUserById(application.project.userId);
-
-			// if (admin.cleanupCacheApplications) {
-			// 	await cleanupFullDocker(application?.serverId);
-			// }
 			if (application.sourceType !== "docker") {
 				let command = "set -e;";
 				command += getBuildCommand(application, deployment.logPath);

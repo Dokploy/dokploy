@@ -5,13 +5,16 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { bitbucket } from "./bitbucket";
+import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
+import { users_temp } from "./user";
 
 export const gitProviderType = pgEnum("gitProviderType", [
 	"github",
 	"gitlab",
 	"bitbucket",
+	"gitea",
 ]);
 
 export const gitProvider = pgTable("git_provider", {
@@ -27,6 +30,9 @@ export const gitProvider = pgTable("git_provider", {
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
+	userId: text("userId")
+		.notNull()
+		.references(() => users_temp.id, { onDelete: "cascade" }),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
@@ -42,9 +48,17 @@ export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 		fields: [gitProvider.gitProviderId],
 		references: [bitbucket.gitProviderId],
 	}),
+	gitea: one(gitea, {
+		fields: [gitProvider.gitProviderId],
+		references: [gitea.gitProviderId],
+	}),
 	organization: one(organization, {
 		fields: [gitProvider.organizationId],
 		references: [organization.id],
+	}),
+	user: one(users_temp, {
+		fields: [gitProvider.userId],
+		references: [users_temp.id],
 	}),
 }));
 

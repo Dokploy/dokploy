@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon } from "lucide-react";
+import { PenBox } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -94,12 +94,12 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="group hover:bg-blue-500/10 "
+					className="group hover:bg-blue-500/10 focus-visible:ring-2 focus-visible:ring-offset-2"
 				>
-					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
+					<PenBox className="size-3.5 text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Modify Postgres</DialogTitle>
 					<DialogDescription>Update the Postgres data</DialogDescription>
@@ -121,7 +121,7 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input placeholder="Tesla" {...field} />
+												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
 
 											<FormMessage />
@@ -151,6 +151,7 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 										isLoading={isLoading}
 										form="hook-form-update-postgres"
 										type="submit"
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
 										Update
 									</Button>

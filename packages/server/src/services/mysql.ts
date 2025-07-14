@@ -1,7 +1,7 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateMySql, backups, mysql } from "@dokploy/server/db/schema";
 import { buildAppName } from "@dokploy/server/db/schema";
-import { generatePassword } from "@dokploy/server/templates/utils";
+import { generatePassword } from "@dokploy/server/templates";
 import { buildMysql } from "@dokploy/server/utils/databases/mysql";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
@@ -59,6 +59,7 @@ export const findMySqlById = async (mysqlId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},

@@ -31,9 +31,25 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const AddProjectSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
+	name: z
+		.string()
+		.min(1, "Project name is required")
+		.refine(
+			(name) => {
+				const trimmedName = name.trim();
+				const validNameRegex =
+					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
+				return validNameRegex.test(trimmedName);
+			},
+			{
+				message:
+					"Project name must start and end with a letter, number, hyphen or underscore. Spaces are allowed in between.",
+			},
+		)
+		.refine((name) => !/^\d/.test(name.trim()), {
+			message: "Project name cannot start with a number",
+		})
+		.transform((name) => name.trim()),
 	description: z.string().optional(),
 });
 
@@ -97,18 +113,6 @@ export const HandleProject = ({ projectId }: Props) => {
 				);
 			});
 	};
-	// useEffect(() => {
-	// 	const getUsers = async () => {
-	// 		const users = await authClient.admin.listUsers({
-	// 			query: {
-	// 				limit: 100,
-	// 			},
-	// 		});
-	// 		console.log(users);
-	// 	};
-
-	// 	getUsers();
-	// });
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -148,7 +152,7 @@ export const HandleProject = ({ projectId }: Props) => {
 									<FormItem>
 										<FormLabel>Name</FormLabel>
 										<FormControl>
-											<Input placeholder="Tesla" {...field} />
+											<Input placeholder="Vandelay Industries" {...field} />
 										</FormControl>
 
 										<FormMessage />

@@ -60,7 +60,7 @@ export const WelcomeSuscription = () => {
 
 	return (
 		<Dialog open={isOpen}>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-7xl min-h-[75vh]">
+			<DialogContent className="sm:max-w-7xl min-h-[75vh]">
 				{showConfetti ?? "Flaso"}
 				<div className="flex justify-center items-center w-full">
 					{showConfetti && (
@@ -179,6 +179,14 @@ export const WelcomeSuscription = () => {
 											</li>
 											<li>
 												<a
+													href=" https://app.americancloud.com/register?ref=dokploy"
+													className="text-link underline"
+												>
+													American Cloud - Get $20 Credits
+												</a>
+											</li>
+											<li>
+												<a
 													href="https://m.do.co/c/db24efd43f35"
 													className="text-link underline"
 												>
@@ -281,7 +289,7 @@ export const WelcomeSuscription = () => {
 									<div className="flex flex-col gap-6">
 										<div className="flex flex-col gap-2">
 											<h2 className="text-lg font-semibold">You're All Set!</h2>
-											<p className=" text-muted-foreground">
+											<p className="text-muted-foreground">
 												Did you know you can deploy any number of applications
 												that your server can handle?
 											</p>

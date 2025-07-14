@@ -1,4 +1,6 @@
+import { GitlabIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Command,
@@ -29,11 +31,19 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
-import { useEffect } from "react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -50,6 +60,8 @@ const GitlabProviderSchema = z.object({
 		.required(),
 	branch: z.string().min(1, "Branch is required"),
 	gitlabId: z.string().min(1, "Gitlab Provider is required"),
+	watchPaths: z.array(z.string()).optional(),
+	enableSubmodules: z.boolean().default(false),
 });
 
 type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
@@ -76,12 +88,23 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			},
 			gitlabId: "",
 			branch: "",
+			enableSubmodules: false,
 		},
 		resolver: zodResolver(GitlabProviderSchema),
 	});
 
 	const repository = form.watch("repository");
 	const gitlabId = form.watch("gitlabId");
+
+	const gitlabUrl = useMemo(() => {
+		const url = gitlabProviders?.find(
+			(provider) => provider.gitlabId === gitlabId,
+		)?.gitlabUrl;
+
+		const gitlabUrl = url?.replace(/\/$/, "");
+
+		return gitlabUrl || "https://gitlab.com";
+	}, [gitlabId, gitlabProviders]);
 
 	const {
 		data: repositories,
@@ -124,9 +147,11 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				},
 				buildPath: data.gitlabBuildPath || "/",
 				gitlabId: data.gitlabId || "",
+				watchPaths: data.watchPaths || [],
+				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.applicationId, form]);
 
 	const onSubmit = async (data: GitlabProvider) => {
 		await mutateAsync({
@@ -138,6 +163,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			applicationId,
 			gitlabProjectId: data.repository.id,
 			gitlabPathNamespace: data.repository.gitlabPathNamespace,
+			watchPaths: data.watchPaths || [],
+			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -203,7 +230,20 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							name="repository"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Repository</FormLabel>
+									<div className="flex items-center justify-between">
+										<FormLabel>Repository</FormLabel>
+										{field.value.owner && field.value.repo && (
+											<Link
+												href={`${gitlabUrl}/${field.value.owner}/${field.value.repo}`}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
+											>
+												<GitlabIcon className="h-4 w-4" />
+												<span>View Repository</span>
+											</Link>
+										)}
+									</div>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -248,7 +288,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 														{repositories?.map((repo) => {
 															return (
 																<CommandItem
-																	value={repo.name}
+																	value={repo.url}
 																	key={repo.url}
 																	onSelect={() => {
 																		form.setValue("repository", {
@@ -269,7 +309,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																	<CheckIcon
 																		className={cn(
 																			"ml-auto h-4 w-4",
-																			repo.name === field.value.repo
+																			repo.url ===
+																				field.value.gitlabPathNamespace
 																				? "opacity-100"
 																				: "opacity-0",
 																		)}
@@ -375,8 +416,101 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									<FormControl>
 										<Input placeholder="/" {...field} />
 									</FormControl>
-
 									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="watchPaths"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Watch Paths</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Add paths to watch for changes. When files in these
+														paths change, a new deployment will be triggered.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<div className="flex flex-wrap gap-2 mb-2">
+										{field.value?.map((path, index) => (
+											<Badge
+												key={index}
+												variant="secondary"
+												className="flex items-center gap-1"
+											>
+												{path}
+												<X
+													className="size-3 cursor-pointer hover:text-destructive"
+													onClick={() => {
+														const newPaths = [...(field.value || [])];
+														newPaths.splice(index, 1);
+														field.onChange(newPaths);
+													}}
+												/>
+											</Badge>
+										))}
+									</div>
+									<div className="flex gap-2">
+										<FormControl>
+											<Input
+												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														e.preventDefault();
+														const input = e.currentTarget;
+														const path = input.value.trim();
+														if (path) {
+															field.onChange([...(field.value || []), path]);
+															input.value = "";
+														}
+													}
+												}}
+											/>
+										</FormControl>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() => {
+												const input = document.querySelector(
+													'input[placeholder*="Enter a path"]',
+												) as HTMLInputElement;
+												const path = input.value.trim();
+												if (path) {
+													field.onChange([...(field.value || []), path]);
+													input.value = "";
+												}
+											}}
+										>
+											<Plus className="size-4" />
+										</Button>
+									</div>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="enableSubmodules"
+							render={({ field }) => (
+								<FormItem className="flex items-center space-x-2">
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
 								</FormItem>
 							)}
 						/>

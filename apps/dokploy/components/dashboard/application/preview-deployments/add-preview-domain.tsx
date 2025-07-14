@@ -94,6 +94,7 @@ export const AddPreviewDomain = ({
 				/* Convert null to undefined */
 				path: data?.path || undefined,
 				port: data?.port || undefined,
+				customCertResolver: data?.customCertResolver || undefined,
 			});
 		}
 
@@ -137,7 +138,7 @@ export const AddPreviewDomain = ({
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>

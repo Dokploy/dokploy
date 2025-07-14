@@ -33,12 +33,14 @@ import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
+import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { HandleServers } from "./handle-servers";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
+import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
@@ -139,7 +141,7 @@ export const ShowServers = () => {
 													</TableCaption>
 													<TableHeader>
 														<TableRow>
-															<TableHead className="w-[100px]">Name</TableHead>
+															<TableHead className="text-left">Name</TableHead>
 															{isCloud && (
 																<TableHead className="text-center">
 																	Status
@@ -171,7 +173,7 @@ export const ShowServers = () => {
 															const isActive = server.serverStatus === "active";
 															return (
 																<TableRow key={server.serverId}>
-																	<TableCell className="w-[100px]">
+																	<TableCell className="text-left">
 																		{server.name}
 																	</TableCell>
 																	{isCloud && (
@@ -326,6 +328,13 @@ export const ShowServers = () => {
 																						)}
 
 																						<ShowSwarmOverviewModal
+																							serverId={server.serverId}
+																						/>
+																						<ShowNodesModal
+																							serverId={server.serverId}
+																						/>
+
+																						<ShowSchedulesModal
 																							serverId={server.serverId}
 																						/>
 																					</>

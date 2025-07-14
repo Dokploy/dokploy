@@ -7,7 +7,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
-import { generatePassword } from "../templates/utils";
+import { generatePassword } from "../templates";
 import { removeService } from "../utils/docker/utils";
 import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
@@ -62,6 +62,7 @@ export const findApplicationByPreview = async (applicationId: string) => {
 			gitlab: true,
 			github: true,
 			bitbucket: true,
+			gitea: true,
 			server: true,
 		},
 	});
@@ -103,7 +104,7 @@ export const removePreviewDeployment = async (previewDeploymentId: string) => {
 		for (const operation of cleanupOperations) {
 			try {
 				await operation();
-			} catch (_error) {}
+			} catch {}
 		}
 		return deployment[0];
 	} catch (error) {
@@ -173,7 +174,7 @@ export const createPreviewDeployment = async (
 		const runningComment = getIssueComment(
 			application.name,
 			"initializing",
-			generateDomain,
+			`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
 		);
 
 		const issue = await octokit.rest.issues.createComment({
@@ -209,6 +210,7 @@ export const createPreviewDeployment = async (
 		port: application.previewPort,
 		https: application.previewHttps,
 		certificateType: application.previewCertificateType,
+		customCertResolver: application.previewCustomCertResolver,
 		domainType: "preview",
 		previewDeploymentId: previewDeployment.previewDeploymentId,
 	});

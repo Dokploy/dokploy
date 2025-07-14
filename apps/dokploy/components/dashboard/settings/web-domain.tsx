@@ -9,6 +9,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -22,6 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GlobeIcon } from "lucide-react";
@@ -33,11 +35,19 @@ import { z } from "zod";
 
 const addServerDomain = z
 	.object({
-		domain: z.string().min(1, { message: "URL is required" }),
+		domain: z.string(),
 		letsEncryptEmail: z.string(),
-		certificateType: z.enum(["letsencrypt", "none"]),
+		https: z.boolean().optional(),
+		certificateType: z.enum(["letsencrypt", "none", "custom"]),
 	})
 	.superRefine((data, ctx) => {
+		if (data.https && !data.certificateType) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["certificateType"],
+				message: "Required",
+			});
+		}
 		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
@@ -61,15 +71,18 @@ export const WebDomain = () => {
 			domain: "",
 			certificateType: "none",
 			letsEncryptEmail: "",
+			https: false,
 		},
 		resolver: zodResolver(addServerDomain),
 	});
+	const https = form.watch("https");
 	useEffect(() => {
 		if (data) {
 			form.reset({
 				domain: data?.user?.host || "",
 				certificateType: data?.user?.certificateType,
 				letsEncryptEmail: data?.user?.letsEncryptEmail || "",
+				https: data?.user?.https || false,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -79,6 +92,7 @@ export const WebDomain = () => {
 			host: data.domain,
 			letsEncryptEmail: data.letsEncryptEmail,
 			certificateType: data.certificateType,
+			https: data.https,
 		})
 			.then(async () => {
 				await refetch();
@@ -155,44 +169,68 @@ export const WebDomain = () => {
 								/>
 								<FormField
 									control={form.control}
-									name="certificateType"
-									render={({ field }) => {
-										return (
-											<FormItem className="md:col-span-2">
-												<FormLabel>
-													{t("settings.server.domain.form.certificate.label")}
-												</FormLabel>
-												<Select
-													onValueChange={field.onChange}
-													value={field.value}
-												>
-													<FormControl>
-														<SelectTrigger>
-															<SelectValue
-																placeholder={t(
-																	"settings.server.domain.form.certificate.placeholder",
-																)}
-															/>
-														</SelectTrigger>
-													</FormControl>
-													<SelectContent>
-														<SelectItem value={"none"}>
-															{t(
-																"settings.server.domain.form.certificateOptions.none",
-															)}
-														</SelectItem>
-														<SelectItem value={"letsencrypt"}>
-															{t(
-																"settings.server.domain.form.certificateOptions.letsencrypt",
-															)}
-														</SelectItem>
-													</SelectContent>
-												</Select>
+									name="https"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm w-full col-span-2">
+											<div className="space-y-0.5">
+												<FormLabel>HTTPS</FormLabel>
+												<FormDescription>
+													Automatically provision SSL Certificate.
+												</FormDescription>
 												<FormMessage />
-											</FormItem>
-										);
-									}}
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
 								/>
+								{https && (
+									<FormField
+										control={form.control}
+										name="certificateType"
+										render={({ field }) => {
+											return (
+												<FormItem className="md:col-span-2">
+													<FormLabel>
+														{t("settings.server.domain.form.certificate.label")}
+													</FormLabel>
+													<Select
+														onValueChange={field.onChange}
+														value={field.value}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue
+																	placeholder={t(
+																		"settings.server.domain.form.certificate.placeholder",
+																	)}
+																/>
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															<SelectItem value={"none"}>
+																{t(
+																	"settings.server.domain.form.certificateOptions.none",
+																)}
+															</SelectItem>
+															<SelectItem value={"letsencrypt"}>
+																{t(
+																	"settings.server.domain.form.certificateOptions.letsencrypt",
+																)}
+															</SelectItem>
+														</SelectContent>
+													</Select>
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								)}
+
 								<div className="flex w-full justify-end col-span-2">
 									<Button isLoading={isLoading} type="submit">
 										{t("settings.common.save")}

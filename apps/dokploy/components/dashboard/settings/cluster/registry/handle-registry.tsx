@@ -161,7 +161,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl max-h-screen overflow-y-auto">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add a external registry</DialogTitle>
 					<DialogDescription>
@@ -207,7 +207,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Username"
-												autoComplete="off"
+												autoComplete="username"
 												{...field}
 											/>
 										</FormControl>
@@ -227,7 +227,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Password"
-												autoComplete="off"
+												autoComplete="one-time-code"
 												{...field}
 												type="password"
 											/>
@@ -316,7 +316,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 							/>
 						</div>
 
-						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2 mt-6">
+						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2">
 							<div className="flex flex-row gap-2 justify-between">
 								<Button
 									type="button"
