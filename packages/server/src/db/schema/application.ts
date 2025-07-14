@@ -131,6 +131,10 @@ export const applications = pgTable("application", {
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
 	),
+	// Security: Require collaborator permissions for preview deployments
+	previewRequireCollaboratorPermissions: boolean(
+		"previewRequireCollaboratorPermissions",
+	).default(true),
 	rollbackActive: boolean("rollbackActive").default(false),
 	buildArgs: text("buildArgs"),
 	memoryReservation: text("memoryReservation"),
@@ -428,6 +432,7 @@ const createSchema = createInsertSchema(applications, {
 	previewHttps: z.boolean().optional(),
 	previewPath: z.string().optional(),
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
+	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
 });
