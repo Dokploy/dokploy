@@ -1,18 +1,17 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"files": {
-		"ignore": [
-			"node_modules/**",
-			".next/**",
-			"drizzle/**",
-			".docker",
-			"dist",
-			"packages/server/package.json"
+		"includes": [
+			"**",
+			"!**/.docker",
+			"!**/.next/**",
+			"!**/dist",
+			"!**/drizzle/**",
+			"!node_modules/**",
+			"!packages/server/package.json"
 		]
 	},
-	"organizeImports": {
-		"enabled": true
-	},
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
 		"rules": {
 			"security": {
@@ -30,7 +29,17 @@
 				"noUnusedVariables": "error"
 			},
 			"style": {
-				"noNonNullAssertion": "off"
+				"noNonNullAssertion": "off",
+				"noParameterAssign": "error",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"useSingleVarDeclarator": "error",
+				"noUnusedTemplateLiteral": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error"
 			},
 			"suspicious": {
 				"noArrayIndexKey": "off",
