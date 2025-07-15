@@ -20,8 +20,8 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { z } from "zod";
+import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const deploymentRouter = createTRPCRouter({
 	all: protectedProcedure

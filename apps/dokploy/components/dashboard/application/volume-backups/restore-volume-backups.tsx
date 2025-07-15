@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,9 +43,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import { formatBytes } from "../../database/backups/restore-backup";
-import { AlertBlock } from "@/components/shared/alert-block";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
 	id: string;
