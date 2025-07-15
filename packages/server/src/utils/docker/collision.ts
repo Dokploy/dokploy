@@ -1,8 +1,8 @@
 import { findComposeById } from "@dokploy/server/services/compose";
 import { dump, load } from "js-yaml";
 import { addAppNameToAllServiceNames } from "./collision/root-network";
-import { addSuffixToAllVolumes } from "./compose/volume";
 import { generateRandomHash } from "./compose";
+import { addSuffixToAllVolumes } from "./compose/volume";
 import type { ComposeSpecification } from "./types";
 
 export const addAppNameToPreventCollision = (

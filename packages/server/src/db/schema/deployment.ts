@@ -13,9 +13,9 @@ import { applications } from "./application";
 import { backups } from "./backups";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
+import { rollbacks } from "./rollbacks";
 import { schedules } from "./schedule";
 import { server } from "./server";
-import { rollbacks } from "./rollbacks";
 import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",

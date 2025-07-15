@@ -3,16 +3,16 @@ import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { serviceType } from "./mount";
 import { applications } from "./application";
-import { mongo } from "./mongo";
-import { mysql } from "./mysql";
-import { redis } from "./redis";
 import { compose } from "./compose";
-import { postgres } from "./postgres";
-import { mariadb } from "./mariadb";
-import { destinations } from "./destination";
 import { deployments } from "./deployment";
+import { destinations } from "./destination";
+import { mariadb } from "./mariadb";
+import { mongo } from "./mongo";
+import { serviceType } from "./mount";
+import { mysql } from "./mysql";
+import { postgres } from "./postgres";
+import { redis } from "./redis";
 import { generateAppName } from "./utils";
 
 export const volumeBackups = pgTable("volume_backup", {
