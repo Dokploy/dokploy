@@ -1,3 +1,4 @@
+import path from "node:path";
 import {
 	findApplicationById,
 	findComposeById,
@@ -5,7 +6,6 @@ import {
 	getS3Credentials,
 	paths,
 } from "../..";
-import path from "node:path";
 
 export const restoreVolume = async (
 	id: string,
