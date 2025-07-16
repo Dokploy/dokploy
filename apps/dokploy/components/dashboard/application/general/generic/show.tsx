@@ -2,6 +2,7 @@ import { SaveDockerProvider } from "@/components/dashboard/application/general/g
 import { SaveGitProvider } from "@/components/dashboard/application/general/generic/save-git-provider";
 import { SaveGiteaProvider } from "@/components/dashboard/application/general/generic/save-gitea-provider";
 import { SaveGithubProvider } from "@/components/dashboard/application/general/generic/save-github-provider";
+import { SaveRegistryProvider } from "@/components/dashboard/application/general/generic/save-registry-provider";
 import {
 	BitbucketIcon,
 	DockerIcon,
@@ -29,7 +30,8 @@ type TabState =
 	| "drop"
 	| "gitlab"
 	| "bitbucket"
-	| "gitea";
+	| "gitea"
+	| "registry";
 
 interface Props {
 	applicationId: string;
@@ -103,7 +105,8 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 		application &&
 		!application.hasGitProviderAccess &&
 		application.sourceType !== "docker" &&
-		application.sourceType !== "drop"
+		application.sourceType !== "drop" &&
+		application.sourceType !== "registry"
 	) {
 		return (
 			<Card className="group relative w-full bg-transparent">
@@ -189,6 +192,13 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 							>
 								<DockerIcon className="size-5 text-current" />
 								Docker
+							</TabsTrigger>
+							<TabsTrigger
+								value="registry"
+								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
+							>
+								<DockerIcon className="size-5 text-current" />
+								Registry
 							</TabsTrigger>
 							<TabsTrigger
 								value="git"
@@ -289,6 +299,10 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 					</TabsContent>
 					<TabsContent value="docker" className="w-full p-2">
 						<SaveDockerProvider applicationId={applicationId} />
+					</TabsContent>
+
+					<TabsContent value="registry" className="w-full p-2">
+						<SaveRegistryProvider applicationId={applicationId} />
 					</TabsContent>
 
 					<TabsContent value="git" className="w-full p-2">

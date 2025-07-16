@@ -10,6 +10,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { buildRegistryDockerImage } from "../providers/docker";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { buildCustomDocker, getDockerCommand } from "./docker-file";
 import { buildHeroku, getHerokuCommand } from "./heroku";
@@ -30,6 +31,7 @@ export type ApplicationNested = InferResultType<
 		redirects: true;
 		ports: true;
 		registry: true;
+		deployRegistry: true;
 		project: true;
 	}
 >;
@@ -210,10 +212,15 @@ export const mechanizeDockerContainer = async (
 };
 
 const getImageName = (application: ApplicationNested) => {
-	const { appName, sourceType, dockerImage, registry } = application;
+	const { appName, sourceType, dockerImage, registry, deployRegistry, deployImage, deployImageTag } = application;
 	const imageName = `${appName}:latest`;
+	
 	if (sourceType === "docker") {
 		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
+	}
+
+	if (sourceType === "registry" && deployRegistry && deployImage && deployImageTag) {
+		return buildRegistryDockerImage(deployRegistry, deployImage, deployImageTag);
 	}
 
 	if (registry) {
@@ -228,7 +235,7 @@ const getImageName = (application: ApplicationNested) => {
 };
 
 export const getAuthConfig = (application: ApplicationNested) => {
-	const { registry, username, password, sourceType, registryUrl } = application;
+	const { registry, username, password, sourceType, registryUrl, deployRegistry } = application;
 
 	if (sourceType === "docker") {
 		if (username && password) {
@@ -238,6 +245,12 @@ export const getAuthConfig = (application: ApplicationNested) => {
 				serveraddress: registryUrl || "",
 			};
 		}
+	} else if (sourceType === "registry" && deployRegistry) {
+		return {
+			password: deployRegistry.password,
+			username: deployRegistry.username,
+			serveraddress: deployRegistry.registryUrl,
+		};
 	} else if (registry) {
 		return {
 			password: registry.password,

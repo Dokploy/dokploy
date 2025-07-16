@@ -145,3 +145,126 @@ export const findAllRegistryByOrganizationId = async (
 	});
 	return registryResponse;
 };
+
+export const fetchRegistryImages = async (registryId: string) => {
+	const registryResponse = await db.query.registry.findFirst({
+		where: eq(registry.registryId, registryId),
+	});
+
+	if (!registryResponse) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Registry not found",
+		});
+	}
+
+	const auth = Buffer.from(
+		`${registryResponse.username}:${registryResponse.password}`,
+	).toString("base64");
+
+	try {
+		const response = await fetch(
+			`${registryResponse.registryUrl}/v2/_catalog`,
+			{
+				headers: {
+					Authorization: `Basic ${auth}`,
+				},
+			},
+		);
+
+		if (!response.ok) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Registry API error: ${response.status} ${response.statusText}`,
+			});
+		}
+
+		const data = await response.json();
+		return data.repositories || [];
+	} catch (error) {
+		console.error("Error fetching registry images:", error);
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Failed to fetch registry images",
+			cause: error,
+		});
+	}
+};
+
+export const fetchImageTags = async (registryId: string, imageName: string) => {
+	const registryResponse = await db.query.registry.findFirst({
+		where: eq(registry.registryId, registryId),
+	});
+
+	if (!registryResponse) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Registry not found",
+		});
+	}
+
+	const auth = Buffer.from(
+		`${registryResponse.username}:${registryResponse.password}`,
+	).toString("base64");
+
+	try {
+		const response = await fetch(
+			`${registryResponse.registryUrl}/v2/${imageName}/tags/list`,
+			{
+				headers: {
+					Authorization: `Basic ${auth}`,
+				},
+			},
+		);
+
+		if (!response.ok) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Registry API error: ${response.status} ${response.statusText}`,
+			});
+		}
+
+		const data = await response.json();
+		return data.tags || [];
+	} catch (error) {
+		console.error("Error fetching image tags:", error);
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Failed to fetch image tags",
+			cause: error,
+		});
+	}
+};
+
+export const validateRegistryAccess = async (registryId: string) => {
+	const registryResponse = await db.query.registry.findFirst({
+		where: eq(registry.registryId, registryId),
+	});
+
+	if (!registryResponse) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Registry not found",
+		});
+	}
+
+	const auth = Buffer.from(
+		`${registryResponse.username}:${registryResponse.password}`,
+	).toString("base64");
+
+	try {
+		const response = await fetch(
+			`${registryResponse.registryUrl}/v2/_catalog`,
+			{
+				headers: {
+					Authorization: `Basic ${auth}`,
+				},
+			},
+		);
+
+		return response.ok;
+	} catch (error) {
+		console.error("Error validating registry access:", error);
+		return false;
+	}
+};
