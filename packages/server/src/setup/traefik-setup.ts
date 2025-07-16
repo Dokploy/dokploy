@@ -191,6 +191,9 @@ export const createDefaultServerTraefikConfig = () => {
 
 export const getDefaultTraefikConfig = () => {
 	const configObject: MainTraefikConfig = {
+    global: {
+      sendAnonymousUsage: false,
+    },
 		providers: {
 			...(process.env.NODE_ENV === "development"
 				? {
