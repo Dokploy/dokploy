@@ -21,9 +21,9 @@ export const buildRegistryDockerImage = (
 	imageTag: string,
 ): string => {
 	// Remove protocol from registry URL for Docker image name
-	const registryHost = registryConfig.registryUrl.replace(/^https?:\/\//, '');
-	
-	return registryConfig.imagePrefix && registryConfig.imagePrefix.trim() 
+	const registryHost = registryConfig.registryUrl.replace(/^https?:\/\//, "");
+
+	return registryConfig.imagePrefix && registryConfig.imagePrefix.trim()
 		? `${registryHost}/${registryConfig.imagePrefix}/${imageName}:${imageTag}`
 		: `${registryHost}/${imageName}:${imageTag}`;
 };
@@ -116,7 +116,11 @@ export const buildRegistry = async (
 		throw new Error("Registry, image, or tag not found");
 	}
 
-	const dockerImage = buildRegistryDockerImage(deployRegistry, deployImage, deployImageTag);
+	const dockerImage = buildRegistryDockerImage(
+		deployRegistry,
+		deployImage,
+		deployImageTag,
+	);
 
 	const authConfig: Partial<RegistryAuth> = {
 		username: deployRegistry.username,
@@ -169,7 +173,11 @@ export const buildRemoteRegistry = async (
 		throw new Error("Registry, image, or tag not found");
 	}
 
-	const dockerImage = buildRegistryDockerImage(deployRegistry, deployImage, deployImageTag);
+	const dockerImage = buildRegistryDockerImage(
+		deployRegistry,
+		deployImage,
+		deployImageTag,
+	);
 
 	try {
 		let command = `

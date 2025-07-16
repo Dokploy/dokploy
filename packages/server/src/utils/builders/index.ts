@@ -212,15 +212,32 @@ export const mechanizeDockerContainer = async (
 };
 
 const getImageName = (application: ApplicationNested) => {
-	const { appName, sourceType, dockerImage, registry, deployRegistry, deployImage, deployImageTag } = application;
+	const {
+		appName,
+		sourceType,
+		dockerImage,
+		registry,
+		deployRegistry,
+		deployImage,
+		deployImageTag,
+	} = application;
 	const imageName = `${appName}:latest`;
-	
+
 	if (sourceType === "docker") {
 		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
 	}
 
-	if (sourceType === "registry" && deployRegistry && deployImage && deployImageTag) {
-		return buildRegistryDockerImage(deployRegistry, deployImage, deployImageTag);
+	if (
+		sourceType === "registry" &&
+		deployRegistry &&
+		deployImage &&
+		deployImageTag
+	) {
+		return buildRegistryDockerImage(
+			deployRegistry,
+			deployImage,
+			deployImageTag,
+		);
 	}
 
 	if (registry) {
@@ -235,7 +252,14 @@ const getImageName = (application: ApplicationNested) => {
 };
 
 export const getAuthConfig = (application: ApplicationNested) => {
-	const { registry, username, password, sourceType, registryUrl, deployRegistry } = application;
+	const {
+		registry,
+		username,
+		password,
+		sourceType,
+		registryUrl,
+		deployRegistry,
+	} = application;
 
 	if (sourceType === "docker") {
 		if (username && password) {
