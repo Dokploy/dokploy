@@ -20,7 +20,10 @@ import {
 } from "@dokploy/server/utils/providers/bitbucket";
 import {
 	buildDocker,
+	buildRegistry,
 	buildRemoteDocker,
+	buildRemoteRegistry,
+	buildRegistryDockerImage,
 } from "@dokploy/server/utils/providers/docker";
 import {
 	cloneGitRepository,
@@ -113,6 +116,7 @@ export const findApplicationById = async (applicationId: string) => {
 			security: true,
 			ports: true,
 			registry: true,
+			deployRegistry: true,
 			gitlab: true,
 			github: true,
 			bitbucket: true,
@@ -205,6 +209,8 @@ export const deployApplication = async ({
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "docker") {
 			await buildDocker(application, deployment.logPath);
+		} else if (application.sourceType === "registry") {
+			await buildRegistry(application, deployment.logPath);
 		} else if (application.sourceType === "git") {
 			await cloneGitRepository(application, deployment.logPath);
 			await buildApplication(application, deployment.logPath);
@@ -338,13 +344,37 @@ export const deployRemoteApplication = async ({
 				);
 			} else if (application.sourceType === "docker") {
 				command += await buildRemoteDocker(application, deployment.logPath);
+			} else if (application.sourceType === "registry") {
+				command += await buildRemoteRegistry(application, deployment.logPath);
 			}
 
-			if (application.sourceType !== "docker") {
+			if (
+				application.sourceType !== "docker" &&
+				application.sourceType !== "registry"
+			) {
 				command += getBuildCommand(application, deployment.logPath);
 			}
 			await execAsyncRemote(application.serverId, command);
-			await mechanizeDockerContainer(application);
+
+			// For registry deployments, set the resolved image name for mechanize
+			if (
+				application.sourceType === "registry" &&
+				application.deployRegistry &&
+				application.deployImage &&
+				application.deployImageTag
+			) {
+				const dockerImage = buildRegistryDockerImage(
+					application.deployRegistry,
+					application.deployImage,
+					application.deployImageTag,
+				);
+				await mechanizeDockerContainer({
+					...application,
+					dockerImage,
+				});
+			} else {
+				await mechanizeDockerContainer(application);
+			}
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");

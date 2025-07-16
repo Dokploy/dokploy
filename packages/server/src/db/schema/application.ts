@@ -35,6 +35,7 @@ export const sourceType = pgEnum("sourceType", [
 	"bitbucket",
 	"gitea",
 	"drop",
+	"registry",
 ]);
 
 export const buildType = pgEnum("buildType", [
@@ -217,6 +218,15 @@ export const applications = pgTable("application", {
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
+	// Registry deployment fields
+	deployRegistryId: text("deployRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
+	deployImage: text("deployImage"),
+	deployImageTag: text("deployImageTag").default("latest"),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
@@ -256,6 +266,10 @@ export const applicationsRelations = relations(
 		ports: many(ports),
 		registry: one(registry, {
 			fields: [applications.registryId],
+			references: [registry.registryId],
+		}),
+		deployRegistry: one(registry, {
+			fields: [applications.deployRegistryId],
 			references: [registry.registryId],
 		}),
 		github: one(github, {
@@ -401,7 +415,16 @@ const createSchema = createInsertSchema(applications, {
 	buildPath: z.string().optional(),
 	projectId: z.string(),
 	sourceType: z
-		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
+		.enum([
+			"github",
+			"docker",
+			"git",
+			"gitlab",
+			"bitbucket",
+			"gitea",
+			"drop",
+			"registry",
+		])
 		.optional(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	buildType: z.enum([
@@ -435,6 +458,9 @@ const createSchema = createInsertSchema(applications, {
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
+	deployRegistryId: z.string().optional(),
+	deployImage: z.string().optional(),
+	deployImageTag: z.string().optional(),
 });
 
 export const apiCreateApplication = createSchema.pick({
@@ -573,3 +599,12 @@ export const apiUpdateApplication = createSchema
 		applicationId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export const apiSaveRegistryProvider = createSchema
+	.pick({
+		applicationId: true,
+		deployRegistryId: true,
+		deployImage: true,
+		deployImageTag: true,
+	})
+	.required();
