@@ -124,7 +124,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 					<span>Compose</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-xl">
+			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>Create Compose</DialogTitle>
 					<DialogDescription>

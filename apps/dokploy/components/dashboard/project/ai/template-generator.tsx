@@ -158,7 +158,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 					<span>AI Assistant</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-4xl w-full  flex flex-col">
+			<DialogContent className="sm:max-w-4xl w-full  flex flex-col">
 				<DialogHeader>
 					<DialogTitle>AI Assistant</DialogTitle>
 					<DialogDescription>

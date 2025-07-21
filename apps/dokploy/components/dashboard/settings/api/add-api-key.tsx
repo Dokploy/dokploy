@@ -142,7 +142,7 @@ export const AddApiKey = () => {
 				<DialogTrigger asChild>
 					<Button>Generate New Key</Button>
 				</DialogTrigger>
-				<DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+				<DialogContent className="sm:max-w-xl max-h-[90vh]">
 					<DialogHeader>
 						<DialogTitle>Generate API Key</DialogTitle>
 						<DialogDescription>

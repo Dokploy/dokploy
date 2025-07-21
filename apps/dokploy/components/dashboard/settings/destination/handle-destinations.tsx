@@ -70,6 +70,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		},
 		{
 			enabled: !!destinationId,
+			refetchOnWindowFocus: false,
 		},
 	);
 	const {
@@ -204,7 +205,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>
 						{destinationId ? "Update" : "Add"} Destination
@@ -359,7 +360,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					<DialogFooter
 						className={cn(
 							isCloud ? "!flex-col" : "flex-row",
-							"flex w-full  !justify-between pt-3 gap-4",
+							"flex w-full  !justify-between gap-4",
 						)}
 					>
 						{isCloud ? (

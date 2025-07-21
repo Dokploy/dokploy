@@ -1,4 +1,5 @@
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,14 +11,13 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { type RouterOutputs, api } from "@/utils/api";
-import { Clock, Loader2, RocketIcon, Settings, RefreshCcw } from "lucide-react";
+import { Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
-import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { toast } from "sonner";
 
 interface Props {
 	id: string;

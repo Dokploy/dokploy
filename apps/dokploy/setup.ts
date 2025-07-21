@@ -4,6 +4,7 @@ import {
 	createDefaultTraefikConfig,
 	initializeTraefik,
 } from "@dokploy/server/setup/traefik-setup";
+import { execAsync } from "@dokploy/server";
 import { setupDirectories } from "@dokploy/server/setup/config-paths";
 import { initializePostgres } from "@dokploy/server/setup/postgres-setup";
 import { initializeRedis } from "@dokploy/server/setup/redis-setup";
@@ -11,7 +12,6 @@ import {
 	initializeNetwork,
 	initializeSwarm,
 } from "@dokploy/server/setup/setup";
-import { execAsync } from "@dokploy/server";
 
 async function step(actionLabel: string, fn: () => Promise<unknown> | unknown) {
 	try {

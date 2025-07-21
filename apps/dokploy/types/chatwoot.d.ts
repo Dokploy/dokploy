@@ -13,10 +13,7 @@ declare global {
 			baseDomain?: string;
 		};
 		chatwootSDK?: {
-			run: (config: {
-				websiteToken: string;
-				baseUrl: string;
-			}) => void;
+			run: (config: { websiteToken: string; baseUrl: string }) => void;
 		};
 		$chatwoot?: {
 			setUser: (

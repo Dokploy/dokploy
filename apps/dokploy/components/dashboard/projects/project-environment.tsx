@@ -94,7 +94,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-6xl">
+			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
 					<DialogTitle>Project Environment</DialogTitle>
 					<DialogDescription>

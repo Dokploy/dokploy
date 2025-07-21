@@ -119,7 +119,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 					<span>Application</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Create</DialogTitle>
 					<DialogDescription>

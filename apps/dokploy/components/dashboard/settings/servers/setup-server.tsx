@@ -88,7 +88,7 @@ export const SetupServer = ({ serverId }: Props) => {
 					Setup Server
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-4xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
 						<DialogTitle className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export const SetupServer = ({ serverId }: Props) => {
 												Copy Public Key ({server?.sshKey?.name})
 												<button
 													type="button"
-													className=" right-2 top-8"
+													className="right-2 top-8"
 													onClick={() => {
 														copy(
 															server?.sshKey?.publicKey || "Generate a SSH Key",
