@@ -194,9 +194,6 @@ export const getDefaultTraefikConfig = () => {
 		global: {
 			sendAnonymousUsage: false,
 		},
-		accessLog: {
-			filePath: "/etc/dokploy/traefik/dynamic/access.log",
-		},
 		providers: {
 			...(process.env.NODE_ENV === "development"
 				? {
