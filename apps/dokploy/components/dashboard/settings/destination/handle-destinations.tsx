@@ -70,6 +70,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 		},
 		{
 			enabled: !!destinationId,
+			refetchOnWindowFocus: false,
 		},
 	);
 	const {
