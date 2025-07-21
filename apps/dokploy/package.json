@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.24.3",
+	"version": "v0.24.4",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -187,10 +187,10 @@
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"
 	},
-	"packageManager": "pnpm@9.5.0",
+	"packageManager": "pnpm@9.12.0",
 	"engines": {
 		"node": "^20.16.0",
-		"pnpm": ">=9.5.0"
+		"pnpm": ">=9.12.0"
 	},
 	"lint-staged": {
 		"*": [
@@ -198,6 +198,8 @@
 		]
 	},
 	"commitlint": {
-		"extends": ["@commitlint/config-conventional"]
+		"extends": [
+			"@commitlint/config-conventional"
+		]
 	}
 }
