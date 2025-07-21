@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { ShowProviders } from "./show-providers";
 
 const stripePromise = loadStripe(
 	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
@@ -151,44 +152,25 @@ export const ShowBilling = () => {
 									<Loader2 className="animate-spin" />
 								</span>
 							) : (
-								<>
-									{products?.map((product) => {
-										const featured = true;
-										return (
-											<div key={product.id}>
-												<section
-													className={clsx(
-														"flex flex-col rounded-3xl  border-dashed border-2 px-4 max-w-sm",
-														featured
-															? "order-first  border py-8 lg:order-none"
-															: "lg:py-8",
-													)}
-												>
-													{isAnnual && (
-														<div className="mb-4 flex flex-row items-center gap-2">
-															<Badge>Recommended 🚀</Badge>
-														</div>
-													)}
-													{isAnnual ? (
-														<div className="flex flex-row gap-2 items-center">
-															<p className="text-2xl font-semibold tracking-tight text-primary ">
-																${" "}
-																{calculatePrice(
-																	serverQuantity,
-																	isAnnual,
-																).toFixed(2)}{" "}
-																USD
-															</p>
-															|
-															<p className="text-base font-semibold tracking-tight text-muted-foreground">
-																${" "}
-																{(
-																	calculatePrice(serverQuantity, isAnnual) / 12
-																).toFixed(2)}{" "}
-																/ Month USD
-															</p>
-														</div>
-													) : (
+								products?.map((product) => {
+									const featured = true;
+									return (
+										<div key={product.id}>
+											<section
+												className={clsx(
+													"flex flex-col rounded-3xl  border-dashed border-2 px-4 max-w-sm",
+													featured
+														? "order-first  border py-8 lg:order-none"
+														: "lg:py-8",
+												)}
+											>
+												{isAnnual && (
+													<div className="mb-4 flex flex-row items-center gap-2">
+														<Badge>Recommended 🚀</Badge>
+													</div>
+												)}
+												{isAnnual ? (
+													<div className="flex flex-row gap-2 items-center">
 														<p className="text-2xl font-semibold tracking-tight text-primary ">
 															${" "}
 															{calculatePrice(serverQuantity, isAnnual).toFixed(
@@ -196,127 +178,146 @@ export const ShowBilling = () => {
 															)}{" "}
 															USD
 														</p>
-													)}
-													<h3 className="mt-5 font-medium text-lg text-primary">
-														{product.name}
-													</h3>
-													<p
-														className={clsx(
-															"text-sm",
-															featured ? "text-white" : "text-slate-400",
-														)}
-													>
-														{product.description}
+														|
+														<p className="text-base font-semibold tracking-tight text-muted-foreground">
+															${" "}
+															{(
+																calculatePrice(serverQuantity, isAnnual) / 12
+															).toFixed(2)}{" "}
+															/ Month USD
+														</p>
+													</div>
+												) : (
+													<p className="text-2xl font-semibold tracking-tight text-primary ">
+														${" "}
+														{calculatePrice(serverQuantity, isAnnual).toFixed(
+															2,
+														)}{" "}
+														USD
 													</p>
+												)}
+												<h3 className="mt-5 font-medium text-lg text-primary">
+													{product.name}
+												</h3>
+												<p
+													className={clsx(
+														"text-sm",
+														featured ? "text-white" : "text-slate-400",
+													)}
+												>
+													{product.description}
+												</p>
 
-													<ul
-														className={clsx(
-															" mt-4 flex flex-col gap-y-2 text-sm",
-															featured ? "text-white" : "text-slate-200",
+												<ul
+													className={clsx(
+														" mt-4 flex flex-col gap-y-2 text-sm",
+														featured ? "text-white" : "text-slate-200",
+													)}
+												>
+													{[
+														"All the features of Dokploy",
+														"Unlimited deployments",
+														"Self-hosted on your own infrastructure",
+														"Full access to all deployment features",
+														"Dokploy integration",
+														"Backups",
+														"All Incoming features",
+													].map((feature) => (
+														<li
+															key={feature}
+															className="flex text-muted-foreground"
+														>
+															<CheckIcon />
+															<span className="ml-4">{feature}</span>
+														</li>
+													))}
+												</ul>
+												<div className="flex flex-col gap-2 mt-4">
+													<div className="flex items-center gap-2 justify-center">
+														<span className="text-sm text-muted-foreground">
+															{serverQuantity} Servers
+														</span>
+													</div>
+
+													<div className="flex items-center space-x-2">
+														<Button
+															disabled={serverQuantity <= 1}
+															variant="outline"
+															onClick={() => {
+																if (serverQuantity <= 1) return;
+
+																setServerQuantity(serverQuantity - 1);
+															}}
+														>
+															<MinusIcon className="h-4 w-4" />
+														</Button>
+														<NumberInput
+															value={serverQuantity}
+															onChange={(e) => {
+																setServerQuantity(
+																	e.target.value as unknown as number,
+																);
+															}}
+														/>
+
+														<Button
+															variant="outline"
+															onClick={() => {
+																setServerQuantity(serverQuantity + 1);
+															}}
+														>
+															<PlusIcon className="h-4 w-4" />
+														</Button>
+													</div>
+													<div
+														className={cn(
+															data?.subscriptions &&
+																data?.subscriptions?.length > 0
+																? "justify-between"
+																: "justify-end",
+															"flex flex-row  items-center gap-2 mt-4",
 														)}
 													>
-														{[
-															"All the features of Dokploy",
-															"Unlimited deployments",
-															"Self-hosted on your own infrastructure",
-															"Full access to all deployment features",
-															"Dokploy integration",
-															"Backups",
-															"All Incoming features",
-														].map((feature) => (
-															<li
-																key={feature}
-																className="flex text-muted-foreground"
-															>
-																<CheckIcon />
-																<span className="ml-4">{feature}</span>
-															</li>
-														))}
-													</ul>
-													<div className="flex flex-col gap-2 mt-4">
-														<div className="flex items-center gap-2 justify-center">
-															<span className="text-sm text-muted-foreground">
-																{serverQuantity} Servers
-															</span>
-														</div>
-
-														<div className="flex items-center space-x-2">
+														{admin?.user.stripeCustomerId && (
 															<Button
-																disabled={serverQuantity <= 1}
-																variant="outline"
-																onClick={() => {
-																	if (serverQuantity <= 1) return;
+																variant="secondary"
+																className="w-full"
+																onClick={async () => {
+																	const session =
+																		await createCustomerPortalSession();
 
-																	setServerQuantity(serverQuantity - 1);
+																	window.open(session.url);
 																}}
 															>
-																<MinusIcon className="h-4 w-4" />
+																Manage Subscription
 															</Button>
-															<NumberInput
-																value={serverQuantity}
-																onChange={(e) => {
-																	setServerQuantity(
-																		e.target.value as unknown as number,
-																	);
-																}}
-															/>
+														)}
 
-															<Button
-																variant="outline"
-																onClick={() => {
-																	setServerQuantity(serverQuantity + 1);
-																}}
-															>
-																<PlusIcon className="h-4 w-4" />
-															</Button>
-														</div>
-														<div
-															className={cn(
-																data?.subscriptions &&
-																	data?.subscriptions?.length > 0
-																	? "justify-between"
-																	: "justify-end",
-																"flex flex-row  items-center gap-2 mt-4",
-															)}
-														>
-															{admin?.user.stripeCustomerId && (
+														{data?.subscriptions?.length === 0 && (
+															<div className="justify-end w-full">
 																<Button
-																	variant="secondary"
 																	className="w-full"
 																	onClick={async () => {
-																		const session =
-																			await createCustomerPortalSession();
-
-																		window.open(session.url);
+																		handleCheckout(product.id);
 																	}}
+																	disabled={serverQuantity < 1}
 																>
-																	Manage Subscription
+																	Subscribe
 																</Button>
-															)}
-
-															{data?.subscriptions?.length === 0 && (
-																<div className="justify-end w-full">
-																	<Button
-																		className="w-full"
-																		onClick={async () => {
-																			handleCheckout(product.id);
-																		}}
-																		disabled={serverQuantity < 1}
-																	>
-																		Subscribe
-																	</Button>
-																</div>
-															)}
-														</div>
+															</div>
+														)}
 													</div>
-												</section>
-											</div>
-										);
-									})}
-								</>
+												</div>
+											</section>
+										</div>
+									);
+								})
 							)}
 						</div>
 					</CardContent>
+					<div className="flex flex-col gap-4 px-4">
+						<ShowProviders />
+					</div>
 				</div>
 			</Card>
 		</div>
