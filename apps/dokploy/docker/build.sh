@@ -6,7 +6,7 @@ BUILD_TYPE=${1:-production}
 if [ "$BUILD_TYPE" == "canary" ]; then
     TAG="canary"
 else
-    VERSION=$(node -p "require('./package.json').version")
+    VERSION=v$(node -p "require('./package.json').version")
     TAG="$VERSION"
 fi
 

@@ -11,7 +11,7 @@ if [ "$BUILD_TYPE" == "canary" ]; then
         docker buildx build --platform linux/amd64,linux/arm64 --pull --rm -t "dokploy/dokploy:${TAG}" -f 'Dockerfile' --push .
 else
     echo  "PUSHING PRODUCTION"
-    VERSION=$(node -p "require('./package.json').version")
+    VERSION=v$(node -p "require('./package.json').version")
     docker buildx build --platform linux/amd64,linux/arm64 --pull --rm -t "dokploy/dokploy:latest" -t "dokploy/dokploy:${VERSION}" -f 'Dockerfile' --push .
 fi
 

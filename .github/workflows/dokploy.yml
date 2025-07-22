@@ -29,7 +29,7 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             TAG="latest"
-            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+            VERSION=v$(node -p "require('./apps/dokploy/package.json').version")
           elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
             TAG="canary"
           else
@@ -67,10 +67,10 @@ jobs:
       - name: Set tag and version
         id: meta
         run: |
-          VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+          VERSION=v$(node -p "require('./apps/dokploy/package.json').version")
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             TAG="latest"
-            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+            VERSION=v$(node -p "require('./apps/dokploy/package.json').version")
           elif [ "${{ github.ref }}" = "refs/heads/canary" ]; then
             TAG="canary"
           else
@@ -110,7 +110,7 @@ jobs:
       - name: Create and push manifests
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+            VERSION=v$(node -p "require('./apps/dokploy/package.json').version")
             TAG="latest"
 
             docker buildx imagetools create -t ${IMAGE_NAME}:${TAG} \
@@ -147,7 +147,7 @@ jobs:
       - name: Get version
         id: get_version
         run: |
-          VERSION=$(node -p "require('./apps/dokploy/package.json').version")
+          VERSION=v$(node -p "require('./apps/dokploy/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Release
