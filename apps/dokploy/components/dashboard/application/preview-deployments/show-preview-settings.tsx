@@ -42,6 +42,7 @@ const schema = z
 		wildcardDomain: z.string(),
 		port: z.number(),
 		previewLimit: z.number(),
+        previewLabels: z.string(),
 		previewHttps: z.boolean(),
 		previewPath: z.string(),
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
@@ -81,6 +82,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			wildcardDomain: "*.traefik.me",
 			port: 3000,
 			previewLimit: 3,
+            previewLabels: "",
 			previewHttps: false,
 			previewPath: "/",
 			previewCertificateType: "none",
@@ -102,6 +104,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				buildArgs: data.previewBuildArgs || "",
 				wildcardDomain: data.previewWildcard || "*.traefik.me",
 				port: data.previewPort || 3000,
+                previewLabels: data.previewLabels || "",
 				previewLimit: data.previewLimit || 3,
 				previewHttps: data.previewHttps || false,
 				previewPath: data.previewPath || "/",
@@ -119,6 +122,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewBuildArgs: formData.buildArgs,
 			previewWildcard: formData.wildcardDomain,
 			previewPort: formData.port,
+            previewLabels: formData.previewLabels,
 			applicationId,
 			previewLimit: formData.previewLimit,
 			previewHttps: formData.previewHttps,
@@ -195,6 +199,19 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<FormLabel>Port</FormLabel>
 												<FormControl>
 													<NumberInput placeholder="3000" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="previewLabels"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Labels</FormLabel>
+												<FormControl>
+													<Input placeholder="enhancement,needs-review (Leave empty for all labels)" {...field} />
 												</FormControl>
 												<FormMessage />
 											</FormItem>
