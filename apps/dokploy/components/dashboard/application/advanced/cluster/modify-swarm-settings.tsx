@@ -762,12 +762,36 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
 									<FormLabel>Stop Grace Period</FormLabel>
-									<FormDescription>
-										Time to wait for the container to stop gracefully.
-									</FormDescription>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the format
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`Duration string format:
+• "30s" - 30 seconds
+• "2m" - 2 minutes  
+• "1h" - 1 hour
+• "0" - no grace period`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
 									<FormControl>
-										<Input
-											placeholder="e.g, 30s"
+										<CodeEditor
+											language="properties"
+											placeholder="30s"
+											className="h-[8rem] font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
