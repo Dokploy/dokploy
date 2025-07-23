@@ -199,7 +199,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 				<p className="text-muted-foreground">
 					Generating template suggestions based on your input...
 				</p>
-				<pre>{templateInfo.userInput}</pre>
+				<pre className="whitespace-normal">{templateInfo.userInput}</pre>
 			</div>
 		);
 	}
