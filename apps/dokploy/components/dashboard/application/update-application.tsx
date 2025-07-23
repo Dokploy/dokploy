@@ -99,7 +99,7 @@ export const UpdateApplication = ({ applicationId }: Props) => {
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Modify Application</DialogTitle>
 					<DialogDescription>Update the application data</DialogDescription>

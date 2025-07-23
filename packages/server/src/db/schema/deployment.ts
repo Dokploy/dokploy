@@ -13,9 +13,10 @@ import { applications } from "./application";
 import { backups } from "./backups";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
+import { rollbacks } from "./rollbacks";
 import { schedules } from "./schedule";
 import { server } from "./server";
-import { rollbacks } from "./rollbacks";
+import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
@@ -31,6 +32,7 @@ export const deployments = pgTable("deployment", {
 	description: text("description"),
 	status: deploymentStatus("status").default("running"),
 	logPath: text("logPath").notNull(),
+	pid: text("pid"),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
@@ -63,6 +65,10 @@ export const deployments = pgTable("deployment", {
 		(): AnyPgColumn => rollbacks.rollbackId,
 		{ onDelete: "cascade" },
 	),
+	volumeBackupId: text("volumeBackupId").references(
+		(): AnyPgColumn => volumeBackups.volumeBackupId,
+		{ onDelete: "cascade" },
+	),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -93,6 +99,10 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	rollback: one(rollbacks, {
 		fields: [deployments.deploymentId],
 		references: [rollbacks.deploymentId],
+	}),
+	volumeBackup: one(volumeBackups, {
+		fields: [deployments.volumeBackupId],
+		references: [volumeBackups.volumeBackupId],
 	}),
 }));
 
@@ -178,6 +188,17 @@ export const apiCreateDeploymentSchedule = schema
 		scheduleId: z.string().min(1),
 	});
 
+export const apiCreateDeploymentVolumeBackup = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		description: true,
+	})
+	.extend({
+		volumeBackupId: z.string().min(1),
+	});
+
 export const apiFindAllByApplication = schema
 	.pick({
 		applicationId: true,
@@ -215,6 +236,7 @@ export const apiFindAllByType = z
 			"schedule",
 			"previewDeployment",
 			"backup",
+			"volumeBackup",
 		]),
 	})
 	.required();

@@ -124,7 +124,7 @@ export const ShowDeployment = ({
 				}
 			}}
 		>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">

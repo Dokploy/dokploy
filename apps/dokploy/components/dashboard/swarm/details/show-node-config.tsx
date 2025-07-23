@@ -29,7 +29,7 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 					Config
 				</Button>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
 					<DialogTitle>Node Config</DialogTitle>
 					<DialogDescription>

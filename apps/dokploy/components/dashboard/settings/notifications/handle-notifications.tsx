@@ -408,7 +408,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>
 						{notificationId ? "Update" : "Add"} Notification
@@ -907,7 +907,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="appBuildError"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>App Build Error</FormLabel>
 												<FormDescription>
@@ -928,7 +928,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="databaseBackup"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Database Backup</FormLabel>
 												<FormDescription>
@@ -949,7 +949,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									control={form.control}
 									name="dockerCleanup"
 									render={({ field }) => (
-										<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 											<div className="space-y-0.5">
 												<FormLabel>Docker Cleanup</FormLabel>
 												<FormDescription>
@@ -972,7 +972,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="dokployRestart"
 										render={({ field }) => (
-											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Dokploy Restart</FormLabel>
 													<FormDescription>
@@ -995,7 +995,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										control={form.control}
 										name="serverThreshold"
 										render={({ field }) => (
-											<FormItem className=" flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
 												<div className="space-y-0.5">
 													<FormLabel>Server Threshold</FormLabel>
 													<FormDescription>
@@ -1063,7 +1063,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										});
 									}
 									toast.success("Connection Success");
-								} catch (_err) {
+								} catch {
 									toast.error("Error testing the provider");
 								}
 							}}

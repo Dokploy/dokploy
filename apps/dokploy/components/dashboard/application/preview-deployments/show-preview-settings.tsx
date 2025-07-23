@@ -46,6 +46,7 @@ const schema = z
 		previewPath: z.string(),
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
 		previewCustomCertResolver: z.string().optional(),
+		previewRequireCollaboratorPermissions: z.boolean(),
 	})
 	.superRefine((input, ctx) => {
 		if (
@@ -83,6 +84,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewHttps: false,
 			previewPath: "/",
 			previewCertificateType: "none",
+			previewRequireCollaboratorPermissions: true,
 		},
 		resolver: zodResolver(schema),
 	});
@@ -105,6 +107,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewPath: data.previewPath || "/",
 				previewCertificateType: data.previewCertificateType || "none",
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
+				previewRequireCollaboratorPermissions:
+					data.previewRequireCollaboratorPermissions || true,
 			});
 		}
 	}, [data]);
@@ -121,6 +125,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewPath: formData.previewPath,
 			previewCertificateType: formData.previewCertificateType,
 			previewCustomCertResolver: formData.previewCustomCertResolver,
+			previewRequireCollaboratorPermissions:
+				formData.previewRequireCollaboratorPermissions,
 		})
 			.then(() => {
 				toast.success("Preview Deployments settings updated");
@@ -138,7 +144,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						Configure
 					</Button>
 				</DialogTrigger>
-				<DialogContent className="max-h-screen overflow-y-auto sm:max-w-5xl w-full">
+				<DialogContent className="sm:max-w-5xl w-full">
 					<DialogHeader>
 						<DialogTitle>Preview Deployment Settings</DialogTitle>
 						<DialogDescription>
@@ -310,6 +316,37 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											}}
 										/>
 									</div>
+								</div>
+
+								<div className="grid gap-4 lg:grid-cols-2">
+									<FormField
+										control={form.control}
+										name="previewRequireCollaboratorPermissions"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm col-span-2">
+												<div className="space-y-0.5">
+													<FormLabel>
+														Require Collaborator Permissions
+													</FormLabel>
+													<FormDescription>
+														Require collaborator permissions to preview
+														deployments, valid roles are:
+														<ul>
+															<li>Admin</li>
+															<li>Maintain</li>
+															<li>Write</li>
+														</ul>
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
 								</div>
 
 								<FormField

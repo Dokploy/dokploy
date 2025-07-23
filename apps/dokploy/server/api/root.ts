@@ -30,6 +30,8 @@ import { projectRouter } from "./routers/project";
 import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
+import { rollbackRouter } from "./routers/rollbacks";
+import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
@@ -37,8 +39,7 @@ import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
-import { scheduleRouter } from "./routers/schedule";
-import { rollbackRouter } from "./routers/rollbacks";
+import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
  * This is the primary router for your server.
  *
@@ -86,6 +87,7 @@ export const appRouter = createTRPCRouter({
 	schedule: scheduleRouter,
 	cloudStorageDestination: cloudStorageDestinationRouter,
 	rollback: rollbackRouter,
+	volumeBackups: volumeBackupsRouter,
 });
 
 // export type definition of API

@@ -79,6 +79,7 @@ export const HandleDestinations = ({
 		},
 		{
 			enabled: !!destinationId,
+			refetchOnWindowFocus: false,
 		},
 	);
 	const {
@@ -215,7 +216,7 @@ export const HandleDestinations = ({
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>
 						{destinationId || cloudDestinationId ? "Update" : "Add"} Destination

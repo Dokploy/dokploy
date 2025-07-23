@@ -49,7 +49,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		currentBuildArgs !== (data?.buildArgs || "");
 
 	useEffect(() => {
-		if (data && !hasChanges) {
+		if (data) {
 			form.reset({
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",

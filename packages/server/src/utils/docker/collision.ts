@@ -8,11 +8,14 @@ import type { ComposeSpecification } from "./types";
 export const addAppNameToPreventCollision = (
 	composeData: ComposeSpecification,
 	appName: string,
+	isolatedDeploymentsVolume: boolean,
 ): ComposeSpecification => {
 	let updatedComposeData = { ...composeData };
 
 	updatedComposeData = addAppNameToAllServiceNames(updatedComposeData, appName);
-	updatedComposeData = addSuffixToAllVolumes(updatedComposeData, appName);
+	if (isolatedDeploymentsVolume) {
+		updatedComposeData = addSuffixToAllVolumes(updatedComposeData, appName);
+	}
 	return updatedComposeData;
 };
 
@@ -29,6 +32,7 @@ export const randomizeIsolatedDeploymentComposeFile = async (
 	const newComposeFile = addAppNameToPreventCollision(
 		composeData,
 		randomSuffix,
+		compose.isolatedDeploymentsVolume,
 	);
 
 	return dump(newComposeFile);
@@ -36,11 +40,16 @@ export const randomizeIsolatedDeploymentComposeFile = async (
 
 export const randomizeDeployableSpecificationFile = (
 	composeSpec: ComposeSpecification,
+	isolatedDeploymentsVolume: boolean,
 	suffix?: string,
 ) => {
 	if (!suffix) {
 		return composeSpec;
 	}
-	const newComposeFile = addAppNameToPreventCollision(composeSpec, suffix);
+	const newComposeFile = addAppNameToPreventCollision(
+		composeSpec,
+		suffix,
+		isolatedDeploymentsVolume,
+	);
 	return newComposeFile;
 };

@@ -10,6 +10,7 @@ export * from "./services/mysql";
 export * from "./services/backup";
 export * from "./services/cluster";
 export * from "./services/settings";
+export * from "./services/volume-backups";
 export * from "./services/docker";
 export * from "./services/destination";
 export * from "./services/deployment";
@@ -44,6 +45,7 @@ export * from "./setup/traefik-setup";
 export * from "./setup/server-validate";
 export * from "./setup/server-audit";
 export * from "./utils/watch-paths/should-deploy";
+export * from "./utils/providers/github";
 export * from "./utils/backups/index";
 export * from "./utils/backups/mariadb";
 export * from "./utils/backups/mongo";
@@ -132,5 +134,6 @@ export {
 
 export * from "./utils/schedules/utils";
 export * from "./utils/schedules/index";
+export * from "./utils/volume-backups/index";
 
 export * from "./lib/logger";

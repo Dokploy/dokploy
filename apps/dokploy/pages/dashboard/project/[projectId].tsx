@@ -390,7 +390,7 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (_error) {
+			} catch {
 				toast.error(`Error starting service ${serviceId}`);
 			}
 		}
@@ -437,7 +437,7 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (_error) {
+			} catch {
 				toast.error(`Error stopping service ${serviceId}`);
 			}
 		}
@@ -958,7 +958,7 @@ const Project = (
 											</div>
 										) : (
 											<div className="flex w-full flex-col gap-4">
-												<div className=" gap-5 pb-10  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+												<div className="gap-5 pb-10  grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
 													{filteredServices?.map((service) => (
 														<Card
 															key={service.id}
@@ -1107,7 +1107,7 @@ export async function getServerSideProps(
 					projectId: params?.projectId,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

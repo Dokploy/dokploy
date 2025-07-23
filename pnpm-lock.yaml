@@ -13,16 +13,16 @@ importers:
   .:
     devDependencies:
       '@biomejs/biome':
-        specifier: 1.9.4
-        version: 1.9.4
+        specifier: 2.1.1
+        version: 2.1.1
       '@commitlint/cli':
-        specifier: ^19.3.0
+        specifier: ^19.8.1
         version: 19.8.1(@types/node@18.19.104)(typescript@5.8.3)
       '@commitlint/config-conventional':
-        specifier: ^19.2.2
+        specifier: ^19.8.1
         version: 19.8.1
       '@types/node':
-        specifier: ^18.17.0
+        specifier: ^18.19.104
         version: 18.19.104
       dotenv:
         specifier: 16.4.5
@@ -34,7 +34,7 @@ importers:
         specifier: 1.8.4
         version: 1.8.4
       lint-staged:
-        specifier: ^15.2.7
+        specifier: ^15.5.2
         version: 15.5.2
       tsx:
         specifier: 4.16.2
@@ -46,7 +46,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/server
       '@hono/node-server':
-        specifier: ^1.12.1
+        specifier: ^1.14.3
         version: 1.14.3(hono@4.7.10)
       '@hono/zod-validator':
         specifier: 0.3.0
@@ -55,10 +55,10 @@ importers:
         specifier: 1.2.3
         version: 1.2.3(redis@4.7.0)
       dotenv:
-        specifier: ^16.3.1
+        specifier: ^16.4.5
         version: 16.4.5
       hono:
-        specifier: ^4.5.8
+        specifier: ^4.7.10
         version: 4.7.10
       pino:
         specifier: 9.4.0
@@ -76,11 +76,11 @@ importers:
         specifier: 4.7.0
         version: 4.7.0
       zod:
-        specifier: ^3.23.4
+        specifier: ^3.25.32
         version: 3.25.32
     devDependencies:
       '@types/node':
-        specifier: ^20.11.17
+        specifier: ^20.17.51
         version: 20.17.51
       '@types/react':
         specifier: 18.3.5
@@ -89,31 +89,31 @@ importers:
         specifier: 18.3.0
         version: 18.3.0
       tsx:
-        specifier: ^4.7.1
+        specifier: ^4.16.2
         version: 4.16.2
       typescript:
-        specifier: ^5.4.2
+        specifier: ^5.8.3
         version: 5.8.3
 
   apps/dokploy:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: ^1.0.6
+        specifier: ^1.2.12
         version: 1.2.12(zod@3.25.32)
       '@ai-sdk/azure':
-        specifier: ^1.0.15
+        specifier: ^1.3.23
         version: 1.3.23(zod@3.25.32)
       '@ai-sdk/cohere':
-        specifier: ^1.0.6
+        specifier: ^1.2.10
         version: 1.2.10(zod@3.25.32)
       '@ai-sdk/deepinfra':
         specifier: ^0.0.4
         version: 0.0.4(zod@3.25.32)
       '@ai-sdk/mistral':
-        specifier: ^1.0.6
+        specifier: ^1.2.8
         version: 1.2.8(zod@3.25.32)
       '@ai-sdk/openai':
-        specifier: ^1.0.12
+        specifier: ^1.3.22
         version: 1.3.22(zod@3.25.32)
       '@ai-sdk/openai-compatible':
         specifier: ^0.0.13
@@ -125,10 +125,10 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
       '@codemirror/lang-yaml':
-        specifier: ^6.1.1
+        specifier: ^6.1.2
         version: 6.1.2
       '@codemirror/language':
-        specifier: ^6.10.1
+        specifier: ^6.11.0
         version: 6.11.0
       '@codemirror/legacy-modes':
         specifier: 6.4.0
@@ -146,70 +146,70 @@ importers:
         specifier: ^8.4.1
         version: 8.4.1
       '@hookform/resolvers':
-        specifier: ^3.9.0
+        specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.56.4(react@18.2.0))
       '@octokit/auth-app':
-        specifier: ^6.0.4
+        specifier: ^6.1.3
         version: 6.1.3
       '@octokit/webhooks':
-        specifier: ^13.2.7
+        specifier: ^13.9.0
         version: 13.9.0
       '@radix-ui/react-accordion':
         specifier: 1.1.2
         version: 1.1.2(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-alert-dialog':
-        specifier: ^1.0.5
+        specifier: ^1.1.14
         version: 1.1.14(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-avatar':
-        specifier: ^1.0.4
+        specifier: ^1.1.10
         version: 1.1.10(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-checkbox':
-        specifier: ^1.0.4
+        specifier: ^1.3.2
         version: 1.3.2(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-collapsible':
-        specifier: ^1.1.1
+        specifier: ^1.1.11
         version: 1.1.11(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-dialog':
-        specifier: ^1.1.1
+        specifier: ^1.1.14
         version: 1.1.14(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-dropdown-menu':
-        specifier: ^2.0.6
+        specifier: ^2.1.15
         version: 2.1.15(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-label':
-        specifier: ^2.1.0
+        specifier: ^2.1.7
         version: 2.1.7(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-popover':
-        specifier: ^1.0.7
+        specifier: ^1.1.14
         version: 1.1.14(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-progress':
-        specifier: ^1.0.3
+        specifier: ^1.1.7
         version: 1.1.7(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-radio-group':
-        specifier: ^1.2.0
+        specifier: ^1.3.7
         version: 1.3.7(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-scroll-area':
-        specifier: ^1.1.0
+        specifier: ^1.2.9
         version: 1.2.9(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-select':
-        specifier: ^2.1.1
+        specifier: ^2.2.5
         version: 2.2.5(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-separator':
-        specifier: ^1.1.0
+        specifier: ^1.1.7
         version: 1.1.7(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-slot':
-        specifier: ^1.1.0
+        specifier: ^1.2.3
         version: 1.2.3(@types/react@18.3.5)(react@18.2.0)
       '@radix-ui/react-switch':
-        specifier: ^1.0.3
+        specifier: ^1.2.5
         version: 1.2.5(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-tabs':
-        specifier: ^1.0.4
+        specifier: ^1.1.12
         version: 1.1.12(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-toggle':
-        specifier: ^1.0.3
+        specifier: ^1.1.9
         version: 1.1.9(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@radix-ui/react-tooltip':
-        specifier: ^1.0.7
+        specifier: ^1.2.7
         version: 1.2.7(@types/react-dom@18.3.0)(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@react-email/components':
         specifier: ^0.0.21
@@ -227,25 +227,25 @@ importers:
         specifier: ^4.36.1
         version: 4.36.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@tanstack/react-table':
-        specifier: ^8.16.0
+        specifier: ^8.21.3
         version: 8.21.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@trpc/client':
-        specifier: ^10.43.6
+        specifier: ^10.45.2
         version: 10.45.2(@trpc/server@10.45.2)
       '@trpc/next':
-        specifier: ^10.43.6
+        specifier: ^10.45.2
         version: 10.45.2(@tanstack/react-query@4.36.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/react-query@10.45.2(@tanstack/react-query@4.36.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@trpc/server@10.45.2)(next@15.3.2(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@trpc/react-query':
-        specifier: ^10.43.6
+        specifier: ^10.45.2
         version: 10.45.2(@tanstack/react-query@4.36.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(@trpc/client@10.45.2(@trpc/server@10.45.2))(@trpc/server@10.45.2)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@trpc/server':
-        specifier: ^10.43.6
+        specifier: ^10.45.2
         version: 10.45.2
       '@uiw/codemirror-theme-github':
-        specifier: ^4.22.1
+        specifier: ^4.23.12
         version: 4.23.12(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.29.0)
       '@uiw/react-codemirror':
-        specifier: ^4.22.1
+        specifier: ^4.23.12
         version: 4.23.12(@babel/runtime@7.27.3)(@codemirror/autocomplete@6.18.6)(@codemirror/language@6.11.0)(@codemirror/lint@6.8.5)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.29.0)(codemirror@6.0.1)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@xterm/addon-attach':
         specifier: 0.10.0
@@ -254,13 +254,13 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(@xterm/xterm@5.5.0)
       '@xterm/xterm':
-        specifier: ^5.4.0
+        specifier: ^5.5.0
         version: 5.5.0
       adm-zip:
-        specifier: ^0.5.14
+        specifier: ^0.5.16
         version: 0.5.16
       ai:
-        specifier: ^4.0.23
+        specifier: ^4.3.16
         version: 4.3.16(react@18.2.0)(zod@3.25.32)
       bcrypt:
         specifier: 5.1.1
@@ -278,13 +278,13 @@ importers:
         specifier: 5.4.2
         version: 5.4.2
       class-variance-authority:
-        specifier: ^0.7.0
+        specifier: ^0.7.1
         version: 0.7.1
       clsx:
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: 2.1.1
       cmdk:
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: 0.2.1(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       copy-to-clipboard:
         specifier: ^3.3.3
@@ -299,7 +299,7 @@ importers:
         specifier: 16.4.5
         version: 16.4.5
       drizzle-orm:
-        specifier: ^0.39.1
+        specifier: ^0.39.3
         version: 0.39.3(@opentelemetry/api@1.9.0)(kysely@0.28.2)(postgres@3.4.4)
       drizzle-zod:
         specifier: 0.5.1
@@ -311,10 +311,10 @@ importers:
         specifier: ^0.5.1
         version: 0.5.1
       i18next:
-        specifier: ^23.16.4
+        specifier: ^23.16.8
         version: 23.16.8
       input-otp:
-        specifier: ^1.2.4
+        specifier: ^1.4.2
         version: 1.4.2(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       js-cookie:
         specifier: ^3.0.5
@@ -332,13 +332,13 @@ importers:
         specifier: 4.0.8
         version: 4.0.8
       nanoid:
-        specifier: '3'
+        specifier: 3.3.11
         version: 3.3.11
       next:
-        specifier: ^15.2.4
+        specifier: ^15.3.2
         version: 15.3.2(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       next-i18next:
-        specifier: ^15.3.1
+        specifier: ^15.4.2
         version: 15.4.2(i18next@23.16.8)(next@15.3.2(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-i18next@15.5.2(i18next@23.16.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.8.3))(react@18.2.0)
       next-themes:
         specifier: ^0.2.1
@@ -359,10 +359,10 @@ importers:
         specifier: 3.1.2
         version: 3.1.2
       ollama-ai-provider:
-        specifier: ^1.1.0
+        specifier: ^1.2.0
         version: 1.2.0(zod@3.25.32)
       otpauth:
-        specifier: ^9.2.3
+        specifier: ^9.4.0
         version: 9.4.0
       pino:
         specifier: 9.4.0
@@ -377,7 +377,7 @@ importers:
         specifier: 6.0.2
         version: 6.0.2
       qrcode:
-        specifier: ^1.5.3
+        specifier: ^1.5.4
         version: 1.5.4
       react:
         specifier: 18.2.0
@@ -392,16 +392,16 @@ importers:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
       react-hook-form:
-        specifier: ^7.52.1
+        specifier: ^7.56.4
         version: 7.56.4(react@18.2.0)
       react-i18next:
-        specifier: ^15.1.0
+        specifier: ^15.5.2
         version: 15.5.2(i18next@23.16.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.8.3)
       react-markdown:
-        specifier: ^9.0.1
+        specifier: ^9.1.0
         version: 9.1.0(@types/react@18.3.5)(react@18.2.0)
       recharts:
-        specifier: ^2.12.7
+        specifier: ^2.15.3
         version: 2.15.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       rotating-file-stream:
         specifier: 3.2.3
@@ -410,7 +410,7 @@ importers:
         specifier: ^1.6.6
         version: 1.6.6
       sonner:
-        specifier: ^1.5.0
+        specifier: ^1.7.4
         version: 1.7.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       ssh2:
         specifier: 1.15.0
@@ -419,13 +419,13 @@ importers:
         specifier: 17.2.0
         version: 17.2.0
       superjson:
-        specifier: ^2.2.1
+        specifier: ^2.2.2
         version: 2.2.2
       swagger-ui-react:
-        specifier: ^5.17.14
+        specifier: ^5.22.0
         version: 5.22.0(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       tailwind-merge:
-        specifier: ^2.2.0
+        specifier: ^2.6.0
         version: 2.6.0
       tailwindcss-animate:
         specifier: ^1.0.7
@@ -434,7 +434,7 @@ importers:
         specifier: 3.0.0
         version: 3.0.0
       undici:
-        specifier: ^6.19.2
+        specifier: ^6.21.3
         version: 6.21.3
       use-resize-observer:
         specifier: 9.1.0
@@ -446,14 +446,14 @@ importers:
         specifier: ^0.8.0
         version: 0.8.0(xterm@5.3.0)
       zod:
-        specifier: ^3.23.4
+        specifier: ^3.25.32
         version: 3.25.32
       zod-form-data:
-        specifier: ^2.0.2
+        specifier: ^2.0.7
         version: 2.0.7(zod@3.25.32)
     devDependencies:
       '@types/adm-zip':
-        specifier: ^0.5.5
+        specifier: ^0.5.7
         version: 0.5.7
       '@types/bcrypt':
         specifier: 5.0.2
@@ -471,7 +471,7 @@ importers:
         specifier: 4.0.9
         version: 4.0.9
       '@types/node':
-        specifier: ^18.17.0
+        specifier: ^18.19.104
         version: 18.19.104
       '@types/node-os-utils':
         specifier: 1.3.4
@@ -480,7 +480,7 @@ importers:
         specifier: 2.1.6
         version: 2.1.6
       '@types/nodemailer':
-        specifier: ^6.4.15
+        specifier: ^6.4.17
         version: 6.4.17
       '@types/qrcode':
         specifier: ^1.5.5
@@ -495,7 +495,7 @@ importers:
         specifier: 1.15.1
         version: 1.15.1
       '@types/swagger-ui-react':
-        specifier: ^4.18.3
+        specifier: ^4.19.0
         version: 4.19.0
       '@types/ws':
         specifier: 8.5.10
@@ -504,31 +504,31 @@ importers:
         specifier: 10.4.12
         version: 10.4.12(postcss@8.5.3)
       drizzle-kit:
-        specifier: ^0.30.4
+        specifier: ^0.30.6
         version: 0.30.6
       esbuild:
         specifier: 0.20.2
         version: 0.20.2
       lint-staged:
-        specifier: ^15.2.7
+        specifier: ^15.5.2
         version: 15.5.2
       memfs:
-        specifier: ^4.11.0
+        specifier: ^4.17.2
         version: 4.17.2
       tailwindcss:
-        specifier: ^3.4.1
+        specifier: ^3.4.17
         version: 3.4.17
       tsx:
-        specifier: ^4.7.0
+        specifier: ^4.16.2
         version: 4.16.2
       typescript:
-        specifier: ^5.4.2
+        specifier: ^5.8.3
         version: 5.8.3
       vite-tsconfig-paths:
         specifier: 4.3.2
         version: 4.3.2(typescript@5.8.3)(vite@5.4.19(@types/node@18.19.104))
       vitest:
-        specifier: ^1.6.0
+        specifier: ^1.6.1
         version: 1.6.1(@types/node@18.19.104)
 
   apps/schedules:
@@ -537,7 +537,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/server
       '@hono/node-server':
-        specifier: ^1.12.1
+        specifier: ^1.14.3
         version: 1.14.3(hono@4.7.10)
       '@hono/zod-validator':
         specifier: 0.3.0
@@ -546,13 +546,13 @@ importers:
         specifier: 5.4.2
         version: 5.4.2
       dotenv:
-        specifier: ^16.3.1
+        specifier: ^16.4.5
         version: 16.4.5
       drizzle-orm:
-        specifier: ^0.39.1
+        specifier: ^0.39.3
         version: 0.39.3(@opentelemetry/api@1.9.0)(kysely@0.28.2)(postgres@3.4.4)
       hono:
-        specifier: ^4.5.8
+        specifier: ^4.7.10
         version: 4.7.10
       ioredis:
         specifier: 5.4.1
@@ -570,11 +570,11 @@ importers:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
       zod:
-        specifier: ^3.23.4
+        specifier: ^3.25.32
         version: 3.25.32
     devDependencies:
       '@types/node':
-        specifier: ^20.11.17
+        specifier: ^20.17.51
         version: 20.17.51
       '@types/react':
         specifier: 18.3.5
@@ -583,31 +583,31 @@ importers:
         specifier: 18.3.0
         version: 18.3.0
       tsx:
-        specifier: ^4.7.1
+        specifier: ^4.16.2
         version: 4.16.2
       typescript:
-        specifier: ^5.4.2
+        specifier: ^5.8.3
         version: 5.8.3
 
   packages/server:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: ^1.0.6
+        specifier: ^1.2.12
         version: 1.2.12(zod@3.25.32)
       '@ai-sdk/azure':
-        specifier: ^1.0.15
+        specifier: ^1.3.23
         version: 1.3.23(zod@3.25.32)
       '@ai-sdk/cohere':
-        specifier: ^1.0.6
+        specifier: ^1.2.10
         version: 1.2.10(zod@3.25.32)
       '@ai-sdk/deepinfra':
         specifier: ^0.0.4
         version: 0.0.4(zod@3.25.32)
       '@ai-sdk/mistral':
-        specifier: ^1.0.6
+        specifier: ^1.2.8
         version: 1.2.8(zod@3.25.32)
       '@ai-sdk/openai':
-        specifier: ^1.0.12
+        specifier: ^1.3.22
         version: 1.3.22(zod@3.25.32)
       '@ai-sdk/openai-compatible':
         specifier: ^0.0.13
@@ -619,10 +619,10 @@ importers:
         specifier: ^8.4.1
         version: 8.4.1
       '@octokit/auth-app':
-        specifier: ^6.0.4
+        specifier: ^6.1.3
         version: 6.1.3
       '@octokit/rest':
-        specifier: ^20.0.2
+        specifier: ^20.1.2
         version: 20.1.2
       '@oslojs/crypto':
         specifier: 1.0.1
@@ -634,13 +634,13 @@ importers:
         specifier: ^0.0.21
         version: 0.0.21(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@trpc/server':
-        specifier: ^10.43.6
+        specifier: ^10.45.2
         version: 10.45.2
       adm-zip:
-        specifier: ^0.5.14
+        specifier: ^0.5.16
         version: 0.5.16
       ai:
-        specifier: ^4.0.23
+        specifier: ^4.3.16
         version: 4.3.16(react@18.2.0)(zod@3.25.32)
       bcrypt:
         specifier: 5.1.1
@@ -667,7 +667,7 @@ importers:
         specifier: 0.10.0
         version: 0.10.0(drizzle-orm@0.39.3(@opentelemetry/api@1.9.0)(kysely@0.28.2)(postgres@3.4.4))
       drizzle-orm:
-        specifier: ^0.39.1
+        specifier: ^0.39.3
         version: 0.39.3(@opentelemetry/api@1.9.0)(kysely@0.28.2)(postgres@3.4.4)
       drizzle-zod:
         specifier: 0.5.1
@@ -685,7 +685,7 @@ importers:
         specifier: 4.0.8
         version: 4.0.8
       nanoid:
-        specifier: '3'
+        specifier: 3.3.11
         version: 3.3.11
       node-os-utils:
         specifier: 1.3.7
@@ -703,10 +703,10 @@ importers:
         specifier: 3.1.2
         version: 3.1.2
       ollama-ai-provider:
-        specifier: ^1.1.0
+        specifier: ^1.2.0
         version: 1.2.0(zod@3.25.32)
       otpauth:
-        specifier: ^9.2.3
+        specifier: ^9.4.0
         version: 9.4.0
       pino:
         specifier: 9.4.0
@@ -721,7 +721,7 @@ importers:
         specifier: 6.0.2
         version: 6.0.2
       qrcode:
-        specifier: ^1.5.3
+        specifier: ^1.5.4
         version: 1.5.4
       react:
         specifier: 18.2.0
@@ -745,11 +745,11 @@ importers:
         specifier: 8.16.0
         version: 8.16.0
       zod:
-        specifier: ^3.23.4
+        specifier: ^3.25.32
         version: 3.25.32
     devDependencies:
       '@types/adm-zip':
-        specifier: ^0.5.5
+        specifier: ^0.5.7
         version: 0.5.7
       '@types/bcrypt':
         specifier: 5.0.2
@@ -767,7 +767,7 @@ importers:
         specifier: 4.0.9
         version: 4.0.9
       '@types/node':
-        specifier: ^18.17.0
+        specifier: ^18.19.104
         version: 18.19.104
       '@types/node-os-utils':
         specifier: 1.3.4
@@ -776,7 +776,7 @@ importers:
         specifier: 2.1.6
         version: 2.1.6
       '@types/nodemailer':
-        specifier: ^6.4.15
+        specifier: ^6.4.17
         version: 6.4.17
       '@types/qrcode':
         specifier: ^1.5.5
@@ -794,7 +794,7 @@ importers:
         specifier: 8.5.10
         version: 8.5.10
       drizzle-kit:
-        specifier: ^0.30.4
+        specifier: ^0.30.6
         version: 0.30.6
       esbuild:
         specifier: 0.20.2
@@ -803,19 +803,19 @@ importers:
         specifier: 0.2.1
         version: 0.2.1
       postcss:
-        specifier: ^8.4.31
+        specifier: ^8.5.3
         version: 8.5.3
       tailwindcss:
-        specifier: ^3.4.1
+        specifier: ^3.4.17
         version: 3.4.17
       tsc-alias:
         specifier: 1.8.10
         version: 1.8.10
       tsx:
-        specifier: ^4.7.1
+        specifier: ^4.16.2
         version: 4.16.2
       typescript:
-        specifier: ^5.4.2
+        specifier: ^5.8.3
         version: 5.8.3
 
 packages:
@@ -933,55 +933,55 @@ packages:
   '@better-fetch/fetch@1.1.18':
     resolution: {integrity: sha512-rEFOE1MYIsBmoMJtQbl32PGHHXuG2hDxvEd7rUHE0vCBoFQVSDqaVs9hkZEtHCxRoY+CljXKFCOuJ8uxqw1LcA==}
 
-  '@biomejs/biome@1.9.4':
-    resolution: {integrity: sha512-1rkd7G70+o9KkTn5KLmDYXihGoTaIGO9PIIN2ZB7UJxFrWw04CZHPYiMRjYsaDvVV7hP1dYNRLxSANLaBFGpog==}
+  '@biomejs/biome@2.1.1':
+    resolution: {integrity: sha512-HFGYkxG714KzG+8tvtXCJ1t1qXQMzgWzfvQaUjxN6UeKv+KvMEuliInnbZLJm6DXFXwqVi6446EGI0sGBLIYng==}
     engines: {node: '>=14.21.3'}
     hasBin: true
 
-  '@biomejs/cli-darwin-arm64@1.9.4':
-    resolution: {integrity: sha512-bFBsPWrNvkdKrNCYeAp+xo2HecOGPAy9WyNyB/jKnnedgzl4W4Hb9ZMzYNbf8dMCGmUdSavlYHiR01QaYR58cw==}
+  '@biomejs/cli-darwin-arm64@2.1.1':
+    resolution: {integrity: sha512-2Muinu5ok4tWxq4nu5l19el48cwCY/vzvI7Vjbkf3CYIQkjxZLyj0Ad37Jv2OtlXYaLvv+Sfu1hFeXt/JwRRXQ==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [darwin]
 
-  '@biomejs/cli-darwin-x64@1.9.4':
-    resolution: {integrity: sha512-ngYBh/+bEedqkSevPVhLP4QfVPCpb+4BBe2p7Xs32dBgs7rh9nY2AIYUL6BgLw1JVXV8GlpKmb/hNiuIxfPfZg==}
+  '@biomejs/cli-darwin-x64@2.1.1':
+    resolution: {integrity: sha512-cC8HM5lrgKQXLAK+6Iz2FrYW5A62pAAX6KAnRlEyLb+Q3+Kr6ur/sSuoIacqlp1yvmjHJqjYfZjPvHWnqxoEIA==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [darwin]
 
-  '@biomejs/cli-linux-arm64-musl@1.9.4':
-    resolution: {integrity: sha512-v665Ct9WCRjGa8+kTr0CzApU0+XXtRgwmzIf1SeKSGAv+2scAlW6JR5PMFo6FzqqZ64Po79cKODKf3/AAmECqA==}
+  '@biomejs/cli-linux-arm64-musl@2.1.1':
+    resolution: {integrity: sha512-/7FBLnTswu4jgV9ttI3AMIdDGqVEPIZd8I5u2D4tfCoj8rl9dnjrEQbAIDlWhUXdyWlFSz8JypH3swU9h9P+2A==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
 
-  '@biomejs/cli-linux-arm64@1.9.4':
-    resolution: {integrity: sha512-fJIW0+LYujdjUgJJuwesP4EjIBl/N/TcOX3IvIHJQNsAqvV2CHIogsmA94BPG6jZATS4Hi+xv4SkBBQSt1N4/g==}
+  '@biomejs/cli-linux-arm64@2.1.1':
+    resolution: {integrity: sha512-tw4BEbhAUkWPe4WBr6IX04DJo+2jz5qpPzpW/SWvqMjb9QuHY8+J0M23V8EPY/zWU4IG8Ui0XESapR1CB49Q7g==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
 
-  '@biomejs/cli-linux-x64-musl@1.9.4':
-    resolution: {integrity: sha512-gEhi/jSBhZ2m6wjV530Yy8+fNqG8PAinM3oV7CyO+6c3CEh16Eizm21uHVsyVBEB6RIM8JHIl6AGYCv6Q6Q9Tg==}
+  '@biomejs/cli-linux-x64-musl@2.1.1':
+    resolution: {integrity: sha512-kUu+loNI3OCD2c12cUt7M5yaaSjDnGIksZwKnueubX6c/HWUyi/0mPbTBHR49Me3F0KKjWiKM+ZOjsmC+lUt9g==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
 
-  '@biomejs/cli-linux-x64@1.9.4':
-    resolution: {integrity: sha512-lRCJv/Vi3Vlwmbd6K+oQ0KhLHMAysN8lXoCI7XeHlxaajk06u7G+UsFSO01NAs5iYuWKmVZjmiOzJ0OJmGsMwg==}
+  '@biomejs/cli-linux-x64@2.1.1':
+    resolution: {integrity: sha512-3WJ1GKjU7NzZb6RTbwLB59v9cTIlzjbiFLDB0z4376TkDqoNYilJaC37IomCr/aXwuU8QKkrYoHrgpSq5ffJ4Q==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
 
-  '@biomejs/cli-win32-arm64@1.9.4':
-    resolution: {integrity: sha512-tlbhLk+WXZmgwoIKwHIHEBZUwxml7bRJgk0X2sPyNR3S93cdRq6XulAZRQJ17FYGGzWne0fgrXBKpl7l4M87Hg==}
+  '@biomejs/cli-win32-arm64@2.1.1':
+    resolution: {integrity: sha512-vEHK0v0oW+E6RUWLoxb2isI3rZo57OX9ZNyyGH701fZPj6Il0Rn1f5DMNyCmyflMwTnIQstEbs7n2BxYSqQx4Q==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [win32]
 
-  '@biomejs/cli-win32-x64@1.9.4':
-    resolution: {integrity: sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA==}
+  '@biomejs/cli-win32-x64@2.1.1':
+    resolution: {integrity: sha512-i2PKdn70kY++KEF/zkQFvQfX1e8SkA8hq4BgC+yE9dZqyLzB/XStY2MvwI3qswlRgnGpgncgqe0QYKVS1blksg==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
@@ -7281,39 +7281,39 @@ snapshots:
 
   '@better-fetch/fetch@1.1.18': {}
 
-  '@biomejs/biome@1.9.4':
+  '@biomejs/biome@2.1.1':
     optionalDependencies:
-      '@biomejs/cli-darwin-arm64': 1.9.4
-      '@biomejs/cli-darwin-x64': 1.9.4
-      '@biomejs/cli-linux-arm64': 1.9.4
-      '@biomejs/cli-linux-arm64-musl': 1.9.4
-      '@biomejs/cli-linux-x64': 1.9.4
-      '@biomejs/cli-linux-x64-musl': 1.9.4
-      '@biomejs/cli-win32-arm64': 1.9.4
-      '@biomejs/cli-win32-x64': 1.9.4
+      '@biomejs/cli-darwin-arm64': 2.1.1
+      '@biomejs/cli-darwin-x64': 2.1.1
+      '@biomejs/cli-linux-arm64': 2.1.1
+      '@biomejs/cli-linux-arm64-musl': 2.1.1
+      '@biomejs/cli-linux-x64': 2.1.1
+      '@biomejs/cli-linux-x64-musl': 2.1.1
+      '@biomejs/cli-win32-arm64': 2.1.1
+      '@biomejs/cli-win32-x64': 2.1.1
 
-  '@biomejs/cli-darwin-arm64@1.9.4':
+  '@biomejs/cli-darwin-arm64@2.1.1':
     optional: true
 
-  '@biomejs/cli-darwin-x64@1.9.4':
+  '@biomejs/cli-darwin-x64@2.1.1':
     optional: true
 
-  '@biomejs/cli-linux-arm64-musl@1.9.4':
+  '@biomejs/cli-linux-arm64-musl@2.1.1':
     optional: true
 
-  '@biomejs/cli-linux-arm64@1.9.4':
+  '@biomejs/cli-linux-arm64@2.1.1':
     optional: true
 
-  '@biomejs/cli-linux-x64-musl@1.9.4':
+  '@biomejs/cli-linux-x64-musl@2.1.1':
     optional: true
 
-  '@biomejs/cli-linux-x64@1.9.4':
+  '@biomejs/cli-linux-x64@2.1.1':
     optional: true
 
-  '@biomejs/cli-win32-arm64@1.9.4':
+  '@biomejs/cli-win32-arm64@2.1.1':
     optional: true
 
-  '@biomejs/cli-win32-x64@1.9.4':
+  '@biomejs/cli-win32-x64@2.1.1':
     optional: true
 
   '@codemirror/autocomplete@6.18.6':
@@ -9780,13 +9780,13 @@ snapshots:
 
   '@types/adm-zip@0.5.7':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/aws-lambda@8.10.149': {}
 
   '@types/bcrypt@5.0.2':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/braces@3.0.5': {}
 
@@ -9794,7 +9794,7 @@ snapshots:
 
   '@types/conventional-commits-parser@5.0.1':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/d3-array@3.2.1': {}
 
@@ -9828,13 +9828,13 @@ snapshots:
 
   '@types/docker-modem@3.0.6':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
       '@types/ssh2': 1.15.1
 
   '@types/dockerode@3.3.23':
     dependencies:
       '@types/docker-modem': 3.0.6
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/estree-jsx@1.0.5':
     dependencies:
@@ -9864,7 +9864,7 @@ snapshots:
   '@types/jsonwebtoken@9.0.9':
     dependencies:
       '@types/ms': 2.1.0
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/lodash@4.17.4': {}
 
@@ -9882,7 +9882,7 @@ snapshots:
 
   '@types/node-schedule@2.1.6':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/node@18.19.104':
     dependencies:
@@ -9894,13 +9894,13 @@ snapshots:
 
   '@types/nodemailer@6.4.17':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/prop-types@15.7.14': {}
 
   '@types/qrcode@1.5.5':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/ramda@0.30.2':
     dependencies:
@@ -9917,7 +9917,7 @@ snapshots:
 
   '@types/readable-stream@4.0.20':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@types/ssh2@1.15.1':
     dependencies:
@@ -9938,7 +9938,7 @@ snapshots:
 
   '@types/ws@8.5.10':
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
 
   '@uiw/codemirror-extensions-basic-setup@4.23.12(@codemirror/autocomplete@6.18.6)(@codemirror/commands@6.8.1)(@codemirror/language@6.11.0)(@codemirror/lint@6.8.5)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/view@6.29.0)':
     dependencies:
@@ -13223,7 +13223,7 @@ snapshots:
 
   stripe@17.2.0:
     dependencies:
-      '@types/node': 18.19.104
+      '@types/node': 20.17.51
       qs: 6.14.0
 
   style-mod@4.1.2: {}

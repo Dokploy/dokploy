@@ -5,6 +5,7 @@ import {
 	initializeTraefik,
 } from "@dokploy/server/setup/traefik-setup";
 
+import { execAsync } from "@dokploy/server";
 import { setupDirectories } from "@dokploy/server/setup/config-paths";
 import { initializePostgres } from "@dokploy/server/setup/postgres-setup";
 import { initializeRedis } from "@dokploy/server/setup/redis-setup";
@@ -20,6 +21,7 @@ import {
 		await initializeNetwork();
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
+		await execAsync("docker pull traefik:v3.1.2");
 		await initializeTraefik();
 		await initializeRedis();
 		await initializePostgres();

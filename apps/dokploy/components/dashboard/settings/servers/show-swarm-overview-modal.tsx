@@ -20,7 +20,7 @@ export const ShowSwarmOverviewModal = ({ serverId }: Props) => {
 					Show Swarm Overview
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-7xl  ">
 				<div className="grid w-full gap-1">
 					<SwarmMonitorCard serverId={serverId} />
 				</div>

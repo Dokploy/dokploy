@@ -30,6 +30,9 @@ export const setupMonitoring = async (serverId: string) => {
 			// PidMode: "host",
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
+			RestartPolicy: {
+				Name: "always",
+			},
 			PortBindings: {
 				[`${server.metricsConfig.server.port}/tcp`]: [
 					{
@@ -66,7 +69,7 @@ export const setupMonitoring = async (serverId: string) => {
 			await container.inspect();
 			await container.remove({ force: true });
 			console.log("Removed existing container");
-		} catch (_error) {
+		} catch {
 			// Container doesn't exist, continue
 		}
 
@@ -103,6 +106,9 @@ export const setupWebMonitoring = async (userId: string) => {
 			// PidMode: "host",
 			// CapAdd: ["NET_ADMIN", "SYS_ADMIN"],
 			// Privileged: true,
+			RestartPolicy: {
+				Name: "always",
+			},
 			PortBindings: {
 				[`${user?.metricsConfig?.server?.port}/tcp`]: [
 					{
@@ -135,7 +141,7 @@ export const setupWebMonitoring = async (userId: string) => {
 			await container.inspect();
 			await container.remove({ force: true });
 			console.log("Removed existing container");
-		} catch (_error) {}
+		} catch {}
 
 		await docker.createContainer(settings);
 		const newContainer = docker.getContainer(containerName);

@@ -18,6 +18,7 @@ const baseApp: ApplicationNested = {
 	appName: "",
 	autoDeploy: true,
 	enableSubmodules: false,
+	previewRequireCollaboratorPermissions: false,
 	serverId: "",
 	branch: null,
 	dockerBuildStage: "",
@@ -119,6 +120,8 @@ const baseDomain: Domain = {
 	domainType: "application",
 	uniqueConfigKey: 1,
 	previewDeploymentId: "",
+	internalPath: "/",
+	stripPath: false,
 };
 
 const baseRedirect: Redirect = {

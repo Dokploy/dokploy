@@ -1,3 +1,4 @@
+import { paths } from "@dokploy/server/constants";
 import { relations } from "drizzle-orm";
 import {
 	boolean,
@@ -236,7 +237,31 @@ export const apiModifyTraefikConfig = z.object({
 	serverId: z.string().optional(),
 });
 export const apiReadTraefikConfig = z.object({
-	path: z.string().min(1),
+	path: z
+		.string()
+		.min(1)
+		.refine(
+			(path) => {
+				// Prevent directory traversal attacks
+				if (path.includes("../") || path.includes("..\\")) {
+					return false;
+				}
+
+				const { MAIN_TRAEFIK_PATH } = paths();
+				if (path.startsWith("/") && !path.startsWith(MAIN_TRAEFIK_PATH)) {
+					return false;
+				}
+				// Prevent null bytes and other dangerous characters
+				if (path.includes("\0") || path.includes("\x00")) {
+					return false;
+				}
+				return true;
+			},
+			{
+				message:
+					"Invalid path: path traversal or unauthorized directory access detected",
+			},
+		),
 	serverId: z.string().optional(),
 });
 

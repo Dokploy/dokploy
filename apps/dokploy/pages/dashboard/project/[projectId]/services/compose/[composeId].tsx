@@ -4,6 +4,7 @@ import { ShowDeployments } from "@/components/dashboard/application/deployments/
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
+import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
@@ -32,7 +33,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server/lib/auth";
@@ -57,7 +57,8 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
-	| "monitoring";
+	| "monitoring"
+	| "volumeBackups";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -100,14 +101,14 @@ const Service = (
 				</title>
 			</Head>
 			<div className="w-full">
-				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex flex-col gap-4">
 							<CardHeader className="flex flex-row justify-between items-center">
 								<div className="flex flex-col">
 									<CardTitle className="text-xl flex flex-row gap-2">
 										<div className="relative flex flex-row gap-4">
-											<div className="absolute -right-1  -top-2">
+											<div className="absolute -right-1 -top-2">
 												<StatusTooltip status={data?.composeStatus} />
 											</div>
 
@@ -209,23 +210,17 @@ const Service = (
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
-										<TabsList
-											className={cn(
-												"xl:grid xl:w-fit max-md:overflow-y-scroll justify-start",
-												isCloud && data?.serverId
-													? "xl:grid-cols-9"
-													: data?.serverId
-														? "xl:grid-cols-8"
-														: "xl:grid-cols-9",
-											)}
-										>
+									<div className="flex flex-row items-center w-full overflow-auto">
+										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="volumeBackups">
+												Volume Backups
+											</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
@@ -255,7 +250,15 @@ const Service = (
 											<ShowSchedules id={composeId} scheduleType="compose" />
 										</div>
 									</TabsContent>
-
+									<TabsContent value="volumeBackups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowVolumeBackups
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+											/>
+										</div>
+									</TabsContent>
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
 											<div className="flex flex-col border rounded-lg ">
@@ -327,7 +330,7 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4  border rounded-lg">
+										<div className="flex flex-col gap-4 border rounded-lg">
 											<ShowDeployments
 												id={composeId}
 												type="compose"
@@ -342,6 +345,7 @@ const Service = (
 											<ShowDomains id={composeId} type="compose" />
 										</div>
 									</TabsContent>
+
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<AddCommandCompose composeId={composeId} />
@@ -409,7 +413,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (_error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

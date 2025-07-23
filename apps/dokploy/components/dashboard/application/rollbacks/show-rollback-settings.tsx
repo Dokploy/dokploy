@@ -1,3 +1,4 @@
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -79,6 +80,11 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 					<DialogDescription>
 						Configure how rollbacks work for this application
 					</DialogDescription>
+					<AlertBlock>
+						Having rollbacks enabled increases storage usage. Be careful with
+						this option. Note that manually cleaning the cache may delete
+						rollback images, making them unavailable for future rollbacks.
+					</AlertBlock>
 				</DialogHeader>
 
 				<Form {...form}>

@@ -1,25 +1,36 @@
+import type { CreateServiceOptions } from "dockerode";
 import { eq } from "drizzle-orm";
+import type { z } from "zod";
 import { db } from "../db";
 import {
 	type createRollbackSchema,
-	rollbacks,
 	deployments as deploymentsSchema,
+	rollbacks,
 } from "../db/schema";
-import type { z } from "zod";
-import { findApplicationById } from "./application";
-import { getRemoteDocker } from "../utils/servers/remote-docker";
-import type { ApplicationNested } from "../utils/builders";
+import { type ApplicationNested, getAuthConfig } from "../utils/builders";
+import {
+	calculateResources,
+	generateBindMounts,
+	generateConfigContainer,
+	generateVolumeMounts,
+	prepareEnvironmentVariables,
+} from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
-import type { CreateServiceOptions } from "dockerode";
+import { getRemoteDocker } from "../utils/servers/remote-docker";
+import { type Application, findApplicationById } from "./application";
 import { findDeploymentById } from "./deployment";
+import type { Mount } from "./mount";
+import type { Port } from "./port";
+import type { Project } from "./project";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
 ) => {
 	await db.transaction(async (tx) => {
+		const { fullContext, ...other } = input;
 		const rollback = await tx
 			.insert(rollbacks)
-			.values(input)
+			.values(other)
 			.returning()
 			.then((res) => res[0]);
 
@@ -47,7 +58,7 @@ export const createRollback = async (
 			.update(rollbacks)
 			.set({
 				image: tagImage,
-				fullContext: JSON.stringify(rest),
+				fullContext: rest,
 			})
 			.where(eq(rollbacks.rollbackId, rollback.rollbackId));
 
@@ -150,10 +161,16 @@ export const rollback = async (rollbackId: string) => {
 
 	const application = await findApplicationById(deployment.applicationId);
 
+	if (!result.fullContext) {
+		throw new Error("Rollback context not found");
+	}
+
+	// Use the full context for rollback
 	await rollbackApplication(
 		application.appName,
 		result.image || "",
 		application.serverId,
+		result.fullContext,
 	);
 };
 
@@ -161,16 +178,94 @@ const rollbackApplication = async (
 	appName: string,
 	image: string,
 	serverId?: string | null,
+	fullContext?: Application & {
+		project: Project;
+		mounts: Mount[];
+		ports: Port[];
+	},
 ) => {
+	if (!fullContext) {
+		throw new Error("Full context is required for rollback");
+	}
+
 	const docker = await getRemoteDocker(serverId);
 
+	// Use the same configuration as mechanizeDockerContainer
+	const {
+		env,
+		mounts,
+		cpuLimit,
+		memoryLimit,
+		memoryReservation,
+		cpuReservation,
+		command,
+		ports,
+	} = fullContext;
+
+	const resources = calculateResources({
+		memoryLimit,
+		memoryReservation,
+		cpuLimit,
+		cpuReservation,
+	});
+
+	const volumesMount = generateVolumeMounts(mounts);
+
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+	} = generateConfigContainer(fullContext as ApplicationNested);
+
+	const bindsMount = generateBindMounts(mounts);
+	const envVariables = prepareEnvironmentVariables(
+		env,
+		fullContext.project.env,
+	);
+
+	// For rollback, we use the provided image instead of calculating it
+	const authConfig = getAuthConfig(fullContext as ApplicationNested);
+
 	const settings: CreateServiceOptions = {
+		authconfig: authConfig,
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: image,
+				Env: envVariables,
+				Mounts: [...volumesMount, ...bindsMount],
+				...(command
+					? {
+							Command: ["/bin/sh"],
+							Args: ["-c", command],
+						}
+					: {}),
+				Labels,
+			},
+			Networks,
+			RestartPolicy,
+			Placement,
+			Resources: {
+				...resources,
 			},
 		},
+		Mode,
+		RollbackConfig,
+		EndpointSpec: {
+			Ports: ports.map((port) => ({
+				PublishMode: port.publishMode,
+				Protocol: port.protocol,
+				TargetPort: port.targetPort,
+				PublishedPort: port.publishedPort,
+			})),
+		},
+		UpdateConfig,
 	};
 
 	try {
@@ -185,7 +280,7 @@ const rollbackApplication = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch (_error: unknown) {
+	} catch {
 		await docker.createService(settings);
 	}
 };

@@ -101,11 +101,11 @@ export const initializeTraefik = async ({
 					console.log("Waiting for service cleanup...");
 					await new Promise((resolve) => setTimeout(resolve, 5000));
 					attempts++;
-				} catch (_e) {
+				} catch {
 					break;
 				}
 			}
-		} catch (_err) {
+		} catch {
 			console.log("No existing service to remove");
 		}
 
@@ -120,7 +120,7 @@ export const initializeTraefik = async ({
 
 			await container.remove({ force: true });
 			await new Promise((resolve) => setTimeout(resolve, 5000));
-		} catch (_err) {
+		} catch {
 			console.log("No existing container to remove");
 		}
 
@@ -191,6 +191,9 @@ export const createDefaultServerTraefikConfig = () => {
 
 export const getDefaultTraefikConfig = () => {
 	const configObject: MainTraefikConfig = {
+		global: {
+			sendAnonymousUsage: false,
+		},
 		providers: {
 			...(process.env.NODE_ENV === "development"
 				? {

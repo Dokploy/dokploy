@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
@@ -232,14 +233,17 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			</DialogTrigger>
 			<DialogContent
 				className={cn(
-					"max-h-screen overflow-y-auto",
 					scheduleTypeForm === "dokploy-server" || scheduleTypeForm === "server"
-						? "max-h-[95vh] sm:max-w-2xl"
-						: " sm:max-w-lg",
+						? "sm:max-w-2xl"
+						: "sm:max-w-lg",
 				)}
 			>
 				<DialogHeader>
 					<DialogTitle>{scheduleId ? "Edit" : "Create"} Schedule</DialogTitle>
+					<DialogDescription>
+						{scheduleId ? "Manage" : "Create"} a schedule to run a task at a
+						specific time or interval.
+					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
