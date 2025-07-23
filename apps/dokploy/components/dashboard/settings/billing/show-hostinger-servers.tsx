@@ -19,38 +19,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Map specs based on plan name
-function getVPSSpecs(planName: string) {
-	const kvmMatch = planName.match(/KVM\s*(\d+)/i);
-	const kvmNumber = kvmMatch ? Number.parseInt(kvmMatch[1] || "1", 10) : 1;
-
-	const specs = {
-		1: { cpu: 1, ram: 4, storage: 50, bandwidth: 4 },
-		2: { cpu: 2, ram: 8, storage: 100, bandwidth: 8 },
-		4: { cpu: 4, ram: 16, storage: 200, bandwidth: 16 },
-		8: { cpu: 8, ram: 32, storage: 400, bandwidth: 32 },
-	};
-
-	return specs[kvmNumber as keyof typeof specs] || specs[1];
-}
-
-// Get description based on plan name
-function getPlanDescription(planName: string) {
-	const kvmMatch = planName.match(/KVM\s*(\d+)/i);
-	const kvmNumber = kvmMatch ? Number.parseInt(kvmMatch[1] || "1", 10) : 1;
-
-	const descriptions = {
-		1: "Perfect for small projects and personal websites",
-		2: "Most popular plan for growing businesses",
-		4: "High performance for demanding applications",
-		8: "Maximum power for resource-intensive workloads",
-	};
-
-	return (
-		descriptions[kvmNumber as keyof typeof descriptions] || descriptions[1]
-	);
-}
-
 // Format billing period
 function formatBillingPeriod(period: number, unit: string): string {
 	if (unit === "month") {
@@ -80,7 +48,7 @@ export const ShowHostingerServers = () => {
 
 	return (
 		<div className="space-y-4">
-			<Card>
+			<Card className="bg-transparent">
 				<CardHeader>
 					<CardTitle className="flex items-center gap-2">
 						<Server className="h-5 w-5" />
@@ -113,9 +81,6 @@ export const ShowHostingerServers = () => {
 								return monthlyPriceA - monthlyPriceB;
 							})
 							?.map((plan) => {
-								const specs = getVPSSpecs(plan.name);
-								const description = getPlanDescription(plan.name);
-
 								return (
 									<Card
 										key={plan.id}
@@ -132,9 +97,9 @@ export const ShowHostingerServers = () => {
 												<CardTitle className="text-lg">{plan.name}</CardTitle>
 												<Badge variant="secondary">VPS</Badge>
 											</div>
-											<CardDescription className="text-sm">
+											{/* <CardDescription className="text-sm">
 												{description}
-											</CardDescription>
+											</CardDescription> */}
 										</CardHeader>
 
 										<CardContent className="pt-0">
@@ -143,19 +108,19 @@ export const ShowHostingerServers = () => {
 												<div className="grid grid-cols-2 gap-2 text-sm">
 													<div className="flex items-center gap-1">
 														<Cpu className="h-4 w-4 text-blue-500" />
-														<span>{specs.cpu} vCPU</span>
+														<span>{plan.metadata.cpus} vCPU</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<MemoryStick className="h-4 w-4 text-green-500" />
-														<span>{specs.ram}GB RAM</span>
+														<span>{plan.metadata.memory}GB RAM</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<HardDrive className="h-4 w-4 text-orange-500" />
-														<span>{specs.storage}GB NVMe</span>
+														<span>{plan.metadata.disk_space}GB NVMe</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<Globe className="h-4 w-4 text-indigo-500" />
-														<span>{specs.bandwidth}TB</span>
+														<span>{plan.metadata.bandwidth}TB</span>
 													</div>
 												</div>
 
@@ -216,9 +181,6 @@ export const ShowHostingerServers = () => {
 																				</div>
 																			</div>
 																		</div>
-																		<div className="text-xs text-gray-600 mt-1">
-																			ID: {price.id}
-																		</div>
 																	</div>
 																))}
 														</TabsContent>
@@ -278,9 +240,6 @@ export const ShowHostingerServers = () => {
 																					monthly
 																				</div>
 																			)}
-																			<div className="text-xs text-gray-600 mt-1">
-																				ID: {price.id}
-																			</div>
 																		</div>
 																	);
 																})}
@@ -341,9 +300,6 @@ export const ShowHostingerServers = () => {
 																					monthly
 																				</div>
 																			)}
-																			<div className="text-xs text-gray-600 mt-1">
-																				ID: {price.id}
-																			</div>
 																		</div>
 																	);
 																})}
@@ -406,21 +362,9 @@ export const ShowHostingerServers = () => {
 
 					{(!vpsPlans || vpsPlans.length === 0) && (
 						<div className="text-center py-8 text-muted-foreground">
-							Could not load VPS plans. Please verify your Hostinger API key.
+							Could not load VPS plans. Please retry later.
 						</div>
 					)}
-
-					<div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-						<div className="flex items-start gap-2">
-							<div className="text-blue-600 mt-0.5">ℹ️</div>
-							<div className="text-sm text-blue-800">
-								<strong>For resellers:</strong> These are real prices from
-								Hostinger API. Promotional pricing applies to the first billing
-								period only. You can use the shown IDs to create servers via
-								API.
-							</div>
-						</div>
-					</div>
 				</CardContent>
 			</Card>
 		</div>

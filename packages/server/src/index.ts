@@ -55,6 +55,8 @@ export * from "./utils/backups/utils";
 export * from "./utils/backups/web-server";
 export * from "./utils/backups/compose";
 export * from "./templates/processors";
+export * from "./services/hostinger";
+export * from "./services/hetzner";
 
 export * from "./utils/notifications/build-error";
 export * from "./utils/notifications/build-success";
