@@ -71,11 +71,11 @@ export const ShowHostingerServers = () => {
 							?.sort((a, b) => {
 								// Sort by monthly promotional price (first_period_price)
 								const monthlyPriceA =
-									a.prices.find(
+									a.prices?.find(
 										(p) => p.period === 1 && p.period_unit === "month",
 									)?.first_period_price || 0;
 								const monthlyPriceB =
-									b.prices.find(
+									b.prices?.find(
 										(p) => p.period === 1 && p.period_unit === "month",
 									)?.first_period_price || 0;
 								return monthlyPriceA - monthlyPriceB;
@@ -108,19 +108,19 @@ export const ShowHostingerServers = () => {
 												<div className="grid grid-cols-2 gap-2 text-sm">
 													<div className="flex items-center gap-1">
 														<Cpu className="h-4 w-4 text-blue-500" />
-														<span>{plan.metadata.cpus} vCPU</span>
+														<span>{plan.metadata?.cpus} vCPU</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<MemoryStick className="h-4 w-4 text-green-500" />
-														<span>{plan.metadata.memory}GB RAM</span>
+														<span>{plan.metadata?.memory}GB RAM</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<HardDrive className="h-4 w-4 text-orange-500" />
-														<span>{plan.metadata.disk_space}GB NVMe</span>
+														<span>{plan.metadata?.disk_space}GB NVMe</span>
 													</div>
 													<div className="flex items-center gap-1">
 														<Globe className="h-4 w-4 text-indigo-500" />
-														<span>{plan.metadata.bandwidth}TB</span>
+														<span>{plan.metadata?.bandwidth}TB</span>
 													</div>
 												</div>
 
@@ -148,7 +148,7 @@ export const ShowHostingerServers = () => {
 
 														{/* Monthly prices */}
 														<TabsContent value="monthly" className="mt-2">
-															{plan.prices
+															{plan.prices?.
 																.filter(
 																	(p) =>
 																		p.period === 1 && p.period_unit === "month",
@@ -187,20 +187,20 @@ export const ShowHostingerServers = () => {
 
 														{/* Yearly prices */}
 														<TabsContent value="yearly" className="mt-2">
-															{plan.prices
+															{plan.prices?.
 																.filter(
 																	(p) =>
 																		p.period === 1 && p.period_unit === "year",
 																)
 																.map((price) => {
-																	const monthlyEquivalent = plan.prices.find(
+																	const monthlyEquivalent = plan.prices?.find(
 																		(p) =>
 																			p.period === 1 &&
 																			p.period_unit === "month",
 																	);
 																	const savings = monthlyEquivalent
 																		? calculateSavings(
-																				monthlyEquivalent.price / 100,
+																				monthlyEquivalent?.price / 100,
 																				price.first_period_price / 100,
 																			)
 																		: 0;
@@ -247,20 +247,20 @@ export const ShowHostingerServers = () => {
 
 														{/* Biennial prices */}
 														<TabsContent value="biennial" className="mt-2">
-															{plan.prices
+															{plan.prices?.	
 																.filter(
 																	(p) =>
 																		p.period === 2 && p.period_unit === "year",
 																)
 																.map((price) => {
-																	const monthlyEquivalent = plan.prices.find(
+																	const monthlyEquivalent = plan.prices?.find(
 																		(p) =>
 																			p.period === 1 &&
 																			p.period_unit === "month",
 																	);
 																	const savings = monthlyEquivalent
 																		? calculateSavings(
-																				(monthlyEquivalent.price / 100) * 24,
+																				(monthlyEquivalent?.price / 100) * 24,
 																				price.first_period_price / 100,
 																			)
 																		: 0;

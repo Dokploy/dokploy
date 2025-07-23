@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "openapi-fetch": "0.14.0",
     "@ai-sdk/anthropic": "^1.2.12",
     "@ai-sdk/azure": "^1.3.23",
     "@ai-sdk/cohere": "^1.2.10",

@@ -182,7 +182,8 @@
 		"tsx": "^4.16.2",
 		"typescript": "^5.8.3",
 		"vite-tsconfig-paths": "4.3.2",
-		"vitest": "^1.6.1"
+		"vitest": "^1.6.1",
+		"openapi-typescript": "7.8.0"
 	},
 	"ct3aMetadata": {
 		"initVersion": "7.25.2"

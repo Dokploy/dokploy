@@ -7,26 +7,16 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const hetznerRouter = createTRPCRouter({
 	locations: protectedProcedure.query(async () => {
-		const apiKey = process.env.HETZNER_API_KEY;
-		if (!apiKey) {
-			throw new Error("Hetzner API key not configured");
-		}
-		return await fetchHetznerLocations(apiKey);
+		const locations = await fetchHetznerLocations();
+		console.log(locations);
+		return locations;
 	}),
 
 	serverTypes: protectedProcedure.query(async () => {
-		const apiKey = process.env.HETZNER_API_KEY;
-		if (!apiKey) {
-			throw new Error("Hetzner API key not configured");
-		}
-		return await fetchHetznerServerTypes(apiKey);
+		return await fetchHetznerServerTypes();
 	}),
 
 	servers: protectedProcedure.query(async () => {
-		const apiKey = process.env.HETZNER_API_KEY;
-		if (!apiKey) {
-			throw new Error("Hetzner API key not configured");
-		}
-		return await fetchHetznerServers(apiKey);
+		return await fetchHetznerServers();
 	}),
 });

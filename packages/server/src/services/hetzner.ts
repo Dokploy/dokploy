@@ -1,118 +1,49 @@
+import createClient from "openapi-fetch";
+import type { paths } from "../types/hetzner-types";
+
 const HETZNER_API_URL = "https://api.hetzner.cloud/v1";
 
-interface HetznerLocation {
-	id: number;
-	name: string;
-	description: string;
-	country: string;
-	city: string;
-	latitude: number;
-	longitude: number;
-	network_zone: string;
-}
+const hetznerApiKey = process.env.HETZNER_API_KEY;
 
-interface HetznerServerType {
-	id: number;
-	name: string;
-	description: string;
-	cores: number;
-	memory: number;
-	disk: number;
-	prices: {
-		location: string;
-		price_hourly: {
-			net: string;
-			gross: string;
-		};
-		price_monthly: {
-			net: string;
-			gross: string;
-		};
-	}[];
-	storage_type: string;
-	cpu_type: string;
-	architecture: string;
-}
+const client = createClient<paths>({ baseUrl: HETZNER_API_URL });
 
-interface HetznerServer {
-	id: number;
-	name: string;
-	status: string;
-	created: string;
-	server_type: {
-		id: number;
-		name: string;
-		description: string;
-		cores: number;
-		memory: number;
-		disk: number;
-	};
-	public_net: {
-		ipv4: {
-			ip: string;
-		};
-		ipv6: {
-			ip: string;
-		};
-	};
-}
-
-export const fetchHetznerLocations = async (
-	apiKey: string,
-): Promise<HetznerLocation[]> => {
-	const response = await fetch(`${HETZNER_API_URL}/locations`, {
+export const fetchHetznerLocations = async () => {
+	const { data, error } = await client.GET("/locations", {
 		headers: {
-			Authorization: `Bearer ${apiKey}`,
-			"Content-Type": "application/json",
+			Authorization: `Bearer ${hetznerApiKey}`,
 		},
 	});
 
-	if (!response.ok) {
-		throw new Error(
-			`Failed to fetch Hetzner locations: ${response.statusText}`,
-		);
+	if (error) {
+		throw new Error(`Failed to fetch Hetzner locations: ${error}`);
 	}
-
-	const data = (await response.json()) as { locations?: HetznerLocation[] };
-	return data.locations || [];
+	return data;
 };
 
-export const fetchHetznerServerTypes = async (
-	apiKey: string,
-): Promise<HetznerServerType[]> => {
-	const response = await fetch(`${HETZNER_API_URL}/server_types`, {
+export const fetchHetznerServerTypes = async () => {
+	const { data, error } = await client.GET("/server_types", {
 		headers: {
-			Authorization: `Bearer ${apiKey}`,
-			"Content-Type": "application/json",
+			Authorization: `Bearer ${hetznerApiKey}`,
 		},
 	});
 
-	if (!response.ok) {
-		throw new Error(
-			`Failed to fetch Hetzner server types: ${response.statusText}`,
-		);
+	if (error) {
+		throw new Error(`Failed to fetch Hetzner server types: ${error}`);
 	}
 
-	const data = (await response.json()) as {
-		server_types?: HetznerServerType[];
-	};
-	return data.server_types || [];
+	return data;
 };
 
-export const fetchHetznerServers = async (
-	apiKey: string,
-): Promise<HetznerServer[]> => {
-	const response = await fetch(`${HETZNER_API_URL}/servers`, {
+export const fetchHetznerServers = async () => {
+	const { data, error } = await client.GET("/servers", {
 		headers: {
-			Authorization: `Bearer ${apiKey}`,
-			"Content-Type": "application/json",
+			Authorization: `Bearer ${hetznerApiKey}`,
 		},
 	});
 
-	if (!response.ok) {
-		throw new Error(`Failed to fetch Hetzner servers: ${response.statusText}`);
+	if (error) {
+		throw new Error(`Failed to fetch Hetzner servers: ${error}`);
 	}
 
-	const data = (await response.json()) as { servers?: HetznerServer[] };
-	return data.servers || [];
+	return data;
 };
