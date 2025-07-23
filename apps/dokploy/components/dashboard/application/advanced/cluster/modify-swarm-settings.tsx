@@ -1,6 +1,7 @@
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
 	Dialog,
 	DialogContent,
@@ -176,6 +177,7 @@ const addSwarmSettings = z.object({
 	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
 	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
 	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
+	stopGracePeriodSwarm: z.string().nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
@@ -238,6 +240,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 				networkSwarm: data.networkSwarm
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
+				stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -253,6 +256,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			modeSwarm: data.modeSwarm,
 			labelsSwarm: data.labelsSwarm,
 			networkSwarm: data.networkSwarm,
+			stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -742,6 +746,28 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 	"com.example.app.version" : "1.0.0"
 }`}
 											className="h-[20rem] font-mono"
+											{...field}
+											value={field?.value || ""}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="stopGracePeriodSwarm"
+							render={({ field }) => (
+								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
+									<FormLabel>Stop Grace Period</FormLabel>
+									<FormDescription>
+										Time to wait for the container to stop gracefully.
+									</FormDescription>
+									<FormControl>
+										<Input
+											placeholder="e.g, 30s"
 											{...field}
 											value={field?.value || ""}
 										/>
