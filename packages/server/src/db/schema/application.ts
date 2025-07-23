@@ -202,6 +202,7 @@ export const applications = pgTable("application", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: text("stopGracePeriodSwarm"),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -435,6 +436,7 @@ const createSchema = createInsertSchema(applications, {
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
+	stopGracePeriodSwarm: z.string().nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
