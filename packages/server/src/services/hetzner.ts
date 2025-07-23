@@ -57,9 +57,9 @@ interface HetznerServer {
 	};
 }
 
-export async function fetchHetznerLocations(
+export const fetchHetznerLocations = async (
 	apiKey: string,
-): Promise<HetznerLocation[]> {
+): Promise<HetznerLocation[]> => {
 	const response = await fetch(`${HETZNER_API_URL}/locations`, {
 		headers: {
 			Authorization: `Bearer ${apiKey}`,
@@ -75,11 +75,11 @@ export async function fetchHetznerLocations(
 
 	const data = (await response.json()) as { locations?: HetznerLocation[] };
 	return data.locations || [];
-}
+};
 
-export async function fetchHetznerServerTypes(
+export const fetchHetznerServerTypes = async (
 	apiKey: string,
-): Promise<HetznerServerType[]> {
+): Promise<HetznerServerType[]> => {
 	const response = await fetch(`${HETZNER_API_URL}/server_types`, {
 		headers: {
 			Authorization: `Bearer ${apiKey}`,
@@ -97,11 +97,11 @@ export async function fetchHetznerServerTypes(
 		server_types?: HetznerServerType[];
 	};
 	return data.server_types || [];
-}
+};
 
-export async function fetchHetznerServers(
+export const fetchHetznerServers = async (
 	apiKey: string,
-): Promise<HetznerServer[]> {
+): Promise<HetznerServer[]> => {
 	const response = await fetch(`${HETZNER_API_URL}/servers`, {
 		headers: {
 			Authorization: `Bearer ${apiKey}`,
@@ -115,4 +115,4 @@ export async function fetchHetznerServers(
 
 	const data = (await response.json()) as { servers?: HetznerServer[] };
 	return data.servers || [];
-}
+};

@@ -45,9 +45,9 @@ interface HostingerDataCenter {
 }
 
 // Obtener catalog items (productos VPS con precios reales)
-export async function fetchHostingerCatalog(
+export const fetchHostingerCatalog = async (
 	apiKey: string,
-): Promise<HostingerCatalogItem[]> {
+): Promise<HostingerCatalogItem[]> => {
 	const response = await fetch(
 		`${HOSTINGER_API_URL}/api/billing/v1/catalog?category=VPS`,
 		{
@@ -58,8 +58,6 @@ export async function fetchHostingerCatalog(
 		},
 	);
 
-	console.log(response);
-
 	if (!response.ok) {
 		throw new Error(
 			`Failed to fetch Hostinger catalog: ${response.statusText}`,
@@ -67,14 +65,13 @@ export async function fetchHostingerCatalog(
 	}
 
 	const data = (await response.json()) as HostingerCatalogItem[];
-	console.log(data);
 	return data || [];
-}
+};
 
 // Obtener VPS existentes
-export async function fetchHostingerServers(
+export const fetchHostingerServers = async (
 	apiKey: string,
-): Promise<HostingerServer[]> {
+): Promise<HostingerServer[]> => {
 	const response = await fetch(
 		`${HOSTINGER_API_URL}/api/vps/v1/virtual-machines`,
 		{
@@ -92,7 +89,7 @@ export async function fetchHostingerServers(
 
 	const data = (await response.json()) as { data?: HostingerServer[] };
 	return data.data || [];
-}
+};
 
 // Obtener data centers disponibles
 export async function fetchHostingerDataCenters(
