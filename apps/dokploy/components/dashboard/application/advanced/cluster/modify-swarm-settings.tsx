@@ -760,7 +760,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="stopGracePeriodSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
 									<FormLabel>Stop Grace Period</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -788,10 +788,9 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 										</Tooltip>
 									</TooltipProvider>
 									<FormControl>
-										<CodeEditor
-											language="properties"
+										<Input
 											placeholder="30s"
-											className="h-[8rem] font-mono"
+											className="font-mono"
 											{...field}
 											value={field?.value || ""}
 										/>
@@ -802,7 +801,6 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 								</FormItem>
 							)}
 						/>
-
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
 								isLoading={isLoading}
