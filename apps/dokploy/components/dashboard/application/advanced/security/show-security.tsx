@@ -7,13 +7,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
+import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { LockKeyhole, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { HandleSecurity } from "./handle-security";
-import { Label } from "@/components/ui/label";
-import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
-import { Input } from "@/components/ui/input";
 
 interface Props {
 	applicationId: string;
