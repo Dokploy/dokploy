@@ -32,6 +32,7 @@ import { rollbackRouter } from "./routers/rollbacks";
 import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
+import { serviceLinksRouter } from "./routers/service-links";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
@@ -83,6 +84,7 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	schedule: scheduleRouter,
 	rollback: rollbackRouter,
+	serviceLinks: serviceLinksRouter,
 	volumeBackups: volumeBackupsRouter,
 });
 

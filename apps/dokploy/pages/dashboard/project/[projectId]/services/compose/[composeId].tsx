@@ -14,6 +14,9 @@ import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
+import { ShowServiceLinks } from "@/components/dashboard/shared/service-links/show-service-links";
+import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
+import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -58,7 +61,8 @@ type TabState =
 	| "deployments"
 	| "domains"
 	| "monitoring"
-	| "volumeBackups";
+	| "volumeBackups"
+	| "serviceLinks";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -218,6 +222,7 @@ const Service = (
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="serviceLinks">Service Links</TabsTrigger>
 											<TabsTrigger value="volumeBackups">
 												Volume Backups
 											</TabsTrigger>
@@ -248,6 +253,15 @@ const Service = (
 									<TabsContent value="schedules">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowSchedules id={composeId} scheduleType="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="serviceLinks">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowServiceLinks
+												serviceId={composeId}
+												serviceType="compose"
+												projectId={projectId as string}
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="volumeBackups">
