@@ -186,7 +186,7 @@ export const ShowServiceLinks = ({ serviceId, serviceType, projectId }: Props) =
 										<div className="text-xs text-muted-foreground">
 											Resolves to:{" "}
 											<code className="bg-muted px-1 py-0.5 rounded">
-												${"{{"}service.{link.targetService?.appName || link.targetServiceId}.{link.attribute}{"}"}"}
+												{`\${{service.${link.targetService?.appName || link.targetServiceId}.${link.attribute}}}`}
 											</code>
 										</div>
 									</div>

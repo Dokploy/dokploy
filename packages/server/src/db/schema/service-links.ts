@@ -11,7 +11,7 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 
-export const serviceType = pgEnum("serviceType", [
+export const serviceLinkType = pgEnum("serviceLinkType", [
 	"application",
 	"compose", 
 	"postgres",
@@ -35,11 +35,11 @@ export const serviceLinks = pgTable("serviceLink", {
 	
 	// Source service (the one that needs the dependency)
 	sourceServiceId: text("sourceServiceId").notNull(),
-	sourceServiceType: serviceType("sourceServiceType").notNull(),
+	sourceServiceType: serviceLinkType("sourceServiceType").notNull(),
 	
 	// Target service (the one being referenced)
 	targetServiceId: text("targetServiceId").notNull(),
-	targetServiceType: serviceType("targetServiceType").notNull(),
+	targetServiceType: serviceLinkType("targetServiceType").notNull(),
 	
 	// What attribute of the target service to expose
 	attribute: serviceAttribute("attribute").notNull(),

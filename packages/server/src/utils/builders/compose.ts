@@ -16,6 +16,7 @@ import {
 	encodeBase64,
 	getEnviromentVariablesObject,
 	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesWithServiceLinks,
 } from "../docker/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
@@ -31,7 +32,7 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		const { COMPOSE_PATH } = paths();
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);
-		createEnvFile(compose);
+		await createEnvFile(compose);
 
 		if (compose.isolatedDeployment) {
 			await execAsync(
@@ -182,9 +183,9 @@ export const createCommand = (compose: ComposeNested) => {
 	return command;
 };
 
-const createEnvFile = (compose: ComposeNested) => {
+const createEnvFile = async (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths();
-	const { env, composePath, appName } = compose;
+	const { env, composePath, appName, composeId } = compose;
 	const composeFilePath =
 		join(COMPOSE_PATH, appName, "code", composePath) ||
 		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
@@ -200,10 +201,13 @@ const createEnvFile = (compose: ComposeNested) => {
 		envContent += `\nCOMPOSE_PREFIX=${compose.suffix}`;
 	}
 
-	const envFileContent = prepareEnvironmentVariables(
+	// Use the enhanced environment variable resolution that handles service links
+	const envFileContent = (await prepareEnvironmentVariablesWithServiceLinks(
 		envContent,
 		compose.project.env,
-	).join("\n");
+		composeId,
+		"compose"
+	)).join("\n");
 
 	if (!existsSync(dirname(envFilePath))) {
 		mkdirSync(dirname(envFilePath), { recursive: true });

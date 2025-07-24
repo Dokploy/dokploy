@@ -64,7 +64,7 @@ interface ServiceLink {
 	targetService?: {
 		name: string;
 		appName: string;
-	};
+	} | null;
 }
 
 interface Props {
@@ -347,7 +347,7 @@ export const EditServiceLinkModal = ({
 								The following will be added to your environment:
 							</div>
 							<code className="block text-xs bg-background p-2 rounded border">
-								{form.watch("envVariableName")}=${"{{"}service.{selectedService.appName}.{form.watch("attribute")}{"}}"}
+								{`${form.watch("envVariableName")}=\${{service.${selectedService.appName}.${form.watch("attribute")}}}`}
 							</code>
 						</div>
 					)}

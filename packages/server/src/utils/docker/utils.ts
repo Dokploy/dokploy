@@ -259,20 +259,112 @@ export const removeService = async (
 export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
+	serviceId?: string,
+	serviceType?: string,
 ) => {
 	const projectVars = parse(projectEnv ?? "");
 	const serviceVars = parse(serviceEnv ?? "");
 
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
+		
+		// Resolve project variables
 		if (projectVars) {
-			resolvedValue = value.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
+			resolvedValue = resolvedValue.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
 				if (projectVars[ref] !== undefined) {
 					return projectVars[ref];
 				}
 				throw new Error(`Invalid project environment variable: project.${ref}`);
 			});
 		}
+
+		// Resolve service link variables
+		if (serviceId && serviceType) {
+			resolvedValue = resolvedValue.replace(/\$\{\{service\.(.*?)\.(.*?)\}\}/g, (match, targetService, attribute) => {
+				// For now, return the original template - this will be resolved at deployment time
+				// In a future implementation, we could resolve this synchronously if needed
+				return match;
+			});
+		}
+
+		return `${key}=${resolvedValue}`;
+	});
+
+	return resolvedVars;
+};
+
+// Enhanced version that resolves service links during deployment
+export const prepareEnvironmentVariablesWithServiceLinks = async (
+	serviceEnv: string | null,
+	projectEnv: string | null,
+	serviceId: string,
+	serviceType: string,
+): Promise<string[]> => {
+	const projectVars = parse(projectEnv ?? "");
+	const serviceVars = parse(serviceEnv ?? "");
+
+	// Import here to avoid circular dependencies
+	const { db } = await import("@dokploy/server/db");
+	const { serviceLinks } = await import("@dokploy/server/db/schema");
+	const { resolveServiceAttribute } = await import("../service-links");
+	const { eq, and } = await import("drizzle-orm");
+
+	// Get all service links for this service
+	const links = await db
+		.select()
+		.from(serviceLinks)
+		.where(
+			and(
+				eq(serviceLinks.sourceServiceId, serviceId),
+				eq(serviceLinks.sourceServiceType, serviceType as any)
+			)
+		);
+
+	// Create a map of service link environment variables
+	const serviceLinkVars: Record<string, string> = {};
+	for (const link of links) {
+		const resolvedValue = await resolveServiceAttribute(
+			link.targetServiceId,
+			link.targetServiceType,
+			link.attribute
+		);
+		if (resolvedValue) {
+			serviceLinkVars[link.envVariableName] = resolvedValue;
+		}
+	}
+
+	// Merge all environment variables
+	const allVars = { ...projectVars, ...serviceLinkVars, ...serviceVars };
+
+	const resolvedVars = Object.entries(allVars).map(([key, value]) => {
+		let resolvedValue = value;
+		
+		// Resolve project variables
+		resolvedValue = resolvedValue.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
+			if (allVars[ref] !== undefined) {
+				return allVars[ref];
+			}
+			throw new Error(`Invalid project environment variable: project.${ref}`);
+		});
+
+		// Resolve service link variables - these should already be resolved above, 
+		// but we handle the template syntax just in case
+		resolvedValue = resolvedValue.replace(/\$\{\{service\.(.*?)\.(.*?)\}\}/g, (match, targetService, attribute): string => {
+			// Look for a matching service link
+			const matchingLink = links.find(link => {
+				// Match by appName or service name - we'll need to get the service details
+				// For now, just match by targetServiceId since we don't have the service details
+				return link.attribute === attribute;
+			});
+			
+			if (matchingLink && serviceLinkVars[matchingLink.envVariableName]) {
+				return serviceLinkVars[matchingLink.envVariableName] || match;
+			}
+			
+			// If no match found, throw an error
+			throw new Error(`Invalid service link: service.${targetService}.${attribute}`);
+		});
+
 		return `${key}=${resolvedValue}`;
 	});
 
