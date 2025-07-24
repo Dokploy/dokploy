@@ -93,6 +93,7 @@ export const CloudStorageDestinations = ({
 			token: "",
 		},
 		resolver: zodResolver(cloudStorageDestinationSchema),
+		mode: "onSubmit",
 	});
 
 	const providerType = form.watch("providerType") as CloudStorageProviderType;
@@ -100,6 +101,10 @@ export const CloudStorageDestinations = ({
 	useEffect(() => {
 		setConnectionTested(false);
 		form.setValue("token", "");
+		form.setValue("host", "");
+		form.setValue("username", "");
+		form.setValue("password", "");
+		form.setValue("port", "");
 	}, [providerType, form]);
 
 	useEffect(() => {
@@ -526,7 +531,6 @@ export const CloudStorageDestinations = ({
 						<Button
 							type="submit"
 							isLoading={isLoading}
-							disabled={!providerType || (!connectionTested && !destinationId)}
 							className="w-full sm:w-auto order-first sm:order-last"
 						>
 							{destinationId ? "Update" : "Create"} Destination

@@ -91,10 +91,10 @@ no_browser = true`;
 }
 
 // Add this helper function near the top of the file
-async function testCloudStorageConnection({
+export async function testCloudStorageConnection({
 	provider,
 	credentials,
-}: { provider: string; credentials: any }) {
+}: { provider: string; credentials: any; destinationId?: string; ctx?: any }) {
 	if (["drive", "dropbox", "box"].includes(provider)) {
 		if (!credentials.token) {
 			const providerType =
@@ -251,7 +251,7 @@ export const cloudStorageDestinationRouter = createTRPCRouter({
 				let credentials: any = {};
 				try {
 					credentials = JSON.parse(config);
-				} catch {}
+				} catch { }
 
 				const [updatedDestination] = await db
 					.update(cloudStorageDestination)
@@ -568,7 +568,7 @@ export const cloudStorageDestinationRouter = createTRPCRouter({
 			let credentials: any = {};
 			try {
 				credentials = dest.config ? JSON.parse(dest.config) : {};
-			} catch {}
+			} catch { }
 			const provider = dest.provider;
 			if (["drive", "dropbox", "box"].includes(provider)) {
 				const configPath = getRcloneConfigPath(
