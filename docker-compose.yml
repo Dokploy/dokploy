@@ -1,0 +1,180 @@
+networks:
+  dokploy-network:
+    name: dokploy-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  traefik_data:
+  dokploy_data:
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: dokploy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dokploy
+      POSTGRES_USER: dokploy
+      POSTGRES_PASSWORD: amukds4wi9001583845717ad2
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dokploy-network
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dokploy -d dokploy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache and Queue
+  redis:
+    image: redis:7-alpine
+    container_name: dokploy-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - dokploy-network
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v3.1.2
+    container_name: dokploy-traefik
+    restart: unless-stopped
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=dokploy-network
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.email=admin@dokploy.com
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/letsencrypt
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+  # Main Dokploy Application
+  dokploy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dokploy-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      traefik:
+        condition: service_started
+    environment:
+      DATABASE_URL: "postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy"
+      REDIS_HOST: dokploy-redis
+      PORT: 3000
+      NODE_ENV: production
+      BETTER_AUTH_SECRET: "your-better-auth-secret-key-here-make-it-long-and-secure"
+      NEXTAUTH_SECRET: "your-nextauth-secret-here"
+      NEXTAUTH_URL: "http://dokploy.localhost"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dokploy_data:/app/data
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dokploy.rule=Host(`dokploy.localhost`)"
+      - "traefik.http.routers.dokploy.entrypoints=web"
+      - "traefik.http.services.dokploy.loadbalancer.server.port=3000"
+      - "traefik.http.routers.dokploy-secure.rule=Host(`dokploy.localhost`)"
+      - "traefik.http.routers.dokploy-secure.entrypoints=websecure"
+      - "traefik.http.routers.dokploy-secure.tls.certresolver=letsencrypt"
+
+  # Monitoring Service
+  monitoring:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitoring
+    container_name: dokploy-monitoring
+    restart: unless-stopped
+    depends_on:
+      - dokploy
+    environment:
+      PORT: 3001
+      DATABASE_URL: "postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy"
+      METRICS_CONFIG: |
+        {
+          "server": {
+            "type": "monitoring",
+            "refreshRate": 30,
+            "port": 3001,
+            "token": "monitoring-token-123",
+            "urlCallback": "http://dokploy-app:3000/api/monitoring/callback",
+            "cronJob": "0 */6 * * *",
+            "retentionDays": 30,
+            "thresholds": {
+              "cpu": 80,
+              "memory": 80
+            }
+          },
+          "containers": {
+            "refreshRate": 30,
+            "services": {
+              "include": ["*"],
+              "exclude": []
+            }
+          }
+        }
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=false"
+
+  # Schedules Service
+  schedules:
+    build:
+      context: .
+      dockerfile: Dockerfile.schedule
+    container_name: dokploy-schedules
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy"
+      REDIS_URL: "redis://dokploy-redis:6379"
+      NODE_ENV: production
+    networks:
+      - dokploy-network

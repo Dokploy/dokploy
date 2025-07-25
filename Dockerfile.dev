@@ -1,0 +1,93 @@
+# Development Dockerfile for Dokploy
+FROM node:20.16.0-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+RUN corepack prepare pnpm@9.12.0 --activate
+
+# Install development dependencies and utilities
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    git \
+    curl \
+    procps \
+    postgresql-client \
+    unzip \
+    zip \
+    apache2-utils \
+    iproute2 \
+    rsync \
+    git-lfs \
+    gpg \
+    ca-certificates \
+    lsb-release \
+    bash \
+    dos2unix \
+    && git lfs install \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI
+# Install Docker CLI for development container management
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh && rm get-docker.sh
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/dokploy/package.json ./apps/dokploy/
+COPY packages/server/package.json ./packages/server/
+
+# Install dependencies with cache mount
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Copy and set up startup script
+COPY docker/dev-start.sh /usr/local/bin/dev-start.sh
+# Convert Windows line endings to Unix line endings
+RUN dos2unix /usr/local/bin/dev-start.sh
+RUN chmod +x /usr/local/bin/dev-start.sh
+RUN ls -la /usr/local/bin/dev-start.sh && cat /usr/local/bin/dev-start.sh
+RUN which bash || echo "bash not found" && which sh && ls -la /bin/sh
+
+# Build the server package first (required by dokploy app)
+RUN pnpm --filter=@dokploy/server run build
+
+RUN pnpm --filter=dokploy run migration:run
+
+# Set development environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install development tools similar to production
+RUN curl https://rclone.org/install.sh | bash
+
+# Install Nixpacks and tsx for development builds
+ARG NIXPACKS_VERSION=1.39.0
+RUN curl -sSL https://nixpacks.com/install.sh -o install.sh \
+    && chmod +x install.sh \
+    && ./install.sh \
+    && rm install.sh
+
+# Install tsx globally for development
+RUN pnpm install -g tsx
+
+# Install buildpacks
+COPY --from=buildpacksio/pack:0.35.0 /usr/local/bin/pack /usr/local/bin/pack
+
+# Ensure docker group exists and set proper permissions for docker socket access
+RUN groupadd -f docker
+
+# Expose ports
+EXPOSE 3000 3001
+
+# Create volume for node_modules to enable hot reloading
+VOLUME ["/app/node_modules", "/app/apps/dokploy/node_modules", "/app/packages/server/node_modules"]
+
+# Development command with hot reloading
+# Run from root workspace to access all dependencies
+WORKDIR /app
+CMD ["bash", "/usr/local/bin/dev-start.sh"]
