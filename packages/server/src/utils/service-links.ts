@@ -8,8 +8,9 @@ import {
 	mongo,
 	redis,
 	domains,
+	serviceLinks,
 } from "@dokploy/server/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or, and } from "drizzle-orm";
 
 // Helper function to get service details regardless of service type
 export async function getServiceDetails(serviceId: string, serviceType: string) {
@@ -79,13 +80,20 @@ export async function getServiceDetails(serviceId: string, serviceType: string) 
 export async function resolveServiceAttribute(
 	serviceId: string,
 	serviceType: string,
-	attribute: string
+	attribute: string,
+	previewDeploymentContext?: { appName: string; domain?: string }
 ): Promise<string | null> {
 	const service = await getServiceDetails(serviceId, serviceType);
 	if (!service) return null;
 
 	switch (attribute) {
 		case "fqdn": {
+			// If in preview context, use preview domain
+			if (previewDeploymentContext?.domain) {
+				const protocol = "https"; // Preview deployments typically use HTTPS
+				return `${protocol}://${previewDeploymentContext.domain}`;
+			}
+
 			// Get the primary domain for this service
 			const [domain] = await db
 				.select()
@@ -104,6 +112,10 @@ export async function resolveServiceAttribute(
 			return `${protocol}://${domain.host}${port}${domain.path || ""}`;
 		}
 		case "hostname": {
+			// For preview deployments, use the preview app name
+			if (previewDeploymentContext?.appName) {
+				return previewDeploymentContext.appName;
+			}
 			// For internal hostname, we use the appName which is used for container networking
 			return (service as any).appName || null;
 		}
@@ -121,4 +133,106 @@ export async function resolveServiceAttribute(
 		default:
 			return null;
 	}
+}
+
+// Helper function to find all services linked to a given service (both as source and target)
+export async function getLinkedServices(serviceId: string, serviceType: string) {
+	// Find services that this service links to (as source)
+	const outgoingLinks = await db
+		.select()
+		.from(serviceLinks)
+		.where(
+			and(
+				eq(serviceLinks.sourceServiceId, serviceId),
+				eq(serviceLinks.sourceServiceType, serviceType as any)
+			)
+		);
+
+	// Find services that link to this service (as target)
+	const incomingLinks = await db
+		.select()
+		.from(serviceLinks)
+		.where(
+			and(
+				eq(serviceLinks.targetServiceId, serviceId),
+				eq(serviceLinks.targetServiceType, serviceType as any)
+			)
+		);
+
+	// Collect all unique linked service IDs
+	const linkedServiceIds = new Set<{ serviceId: string; serviceType: string }>();
+	
+	for (const link of outgoingLinks) {
+		linkedServiceIds.add({
+			serviceId: link.targetServiceId,
+			serviceType: link.targetServiceType
+		});
+	}
+
+	for (const link of incomingLinks) {
+		linkedServiceIds.add({
+			serviceId: link.sourceServiceId,
+			serviceType: link.sourceServiceType
+		});
+	}
+
+	// Get service details for each linked service
+	const linkedServices = [];
+	for (const { serviceId: linkedServiceId, serviceType: linkedServiceType } of linkedServiceIds) {
+		const serviceDetails = await getServiceDetails(linkedServiceId, linkedServiceType);
+		if (serviceDetails) {
+			linkedServices.push({
+				...serviceDetails,
+				serviceType: linkedServiceType
+			});
+		}
+	}
+
+	return {
+		linkedServices,
+		outgoingLinks,
+		incomingLinks,
+		allLinks: [...outgoingLinks, ...incomingLinks]
+	};
+}
+
+// Helper function to get all services that should be deployed together for preview deployments
+export async function getServiceCluster(serviceId: string, serviceType: string): Promise<Array<{ serviceId: string; serviceType: string; projectId: string }>> {
+	const visited = new Set<string>();
+	const serviceCluster: Array<{ serviceId: string; serviceType: string; projectId: string }> = [];
+
+	async function addServiceToCluster(id: string, type: string) {
+		const key = `${type}:${id}`;
+		if (visited.has(key)) return;
+		visited.add(key);
+
+		const service = await getServiceDetails(id, type);
+		if (!service) return;
+
+		serviceCluster.push({
+			serviceId: id,
+			serviceType: type,
+			projectId: service.projectId
+		});
+
+		// Find all linked services
+		const { linkedServices } = await getLinkedServices(id, type);
+		
+		// Recursively add linked services
+		for (const linkedService of linkedServices) {
+			await addServiceToCluster(
+				(linkedService as any).applicationId || 
+				(linkedService as any).composeId || 
+				(linkedService as any).postgresId || 
+				(linkedService as any).mysqlId || 
+				(linkedService as any).mariadbId || 
+				(linkedService as any).mongoId || 
+				(linkedService as any).redisId,
+				linkedService.serviceType
+			);
+		}
+	}
+
+	await addServiceToCluster(serviceId, serviceType);
+	return serviceCluster;
 }

@@ -9,6 +9,7 @@ import {
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesWithServiceLinks,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
 import { buildCustomDocker, getDockerCommand } from "./docker-file";
@@ -37,6 +38,7 @@ export type ApplicationNested = InferResultType<
 export const buildApplication = async (
 	application: ApplicationNested,
 	logPath: string,
+	previewDeploymentId?: string,
 ) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const { buildType, sourceType } = application;
@@ -62,7 +64,7 @@ export const buildApplication = async (
 		if (application.registryId) {
 			await uploadImage(application, writeStream);
 		}
-		await mechanizeDockerContainer(application);
+		await mechanizeDockerContainer(application, previewDeploymentId);
 		writeStream.write("Docker Deployed: ✅");
 	} catch (error) {
 		if (error instanceof Error) {
@@ -111,6 +113,7 @@ export const getBuildCommand = (
 
 export const mechanizeDockerContainer = async (
 	application: ApplicationNested,
+	previewDeploymentId?: string,
 ) => {
 	const {
 		appName,
@@ -146,10 +149,20 @@ export const mechanizeDockerContainer = async (
 
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);
-	const envVariables = prepareEnvironmentVariables(
-		env,
-		application.project.env,
-	);
+	
+	// Use enhanced environment variable resolution for service links
+	const envVariables = previewDeploymentId
+		? await prepareEnvironmentVariablesWithServiceLinks(
+			env,
+			application.project.env,
+			application.applicationId,
+			"application",
+			previewDeploymentId,
+		)
+		: prepareEnvironmentVariables(
+			env,
+			application.project.env,
+		);
 
 	const image = getImageName(application);
 	const authConfig = getAuthConfig(application);

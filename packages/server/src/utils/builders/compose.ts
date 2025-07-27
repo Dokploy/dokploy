@@ -25,14 +25,14 @@ export type ComposeNested = InferResultType<
 	"compose",
 	{ project: true; mounts: true; domains: true }
 >;
-export const buildCompose = async (compose: ComposeNested, logPath: string) => {
+export const buildCompose = async (compose: ComposeNested, logPath: string, previewDeploymentId?: string) => {
 	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	try {
 		const { COMPOSE_PATH } = paths();
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);
-		await createEnvFile(compose);
+		await createEnvFile(compose, previewDeploymentId);
 
 		if (compose.isolatedDeployment) {
 			await execAsync(
@@ -183,7 +183,7 @@ export const createCommand = (compose: ComposeNested) => {
 	return command;
 };
 
-const createEnvFile = async (compose: ComposeNested) => {
+const createEnvFile = async (compose: ComposeNested, previewDeploymentId?: string) => {
 	const { COMPOSE_PATH } = paths();
 	const { env, composePath, appName, composeId } = compose;
 	const composeFilePath =
@@ -206,7 +206,8 @@ const createEnvFile = async (compose: ComposeNested) => {
 		envContent,
 		compose.project.env,
 		composeId,
-		"compose"
+		"compose",
+		previewDeploymentId
 	)).join("\n");
 
 	if (!existsSync(dirname(envFilePath))) {
