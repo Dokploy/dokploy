@@ -8,6 +8,7 @@ import {
 	apiDeleteServiceLink,
 	apiListServiceLinks,
 	serviceLinks,
+	serviceLinkAttributes,
 } from "@/server/db/schema";
 import { findProjectById } from "@dokploy/server/services/project";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -62,29 +63,59 @@ export const serviceLinksRouter = createTRPCRouter({
 					});
 				}
 
-				// Check if a service link with the same env variable name already exists for this source service
-				const existingLink = await db
+				// Check if any of the environment variable names already exist for this source service
+				const existingAttributes = await db
 					.select()
-					.from(serviceLinks)
+					.from(serviceLinkAttributes)
+					.leftJoin(serviceLinks, eq(serviceLinkAttributes.serviceLinkId, serviceLinks.serviceLinkId))
 					.where(
 						and(
 							eq(serviceLinks.sourceServiceId, input.sourceServiceId),
-							eq(serviceLinks.envVariableName, input.envVariableName)
+							eq(serviceLinks.sourceServiceType, input.sourceServiceType)
 						)
-					)
-					.limit(1);
+					);
 
-				if (existingLink.length > 0) {
+				const existingEnvVars = existingAttributes.map(attr => attr.serviceLinkAttribute?.envVariableName).filter(Boolean);
+				const newEnvVars = input.attributes.map(attr => attr.envVariableName);
+				const conflicts = newEnvVars.filter(envVar => existingEnvVars.includes(envVar));
+
+				if (conflicts.length > 0) {
 					throw new TRPCError({
 						code: "CONFLICT",
-						message: "Environment variable name already exists for this service",
+						message: `Environment variable names already exist: ${conflicts.join(", ")}`,
 					});
 				}
 
+				// Check for duplicate env var names within the new attributes
+				const duplicates = newEnvVars.filter((envVar, index) => newEnvVars.indexOf(envVar) !== index);
+				if (duplicates.length > 0) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Duplicate environment variable names: ${duplicates.join(", ")}`,
+					});
+				}
+
+				// Create the service link
 				const [newServiceLink] = await db
 					.insert(serviceLinks)
-					.values(input)
+					.values({
+						sourceServiceId: input.sourceServiceId,
+						sourceServiceType: input.sourceServiceType,
+						targetServiceId: input.targetServiceId,
+						targetServiceType: input.targetServiceType,
+					})
 					.returning();
+
+				// Create the attributes
+				const attributesToInsert = input.attributes.map(attr => ({
+					serviceLinkId: newServiceLink!.serviceLinkId,
+					attribute: attr.attribute,
+					envVariableName: attr.envVariableName,
+				}));
+
+				await db
+					.insert(serviceLinkAttributes)
+					.values(attributesToInsert);
 
 				return newServiceLink;
 			} catch (error) {
@@ -143,7 +174,20 @@ export const serviceLinksRouter = createTRPCRouter({
 				});
 			}
 
-			return link;
+			// Get attributes for this service link
+			const attributes = await db
+				.select()
+				.from(serviceLinkAttributes)
+				.where(eq(serviceLinkAttributes.serviceLinkId, link.serviceLinkId));
+
+			// Get target service details
+			const targetService = await getServiceDetails(link.targetServiceId, link.targetServiceType);
+
+			return {
+				...link,
+				attributes,
+				targetService,
+			};
 		}),
 
 	list: protectedProcedure
@@ -186,18 +230,26 @@ export const serviceLinksRouter = createTRPCRouter({
 					)
 				);
 
-			// Fetch target service details for each link
-			const linksWithTargetDetails = await Promise.all(
+			// Fetch target service details and attributes for each link
+			const linksWithDetails = await Promise.all(
 				links.map(async (link) => {
 					const targetService = await getServiceDetails(link.targetServiceId, link.targetServiceType);
+					
+					// Get all attributes for this service link
+					const attributes = await db
+						.select()
+						.from(serviceLinkAttributes)
+						.where(eq(serviceLinkAttributes.serviceLinkId, link.serviceLinkId));
+					
 					return {
 						...link,
 						targetService,
+						attributes,
 					};
 				})
 			);
 
-			return linksWithTargetDetails;
+			return linksWithDetails;
 		}),
 
 	update: protectedProcedure
@@ -267,38 +319,66 @@ export const serviceLinksRouter = createTRPCRouter({
 					});
 				}
 
-				// Check if the new env variable name conflicts with existing ones (excluding current link)
-				if (input.envVariableName !== link.envVariableName) {
-					const conflictingLink = await db
-						.select()
-						.from(serviceLinks)
-						.where(
-							and(
-								eq(serviceLinks.sourceServiceId, link.sourceServiceId),
-								eq(serviceLinks.envVariableName, input.envVariableName),
-								eq(serviceLinks.serviceLinkId, input.serviceLinkId)
-							)
+				// Check for conflicting environment variable names with other service links
+				const existingAttributes = await db
+					.select()
+					.from(serviceLinkAttributes)
+					.leftJoin(serviceLinks, eq(serviceLinkAttributes.serviceLinkId, serviceLinks.serviceLinkId))
+					.where(
+						and(
+							eq(serviceLinks.sourceServiceId, link.sourceServiceId),
+							eq(serviceLinks.sourceServiceType, link.sourceServiceType)
 						)
-						.limit(1);
+					);
 
-					if (conflictingLink.length > 0) {
-						throw new TRPCError({
-							code: "CONFLICT",
-							message: "Environment variable name already exists for this service",
-						});
-					}
+				const otherEnvVars = existingAttributes
+					.filter(attr => attr.serviceLinkAttribute?.serviceLinkId !== input.serviceLinkId)
+					.map(attr => attr.serviceLinkAttribute?.envVariableName)
+					.filter(Boolean);
+
+				const newEnvVars = input.attributes.map(attr => attr.envVariableName);
+				const conflicts = newEnvVars.filter(envVar => otherEnvVars.includes(envVar));
+
+				if (conflicts.length > 0) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Environment variable names already exist: ${conflicts.join(", ")}`,
+					});
 				}
 
+				// Check for duplicate env var names within the new attributes
+				const duplicates = newEnvVars.filter((envVar, index) => newEnvVars.indexOf(envVar) !== index);
+				if (duplicates.length > 0) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Duplicate environment variable names: ${duplicates.join(", ")}`,
+					});
+				}
+
+				// Update the service link
 				const [updatedLink] = await db
 					.update(serviceLinks)
 					.set({
 						targetServiceId: input.targetServiceId,
 						targetServiceType: input.targetServiceType,
-						attribute: input.attribute,
-						envVariableName: input.envVariableName,
 					})
 					.where(eq(serviceLinks.serviceLinkId, input.serviceLinkId))
 					.returning();
+
+				// Delete existing attributes and insert new ones
+				await db
+					.delete(serviceLinkAttributes)
+					.where(eq(serviceLinkAttributes.serviceLinkId, input.serviceLinkId));
+
+				const attributesToInsert = input.attributes.map(attr => ({
+					serviceLinkId: input.serviceLinkId,
+					attribute: attr.attribute,
+					envVariableName: attr.envVariableName,
+				}));
+
+				await db
+					.insert(serviceLinkAttributes)
+					.values(attributesToInsert);
 
 				return updatedLink;
 			} catch (error) {

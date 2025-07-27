@@ -173,22 +173,36 @@ export const ShowServiceLinks = ({ serviceId, serviceType, projectId }: Props) =
 											{link.targetServiceType}
 										</Badge>
 									</div>
-									<div className="text-sm text-muted-foreground space-y-1">
+									<div className="text-sm text-muted-foreground space-y-2">
 										<div>
-											<strong>Attribute:</strong> {getAttributeLabel(link.attribute)}
+											<strong>Attributes ({link.attributes?.length || 0}):</strong>
 										</div>
-										<div>
-											<strong>Environment Variable:</strong>{" "}
-											<code className="bg-muted px-1 py-0.5 rounded text-xs">
-												{link.envVariableName}
-											</code>
-										</div>
-										<div className="text-xs text-muted-foreground">
-											Resolves to:{" "}
-											<code className="bg-muted px-1 py-0.5 rounded">
-												{`\${{service.${link.targetService?.appName || link.targetServiceId}.${link.attribute}}}`}
-											</code>
-										</div>
+										{link.attributes && link.attributes.length > 0 ? (
+											<div className="space-y-2">
+												{link.attributes.map((attr) => (
+													<div key={attr.serviceLinkAttributeId} className="bg-muted/50 p-2 rounded">
+														<div className="flex items-center justify-between mb-1">
+															<span className="font-medium text-xs">
+																{getAttributeLabel(attr.attribute)}
+															</span>
+															<code className="bg-background px-1 py-0.5 rounded text-xs">
+																{attr.envVariableName}
+															</code>
+														</div>
+														<div className="text-xs text-muted-foreground">
+															Resolves to:{" "}
+															<code className="bg-background px-1 py-0.5 rounded">
+																{`\${{service.${link.targetService?.appName || link.targetServiceId}.${attr.attribute}}}`}
+															</code>
+														</div>
+													</div>
+												))}
+											</div>
+										) : (
+											<div className="text-xs text-muted-foreground italic">
+												No attributes configured
+											</div>
+										)}
 									</div>
 								</div>
 								<div className="flex items-center gap-2">

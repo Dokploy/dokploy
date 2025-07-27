@@ -306,9 +306,9 @@ export const prepareEnvironmentVariablesWithServiceLinks = async (
 
 	// Import here to avoid circular dependencies
 	const { db } = await import("@dokploy/server/db");
-	const { serviceLinks, previewDeployments, domains } = await import("@dokploy/server/db/schema");
+	const { serviceLinks, serviceLinkAttributes, previewDeployments, domains } = await import("@dokploy/server/db/schema");
 	const { resolveServiceAttribute, getLinkedServices } = await import("../service-links");
-	const { eq, and } = await import("drizzle-orm");
+	const { eq, and, inArray } = await import("drizzle-orm");
 
 	let previewContext: { appName: string; domain?: string } | undefined;
 
@@ -340,154 +340,178 @@ export const prepareEnvironmentVariablesWithServiceLinks = async (
 	// Get all service links for this service and linked services (bi-directional)
 	const { allLinks } = await getLinkedServices(serviceId, serviceType);
 
+	// Get all attributes for the service links
+	const serviceLinkIds = allLinks.map(link => link.serviceLinkId);
+	const linkAttributes = serviceLinkIds.length > 0 ? await db
+		.select()
+		.from(serviceLinkAttributes)
+		.where(inArray(serviceLinkAttributes.serviceLinkId, serviceLinkIds)) : [];
+
+	// Create a map of link attributes by service link ID
+	const attributesByLinkId = linkAttributes.reduce((acc, attr) => {
+		if (!acc[attr.serviceLinkId]) {
+			acc[attr.serviceLinkId] = [];
+		}
+		acc[attr.serviceLinkId]!.push(attr);
+		return acc;
+	}, {} as Record<string, typeof linkAttributes>);
+
 	// Create a map of service link environment variables
 	const serviceLinkVars: Record<string, string> = {};
 	
 	// Process outgoing links (this service depends on others)
 	for (const link of allLinks.filter(l => l.sourceServiceId === serviceId && l.sourceServiceType === serviceType)) {
-		let resolvedValue: string | null;
+		const attributes = attributesByLinkId[link.serviceLinkId] || [];
 		
-		// If in preview deployment, try to find preview deployment for target service
-		if (previewDeploymentId) {
-			// Look for preview deployment of the target service with same pull request ID
-			const [sourcePreview] = await db
-				.select()
-				.from(previewDeployments)
-				.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
-				.limit(1);
-
-			if (sourcePreview) {
-				const [targetPreview] = await db
+		for (const attribute of attributes) {
+			let resolvedValue: string | null;
+			
+			// If in preview deployment, try to find preview deployment for target service
+			if (previewDeploymentId) {
+				// Look for preview deployment of the target service with same pull request ID
+				const [sourcePreview] = await db
 					.select()
 					.from(previewDeployments)
-					.where(
-						and(
-							eq(previewDeployments.pullRequestId, sourcePreview.pullRequestId),
-							serviceType === "application" 
-								? eq(previewDeployments.applicationId, link.targetServiceId)
-								: eq(previewDeployments.applicationId, link.targetServiceId) // TODO: Support other service types
-						)
-					)
+					.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
 					.limit(1);
 
-				if (targetPreview) {
-					// Use target preview context for resolution
-					const targetPreviewContext: { appName: string; domain?: string } = { appName: targetPreview.appName };
-					if (targetPreview.domainId) {
-						const [targetDomain] = await db
-							.select()
-							.from(domains)
-							.where(eq(domains.domainId, targetPreview.domainId))
-							.limit(1);
-						if (targetDomain) {
-							targetPreviewContext.domain = targetDomain.host;
+				if (sourcePreview) {
+					const [targetPreview] = await db
+						.select()
+						.from(previewDeployments)
+						.where(
+							and(
+								eq(previewDeployments.pullRequestId, sourcePreview.pullRequestId),
+								serviceType === "application" 
+									? eq(previewDeployments.applicationId, link.targetServiceId)
+									: eq(previewDeployments.applicationId, link.targetServiceId) // TODO: Support other service types
+							)
+						)
+						.limit(1);
+
+					if (targetPreview) {
+						// Use target preview context for resolution
+						const targetPreviewContext: { appName: string; domain?: string } = { appName: targetPreview.appName };
+						if (targetPreview.domainId) {
+							const [targetDomain] = await db
+								.select()
+								.from(domains)
+								.where(eq(domains.domainId, targetPreview.domainId))
+								.limit(1);
+							if (targetDomain) {
+								targetPreviewContext.domain = targetDomain.host;
+							}
 						}
+						resolvedValue = await resolveServiceAttribute(
+							link.targetServiceId,
+							link.targetServiceType,
+							attribute.attribute,
+							targetPreviewContext
+						);
+					} else {
+						// Fallback to regular resolution
+						resolvedValue = await resolveServiceAttribute(
+							link.targetServiceId,
+							link.targetServiceType,
+							attribute.attribute
+						);
 					}
-					resolvedValue = await resolveServiceAttribute(
-						link.targetServiceId,
-						link.targetServiceType,
-						link.attribute,
-						targetPreviewContext
-					);
 				} else {
-					// Fallback to regular resolution
 					resolvedValue = await resolveServiceAttribute(
 						link.targetServiceId,
 						link.targetServiceType,
-						link.attribute
+						attribute.attribute
 					);
 				}
 			} else {
 				resolvedValue = await resolveServiceAttribute(
 					link.targetServiceId,
 					link.targetServiceType,
-					link.attribute
+					attribute.attribute
 				);
 			}
-		} else {
-			resolvedValue = await resolveServiceAttribute(
-				link.targetServiceId,
-				link.targetServiceType,
-				link.attribute
-			);
-		}
-		
-		if (resolvedValue) {
-			serviceLinkVars[link.envVariableName] = resolvedValue;
+			
+			if (resolvedValue) {
+				serviceLinkVars[attribute.envVariableName] = resolvedValue;
+			}
 		}
 	}
 
 	// Process incoming links (other services depend on this service - for bi-directional injection)
 	for (const link of allLinks.filter(l => l.targetServiceId === serviceId && l.targetServiceType === serviceType)) {
-		// Generate reverse environment variable name (e.g., if link is BACKEND_URL, create FRONTEND_URL)
-		const reverseEnvName = `${link.envVariableName.replace(/_URL$|_HOST$|_PORT$/, '')}_REVERSE_${link.attribute.toUpperCase()}`;
+		const attributes = attributesByLinkId[link.serviceLinkId] || [];
 		
-		let resolvedValue: string | null;
-		
-		// Resolve the source service (the one that links to us) 
-		if (previewDeploymentId) {
-			const [sourcePreview] = await db
-				.select()
-				.from(previewDeployments)
-				.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
-				.limit(1);
-
-			if (sourcePreview) {
-				const [linkedSourcePreview] = await db
+		for (const attribute of attributes) {
+			// Generate reverse environment variable name (e.g., if link is BACKEND_URL, create FRONTEND_URL)
+			const reverseEnvName = `${attribute.envVariableName.replace(/_URL$|_HOST$|_PORT$/, '')}_REVERSE_${attribute.attribute.toUpperCase()}`;
+			
+			let resolvedValue: string | null;
+			
+			// Resolve the source service (the one that links to us) 
+			if (previewDeploymentId) {
+				const [sourcePreview] = await db
 					.select()
 					.from(previewDeployments)
-					.where(
-						and(
-							eq(previewDeployments.pullRequestId, sourcePreview.pullRequestId),
-							serviceType === "application" 
-								? eq(previewDeployments.applicationId, link.sourceServiceId)
-								: eq(previewDeployments.applicationId, link.sourceServiceId) // TODO: Support other service types
-						)
-					)
+					.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
 					.limit(1);
 
-				if (linkedSourcePreview) {
-					const sourcePreviewContext: { appName: string; domain?: string } = { appName: linkedSourcePreview.appName };
-					if (linkedSourcePreview.domainId) {
-						const [sourceDomain] = await db
-							.select()
-							.from(domains)
-							.where(eq(domains.domainId, linkedSourcePreview.domainId))
-							.limit(1);
-						if (sourceDomain) {
-							sourcePreviewContext.domain = sourceDomain.host;
+				if (sourcePreview) {
+					const [linkedSourcePreview] = await db
+						.select()
+						.from(previewDeployments)
+						.where(
+							and(
+								eq(previewDeployments.pullRequestId, sourcePreview.pullRequestId),
+								serviceType === "application" 
+									? eq(previewDeployments.applicationId, link.sourceServiceId)
+									: eq(previewDeployments.applicationId, link.sourceServiceId) // TODO: Support other service types
+							)
+						)
+						.limit(1);
+
+					if (linkedSourcePreview) {
+						const sourcePreviewContext: { appName: string; domain?: string } = { appName: linkedSourcePreview.appName };
+						if (linkedSourcePreview.domainId) {
+							const [sourceDomain] = await db
+								.select()
+								.from(domains)
+								.where(eq(domains.domainId, linkedSourcePreview.domainId))
+								.limit(1);
+							if (sourceDomain) {
+								sourcePreviewContext.domain = sourceDomain.host;
+							}
 						}
+						resolvedValue = await resolveServiceAttribute(
+							link.sourceServiceId,
+							link.sourceServiceType,
+							attribute.attribute,
+							sourcePreviewContext
+						);
+					} else {
+						resolvedValue = await resolveServiceAttribute(
+							link.sourceServiceId,
+							link.sourceServiceType,
+							attribute.attribute
+						);
 					}
-					resolvedValue = await resolveServiceAttribute(
-						link.sourceServiceId,
-						link.sourceServiceType,
-						link.attribute,
-						sourcePreviewContext
-					);
 				} else {
 					resolvedValue = await resolveServiceAttribute(
 						link.sourceServiceId,
 						link.sourceServiceType,
-						link.attribute
+						attribute.attribute
 					);
 				}
 			} else {
 				resolvedValue = await resolveServiceAttribute(
 					link.sourceServiceId,
 					link.sourceServiceType,
-					link.attribute
+					attribute.attribute
 				);
 			}
-		} else {
-			resolvedValue = await resolveServiceAttribute(
-				link.sourceServiceId,
-				link.sourceServiceType,
-				link.attribute
-			);
-		}
-		
-		if (resolvedValue) {
-			serviceLinkVars[reverseEnvName] = resolvedValue;
+			
+			if (resolvedValue) {
+				serviceLinkVars[reverseEnvName] = resolvedValue;
+			}
 		}
 	}
 
