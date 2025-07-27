@@ -308,7 +308,7 @@ export const prepareEnvironmentVariablesWithServiceLinks = async (
 	const { db } = await import("@dokploy/server/db");
 	const { serviceLinks, serviceLinkAttributes, previewDeployments, domains } = await import("@dokploy/server/db/schema");
 	const { resolveServiceAttribute, getLinkedServices } = await import("../service-links");
-	const { eq, and, inArray } = await import("drizzle-orm");
+	const { eq, and, or } = await import("drizzle-orm");
 
 	let previewContext: { appName: string; domain?: string } | undefined;
 
@@ -342,10 +342,18 @@ export const prepareEnvironmentVariablesWithServiceLinks = async (
 
 	// Get all attributes for the service links
 	const serviceLinkIds = allLinks.map(link => link.serviceLinkId);
-	const linkAttributes = serviceLinkIds.length > 0 ? await db
-		.select()
-		.from(serviceLinkAttributes)
-		.where(inArray(serviceLinkAttributes.serviceLinkId, serviceLinkIds)) : [];
+	let linkAttributes: any[] = [];
+	
+	if (serviceLinkIds.length > 0) {
+		// Build OR conditions for each service link ID
+		const conditions = serviceLinkIds.map(id => eq(serviceLinkAttributes.serviceLinkId, id));
+		const whereCondition = conditions.length === 1 ? conditions[0] : or(...conditions);
+		
+		linkAttributes = await db
+			.select()
+			.from(serviceLinkAttributes)
+			.where(whereCondition);
+	}
 
 	// Create a map of link attributes by service link ID
 	const attributesByLinkId = linkAttributes.reduce((acc, attr) => {

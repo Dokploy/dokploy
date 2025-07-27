@@ -27,10 +27,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { extractServices } from "@/pages/dashboard/project/[projectId]";
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 const addServiceLinkSchema = z.object({
 	targetServiceId: z.string().min(1, "Please select a target service"),
