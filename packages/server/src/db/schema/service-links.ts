@@ -41,6 +41,23 @@ export const serviceLinks = pgTable("serviceLink", {
 	targetServiceId: text("targetServiceId").notNull(),
 	targetServiceType: serviceLinkType("targetServiceType").notNull(),
 	
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+});
+
+// Separate table for service link attributes (many-to-one with serviceLinks)
+export const serviceLinkAttributes = pgTable("serviceLinkAttribute", {
+	serviceLinkAttributeId: text("serviceLinkAttributeId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	
+	// Reference to the service link
+	serviceLinkId: text("serviceLinkId")
+		.notNull()
+		.references(() => serviceLinks.serviceLinkId, { onDelete: "cascade" }),
+	
 	// What attribute of the target service to expose
 	attribute: serviceAttribute("attribute").notNull(),
 	
@@ -52,7 +69,7 @@ export const serviceLinks = pgTable("serviceLink", {
 		.$defaultFn(() => new Date().toISOString()),
 });
 
-export const serviceLinksRelations = relations(serviceLinks, ({ one }) => ({
+export const serviceLinksRelations = relations(serviceLinks, ({ one, many }) => ({
 	sourceApplication: one(applications, {
 		fields: [serviceLinks.sourceServiceId],
 		references: [applications.applicationId],
@@ -123,18 +140,31 @@ export const serviceLinksRelations = relations(serviceLinks, ({ one }) => ({
 		references: [redis.redisId],
 		relationName: "targetRedis",
 	}),
+	// Relation to attributes
+	attributes: many(serviceLinkAttributes),
+}));
+
+export const serviceLinkAttributesRelations = relations(serviceLinkAttributes, ({ one }) => ({
+	serviceLink: one(serviceLinks, {
+		fields: [serviceLinkAttributes.serviceLinkId],
+		references: [serviceLinks.serviceLinkId],
+	}),
 }));
 
 // API schemas
 const createSchema = createInsertSchema(serviceLinks);
+const createAttributeSchema = createInsertSchema(serviceLinkAttributes);
 
 export const apiCreateServiceLink = createSchema.pick({
 	sourceServiceId: true,
 	sourceServiceType: true,
 	targetServiceId: true,
 	targetServiceType: true,
-	attribute: true,
-	envVariableName: true,
+}).extend({
+	attributes: z.array(z.object({
+		attribute: z.enum(["fqdn", "hostname", "port"]),
+		envVariableName: z.string(),
+	})).min(1, "At least one attribute must be selected"),
 });
 
 export const apiFindServiceLink = z.object({
@@ -145,11 +175,13 @@ export const apiUpdateServiceLink = createSchema
 	.pick({
 		targetServiceId: true,
 		targetServiceType: true,
-		attribute: true,
-		envVariableName: true,
 	})
 	.extend({
 		serviceLinkId: z.string(),
+		attributes: z.array(z.object({
+			attribute: z.enum(["fqdn", "hostname", "port"]),
+			envVariableName: z.string(),
+		})).min(1, "At least one attribute must be selected"),
 	});
 
 export const apiDeleteServiceLink = z.object({

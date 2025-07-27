@@ -9,6 +9,7 @@ import {
 	redis,
 	domains,
 	serviceLinks,
+	serviceLinkAttributes,
 } from "@dokploy/server/db/schema";
 import { eq, or, and } from "drizzle-orm";
 

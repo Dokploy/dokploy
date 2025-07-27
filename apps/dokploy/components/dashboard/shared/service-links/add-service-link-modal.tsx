@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api } from "@/utils/api";
@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { extractServices } from "@/pages/dashboard/project/[projectId]";
+import { Trash2 } from "lucide-react";
 
 const addServiceLinkSchema = z.object({
 	targetServiceId: z.string().min(1, "Please select a target service"),
@@ -41,14 +42,16 @@ const addServiceLinkSchema = z.object({
 		"mongo",
 		"redis",
 	]),
-	attribute: z.enum(["fqdn", "hostname", "port"]),
-	envVariableName: z
-		.string()
-		.min(1, "Environment variable name is required")
-		.regex(
-			/^[A-Z][A-Z0-9_]*$/,
-			"Environment variable must start with a letter and contain only uppercase letters, numbers, and underscores"
-		),
+	attributes: z.array(z.object({
+		attribute: z.enum(["fqdn", "hostname", "port"]),
+		envVariableName: z
+			.string()
+			.min(1, "Environment variable name is required")
+			.regex(
+				/^[A-Z][A-Z0-9_]*$/,
+				"Environment variable must start with a letter and contain only uppercase letters, numbers, and underscores"
+			),
+	})).min(1, "At least one attribute must be selected"),
 });
 
 type AddServiceLinkForm = z.infer<typeof addServiceLinkSchema>;
@@ -77,9 +80,13 @@ export const AddServiceLinkModal = ({
 		defaultValues: {
 			targetServiceId: "",
 			targetServiceType: "application",
-			attribute: "fqdn",
-			envVariableName: "",
+			attributes: [],
 		},
+	});
+
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "attributes",
 	});
 
 	// Get all services in the project except the current one
@@ -143,6 +150,22 @@ export const AddServiceLinkModal = ({
 		return `${cleanName}_${cleanAttribute}`;
 	};
 
+	const availableAttributes = ["fqdn", "hostname", "port"];
+
+	const addAttribute = (attribute: string) => {
+		if (selectedService) {
+			const envVarName = generateEnvVarName(selectedService.name, attribute);
+			append({
+				attribute: attribute as "fqdn" | "hostname" | "port",
+				envVariableName: envVarName,
+			});
+		}
+	};
+
+	const isAttributeSelected = (attribute: string) => {
+		return fields.some(field => field.attribute === attribute);
+	};
+
 	const handleServiceChange = (serviceId: string) => {
 		const service = availableServices.find((s) => s.id === serviceId);
 		if (service) {
@@ -150,18 +173,8 @@ export const AddServiceLinkModal = ({
 			form.setValue("targetServiceId", serviceId);
 			form.setValue("targetServiceType", service.type as any);
 			
-			// Auto-generate environment variable name
-			const currentAttribute = form.getValues("attribute");
-			const envVarName = generateEnvVarName(service.name, currentAttribute);
-			form.setValue("envVariableName", envVarName);
-		}
-	};
-
-	const handleAttributeChange = (attribute: string) => {
-		form.setValue("attribute", attribute as any);
-		if (selectedService) {
-			const envVarName = generateEnvVarName(selectedService.name, attribute);
-			form.setValue("envVariableName", envVarName);
+			// Clear existing attributes and regenerate env var names
+			form.setValue("attributes", []);
 		}
 	};
 
@@ -231,89 +244,102 @@ export const AddServiceLinkModal = ({
 						)}
 					/>
 
-					<FormField
-						control={form.control}
-						name="attribute"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Service Attribute</FormLabel>
-								<Select
-									onValueChange={handleAttributeChange}
-									value={field.value}
-								>
-									<FormControl>
-										<SelectTrigger>
-											<SelectValue placeholder="Select attribute to expose" />
-										</SelectTrigger>
-									</FormControl>
-									<SelectContent>
-										<SelectItem value="fqdn">
-											<div className="space-y-1">
-												<div>{getAttributeLabel("fqdn")}</div>
-												<div className="text-xs text-muted-foreground">
-													{getAttributeDescription("fqdn")}
-												</div>
-											</div>
-										</SelectItem>
-										<SelectItem value="hostname">
-											<div className="space-y-1">
-												<div>{getAttributeLabel("hostname")}</div>
-												<div className="text-xs text-muted-foreground">
-													{getAttributeDescription("hostname")}
-												</div>
-											</div>
-										</SelectItem>
-										<SelectItem value="port">
-											<div className="space-y-1">
-												<div>{getAttributeLabel("port")}</div>
-												<div className="text-xs text-muted-foreground">
-													{getAttributeDescription("port")}
-												</div>
-											</div>
-										</SelectItem>
-									</SelectContent>
-								</Select>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
-					<FormField
-						control={form.control}
-						name="envVariableName"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Environment Variable Name</FormLabel>
-								<FormControl>
-									<Input
-										{...field}
-										placeholder="e.g., BACKEND_URL"
-										className="font-mono"
-									/>
-								</FormControl>
-								<div className="text-xs text-muted-foreground">
-									This environment variable will be injected into your service
-									with the resolved value.
-								</div>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
 					{selectedService && (
-						<div className="p-3 bg-muted/50 rounded-lg space-y-2">
-							<div className="text-sm font-medium">Preview</div>
-							<div className="text-xs text-muted-foreground">
-								The following will be added to your environment:
+						<div className="space-y-4">
+							<div>
+								<FormLabel>Service Attributes</FormLabel>
+								<div className="text-sm text-muted-foreground mb-3">
+									Select which attributes of the target service to expose as environment variables.
+								</div>
+								
+								<div className="space-y-3 border rounded-lg p-4">
+									{availableAttributes.map((attribute) => (
+										<div key={attribute} className="flex items-center justify-between">
+											<div className="space-y-1">
+												<div className="font-medium">{getAttributeLabel(attribute)}</div>
+												<div className="text-xs text-muted-foreground">
+													{getAttributeDescription(attribute)}
+												</div>
+											</div>
+											<Button
+												type="button"
+												variant={isAttributeSelected(attribute) ? "default" : "outline"}
+												size="sm"
+												onClick={() => {
+													if (isAttributeSelected(attribute)) {
+														const index = fields.findIndex(f => f.attribute === attribute);
+														if (index >= 0) remove(index);
+													} else {
+														addAttribute(attribute);
+													}
+												}}
+											>
+												{isAttributeSelected(attribute) ? "Added" : "Add"}
+											</Button>
+										</div>
+									))}
+								</div>
 							</div>
-							<code className="block text-xs bg-background p-2 rounded border">
-								{`${form.watch("envVariableName")}=\${{service.${selectedService.appName}.${form.watch("attribute")}}}`}
-							</code>
+
+							{fields.length > 0 && (
+								<div className="space-y-3">
+									<FormLabel>Environment Variables</FormLabel>
+									{fields.map((field, index) => (
+										<div key={field.id} className="flex items-center gap-2 p-3 border rounded-lg">
+											<div className="flex-1">
+												<div className="text-sm font-medium mb-1">
+													{getAttributeLabel(field.attribute)}
+												</div>
+												<FormField
+													control={form.control}
+													name={`attributes.${index}.envVariableName`}
+													render={({ field: envField }) => (
+														<FormItem>
+															<FormControl>
+																<Input
+																	{...envField}
+																	placeholder="e.g., BACKEND_URL"
+																	className="font-mono text-sm"
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											</div>
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												onClick={() => remove(index)}
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
+									))}
+								</div>
+							)}
+
+							{fields.length > 0 && (
+								<div className="p-3 bg-muted/50 rounded-lg space-y-2">
+									<div className="text-sm font-medium">Preview</div>
+									<div className="text-xs text-muted-foreground">
+										The following will be added to your environment:
+									</div>
+									<div className="space-y-1">
+										{fields.map((field, index) => (
+											<code key={field.id} className="block text-xs bg-background p-2 rounded border">
+												{`${form.watch(`attributes.${index}.envVariableName`)}=\${{service.${selectedService.appName}.${field.attribute}}}`}
+											</code>
+										))}
+									</div>
+								</div>
+							)}
 						</div>
 					)}
 
 					<DialogFooter>
-						<Button type="submit" isLoading={isLoading} disabled={!selectedService}>
+						<Button type="submit" isLoading={isLoading} disabled={!selectedService || fields.length === 0}>
 							Create Service Link
 						</Button>
 					</DialogFooter>
