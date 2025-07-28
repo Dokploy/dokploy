@@ -33,6 +33,7 @@ import { AddGithubProvider } from "./github/add-github-provider";
 import { EditGithubProvider } from "./github/edit-github-provider";
 import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
+import { Badge } from "@/components/ui/badge";
 
 export const ShowGitProviders = () => {
 	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();
@@ -158,7 +159,13 @@ export const ShowGitProviders = () => {
 
 															<div className="flex flex-row gap-1">
 																{!haveGithubRequirements && isGithub && (
-																	<div className="flex flex-col gap-1">
+																	<div className="flex flex-row gap-1 items-center">
+																		<Badge
+																			variant="outline"
+																			className="text-xs"
+																		>
+																			Action Required
+																		</Badge>
 																		<Link
 																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
 																			className={buttonVariants({
@@ -185,7 +192,13 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 																{!haveGitlabRequirements && isGitlab && (
-																	<div className="flex flex-col gap-1">
+																	<div className="flex flex-row gap-1 items-center">
+																		<Badge
+																			variant="outline"
+																			className="text-xs"
+																		>
+																			Action Required
+																		</Badge>
 																		<Link
 																			href={getGitlabUrl(
 																				gitProvider.gitlab?.applicationId || "",
