@@ -20,7 +20,7 @@ jobs:
 
       - name: Get version from package.json
         id: package_version
-        run: echo "VERSION=$(jq -r .version ./apps/dokploy/package.json)" >> $GITHUB_ENV
+        run: echo "VERSION=v$(jq -r .version ./apps/dokploy/package.json)" >> $GITHUB_ENV
 
       - name: Get latest GitHub tag
         id: latest_tag

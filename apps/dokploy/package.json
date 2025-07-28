@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.24.4",
+	"version": "0.24.4",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -33,7 +33,7 @@
 		"docker:push": "./docker/push.sh",
 		"docker:build:canary": "./docker/build.sh canary",
 		"docker:push:canary": "./docker/push.sh canary",
-		"version": "echo $(node -p \"require('./package.json').version\")",
+		"version": "echo v$(node -p \"require('./package.json').version\")",
 		"test": "vitest --config __test__/vitest.config.ts"
 	},
 	"dependencies": {
