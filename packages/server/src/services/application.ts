@@ -238,20 +238,12 @@ export const deployApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 
-		const errorMessage =
-			error instanceof Error
-				? error.message
-				: String(error) || "Error building";
-		// Truncate and sanitize error message for notifications
-		const sanitizedErrorMessage = errorMessage
-			.replace(/ghs_[a-zA-Z0-9]+/g, "ghs_***") // Hide GitHub tokens
-			.substring(0, 1500); // Truncate to avoid notification limits
-
 		await sendBuildErrorNotifications({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			errorMessage: sanitizedErrorMessage,
+			// @ts-ignore
+			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: application.project.organizationId,
 		});
