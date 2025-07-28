@@ -142,10 +142,11 @@ export const updateApplication = async (
 	applicationId: string,
 	applicationData: Partial<Application>,
 ) => {
+	const { appName, ...rest } = applicationData;
 	const application = await db
 		.update(applications)
 		.set({
-			...applicationData,
+			...rest,
 		})
 		.where(eq(applications.applicationId, applicationId))
 		.returning();
