@@ -211,7 +211,10 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											<FormItem>
 												<FormLabel>Labels</FormLabel>
 												<FormControl>
-													<Input placeholder="enhancement,needs-review (Leave empty for all labels)" {...field} />
+													<Input
+														placeholder="enhancement,needs-review (Leave empty for all labels)"
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
