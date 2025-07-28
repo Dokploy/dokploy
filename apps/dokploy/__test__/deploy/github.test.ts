@@ -1,5 +1,5 @@
-import { extractCommitMessage } from "@/pages/api/deploy/[refreshToken]";
 import { describe, expect, it } from "vitest";
+import { extractCommitMessage } from "@/pages/api/deploy/[refreshToken]";
 
 describe("GitHub Webhook Skip CI", () => {
 	const mockGithubHeaders = {

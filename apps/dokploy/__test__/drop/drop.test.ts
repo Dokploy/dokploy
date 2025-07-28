@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { paths } from "@dokploy/server/constants";
-const { APPLICATIONS_PATH } = paths();
 import type { ApplicationNested } from "@dokploy/server";
 import { unzipDrop } from "@dokploy/server";
+import { paths } from "@dokploy/server/constants";
 import AdmZip from "adm-zip";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+const { APPLICATIONS_PATH } = paths();
 vi.mock("@dokploy/server/constants", async (importOriginal) => {
 	const actual = await importOriginal();
 	return {
@@ -142,7 +142,7 @@ describe("unzipDrop using real zip files", () => {
 			const outputPath = path.join(APPLICATIONS_PATH, baseApp.appName, "code");
 			const zip = new AdmZip("./__test__/drop/zips/single-file.zip");
 			console.log(`Output Path: ${outputPath}`);
-			const zipBuffer = zip.toBuffer();
+			const zipBuffer = zip.toBuffer() as Buffer<ArrayBuffer>;
 			const file = new File([zipBuffer], "single.zip");
 			await unzipDrop(file, baseApp);
 			const files = await fs.readdir(outputPath, { withFileTypes: true });
