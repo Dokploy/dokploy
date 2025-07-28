@@ -3,6 +3,3 @@ node_modules
 .gitignore
 *.md
 dist
-
-apps/*/node_modules
-packages/*/node_modules
