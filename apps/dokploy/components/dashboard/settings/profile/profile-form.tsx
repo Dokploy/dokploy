@@ -267,9 +267,13 @@ export const ProfileForm = () => {
 																			/>
 																		</FormControl>
 
-                                                                        <Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
-						                                                    <AvatarFallback className="rounded-lg">{getFallbackAvatarInitials(data?.user?.name)}</AvatarFallback>
-                                                                        </Avatar>
+																		<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
+																			<AvatarFallback className="rounded-lg">
+																				{getFallbackAvatarInitials(
+																					data?.user?.name,
+																				)}
+																			</AvatarFallback>
+																		</Avatar>
 																	</FormLabel>
 																</FormItem>
 																{availableAvatars.map((image) => (

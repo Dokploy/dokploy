@@ -47,7 +47,9 @@ export const UserNav = () => {
 							src={data?.user?.image || ""}
 							alt={data?.user?.image || ""}
 						/>
-						<AvatarFallback className="rounded-lg">{getFallbackAvatarInitials(data?.user?.name)}</AvatarFallback>
+						<AvatarFallback className="rounded-lg">
+							{getFallbackAvatarInitials(data?.user?.name)}
+						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
 						<span className="truncate font-semibold">Account</span>
