@@ -21,7 +21,7 @@ import {
 		await initializeNetwork();
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
-		await execAsync("docker pull traefik:v3.1.2");
+		await execAsync("docker pull traefik:v3.2.2");
 		await initializeTraefik();
 		await initializeRedis();
 		await initializePostgres();
