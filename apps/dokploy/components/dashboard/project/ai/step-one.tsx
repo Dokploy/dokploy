@@ -25,6 +25,7 @@ const examples = [
 export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 	// Get servers from the API
 	const { data: servers } = api.server.withSSHKey.useQuery();
+	const hasServers = servers && servers.length > 0;
 
 	const handleExampleClick = (example: string) => {
 		setTemplateInfo({ ...templateInfo, userInput: example });
@@ -47,37 +48,39 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 						/>
 					</div>
 
-					<div className="space-y-2">
-						<Label htmlFor="server-deploy">
-							Select the server where you want to deploy (optional)
-						</Label>
-						<Select
-							value={templateInfo.server?.serverId}
-							onValueChange={(value) => {
-								const server = servers?.find((s) => s.serverId === value);
-								if (server) {
-									setTemplateInfo({
-										...templateInfo,
-										server: server,
-									});
-								}
-							}}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Select a server" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									{servers?.map((server) => (
-										<SelectItem key={server.serverId} value={server.serverId}>
-											{server.name}
-										</SelectItem>
-									))}
-									<SelectLabel>Servers ({servers?.length})</SelectLabel>
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					</div>
+					{hasServers && (
+						<div className="space-y-2">
+							<Label htmlFor="server-deploy">
+								Select the server where you want to deploy (optional)
+							</Label>
+							<Select
+								value={templateInfo.server?.serverId}
+								onValueChange={(value) => {
+									const server = servers?.find((s) => s.serverId === value);
+									if (server) {
+										setTemplateInfo({
+											...templateInfo,
+											server: server,
+										});
+									}
+								}}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue placeholder="Select a server" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										{servers?.map((server) => (
+											<SelectItem key={server.serverId} value={server.serverId}>
+												{server.name}
+											</SelectItem>
+										))}
+										<SelectLabel>Servers ({servers?.length})</SelectLabel>
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 
 					<div className="space-y-2">
 						<Label>Examples:</Label>
