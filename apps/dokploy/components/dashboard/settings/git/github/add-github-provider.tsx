@@ -24,12 +24,14 @@ export const AddGithubProvider = () => {
 	const [isOrganization, setIsOrganization] = useState(false);
 	const [organizationName, setOrganization] = useState("");
 
+	const randomString = () => Math.random().toString(36).slice(2, 8);
+
 	useEffect(() => {
 		const url = document.location.origin;
 		const manifest = JSON.stringify(
 			{
 				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id}&userId=${session?.user?.id}`,
-				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}`,
+				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}-${randomString()}`,
 				url: origin,
 				hook_attributes: {
 					url: `${url}/api/deploy/github`,
@@ -118,11 +120,10 @@ export const AddGithubProvider = () => {
 												: "https://github.com/settings/installations"
 										}
 										className={`text-muted-foreground text-sm hover:underline duration-300
-											 ${
-													isOrganization && !organizationName
-														? "pointer-events-none opacity-50"
-														: ""
-												}`}
+											 ${isOrganization && !organizationName
+												? "pointer-events-none opacity-50"
+												: ""
+											}`}
 										target="_blank"
 										rel="noopener noreferrer"
 									>
