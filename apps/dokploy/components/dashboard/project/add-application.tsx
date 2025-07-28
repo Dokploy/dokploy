@@ -220,7 +220,21 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 							name="appName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>App Name</FormLabel>
+									<FormLabel className="flex items-center gap-2">
+										App Name
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</TooltipTrigger>
+												<TooltipContent side="right">
+													<p>
+														This will be the name of the Docker Swarm service
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</FormLabel>
 									<FormControl>
 										<Input placeholder="my-app" {...field} />
 									</FormControl>
