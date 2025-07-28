@@ -19,7 +19,8 @@
 			},
 			"complexity": {
 				"noUselessCatch": "off",
-				"noBannedTypes": "off"
+				"noBannedTypes": "off",
+				"noUselessFragments": "off"
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "off",
