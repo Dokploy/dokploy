@@ -303,22 +303,41 @@ export const getGitlabBranches = async (input: {
 
 	const gitlabProvider = await findGitlabById(input.gitlabId);
 
-	const branchesResponse = await fetch(
-		`https://gitlab.com/api/v4/projects/${input.id}/repository/branches`,
-		{
-			headers: {
-				Authorization: `Bearer ${gitlabProvider.accessToken}`,
-			},
-		},
-	);
+	const allBranches = [];
+	let page = 1;
+	const perPage = 100; // GitLab's max per page is 100
 
-	if (!branchesResponse.ok) {
-		throw new Error(`Failed to fetch branches: ${branchesResponse.statusText}`);
+	while (true) {
+		const branchesResponse = await fetch(
+			`https://gitlab.com/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
+			{
+				headers: {
+					Authorization: `Bearer ${gitlabProvider.accessToken}`,
+				},
+			},
+		);
+
+		if (!branchesResponse.ok) {
+			throw new Error(`Failed to fetch branches: ${branchesResponse.statusText}`);
+		}
+
+		const branches = await branchesResponse.json();
+
+		if (branches.length === 0) {
+			break;
+		}
+
+		allBranches.push(...branches);
+		page++;
+
+		// Check if we've reached the total using headers (optional optimization)
+		const total = branchesResponse.headers.get("x-total");
+		if (total && allBranches.length >= Number.parseInt(total)) {
+			break;
+		}
 	}
 
-	const branches = await branchesResponse.json();
-
-	return branches as {
+	return allBranches as {
 		id: string;
 		name: string;
 		commit: {
