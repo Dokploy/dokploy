@@ -1,3 +1,15 @@
+import { loadStripe } from "@stripe/stripe-js";
+import clsx from "clsx";
+import {
+	AlertTriangle,
+	CheckIcon,
+	CreditCard,
+	Loader2,
+	MinusIcon,
+	PlusIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,18 +24,6 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { loadStripe } from "@stripe/stripe-js";
-import clsx from "clsx";
-import {
-	AlertTriangle,
-	CheckIcon,
-	CreditCard,
-	Loader2,
-	MinusIcon,
-	PlusIcon,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 import { ShowProviders } from "./show-providers";
 
 const stripePromise = loadStripe(
@@ -315,7 +315,7 @@ export const ShowBilling = () => {
 							)}
 						</div>
 					</CardContent>
-					<div className="flex flex-col gap-4 px-4">
+					<div className="flex flex-col gap-4 pb-10">
 						<ShowProviders />
 					</div>
 				</div>
