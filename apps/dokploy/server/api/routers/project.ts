@@ -361,6 +361,7 @@ export const projectRouter = createTRPCRouter({
 									previewDeployments,
 									mounts,
 									appName,
+									refreshToken,
 									...application
 								} = await findApplicationById(id);
 								const newAppName = appName.substring(
@@ -603,8 +604,14 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "compose": {
-								const { composeId, mounts, domains, appName, ...compose } =
-									await findComposeById(id);
+								const {
+									composeId,
+									mounts,
+									domains,
+									appName,
+									refreshToken,
+									...compose
+								} = await findComposeById(id);
 
 								const newAppName = appName.substring(
 									0,

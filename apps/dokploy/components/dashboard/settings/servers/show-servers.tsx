@@ -1,4 +1,10 @@
 import { BuildConcurrencyModal } from "@/components/dashboard/settings/servers/build-concurrency-modal";
+import { format } from "date-fns";
+import { KeyIcon, Loader2, MoreHorizontal, ServerIcon } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { useTranslation } from "next-i18next";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -28,12 +34,6 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
-import { format } from "date-fns";
-import { KeyIcon, Loader2, MoreHorizontal, ServerIcon } from "lucide-react";
-import { useTranslation } from "next-i18next";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { toast } from "sonner";
 import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
@@ -116,24 +116,6 @@ export const ShowServers = () => {
 											</div>
 										) : (
 											<div className="flex flex-col gap-4  min-h-[25vh]">
-												{!canCreateMoreServers && (
-													<AlertBlock type="warning">
-														<div className="flex flex-row items-center gap-3 justify-center">
-															<span>
-																<div>
-																	You cannot create more servers,{" "}
-																	<Link
-																		href="/dashboard/settings/billing"
-																		className="text-primary"
-																	>
-																		Please upgrade your plan
-																	</Link>
-																</div>
-															</span>
-														</div>
-													</AlertBlock>
-												)}
-
 												<Table>
 													<TableCaption>
 														<div className="flex flex-col  gap-4">

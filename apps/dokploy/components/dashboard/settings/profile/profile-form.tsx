@@ -36,6 +36,7 @@ const profileSchema = z.object({
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
+	name: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
 
@@ -84,6 +85,7 @@ export const ProfileForm = () => {
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
+			name: data?.user?.name || "",
 		},
 		resolver: zodResolver(profileSchema),
 	});
@@ -97,6 +99,7 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
+					name: data?.user?.name || "",
 				},
 				{
 					keepValues: true,
@@ -119,6 +122,7 @@ export const ProfileForm = () => {
 			image: values.image,
 			currentPassword: values.currentPassword || undefined,
 			allowImpersonation: values.allowImpersonation,
+			name: values.name || undefined,
 		})
 			.then(async () => {
 				await refetch();
@@ -128,6 +132,7 @@ export const ProfileForm = () => {
 					password: "",
 					image: values.image,
 					currentPassword: "",
+					name: values.name || "",
 				});
 			})
 			.catch(() => {
@@ -167,6 +172,19 @@ export const ProfileForm = () => {
 										className="grid gap-4"
 									>
 										<div className="space-y-4">
+											<FormField
+												control={form.control}
+												name="name"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Name</FormLabel>
+														<FormControl>
+															<Input placeholder="Name" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 											<FormField
 												control={form.control}
 												name="email"

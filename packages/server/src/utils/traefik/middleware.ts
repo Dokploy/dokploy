@@ -1,12 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
+import type { Domain } from "@dokploy/server/services/domain";
 import { dump, load } from "js-yaml";
 import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
 import { writeTraefikConfigRemote } from "./application";
 import type { FileConfig } from "./file-types";
-import type { Domain } from "@dokploy/server/services/domain";
 
 export const addMiddleware = (config: FileConfig, middlewareName: string) => {
 	if (config.http?.routers) {

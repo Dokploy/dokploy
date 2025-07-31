@@ -96,10 +96,7 @@ type SingleNavItem = {
 	title: string;
 	url: string;
 	icon?: LucideIcon;
-	isEnabled?: (opts: {
-		auth?: AuthQueryOutput;
-		isCloud: boolean;
-	}) => boolean;
+	isEnabled?: (opts: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean;
 };
 
 // NavItem type
@@ -125,10 +122,7 @@ type ExternalLink = {
 	name: string;
 	url: string;
 	icon: React.ComponentType<{ className?: string }>;
-	isEnabled?: (opts: {
-		auth?: AuthQueryOutput;
-		isCloud: boolean;
-	}) => boolean;
+	isEnabled?: (opts: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean;
 };
 
 // Menu type

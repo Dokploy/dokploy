@@ -1,6 +1,6 @@
 import fs, { writeFileSync } from "node:fs";
-import path from "node:path";
 import { createReadStream } from "node:fs";
+import path from "node:path";
 import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
@@ -237,7 +237,6 @@ export const writeTraefikConfigInPath = async (
 		} else {
 			fs.writeFileSync(configPath, traefikConfig, "utf8");
 		}
-		fs.writeFileSync(configPath, traefikConfig, "utf8");
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}

@@ -237,6 +237,7 @@ export const deployApplication = async ({
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
 		await sendBuildErrorNotifications({
 			projectName: application.project.name,
 			applicationName: application.name,
@@ -370,8 +371,9 @@ export const deployRemoteApplication = async ({
 			domains: application.domains,
 		});
 	} catch (error) {
-		// @ts-ignore
-		const encodedContent = encodeBase64(error?.message);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+
+		const encodedContent = encodeBase64(errorMessage);
 
 		await execAsyncRemote(
 			application.serverId,
@@ -383,12 +385,12 @@ export const deployRemoteApplication = async ({
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
 		await sendBuildErrorNotifications({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
+			errorMessage: `Please check the logs for details: ${errorMessage}`,
 			buildLink,
 			organizationId: application.project.organizationId,
 		});

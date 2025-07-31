@@ -298,11 +298,7 @@ export const validateRequest = async (request: IncomingMessage) => {
 
 			const mockSession = {
 				session: {
-					user: {
-						id: apiKeyRecord.user.id,
-						email: apiKeyRecord.user.email,
-						name: apiKeyRecord.user.name,
-					},
+					userId: apiKeyRecord.user.id,
 					activeOrganizationId: organizationId || "",
 				},
 				user: {

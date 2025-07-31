@@ -23,8 +23,8 @@ import {
 	Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { HandleVolumeBackups } from "./handle-volume-backups";
 import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
+import { HandleVolumeBackups } from "./handle-volume-backups";
 import { RestoreVolumeBackups } from "./restore-volume-backups";
 
 interface Props {

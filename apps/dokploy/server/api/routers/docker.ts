@@ -8,9 +8,9 @@ import {
 	getServiceContainersByAppName,
 	getStackContainersByAppName,
 } from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { TRPCError } from "@trpc/server";
 
 export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 

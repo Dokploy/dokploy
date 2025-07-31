@@ -151,7 +151,7 @@ export const HandleSecurity = ({
 									<FormItem>
 										<FormLabel>Password</FormLabel>
 										<FormControl>
-											<Input placeholder="test" {...field} />
+											<Input placeholder="test" type="password" {...field} />
 										</FormControl>
 
 										<FormMessage />

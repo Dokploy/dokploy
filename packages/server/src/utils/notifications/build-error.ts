@@ -65,6 +65,8 @@ export const sendBuildErrorNotifications = async ({
 			const decorate = (decoration: string, text: string) =>
 				`${discord.decoration ? decoration : ""} ${text}`.trim();
 
+			const limitCharacter = 800;
+			const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
 			await sendDiscordNotification(discord, {
 				title: decorate(">", "`⚠️` Build Failed"),
 				color: 0xed4245,
@@ -101,7 +103,7 @@ export const sendBuildErrorNotifications = async ({
 					},
 					{
 						name: decorate("`⚠️`", "Error Message"),
-						value: `\`\`\`${errorMessage}\`\`\``,
+						value: `\`\`\`${truncatedErrorMessage}\`\`\``,
 					},
 					{
 						name: decorate("`🧷`", "Build Link"),
