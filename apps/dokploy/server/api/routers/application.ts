@@ -17,6 +17,7 @@ import {
 	apiSaveGiteaProvider,
 	apiSaveGithubProvider,
 	apiSaveGitlabProvider,
+	apiSaveRegistryProvider,
 	apiUpdateApplication,
 	applications,
 } from "@/server/db/schema";
@@ -30,6 +31,9 @@ import {
 	checkServiceAccess,
 	createApplication,
 	deleteAllMiddlewares,
+	fetchImageTags,
+	fetchRegistryImages,
+	findAllRegistryByOrganizationId,
 	findApplicationById,
 	findGitProviderById,
 	findProjectById,
@@ -853,4 +857,79 @@ export const applicationRouter = createTRPCRouter({
 
 			return updatedApplication;
 		}),
+
+	// Registry provider procedures
+	saveRegistryProvider: protectedProcedure
+		.input(apiSaveRegistryProvider)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.project.organizationId !== ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to save this registry provider",
+				});
+			}
+
+			await updateApplication(input.applicationId, {
+				deployRegistryId: input.deployRegistryId,
+				deployImage: input.deployImage,
+				deployImageTag: input.deployImageTag,
+				sourceType: "registry",
+				applicationStatus: "idle",
+			});
+
+			return true;
+		}),
+
+	getRegistryImages: protectedProcedure
+		.input(z.object({ registryId: z.string() }))
+		.query(async ({ input, ctx }) => {
+			// Verify the registry belongs to the user's organization
+			const registries = await findAllRegistryByOrganizationId(
+				ctx.session.activeOrganizationId,
+			);
+
+			const registry = registries.find(
+				(r) => r.registryId === input.registryId,
+			);
+
+			if (!registry) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this registry",
+				});
+			}
+
+			return await fetchRegistryImages(input.registryId);
+		}),
+
+	getImageTags: protectedProcedure
+		.input(z.object({ registryId: z.string(), imageName: z.string() }))
+		.query(async ({ input, ctx }) => {
+			// Verify the registry belongs to the user's organization
+			const registries = await findAllRegistryByOrganizationId(
+				ctx.session.activeOrganizationId,
+			);
+
+			const registry = registries.find(
+				(r) => r.registryId === input.registryId,
+			);
+
+			if (!registry) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this registry",
+				});
+			}
+
+			return await fetchImageTags(input.registryId, input.imageName);
+		}),
+
+	getUserRegistries: protectedProcedure.query(async ({ ctx }) => {
+		return await findAllRegistryByOrganizationId(
+			ctx.session.activeOrganizationId,
+		);
+	}),
 });
