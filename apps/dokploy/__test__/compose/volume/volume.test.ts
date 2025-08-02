@@ -1,5 +1,5 @@
-import { addSuffixToAllVolumes } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
+import { addSuffixToAllVolumes } from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 

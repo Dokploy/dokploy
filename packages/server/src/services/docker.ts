@@ -441,13 +441,13 @@ export const getNodeApplications = async (serverId?: string) => {
 };
 
 export const getApplicationInfo = async (
-	appName: string,
+	appNames: string[],
 	serverId?: string,
 ) => {
 	try {
 		let stdout = "";
 		let stderr = "";
-		const command = `docker service ps ${appName} --format '{{json .}}' --no-trunc`;
+		const command = `docker service ps ${appNames.join(" ")} --format '{{json .}}' --no-trunc`;
 
 		if (serverId) {
 			const result = await execAsyncRemote(serverId, command);
