@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,14 +41,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
-import Link from "next/link";
-import z from "zod";
 
 export type CacheType = "fetch" | "cache";
 
@@ -61,6 +60,7 @@ export const domain = z
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		isWildcard: z.boolean().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -195,6 +195,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customCertResolver: undefined,
 			serviceName: undefined,
 			domainType: type,
+			isWildcard: false,
 		},
 		mode: "onChange",
 	});
@@ -216,6 +217,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				isWildcard: data?.isWildcard || false,
 			});
 		}
 
@@ -230,6 +232,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
+				isWildcard: false,
 			});
 		}
 	}, [form, data, isLoading, domainId]);
@@ -654,6 +657,28 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										)}
 									</>
 								)}
+
+								<FormField
+									control={form.control}
+									name="isWildcard"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Wildcard Domain</FormLabel>
+												<FormDescription>
+													Allow any subdomain to route to this application
+													(e.g., *-dev.dokploy.com)
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value || false}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
 							</div>
 						</div>
 					</form>
