@@ -1,10 +1,10 @@
 import {
+	findServerById,
 	getApplicationInfo,
 	getNodeApplications,
 	getNodeInfo,
 	getSwarmNodes,
 } from "@dokploy/server";
-import { findServerById } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -55,7 +55,12 @@ export const swarmRouter = createTRPCRouter({
 	getAppInfos: protectedProcedure
 		.input(
 			z.object({
-				appName: z.string().min(1).regex(containerIdRegex, "Invalid app name."),
+				appName: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid app name.")
+					.array()
+					.min(1),
 				serverId: z.string().optional(),
 			}),
 		)
