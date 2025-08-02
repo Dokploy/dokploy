@@ -120,10 +120,11 @@ export const AddGithubProvider = () => {
 												: "https://github.com/settings/installations"
 										}
 										className={`text-muted-foreground text-sm hover:underline duration-300
-											 ${isOrganization && !organizationName
-												? "pointer-events-none opacity-50"
-												: ""
-											}`}
+											 ${
+													isOrganization && !organizationName
+														? "pointer-events-none opacity-50"
+														: ""
+												}`}
 										target="_blank"
 										rel="noopener noreferrer"
 									>
