@@ -5,6 +5,8 @@ import { applicationRouter } from "./routers/application";
 import { backupRouter } from "./routers/backup";
 import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
+import { cloudStorageBackupRouter } from "./routers/cloud-storage-backup";
+import { cloudStorageDestinationRouter } from "./routers/cloud-storage-destination";
 import { clusterRouter } from "./routers/cluster";
 import { composeRouter } from "./routers/compose";
 import { deploymentRouter } from "./routers/deployment";
@@ -59,6 +61,7 @@ export const appRouter = createTRPCRouter({
 	domain: domainRouter,
 	destination: destinationRouter,
 	backup: backupRouter,
+	cloudStorageBackup: cloudStorageBackupRouter,
 	deployment: deploymentRouter,
 	previewDeployment: previewDeploymentRouter,
 	mounts: mountRouter,
@@ -82,6 +85,7 @@ export const appRouter = createTRPCRouter({
 	ai: aiRouter,
 	organization: organizationRouter,
 	schedule: scheduleRouter,
+	cloudStorageDestination: cloudStorageDestinationRouter,
 	rollback: rollbackRouter,
 	volumeBackups: volumeBackupsRouter,
 });

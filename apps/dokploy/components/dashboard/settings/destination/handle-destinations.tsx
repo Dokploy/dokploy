@@ -27,6 +27,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +36,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { CloudStorageDestinations } from "./cloud-storage-destinations";
 import { S3_PROVIDERS } from "./constants";
 
 const addDestination = z.object({
@@ -52,13 +54,20 @@ type AddDestination = z.infer<typeof addDestination>;
 
 interface Props {
 	destinationId?: string;
+	cloudDestinationId?: string;
+	type?: "s3" | "cloud";
 }
 
-export const HandleDestinations = ({ destinationId }: Props) => {
+export const HandleDestinations = ({
+	destinationId,
+	cloudDestinationId,
+	type,
+}: Props) => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const [activeTab, setActiveTab] = useState<string>(type || "s3");
 
 	const { mutateAsync, isError, error, isLoading } = destinationId
 		? api.destination.update.useMutation()
@@ -120,13 +129,15 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			destinationId: destinationId || "",
 		})
 			.then(async () => {
-				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
+				toast.success(
+					`S3 Destination ${destinationId ? "Updated" : "Created"}`,
+				);
 				await utils.destination.all.invalidate();
 				setOpen(false);
 			})
 			.catch(() => {
 				toast.error(
-					`Error ${destinationId ? "Updating" : "Creating"} the Destination`,
+					`Error ${destinationId ? "Updating" : "Creating"} the S3 Destination`,
 				);
 			});
 	};
@@ -190,7 +201,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
-				{destinationId ? (
+				{destinationId || cloudDestinationId ? (
 					<Button
 						variant="ghost"
 						size="icon"
@@ -208,12 +219,11 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>
-						{destinationId ? "Update" : "Add"} Destination
+						{destinationId || cloudDestinationId ? "Update" : "Add"} Destination
 					</DialogTitle>
 					<DialogDescription>
-						In this section, you can configure and add new destinations for your
-						backups. Please ensure that you provide the correct information to
-						guarantee secure and efficient storage.
+						Configure storage providers for your backups including S3-compatible
+						services, Google Drive, Dropbox, Box, and more.
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || isErrorConnection) && (
@@ -222,221 +232,251 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					</AlertBlock>
 				)}
 
-				<Form {...form}>
-					<form
-						id="hook-form-destination-add"
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4 "
-					>
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Name</FormLabel>
-										<FormControl>
-											<Input placeholder={"S3 Bucket"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="provider"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Provider</FormLabel>
-										<FormControl>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value}
-												value={field.value}
-											>
-												<FormControl>
-													<SelectTrigger>
-														<SelectValue placeholder="Select a S3 Provider" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													{S3_PROVIDERS.map((s3Provider) => (
-														<SelectItem
-															key={s3Provider.key}
-															value={s3Provider.key}
-														>
-															{s3Provider.name}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
+				<Tabs
+					defaultValue={activeTab}
+					value={activeTab}
+					onValueChange={setActiveTab}
+					className="w-full"
+				>
+					{/* Common Name Field */}
+					<Form {...form}>
+						<form
+							id="hook-form-destination-add"
+							onSubmit={form.handleSubmit(onSubmit)}
+							className="grid w-full gap-4 "
+						>
+							<FormField
+								control={form.control}
+								name="name"
+								render={({ field }) => {
+									return (
+										<FormItem>
+											<FormLabel>Name</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"Backup Destination Name"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
 
-						<FormField
-							control={form.control}
-							name="accessKeyId"
-							render={({ field }) => {
-								return (
-									<FormItem>
-										<FormLabel>Access Key Id</FormLabel>
-										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								);
-							}}
-						/>
-						<FormField
-							control={form.control}
-							name="secretAccessKey"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Secret Access Key</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="bucket"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Bucket</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"dokploy-bucket"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="region"
-							render={({ field }) => (
-								<FormItem>
-									<div className="space-y-0.5">
-										<FormLabel>Region</FormLabel>
-									</div>
-									<FormControl>
-										<Input placeholder={"us-east-1"} {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpoint"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Endpoint</FormLabel>
-									<FormControl>
-										<Input
-											placeholder={"https://us.bucket.aws/s3"}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</form>
+							<TabsList className="grid w-full grid-cols-2">
+								<TabsTrigger value="s3">S3 Storage</TabsTrigger>
+								<TabsTrigger value="cloud">Cloud Storage</TabsTrigger>
+							</TabsList>
 
-					<DialogFooter
-						className={cn(
-							isCloud ? "!flex-col" : "flex-row",
-							"flex w-full  !justify-between gap-4",
-						)}
-					>
-						{isCloud ? (
-							<div className="flex flex-col gap-4 border p-2 rounded-lg">
-								<span className="text-sm text-muted-foreground">
-									Select a server to test the destination. If you don't have a
-									server choose the default one.
-								</span>
+							<TabsContent value="s3" className="space-y-4 pt-2">
 								<FormField
 									control={form.control}
-									name="serverId"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Server (Optional)</FormLabel>
-											<FormControl>
-												<Select
-													onValueChange={field.onChange}
-													defaultValue={field.value}
-												>
-													<SelectTrigger className="w-full">
-														<SelectValue placeholder="Select a server" />
-													</SelectTrigger>
-													<SelectContent>
-														<SelectGroup>
-															<SelectLabel>Servers</SelectLabel>
-															{servers?.map((server) => (
+									name="provider"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Provider</FormLabel>
+												<FormControl>
+													<Select
+														onValueChange={field.onChange}
+														defaultValue={field.value}
+														value={field.value}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue placeholder="Select a S3 Provider" />
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															{S3_PROVIDERS.map((s3Provider) => (
 																<SelectItem
-																	key={server.serverId}
-																	value={server.serverId}
+																	key={s3Provider.key}
+																	value={s3Provider.key}
 																>
-																	{server.name}
+																	{s3Provider.name}
 																</SelectItem>
 															))}
-															<SelectItem value={"none"}>None</SelectItem>
-														</SelectGroup>
-													</SelectContent>
-												</Select>
-											</FormControl>
+														</SelectContent>
+													</Select>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
 
+								<FormField
+									control={form.control}
+									name="accessKeyId"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Access Key Id</FormLabel>
+												<FormControl>
+													<Input placeholder={"xcas41dasde"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+								<FormField
+									control={form.control}
+									name="secretAccessKey"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Secret Access Key</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"asd123asdasw"} {...field} />
+											</FormControl>
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
-								<Button
-									type="button"
-									variant={"secondary"}
-									isLoading={isLoadingConnection}
-									onClick={async () => {
-										await handleTestConnection(form.getValues("serverId"));
-									}}
-								>
-									Test Connection
-								</Button>
-							</div>
-						) : (
-							<Button
-								isLoading={isLoadingConnection}
-								type="button"
-								variant="secondary"
-								onClick={async () => {
-									await handleTestConnection();
-								}}
-							>
-								Test connection
-							</Button>
-						)}
+								<FormField
+									control={form.control}
+									name="bucket"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Bucket</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"dokploy-bucket"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="region"
+									render={({ field }) => (
+										<FormItem>
+											<div className="space-y-0.5">
+												<FormLabel>Region</FormLabel>
+											</div>
+											<FormControl>
+												<Input placeholder={"us-east-1"} {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpoint"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Endpoint</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={"https://us.bucket.aws/s3"}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 
-						<Button
-							isLoading={isLoading}
-							form="hook-form-destination-add"
-							type="submit"
-						>
-							{destinationId ? "Update" : "Create"}
-						</Button>
-					</DialogFooter>
-				</Form>
+								<DialogFooter
+									className={cn(
+										isCloud ? "!flex-col" : "flex-row",
+										"flex w-full  !justify-between pt-3 gap-4",
+									)}
+								>
+									{isCloud ? (
+										<div className="flex flex-col gap-4 border p-2 rounded-lg">
+											<span className="text-sm text-muted-foreground">
+												Select a server to test the destination. If you don't
+												have a server choose the default one.
+											</span>
+											<FormField
+												control={form.control}
+												name="serverId"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Server (Optional)</FormLabel>
+														<FormControl>
+															<Select
+																onValueChange={field.onChange}
+																defaultValue={field.value}
+															>
+																<SelectTrigger className="w-full">
+																	<SelectValue placeholder="Select a server" />
+																</SelectTrigger>
+																<SelectContent>
+																	<SelectGroup>
+																		<SelectLabel>Servers</SelectLabel>
+																		{servers?.map((server) => (
+																			<SelectItem
+																				key={server.serverId}
+																				value={server.serverId}
+																			>
+																				{server.name}
+																			</SelectItem>
+																		))}
+																		<SelectItem value={"none"}>None</SelectItem>
+																	</SelectGroup>
+																</SelectContent>
+															</Select>
+														</FormControl>
+
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<Button
+												type="button"
+												variant={"secondary"}
+												isLoading={isLoadingConnection}
+												onClick={async () => {
+													await handleTestConnection(
+														form.getValues("serverId"),
+													);
+												}}
+											>
+												Test Connection
+											</Button>
+										</div>
+									) : (
+										<Button
+											isLoading={isLoadingConnection}
+											type="button"
+											variant="secondary"
+											onClick={async () => {
+												await handleTestConnection();
+											}}
+										>
+											Test connection
+										</Button>
+									)}
+
+									<Button
+										isLoading={isLoading}
+										form="hook-form-destination-add"
+										type="submit"
+									>
+										{destinationId ? "Update" : "Create"}
+									</Button>
+								</DialogFooter>
+							</TabsContent>
+						</form>
+					</Form>
+
+					{/* Cloud Storage Tab Content */}
+					<TabsContent value="cloud">
+						<CloudStorageDestinations
+							destinationId={cloudDestinationId}
+							inTabContent={true}
+							commonName={form.watch("name")}
+						/>
+					</TabsContent>
+				</Tabs>
 			</DialogContent>
 		</Dialog>
 	);

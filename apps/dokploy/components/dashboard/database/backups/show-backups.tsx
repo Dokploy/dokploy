@@ -6,6 +6,7 @@ import {
 } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -27,6 +28,7 @@ import {
 	Database,
 	DatabaseBackup,
 	Play,
+	RefreshCw,
 	Trash2,
 } from "lucide-react";
 import Link from "next/link";
@@ -50,23 +52,32 @@ export const ShowBackups = ({
 	const [activeManualBackup, setActiveManualBackup] = useState<
 		string | undefined
 	>();
+	const [activeCloudManualBackup, setActiveCloudManualBackup] = useState<
+		string | undefined
+	>();
+	const [reconnectingBackupId, setReconnectingBackupId] = useState<
+		string | undefined
+	>();
+
+	// S3 Backup queries
 	const queryMap =
 		backupType === "database"
 			? {
-					postgres: () =>
-						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
-					mysql: () =>
-						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-					mariadb: () =>
-						api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-					mongo: () =>
-						api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
-					"web-server": () => api.user.getBackups.useQuery(),
-				}
+				postgres: () =>
+					api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+				mysql: () =>
+					api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+				mariadb: () =>
+					api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+				mongo: () =>
+					api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+				"web-server": () => api.user.getBackups.useQuery(),
+			}
 			: {
-					compose: () =>
-						api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
-				};
+				compose: () =>
+					api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+			};
+
 	const { data } = api.destination.all.useQuery();
 	const key = backupType === "database" ? databaseType : "compose";
 	const query = queryMap[key as keyof typeof queryMap];
@@ -74,21 +85,47 @@ export const ShowBackups = ({
 		? query()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
+	// Cloud Storage Backup queries
+	const {
+		data: cloudBackups,
+		refetch: refetchCloudBackups,
+	} = api.cloudStorageBackup.list.useQuery();
+
+	// Cloud Storage Destinations query
+	const { data: cloudDestinations } = api.cloudStorageDestination.all.useQuery();
+
+	const filteredCloudBackups = cloudBackups?.filter((backup: any) => {
+		switch (databaseType) {
+			case "postgres":
+				return backup.postgresId === id;
+			case "mysql":
+				return backup.mysqlId === id;
+			case "mariadb":
+				return backup.mariadbId === id;
+			case "mongo":
+				return backup.mongoId === id;
+			case "web-server":
+				return backup.databaseType === "web-server";
+			default:
+				return false;
+		}
+	});
+
+	// S3 Backup mutations
 	const mutationMap =
 		backupType === "database"
 			? {
-					postgres: api.backup.manualBackupPostgres.useMutation(),
-					mysql: api.backup.manualBackupMySql.useMutation(),
-					mariadb: api.backup.manualBackupMariadb.useMutation(),
-					mongo: api.backup.manualBackupMongo.useMutation(),
-					"web-server": api.backup.manualBackupWebServer.useMutation(),
-				}
+				postgres: api.backup.manualBackupPostgres.useMutation(),
+				mysql: api.backup.manualBackupMySql.useMutation(),
+				mariadb: api.backup.manualBackupMariadb.useMutation(),
+				mongo: api.backup.manualBackupMongo.useMutation(),
+				"web-server": api.backup.manualBackupWebServer.useMutation(),
+			}
 			: {
-					compose: api.backup.manualBackupCompose.useMutation(),
-				};
+				compose: api.backup.manualBackupCompose.useMutation(),
+			};
 
 	const mutation = mutationMap[key as keyof typeof mutationMap];
-
 	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutation
 		? mutation
 		: api.backup.manualBackupMongo.useMutation();
@@ -96,41 +133,91 @@ export const ShowBackups = ({
 	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
 		api.backup.remove.useMutation();
 
+	// Cloud Storage Backup mutations
+	const { mutateAsync: manualCloudBackup, isLoading: isManualCloudBackup } =
+		api.cloudStorageBackup.manualBackup.useMutation();
+
+	const { mutateAsync: deleteCloudBackup, isLoading: isRemovingCloud } =
+		api.cloudStorageBackup.remove.useMutation();
+
+	const { mutateAsync: reconnectMutation } =
+		api.cloudStorageDestination.reconnect.useMutation();
+
+	const handleReconnect = async (destinationId: string, backupId: string) => {
+		try {
+			setReconnectingBackupId(backupId);
+			const result = await reconnectMutation({ destinationId });
+			if (result.silent === false) {
+				toast.info(
+					"Please complete the authentication in the opened browser window.",
+				);
+			}
+			toast.success("Reconnected successfully! Please try your backup again.");
+			await refetchCloudBackups();
+		} catch (_err) {
+			toast.error("Reconnect failed or was cancelled. Please try again.");
+		} finally {
+			setReconnectingBackupId(undefined);
+		}
+	};
+
+	// Combine all backups into one unified list
+	const allBackups = [
+		...(postgres?.backups || []).map((backup: any) => ({
+			...backup,
+			isCloudBackup: false,
+			uniqueId: backup.backupId,
+		})),
+		...(filteredCloudBackups || []).map((backup: any) => ({
+			...backup,
+			isCloudBackup: true,
+			uniqueId: backup.id,
+			backupType: backupType,
+		})),
+	];
+
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between gap-4  flex-wrap">
 				<div className="flex flex-col gap-0.5">
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<Database className="size-6 text-muted-foreground" />
-						Backups
+						Database Backups
 					</CardTitle>
 					<CardDescription>
-						Add backups to your database to save the data to a different
-						provider.
+						Manage your database backups across S3 and cloud storage providers.
 					</CardDescription>
 				</div>
 
-				{postgres && postgres?.backups?.length > 0 && (
+				{/* Always show buttons when destinations are available */}
+				{((data?.length ?? 0) > 0 || (cloudDestinations?.length ?? 0) > 0) && (
 					<div className="flex flex-col lg:flex-row gap-4 w-full lg:w-auto">
+						{/* Create Backup - Always available when destinations exist (except for web-server) */}
 						{databaseType !== "web-server" && (
 							<HandleBackup
 								id={id}
 								databaseType={databaseType}
 								backupType={backupType}
-								refetch={refetch}
+								refetch={() => {
+									refetch();
+									refetchCloudBackups();
+								}}
 							/>
 						)}
-						<RestoreBackup
-							id={id}
-							databaseType={databaseType}
-							backupType={backupType}
-							serverId={"serverId" in postgres ? postgres.serverId : undefined}
-						/>
+						{/* Restore Backup - Only show when backups exist */}
+						{allBackups.length > 0 && (
+							<RestoreBackup
+								id={id}
+								databaseType={databaseType}
+								backupType={backupType}
+								serverId={postgres && "serverId" in postgres ? postgres.serverId : undefined}
+							/>
+						)}
 					</div>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				{data?.length === 0 ? (
+				{(data?.length === 0 && cloudDestinations?.length === 0) ? (
 					<div className="flex flex-col items-center gap-3 min-h-[35vh] justify-center">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground text-center">
@@ -142,12 +229,12 @@ export const ShowBackups = ({
 							>
 								S3 Destinations
 							</Link>{" "}
-							to do so.
+							or configure cloud storage destinations to do so.
 						</span>
 					</div>
 				) : (
 					<div className="flex flex-col gap-4 w-full">
-						{postgres?.backups.length === 0 ? (
+						{allBackups.length === 0 ? (
 							<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 								<DatabaseBackup className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
@@ -158,14 +245,17 @@ export const ShowBackups = ({
 										id={id}
 										databaseType={databaseType}
 										backupType={backupType}
-										refetch={refetch}
+										refetch={() => {
+											refetch();
+											refetchCloudBackups();
+										}}
 									/>
 									<RestoreBackup
 										id={id}
 										databaseType={databaseType}
 										backupType={backupType}
 										serverId={
-											"serverId" in postgres ? postgres.serverId : undefined
+											postgres && "serverId" in postgres ? postgres.serverId : undefined
 										}
 									/>
 								</div>
@@ -178,12 +268,13 @@ export const ShowBackups = ({
 									</AlertBlock>
 								)}
 								<div className="flex flex-col gap-6">
-									{postgres?.backups.map((backup) => {
-										const serverId =
-											"serverId" in postgres ? postgres.serverId : undefined;
+									{allBackups.map((backup) => {
+										const serverId = postgres && "serverId" in postgres ? postgres.serverId : undefined;
+										const backupId = backup.uniqueId;
+										const isCloudBackup = backup.isCloudBackup;
 
 										return (
-											<div key={backup.backupId}>
+											<div key={backupId}>
 												<div className="flex w-full flex-col md:flex-row md:items-start justify-between gap-4 border rounded-lg p-4 hover:bg-muted/50 transition-colors">
 													<div className="flex flex-col w-full gap-4">
 														<div className="flex items-center gap-3">
@@ -226,6 +317,16 @@ export const ShowBackups = ({
 																	<span className="text-xs text-muted-foreground">
 																		{backup.enabled ? "Active" : "Inactive"}
 																	</span>
+																	{isCloudBackup && (
+																		<Badge variant="blue">
+																			Cloud
+																		</Badge>
+																	)}
+																	{!isCloudBackup && (
+																		<Badge variant="yellow">
+																			S3
+																		</Badge>
+																	)}
 																</div>
 															</div>
 														</div>
@@ -236,7 +337,10 @@ export const ShowBackups = ({
 																	Destination
 																</span>
 																<p className="font-medium text-sm mt-0.5">
-																	{backup.destination.name}
+																	{isCloudBackup
+																		? (backup as any).cloudStorageDestination?.name || "Unknown"
+																		: (backup as any).destination?.name
+																	}
 																</p>
 															</div>
 
@@ -279,19 +383,22 @@ export const ShowBackups = ({
 													</div>
 
 													<div className="flex flex-row md:flex-col gap-1.5">
-														<ShowDeploymentsModal
-															id={backup.backupId}
-															type="backup"
-															serverId={serverId || undefined}
-														>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="size-8"
+														{!isCloudBackup && (
+															<ShowDeploymentsModal
+																id={backupId}
+																type="backup"
+																serverId={serverId || undefined}
 															>
-																<ClipboardList className="size-4  transition-colors " />
-															</Button>
-														</ShowDeploymentsModal>
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	className="size-8"
+																>
+																	<ClipboardList className="size-4 transition-colors" />
+																</Button>
+															</ShowDeploymentsModal>
+														)}
+
 														<TooltipProvider delayDuration={0}>
 															<Tooltip>
 																<TooltipTrigger asChild>
@@ -301,28 +408,58 @@ export const ShowBackups = ({
 																		size="icon"
 																		className="size-8"
 																		isLoading={
-																			isManualBackup &&
-																			activeManualBackup === backup.backupId
+																			isCloudBackup
+																				? isManualCloudBackup && activeCloudManualBackup === backupId
+																				: isManualBackup && activeManualBackup === backupId
 																		}
 																		onClick={async () => {
-																			setActiveManualBackup(backup.backupId);
-																			await manualBackup({
-																				backupId: backup.backupId as string,
-																			})
-																				.then(async () => {
-																					toast.success(
-																						"Manual Backup Successful",
-																					);
+																			if (isCloudBackup) {
+																				setActiveCloudManualBackup(backupId);
+																				await manualCloudBackup({
+																					backupId: backupId,
 																				})
-																				.catch(() => {
-																					toast.error(
+																					.then(() => {
+																						toast.success("Manual Backup Successful");
+																					})
+																					.catch((err) => {
+																						if (
+																							err?.message
+																								?.toLowerCase()
+																								.includes("token expired") ||
+																							err?.message
+																								?.toLowerCase()
+																								.includes("invalid_grant")
+																						) {
+																							toast.error(
+																								"Error creating the manual backup: token expired, please refresh the token.",
+																							);
+																						} else {
+																							toast.error(
+																								"Error creating the cloud backup. Please check your cloud provider configuration.",
+																							);
+																						}
+																					});
+																				setActiveCloudManualBackup(undefined);
+																			} else {
+																				setActiveManualBackup(backupId);
+																				await manualBackup({
+																					backupId: backupId as string,
+																				})
+																					.then(async () => {
+																						toast.success(
+																							"Manual Backup Successful",
+																						);
+																					})
+																					.catch(() => {
+																						toast.error(
 																						"Error creating the manual backup",
-																					);
-																				});
-																			setActiveManualBackup(undefined);
+																						);
+																					});
+																				setActiveManualBackup(undefined);
+																			}
 																		}}
 																	>
-																		<Play className="size-4 " />
+																		<Play className="size-4" />
 																	</Button>
 																</TooltipTrigger>
 																<TooltipContent>
@@ -331,36 +468,78 @@ export const ShowBackups = ({
 															</Tooltip>
 														</TooltipProvider>
 
+														{/* Refresh Token for OAuth providers (Cloud backups only) */}
+														{isCloudBackup && (backup as any).cloudStorageDestination?.provider &&
+															["drive", "dropbox", "box"].includes(
+																(backup as any).cloudStorageDestination.provider,
+															) && (
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<Button
+																			size="icon"
+																			variant="ghost"
+																			className="size-8"
+																			onClick={() =>
+																				handleReconnect(
+																					(backup as any).cloudStorageDestination.id,
+																					backupId,
+																				)
+																			}
+																		>
+																			<RefreshCw
+																				className={`size-4 text-primary group-hover:text-lime-500 ${reconnectingBackupId === backupId ? "animate-spin" : ""}`}
+																			/>
+																		</Button>
+																	</TooltipTrigger>
+																	<TooltipContent>Refresh Token</TooltipContent>
+																</Tooltip>
+															)}
+
 														<HandleBackup
 															backupType={backup.backupType}
-															backupId={backup.backupId}
-															databaseType={backup.databaseType}
-															refetch={refetch}
+															backupId={backupId}
+															databaseType={backup.databaseType as any}
+															refetch={() => {
+																refetch();
+																refetchCloudBackups();
+															}}
 														/>
+
 														<DialogAction
 															title="Delete Backup"
 															description="Are you sure you want to delete this backup?"
 															type="destructive"
 															onClick={async () => {
-																await deleteBackup({
-																	backupId: backup.backupId,
-																})
-																	.then(() => {
-																		refetch();
-																		toast.success(
-																			"Backup deleted successfully",
-																		);
+																if (isCloudBackup) {
+																	await deleteCloudBackup({
+																		backupId: backupId,
 																	})
-																	.catch(() => {
-																		toast.error("Error deleting backup");
-																	});
+																		.then(() => {
+																			refetchCloudBackups();
+																			toast.success("Backup deleted successfully");
+																		})
+																		.catch(() => {
+																			toast.error("Error deleting backup");
+																		});
+																} else {
+																	await deleteBackup({
+																		backupId: backupId,
+																	})
+																		.then(() => {
+																			refetch();
+																			toast.success("Backup deleted successfully");
+																		})
+																		.catch(() => {
+																			toast.error("Error deleting backup");
+																		});
+																}
 															}}
 														>
 															<Button
 																variant="ghost"
 																size="icon"
 																className="group hover:bg-red-500/10 size-8"
-																isLoading={isRemoving}
+																isLoading={isCloudBackup ? isRemovingCloud : isRemoving}
 															>
 																<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 															</Button>
