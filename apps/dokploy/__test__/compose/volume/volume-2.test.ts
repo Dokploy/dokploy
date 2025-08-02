@@ -1,6 +1,9 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToAllVolumes, addSuffixToVolumesRoot } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
+import {
+	addSuffixToAllVolumes,
+	addSuffixToVolumesRoot,
+	generateRandomHash,
+} from "@dokploy/server";
 import { load } from "js-yaml";
 import { expect, test } from "vitest";
 
