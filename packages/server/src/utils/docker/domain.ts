@@ -304,10 +304,22 @@ export const createDomainLabels = (
 		customCertResolver,
 		stripPath,
 		internalPath,
+		isWildcard,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
+	
+	let rule: string;
+	if (isWildcard) {
+		// Convert wildcard domain to regex pattern
+		// e.g., "*-dev.swalha.com" becomes "HostRegexp(`^[^.]+-dev\\.swalha\\.com$`)"
+		const wildcardPattern = host.replace(/\*/g, '[^.]+');
+		rule = `HostRegexp(\`^${wildcardPattern.replace(/\./g, '\\.')}$\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`;
+	} else {
+		rule = `Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`;
+	}
+	
 	const labels = [
-		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		`traefik.http.routers.${routerName}.rule=${rule}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
