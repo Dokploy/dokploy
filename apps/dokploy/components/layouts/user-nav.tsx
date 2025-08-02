@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 import { Languages } from "@/lib/languages";
+import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
 import { ModeToggle } from "../ui/modeToggle";
@@ -46,7 +47,9 @@ export const UserNav = () => {
 							src={data?.user?.image || ""}
 							alt={data?.user?.image || ""}
 						/>
-						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+						<AvatarFallback className="rounded-lg">
+							{getFallbackAvatarInitials(data?.user?.name)}
+						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
 						<span className="truncate font-semibold">Account</span>
