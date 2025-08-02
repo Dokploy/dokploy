@@ -10,7 +10,7 @@ interface ChatwootWidgetProps {
 		launcherTitle?: string;
 		darkMode?: boolean;
 		hideMessageBubble?: boolean;
-		placement?: "right" | "left";
+		placement?: "left" | "right";
 		showPopoutButton?: boolean;
 		widgetStyle?: "standard" | "bubble";
 	};
@@ -41,7 +41,7 @@ export const ChatwootWidget = ({
 			position: "right",
 		};
 
-		(window as any).chatwootSDKReady = () => {
+		window.chatwootSDKReady = () => {
 			window.chatwootSDK?.run({ websiteToken, baseUrl });
 
 			const trySetUser = () => {
@@ -63,7 +63,7 @@ export const ChatwootWidget = ({
 		<Script
 			src={`${baseUrl}/packs/js/sdk.js`}
 			strategy="lazyOnload"
-			onLoad={() => (window as any).chatwootSDKReady?.()}
+			onLoad={() => window.chatwootSDKReady?.()}
 		/>
 	);
 };
