@@ -259,20 +259,302 @@ export const removeService = async (
 export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
+	serviceId?: string,
+	serviceType?: string,
 ) => {
 	const projectVars = parse(projectEnv ?? "");
 	const serviceVars = parse(serviceEnv ?? "");
 
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
+		
+		// Resolve project variables
 		if (projectVars) {
-			resolvedValue = value.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
+			resolvedValue = resolvedValue.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
 				if (projectVars[ref] !== undefined) {
 					return projectVars[ref];
 				}
 				throw new Error(`Invalid project environment variable: project.${ref}`);
 			});
 		}
+
+		// Resolve service link variables
+		if (serviceId && serviceType) {
+			resolvedValue = resolvedValue.replace(/\$\{\{service\.(.*?)\.(.*?)\}\}/g, (match, targetService, attribute) => {
+				// For now, return the original template - this will be resolved at deployment time
+				// In a future implementation, we could resolve this synchronously if needed
+				return match;
+			});
+		}
+
+		return `${key}=${resolvedValue}`;
+	});
+
+	return resolvedVars;
+};
+
+// Enhanced version that resolves service links during deployment
+export const prepareEnvironmentVariablesWithServiceLinks = async (
+	serviceEnv: string | null,
+	projectEnv: string | null,
+	serviceId: string,
+	serviceType: string,
+	previewDeploymentId?: string,
+): Promise<string[]> => {
+	const projectVars = parse(projectEnv ?? "");
+	const serviceVars = parse(serviceEnv ?? "");
+
+	// Import here to avoid circular dependencies
+	const { db } = await import("@dokploy/server/db");
+	const { serviceLinks, serviceLinkAttributes, previewDeployments, domains } = await import("@dokploy/server/db/schema");
+	const { resolveServiceAttribute, getLinkedServices } = await import("../service-links");
+	const { eq, and, or } = await import("drizzle-orm");
+
+	let previewContext: { appName: string; domain?: string } | undefined;
+
+	// If this is a preview deployment, get the preview context
+	if (previewDeploymentId) {
+		const [previewDeployment] = await db
+			.select()
+			.from(previewDeployments)
+			.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
+			.limit(1);
+
+		if (previewDeployment) {
+			previewContext = { appName: previewDeployment.appName };
+			
+			// Get the preview domain
+			if (previewDeployment.domainId) {
+				const [domain] = await db
+					.select()
+					.from(domains)
+					.where(eq(domains.domainId, previewDeployment.domainId))
+					.limit(1);
+				if (domain) {
+					previewContext.domain = domain.host;
+				}
+			}
+		}
+	}
+
+	// Get all service links for this service and linked services (bi-directional)
+	const { allLinks } = await getLinkedServices(serviceId, serviceType);
+
+	// Get all attributes for the service links
+	const serviceLinkIds = allLinks.map(link => link.serviceLinkId);
+	let linkAttributes: any[] = [];
+	
+	if (serviceLinkIds.length > 0) {
+		// Build OR conditions for each service link ID
+		const conditions = serviceLinkIds.map(id => eq(serviceLinkAttributes.serviceLinkId, id));
+		const whereCondition = conditions.length === 1 ? conditions[0] : or(...conditions);
+		
+		linkAttributes = await db
+			.select()
+			.from(serviceLinkAttributes)
+			.where(whereCondition);
+	}
+
+	// Create a map of link attributes by service link ID
+	const attributesByLinkId = linkAttributes.reduce((acc, attr) => {
+		if (!acc[attr.serviceLinkId]) {
+			acc[attr.serviceLinkId] = [];
+		}
+		acc[attr.serviceLinkId]!.push(attr);
+		return acc;
+	}, {} as Record<string, typeof linkAttributes>);
+
+	// Create a map of service link environment variables
+	const serviceLinkVars: Record<string, string> = {};
+	
+	// Process outgoing links (this service depends on others)
+	for (const link of allLinks.filter(l => l.sourceServiceId === serviceId && l.sourceServiceType === serviceType)) {
+		const attributes = attributesByLinkId[link.serviceLinkId] || [];
+		
+		for (const attribute of attributes) {
+			let resolvedValue: string | null;
+			
+			// If in preview deployment, try to find preview deployment for target service
+			if (previewDeploymentId) {
+				// Look for preview deployment of the target service with same pull request ID
+				const [sourcePreview] = await db
+					.select()
+					.from(previewDeployments)
+					.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
+					.limit(1);
+
+				if (sourcePreview) {
+					const [targetPreview] = await db
+						.select()
+						.from(previewDeployments)
+						.where(
+							and(
+								eq(previewDeployments.pullRequestId, sourcePreview.pullRequestId),
+								serviceType === "application" 
+									? eq(previewDeployments.applicationId, link.targetServiceId)
+									: eq(previewDeployments.applicationId, link.targetServiceId) // TODO: Support other service types
+							)
+						)
+						.limit(1);
+
+					if (targetPreview) {
+						// Use target preview context for resolution
+						const targetPreviewContext: { appName: string; domain?: string } = { appName: targetPreview.appName };
+						if (targetPreview.domainId) {
+							const [targetDomain] = await db
+								.select()
+								.from(domains)
+								.where(eq(domains.domainId, targetPreview.domainId))
+								.limit(1);
+							if (targetDomain) {
+								targetPreviewContext.domain = targetDomain.host;
+							}
+						}
+						resolvedValue = await resolveServiceAttribute(
+							link.targetServiceId,
+							link.targetServiceType,
+							attribute.attribute,
+							targetPreviewContext
+						);
+					} else {
+						// Fallback to regular resolution
+						resolvedValue = await resolveServiceAttribute(
+							link.targetServiceId,
+							link.targetServiceType,
+							attribute.attribute
+						);
+					}
+				} else {
+					resolvedValue = await resolveServiceAttribute(
+						link.targetServiceId,
+						link.targetServiceType,
+						attribute.attribute
+					);
+				}
+			} else {
+				resolvedValue = await resolveServiceAttribute(
+					link.targetServiceId,
+					link.targetServiceType,
+					attribute.attribute
+				);
+			}
+			
+			if (resolvedValue) {
+				serviceLinkVars[attribute.envVariableName] = resolvedValue;
+			}
+		}
+	}
+
+	// Process incoming links (other services depend on this service - for bi-directional injection)
+	for (const link of allLinks.filter(l => l.targetServiceId === serviceId && l.targetServiceType === serviceType)) {
+		const attributes = attributesByLinkId[link.serviceLinkId] || [];
+		
+		for (const attribute of attributes) {
+			// Generate reverse environment variable name (e.g., if link is BACKEND_URL, create FRONTEND_URL)
+			const reverseEnvName = `${attribute.envVariableName.replace(/_URL$|_HOST$|_PORT$/, '')}_REVERSE_${attribute.attribute.toUpperCase()}`;
+			
+			let resolvedValue: string | null;
+			
+			// Resolve the source service (the one that links to us) 
+			if (previewDeploymentId) {
+				const [sourcePreview] = await db
+					.select()
+					.from(previewDeployments)
+					.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
+					.limit(1);
+
+				if (sourcePreview) {
+					const [linkedSourcePreview] = await db
+						.select()
+						.from(previewDeployments)
+						.where(
+							and(
+								eq(previewDeployments.pullRequestId, sourcePreview.pullRequestId),
+								serviceType === "application" 
+									? eq(previewDeployments.applicationId, link.sourceServiceId)
+									: eq(previewDeployments.applicationId, link.sourceServiceId) // TODO: Support other service types
+							)
+						)
+						.limit(1);
+
+					if (linkedSourcePreview) {
+						const sourcePreviewContext: { appName: string; domain?: string } = { appName: linkedSourcePreview.appName };
+						if (linkedSourcePreview.domainId) {
+							const [sourceDomain] = await db
+								.select()
+								.from(domains)
+								.where(eq(domains.domainId, linkedSourcePreview.domainId))
+								.limit(1);
+							if (sourceDomain) {
+								sourcePreviewContext.domain = sourceDomain.host;
+							}
+						}
+						resolvedValue = await resolveServiceAttribute(
+							link.sourceServiceId,
+							link.sourceServiceType,
+							attribute.attribute,
+							sourcePreviewContext
+						);
+					} else {
+						resolvedValue = await resolveServiceAttribute(
+							link.sourceServiceId,
+							link.sourceServiceType,
+							attribute.attribute
+						);
+					}
+				} else {
+					resolvedValue = await resolveServiceAttribute(
+						link.sourceServiceId,
+						link.sourceServiceType,
+						attribute.attribute
+					);
+				}
+			} else {
+				resolvedValue = await resolveServiceAttribute(
+					link.sourceServiceId,
+					link.sourceServiceType,
+					attribute.attribute
+				);
+			}
+			
+			if (resolvedValue) {
+				serviceLinkVars[reverseEnvName] = resolvedValue;
+			}
+		}
+	}
+
+	// Merge all environment variables
+	const allVars = { ...projectVars, ...serviceLinkVars, ...serviceVars };
+
+	const resolvedVars = Object.entries(allVars).map(([key, value]) => {
+		let resolvedValue = value;
+		
+		// Resolve project variables
+		resolvedValue = resolvedValue.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
+			if (allVars[ref] !== undefined) {
+				return allVars[ref];
+			}
+			throw new Error(`Invalid project environment variable: project.${ref}`);
+		});
+
+		// Resolve service link variables - these should already be resolved above, 
+		// but we handle the template syntax just in case
+		resolvedValue = resolvedValue.replace(/\$\{\{service\.(.*?)\.(.*?)\}\}/g, (match, targetService, attribute): string => {
+			// Look for a matching service link
+			const matchingLink = allLinks.find(link => {
+				// Match by appName or service name - we'll need to get the service details
+				// For now, just match by targetServiceId since we don't have the service details
+				return link.attribute === attribute;
+			});
+			
+			if (matchingLink && serviceLinkVars[matchingLink.envVariableName]) {
+				return serviceLinkVars[matchingLink.envVariableName] || match;
+			}
+			
+			// If no match found, throw an error
+			throw new Error(`Invalid service link: service.${targetService}.${attribute}`);
+		});
+
 		return `${key}=${resolvedValue}`;
 	});
 

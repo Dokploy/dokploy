@@ -228,6 +228,86 @@ export const createPreviewDeployment = async (
 	return previewDeployment;
 };
 
+// Enhanced function to create preview deployments for linked services
+export const createPreviewDeploymentWithLinks = async (
+	schema: typeof apiCreatePreviewDeployment._type,
+) => {
+	// Import service link utilities
+	const { getServiceCluster } = await import("../utils/service-links");
+	
+	// First check if a preview deployment already exists for this pull request and application
+	const existingPreview = await findPreviewDeploymentByApplicationId(
+		schema.applicationId,
+		schema.pullRequestId
+	);
+	
+	if (existingPreview) {
+		return existingPreview;
+	}
+
+	// Get all services that should be deployed together (including linked services)
+	const serviceCluster = await getServiceCluster(schema.applicationId, "application");
+	
+	const createdPreviewDeployments: PreviewDeployment[] = [];
+	
+	// Check if any other services in the cluster already have preview deployments for this PR
+	const existingClusterPreviews: PreviewDeployment[] = [];
+	for (const service of serviceCluster) {
+		if (service.serviceType === "application") {
+			const existing = await findPreviewDeploymentByApplicationId(
+				service.serviceId,
+				schema.pullRequestId
+			);
+			if (existing) {
+				existingClusterPreviews.push(existing);
+			}
+		}
+	}
+
+	// Create preview deployments for all services in the cluster that don't have one yet
+	for (const service of serviceCluster) {
+		// Only handle applications for now (can be extended for other service types)
+		if (service.serviceType !== "application") {
+			continue;
+		}
+
+		// Skip if already has a preview deployment
+		const existing = await findPreviewDeploymentByApplicationId(
+			service.serviceId,
+			schema.pullRequestId
+		);
+		if (existing) {
+			createdPreviewDeployments.push(existing);
+			continue;
+		}
+
+		try {
+			// Get application details
+			const application = await findApplicationById(service.serviceId);
+			
+			// Only create preview deployment if the application has preview deployments enabled
+			if (!application.isPreviewDeploymentsActive) {
+				continue;
+			}
+
+			// Create preview deployment for this service
+			const previewDeployment = await createPreviewDeployment({
+				...schema,
+				applicationId: service.serviceId,
+			});
+			
+			createdPreviewDeployments.push(previewDeployment);
+		} catch (error) {
+			console.warn(`Failed to create preview deployment for service ${service.serviceId}:`, error);
+			// Continue with other services even if one fails
+		}
+	}
+
+	// Return the preview deployment for the originally requested service
+	return createdPreviewDeployments.find(pd => pd.applicationId === schema.applicationId) || 
+		   createdPreviewDeployments[0];
+};
+
 export const findPreviewDeploymentsByPullRequestId = async (
 	pullRequestId: string,
 ) => {
