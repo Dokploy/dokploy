@@ -1,3 +1,4 @@
+import { BuildConcurrencyModal } from "@/components/dashboard/settings/servers/build-concurrency-modal";
 import { format } from "date-fns";
 import { KeyIcon, Loader2, MoreHorizontal, ServerIcon } from "lucide-react";
 import Link from "next/link";
@@ -292,6 +293,12 @@ export const ShowServers = () => {
 																						<DropdownMenuLabel>
 																							Extra
 																						</DropdownMenuLabel>
+
+																						{!isCloud && (
+																							<BuildConcurrencyModal
+																								serverId={server.serverId}
+																							/>
+																						)}
 
 																						<ShowTraefikFileSystemModal
 																							serverId={server.serverId}

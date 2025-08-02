@@ -1,6 +1,6 @@
 {
-  "id": "8bf085dd-e054-4ae6-811b-1d1a68dab752",
-  "prevId": "218e3c9b-ef86-4665-98af-56d65282b73b",
+  "id": "d1e4809b-a6bd-44a0-a28c-0d8dde26c919",
+  "prevId": "0e6c0492-0ccb-4bda-b5e5-848a19ca73bf",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -110,13 +110,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
-        },
-        "previewRequireCollaboratorPermissions": {
-          "name": "previewRequireCollaboratorPermissions",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": true
         },
         "rollbackActive": {
           "name": "rollbackActive",
@@ -993,6 +986,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "metricsConfig": {
           "name": "metricsConfig",
@@ -4452,6 +4452,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'root'"
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "appName": {
           "name": "appName",
