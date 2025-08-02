@@ -1,3 +1,4 @@
+import { format, formatDistanceToNow } from "date-fns";
 import {
 	Tooltip,
 	TooltipContent,
@@ -5,7 +6,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow } from "date-fns";
 
 interface Props {
 	date: string;

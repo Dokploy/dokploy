@@ -1,10 +1,10 @@
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 interface Props extends React.ComponentPropsWithoutRef<"div"> {
 	icon?: React.ReactNode;
 	type?: "info" | "success" | "warning" | "error";
 }
-
-import { cn } from "@/lib/utils";
-import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 
 const iconMap = {
 	info: {
