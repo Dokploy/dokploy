@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CircuitBoard, HelpCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,12 +43,6 @@ import {
 } from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { CircuitBoard, HelpCircle } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const AddComposeSchema = z.object({
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
@@ -73,9 +73,12 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
+
+	const hasServers = servers && servers.length > 0;
 
 	const form = useForm<AddCompose>({
 		defaultValues: {
@@ -108,7 +111,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error to create the compose");
+				toast.error("Error creating the compose");
 			});
 	};
 
@@ -123,7 +126,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 					<span>Compose</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-xl">
+			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>Create Compose</DialogTitle>
 					<DialogDescription>
@@ -151,10 +154,8 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 												{...field}
 												onChange={(e) => {
 													const val = e.target.value?.trim() || "";
-													form.setValue(
-														"appName",
-														`${slug}-${val.toLowerCase()}`,
-													);
+													const serviceName = slugify(val);
+													form.setValue("appName", `${slug}-${serviceName}`);
 													field.onChange(val);
 												}}
 											/>
@@ -164,63 +165,70 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 								)}
 							/>
 						</div>
-						<FormField
-							control={form.control}
-							name="serverId"
-							render={({ field }) => (
-								<FormItem>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server (Optional)
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormLabel>
-											</TooltipTrigger>
-											<TooltipContent
-												className="z-[999] w-[300px]"
-												align="start"
-												side="top"
-											>
-												<span>
-													If not server is selected, the application will be
-													deployed on the server where the user is logged in.
-												</span>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+						{hasServers && (
+							<FormField
+								control={form.control}
+								name="serverId"
+								render={({ field }) => (
+									<FormItem>
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+														Select a Server {!isCloud ? "(Optional)" : ""}
+														<HelpCircle className="size-4 text-muted-foreground" />
+													</FormLabel>
+												</TooltipTrigger>
+												<TooltipContent
+													className="z-[999] w-[300px]"
+													align="start"
+													side="top"
+												>
+													<span>
+														If no server is selected, the application will be
+														deployed on the server where the user is logged in.
+													</span>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
 
-									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Select a Server" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectGroup>
-												{servers?.map((server) => (
-													<SelectItem
-														key={server.serverId}
-														value={server.serverId}
-													>
-														{server.name}
-													</SelectItem>
-												))}
-												<SelectLabel>Servers ({servers?.length})</SelectLabel>
-											</SelectGroup>
-										</SelectContent>
-									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a Server" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													{servers?.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>{server.name}</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	{server.ipAddress}
+																</span>
+															</span>
+														</SelectItem>
+													))}
+													<SelectLabel>Servers ({servers?.length})</SelectLabel>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 						<FormField
 							control={form.control}
 							name="appName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>AppName</FormLabel>
+									<FormLabel>App Name</FormLabel>
 									<FormControl>
 										<Input placeholder="my-app" {...field} />
 									</FormControl>
@@ -262,7 +270,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 									<FormLabel>Description</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description about your service..."
+											placeholder="Description of your service..."
 											className="resize-none"
 											{...field}
 										/>

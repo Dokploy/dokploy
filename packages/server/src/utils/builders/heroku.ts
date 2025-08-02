@@ -9,7 +9,7 @@ export const buildHeroku = async (
 	application: ApplicationNested,
 	writeStream: WriteStream,
 ) => {
-	const { env, appName } = application;
+	const { env, appName, cleanCache } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
@@ -29,6 +29,10 @@ export const buildHeroku = async (
 			args.push("--env", env);
 		}
 
+		if (cleanCache) {
+			args.push("--clear-cache");
+		}
+
 		await spawnAsync("pack", args, (data) => {
 			if (writeStream.writable) {
 				writeStream.write(data);
@@ -44,7 +48,7 @@ export const getHerokuCommand = (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { env, appName } = application;
+	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
@@ -60,6 +64,10 @@ export const getHerokuCommand = (
 		"--builder",
 		`heroku/builder:${application.herokuVersion || "24"}`,
 	];
+
+	if (cleanCache) {
+		args.push("--clear-cache");
+	}
 
 	for (const env of envVariables) {
 		args.push("--env", `'${env}'`);

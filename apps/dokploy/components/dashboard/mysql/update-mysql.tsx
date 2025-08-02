@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, SquarePen } from "lucide-react";
+import { PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -75,13 +75,13 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("MySQL updated succesfully");
+				toast.success("MySQL updated successfully");
 				utils.mysql.one.invalidate({
 					mysqlId: mysqlId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error to update the MySQL");
+				toast.error("Error updating MySQL");
 			})
 			.finally(() => {});
 	};
@@ -89,11 +89,15 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="ghost">
-					<SquarePen className="size-4 text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-blue-500/10 "
+				>
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Modify MySQL</DialogTitle>
 					<DialogDescription>Update the MySQL data</DialogDescription>
@@ -115,7 +119,7 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input placeholder="Tesla" {...field} />
+												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
 
 											<FormMessage />

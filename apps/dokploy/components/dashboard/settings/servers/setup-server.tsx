@@ -1,8 +1,7 @@
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
-import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
-import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -20,19 +19,19 @@ import {
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import copy from "copy-to-clipboard";
-import {
-	CopyIcon,
-	ExternalLinkIcon,
-	RocketIcon,
-	ServerIcon,
-} from "lucide-react";
+import { CopyIcon, ExternalLinkIcon, ServerIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ShowDeployment } from "../../application/deployments/show-deployment";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
+import { EditScript } from "./edit-script";
 import { GPUSupport } from "./gpu-support";
+import { SecurityAudit } from "./security-audit";
+import { SetupMonitoring } from "./setup-monitoring";
 import { ValidateServer } from "./validate-server";
 
 interface Props {
@@ -51,14 +50,33 @@ export const SetupServer = ({ serverId }: Props) => {
 	);
 
 	const [activeLog, setActiveLog] = useState<string | null>(null);
-	const { data: deployments, refetch } = api.deployment.allByServer.useQuery(
-		{ serverId },
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
+	const [isDeploying, setIsDeploying] = useState(false);
+	api.server.setupWithLogs.useSubscription(
 		{
-			enabled: !!serverId,
+			serverId: serverId,
+		},
+		{
+			enabled: isDeploying,
+			onData(log) {
+				if (!isDrawerOpen) {
+					setIsDrawerOpen(true);
+				}
+
+				if (log === "Deployment completed successfully!") {
+					setIsDeploying(false);
+				}
+				const parsedLogs = parseLogs(log);
+				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
+			},
+			onError(error) {
+				console.error("Deployment logs error:", error);
+				setIsDeploying(false);
+			},
 		},
 	);
-
-	const { mutateAsync, isLoading } = api.server.setup.useMutation();
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -70,7 +88,7 @@ export const SetupServer = ({ serverId }: Props) => {
 					Setup Server
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-4xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
 						<DialogTitle className="flex items-center gap-2">
@@ -89,12 +107,26 @@ export const SetupServer = ({ serverId }: Props) => {
 						</AlertBlock>
 					</div>
 				) : (
-					<div id="hook-form-add-gitlab" className="grid w-full gap-1">
+					<div id="hook-form-add-gitlab" className="grid w-full gap-4">
+						<AlertBlock type="warning">
+							Using a root user is required to ensure everything works as
+							expected.
+						</AlertBlock>
+
 						<Tabs defaultValue="ssh-keys">
-							<TabsList className="grid grid-cols-4 w-[600px]">
+							<TabsList
+								className={cn(
+									"grid  w-[700px]",
+									isCloud ? "grid-cols-6" : "grid-cols-5",
+								)}
+							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
+								<TabsTrigger value="audit">Security</TabsTrigger>
+								{isCloud && (
+									<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+								)}
 								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
@@ -120,7 +152,7 @@ export const SetupServer = ({ serverId }: Props) => {
 												Copy Public Key ({server?.sshKey?.name})
 												<button
 													type="button"
-													className=" right-2 top-8"
+													className="right-2 top-8"
 													onClick={() => {
 														copy(
 															server?.sshKey?.publicKey || "Generate a SSH Key",
@@ -139,7 +171,7 @@ export const SetupServer = ({ serverId }: Props) => {
 											Automatic process
 										</span>
 										<Link
-											href="https://docs.dokploy.com/en/docs/core/get-started/introduction"
+											href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
 											target="_blank"
 											className="text-primary flex flex-row gap-2"
 										>
@@ -198,6 +230,28 @@ export const SetupServer = ({ serverId }: Props) => {
 											</li>
 										</ul>
 									</div>
+									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
+										<span className="text-base font-semibold text-primary">
+											Supported Distros:
+										</span>
+										<p>
+											We strongly recommend to use the following distros to
+											ensure the best experience:
+										</p>
+										<ul>
+											<li>1. Ubuntu 24.04 LTS</li>
+											<li>2. Ubuntu 23.10 LTS </li>
+											<li>3. Ubuntu 22.04 LTS</li>
+											<li>4. Ubuntu 20.04 LTS</li>
+											<li>5. Ubuntu 18.04 LTS</li>
+											<li>6. Debian 12</li>
+											<li>7. Debian 11</li>
+											<li>8. Debian 10</li>
+											<li>9. Fedora 40</li>
+											<li>10. Centos 9</li>
+											<li>11. Centos 8</li>
+										</ul>
+									</div>
 								</div>
 							</TabsContent>
 							<TabsContent value="deployments">
@@ -208,82 +262,36 @@ export const SetupServer = ({ serverId }: Props) => {
 												<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
 													<div className="flex flex-col gap-1">
 														<CardTitle className="text-xl">
-															Deployments
+															Setup Server
 														</CardTitle>
 														<CardDescription>
-															See all the 5 Server Setup
+															To setup a server, please click on the button
+															below.
 														</CardDescription>
 													</div>
-													<DialogAction
-														title={"Setup Server?"}
-														description="This will setup the server and all associated data"
-														onClick={async () => {
-															await mutateAsync({
-																serverId: server?.serverId || "",
-															})
-																.then(async () => {
-																	refetch();
-																	toast.success("Server setup successfully");
-																})
-																.catch(() => {
-																	toast.error("Error configuring server");
-																});
-														}}
-													>
-														<Button isLoading={isLoading}>Setup Server</Button>
-													</DialogAction>
 												</div>
 											</CardHeader>
-											<CardContent className="flex flex-col gap-4">
-												{server?.deployments?.length === 0 ? (
-													<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
-														<RocketIcon className="size-8 text-muted-foreground" />
-														<span className="text-base text-muted-foreground">
-															No deployments found
-														</span>
+											<CardContent className="flex flex-col gap-4 min-h-[25vh] items-center">
+												<div className="flex flex-col gap-4 items-center h-full max-w-xl mx-auto min-h-[25vh] justify-center">
+													<span className="text-sm text-muted-foreground text-center">
+														When your server is ready, you can click on the
+														button below, to directly run the script we use for
+														setup the server or directly modify the script
+													</span>
+													<div className="flex flex-row gap-2">
+														<EditScript serverId={server?.serverId || ""} />
+														<DialogAction
+															title={"Setup Server?"}
+															type="default"
+															description="This will setup the server and all associated data"
+															onClick={async () => {
+																setIsDeploying(true);
+															}}
+														>
+															<Button>Setup Server</Button>
+														</DialogAction>
 													</div>
-												) : (
-													<div className="flex flex-col gap-4">
-														{deployments?.map((deployment) => (
-															<div
-																key={deployment.deploymentId}
-																className="flex items-center justify-between rounded-lg border p-4 gap-2"
-															>
-																<div className="flex flex-col">
-																	<span className="flex items-center gap-4 font-medium capitalize text-foreground">
-																		{deployment.status}
-
-																		<StatusTooltip
-																			status={deployment?.status}
-																			className="size-2.5"
-																		/>
-																	</span>
-																	<span className="text-sm text-muted-foreground">
-																		{deployment.title}
-																	</span>
-																	{deployment.description && (
-																		<span className="break-all text-sm text-muted-foreground">
-																			{deployment.description}
-																		</span>
-																	)}
-																</div>
-																<div className="flex flex-col items-end gap-2">
-																	<div className="text-sm capitalize text-muted-foreground">
-																		<DateTooltip date={deployment.createdAt} />
-																	</div>
-
-																	<Button
-																		onClick={() => {
-																			setActiveLog(deployment.logPath);
-																		}}
-																	>
-																		View
-																	</Button>
-																</div>
-															</div>
-														))}
-													</div>
-												)}
+												</div>
 
 												<ShowDeployment
 													open={activeLog !== null}
@@ -304,6 +312,24 @@ export const SetupServer = ({ serverId }: Props) => {
 								</div>
 							</TabsContent>
 							<TabsContent
+								value="audit"
+								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+							>
+								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+									<SecurityAudit serverId={serverId} />
+								</div>
+							</TabsContent>
+							<TabsContent
+								value="monitoring"
+								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+							>
+								<div className="flex flex-col gap-2 text-sm pt-3">
+									<div className="rounded-xl bg-background shadow-md border">
+										<SetupMonitoring serverId={serverId} />
+									</div>
+								</div>
+							</TabsContent>
+							<TabsContent
 								value="gpu-setup"
 								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
 							>
@@ -315,6 +341,15 @@ export const SetupServer = ({ serverId }: Props) => {
 					</div>
 				)}
 			</DialogContent>
+			<DrawerLogs
+				isOpen={isDrawerOpen}
+				onClose={() => {
+					setIsDrawerOpen(false);
+					setFilteredLogs([]);
+					setIsDeploying(false);
+				}}
+				filteredLogs={filteredLogs}
+			/>
 		</Dialog>
 	);
 };

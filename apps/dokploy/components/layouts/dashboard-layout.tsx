@@ -1,25 +1,25 @@
-import { Navbar } from "./navbar";
-import { NavigationTabs, type TabState } from "./navigation-tabs";
+import { api } from "@/utils/api";
+import { ImpersonationBar } from "../dashboard/impersonation/impersonation-bar";
+import { ChatwootWidget } from "../shared/ChatwootWidget";
+import Page from "./side";
 
 interface Props {
 	children: React.ReactNode;
-	tab: TabState;
+	metaName?: string;
 }
 
-export const DashboardLayout = ({ children, tab }: Props) => {
+export const DashboardLayout = ({ children }: Props) => {
+	const { data: haveRootAccess } = api.user.haveRootAccess.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
 	return (
-		<div>
-			<div
-				className="bg-radial relative flex flex-col bg-background min-h-screen w-full"
-				id="app-container"
-			>
-				<Navbar />
-				<main className="pt-6 flex w-full flex-col items-center">
-					<div className="w-full max-w-8xl px-4 lg:px-8">
-						<NavigationTabs tab={tab}>{children}</NavigationTabs>
-					</div>
-				</main>
-			</div>
-		</div>
+		<>
+			<Page>{children}</Page>
+			{isCloud === true && (
+				<ChatwootWidget websiteToken="USCpQRKzHvFMssf3p6Eacae5" />
+			)}
+
+			{haveRootAccess === true && <ImpersonationBar />}
+		</>
 	);
 };

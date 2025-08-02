@@ -9,6 +9,7 @@ describe("createDomainLabels", () => {
 		port: 8080,
 		https: false,
 		uniqueConfigKey: 1,
+		customCertResolver: null,
 		certificateType: "none",
 		applicationId: "",
 		composeId: "",
@@ -18,6 +19,8 @@ describe("createDomainLabels", () => {
 		path: "/",
 		createdAt: "",
 		previewDeploymentId: "",
+		internalPath: "/",
+		stripPath: false,
 	};
 
 	it("should create basic labels for web entrypoint", async () => {

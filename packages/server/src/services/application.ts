@@ -3,10 +3,9 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateApplication,
 	applications,
+	buildAppName,
 } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
-import { getAdvancedStats } from "@dokploy/server/monitoring/utilts";
-import { generatePassword } from "@dokploy/server/templates/utils";
+import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
 	buildApplication,
 	getBuildCommand,
@@ -28,7 +27,10 @@ import {
 	getCustomGitCloneCommand,
 } from "@dokploy/server/utils/providers/git";
 import {
-	authGithub,
+	cloneGiteaRepository,
+	getGiteaCloneCommand,
+} from "@dokploy/server/utils/providers/gitea";
+import {
 	cloneGithubRepository,
 	getGithubCloneCommand,
 } from "@dokploy/server/utils/providers/github";
@@ -46,34 +48,32 @@ import {
 	createDeploymentPreview,
 	updateDeploymentStatus,
 } from "./deployment";
-import { validUniqueServerAppName } from "./project";
-import {
-	findPreviewDeploymentById,
-	updatePreviewDeployment,
-} from "./preview-deployment";
+import { type Domain, getDomainHost } from "./domain";
 import {
 	createPreviewDeploymentComment,
 	getIssueComment,
 	issueCommentExists,
 	updateIssueComment,
 } from "./github";
-import { type Domain, getDomainHost } from "./domain";
+import {
+	findPreviewDeploymentById,
+	updatePreviewDeployment,
+} from "./preview-deployment";
+import { validUniqueServerAppName } from "./project";
+import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
 	input: typeof apiCreateApplication._type,
 ) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("app");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("app", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Application with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Application with this 'AppName' already exists",
+		});
 	}
 
 	return await db.transaction(async (tx) => {
@@ -81,6 +81,7 @@ export const createApplication = async (
 			.insert(applications)
 			.values({
 				...input,
+				appName,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -88,7 +89,7 @@ export const createApplication = async (
 		if (!newApplication) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the application",
+				message: "Error creating the application",
 			});
 		}
 
@@ -115,6 +116,7 @@ export const findApplicationById = async (applicationId: string) => {
 			gitlab: true,
 			github: true,
 			bitbucket: true,
+			gitea: true,
 			server: true,
 			previewDeployments: true,
 		},
@@ -140,10 +142,11 @@ export const updateApplication = async (
 	applicationId: string,
 	applicationData: Partial<Application>,
 ) => {
+	const { appName, ...rest } = applicationData;
 	const application = await db
 		.update(applications)
 		.set({
-			...applicationData,
+			...rest,
 		})
 		.where(eq(applications.applicationId, applicationId))
 		.returning();
@@ -176,6 +179,7 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -193,6 +197,9 @@ export const deployApplication = async ({
 		} else if (application.sourceType === "gitlab") {
 			await cloneGitlabRepository(application, deployment.logPath);
 			await buildApplication(application, deployment.logPath);
+		} else if (application.sourceType === "gitea") {
+			await cloneGiteaRepository(application, deployment.logPath);
+			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "bitbucket") {
 			await cloneBitbucketRepository(application, deployment.logPath);
 			await buildApplication(application, deployment.logPath);
@@ -208,24 +215,37 @@ export const deployApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
+		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
+			await createRollback({
+				appName: tagImage || "",
+				deploymentId: deployment.deploymentId,
+			});
+		}
+
 		await sendBuildSuccessNotifications({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
+			domains: application.domains,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
 		await sendBuildErrorNotifications({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			// @ts-ignore
-			errorMessage: error?.message || "Error to build",
+			errorMessage: error?.message || "Error building",
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
 		});
 
 		throw error;
@@ -244,6 +264,7 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -285,6 +306,7 @@ export const deployRemoteApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -308,6 +330,8 @@ export const deployRemoteApplication = async ({
 					application,
 					deployment.logPath,
 				);
+			} else if (application.sourceType === "gitea") {
+				command += await getGiteaCloneCommand(application, deployment.logPath);
 			} else if (application.sourceType === "git") {
 				command += await getCustomGitCloneCommand(
 					application,
@@ -327,16 +351,29 @@ export const deployRemoteApplication = async ({
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 
+		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
+			await createRollback({
+				appName: tagImage || "",
+				deploymentId: deployment.deploymentId,
+			});
+		}
+
 		await sendBuildSuccessNotifications({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
+			domains: application.domains,
 		});
 	} catch (error) {
-		// @ts-ignore
-		const encodedContent = encodeBase64(error?.message);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+
+		const encodedContent = encodeBase64(errorMessage);
 
 		await execAsyncRemote(
 			application.serverId,
@@ -348,23 +385,15 @@ export const deployRemoteApplication = async ({
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
+
 		await sendBuildErrorNotifications({
 			projectName: application.project.name,
 			applicationName: application.name,
 			applicationType: "application",
-			// @ts-ignore
-			errorMessage: error?.message || "Error to build",
+			errorMessage: `Please check the logs for details: ${errorMessage}`,
 			buildLink,
-			adminId: application.project.adminId,
+			organizationId: application.project.organizationId,
 		});
-
-		console.log(
-			"Error on ",
-			application.buildType,
-			"/",
-			application.sourceType,
-			error,
-		);
 
 		throw error;
 	}
@@ -384,6 +413,7 @@ export const deployPreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
 		description: descriptionLog,
@@ -437,7 +467,7 @@ export const deployPreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = application.previewEnv;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.sourceType === "github") {
@@ -449,7 +479,6 @@ export const deployPreviewApplication = async ({
 			});
 			await buildApplication(application, deployment.logPath);
 		}
-		// 4eef09efc46009187d668cf1c25f768d0bde4f91
 		const successComment = getIssueComment(
 			application.name,
 			"success",
@@ -491,6 +520,7 @@ export const deployRemotePreviewApplication = async ({
 	previewDeploymentId: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeploymentPreview({
 		title: titleLog,
 		description: descriptionLog,
@@ -544,7 +574,7 @@ export const deployRemotePreviewApplication = async ({
 			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
-		application.env = application.previewEnv;
+		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
 
 		if (application.serverId) {
@@ -552,6 +582,8 @@ export const deployRemotePreviewApplication = async ({
 			if (application.sourceType === "github") {
 				command += await getGithubCloneCommand({
 					...application,
+					appName: previewDeployment.appName,
+					branch: previewDeployment.branch,
 					serverId: application.serverId,
 					logPath: deployment.logPath,
 				});
@@ -601,6 +633,7 @@ export const rebuildRemoteApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,

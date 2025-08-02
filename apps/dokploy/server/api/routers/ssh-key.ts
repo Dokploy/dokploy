@@ -9,7 +9,6 @@ import {
 	sshKeys,
 } from "@/server/db/schema";
 import {
-	IS_CLOUD,
 	createSshKey,
 	findSSHKeyById,
 	generateSSHKey,
@@ -17,7 +16,7 @@ import {
 	updateSSHKeyById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 export const sshRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -26,12 +25,12 @@ export const sshRouter = createTRPCRouter({
 			try {
 				await createSshKey({
 					...input,
-					adminId: ctx.user.adminId,
+					organizationId: ctx.session.activeOrganizationId,
 				});
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to create the ssh key",
+					message: "Error creating the SSH key",
 					cause: error,
 				});
 			}
@@ -41,11 +40,10 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
-					// TODO: Remove isCloud in the next versions of dokploy
+				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to delete this ssh key",
+						message: "You are not allowed to delete this SSH key",
 					});
 				}
 
@@ -59,20 +57,19 @@ export const sshRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const sshKey = await findSSHKeyById(input.sshKeyId);
 
-			if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
-				// TODO: Remove isCloud in the next versions of dokploy
+			if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not allowed to access this ssh key",
+					message: "You are not allowed to access this SSH key",
 				});
 			}
 			return sshKey;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		return await db.query.sshKeys.findMany({
-			...(IS_CLOUD && { where: eq(sshKeys.adminId, ctx.user.adminId) }),
+			where: eq(sshKeys.organizationId, ctx.session.activeOrganizationId),
+			orderBy: desc(sshKeys.createdAt),
 		});
-		// TODO: Remove this line when the cloud version is ready
 	}),
 	generate: protectedProcedure
 		.input(apiGenerateSSHKey)
@@ -84,18 +81,17 @@ export const sshRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const sshKey = await findSSHKeyById(input.sshKeyId);
-				if (IS_CLOUD && sshKey.adminId !== ctx.user.adminId) {
-					// TODO: Remove isCloud in the next versions of dokploy
+				if (sshKey.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You are not allowed to update this ssh key",
+						message: "You are not allowed to update this SSH key",
 					});
 				}
 				return await updateSSHKeyById(input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error to update this ssh key",
+					message: "Error updating this SSH key",
 					cause: error,
 				});
 			}

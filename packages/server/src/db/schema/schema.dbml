@@ -1,0 +1,897 @@
+enum applicationStatus {
+  idle
+  running
+  done
+  error
+}
+
+enum buildType {
+  dockerfile
+  heroku_buildpacks
+  paketo_buildpacks
+  nixpacks
+  static
+}
+
+enum certificateType {
+  letsencrypt
+  none
+}
+
+enum composeType {
+  "docker-compose"
+  stack
+}
+
+enum databaseType {
+  postgres
+  mariadb
+  mysql
+  mongo
+}
+
+enum deploymentStatus {
+  running
+  done
+  error
+}
+
+enum domainType {
+  compose
+  application
+  preview
+}
+
+enum gitProviderType {
+  github
+  gitlab
+  bitbucket
+  gitea
+}
+
+enum mountType {
+  bind
+  volume
+  file
+}
+
+enum notificationType {
+  slack
+  telegram
+  discord
+  email
+  gotify
+}
+
+enum protocolType {
+  tcp
+  udp
+}
+
+enum RegistryType {
+  selfHosted
+  cloud
+}
+
+enum Roles {
+  admin
+  user
+}
+
+enum serverStatus {
+  active
+  inactive
+}
+
+enum serviceType {
+  application
+  postgres
+  mysql
+  mariadb
+  mongo
+  redis
+  compose
+}
+
+enum sourceType {
+  docker
+  git
+  github
+  gitlab
+  bitbucket
+  gitea
+  drop
+}
+
+enum sourceTypeCompose {
+  git
+  github
+  gitlab
+  bitbucket
+  gitea
+  raw
+}
+
+table account {
+  id text [pk, not null]
+  account_id text [not null]
+  provider_id text [not null]
+  user_id text [not null]
+  access_token text
+  refresh_token text
+  id_token text
+  access_token_expires_at timestamp
+  refresh_token_expires_at timestamp
+  scope text
+  password text
+  is2FAEnabled boolean [not null, default: false]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  resetPasswordToken text
+  resetPasswordExpiresAt text
+  confirmationToken text
+  confirmationExpiresAt text
+}
+
+table admin {
+}
+
+table application {
+  applicationId text [pk, not null]
+  name text [not null]
+  appName text [not null, unique]
+  description text
+  env text
+  previewEnv text
+  previewBuildArgs text
+  previewWildcard text
+  previewPort integer [default: 3000]
+  previewHttps boolean [not null, default: false]
+  previewPath text [default: '/']
+  certificateType certificateType [not null, default: 'none']
+  previewLimit integer [default: 3]
+  isPreviewDeploymentsActive boolean [default: false]
+  buildArgs text
+  memoryReservation text
+  memoryLimit text
+  cpuReservation text
+  cpuLimit text
+  title text
+  enabled boolean
+  subtitle text
+  command text
+  refreshToken text
+  sourceType sourceType [not null, default: 'github']
+  cleanCache boolean [default: false]
+  repository text
+  owner text
+  branch text
+  buildPath text [default: '/']
+  autoDeploy boolean
+  gitlabProjectId integer
+  gitlabRepository text
+  gitlabOwner text
+  gitlabBranch text
+  gitlabBuildPath text [default: '/']
+  gitlabPathNamespace text
+  bitbucketRepository text
+  bitbucketOwner text
+  bitbucketBranch text
+  bitbucketBuildPath text [default: '/']
+  username text
+  password text
+  dockerImage text
+  registryUrl text
+  customGitUrl text
+  customGitBranch text
+  customGitBuildPath text
+  customGitSSHKeyId text
+  dockerfile text
+  dockerContextPath text
+  dockerBuildStage text
+  dropBuildPath text
+  healthCheckSwarm json
+  restartPolicySwarm json
+  placementSwarm json
+  updateConfigSwarm json
+  rollbackConfigSwarm json
+  modeSwarm json
+  labelsSwarm json
+  networkSwarm json
+  replicas integer [not null, default: 1]
+  applicationStatus applicationStatus [not null, default: 'idle']
+  buildType buildType [not null, default: 'nixpacks']
+  herokuVersion text [default: '24']
+  publishDirectory text
+  createdAt text [not null]
+  registryId text
+  projectId text [not null]
+  githubId text
+  gitlabId text
+  bitbucketId text
+  giteaId text
+  serverId text
+}
+
+table auth {
+  id text [pk, not null]
+  email text [not null, unique]
+  password text [not null]
+  rol Roles [not null]
+  image text
+  secret text
+  token text
+  is2FAEnabled boolean [not null, default: false]
+  createdAt text [not null]
+  resetPasswordToken text
+  resetPasswordExpiresAt text
+  confirmationToken text
+  confirmationExpiresAt text
+}
+
+table backup {
+  backupId text [pk, not null]
+  schedule text [not null]
+  enabled boolean
+  database text [not null]
+  prefix text [not null]
+  destinationId text [not null]
+  databaseType databaseType [not null]
+  postgresId text
+  mariadbId text
+  mysqlId text
+  mongoId text
+}
+
+table bitbucket {
+  bitbucketId text [pk, not null]
+  bitbucketUsername text
+  appPassword text
+  bitbucketWorkspaceName text
+  gitProviderId text [not null]
+}
+
+table certificate {
+  certificateId text [pk, not null]
+  name text [not null]
+  certificateData text [not null]
+  privateKey text [not null]
+  certificatePath text [not null, unique]
+  autoRenew boolean
+  userId text
+  serverId text
+}
+
+table compose {
+  composeId text [pk, not null]
+  name text [not null]
+  appName text [not null]
+  description text
+  env text
+  composeFile text [not null, default: '']
+  refreshToken text
+  sourceType sourceTypeCompose [not null, default: 'github']
+  composeType composeType [not null, default: 'docker-compose']
+  repository text
+  owner text
+  branch text
+  autoDeploy boolean
+  gitlabProjectId integer
+  gitlabRepository text
+  gitlabOwner text
+  gitlabBranch text
+  gitlabPathNamespace text
+  bitbucketRepository text
+  bitbucketOwner text
+  bitbucketBranch text
+  giteaRepository text
+  giteaOwner text
+  giteaBranch text
+  customGitUrl text
+  customGitBranch text
+  customGitSSHKeyId text
+  command text [not null, default: '']
+  composePath text [not null, default: './docker-compose.yml']
+  suffix text [not null, default: '']
+  randomize boolean [not null, default: false]
+  isolatedDeployment boolean [not null, default: false]
+  composeStatus applicationStatus [not null, default: 'idle']
+  projectId text [not null]
+  createdAt text [not null]
+  githubId text
+  gitlabId text
+  bitbucketId text
+  giteaId text
+  serverId text
+}
+
+table deployment {
+  deploymentId text [pk, not null]
+  title text [not null]
+  description text
+  status deploymentStatus [default: 'running']
+  logPath text [not null]
+  applicationId text
+  composeId text
+  serverId text
+  isPreviewDeployment boolean [default: false]
+  previewDeploymentId text
+  createdAt text [not null]
+  errorMessage text
+}
+
+table destination {
+  destinationId text [pk, not null]
+  name text [not null]
+  provider text
+  accessKey text [not null]
+  secretAccessKey text [not null]
+  bucket text [not null]
+  region text [not null]
+  endpoint text [not null]
+  userId text [not null]
+}
+
+table discord {
+  discordId text [pk, not null]
+  webhookUrl text [not null]
+  decoration boolean
+}
+
+table domain {
+  domainId text [pk, not null]
+  host text [not null]
+  https boolean [not null, default: false]
+  port integer [default: 3000]
+  path text [default: '/']
+  serviceName text
+  domainType domainType [default: 'application']
+  uniqueConfigKey serial [not null, increment]
+  createdAt text [not null]
+  composeId text
+  applicationId text
+  previewDeploymentId text
+  certificateType certificateType [not null, default: 'none']
+}
+
+table email {
+  emailId text [pk, not null]
+  smtpServer text [not null]
+  smtpPort integer [not null]
+  username text [not null]
+  password text [not null]
+  fromAddress text [not null]
+  toAddress text[] [not null]
+}
+
+table git_provider {
+  gitProviderId text [pk, not null]
+  name text [not null]
+  providerType gitProviderType [not null, default: 'github']
+  createdAt text [not null]
+  userId text
+}
+
+table github {
+  githubId text [pk, not null]
+  githubAppName text
+  githubAppId integer
+  githubClientId text
+  githubClientSecret text
+  githubInstallationId text
+  githubPrivateKey text
+  githubWebhookSecret text
+  gitProviderId text [not null]
+}
+
+table gitlab {
+  gitlabId text [pk, not null]
+  gitlabUrl text [not null, default: 'https://gitlab.com']
+  application_id text
+  redirect_uri text
+  secret text
+  access_token text
+  refresh_token text
+  group_name text
+  expires_at integer
+  gitProviderId text [not null]
+}
+
+table gitea {
+  giteaId text [pk, not null]
+  giteaUrl text [not null, default: 'https://gitea.com']
+  redirect_uri text
+  client_id text [not null]
+  client_secret text [not null]
+  access_token text
+  refresh_token text
+  expires_at integer
+  gitProviderId text [not null]
+  scopes text [default: 'repo,repo:status,read:user,read:org']
+  last_authenticated_at integer
+}
+
+table gotify {
+  gotifyId text [pk, not null]
+  serverUrl text [not null]
+  appToken text [not null]
+  priority integer [not null, default: 5]
+  decoration boolean
+}
+
+table invitation {
+  id text [pk, not null]
+  organization_id text [not null]
+  email text [not null]
+  role text
+  status text [not null]
+  expires_at timestamp [not null]
+  inviter_id text [not null]
+}
+
+table mariadb {
+  mariadbId text [pk, not null]
+  name text [not null]
+  appName text [not null, unique]
+  description text
+  databaseName text [not null]
+  databaseUser text [not null]
+  databasePassword text [not null]
+  rootPassword text [not null]
+  dockerImage text [not null]
+  command text
+  env text
+  memoryReservation text
+  memoryLimit text
+  cpuReservation text
+  cpuLimit text
+  externalPort integer
+  applicationStatus applicationStatus [not null, default: 'idle']
+  createdAt text [not null]
+  projectId text [not null]
+  serverId text
+}
+
+table member {
+  id text [pk, not null]
+  organization_id text [not null]
+  user_id text [not null]
+  role text [not null]
+  created_at timestamp [not null]
+}
+
+table mongo {
+  mongoId text [pk, not null]
+  name text [not null]
+  appName text [not null, unique]
+  description text
+  databaseUser text [not null]
+  databasePassword text [not null]
+  dockerImage text [not null]
+  command text
+  env text
+  memoryReservation text
+  memoryLimit text
+  cpuReservation text
+  cpuLimit text
+  externalPort integer
+  applicationStatus applicationStatus [not null, default: 'idle']
+  createdAt text [not null]
+  projectId text [not null]
+  serverId text
+  replicaSets boolean [default: false]
+}
+
+table mount {
+  mountId text [pk, not null]
+  type mountType [not null]
+  hostPath text
+  volumeName text
+  filePath text
+  content text
+  serviceType serviceType [not null, default: 'application']
+  mountPath text [not null]
+  applicationId text
+  postgresId text
+  mariadbId text
+  mongoId text
+  mysqlId text
+  redisId text
+  composeId text
+}
+
+table mysql {
+  mysqlId text [pk, not null]
+  name text [not null]
+  appName text [not null, unique]
+  description text
+  databaseName text [not null]
+  databaseUser text [not null]
+  databasePassword text [not null]
+  rootPassword text [not null]
+  dockerImage text [not null]
+  command text
+  env text
+  memoryReservation text
+  memoryLimit text
+  cpuReservation text
+  cpuLimit text
+  externalPort integer
+  applicationStatus applicationStatus [not null, default: 'idle']
+  createdAt text [not null]
+  projectId text [not null]
+  serverId text
+}
+
+table notification {
+  notificationId text [pk, not null]
+  name text [not null]
+  appDeploy boolean [not null, default: false]
+  appBuildError boolean [not null, default: false]
+  databaseBackup boolean [not null, default: false]
+  dokployRestart boolean [not null, default: false]
+  dockerCleanup boolean [not null, default: false]
+  serverThreshold boolean [not null, default: false]
+  notificationType notificationType [not null]
+  createdAt text [not null]
+  slackId text
+  telegramId text
+  discordId text
+  emailId text
+  gotifyId text
+  userId text
+}
+
+table organization {
+  id text [pk, not null]
+  name text [not null]
+  slug text [unique]
+  logo text
+  created_at timestamp [not null]
+  metadata text
+  owner_id text [not null]
+}
+
+table port {
+  portId text [pk, not null]
+  publishedPort integer [not null]
+  targetPort integer [not null]
+  protocol protocolType [not null]
+  applicationId text [not null]
+}
+
+table postgres {
+  postgresId text [pk, not null]
+  name text [not null]
+  appName text [not null, unique]
+  databaseName text [not null]
+  databaseUser text [not null]
+  databasePassword text [not null]
+  description text
+  dockerImage text [not null]
+  command text
+  env text
+  memoryReservation text
+  externalPort integer
+  memoryLimit text
+  cpuReservation text
+  cpuLimit text
+  applicationStatus applicationStatus [not null, default: 'idle']
+  createdAt text [not null]
+  projectId text [not null]
+  serverId text
+}
+
+table preview_deployments {
+  previewDeploymentId text [pk, not null]
+  branch text [not null]
+  pullRequestId text [not null]
+  pullRequestNumber text [not null]
+  pullRequestURL text [not null]
+  pullRequestTitle text [not null]
+  pullRequestCommentId text [not null]
+  previewStatus applicationStatus [not null, default: 'idle']
+  appName text [not null, unique]
+  applicationId text [not null]
+  domainId text
+  createdAt text [not null]
+  expiresAt text
+}
+
+table project {
+  projectId text [pk, not null]
+  name text [not null]
+  description text
+  createdAt text [not null]
+  userId text [not null]
+  env text [not null, default: '']
+}
+
+table redirect {
+  redirectId text [pk, not null]
+  regex text [not null]
+  replacement text [not null]
+  permanent boolean [not null, default: false]
+  uniqueConfigKey serial [not null, increment]
+  createdAt text [not null]
+  applicationId text [not null]
+}
+
+table redis {
+  redisId text [pk, not null]
+  name text [not null]
+  appName text [not null, unique]
+  description text
+  password text [not null]
+  dockerImage text [not null]
+  command text
+  env text
+  memoryReservation text
+  memoryLimit text
+  cpuReservation text
+  cpuLimit text
+  externalPort integer
+  createdAt text [not null]
+  applicationStatus applicationStatus [not null, default: 'idle']
+  projectId text [not null]
+  serverId text
+}
+
+table registry {
+  registryId text [pk, not null]
+  registryName text [not null]
+  imagePrefix text
+  username text [not null]
+  password text [not null]
+  registryUrl text [not null, default: '']
+  createdAt text [not null]
+  selfHosted RegistryType [not null, default: 'cloud']
+  userId text [not null]
+}
+
+table security {
+  securityId text [pk, not null]
+  username text [not null]
+  password text [not null]
+  createdAt text [not null]
+  applicationId text [not null]
+
+  indexes {
+    (username, applicationId) [name: 'security_username_applicationId_unique', unique]
+  }
+}
+
+table server {
+  serverId text [pk, not null]
+  name text [not null]
+  description text
+  ipAddress text [not null]
+  port integer [not null]
+  username text [not null, default: 'root']
+  appName text [not null]
+  enableDockerCleanup boolean [not null, default: false]
+  createdAt text [not null]
+  userId text [not null]
+  serverStatus serverStatus [not null, default: 'active']
+  command text [not null, default: '']
+  sshKeyId text
+  metricsConfig jsonb [not null, default: `{"server":{"type":"Remote","refreshRate":60,"port":4500,"token":"","urlCallback":"","cronJob":"","retentionDays":2,"thresholds":{"cpu":0,"memory":0}},"containers":{"refreshRate":60,"services":{"include":[],"exclude":[]}}}`]
+}
+
+table session {
+  id text [pk, not null]
+  expires_at timestamp [not null]
+  token text [not null, unique]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  ip_address text
+  user_agent text
+  user_id text [not null]
+  impersonated_by text
+  active_organization_id text
+}
+
+table slack {
+  slackId text [pk, not null]
+  webhookUrl text [not null]
+  channel text
+}
+
+table "ssh-key" {
+  sshKeyId text [pk, not null]
+  privateKey text [not null, default: '']
+  publicKey text [not null]
+  name text [not null]
+  description text
+  createdAt text [not null]
+  lastUsedAt text
+  userId text
+}
+
+table telegram {
+  telegramId text [pk, not null]
+  botToken text [not null]
+  chatId text [not null]
+}
+
+table user {
+  id text [pk, not null]
+  name text [not null, default: '']
+  token text [not null]
+  isRegistered boolean [not null, default: false]
+  expirationDate text [not null]
+  createdAt text [not null]
+  canCreateProjects boolean [not null, default: false]
+  canAccessToSSHKeys boolean [not null, default: false]
+  canCreateServices boolean [not null, default: false]
+  canDeleteProjects boolean [not null, default: false]
+  canDeleteServices boolean [not null, default: false]
+  canAccessToDocker boolean [not null, default: false]
+  canAccessToAPI boolean [not null, default: false]
+  canAccessToGitProviders boolean [not null, default: false]
+  canAccessToTraefikFiles boolean [not null, default: false]
+  accesedProjects text[] [not null, default: `ARRAY[]::text[]`]
+  accesedServices text[] [not null, default: `ARRAY[]::text[]`]
+  email text [not null, unique]
+  email_verified boolean [not null]
+  image text
+  role text
+  banned boolean
+  ban_reason text
+  ban_expires timestamp
+  updated_at timestamp [not null]
+  serverIp text
+  certificateType certificateType [not null, default: 'none']
+  host text
+  letsEncryptEmail text
+  sshPrivateKey text
+  enableDockerCleanup boolean [not null, default: false]
+  enableLogRotation boolean [not null, default: false]
+  enablePaidFeatures boolean [not null, default: false]
+  metricsConfig jsonb [not null, default: `{"server":{"type":"Dokploy","refreshRate":60,"port":4500,"token":"","retentionDays":2,"cronJob":"","urlCallback":"","thresholds":{"cpu":0,"memory":0}},"containers":{"refreshRate":60,"services":{"include":[],"exclude":[]}}}`]
+  cleanupCacheApplications boolean [not null, default: false]
+  cleanupCacheOnPreviews boolean [not null, default: false]
+  cleanupCacheOnCompose boolean [not null, default: false]
+  stripeCustomerId text
+  stripeSubscriptionId text
+  serversQuantity integer [not null, default: 0]
+}
+
+table verification {
+  id text [pk, not null]
+  identifier text [not null]
+  value text [not null]
+  expires_at timestamp [not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+ref: mount.applicationId > application.applicationId
+
+ref: mount.postgresId > postgres.postgresId
+
+ref: mount.mariadbId > mariadb.mariadbId
+
+ref: mount.mongoId > mongo.mongoId
+
+ref: mount.mysqlId > mysql.mysqlId
+
+ref: mount.redisId > redis.redisId
+
+ref: mount.composeId > compose.composeId
+
+ref: application.projectId > project.projectId
+
+ref: application.customGitSSHKeyId > "ssh-key".sshKeyId
+
+ref: application.registryId > registry.registryId
+
+ref: application.githubId - github.githubId
+
+ref: application.gitlabId - gitlab.gitlabId
+
+ref: application.bitbucketId - bitbucket.bitbucketId
+
+ref: application.serverId > server.serverId
+
+ref: backup.destinationId > destination.destinationId
+
+ref: backup.postgresId > postgres.postgresId
+
+ref: backup.mariadbId > mariadb.mariadbId
+
+ref: backup.mysqlId > mysql.mysqlId
+
+ref: backup.mongoId > mongo.mongoId
+
+ref: git_provider.gitProviderId - bitbucket.gitProviderId
+
+ref: certificate.serverId > server.serverId
+
+ref: certificate.userId - user.id
+
+ref: compose.projectId > project.projectId
+
+ref: compose.customGitSSHKeyId > "ssh-key".sshKeyId
+
+ref: compose.githubId - github.githubId
+
+ref: compose.gitlabId - gitlab.gitlabId
+
+ref: compose.bitbucketId - bitbucket.bitbucketId
+
+ref: compose.serverId > server.serverId
+
+ref: deployment.applicationId > application.applicationId
+
+ref: deployment.composeId > compose.composeId
+
+ref: deployment.serverId > server.serverId
+
+ref: deployment.previewDeploymentId > preview_deployments.previewDeploymentId
+
+ref: destination.userId - user.id
+
+ref: domain.applicationId > application.applicationId
+
+ref: domain.composeId > compose.composeId
+
+ref: preview_deployments.domainId - domain.domainId
+
+ref: github.gitProviderId - git_provider.gitProviderId
+
+ref: gitlab.gitProviderId - git_provider.gitProviderId
+
+ref: gitea.gitProviderId - git_provider.gitProviderId
+
+ref: git_provider.userId - user.id
+
+ref: mariadb.projectId > project.projectId
+
+ref: mariadb.serverId > server.serverId
+
+ref: mongo.projectId > project.projectId
+
+ref: mongo.serverId > server.serverId
+
+ref: mysql.projectId > project.projectId
+
+ref: mysql.serverId > server.serverId
+
+ref: notification.slackId - slack.slackId
+
+ref: notification.telegramId - telegram.telegramId
+
+ref: notification.discordId - discord.discordId
+
+ref: notification.emailId - email.emailId
+
+ref: notification.gotifyId - gotify.gotifyId
+
+ref: notification.userId - user.id
+
+ref: port.applicationId > application.applicationId
+
+ref: postgres.projectId > project.projectId
+
+ref: postgres.serverId > server.serverId
+
+ref: preview_deployments.applicationId > application.applicationId
+
+ref: project.userId - user.id
+
+ref: redirect.applicationId > application.applicationId
+
+ref: redis.projectId > project.projectId
+
+ref: redis.serverId > server.serverId
+
+ref: registry.userId - user.id
+
+ref: security.applicationId > application.applicationId
+
+ref: server.userId - user.id
+
+ref: server.sshKeyId > "ssh-key".sshKeyId
+
+ref: "ssh-key".userId - user.id

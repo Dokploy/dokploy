@@ -3,7 +3,7 @@ import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { IS_CLOUD } from "@dokploy/server";
+import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -21,6 +21,7 @@ export default async function handler(
 			where: eq(applications.refreshToken, refreshToken as string),
 			with: {
 				project: true,
+				bitbucket: true,
 			},
 		});
 
@@ -57,6 +58,20 @@ export default async function handler(
 				return;
 			}
 		} else if (sourceType === "github") {
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+
 			const branchName = extractBranchName(req.headers, req.body);
 			if (!branchName || branchName !== application.branch) {
 				res.status(301).json({ message: "Branch Not Match" });
@@ -64,19 +79,100 @@ export default async function handler(
 			}
 		} else if (sourceType === "git") {
 			const branchName = extractBranchName(req.headers, req.body);
+
 			if (!branchName || branchName !== application.customGitBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
+
+			const provider = getProviderByHeader(req.headers);
+			let normalizedCommits: string[] = [];
+
+			if (provider === "github") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			} else if (provider === "gitlab") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			} else if (provider === "gitea") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
+			}
+
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
 		} else if (sourceType === "gitlab") {
 			const branchName = extractBranchName(req.headers, req.body);
+
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+
 			if (!branchName || branchName !== application.gitlabBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
 		} else if (sourceType === "bitbucket") {
 			const branchName = extractBranchName(req.headers, req.body);
+
 			if (!branchName || branchName !== application.bitbucketBranch) {
+				res.status(301).json({ message: "Branch Not Match" });
+				return;
+			}
+
+			const commitedPaths = await extractCommitedPaths(
+				req.body,
+				application.bitbucketOwner,
+				application.bitbucket?.appPassword || "",
+				application.bitbucketRepository || "",
+			);
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				commitedPaths,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+		} else if (sourceType === "gitea") {
+			const branchName = extractBranchName(req.headers, req.body);
+
+			const normalizedCommits = req.body?.commits?.flatMap(
+				(commit: any) => commit.modified,
+			);
+
+			const shouldDeployPaths = shouldDeploy(
+				application.watchPaths,
+				normalizedCommits,
+			);
+
+			if (!shouldDeployPaths) {
+				res.status(301).json({ message: "Watch Paths Not Match" });
+				return;
+			}
+
+			if (!branchName || branchName !== application.giteaBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
@@ -106,14 +202,14 @@ export default async function handler(
 				},
 			);
 		} catch (error) {
-			res.status(400).json({ message: "Error To Deploy Application", error });
+			res.status(400).json({ message: "Error deploying Application", error });
 			return;
 		}
 
-		res.status(200).json({ message: "App Deployed Succesfully" });
+		res.status(200).json({ message: "Application deployed successfully" });
 	} catch (error) {
 		console.log(error);
-		res.status(400).json({ message: "Error To Deploy Application", error });
+		res.status(400).json({ message: "Error deploying Application", error });
 	}
 }
 
@@ -230,4 +326,63 @@ export const extractBranchName = (headers: any, body: any) => {
 	}
 
 	return null;
+};
+
+export const getProviderByHeader = (headers: any) => {
+	if (headers["x-github-event"]) {
+		return "github";
+	}
+
+	if (headers["x-gitea-event"]) {
+		return "gitea";
+	}
+
+	if (headers["x-gitlab-event"]) {
+		return "gitlab";
+	}
+
+	if (headers["x-event-key"]?.includes("repo:push")) {
+		return "bitbucket";
+	}
+
+	return null;
+};
+
+export const extractCommitedPaths = async (
+	body: any,
+	bitbucketUsername: string | null,
+	bitbucketAppPassword: string | null,
+	repository: string | null,
+) => {
+	const changes = body.push?.changes || [];
+
+	const commitHashes = changes
+		.map((change: any) => change.new?.target?.hash)
+		.filter(Boolean);
+	const commitedPaths: string[] = [];
+	for (const commit of commitHashes) {
+		const url = `https://api.bitbucket.org/2.0/repositories/${bitbucketUsername}/${repository}/diffstat/${commit}`;
+
+		try {
+			const response = await fetch(url, {
+				headers: {
+					Authorization: `Basic ${Buffer.from(`${bitbucketUsername}:${bitbucketAppPassword}`).toString("base64")}`,
+				},
+			});
+
+			const data = await response.json();
+			for (const value of data.values) {
+				commitedPaths.push(value.new?.path);
+			}
+		} catch (error) {
+			console.error(
+				`Error fetching Bitbucket diffstat for commit ${commit}:`,
+				error instanceof Error ? error.message : "Unknown error",
+			);
+
+			return [];
+		}
+	}
+
+	return commitedPaths;
 };

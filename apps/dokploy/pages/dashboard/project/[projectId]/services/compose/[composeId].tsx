@@ -1,21 +1,30 @@
+import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
+import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
+import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
+import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
+import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { ShowVolumesCompose } from "@/components/dashboard/compose/advanced/show-volumes";
-import { DeleteCompose } from "@/components/dashboard/compose/delete-compose";
-import { ShowDeploymentsCompose } from "@/components/dashboard/compose/deployments/show-deployments-compose";
-import { ShowDomainsCompose } from "@/components/dashboard/compose/domains/show-domains";
-import { ShowEnvironmentCompose } from "@/components/dashboard/compose/enviroment/show";
+import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
-import { ShowMonitoringCompose } from "@/components/dashboard/compose/monitoring/show";
+import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
-import { ProjectLayout } from "@/components/layouts/project-layout";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
+import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -24,20 +33,22 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
 import { CircuitBoard, ServerOff } from "lucide-react";
 import { HelpCircle } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import React, { useState, type ReactElement } from "react";
+import { type ReactElement, useEffect, useState } from "react";
+import { toast } from "sonner";
 import superjson from "superjson";
 
 type TabState =
@@ -46,232 +57,315 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
-	| "monitoring";
+	| "monitoring"
+	| "volumeBackups";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { composeId, activeTab } = props;
 	const router = useRouter();
 	const { projectId } = router.query;
-	const [tab, setSab] = useState<TabState>(activeTab);
-	const { data } = api.compose.one.useQuery(
-		{ composeId },
-		{
-			refetchInterval: 5000,
-		},
-	);
+	const [tab, setTab] = useState<TabState>(activeTab);
 
-	const { data: auth } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: auth?.id || "",
-		},
-		{
-			enabled: !!auth?.id && auth?.rol === "user",
-		},
-	);
+	useEffect(() => {
+		if (router.query.tab) {
+			setTab(router.query.tab as TabState);
+		}
+	}, [router.query.tab]);
+
+	const { data } = api.compose.one.useQuery({ composeId });
+
+	const { data: auth } = api.user.get.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<div className="pb-10">
-			<div className="flex flex-col gap-4">
-				<Breadcrumb>
-					<BreadcrumbItem>
-						<BreadcrumbLink as={Link} href="/dashboard/projects">
-							Projects
-						</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbItem>
-						<BreadcrumbLink
-							as={Link}
-							href={`/dashboard/project/${data?.project.projectId}`}
-						>
-							{data?.project.name}
-						</BreadcrumbLink>
-					</BreadcrumbItem>
+			<BreadcrumbSidebar
+				list={[
+					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: data?.project?.name || "",
+						href: `/dashboard/project/${projectId}`,
+					},
+					{
+						name: data?.name || "",
+						href: `/dashboard/project/${projectId}/services/compose/${composeId}`,
+					},
+				]}
+			/>
+			<Head>
+				<title>
+					Compose: {data?.name} - {data?.project.name} | Dokploy
+				</title>
+			</Head>
+			<div className="w-full">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
+					<div className="rounded-xl bg-background shadow-md ">
+						<div className="flex flex-col gap-4">
+							<CardHeader className="flex flex-row justify-between items-center">
+								<div className="flex flex-col">
+									<CardTitle className="text-xl flex flex-row gap-2">
+										<div className="relative flex flex-row gap-4">
+											<div className="absolute -right-1 -top-2">
+												<StatusTooltip status={data?.composeStatus} />
+											</div>
 
-					<BreadcrumbItem isCurrentPage>
-						<BreadcrumbLink>{data?.name}</BreadcrumbLink>
-					</BreadcrumbItem>
-				</Breadcrumb>
-				<header className="mb-6 flex w-full items-center justify-between max-sm:flex-wrap gap-4">
-					<div className="flex  flex-col justify-between w-fit gap-2">
-						<div className="flex flex-row items-center gap-2 xl:gap-4 flex-wrap">
-							<h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
-								{data?.name}
-							</h1>
-							<span className="text-sm">{data?.appName}</span>
-						</div>
-						<div className="flex flex-row h-fit w-fit gap-2">
-							<Badge
-								variant={
-									!data?.serverId
-										? "default"
-										: data?.server?.serverStatus === "active"
-											? "default"
-											: "destructive"
-								}
-							>
-								{data?.server?.name || "Dokploy Server"}
-							</Badge>
-							{data?.server?.serverStatus === "inactive" && (
-								<TooltipProvider delayDuration={0}>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Label className="break-all w-fit flex flex-row gap-1 items-center">
-												<HelpCircle className="size-4 text-muted-foreground" />
-											</Label>
-										</TooltipTrigger>
-										<TooltipContent
-											className="z-[999] w-[300px]"
-											align="start"
-											side="top"
+											<CircuitBoard className="h-6 w-6 text-muted-foreground" />
+										</div>
+										{data?.name}
+									</CardTitle>
+									{data?.description && (
+										<CardDescription>{data?.description}</CardDescription>
+									)}
+
+									<span className="text-sm text-muted-foreground">
+										{data?.appName}
+									</span>
+								</div>
+								<div className="flex flex-col h-fit w-fit gap-2">
+									<div className="flex flex-row h-fit w-fit gap-2">
+										<Badge
+											className="cursor-pointer"
+											onClick={() => {
+												if (data?.server?.ipAddress) {
+													copy(data.server.ipAddress);
+													toast.success("IP Address Copied!");
+												}
+											}}
+											variant={
+												!data?.serverId
+													? "default"
+													: data?.server?.serverStatus === "active"
+														? "default"
+														: "destructive"
+											}
 										>
-											<span>
-												You cannot, deploy this application because the server
-												is inactive, please upgrade your plan to add more
-												servers.
-											</span>
-										</TooltipContent>
-									</Tooltip>
-								</TooltipProvider>
+											{data?.server?.name || "Dokploy Server"}
+										</Badge>
+										{data?.server?.serverStatus === "inactive" && (
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Label className="break-all w-fit flex flex-row gap-1 items-center">
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</Label>
+													</TooltipTrigger>
+													<TooltipContent
+														className="z-[999] w-[300px]"
+														align="start"
+														side="top"
+													>
+														<span>
+															You cannot, deploy this application because the
+															server is inactive, please upgrade your plan to
+															add more servers.
+														</span>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										)}
+									</div>
+									<div className="flex flex-row gap-2 justify-end">
+										<UpdateCompose composeId={composeId} />
+
+										{(auth?.role === "owner" || auth?.canDeleteServices) && (
+											<DeleteService id={composeId} type="compose" />
+										)}
+									</div>
+								</div>
+							</CardHeader>
+						</div>
+						<CardContent className="space-y-2 py-8 border-t">
+							{data?.server?.serverStatus === "inactive" ? (
+								<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
+									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
+										<ServerOff className="size-10 text-muted-foreground self-center" />
+										<span className="text-center text-base text-muted-foreground">
+											This service is hosted on the server {data.server.name},
+											but this server has been disabled because your current
+											plan doesn't include enough servers. Please purchase more
+											servers to regain access to this application.
+										</span>
+										<span className="text-center text-base text-muted-foreground">
+											Go to{" "}
+											<Link
+												href="/dashboard/settings/billing"
+												className="text-primary"
+											>
+												Billing
+											</Link>
+										</span>
+									</div>
+								</div>
+							) : (
+								<Tabs
+									value={tab}
+									defaultValue="general"
+									className="w-full"
+									onValueChange={(e) => {
+										setTab(e as TabState);
+										const newPath = `/dashboard/project/${projectId}/services/compose/${composeId}?tab=${e}`;
+										router.push(newPath);
+									}}
+								>
+									<div className="flex flex-row items-center w-full overflow-auto">
+										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
+											<TabsTrigger value="general">General</TabsTrigger>
+											<TabsTrigger value="environment">Environment</TabsTrigger>
+											<TabsTrigger value="domains">Domains</TabsTrigger>
+											<TabsTrigger value="deployments">Deployments</TabsTrigger>
+											<TabsTrigger value="backups">Backups</TabsTrigger>
+											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="volumeBackups">
+												Volume Backups
+											</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
+											{((data?.serverId && isCloud) || !data?.server) && (
+												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											)}
+											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+										</TabsList>
+									</div>
+
+									<TabsContent value="general">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowGeneralCompose composeId={composeId} />
+										</div>
+									</TabsContent>
+									<TabsContent value="environment">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowEnvironment id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="backups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowBackups id={composeId} backupType="compose" />
+										</div>
+									</TabsContent>
+
+									<TabsContent value="schedules">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowSchedules id={composeId} scheduleType="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="volumeBackups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowVolumeBackups
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col border rounded-lg ">
+												{data?.serverId && isCloud ? (
+													<ComposePaidMonitoring
+														serverId={data?.serverId || ""}
+														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														appName={data?.appName || ""}
+														token={
+															data?.server?.metricsConfig?.server?.token || ""
+														}
+														appType={data?.composeType || "docker-compose"}
+													/>
+												) : (
+													<>
+														{/* {monitoring?.enabledFeatures &&
+															isCloud &&
+															data?.serverId && (
+																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
+																	<Label className="text-muted-foreground">
+																		Change Monitoring
+																	</Label>
+																	<Switch
+																		checked={toggleMonitoring}
+																		onCheckedChange={setToggleMonitoring}
+																	/>
+																</div>
+															)}
+
+														{toggleMonitoring ? (
+															<ComposePaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+																appType={data?.composeType || "docker-compose"}
+															/>
+														) : ( */}
+														{/* <div> */}
+														<ComposeFreeMonitoring
+															serverId={data?.serverId || ""}
+															appName={data?.appName || ""}
+															appType={data?.composeType || "docker-compose"}
+														/>
+														{/* </div> */}
+														{/* )} */}
+													</>
+												)}
+											</div>
+										</div>
+									</TabsContent>
+
+									<TabsContent value="logs">
+										<div className="flex flex-col gap-4 pt-2.5">
+											{data?.composeType === "docker-compose" ? (
+												<ShowDockerLogsCompose
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+													appType={data?.composeType || "docker-compose"}
+												/>
+											) : (
+												<ShowDockerLogsStack
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+												/>
+											)}
+										</div>
+									</TabsContent>
+
+									<TabsContent value="deployments" className="w-full pt-2.5">
+										<div className="flex flex-col gap-4 border rounded-lg">
+											<ShowDeployments
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
+										</div>
+									</TabsContent>
+
+									<TabsContent value="domains">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowDomains id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+
+									<TabsContent value="advanced">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<AddCommandCompose composeId={composeId} />
+											<ShowVolumes id={composeId} type="compose" />
+											<ShowImport composeId={composeId} />
+										</div>
+									</TabsContent>
+								</Tabs>
 							)}
-						</div>
-						{data?.description && (
-							<p className="text-sm text-muted-foreground max-w-6xl">
-								{data?.description}
-							</p>
-						)}
+						</CardContent>
 					</div>
-
-					<div className="relative flex flex-row gap-4">
-						<div className="absolute -right-1  -top-2">
-							<StatusTooltip status={data?.composeStatus} />
-						</div>
-
-						<CircuitBoard className="h-6 w-6 text-muted-foreground" />
-					</div>
-				</header>
+				</Card>
 			</div>
-			{data?.server?.serverStatus === "inactive" ? (
-				<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
-					<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
-						<ServerOff className="size-10 text-muted-foreground self-center" />
-						<span className="text-center text-base text-muted-foreground">
-							This service is hosted on the server {data.server.name}, but this
-							server has been disabled because your current plan doesn't include
-							enough servers. Please purchase more servers to regain access to
-							this application.
-						</span>
-						<span className="text-center text-base text-muted-foreground">
-							Go to{" "}
-							<Link href="/dashboard/settings/billing" className="text-primary">
-								Billing
-							</Link>
-						</span>
-					</div>
-				</div>
-			) : (
-				<Tabs
-					value={tab}
-					defaultValue="general"
-					className="w-full"
-					onValueChange={(e) => {
-						setSab(e as TabState);
-						const newPath = `/dashboard/project/${projectId}/services/compose/${composeId}?tab=${e}`;
-						router.push(newPath, undefined, { shallow: true });
-					}}
-				>
-					<div className="flex flex-row items-center justify-between  w-full gap-4">
-						<TabsList
-							className={cn(
-								"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-								data?.serverId ? "md:grid-cols-6" : "md:grid-cols-7",
-								data?.composeType === "docker-compose" ? "" : "md:grid-cols-6",
-								data?.serverId && data?.composeType === "stack"
-									? "md:grid-cols-5"
-									: "",
-							)}
-						>
-							<TabsTrigger value="general">General</TabsTrigger>
-							{data?.composeType === "docker-compose" && (
-								<TabsTrigger value="environment">Environment</TabsTrigger>
-							)}
-							{!data?.serverId && (
-								<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-							)}
-							<TabsTrigger value="logs">Logs</TabsTrigger>
-							<TabsTrigger value="deployments">Deployments</TabsTrigger>
-							<TabsTrigger value="domains">Domains</TabsTrigger>
-							<TabsTrigger value="advanced">Advanced</TabsTrigger>
-						</TabsList>
-						<div className="flex flex-row gap-2">
-							<UpdateCompose composeId={composeId} />
-
-							{(auth?.rol === "admin" || user?.canDeleteServices) && (
-								<DeleteCompose composeId={composeId} />
-							)}
-						</div>
-					</div>
-
-					<TabsContent value="general">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowGeneralCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-					<TabsContent value="environment">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowEnvironmentCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-					{!data?.serverId && (
-						<TabsContent value="monitoring">
-							<div className="flex flex-col gap-4 pt-2.5">
-								<ShowMonitoringCompose
-									serverId={data?.serverId || ""}
-									appName={data?.appName || ""}
-									appType={data?.composeType || "docker-compose"}
-								/>
-							</div>
-						</TabsContent>
-					)}
-
-					<TabsContent value="logs">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowDockerLogsCompose
-								serverId={data?.serverId || ""}
-								appName={data?.appName || ""}
-								appType={data?.composeType || "docker-compose"}
-							/>
-						</div>
-					</TabsContent>
-
-					<TabsContent value="deployments">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowDeploymentsCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-
-					<TabsContent value="domains">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<ShowDomainsCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-					<TabsContent value="advanced">
-						<div className="flex flex-col gap-4 pt-2.5">
-							<AddCommandCompose composeId={composeId} />
-							<ShowVolumesCompose composeId={composeId} />
-						</div>
-					</TabsContent>
-				</Tabs>
-			)}
 		</div>
 	);
 };
 
 export default Service;
 Service.getLayout = (page: ReactElement) => {
-	return <ProjectLayout>{page}</ProjectLayout>;
+	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
@@ -283,7 +377,7 @@ export async function getServerSideProps(
 	const { query, params, req, res } = ctx;
 
 	const activeTab = query.tab;
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
 			redirect: {
@@ -299,8 +393,8 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
@@ -311,7 +405,7 @@ export async function getServerSideProps(
 			await helpers.compose.one.fetch({
 				composeId: params?.composeId,
 			});
-
+			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
@@ -319,7 +413,7 @@ export async function getServerSideProps(
 					activeTab: (activeTab || "general") as TabState,
 				},
 			};
-		} catch (error) {
+		} catch {
 			return {
 				redirect: {
 					permanent: false,

@@ -14,6 +14,13 @@ import {
 	YAxis,
 } from "recharts";
 
+export interface RequestDistributionChartProps {
+	dateRange?: {
+		from: Date | undefined;
+		to: Date | undefined;
+	};
+}
+
 const chartConfig = {
 	views: {
 		label: "Page Views",
@@ -24,10 +31,22 @@ const chartConfig = {
 	},
 } satisfies ChartConfig;
 
-export const RequestDistributionChart = () => {
-	const { data: stats } = api.settings.readStats.useQuery(undefined, {
-		refetchInterval: 1333,
-	});
+export const RequestDistributionChart = ({
+	dateRange,
+}: RequestDistributionChartProps) => {
+	const { data: stats } = api.settings.readStats.useQuery(
+		{
+			dateRange: dateRange
+				? {
+						start: dateRange.from?.toISOString(),
+						end: dateRange.to?.toISOString(),
+					}
+				: undefined,
+		},
+		{
+			refetchInterval: 1333,
+		},
+	);
 
 	return (
 		<ResponsiveContainer width="100%" height={200}>

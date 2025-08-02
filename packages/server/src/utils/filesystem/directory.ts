@@ -39,7 +39,7 @@ export const removeFileOrDirectory = async (path: string) => {
 	try {
 		await execAsync(`rm -rf ${path}`);
 	} catch (error) {
-		console.error(`Error to remove ${path}: ${error}`);
+		console.error(`Error removing ${path}: ${error}`);
 		throw error;
 	}
 };
@@ -58,7 +58,7 @@ export const removeDirectoryCode = async (
 			await execAsync(command);
 		}
 	} catch (error) {
-		console.error(`Error to remove ${directoryPath}: ${error}`);
+		console.error(`Error removing ${directoryPath}: ${error}`);
 		throw error;
 	}
 };
@@ -77,7 +77,7 @@ export const removeComposeDirectory = async (
 			await execAsync(command);
 		}
 	} catch (error) {
-		console.error(`Error to remove ${directoryPath}: ${error}`);
+		console.error(`Error removing ${directoryPath}: ${error}`);
 		throw error;
 	}
 };
@@ -96,7 +96,7 @@ export const removeMonitoringDirectory = async (
 			await execAsync(command);
 		}
 	} catch (error) {
-		console.error(`Error to remove ${directoryPath}: ${error}`);
+		console.error(`Error removing ${directoryPath}: ${error}`);
 		throw error;
 	}
 };
@@ -113,6 +113,8 @@ export const getBuildAppDirectory = (application: Application) => {
 		buildPath = application?.gitlabBuildPath || "";
 	} else if (sourceType === "bitbucket") {
 		buildPath = application?.bitbucketBuildPath || "";
+	} else if (sourceType === "gitea") {
+		buildPath = application?.giteaBuildPath || "";
 	} else if (sourceType === "drop") {
 		buildPath = application?.dropBuildPath || "";
 	} else if (sourceType === "git") {

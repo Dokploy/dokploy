@@ -105,7 +105,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 				form.reset();
 			})
 			.catch(() => {
-				toast.error("Error to update the traefik config");
+				toast.error("Error updating the Traefik config");
 			});
 	};
 
@@ -122,7 +122,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			<DialogTrigger asChild>
 				<Button isLoading={isLoading}>Modify</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
+			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Update traefik config</DialogTitle>
 					<DialogDescription>Update the traefik config</DialogDescription>

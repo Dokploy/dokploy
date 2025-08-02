@@ -12,14 +12,14 @@ export type Registry = typeof registry.$inferSelect;
 
 export const createRegistry = async (
 	input: typeof apiCreateRegistry._type,
-	adminId: string,
+	organizationId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newRegistry = await tx
 			.insert(registry)
 			.values({
 				...input,
-				adminId: adminId,
+				organizationId: organizationId,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -71,7 +71,7 @@ export const removeRegistry = async (registryId: string) => {
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to remove this registry",
+			message: "Error removing this registry",
 			cause: error,
 		});
 	}
@@ -112,9 +112,11 @@ export const updateRegistry = async (
 
 		return response;
 	} catch (error) {
+		const message =
+			error instanceof Error ? error.message : "Error updating this registry";
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to update this registry",
+			message,
 		});
 	}
 };
@@ -135,9 +137,11 @@ export const findRegistryById = async (registryId: string) => {
 	return registryResponse;
 };
 
-export const findAllRegistryByAdminId = async (adminId: string) => {
+export const findAllRegistryByOrganizationId = async (
+	organizationId: string,
+) => {
 	const registryResponse = await db.query.registry.findMany({
-		where: eq(registry.adminId, adminId),
+		where: eq(registry.organizationId, organizationId),
 	});
 	return registryResponse;
 };

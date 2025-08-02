@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, SquarePen } from "lucide-react";
+import { PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -75,13 +75,13 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Redis updated succesfully");
+				toast.success("Redis updated successfully");
 				utils.redis.one.invalidate({
 					redisId: redisId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error to update the redis");
+				toast.error("Error updating Redis");
 			})
 			.finally(() => {});
 	};
@@ -89,11 +89,15 @@ export const UpdateRedis = ({ redisId }: Props) => {
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
-				<Button variant="ghost">
-					<SquarePen className="size-4 text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-blue-500/10 "
+				>
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Modify Redis</DialogTitle>
 					<DialogDescription>Update the redis data</DialogDescription>
@@ -115,7 +119,7 @@ export const UpdateRedis = ({ redisId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input placeholder="Tesla" {...field} />
+												<Input placeholder="Vandelay Industries" {...field} />
 											</FormControl>
 
 											<FormMessage />

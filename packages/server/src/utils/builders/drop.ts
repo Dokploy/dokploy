@@ -27,7 +27,9 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 		const buffer = Buffer.from(arrayBuffer);
 
 		const zip = new AdmZip(buffer);
-		const zipEntries = zip.getEntries();
+		const zipEntries = zip
+			.getEntries()
+			.filter((entry) => !entry.entryName.startsWith("__MACOSX"));
 
 		const rootEntries = zipEntries.filter(
 			(entry) =>
@@ -59,14 +61,22 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 
 			if (!filePath) continue;
 
-			const fullPath = path.join(outputPath, filePath);
+			const fullPath = path.join(outputPath, filePath).replace(/\\/g, "/");
 
 			if (application.serverId) {
-				if (entry.isDirectory) {
-					await execAsyncRemote(application.serverId, `mkdir -p ${fullPath}`);
-				} else {
+				if (!entry.isDirectory) {
 					if (sftp === null) throw new Error("No SFTP connection available");
-					await uploadFileToServer(sftp, entry.getData(), fullPath);
+					try {
+						const dirPath = path.dirname(fullPath);
+						await execAsyncRemote(
+							application.serverId,
+							`mkdir -p "${dirPath}"`,
+						);
+						await uploadFileToServer(sftp, entry.getData(), fullPath);
+					} catch (err) {
+						console.error(`Error uploading file ${fullPath}:`, err);
+						throw err;
+					}
 				}
 			} else {
 				if (entry.isDirectory) {
@@ -103,7 +113,6 @@ const getSFTPConnection = async (serverId: string): Promise<SFTPWrapper> => {
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
-				timeout: 99999,
 			});
 	});
 };
@@ -115,7 +124,10 @@ const uploadFileToServer = (
 ): Promise<void> => {
 	return new Promise((resolve, reject) => {
 		sftp.writeFile(remotePath, data, (err) => {
-			if (err) return reject(err);
+			if (err) {
+				console.error(`SFTP write error for ${remotePath}:`, err);
+				return reject(err);
+			}
 			resolve();
 		});
 	});

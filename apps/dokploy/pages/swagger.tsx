@@ -30,7 +30,41 @@ const Home: NextPage = () => {
 
 	return (
 		<div className="h-screen bg-white">
-			<SwaggerUI spec={spec} />
+			<SwaggerUI
+				spec={spec}
+				persistAuthorization={true}
+				plugins={[
+					{
+						statePlugins: {
+							auth: {
+								wrapActions: {
+									authorize: (ori: any) => (args: any) => {
+										const result = ori(args);
+										const apiKey = args?.apiKey?.value;
+										if (apiKey) {
+											localStorage.setItem("swagger_api_key", apiKey);
+										}
+										return result;
+									},
+									logout: (ori: any) => (args: any) => {
+										const result = ori(args);
+										localStorage.removeItem("swagger_api_key");
+										return result;
+									},
+								},
+							},
+						},
+					},
+				]}
+				requestInterceptor={(request: any) => {
+					const apiKey = localStorage.getItem("swagger_api_key");
+					if (apiKey) {
+						request.headers = request.headers || {};
+						request.headers["x-api-key"] = apiKey;
+					}
+					return request;
+				}}
+			/>
 		</div>
 	);
 };
@@ -38,7 +72,7 @@ const Home: NextPage = () => {
 export default Home;
 export async function getServerSideProps(context: GetServerSidePropsContext) {
 	const { req, res } = context;
-	const { user, session } = await validateRequest(context.req, context.res);
+	const { user, session } = await validateRequest(context.req);
 	if (!user) {
 		return {
 			redirect: {
@@ -53,17 +87,17 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
-	if (user.rol === "user") {
-		const result = await helpers.user.byAuthId.fetch({
-			authId: user.id,
+	if (user.role === "member") {
+		const userR = await helpers.user.one.fetch({
+			userId: user.id,
 		});
 
-		if (!result.canAccessToAPI) {
+		if (!userR?.canAccessToAPI) {
 			return {
 				redirect: {
 					permanent: true,

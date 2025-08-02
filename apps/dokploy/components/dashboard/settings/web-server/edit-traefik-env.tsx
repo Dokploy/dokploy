@@ -71,17 +71,19 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 				toast.success("Traefik Env Updated");
 			})
 			.catch(() => {
-				toast.error("Error to update the traefik env");
+				toast.error("Error updating the Traefik env");
 			});
 	};
 
 	return (
 		<Dialog>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
+			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update Traefik Env</DialogTitle>
-					<DialogDescription>Update the traefik env</DialogDescription>
+					<DialogTitle>Update Traefik Environment</DialogTitle>
+					<DialogDescription>
+						Update the traefik environment variables
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 

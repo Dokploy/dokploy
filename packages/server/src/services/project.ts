@@ -16,13 +16,13 @@ export type Project = typeof projects.$inferSelect;
 
 export const createProject = async (
 	input: typeof apiCreateProject._type,
-	adminId: string,
+	organizationId: string,
 ) => {
 	const newProject = await db
 		.insert(projects)
 		.values({
 			...input,
-			adminId: adminId,
+			organizationId: organizationId,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -30,7 +30,7 @@ export const createProject = async (
 	if (!newProject) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the project",
+			message: "Error creating the project",
 		});
 	}
 

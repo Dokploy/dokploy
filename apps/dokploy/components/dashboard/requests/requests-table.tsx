@@ -79,7 +79,15 @@ export const priorities = [
 		icon: Server,
 	},
 ];
-export const RequestsTable = () => {
+
+export interface RequestsTableProps {
+	dateRange?: {
+		from: Date | undefined;
+		to: Date | undefined;
+	};
+}
+
+export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 	const [statusFilter, setStatusFilter] = useState<string[]>([]);
 	const [search, setSearch] = useState("");
 	const [selectedRow, setSelectedRow] = useState<LogEntry>();
@@ -92,12 +100,18 @@ export const RequestsTable = () => {
 		pageSize: 10,
 	});
 
-	const { data: statsLogs, isLoading } = api.settings.readStatsLogs.useQuery(
+	const { data: statsLogs } = api.settings.readStatsLogs.useQuery(
 		{
 			sort: sorting[0],
 			page: pagination,
 			search,
 			status: statusFilter,
+			dateRange: dateRange
+				? {
+						start: dateRange.from?.toISOString(),
+						end: dateRange.to?.toISOString(),
+					}
+				: undefined,
 		},
 		{
 			refetchInterval: 1333,
@@ -300,7 +314,7 @@ export const RequestsTable = () => {
 			</div>
 			<Sheet
 				open={!!selectedRow}
-				onOpenChange={(open) => setSelectedRow(undefined)}
+				onOpenChange={(_open) => setSelectedRow(undefined)}
 			>
 				<SheetContent className="sm:max-w-[740px]  flex flex-col">
 					<SheetHeader>

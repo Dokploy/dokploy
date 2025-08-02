@@ -1,3 +1,4 @@
+import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Dialog,
 	DialogContent,
@@ -23,7 +24,7 @@ export const ShowNodeData = ({ data }: Props) => {
 					View Config
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
 					<DialogTitle>Node Config</DialogTitle>
 					<DialogDescription>
@@ -33,7 +34,13 @@ export const ShowNodeData = ({ data }: Props) => {
 				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card">
 					<code>
 						<pre className="whitespace-pre-wrap break-words">
-							{JSON.stringify(data, null, 2)}
+							<CodeEditor
+								language="json"
+								lineWrapping
+								lineNumbers={false}
+								readOnly
+								value={JSON.stringify(data, null, 2)}
+							/>
 						</pre>
 					</code>
 				</div>

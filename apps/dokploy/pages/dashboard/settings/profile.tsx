@@ -1,30 +1,28 @@
-import { GenerateToken } from "@/components/dashboard/settings/profile/generate-token";
+import { ShowApiKeys } from "@/components/dashboard/settings/api/show-api-keys";
 import { ProfileForm } from "@/components/dashboard/settings/profile/profile-form";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import React, { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {
-	const { data } = api.auth.get.useQuery();
-	const { data: user } = api.user.byAuthId.useQuery(
-		{
-			authId: data?.id || "",
-		},
-		{
-			enabled: !!data?.id && data?.rol === "user",
-		},
-	);
+	const { data } = api.user.get.useQuery();
+
+	// const { data: isCloud } = api.settings.isCloud.useQuery();
 	return (
-		<div className="flex flex-col gap-4 w-full">
-			<ProfileForm />
-			{(user?.canAccessToAPI || data?.rol === "admin") && <GenerateToken />}
+		<div className="w-full">
+			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
+				<ProfileForm />
+				{(data?.canAccessToAPI || data?.role === "owner") && <ShowApiKeys />}
+
+				{/* {isCloud && <RemoveSelfAccount />} */}
+			</div>
 		</div>
 	);
 };
@@ -32,18 +30,14 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return (
-		<DashboardLayout tab={"settings"}>
-			<SettingsLayout>{page}</SettingsLayout>
-		</DashboardLayout>
-	);
+	return <DashboardLayout metaName="Profile">{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
 	const { req, res } = ctx;
 	const locale = getLocale(req.cookies);
-	const { user, session } = await validateRequest(req, res);
+	const { user, session } = await validateRequest(req);
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,
@@ -51,19 +45,14 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
 
 	await helpers.settings.isCloud.prefetch();
-	await helpers.auth.get.prefetch();
-	if (user?.rol === "user") {
-		await helpers.user.byAuthId.prefetch({
-			authId: user.authId,
-		});
-	}
+	await helpers.user.get.prefetch();
 
 	if (!user) {
 		return {

@@ -34,8 +34,7 @@ export async function checkGPUStatus(serverId?: string): Promise<GPUInfo> {
 			...gpuInfo,
 			...cudaInfo,
 		};
-	} catch (error) {
-		console.error("Error in checkGPUStatus:", error);
+	} catch {
 		return {
 			driverInstalled: false,
 			driverVersion: undefined,
@@ -316,8 +315,7 @@ const setupLocalServer = async (daemonConfig: any) => {
 
 	try {
 		await execAsync(setupCommands);
-	} catch (error) {
-		console.error("Setup failed:", error);
+	} catch {
 		throw new Error(
 			"Failed to configure GPU support. Please ensure you have sudo privileges and try again.",
 		);
@@ -344,11 +342,10 @@ const verifySetup = async (nodeId: string, serverId?: string) => {
 			"cat /etc/nvidia-container-runtime/config.toml",
 		].join(" && ");
 
-		const { stdout: diagnostics } = serverId
-			? await execAsyncRemote(serverId, diagnosticCommands)
-			: await execAsync(diagnosticCommands);
+		await (serverId
+			? execAsyncRemote(serverId, diagnosticCommands)
+			: execAsync(diagnosticCommands));
 
-		console.error("Diagnostic Information:", diagnostics);
 		throw new Error("GPU support not detected in swarm after setup");
 	}
 

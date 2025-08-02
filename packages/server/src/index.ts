@@ -1,7 +1,4 @@
-export * from "./auth/auth";
-export * from "./auth/token";
 export * from "./auth/random-password";
-// export * from "./db";
 export * from "./services/admin";
 export * from "./services/user";
 export * from "./services/project";
@@ -13,6 +10,7 @@ export * from "./services/mysql";
 export * from "./services/backup";
 export * from "./services/cluster";
 export * from "./services/settings";
+export * from "./services/volume-backups";
 export * from "./services/docker";
 export * from "./services/destination";
 export * from "./services/deployment";
@@ -30,25 +28,33 @@ export * from "./services/ssh-key";
 export * from "./services/git-provider";
 export * from "./services/bitbucket";
 export * from "./services/github";
-export * from "./services/auth";
 export * from "./services/gitlab";
+export * from "./services/gitea";
 export * from "./services/server";
+export * from "./services/schedule";
 export * from "./services/application";
-
+export * from "./services/rollbacks";
+export * from "./utils/databases/rebuild";
 export * from "./setup/config-paths";
 export * from "./setup/postgres-setup";
 export * from "./setup/redis-setup";
 export * from "./setup/server-setup";
+export * from "./setup/monitoring-setup";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
 export * from "./setup/server-validate";
-
+export * from "./setup/server-audit";
+export * from "./utils/watch-paths/should-deploy";
+export * from "./utils/providers/github";
 export * from "./utils/backups/index";
 export * from "./utils/backups/mariadb";
 export * from "./utils/backups/mongo";
 export * from "./utils/backups/mysql";
 export * from "./utils/backups/postgres";
 export * from "./utils/backups/utils";
+export * from "./utils/backups/web-server";
+export * from "./utils/backups/compose";
+export * from "./templates/processors";
 
 export * from "./utils/notifications/build-error";
 export * from "./utils/notifications/build-success";
@@ -56,6 +62,7 @@ export * from "./utils/notifications/database-backup";
 export * from "./utils/notifications/dokploy-restart";
 export * from "./utils/notifications/utils";
 export * from "./utils/notifications/docker-cleanup";
+export * from "./utils/notifications/server-threshold";
 
 export * from "./utils/builders/index";
 export * from "./utils/builders/compose";
@@ -70,6 +77,7 @@ export * from "./utils/builders/utils";
 export * from "./utils/cluster/upload";
 
 export * from "./utils/docker/compose";
+export * from "./utils/docker/collision";
 export * from "./utils/docker/domain";
 export * from "./utils/docker/utils";
 export * from "./utils/docker/types";
@@ -89,6 +97,7 @@ export * from "./utils/providers/docker";
 export * from "./utils/providers/git";
 export * from "./utils/providers/github";
 export * from "./utils/providers/gitlab";
+export * from "./utils/providers/gitea";
 export * from "./utils/providers/raw";
 
 export * from "./utils/servers/remote-docker";
@@ -102,11 +111,6 @@ export * from "./utils/traefik/security";
 export * from "./utils/traefik/types";
 export * from "./utils/traefik/web-server";
 
-export * from "./wss/docker-container-logs";
-export * from "./wss/docker-container-terminal";
-export * from "./wss/docker-stats";
-export * from "./wss/listen-deployment";
-export * from "./wss/terminal";
 export * from "./wss/utils";
 
 export * from "./utils/access-log/handler";
@@ -114,8 +118,22 @@ export * from "./utils/access-log/types";
 export * from "./utils/access-log/utils";
 export * from "./constants/index";
 
-export * from "./monitoring/utilts";
+export * from "./monitoring/utils";
 
 export * from "./db/validations/domain";
 export * from "./db/validations/index";
 export * from "./utils/gpu-setup";
+
+export * from "./lib/auth";
+
+export {
+	startLogCleanup,
+	stopLogCleanup,
+	getLogCleanupStatus,
+} from "./utils/access-log/handler";
+
+export * from "./utils/schedules/utils";
+export * from "./utils/schedules/index";
+export * from "./utils/volume-backups/index";
+
+export * from "./lib/logger";

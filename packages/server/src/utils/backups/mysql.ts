@@ -1,53 +1,55 @@
-import { unlink } from "node:fs/promises";
-import path from "node:path";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
+import {
+	createDeploymentBackup,
+	updateDeploymentStatus,
+} from "@dokploy/server/services/deployment";
 import type { MySql } from "@dokploy/server/services/mysql";
 import { findProjectById } from "@dokploy/server/services/project";
-import {
-	getRemoteServiceContainer,
-	getServiceContainer,
-} from "../docker/utils";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getS3Credentials } from "./utils";
+import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
-	const { appName, databaseRootPassword, projectId, name } = mysql;
+	const { projectId, name } = mysql;
 	const project = await findProjectById(projectId);
-	const { prefix, database } = backup;
+	const { prefix } = backup;
 	const destination = backup.destination;
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
-	const bucketDestination = path.join(prefix, backupFileName);
+	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+	const deployment = await createDeploymentBackup({
+		backupId: backup.backupId,
+		title: "MySQL Backup",
+		description: "MySQL Backup",
+	});
 
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
 
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+
+		const backupCommand = getBackupCommand(
+			backup,
+			rcloneCommand,
+			deployment.logPath,
+		);
+
 		if (mysql.serverId) {
-			const { Id: containerId } = await getRemoteServiceContainer(
-				mysql.serverId,
-				appName,
-			);
-			const mysqlDumpCommand = `docker exec ${containerId} sh -c "mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databaseRootPassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
-
-			await execAsyncRemote(
-				mysql.serverId,
-				`${mysqlDumpCommand} | ${rcloneCommand}`,
-			);
+			await execAsyncRemote(mysql.serverId, backupCommand);
 		} else {
-			const { Id: containerId } = await getServiceContainer(appName);
-			const mysqlDumpCommand = `docker exec ${containerId} sh -c "mysqldump --default-character-set=utf8mb4 -u 'root' --password='${databaseRootPassword}' --single-transaction --no-tablespaces --quick '${database}' | gzip"`;
-
-			await execAsync(`${mysqlDumpCommand} | ${rcloneCommand}`);
+			await execAsync(backupCommand, {
+				shell: "/bin/bash",
+			});
 		}
 		await sendDatabaseBackupNotifications({
 			applicationName: name,
 			projectName: project.name,
 			databaseType: "mysql",
 			type: "success",
-			adminId: project.adminId,
+			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
+		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
 		console.log(error);
 		await sendDatabaseBackupNotifications({
@@ -57,8 +59,10 @@ export const runMySqlBackup = async (mysql: MySql, backup: BackupSchedule) => {
 			type: "error",
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
-			adminId: project.adminId,
+			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
+		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
 	}
 };

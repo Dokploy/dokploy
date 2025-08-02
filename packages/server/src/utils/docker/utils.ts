@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
 import type { ApplicationNested } from "../builders";
@@ -100,7 +101,7 @@ export const containerExists = async (containerName: string) => {
 	try {
 		await container.inspect();
 		return true;
-	} catch (error) {
+	} catch {
 		return false;
 	}
 };
@@ -144,10 +145,11 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 };
 export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
+		const command = "docker image prune --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, "docker image prune --all --force");
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync("docker image prune --all --force");
+			await execAsync(command);
 		}
 	} catch (error) {
 		console.error(error);
@@ -157,10 +159,11 @@ export const cleanUpUnusedImages = async (serverId?: string) => {
 
 export const cleanStoppedContainers = async (serverId?: string) => {
 	try {
+		const command = "docker container prune --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, "docker container prune --force");
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync("docker container prune --force");
+			await execAsync(command);
 		}
 	} catch (error) {
 		console.error(error);
@@ -170,10 +173,11 @@ export const cleanStoppedContainers = async (serverId?: string) => {
 
 export const cleanUpUnusedVolumes = async (serverId?: string) => {
 	try {
+		const command = "docker volume prune --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, "docker volume prune --all --force");
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync("docker volume prune --all --force");
+			await execAsync(command);
 		}
 	} catch (error) {
 		console.error(error);
@@ -199,21 +203,20 @@ export const cleanUpInactiveContainers = async () => {
 };
 
 export const cleanUpDockerBuilder = async (serverId?: string) => {
+	const command = "docker builder prune --all --force";
 	if (serverId) {
-		await execAsyncRemote(serverId, "docker builder prune --all --force");
+		await execAsyncRemote(serverId, command);
 	} else {
-		await execAsync("docker builder prune --all --force");
+		await execAsync(command);
 	}
 };
 
 export const cleanUpSystemPrune = async (serverId?: string) => {
+	const command = "docker system prune --force --volumes";
 	if (serverId) {
-		await execAsyncRemote(
-			serverId,
-			"docker system prune --all --force --volumes",
-		);
+		await execAsyncRemote(serverId, command);
 	} else {
-		await execAsync("docker system prune --all --force --volumes");
+		await execAsync(command);
 	}
 };
 
@@ -238,9 +241,11 @@ export const startServiceRemote = async (serverId: string, appName: string) => {
 export const removeService = async (
 	appName: string,
 	serverId?: string | null,
+	_deleteVolumes = false,
 ) => {
 	try {
 		const command = `docker service rm ${appName}`;
+
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
@@ -274,13 +279,27 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
-export const prepareBuildArgs = (input: string | null) => {
-	const pairs = (input ?? "").split("\n");
+export const parseEnvironmentKeyValuePair = (
+	pair: string,
+): [string, string] => {
+	const [key, ...valueParts] = pair.split("=");
+	if (!key || !valueParts.length) {
+		throw new Error(`Invalid environment variable pair: ${pair}`);
+	}
+
+	return [key, valueParts.join("=")];
+};
+
+export const getEnviromentVariablesObject = (
+	input: string | null,
+	projectEnv?: string | null,
+) => {
+	const envs = prepareEnvironmentVariables(input, projectEnv);
 
 	const jsonObject: Record<string, string> = {};
 
-	for (const pair of pairs) {
-		const [key, value] = pair.split("=");
+	for (const pair of envs) {
+		const [key, value] = parseEnvironmentKeyValuePair(pair);
 		if (key && value) {
 			jsonObject[key] = value;
 		}
@@ -304,10 +323,10 @@ export const generateVolumeMounts = (mounts: ApplicationNested["mounts"]) => {
 };
 
 type Resources = {
-	memoryLimit: number | null;
-	memoryReservation: number | null;
-	cpuLimit: number | null;
-	cpuReservation: number | null;
+	memoryLimit: string | null;
+	memoryReservation: string | null;
+	cpuLimit: string | null;
+	cpuReservation: string | null;
 };
 export const calculateResources = ({
 	memoryLimit,
@@ -317,16 +336,14 @@ export const calculateResources = ({
 }: Resources): ResourceRequirements => {
 	return {
 		Limits: {
-			MemoryBytes: memoryLimit ? memoryLimit * 1024 * 1024 : undefined,
-			NanoCPUs: memoryLimit ? (cpuLimit || 1) * 1000 * 1000 * 1000 : undefined,
+			MemoryBytes: memoryLimit ? Number.parseInt(memoryLimit) : undefined,
+			NanoCPUs: cpuLimit ? Number.parseInt(cpuLimit) : undefined,
 		},
 		Reservations: {
-			MemoryBytes: memoryLimit
-				? (memoryReservation || 1) * 1024 * 1024
+			MemoryBytes: memoryReservation
+				? Number.parseInt(memoryReservation)
 				: undefined,
-			NanoCPUs: memoryLimit
-				? (cpuReservation || 1) * 1000 * 1000 * 1000
-				: undefined,
+			NanoCPUs: cpuReservation ? Number.parseInt(cpuReservation) : undefined,
 		},
 	};
 };
@@ -488,32 +505,9 @@ export const getCreateFileCommand = (
 	`;
 };
 
-export const getServiceContainer = async (appName: string) => {
-	try {
-		const filter = {
-			status: ["running"],
-			label: [`com.docker.swarm.service.name=${appName}`],
-		};
-
-		const containers = await docker.listContainers({
-			filters: JSON.stringify(filter),
-		});
-
-		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
-		}
-
-		const container = containers[0];
-
-		return container;
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const getRemoteServiceContainer = async (
-	serverId: string,
+export const getServiceContainer = async (
 	appName: string,
+	serverId?: string | null,
 ) => {
 	try {
 		const filter = {
@@ -526,11 +520,50 @@ export const getRemoteServiceContainer = async (
 		});
 
 		if (containers.length === 0 || !containers[0]) {
-			throw new Error(`No container found with name: ${appName}`);
+			return null;
 		}
 
 		const container = containers[0];
 
+		return container;
+	} catch (error) {
+		throw error;
+	}
+};
+
+export const getComposeContainer = async (
+	compose: Compose,
+	serviceName: string,
+) => {
+	try {
+		const { appName, composeType, serverId } = compose;
+		// 1. Determine the correct labels based on composeType
+		const labels: string[] = [];
+		if (composeType === "stack") {
+			// Labels for Docker Swarm stack services
+			labels.push(`com.docker.stack.namespace=${appName}`);
+			labels.push(`com.docker.swarm.service.name=${appName}_${serviceName}`);
+		} else {
+			// Labels for Docker Compose projects (default)
+			labels.push(`com.docker.compose.project=${appName}`);
+			labels.push(`com.docker.compose.service=${serviceName}`);
+		}
+		const filter = {
+			status: ["running"],
+			label: labels,
+		};
+
+		const remoteDocker = await getRemoteDocker(serverId);
+		const containers = await remoteDocker.listContainers({
+			filters: JSON.stringify(filter),
+			limit: 1,
+		});
+
+		if (containers.length === 0 || !containers[0]) {
+			return null;
+		}
+
+		const container = containers[0];
 		return container;
 	} catch (error) {
 		throw error;

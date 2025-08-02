@@ -3,23 +3,27 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { backups } from "./backups";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
-import { applicationStatus } from "./shared";
+import { applicationStatus, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 
+import { schedules } from "./schedule";
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",
 	"gitlab",
 	"bitbucket",
+	"gitea",
 	"raw",
 ]);
 
@@ -55,6 +59,10 @@ export const compose = pgTable("compose", {
 	bitbucketRepository: text("bitbucketRepository"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
+	// Gitea
+	giteaRepository: text("giteaRepository"),
+	giteaOwner: text("giteaOwner"),
+	giteaBranch: text("giteaBranch"),
 	// Git
 	customGitUrl: text("customGitUrl"),
 	customGitBranch: text("customGitBranch"),
@@ -66,9 +74,16 @@ export const compose = pgTable("compose", {
 	),
 	command: text("command").notNull().default(""),
 	//
+	enableSubmodules: boolean("enableSubmodules").notNull().default(false),
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
+	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
+	// Keep this for backward compatibility since we will not add the prefix anymore to volumes
+	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
+		.notNull()
+		.default(false),
+	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	projectId: text("projectId")
 		.notNull()
@@ -76,7 +91,7 @@ export const compose = pgTable("compose", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-
+	watchPaths: text("watchPaths").array(),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -84,6 +99,9 @@ export const compose = pgTable("compose", {
 		onDelete: "set null",
 	}),
 	bitbucketId: text("bitbucketId").references(() => bitbucket.bitbucketId, {
+		onDelete: "set null",
+	}),
+	giteaId: text("giteaId").references(() => gitea.giteaId, {
 		onDelete: "set null",
 	}),
 	serverId: text("serverId").references(() => server.serverId, {
@@ -115,22 +133,29 @@ export const composeRelations = relations(compose, ({ one, many }) => ({
 		fields: [compose.bitbucketId],
 		references: [bitbucket.bitbucketId],
 	}),
+	gitea: one(gitea, {
+		fields: [compose.giteaId],
+		references: [gitea.giteaId],
+	}),
 	server: one(server, {
 		fields: [compose.serverId],
 		references: [server.serverId],
 	}),
+	backups: many(backups),
+	schedules: many(schedules),
 }));
 
 const createSchema = createInsertSchema(compose, {
 	name: z.string().min(1),
 	description: z.string(),
 	env: z.string().optional(),
-	composeFile: z.string().min(1),
+	composeFile: z.string().optional(),
 	projectId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
+	watchPaths: z.array(z.string()).optional(),
 });
 
 export const apiCreateCompose = createSchema.pick({
@@ -140,6 +165,7 @@ export const apiCreateCompose = createSchema.pick({
 	composeType: true,
 	appName: true,
 	serverId: true,
+	composeFile: true,
 });
 
 export const apiCreateComposeByTemplate = createSchema
@@ -153,6 +179,11 @@ export const apiCreateComposeByTemplate = createSchema
 
 export const apiFindCompose = z.object({
 	composeId: z.string().min(1),
+});
+
+export const apiDeleteCompose = z.object({
+	composeId: z.string().min(1),
+	deleteVolumes: z.boolean(),
 });
 
 export const apiFetchServices = z.object({

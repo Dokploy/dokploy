@@ -4,8 +4,8 @@ import {
 	backups,
 	postgres,
 } from "@dokploy/server/db/schema";
-import { generateAppName } from "@dokploy/server/db/schema";
-import { generatePassword } from "@dokploy/server/templates/utils";
+import { buildAppName } from "@dokploy/server/db/schema";
+import { generatePassword } from "@dokploy/server/templates";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
 import { TRPCError } from "@trpc/server";
@@ -17,17 +17,14 @@ import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 export type Postgres = typeof postgres.$inferSelect;
 
 export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
-	input.appName =
-		`${input.appName}-${generatePassword(6)}` || generateAppName("postgres");
-	if (input.appName) {
-		const valid = await validUniqueServerAppName(input.appName);
+	const appName = buildAppName("postgres", input.appName);
 
-		if (!valid) {
-			throw new TRPCError({
-				code: "CONFLICT",
-				message: "Service with this 'AppName' already exists",
-			});
-		}
+	const valid = await validUniqueServerAppName(appName);
+	if (!valid) {
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: "Service with this 'AppName' already exists",
+		});
 	}
 
 	const newPostgres = await db
@@ -37,6 +34,7 @@ export const createPostgres = async (input: typeof apiCreatePostgres._type) => {
 			databasePassword: input.databasePassword
 				? input.databasePassword
 				: generatePassword(),
+			appName,
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -60,6 +58,7 @@ export const findPostgresById = async (postgresId: string) => {
 			backups: {
 				with: {
 					destination: true,
+					deployments: true,
 				},
 			},
 		},
@@ -96,10 +95,11 @@ export const updatePostgresById = async (
 	postgresId: string,
 	postgresData: Partial<Postgres>,
 ) => {
+	const { appName, ...rest } = postgresData;
 	const result = await db
 		.update(postgres)
 		.set({
-			...postgresData,
+			...rest,
 		})
 		.where(eq(postgres.postgresId, postgresId))
 		.returning();
@@ -116,24 +116,37 @@ export const removePostgresById = async (postgresId: string) => {
 	return result[0];
 };
 
-export const deployPostgres = async (postgresId: string) => {
+export const deployPostgres = async (
+	postgresId: string,
+	onData?: (data: any) => void,
+) => {
 	const postgres = await findPostgresById(postgresId);
 	try {
-		const promises = [];
+		await updatePostgresById(postgresId, {
+			applicationStatus: "running",
+		});
+
+		onData?.("Starting postgres deployment...");
+
 		if (postgres.serverId) {
-			const result = await execAsyncRemote(
+			await execAsyncRemote(
 				postgres.serverId,
 				`docker pull ${postgres.dockerImage}`,
+				onData,
 			);
 		} else {
-			await pullImage(postgres.dockerImage);
+			await pullImage(postgres.dockerImage, onData);
 		}
 
 		await buildPostgres(postgres);
+
 		await updatePostgresById(postgresId, {
 			applicationStatus: "done",
 		});
+
+		onData?.("Deployment completed successfully!");
 	} catch (error) {
+		onData?.(`Error: ${error}`);
 		await updatePostgresById(postgresId, {
 			applicationStatus: "error",
 		});

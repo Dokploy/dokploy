@@ -1,11 +1,11 @@
 import { ShowNodes } from "@/components/dashboard/settings/cluster/nodes/show-nodes";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { SettingsLayout } from "@/components/layouts/settings-layout";
+
 import { appRouter } from "@/server/api/root";
 import { IS_CLOUD, validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
-import React, { type ReactElement } from "react";
+import type { ReactElement } from "react";
 import superjson from "superjson";
 
 const Page = () => {
@@ -19,11 +19,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return (
-		<DashboardLayout tab={"settings"}>
-			<SettingsLayout>{page}</SettingsLayout>
-		</DashboardLayout>
-	);
+	return <DashboardLayout metaName="Nodes">{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
@@ -37,8 +33,8 @@ export async function getServerSideProps(
 			},
 		};
 	}
-	const { user, session } = await validateRequest(ctx.req, ctx.res);
-	if (!user || user.rol === "user") {
+	const { user, session } = await validateRequest(ctx.req);
+	if (!user || user.role === "member") {
 		return {
 			redirect: {
 				permanent: true,
@@ -52,12 +48,12 @@ export async function getServerSideProps(
 			req: req as any,
 			res: res as any,
 			db: null as any,
-			session: session,
-			user: user,
+			session: session as any,
+			user: user as any,
 		},
 		transformer: superjson,
 	});
-	await helpers.auth.get.prefetch();
+	await helpers.user.get.prefetch();
 
 	return {
 		props: {

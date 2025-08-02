@@ -6,9 +6,11 @@
  */
 import type { AppRouter } from "@/server/api/root";
 import {
+	createWSClient,
 	experimental_formDataLink,
 	httpBatchLink,
 	splitLink,
+	wsLink,
 } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
@@ -19,10 +21,54 @@ const getBaseUrl = () => {
 	return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
 };
 
+const getWsUrl = () => {
+	if (typeof window === "undefined") return null;
+
+	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+	const host = window.location.host;
+
+	return `${protocol}${host}/drawer-logs`;
+};
+
+// Create WebSocket client with delayed connection
+const createLazyWSClient = () => {
+	if (typeof window === "undefined") return null;
+
+	let actualClient: ReturnType<typeof createWSClient> | null = null;
+
+	return {
+		request: (op: any, callbacks: any) => {
+			if (!actualClient) {
+				const wsUrl = getWsUrl();
+				if (wsUrl) {
+					actualClient = createWSClient({ url: wsUrl });
+				}
+			}
+			return actualClient?.request(op, callbacks) || (() => {});
+		},
+		close: () => {
+			if (actualClient) {
+				actualClient.close();
+				actualClient = null;
+			}
+		},
+		getConnection: () => {
+			if (!actualClient) {
+				const wsUrl = getWsUrl();
+				if (wsUrl) {
+					actualClient = createWSClient({ url: wsUrl });
+				}
+			}
+			return actualClient!.getConnection();
+		},
+	};
+};
+
+const wsClient = createLazyWSClient();
+
 /** A set of type-safe react-query hooks for your tRPC API. */
 export const api = createTRPCNext<AppRouter>({
 	config() {
-		const url = `${getBaseUrl()}/api/trpc`;
 		return {
 			/**
 			 * Transformer used for data de-serialization from the server.
@@ -38,12 +84,18 @@ export const api = createTRPCNext<AppRouter>({
 			 */
 			links: [
 				splitLink({
-					condition: (op) => op.input instanceof FormData,
-					true: experimental_formDataLink({
-						url,
+					condition: (op) => op.type === "subscription",
+					true: wsLink({
+						client: wsClient!,
 					}),
-					false: httpBatchLink({
-						url,
+					false: splitLink({
+						condition: (op) => op.input instanceof FormData,
+						true: experimental_formDataLink({
+							url: `${getBaseUrl()}/api/trpc`,
+						}),
+						false: httpBatchLink({
+							url: `${getBaseUrl()}/api/trpc`,
+						}),
 					}),
 				}),
 			],

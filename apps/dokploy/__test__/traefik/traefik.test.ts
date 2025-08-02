@@ -1,32 +1,42 @@
-import type { Domain } from "@dokploy/server";
-import type { Redirect } from "@dokploy/server";
-import type { ApplicationNested } from "@dokploy/server";
+import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
 import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	rollbackActive: false,
 	applicationId: "",
 	herokuVersion: "",
+	giteaRepository: "",
+	giteaOwner: "",
+	giteaBranch: "",
+	giteaBuildPath: "",
+	giteaId: "",
+	cleanCache: false,
 	applicationStatus: "done",
 	appName: "",
 	autoDeploy: true,
+	enableSubmodules: false,
+	previewRequireCollaboratorPermissions: false,
 	serverId: "",
 	branch: null,
 	dockerBuildStage: "",
 	registryUrl: "",
+	watchPaths: [],
 	buildArgs: null,
 	isPreviewDeploymentsActive: false,
 	previewBuildArgs: null,
+	triggerType: "push",
 	previewCertificateType: "none",
 	previewEnv: null,
 	previewHttps: false,
 	previewPath: "/",
 	previewPort: 3000,
 	previewLimit: 0,
+	previewCustomCertResolver: null,
 	previewWildcard: "",
 	project: {
 		env: "",
-		adminId: "",
+		organizationId: "",
 		name: "",
 		description: "",
 		createdAt: "",
@@ -75,6 +85,7 @@ const baseApp: ApplicationNested = {
 	ports: [],
 	projectId: "",
 	publishDirectory: null,
+	isStaticSpa: null,
 	redirects: [],
 	refreshToken: "",
 	registry: null,
@@ -103,9 +114,12 @@ const baseDomain: Domain = {
 	port: null,
 	serviceName: "",
 	composeId: "",
+	customCertResolver: null,
 	domainType: "application",
 	uniqueConfigKey: 1,
 	previewDeploymentId: "",
+	internalPath: "/",
+	stripPath: false,
 };
 
 const baseRedirect: Redirect = {

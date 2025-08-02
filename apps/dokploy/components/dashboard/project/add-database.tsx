@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Database, HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -35,19 +41,19 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Database } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 type DbType = typeof mySchema._type.type;
 
-// TODO: Change to a real docker images
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mongo: "mongo:6",
 	mariadb: "mariadb:11",
@@ -87,7 +93,7 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("postgres"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z.string().default("postgres"),
 			databaseUser: z.string().default("postgres"),
 		})
 		.merge(baseDatabaseSchema),
@@ -95,6 +101,7 @@ const mySchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("mongo"),
 			databaseUser: z.string().default("mongo"),
+			replicaSets: z.boolean().default(false),
 		})
 		.merge(baseDatabaseSchema),
 	z
@@ -107,7 +114,7 @@ const mySchema = z.discriminatedUnion("type", [
 			type: z.literal("mysql"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mysql"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z.string().default("mysql"),
 		})
 		.merge(baseDatabaseSchema),
 	z
@@ -116,7 +123,7 @@ const mySchema = z.discriminatedUnion("type", [
 			dockerImage: z.string().default("mariadb:4"),
 			databaseRootPassword: z.string().default(""),
 			databaseUser: z.string().default("mariadb"),
-			databaseName: z.string().min(1, "Database name required"),
+			databaseName: z.string().default("mariadb"),
 		})
 		.merge(baseDatabaseSchema),
 ]);
@@ -162,6 +169,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const mariadbMutation = api.mariadb.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
 
+	const hasServers = servers && servers.length > 0;
+
 	const form = useForm<AddDatabase>({
 		defaultValues: {
 			type: "postgres",
@@ -203,7 +212,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			promise = postgresMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "postgres",
 
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
@@ -216,6 +225,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId,
+				replicaSets: data.replicaSets,
 			});
 		} else if (data.type === "redis") {
 			promise = redisMutation.mutateAsync({
@@ -229,7 +239,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				databaseRootPassword: data.databaseRootPassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId,
@@ -238,7 +248,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			promise = mysqlMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseName: data.databaseName,
+				databaseName: data.databaseName || "mysql",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				databaseRootPassword: data.databaseRootPassword,
@@ -266,7 +276,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					});
 				})
 				.catch(() => {
-					toast.error("Error to create a database");
+					toast.error("Error creating a database");
 				});
 		}
 	};
@@ -281,7 +291,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 					<span>Database</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen md:max-h-[90vh]  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="md:max-h-[90vh]  sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Databases</DialogTitle>
 				</DialogHeader>
@@ -361,10 +371,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 													{...field}
 													onChange={(e) => {
 														const val = e.target.value?.trim() || "";
-														form.setValue(
-															"appName",
-															`${slug}-${val.toLowerCase()}`,
-														);
+														const serviceName = slugify(val);
+														form.setValue("appName", `${slug}-${serviceName}`);
 														field.onChange(val);
 													}}
 												/>
@@ -374,45 +382,62 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								<FormField
-									control={form.control}
-									name="serverId"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Select a Server</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value || ""}
-											>
-												<SelectTrigger>
-													<SelectValue placeholder="Select a Server" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectGroup>
-														{servers?.map((server) => (
-															<SelectItem
-																key={server.serverId}
-																value={server.serverId}
-															>
-																{server.name}
-															</SelectItem>
-														))}
-														<SelectLabel>
-															Servers ({servers?.length})
-														</SelectLabel>
-													</SelectGroup>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+								{hasServers && (
+									<FormField
+										control={form.control}
+										name="serverId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Select a Server</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value || ""}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a Server" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectGroup>
+															{servers?.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+															<SelectLabel>
+																Servers ({servers?.length})
+															</SelectLabel>
+														</SelectGroup>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
 								<FormField
 									control={form.control}
 									name="appName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>AppName</FormLabel>
+											<FormLabel className="flex items-center gap-2">
+												App Name
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent side="right">
+															<p>
+																This will be the name of the Docker Swarm
+																service
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</FormLabel>
 											<FormControl>
 												<Input placeholder="my-app" {...field} />
 											</FormControl>
@@ -471,6 +496,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<FormControl>
 													<Input
 														placeholder={`Default ${databasesUserDefaultPlaceholder[type]}`}
+														autoComplete="off"
 														{...field}
 													/>
 												</FormControl>
@@ -491,6 +517,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<Input
 													type="password"
 													placeholder="******************"
+													autoComplete="one-time-code"
 													{...field}
 												/>
 											</FormControl>
@@ -540,6 +567,30 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										);
 									}}
 								/>
+
+								{type === "mongo" && (
+									<FormField
+										control={form.control}
+										name="replicaSets"
+										render={({ field }) => {
+											return (
+												<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Use Replica Sets</FormLabel>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								)}
 							</div>
 						</div>
 					</form>

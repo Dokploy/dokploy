@@ -1,5 +1,4 @@
 import { AlertBlock } from "@/components/shared/alert-block";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -44,18 +43,18 @@ interface Props {
 	serverId?: string;
 }
 
-export const UpdateServerIp = ({ children, serverId }: Props) => {
+export const UpdateServerIp = ({ children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { data } = api.admin.one.useQuery();
+	const { data } = api.user.get.useQuery();
 	const { data: ip } = api.server.publicIp.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
-		api.admin.update.useMutation();
+		api.user.update.useMutation();
 
 	const form = useForm<Schema>({
 		defaultValues: {
-			serverIp: data?.serverIp || "",
+			serverIp: data?.user.serverIp || "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -63,7 +62,7 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				serverIp: data.serverIp || "",
+				serverIp: data.user.serverIp || "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -81,11 +80,11 @@ export const UpdateServerIp = ({ children, serverId }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Server IP Updated");
-				await utils.admin.one.invalidate();
+				await utils.user.get.invalidate();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to update the IP of the server");
+				toast.error("Error updating the IP of the server");
 			});
 	};
 

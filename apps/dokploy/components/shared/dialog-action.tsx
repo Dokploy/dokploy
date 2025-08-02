@@ -16,6 +16,7 @@ interface Props {
 	onClick: () => void;
 	children?: React.ReactNode;
 	disabled?: boolean;
+	type?: "default" | "destructive";
 }
 
 export const DialogAction = ({
@@ -24,6 +25,7 @@ export const DialogAction = ({
 	description,
 	title,
 	disabled,
+	type,
 }: Props) => {
 	return (
 		<AlertDialog>
@@ -39,7 +41,11 @@ export const DialogAction = ({
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction disabled={disabled} onClick={onClick}>
+					<AlertDialogAction
+						disabled={disabled}
+						onClick={onClick}
+						variant={type ?? "destructive"}
+					>
 						Confirm
 					</AlertDialogAction>
 				</AlertDialogFooter>

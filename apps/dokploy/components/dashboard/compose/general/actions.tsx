@@ -1,28 +1,24 @@
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { CheckCircle2, ExternalLink, Globe, Terminal } from "lucide-react";
-import Link from "next/link";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
-import { StartCompose } from "../start-compose";
-import { DeployCompose } from "./deploy-compose";
-import { RedbuildCompose } from "./rebuild-compose";
-import { StopCompose } from "./stop-compose";
 
 interface Props {
 	composeId: string;
 }
 export const ComposeActions = ({ composeId }: Props) => {
+	const router = useRouter();
 	const { data, refetch } = api.compose.one.useQuery(
 		{
 			composeId,
@@ -30,48 +26,188 @@ export const ComposeActions = ({ composeId }: Props) => {
 		{ enabled: !!composeId },
 	);
 	const { mutateAsync: update } = api.compose.update.useMutation();
-
-	const extractDomains = (env: string) => {
-		const lines = env.split("\n");
-		const hostLines = lines.filter((line) => {
-			const [key, value] = line.split("=");
-			return key?.trim().endsWith("_HOST");
-		});
-
-		const hosts = hostLines.map((line) => {
-			const [key, value] = line.split("=");
-			return value ? value.trim() : "";
-		});
-
-		return hosts;
-	};
-
-	const domains = extractDomains(data?.env || "");
-
+	const { mutateAsync: deploy } = api.compose.deploy.useMutation();
+	const { mutateAsync: redeploy } = api.compose.redeploy.useMutation();
+	const { mutateAsync: start, isLoading: isStarting } =
+		api.compose.start.useMutation();
+	const { mutateAsync: stop, isLoading: isStopping } =
+		api.compose.stop.useMutation();
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
-			<DeployCompose composeId={composeId} />
-			<RedbuildCompose composeId={composeId} />
-			{data?.composeType === "docker-compose" &&
-			data?.composeStatus === "idle" ? (
-				<StartCompose composeId={composeId} />
-			) : (
-				<StopCompose composeId={composeId} />
-			)}
-
+			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
+				<DialogAction
+					title="Deploy Compose"
+					description="Are you sure you want to deploy this compose?"
+					type="default"
+					onClick={async () => {
+						await deploy({
+							composeId: composeId,
+						})
+							.then(() => {
+								toast.success("Compose deployed successfully");
+								refetch();
+								router.push(
+									`/dashboard/project/${data?.project.projectId}/services/compose/${composeId}?tab=deployments`,
+								);
+							})
+							.catch(() => {
+								toast.error("Error deploying compose");
+							});
+					}}
+				>
+					<Button
+						variant="default"
+						isLoading={data?.composeStatus === "running"}
+						className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+					>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className="flex items-center">
+									<Rocket className="size-4 mr-1" />
+									Deploy
+								</div>
+							</TooltipTrigger>
+							<TooltipPrimitive.Portal>
+								<TooltipContent sideOffset={5} className="z-[60]">
+									<p>Downloads the source code and performs a complete build</p>
+								</TooltipContent>
+							</TooltipPrimitive.Portal>
+						</Tooltip>
+					</Button>
+				</DialogAction>
+				<DialogAction
+					title="Reload Compose"
+					description="Are you sure you want to reload this compose?"
+					type="default"
+					onClick={async () => {
+						await redeploy({
+							composeId: composeId,
+						})
+							.then(() => {
+								toast.success("Compose reloaded successfully");
+								refetch();
+							})
+							.catch(() => {
+								toast.error("Error reloading compose");
+							});
+					}}
+				>
+					<Button
+						variant="secondary"
+						isLoading={data?.composeStatus === "running"}
+						className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+					>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className="flex items-center">
+									<RefreshCcw className="size-4 mr-1" />
+									Reload
+								</div>
+							</TooltipTrigger>
+							<TooltipPrimitive.Portal>
+								<TooltipContent sideOffset={5} className="z-[60]">
+									<p>Reload the compose without rebuilding it</p>
+								</TooltipContent>
+							</TooltipPrimitive.Portal>
+						</Tooltip>
+					</Button>
+				</DialogAction>
+				{data?.composeType === "docker-compose" &&
+				data?.composeStatus === "idle" ? (
+					<DialogAction
+						title="Start Compose"
+						description="Are you sure you want to start this compose?"
+						type="default"
+						onClick={async () => {
+							await start({
+								composeId: composeId,
+							})
+								.then(() => {
+									toast.success("Compose started successfully");
+									refetch();
+								})
+								.catch(() => {
+									toast.error("Error starting compose");
+								});
+						}}
+					>
+						<Button
+							variant="secondary"
+							isLoading={isStarting}
+							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+						>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div className="flex items-center">
+										<CheckCircle2 className="size-4 mr-1" />
+										Start
+									</div>
+								</TooltipTrigger>
+								<TooltipPrimitive.Portal>
+									<TooltipContent sideOffset={5} className="z-[60]">
+										<p>
+											Start the compose (requires a previous successful build)
+										</p>
+									</TooltipContent>
+								</TooltipPrimitive.Portal>
+							</Tooltip>
+						</Button>
+					</DialogAction>
+				) : (
+					<DialogAction
+						title="Stop Compose"
+						description="Are you sure you want to stop this compose?"
+						onClick={async () => {
+							await stop({
+								composeId: composeId,
+							})
+								.then(() => {
+									toast.success("Compose stopped successfully");
+									refetch();
+								})
+								.catch(() => {
+									toast.error("Error stopping compose");
+								});
+						}}
+					>
+						<Button
+							variant="destructive"
+							isLoading={isStopping}
+							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+						>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div className="flex items-center">
+										<Ban className="size-4 mr-1" />
+										Stop
+									</div>
+								</TooltipTrigger>
+								<TooltipPrimitive.Portal>
+									<TooltipContent sideOffset={5} className="z-[60]">
+										<p>Stop the currently running compose</p>
+									</TooltipContent>
+								</TooltipPrimitive.Portal>
+							</Tooltip>
+						</Button>
+					</DialogAction>
+				)}
+			</TooltipProvider>
 			<DockerTerminalModal
 				appName={data?.appName || ""}
 				serverId={data?.serverId || ""}
 			>
-				<Button variant="outline">
-					<Terminal />
+				<Button
+					variant="outline"
+					className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+				>
+					<Terminal className="size-4 mr-1" />
 					Open Terminal
 				</Button>
 			</DockerTerminalModal>
 			<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
 				<span className="text-sm font-medium">Autodeploy</span>
 				<Switch
-					aria-label="Toggle italic"
+					aria-label="Toggle autodeploy"
 					checked={data?.autoDeploy || false}
 					onCheckedChange={async (enabled) => {
 						await update({
@@ -83,47 +219,12 @@ export const ComposeActions = ({ composeId }: Props) => {
 								await refetch();
 							})
 							.catch(() => {
-								toast.error("Error to update Auto Deploy");
+								toast.error("Error updating Auto Deploy");
 							});
 					}}
-					className="flex flex-row gap-2 items-center"
+					className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
 				/>
 			</div>
-			{domains.length > 0 && (
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="outline">
-							Domains
-							<Globe className="text-xs size-4 text-muted-foreground" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent className="w-56">
-						<DropdownMenuLabel>Domains detected</DropdownMenuLabel>
-						<DropdownMenuSeparator />
-						<DropdownMenuGroup>
-							{domains.map((host, index) => {
-								const url =
-									host.startsWith("http://") || host.startsWith("https://")
-										? host
-										: `http://${host}`;
-
-								return (
-									<DropdownMenuItem
-										key={`domain-${index}`}
-										className="cursor-pointer"
-										asChild
-									>
-										<Link href={url} target="_blank">
-											{host}
-											<ExternalLink className="ml-2 text-xs text-muted-foreground" />
-										</Link>
-									</DropdownMenuItem>
-								);
-							})}
-						</DropdownMenuGroup>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			)}
 		</div>
 	);
 };

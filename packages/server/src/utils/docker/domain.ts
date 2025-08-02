@@ -15,6 +15,10 @@ import {
 	cloneRawGitRepositoryRemote,
 } from "../providers/git";
 import {
+	cloneRawGiteaRepository,
+	cloneRawGiteaRepositoryRemote,
+} from "../providers/gitea";
+import {
 	cloneRawGithubRepository,
 	cloneRawGithubRepositoryRemote,
 } from "../providers/github";
@@ -26,6 +30,7 @@ import {
 	createComposeFileRaw,
 	createComposeFileRawRemote,
 } from "../providers/raw";
+import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
@@ -43,6 +48,8 @@ export const cloneCompose = async (compose: Compose) => {
 		await cloneRawBitbucketRepository(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneGitRawRepository(compose);
+	} else if (compose.sourceType === "gitea") {
+		await cloneRawGiteaRepository(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRaw(compose);
 	}
@@ -57,6 +64,8 @@ export const cloneComposeRemote = async (compose: Compose) => {
 		await cloneRawBitbucketRepositoryRemote(compose);
 	} else if (compose.sourceType === "git") {
 		await cloneRawGitRepositoryRemote(compose);
+	} else if (compose.sourceType === "gitea") {
+		await cloneRawGiteaRepositoryRemote(compose);
 	} else if (compose.sourceType === "raw") {
 		await createComposeFileRawRemote(compose);
 	}
@@ -108,7 +117,7 @@ export const loadDockerComposeRemote = async (
 		if (!stdout) return null;
 		const parsedConfig = load(stdout) as ComposeSpecification;
 		return parsedConfig;
-	} catch (err) {
+	} catch {
 		return null;
 	}
 };
@@ -190,7 +199,14 @@ export const addDomainToCompose = async (
 		return null;
 	}
 
-	if (compose.randomize) {
+	if (compose.isolatedDeployment) {
+		const randomized = randomizeDeployableSpecificationFile(
+			result,
+			compose.isolatedDeploymentsVolume,
+			compose.suffix || compose.appName,
+		);
+		result = randomized;
+	} else if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
 	}
@@ -203,37 +219,56 @@ export const addDomainToCompose = async (
 		if (!result?.services?.[serviceName]) {
 			throw new Error(`The service ${serviceName} not found in the compose`);
 		}
-		if (!result.services[serviceName].labels) {
-			result.services[serviceName].labels = [];
-		}
 
-		const httpLabels = await createDomainLabels(appName, domain, "web");
+		const httpLabels = createDomainLabels(appName, domain, "web");
 		if (https) {
-			const httpsLabels = await createDomainLabels(
-				appName,
-				domain,
-				"websecure",
-			);
+			const httpsLabels = createDomainLabels(appName, domain, "websecure");
 			httpLabels.push(...httpsLabels);
 		}
 
-		const labels = result.services[serviceName].labels;
+		let labels: DefinitionsService["labels"] = [];
+		if (compose.composeType === "docker-compose") {
+			if (!result.services[serviceName].labels) {
+				result.services[serviceName].labels = [];
+			}
+
+			labels = result.services[serviceName].labels;
+		} else {
+			// Stack Case
+			if (!result.services[serviceName].deploy) {
+				result.services[serviceName].deploy = {};
+			}
+			if (!result.services[serviceName].deploy.labels) {
+				result.services[serviceName].deploy.labels = [];
+			}
+
+			labels = result.services[serviceName].deploy.labels;
+		}
 
 		if (Array.isArray(labels)) {
 			if (!labels.includes("traefik.enable=true")) {
-				labels.push("traefik.enable=true");
+				labels.unshift("traefik.enable=true");
 			}
-			labels.push(...httpLabels);
+			labels.unshift(...httpLabels);
+			if (!compose.isolatedDeployment) {
+				if (!labels.includes("traefik.docker.network=dokploy-network")) {
+					labels.unshift("traefik.docker.network=dokploy-network");
+				}
+			}
 		}
 
-		// Add the dokploy-network to the service
-		result.services[serviceName].networks = addDokployNetworkToService(
-			result.services[serviceName].networks,
-		);
+		if (!compose.isolatedDeployment) {
+			// Add the dokploy-network to the service
+			result.services[serviceName].networks = addDokployNetworkToService(
+				result.services[serviceName].networks,
+			);
+		}
 	}
 
 	// Add dokploy-network to the root of the compose file
-	result.networks = addDokployNetworkToRoot(result.networks);
+	if (!compose.isolatedDeployment) {
+		result.networks = addDokployNetworkToRoot(result.networks);
+	}
 
 	return result;
 };
@@ -254,12 +289,22 @@ export const writeComposeFile = async (
 	}
 };
 
-export const createDomainLabels = async (
+export const createDomainLabels = (
 	appName: string,
 	domain: Domain,
 	entrypoint: "web" | "websecure",
 ) => {
-	const { host, port, https, uniqueConfigKey, certificateType, path } = domain;
+	const {
+		host,
+		port,
+		https,
+		uniqueConfigKey,
+		certificateType,
+		path,
+		customCertResolver,
+		stripPath,
+		internalPath,
+	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
 		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
@@ -267,6 +312,34 @@ export const createDomainLabels = async (
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
+
+	// Validate stripPath - it should only be used when path is defined and not "/"
+	if (stripPath) {
+		if (!path || path === "/") {
+			console.warn(
+				`stripPath is enabled but path is not defined or is "/" for domain ${host}`,
+			);
+		} else {
+			const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+			labels.push(
+				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
+			);
+		}
+	}
+
+	// Validate internalPath - ensure it's a valid path format
+	if (internalPath && internalPath !== "/") {
+		if (!internalPath.startsWith("/")) {
+			console.warn(
+				`internalPath "${internalPath}" should start with "/" and not be empty for domain ${host}`,
+			);
+		} else {
+			const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+			labels.push(
+				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
+			);
+		}
+	}
 
 	if (entrypoint === "web" && https) {
 		labels.push(
@@ -278,6 +351,10 @@ export const createDomainLabels = async (
 		if (certificateType === "letsencrypt") {
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,
+			);
+		} else if (certificateType === "custom" && customCertResolver) {
+			labels.push(
+				`traefik.http.routers.${routerName}.tls.certresolver=${customCertResolver}`,
 			);
 		}
 	}

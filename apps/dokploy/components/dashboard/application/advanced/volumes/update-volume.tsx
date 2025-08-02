@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil } from "lucide-react";
+import { PenBoxIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -77,7 +77,7 @@ export const UpdateVolume = ({
 	serviceType,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const utils = api.useUtils();
+	const _utils = api.useUtils();
 	const { data } = api.mounts.one.useQuery(
 		{
 			mountId,
@@ -139,7 +139,7 @@ export const UpdateVolume = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to update the Bind mount");
+					toast.error("Error updating the Bind mount");
 				});
 		} else if (data.type === "volume") {
 			await mutateAsync({
@@ -153,7 +153,7 @@ export const UpdateVolume = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to update the Volume mount");
+					toast.error("Error updating the Volume mount");
 				});
 		} else if (data.type === "file") {
 			await mutateAsync({
@@ -168,7 +168,7 @@ export const UpdateVolume = ({
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error to update the File mount");
+					toast.error("Error updating the File mount");
 				});
 		}
 		refetch();
@@ -177,11 +177,16 @@ export const UpdateVolume = ({
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
-				<Button variant="ghost" isLoading={isLoading}>
-					<Pencil className="size-4  text-muted-foreground" />
+				<Button
+					variant="ghost"
+					size="icon"
+					className="group hover:bg-blue-500/10 "
+					isLoading={isLoading}
+				>
+					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Update</DialogTitle>
 					<DialogDescription>Update the mount</DialogDescription>
@@ -242,7 +247,7 @@ export const UpdateVolume = ({
 										control={form.control}
 										name="content"
 										render={({ field }) => (
-											<FormItem>
+											<FormItem className="max-w-full max-w-[45rem]">
 												<FormLabel>Content</FormLabel>
 												<FormControl>
 													<FormControl>
@@ -251,7 +256,7 @@ export const UpdateVolume = ({
 															placeholder={`NODE_ENV=production
 PORT=3000
 `}
-															className="h-96 font-mono"
+															className="h-96 font-mono w-full"
 															{...field}
 														/>
 													</FormControl>

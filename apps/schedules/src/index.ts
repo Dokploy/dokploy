@@ -2,11 +2,16 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import "dotenv/config";
 import { zValidator } from "@hono/zod-validator";
-import { logger } from "./logger";
-import { cleanQueue, getJobRepeatable, removeJob, scheduleJob } from "./queue";
-import { jobQueueSchema } from "./schema";
-import { initializeJobs } from "./utils";
-import { firstWorker, secondWorker } from "./workers";
+import { logger } from "./logger.js";
+import {
+	cleanQueue,
+	getJobRepeatable,
+	removeJob,
+	scheduleJob,
+} from "./queue.js";
+import { jobQueueSchema } from "./schema.js";
+import { initializeJobs } from "./utils.js";
+import { firstWorker, secondWorker } from "./workers.js";
 
 const app = new Hono();
 
@@ -29,8 +34,8 @@ app.use(async (c, next) => {
 app.post("/create-backup", zValidator("json", jobQueueSchema), async (c) => {
 	const data = c.req.valid("json");
 	scheduleJob(data);
-	logger.info({ data }, "Backup created successfully");
-	return c.json({ message: "Backup created successfully" });
+	logger.info({ data }, `[${data.type}]  created successfully`);
+	return c.json({ message: `[${data.type}]  created successfully` });
 });
 
 app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
@@ -48,6 +53,18 @@ app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
 			result = await removeJob({
 				serverId: data.serverId,
 				type: "server",
+				cronSchedule: job.pattern,
+			});
+		} else if (data.type === "schedule") {
+			result = await removeJob({
+				scheduleId: data.scheduleId,
+				type: "schedule",
+				cronSchedule: job.pattern,
+			});
+		} else if (data.type === "volume-backup") {
+			result = await removeJob({
+				volumeBackupId: data.volumeBackupId,
+				type: "volume-backup",
 				cronSchedule: job.pattern,
 			});
 		}

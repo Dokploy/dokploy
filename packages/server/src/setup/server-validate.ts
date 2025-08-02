@@ -11,7 +11,7 @@ export const validateDocker = () => `
 
 export const validateRClone = () => `
   if command_exists rclone; then
-    echo "$(rclone --version | head -n 1 | awk '{print $2}') true"
+    echo "$(rclone --version | head -n 1 | awk '{print $2}' | sed 's/^v//') true"
   else
     echo "0.0.0 false"
   fi
@@ -27,15 +27,37 @@ export const validateSwarm = () => `
 
 export const validateNixpacks = () => `
   if command_exists nixpacks; then
-    echo "$(nixpacks --version | awk '{print $2}') true"
+	version=$(nixpacks --version | awk '{print $2}')
+    if [ -n "$version" ]; then
+      echo "$version true"
+    else
+      echo "0.0.0 false"
+    fi
   else
     echo "0.0.0 false"
   fi
 `;
 
+export const validateRailpack = () => `
+  if command_exists railpack; then
+    version=$(railpack --version | awk '{print $3}')
+    if [ -n "$version" ]; then
+      echo "$version true"
+    else
+      echo "0.0.0 false"
+    fi
+  else
+    echo "0.0.0 false"
+  fi
+`;
 export const validateBuildpacks = () => `
   if command_exists pack; then
-    echo "$(pack --version | awk '{print $1}') true"
+    version=$(pack --version | awk '{print $1}')
+    if [ -n "$version" ]; then
+      echo "$version true"
+    else
+      echo "0.0.0 false"
+    fi
   else
     echo "0.0.0 false"
   fi
@@ -76,7 +98,7 @@ export const serverValidate = async (serverId: string) => {
           rcloneVersionEnabled=$(${validateRClone()})
           nixpacksVersionEnabled=$(${validateNixpacks()})
           buildpacksVersionEnabled=$(${validateBuildpacks()})
-
+          railpackVersionEnabled=$(${validateRailpack()})
           dockerVersion=$(echo $dockerVersionEnabled | awk '{print $1}')
           dockerEnabled=$(echo $dockerVersionEnabled | awk '{print $2}')
 
@@ -86,6 +108,9 @@ export const serverValidate = async (serverId: string) => {
           nixpacksVersion=$(echo $nixpacksVersionEnabled | awk '{print $1}')
           nixpacksEnabled=$(echo $nixpacksVersionEnabled | awk '{print $2}')
 
+          railpackVersion=$(echo $railpackVersionEnabled | awk '{print $1}')
+          railpackEnabled=$(echo $railpackVersionEnabled | awk '{print $2}')
+
           buildpacksVersion=$(echo $buildpacksVersionEnabled | awk '{print $1}')
           buildpacksEnabled=$(echo $buildpacksVersionEnabled | awk '{print $2}')
 
@@ -93,7 +118,7 @@ export const serverValidate = async (serverId: string) => {
           isSwarmInstalled=$(${validateSwarm()})
           isMainDirectoryInstalled=$(${validateMainDirectory()})
 
-  echo "{\\"docker\\": {\\"version\\": \\"$dockerVersion\\", \\"enabled\\": $dockerEnabled}, \\"rclone\\": {\\"version\\": \\"$rcloneVersion\\", \\"enabled\\": $rcloneEnabled}, \\"nixpacks\\": {\\"version\\": \\"$nixpacksVersion\\", \\"enabled\\": $nixpacksEnabled}, \\"buildpacks\\": {\\"version\\": \\"$buildpacksVersion\\", \\"enabled\\": $buildpacksEnabled}, \\"isDokployNetworkInstalled\\": $isDokployNetworkInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled}"
+  echo "{\\"docker\\": {\\"version\\": \\"$dockerVersion\\", \\"enabled\\": $dockerEnabled}, \\"rclone\\": {\\"version\\": \\"$rcloneVersion\\", \\"enabled\\": $rcloneEnabled}, \\"nixpacks\\": {\\"version\\": \\"$nixpacksVersion\\", \\"enabled\\": $nixpacksEnabled}, \\"buildpacks\\": {\\"version\\": \\"$buildpacksVersion\\", \\"enabled\\": $buildpacksEnabled}, \\"railpack\\": {\\"version\\": \\"$railpackVersion\\", \\"enabled\\": $railpackEnabled}, \\"isDokployNetworkInstalled\\": $isDokployNetworkInstalled, \\"isSwarmInstalled\\": $isSwarmInstalled, \\"isMainDirectoryInstalled\\": $isMainDirectoryInstalled}"
         `;
 				client.exec(bashCommand, (err, stream) => {
 					if (err) {
@@ -118,7 +143,7 @@ export const serverValidate = async (serverId: string) => {
 						.on("data", (data: string) => {
 							output += data;
 						})
-						.stderr.on("data", (data) => {});
+						.stderr.on("data", (_data) => {});
 				});
 			})
 			.on("error", (err) => {
@@ -138,7 +163,6 @@ export const serverValidate = async (serverId: string) => {
 				port: server.port,
 				username: server.username,
 				privateKey: server.sshKey?.privateKey,
-				timeout: 99999,
 			});
 	});
 };

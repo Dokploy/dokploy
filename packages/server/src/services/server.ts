@@ -1,19 +1,24 @@
 import { db } from "@dokploy/server/db";
-import { type apiCreateServer, server } from "@dokploy/server/db/schema";
+import {
+	type apiCreateServer,
+	organization,
+	server,
+} from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export type Server = typeof server.$inferSelect;
 
 export const createServer = async (
 	input: typeof apiCreateServer._type,
-	adminId: string,
+	organizationId: string,
 ) => {
 	const newServer = await db
 		.insert(server)
 		.values({
 			...input,
-			adminId: adminId,
+			organizationId: organizationId,
+			createdAt: new Date().toISOString(),
 		})
 		.returning()
 		.then((value) => value[0]);
@@ -21,7 +26,7 @@ export const createServer = async (
 	if (!newServer) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "Error to create the server",
+			message: "Error creating the server",
 		});
 	}
 
@@ -45,11 +50,15 @@ export const findServerById = async (serverId: string) => {
 	return currentServer;
 };
 
-export const findServersByAdminId = async (adminId: string) => {
-	const servers = await db.query.server.findMany({
-		where: eq(server.adminId, adminId),
-		orderBy: desc(server.createdAt),
+export const findServersByUserId = async (userId: string) => {
+	const orgs = await db.query.organization.findMany({
+		where: eq(organization.ownerId, userId),
+		with: {
+			servers: true,
+		},
 	});
+
+	const servers = orgs.flatMap((org) => org.servers);
 
 	return servers;
 };

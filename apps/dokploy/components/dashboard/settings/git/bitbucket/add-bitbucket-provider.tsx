@@ -1,8 +1,4 @@
-import {
-	BitbucketIcon,
-	GithubIcon,
-	GitlabIcon,
-} from "@/components/icons/data-tools-icons";
+import { BitbucketIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -51,10 +47,10 @@ type Schema = z.infer<typeof Schema>;
 export const AddBitbucketProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const url = useUrl();
+	const _url = useUrl();
 	const { mutateAsync, error, isError } = api.bitbucket.create.useMutation();
-	const { data: auth } = api.auth.get.useQuery();
-	const router = useRouter();
+	const { data: auth } = api.user.get.useQuery();
+	const _router = useRouter();
 	const form = useForm<Schema>({
 		defaultValues: {
 			username: "",
@@ -101,7 +97,7 @@ export const AddBitbucketProvider = () => {
 					<span>Bitbucket</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
+			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Bitbucket Provider <BitbucketIcon className="size-5" />

@@ -53,7 +53,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				registryURL: data.registryUrl || "",
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.applicationId, form]);
 
 	const onSubmit = async (values: DockerProvider) => {
 		await mutateAsync({
@@ -68,7 +68,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error to save the Docker provider");
+				toast.error("Error saving the Docker provider");
 			});
 	};
 
@@ -115,7 +115,11 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Username</FormLabel>
 									<FormControl>
-										<Input placeholder="username" {...field} />
+										<Input
+											placeholder="Username"
+											autoComplete="username"
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -130,7 +134,12 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Password</FormLabel>
 									<FormControl>
-										<Input placeholder="Password" {...field} type="password" />
+										<Input
+											placeholder="Password"
+											autoComplete="one-time-code"
+											{...field}
+											type="password"
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>

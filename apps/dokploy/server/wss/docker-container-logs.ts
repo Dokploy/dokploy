@@ -1,5 +1,5 @@
 import type http from "node:http";
-import { findServerById, validateWebSocketRequest } from "@dokploy/server";
+import { findServerById, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
@@ -31,8 +31,11 @@ export const setupDockerContainerLogsWebSocketServer = (
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
 		const containerId = url.searchParams.get("containerId");
 		const tail = url.searchParams.get("tail");
+		const search = url.searchParams.get("search");
+		const since = url.searchParams.get("since");
 		const serverId = url.searchParams.get("serverId");
-		const { user, session } = await validateWebSocketRequest(req);
+		const runType = url.searchParams.get("runType");
+		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
 			ws.close(4000, "containerId no provided");
@@ -51,9 +54,15 @@ export const setupDockerContainerLogsWebSocketServer = (
 				const client = new Client();
 				client
 					.once("ready", () => {
-						const command = `
-						bash -c "docker container logs --tail ${tail} --follow ${containerId}"
-					`;
+						const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
+							runType === "swarm" ? "--raw" : ""
+						} --tail ${tail} ${
+							since === "all" ? "" : `--since ${since}`
+						} --follow ${containerId}`;
+						const escapedSearch = search ? search.replace(/'/g, "'\\''") : "";
+						const command = search
+							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
+							: baseCommand;
 						client.exec(command, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
@@ -91,21 +100,22 @@ export const setupDockerContainerLogsWebSocketServer = (
 				});
 			} else {
 				const shell = getShell();
-				const ptyProcess = spawn(
-					shell,
-					[
-						"-c",
-						`docker container logs --tail ${tail} --follow ${containerId}`,
-					],
-					{
-						name: "xterm-256color",
-						cwd: process.env.HOME,
-						env: process.env,
-						encoding: "utf8",
-						cols: 80,
-						rows: 30,
-					},
-				);
+				const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
+					runType === "swarm" ? "--raw" : ""
+				} --tail ${tail} ${
+					since === "all" ? "" : `--since ${since}`
+				} --follow ${containerId}`;
+				const command = search
+					? `${baseCommand} 2>&1 | grep -iF '${search}'`
+					: baseCommand;
+				const ptyProcess = spawn(shell, ["-c", command], {
+					name: "xterm-256color",
+					cwd: process.env.HOME,
+					env: process.env,
+					encoding: "utf8",
+					cols: 80,
+					rows: 30,
+				});
 
 				ptyProcess.onData((data) => {
 					ws.send(data);

@@ -1,5 +1,4 @@
 import { createWriteStream } from "node:fs";
-import { join } from "node:path";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
 import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
@@ -16,8 +15,8 @@ import { buildCustomDocker, getDockerCommand } from "./docker-file";
 import { buildHeroku, getHerokuCommand } from "./heroku";
 import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
+import { buildRailpack, getRailpackCommand } from "./railpack";
 import { buildStatic, getStaticCommand } from "./static";
-import { nanoid } from "nanoid";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -56,6 +55,8 @@ export const buildApplication = async (
 			await buildCustomDocker(application, writeStream);
 		} else if (buildType === "static") {
 			await buildStatic(application, writeStream);
+		} else if (buildType === "railpack") {
+			await buildRailpack(application, writeStream);
 		}
 
 		if (application.registryId) {
@@ -96,6 +97,9 @@ export const getBuildCommand = (
 			break;
 		case "dockerfile":
 			command = getDockerCommand(application, logPath);
+			break;
+		case "railpack":
+			command = getRailpackCommand(application, logPath);
 			break;
 	}
 	if (registry) {
@@ -179,6 +183,7 @@ export const mechanizeDockerContainer = async (
 		RollbackConfig,
 		EndpointSpec: {
 			Ports: ports.map((port) => ({
+				PublishMode: port.publishMode,
 				Protocol: port.protocol,
 				TargetPort: port.targetPort,
 				PublishedPort: port.publishedPort,
@@ -190,6 +195,7 @@ export const mechanizeDockerContainer = async (
 	try {
 		const service = docker.getService(appName);
 		const inspect = await service.inspect();
+
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
@@ -198,34 +204,38 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch (error) {
+	} catch {
 		await docker.createService(settings);
 	}
 };
 
 const getImageName = (application: ApplicationNested) => {
 	const { appName, sourceType, dockerImage, registry } = application;
-
+	const imageName = `${appName}:latest`;
 	if (sourceType === "docker") {
 		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
 	}
 
 	if (registry) {
-		return join(registry.imagePrefix || "", appName);
+		const { registryUrl, imagePrefix, username } = registry;
+		const registryTag = imagePrefix
+			? `${registryUrl}/${imagePrefix}/${imageName}`
+			: `${registryUrl}/${username}/${imageName}`;
+		return registryTag;
 	}
 
-	return `${appName}:latest`;
+	return imageName;
 };
 
-const getAuthConfig = (application: ApplicationNested) => {
-	const { registry, username, password, sourceType } = application;
+export const getAuthConfig = (application: ApplicationNested) => {
+	const { registry, username, password, sourceType, registryUrl } = application;
 
 	if (sourceType === "docker") {
 		if (username && password) {
 			return {
 				password,
 				username,
-				serveraddress: "https://index.docker.io/v1/",
+				serveraddress: registryUrl || "",
 			};
 		}
 	} else if (registry) {

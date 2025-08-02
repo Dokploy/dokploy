@@ -37,6 +37,7 @@ export const cloneBitbucketRepository = async (
 		bitbucketBranch,
 		bitbucketId,
 		bitbucket,
+		enableSubmodules,
 	} = entity;
 
 	if (!bitbucketId) {
@@ -53,28 +54,26 @@ export const cloneBitbucketRepository = async (
 	const cloneUrl = `https://${bitbucket?.bitbucketUsername}:${bitbucket?.appPassword}@${repoclone}`;
 	try {
 		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
-		await spawnAsync(
-			"git",
-			[
-				"clone",
-				"--branch",
-				bitbucketBranch!,
-				"--depth",
-				"1",
-				"--recurse-submodules",
-				cloneUrl,
-				outputPath,
-				"--progress",
-			],
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-		);
+		const cloneArgs = [
+			"clone",
+			"--branch",
+			bitbucketBranch!,
+			"--depth",
+			"1",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
+			cloneUrl,
+			outputPath,
+			"--progress",
+		];
+
+		await spawnAsync("git", cloneArgs, (data) => {
+			if (writeStream.writable) {
+				writeStream.write(data);
+			}
+		});
 		writeStream.write(`\nCloned ${repoclone} to ${outputPath}: ✅\n`);
 	} catch (error) {
-		writeStream.write(`ERROR Clonning: ${error}: ❌`);
+		writeStream.write(`ERROR Cloning: ${error}: ❌`);
 		throw error;
 	} finally {
 		writeStream.end();
@@ -89,6 +88,7 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 		bitbucketOwner,
 		bitbucketBranch,
 		bitbucketId,
+		enableSubmodules,
 	} = entity;
 
 	if (!bitbucketId) {
@@ -106,17 +106,19 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
 
 	try {
-		await spawnAsync("git", [
+		const cloneArgs = [
 			"clone",
 			"--branch",
 			bitbucketBranch!,
 			"--depth",
 			"1",
-			"--recurse-submodules",
+			...(enableSubmodules ? ["--recurse-submodules"] : []),
 			cloneUrl,
 			outputPath,
 			"--progress",
-		]);
+		];
+
+		await spawnAsync("git", cloneArgs);
 	} catch (error) {
 		throw error;
 	}
@@ -131,6 +133,7 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 		bitbucketBranch,
 		bitbucketId,
 		serverId,
+		enableSubmodules,
 	} = compose;
 
 	if (!serverId) {
@@ -153,11 +156,11 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
 
 	try {
-		const command = `
+		const cloneCommand = `
 			rm -rf ${outputPath};
-			git clone --branch ${bitbucketBranch} --depth 1 --recurse-submodules ${cloneUrl} ${outputPath}
+			git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
-		await execAsyncRemote(serverId, command);
+		await execAsyncRemote(serverId, cloneCommand);
 	} catch (error) {
 		throw error;
 	}
@@ -176,7 +179,7 @@ export const getBitbucketCloneCommand = async (
 		bitbucketBranch,
 		bitbucketId,
 		serverId,
-		bitbucket,
+		enableSubmodules,
 	} = entity;
 
 	if (!serverId) {
@@ -208,7 +211,7 @@ export const getBitbucketCloneCommand = async (
 	const cloneCommand = `
 rm -rf ${outputPath};
 mkdir -p ${outputPath};
-if ! git clone --branch ${bitbucketBranch} --depth 1 --recurse-submodules --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
+if ! git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
 	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
 	exit 1;
 fi
@@ -276,7 +279,7 @@ export const getBitbucketBranches = async (
 	}
 	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 	const { owner, repo } = input;
-	const url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches`;
+	const url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches?pagelen=100`;
 
 	try {
 		const response = await fetch(url, {

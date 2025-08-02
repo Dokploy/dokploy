@@ -28,10 +28,10 @@ export const mysql = pgTable("mysql", {
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	env: text("env"),
-	memoryReservation: integer("memoryReservation"),
-	memoryLimit: integer("memoryLimit"),
-	cpuReservation: integer("cpuReservation"),
-	cpuLimit: integer("cpuLimit"),
+	memoryReservation: text("memoryReservation"),
+	memoryLimit: text("memoryLimit"),
+	cpuReservation: text("cpuReservation"),
+	cpuLimit: text("cpuLimit"),
 	externalPort: integer("externalPort"),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
@@ -72,10 +72,10 @@ const createSchema = createInsertSchema(mysql, {
 	dockerImage: z.string().default("mysql:8"),
 	command: z.string().optional(),
 	env: z.string().optional(),
-	memoryReservation: z.number().optional(),
-	memoryLimit: z.number().optional(),
-	cpuReservation: z.number().optional(),
-	cpuLimit: z.number().optional(),
+	memoryReservation: z.string().optional(),
+	memoryLimit: z.string().optional(),
+	cpuReservation: z.string().optional(),
+	cpuLimit: z.string().optional(),
 	projectId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
@@ -144,3 +144,9 @@ export const apiUpdateMySql = createSchema
 		mysqlId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export const apiRebuildMysql = createSchema
+	.pick({
+		mysqlId: true,
+	})
+	.required();

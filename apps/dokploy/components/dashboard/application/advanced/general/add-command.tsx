@@ -17,7 +17,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React from "react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -71,7 +70,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error to update the command");
+				toast.error("Error updating the command");
 			});
 	};
 
@@ -81,7 +80,8 @@ export const AddCommand = ({ applicationId }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Run Command</CardTitle>
 					<CardDescription>
-						Run a custom command in the container
+						Run a custom command in the container after the application
+						initialized
 					</CardDescription>
 				</div>
 			</CardHeader>

@@ -1,11 +1,26 @@
-import React from "react";
+import { cn } from "@/lib/utils";
 
-export const Logo = () => {
+interface Props {
+	className?: string;
+	logoUrl?: string;
+}
+
+export const Logo = ({ className = "size-14", logoUrl }: Props) => {
+	if (logoUrl) {
+		return (
+			<img
+				src={logoUrl}
+				alt="Organization Logo"
+				className={cn(className, "object-contain rounded-sm")}
+			/>
+		);
+	}
+
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 559 446"
-			className="h-10 w-10"
+			className={className}
 		>
 			<path
 				className="fill-primary stroke-primary"

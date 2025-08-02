@@ -30,20 +30,22 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
 	Tooltip,
-	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, HelpCircle } from "lucide-react";
-import { useEffect } from "react";
+import { HelpCircle, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 const certificateDataHolder =
 	"-----BEGIN CERTIFICATE-----\nMIIFRDCCAyygAwIBAgIUEPOR47ys6VDwMVB9tYoeEka83uQwDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwObWktZG9taW5pby5jb20wHhcNMjQwMzExMDQyNzU3WhcN\n------END CERTIFICATE-----";
+
+const privateKeyDataHolder =
+	"-----BEGIN PRIVATE KEY-----\nMIIFRDCCAyygAwIBAgIUEPOR47ys6VDwMVB9tYoeEka83uQwDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwObWktZG9taW5pby5jb20wHhcNMjQwMzExMDQyNzU3WhcN\n-----END PRIVATE KEY-----";
 
 const addCertificate = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -56,8 +58,10 @@ const addCertificate = z.object({
 type AddCertificate = z.infer<typeof addCertificate>;
 
 export const AddCertificate = () => {
+	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
 
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { mutateAsync, isError, error, isLoading } =
 		api.certificates.create.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
@@ -82,24 +86,32 @@ export const AddCertificate = () => {
 			privateKey: data.privateKey,
 			autoRenew: data.autoRenew,
 			serverId: data.serverId,
+			organizationId: "",
 		})
 			.then(async () => {
 				toast.success("Certificate Created");
 				await utils.certificates.all.invalidate();
+				setOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error to create the Certificate");
+				toast.error("Error creating the Certificate");
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
-				<Button>Add Certificate</Button>
+				<Button>
+					{" "}
+					<PlusIcon className="h-4 w-4" />
+					Add Certificate
+				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add Certificate</DialogTitle>
-					<DialogDescription>Add a new certificate</DialogDescription>
+					<DialogTitle>Add New Certificate</DialogTitle>
+					<DialogDescription>
+						Upload or generate a certificate to secure your application
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -154,7 +166,7 @@ export const AddCertificate = () => {
 									<FormControl>
 										<Textarea
 											className="h-32"
-											placeholder={certificateDataHolder}
+											placeholder={privateKeyDataHolder}
 											{...field}
 										/>
 									</FormControl>
@@ -171,7 +183,7 @@ export const AddCertificate = () => {
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server (Optional)
+													Select a Server {!isCloud && "(Optional)"}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormLabel>
 											</TooltipTrigger>
@@ -192,7 +204,12 @@ export const AddCertificate = () => {
 														key={server.serverId}
 														value={server.serverId}
 													>
-														{server.name}
+														<span className="flex items-center gap-2 justify-between w-full">
+															<span>{server.name}</span>
+															<span className="text-muted-foreground text-xs self-center">
+																{server.ipAddress}
+															</span>
+														</span>
 													</SelectItem>
 												))}
 												<SelectLabel>Servers ({servers?.length})</SelectLabel>
@@ -205,7 +222,7 @@ export const AddCertificate = () => {
 						/>
 					</form>
 
-					<DialogFooter className="flex w-full flex-row !justify-between pt-3">
+					<DialogFooter className="flex w-full flex-row !justify-end">
 						<Button
 							isLoading={isLoading}
 							form="hook-form-add-certificate"

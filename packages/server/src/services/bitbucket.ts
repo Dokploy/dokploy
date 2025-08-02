@@ -12,15 +12,17 @@ export type Bitbucket = typeof bitbucket.$inferSelect;
 
 export const createBitbucket = async (
 	input: typeof apiCreateBitbucket._type,
-	adminId: string,
+	organizationId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
 			.insert(gitProvider)
 			.values({
 				providerType: "bitbucket",
-				adminId: adminId,
+				organizationId: organizationId,
 				name: input.name,
+				userId: userId,
 			})
 			.returning()
 			.then((response) => response[0]);
@@ -28,7 +30,7 @@ export const createBitbucket = async (
 		if (!newGitProvider) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
-				message: "Error to create the git provider",
+				message: "Error creating the Bitbucket provider",
 			});
 		}
 
@@ -74,12 +76,12 @@ export const updateBitbucket = async (
 			.where(eq(bitbucket.bitbucketId, bitbucketId))
 			.returning();
 
-		if (input.name || input.adminId) {
+		if (input.name || input.organizationId) {
 			await tx
 				.update(gitProvider)
 				.set({
 					name: input.name,
-					adminId: input.adminId,
+					organizationId: input.organizationId,
 				})
 				.where(eq(gitProvider.gitProviderId, input.gitProviderId))
 				.returning();

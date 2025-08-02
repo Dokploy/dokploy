@@ -34,9 +34,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # Editor
-.vscode
 .idea
 
 # Misc
 .DS_Store
 *.pem
+
+
+.db

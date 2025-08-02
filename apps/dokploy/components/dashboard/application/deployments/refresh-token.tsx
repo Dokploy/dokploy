@@ -11,14 +11,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { api } from "@/utils/api";
 import { RefreshCcw } from "lucide-react";
-import React from "react";
 import { toast } from "sonner";
 
 interface Props {
-	applicationId: string;
+	id: string;
+	type: "application" | "compose";
 }
-export const RefreshToken = ({ applicationId }: Props) => {
-	const { mutateAsync } = api.application.refreshToken.useMutation();
+export const RefreshToken = ({ id, type }: Props) => {
+	const { mutateAsync } =
+		type === "application"
+			? api.application.refreshToken.useMutation()
+			: api.compose.refreshToken.useMutation();
 	const utils = api.useUtils();
 	return (
 		<AlertDialog>
@@ -38,16 +41,23 @@ export const RefreshToken = ({ applicationId }: Props) => {
 					<AlertDialogAction
 						onClick={async () => {
 							await mutateAsync({
-								applicationId,
+								applicationId: id || "",
+								composeId: id || "",
 							})
 								.then(() => {
-									utils.application.one.invalidate({
-										applicationId,
-									});
+									if (type === "application") {
+										utils.application.one.invalidate({
+											applicationId: id,
+										});
+									} else {
+										utils.compose.one.invalidate({
+											composeId: id,
+										});
+									}
 									toast.success("Refresh updated");
 								})
 								.catch(() => {
-									toast.error("Error to update the refresh token");
+									toast.error("Error updating the refresh token");
 								});
 						}}
 					>

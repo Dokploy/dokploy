@@ -9,7 +9,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { TRPCClientError } from "@trpc/client";
 import { CheckCircle2, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -57,7 +56,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 		try {
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 			await refetch();
-		} catch (error) {
+		} catch {
 			toast.error("Failed to refresh GPU status");
 		} finally {
 			setIsRefreshing(false);
@@ -75,7 +74,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 
 		try {
 			await setupGPU.mutateAsync({ serverId });
-		} catch (error) {
+		} catch {
 			// Error handling is done in mutation's onError
 		}
 	};
@@ -262,16 +261,16 @@ export function StatusRow({
 			<div className="flex items-center gap-2">
 				{showIcon ? (
 					<>
-						{isEnabled ? (
-							<CheckCircle2 className="size-4 text-green-500" />
-						) : (
-							<XCircle className="size-4 text-red-500" />
-						)}
 						<span
 							className={`text-sm ${isEnabled ? "text-green-500" : "text-red-500"}`}
 						>
 							{description || (isEnabled ? "Installed" : "Not Installed")}
 						</span>
+						{isEnabled ? (
+							<CheckCircle2 className="size-4 text-green-500" />
+						) : (
+							<XCircle className="size-4 text-red-500" />
+						)}
 					</>
 				) : (
 					<span className="text-sm text-muted-foreground">{value}</span>
