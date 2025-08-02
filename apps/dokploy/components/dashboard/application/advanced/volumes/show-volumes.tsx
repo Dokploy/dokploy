@@ -1,3 +1,5 @@
+import { Package, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -9,11 +11,10 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Package, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import type { ServiceType } from "../show-resources";
 import { AddVolumes } from "./add-volumes";
 import { UpdateVolume } from "./update-volume";
+
 interface Props {
 	id: string;
 	type: ServiceType | "compose";
@@ -80,7 +81,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
 										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 flex-col gap-4 sm:gap-8">
+										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Mount Type</span>
 												<span className="text-sm text-muted-foreground">
@@ -112,21 +113,21 @@ export const ShowVolumes = ({ id, type }: Props) => {
 													</span>
 												</div>
 											)}
-											{mount.type === "file" ? (
+											{mount.type === "file" && (
 												<div className="flex flex-col gap-1">
 													<span className="font-medium">File Path</span>
 													<span className="text-sm text-muted-foreground">
 														{mount.filePath}
 													</span>
 												</div>
-											) : (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">Mount Path</span>
-													<span className="text-sm text-muted-foreground">
-														{mount.mountPath}
-													</span>
-												</div>
 											)}
+
+											<div className="flex flex-col gap-1">
+												<span className="font-medium">Mount Path</span>
+												<span className="text-sm text-muted-foreground">
+													{mount.mountPath}
+												</span>
+											</div>
 										</div>
 										<div className="flex flex-row gap-1">
 											<UpdateVolume
