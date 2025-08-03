@@ -715,27 +715,6 @@
       "when": 1751751631943,
       "tag": "0101_moaning_blazing_skull",
       "breakpoints": true
-    },
-    {
-      "idx": 102,
-      "version": "7",
-      "when": 1751858284187,
-      "tag": "0102_good_prism",
-      "breakpoints": true
-    },
-    {
-      "idx": 103,
-      "version": "7",
-      "when": 1752492857067,
-      "tag": "0103_simple_cerise",
-      "breakpoints": true
-    },
-    {
-      "idx": 104,
-      "version": "7",
-      "when": 1752492965686,
-      "tag": "0104_wealthy_namor",
-      "breakpoints": true
     }
   ]
 }
