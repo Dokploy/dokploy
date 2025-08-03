@@ -1,5 +1,5 @@
 {
-  "id": "6be493d5-9f73-4051-b570-e0b33d57f331",
+  "id": "84fb0854-3c32-4cbb-bd47-f4b9a448db29",
   "prevId": "8bf085dd-e054-4ae6-811b-1d1a68dab752",
   "version": "7",
   "dialect": "postgresql",
@@ -475,6 +475,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'nixpacks'"
+        },
+        "railpackVersion": {
+          "name": "railpackVersion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0.2.2'"
         },
         "herokuVersion": {
           "name": "herokuVersion",
@@ -1226,13 +1233,6 @@
         },
         "stripPath": {
           "name": "stripPath",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "isWildcard": {
-          "name": "isWildcard",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
