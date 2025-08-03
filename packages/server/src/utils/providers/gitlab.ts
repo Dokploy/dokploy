@@ -371,9 +371,9 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 		});
 	}
 
-	const gitlabProvider = await findGitlabById(gitlabId);
 	const { COMPOSE_PATH } = paths();
 	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
@@ -419,9 +419,9 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 			message: "Gitlab Provider not found",
 		});
 	}
-	const gitlabProvider = await findGitlabById(gitlabId);
 	const { COMPOSE_PATH } = paths(true);
 	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const repoClone = getGitlabRepoClone(gitlabProvider, gitlabPathNamespace);
