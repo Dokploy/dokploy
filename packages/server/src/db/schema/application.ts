@@ -208,6 +208,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
+	railpackVersion: text("railpackVersion").default("0.2.2"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
 	isStaticSpa: boolean("isStaticSpa"),
@@ -412,6 +413,7 @@ const createSchema = createInsertSchema(applications, {
 		"static",
 		"railpack",
 	]),
+	railpackVersion: z.string().optional(),
 	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
 	isStaticSpa: z.boolean().optional(),
@@ -466,6 +468,7 @@ export const apiSaveBuildType = createSchema
 		dockerContextPath: true,
 		dockerBuildStage: true,
 		herokuVersion: true,
+		railpackVersion: true,
 	})
 	.required()
 	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
