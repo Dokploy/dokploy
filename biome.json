@@ -19,14 +19,16 @@
 			},
 			"complexity": {
 				"noUselessCatch": "off",
-				"noBannedTypes": "off"
+				"noBannedTypes": "off",
+				"noUselessFragments": "off"
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "off",
 				"noUnsafeOptionalChaining": "off",
 				"noUnusedImports": "error",
 				"noUnusedFunctionParameters": "error",
-				"noUnusedVariables": "error"
+				"noUnusedVariables": "error",
+				"useHookAtTopLevel": "off"
 			},
 			"style": {
 				"noNonNullAssertion": "off",

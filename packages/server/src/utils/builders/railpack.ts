@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type { WriteStream } from "node:fs";
 import { nanoid } from "nanoid";
-import type { ApplicationNested } from ".";
 import {
 	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
@@ -9,6 +8,7 @@ import {
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { execAsync } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
+import type { ApplicationNested } from ".";
 
 const calculateSecretsHash = (envVariables: string[]): string => {
 	const hash = createHash("sha256");
@@ -75,7 +75,7 @@ export const buildRailpack = async (
 					]
 				: []),
 			"--build-arg",
-			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.64",
+			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.2.2",
 			"-f",
 			`${buildAppDirectory}/railpack-plan.json`,
 			"--output",

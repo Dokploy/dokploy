@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,14 +41,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
-import Link from "next/link";
-import z from "zod";
 
 export type CacheType = "fetch" | "cache";
 
@@ -123,6 +122,7 @@ interface Props {
 export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
+	const [isManualInput, setIsManualInput] = useState(false);
 
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
@@ -325,46 +325,126 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 													<FormItem className="w-full">
 														<FormLabel>Service Name</FormLabel>
 														<div className="flex gap-2">
-															<Select
-																onValueChange={field.onChange}
-																defaultValue={field.value || ""}
-															>
+															{isManualInput ? (
 																<FormControl>
-																	<SelectTrigger>
-																		<SelectValue placeholder="Select a service name" />
-																	</SelectTrigger>
+																	<Input
+																		placeholder="Enter service name manually"
+																		{...field}
+																		className="w-full"
+																	/>
 																</FormControl>
+															) : (
+																<Select
+																	onValueChange={field.onChange}
+																	defaultValue={field.value || ""}
+																>
+																	<FormControl>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select a service name" />
+																		</SelectTrigger>
+																	</FormControl>
 
-																<SelectContent>
-																	{services?.map((service, index) => (
-																		<SelectItem
-																			value={service}
-																			key={`${service}-${index}`}
-																		>
-																			{service}
+																	<SelectContent>
+																		{services?.map((service, index) => (
+																			<SelectItem
+																				value={service}
+																				key={`${service}-${index}`}
+																			>
+																				{service}
+																			</SelectItem>
+																		))}
+																		<SelectItem value="none" disabled>
+																			Empty
 																		</SelectItem>
-																	))}
-																	<SelectItem value="none" disabled>
-																		Empty
-																	</SelectItem>
-																</SelectContent>
-															</Select>
+																	</SelectContent>
+																</Select>
+															)}
+															{!isManualInput && (
+																<>
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<Button
+																					variant="secondary"
+																					type="button"
+																					isLoading={isLoadingServices}
+																					onClick={() => {
+																						if (cacheType === "fetch") {
+																							refetchServices();
+																						} else {
+																							setCacheType("fetch");
+																						}
+																					}}
+																				>
+																					<RefreshCw className="size-4 text-muted-foreground" />
+																				</Button>
+																			</TooltipTrigger>
+																			<TooltipContent
+																				side="left"
+																				sideOffset={5}
+																				className="max-w-[10rem]"
+																			>
+																				<p>
+																					Fetch: Will clone the repository and
+																					load the services
+																				</p>
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<Button
+																					variant="secondary"
+																					type="button"
+																					isLoading={isLoadingServices}
+																					onClick={() => {
+																						if (cacheType === "cache") {
+																							refetchServices();
+																						} else {
+																							setCacheType("cache");
+																						}
+																					}}
+																				>
+																					<DatabaseZap className="size-4 text-muted-foreground" />
+																				</Button>
+																			</TooltipTrigger>
+																			<TooltipContent
+																				side="left"
+																				sideOffset={5}
+																				className="max-w-[10rem]"
+																			>
+																				<p>
+																					Cache: If you previously deployed this
+																					compose, it will read the services
+																					from the last deployment/fetch from
+																					the repository
+																				</p>
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+																</>
+															)}
 															<TooltipProvider delayDuration={0}>
 																<Tooltip>
 																	<TooltipTrigger asChild>
 																		<Button
 																			variant="secondary"
 																			type="button"
-																			isLoading={isLoadingServices}
 																			onClick={() => {
-																				if (cacheType === "fetch") {
-																					refetchServices();
-																				} else {
-																					setCacheType("fetch");
+																				setIsManualInput(!isManualInput);
+																				if (!isManualInput) {
+																					field.onChange("");
 																				}
 																			}}
 																		>
-																			<RefreshCw className="size-4 text-muted-foreground" />
+																			{isManualInput ? (
+																				<RefreshCw className="size-4 text-muted-foreground" />
+																			) : (
+																				<span className="text-xs text-muted-foreground">
+																					Manual
+																				</span>
+																			)}
 																		</Button>
 																	</TooltipTrigger>
 																	<TooltipContent
@@ -373,40 +453,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																		className="max-w-[10rem]"
 																	>
 																		<p>
-																			Fetch: Will clone the repository and load
-																			the services
-																		</p>
-																	</TooltipContent>
-																</Tooltip>
-															</TooltipProvider>
-															<TooltipProvider delayDuration={0}>
-																<Tooltip>
-																	<TooltipTrigger asChild>
-																		<Button
-																			variant="secondary"
-																			type="button"
-																			isLoading={isLoadingServices}
-																			onClick={() => {
-																				if (cacheType === "cache") {
-																					refetchServices();
-																				} else {
-																					setCacheType("cache");
-																				}
-																			}}
-																		>
-																			<DatabaseZap className="size-4 text-muted-foreground" />
-																		</Button>
-																	</TooltipTrigger>
-																	<TooltipContent
-																		side="left"
-																		sideOffset={5}
-																		className="max-w-[10rem]"
-																	>
-																		<p>
-																			Cache: If you previously deployed this
-																			compose, it will read the services from
-																			the last deployment/fetch from the
-																			repository
+																			{isManualInput
+																				? "Switch to service selection"
+																				: "Enter service name manually"}
 																		</p>
 																	</TooltipContent>
 																</Tooltip>
