@@ -3,6 +3,7 @@ import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
+	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,

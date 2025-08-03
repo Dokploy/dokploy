@@ -348,7 +348,9 @@ export const calculateResources = ({
 	};
 };
 
-export const generateConfigContainer = (application: ApplicationNested) => {
+export const generateConfigContainer = (
+	application: Partial<ApplicationNested>,
+) => {
 	const {
 		healthCheckSwarm,
 		restartPolicySwarm,
@@ -362,7 +364,7 @@ export const generateConfigContainer = (application: ApplicationNested) => {
 		networkSwarm,
 	} = application;
 
-	const haveMounts = mounts.length > 0;
+	const haveMounts = mounts && mounts.length > 0;
 
 	return {
 		...(healthCheckSwarm && {
