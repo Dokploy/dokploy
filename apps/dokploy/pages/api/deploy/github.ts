@@ -442,6 +442,20 @@ export default async function handler(
 			}
 
 			for (const app of secureApps) {
+				// check for labels
+				if (app?.previewLabels != "") {
+					const previewLabels = app?.previewLabels?.split(",");
+					let hasLabel: boolean = false;
+					const labels = githubBody?.pull_request?.labels;
+					for (const label of labels) {
+						if (previewLabels.contains(label.name)) {
+							hasLabel = true;
+							break;
+						}
+					}
+					if (hasLabel) continue;
+				}
+
 				const previewLimit = app?.previewLimit || 0;
 				if (app?.previewDeployments?.length > previewLimit) {
 					continue;
