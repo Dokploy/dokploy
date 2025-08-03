@@ -1,3 +1,5 @@
+import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Sheet,
 	SheetContent,
@@ -5,8 +7,6 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
-import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { TerminalLine } from "../dashboard/docker/logs/terminal-line";
 import type { LogLine } from "../dashboard/docker/logs/utils";
 
@@ -43,11 +43,11 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 	return (
 		<Sheet
 			open={!!isOpen}
-			onOpenChange={(_open) => {
+			onOpenChange={() => {
 				onClose();
 			}}
 		>
-			<SheetContent className="sm:max-w-[740px]  flex flex-col">
+			<SheetContent className="sm:max-w-[740px] flex flex-col">
 				<SheetHeader>
 					<SheetTitle>Deployment Logs</SheetTitle>
 					<SheetDescription>Details of the request log entry.</SheetDescription>
