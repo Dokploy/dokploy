@@ -162,6 +162,10 @@ ${command ?? "wait $MONGOD_PID"}`;
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			TaskTemplate: {
+				...settings.TaskTemplate,
+				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+			},
 		});
 	} catch {
 		await docker.createService(settings);
