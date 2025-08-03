@@ -15,6 +15,7 @@ import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { TerminalModal } from "../../web-server/terminal-modal";
+import { BuildConcurrencyModal } from "../build-concurrency-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
 
 export const ShowDokployActions = () => {
@@ -24,6 +25,7 @@ export const ShowDokployActions = () => {
 
 	const { mutateAsync: cleanRedis } = api.settings.cleanRedis.useMutation();
 	const { mutateAsync: reloadRedis } = api.settings.reloadRedis.useMutation();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<DropdownMenu>
@@ -102,6 +104,8 @@ export const ShowDokployActions = () => {
 					>
 						Reload Redis
 					</DropdownMenuItem>
+
+					{!isCloud && <BuildConcurrencyModal />}
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
