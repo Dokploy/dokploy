@@ -477,7 +477,7 @@ export const deployPreviewApplication = async ({
 				branch: previewDeployment.branch,
 				logPath: deployment.logPath,
 			});
-			await buildApplication(application, deployment.logPath);
+			await buildApplication(application, deployment.logPath, previewDeploymentId);
 		}
 		const successComment = getIssueComment(
 			application.name,

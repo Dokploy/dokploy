@@ -18,6 +18,7 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { ShowServiceLinks } from "@/components/dashboard/shared/service-links/show-service-links";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -62,7 +63,8 @@ type TabState =
 	| "domains"
 	| "monitoring"
 	| "preview-deployments"
-	| "volume-backups";
+	| "volume-backups"
+	| "serviceLinks";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -226,6 +228,7 @@ const Service = (
 												Preview Deployments
 											</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="serviceLinks">Service Links</TabsTrigger>
 											<TabsTrigger value="volume-backups">
 												Volume Backups
 											</TabsTrigger>
@@ -310,6 +313,15 @@ const Service = (
 											<ShowSchedules
 												id={applicationId}
 												scheduleType="application"
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="serviceLinks">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowServiceLinks
+												serviceId={applicationId}
+												serviceType="application"
+												projectId={projectId as string}
 											/>
 										</div>
 									</TabsContent>

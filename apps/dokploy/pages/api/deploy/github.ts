@@ -7,6 +7,7 @@ import {
 	IS_CLOUD,
 	checkUserRepositoryPermissions,
 	createPreviewDeployment,
+	createPreviewDeploymentWithLinks,
 	createSecurityBlockedComment,
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
@@ -453,7 +454,7 @@ export default async function handler(
 					previewDeploymentResult?.previewDeploymentId || "";
 
 				if (!previewDeploymentResult) {
-					const previewDeployment = await createPreviewDeployment({
+					const previewDeployment = await createPreviewDeploymentWithLinks({
 						applicationId: app.applicationId as string,
 						branch: prBranch,
 						pullRequestId: prId,
