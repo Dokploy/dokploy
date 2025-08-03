@@ -1,8 +1,7 @@
-import { api } from "@/utils/api";
 import type { IUpdateData } from "@dokploy/server/index";
 import { Download } from "lucide-react";
-import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
+import { api } from "@/utils/api";
 import UpdateServer from "../dashboard/settings/web-server/update-server";
 import { Button } from "../ui/button";
 import {
@@ -11,6 +10,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "../ui/tooltip";
+
 const AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
 export const UpdateServerButton = () => {
@@ -18,7 +18,6 @@ export const UpdateServerButton = () => {
 		latestVersion: null,
 		updateAvailable: false,
 	});
-	const _router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { mutateAsync: getUpdateData } =
 		api.settings.getUpdateData.useMutation();
@@ -26,9 +25,6 @@ export const UpdateServerButton = () => {
 
 	const checkUpdatesIntervalRef = useRef<null | NodeJS.Timeout>(null);
 
-	if (isCloud) {
-		return null;
-	}
 	useEffect(() => {
 		// Handling of automatic check for server updates
 		if (isCloud) {
@@ -77,7 +73,7 @@ export const UpdateServerButton = () => {
 		};
 	}, []);
 
-	return updateData.updateAvailable ? (
+	return !isCloud && updateData.updateAvailable ? (
 		<div className="border-t pt-4">
 			<UpdateServer
 				updateData={updateData}

@@ -55,7 +55,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				conn
 					.once("ready", () => {
 						conn.exec(
-							`docker exec -it ${containerId} ${activeWay}`,
+							`docker exec -it -w / ${containerId} ${activeWay}`,
 							{ pty: true },
 							(err, stream) => {
 								if (err) throw err;
@@ -107,7 +107,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				const shell = getShell();
 				const ptyProcess = spawn(
 					shell,
-					["-c", `docker exec -it ${containerId} ${activeWay}`],
+					["-c", `docker exec -it -w / ${containerId} ${activeWay}`],
 					{},
 				);
 

@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import {
-	type Gitea,
 	findGiteaById,
+	type Gitea,
 	updateGitea,
 } from "@dokploy/server/services/gitea";
 import type { InferResultType } from "@dokploy/server/types/with";
@@ -118,7 +118,6 @@ export const getGiteaCloneCommand = async (
 		giteaOwner,
 		giteaRepository,
 		serverId,
-		gitea,
 		enableSubmodules,
 	} = entity;
 
@@ -145,6 +144,7 @@ export const getGiteaCloneCommand = async (
 	// Use paths(true) for remote operations
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
 	await refreshGiteaToken(giteaId);
+	const gitea = await findGiteaById(giteaId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 

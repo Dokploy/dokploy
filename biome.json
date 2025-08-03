@@ -27,7 +27,8 @@
 				"noUnsafeOptionalChaining": "off",
 				"noUnusedImports": "error",
 				"noUnusedFunctionParameters": "error",
-				"noUnusedVariables": "error"
+				"noUnusedVariables": "error",
+				"useHookAtTopLevel": "off"
 			},
 			"style": {
 				"noNonNullAssertion": "off",

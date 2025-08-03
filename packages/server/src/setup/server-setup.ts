@@ -6,17 +6,16 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findServerById } from "@dokploy/server/services/server";
 import {
+	getDefaultMiddlewares,
+	getDefaultServerTraefikConfig,
 	TRAEFIK_HTTP3_PORT,
 	TRAEFIK_PORT,
 	TRAEFIK_SSL_PORT,
 	TRAEFIK_VERSION,
-	getDefaultMiddlewares,
-	getDefaultServerTraefikConfig,
 } from "@dokploy/server/setup/traefik-setup";
+import slug from "slugify";
 import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
-
-import slug from "slugify";
 
 export const slugify = (text: string | undefined) => {
 	if (!text) {
@@ -609,7 +608,7 @@ const installRailpack = () => `
 	if command_exists railpack; then
 		echo "Railpack already installed ✅"
 	else
-	    export RAILPACK_VERSION=0.0.64
+	    export RAILPACK_VERSION=0.2.2
 		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 		echo "Railpack version $RAILPACK_VERSION installed ✅"
 	fi
