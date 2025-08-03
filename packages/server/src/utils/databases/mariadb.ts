@@ -34,6 +34,17 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 	const defaultMariadbEnv = `MARIADB_DATABASE="${databaseName}"\nMARIADB_USER="${databaseUser}"\nMARIADB_PASSWORD="${databasePassword}"\nMARIADB_ROOT_PASSWORD="${databaseRootPassword}"${
 		env ? `\n${env}` : ""
 	}`;
+
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+	} = generateConfigContainer(mariadb);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -54,6 +65,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
@@ -63,20 +75,17 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 							Args: ["-c", command],
 						}
 					: {}),
+				Labels,
 			},
-			Networks: [{ Target: "dokploy-network" }],
+			Networks,
+			RestartPolicy,
+			Placement,
 			Resources: {
 				...resources,
 			},
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
 		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
+		Mode,
+		RollbackConfig,
 		EndpointSpec: {
 			Mode: "dnsrr",
 			Ports: externalPort
@@ -90,6 +99,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 					]
 				: [],
 		},
+		UpdateConfig,
 	};
 	try {
 		const service = docker.getService(appName);
