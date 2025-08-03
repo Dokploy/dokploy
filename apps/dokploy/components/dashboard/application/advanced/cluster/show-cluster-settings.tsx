@@ -102,8 +102,6 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data?.command]);
 
-	console.log(form.formState.errors);
-
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
 			applicationId: id || "",
@@ -137,7 +135,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				<div>
 					<CardTitle className="text-xl">Cluster Settings</CardTitle>
 					<CardDescription>
-						Add the registry and the replicas of the application
+						Modify swarm settings for the service.
 					</CardDescription>
 				</div>
 				<AddSwarmSettings id={id} type={type} />

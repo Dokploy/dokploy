@@ -292,7 +292,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-5xl p-0">
+			<DialogContent className="sm:max-w-5xl">
 				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
@@ -300,10 +300,10 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-				<div className="px-4">
+				<div>
 					<AlertBlock type="info">
-						Changing settings such as placements may cause the logs/monitoring
-						to be unavailable.
+						Changing settings such as placements may cause the logs/monitoring,
+						backups and other features to be unavailable.
 					</AlertBlock>
 				</div>
 
@@ -311,13 +311,13 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative"
+						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative mt-4"
 					>
 						<FormField
 							control={form.control}
 							name="healthCheckSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Health Check</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -373,7 +373,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="restartPolicySwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Restart Policy</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -427,7 +427,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="placementSwarm"
 							render={({ field }) => (
-								<FormItem className="relative   max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Placement</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -493,7 +493,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="updateConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Update Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -551,7 +551,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="rollbackConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Rollback Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -609,7 +609,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="modeSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Mode</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -672,7 +672,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="networkSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Network</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -731,7 +731,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="labelsSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Labels</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
