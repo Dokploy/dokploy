@@ -1,8 +1,12 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
-import { type apiCreateCompose, compose } from "@dokploy/server/db/schema";
-import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
+import {
+	type apiCreateCompose,
+	buildAppName,
+	cleanAppName,
+	compose,
+} from "@dokploy/server/db/schema";
 import {
 	buildCompose,
 	getBuildComposeCommand,
@@ -516,19 +520,20 @@ export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
+
+		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+		const path =
+			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+		const baseCommand = `docker compose -p ${compose.appName} -f ${path} up -d`;
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(
-						COMPOSE_PATH,
-						compose.appName,
-						"code",
-					)} && docker compose -p ${compose.appName} up -d`,
+					`cd ${projectPath} && ${baseCommand}`,
 				);
 			} else {
-				await execAsync(`docker compose -p ${compose.appName} up -d`, {
-					cwd: join(COMPOSE_PATH, compose.appName, "code"),
+				await execAsync(baseCommand, {
+					cwd: projectPath,
 				});
 			}
 		}

@@ -1,31 +1,4 @@
 import {
-	createTRPCRouter,
-	protectedProcedure,
-	uploadProcedure,
-} from "@/server/api/trpc";
-import { db } from "@/server/db";
-import {
-	apiCreateApplication,
-	apiFindMonitoringStats,
-	apiFindOneApplication,
-	apiReloadApplication,
-	apiSaveBitbucketProvider,
-	apiSaveBuildType,
-	apiSaveDockerProvider,
-	apiSaveEnvironmentVariables,
-	apiSaveGitProvider,
-	apiSaveGiteaProvider,
-	apiSaveGithubProvider,
-	apiSaveGitlabProvider,
-	apiUpdateApplication,
-	applications,
-} from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
-import { uploadFileSchema } from "@/utils/schema";
-import {
-	IS_CLOUD,
 	addNewService,
 	checkServiceAccess,
 	createApplication,
@@ -34,6 +7,7 @@ import {
 	findGitProviderById,
 	findProjectById,
 	getApplicationStats,
+	IS_CLOUD,
 	mechanizeDockerContainer,
 	readConfig,
 	readRemoteConfig,
@@ -57,6 +31,32 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	uploadProcedure,
+} from "@/server/api/trpc";
+import { db } from "@/server/db";
+import {
+	apiCreateApplication,
+	apiFindMonitoringStats,
+	apiFindOneApplication,
+	apiReloadApplication,
+	apiSaveBitbucketProvider,
+	apiSaveBuildType,
+	apiSaveDockerProvider,
+	apiSaveEnvironmentVariables,
+	apiSaveGiteaProvider,
+	apiSaveGithubProvider,
+	apiSaveGitlabProvider,
+	apiSaveGitProvider,
+	apiUpdateApplication,
+	applications,
+} from "@/server/db/schema";
+import type { DeploymentJob } from "@/server/queues/queue-types";
+import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
+import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -364,6 +364,7 @@ export const applicationRouter = createTRPCRouter({
 				dockerBuildStage: input.dockerBuildStage,
 				herokuVersion: input.herokuVersion,
 				isStaticSpa: input.isStaticSpa,
+				railpackVersion: input.railpackVersion,
 			});
 
 			return true;

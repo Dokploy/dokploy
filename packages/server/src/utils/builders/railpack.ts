@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type { WriteStream } from "node:fs";
 import { nanoid } from "nanoid";
-import type { ApplicationNested } from ".";
 import {
 	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
@@ -9,6 +8,7 @@ import {
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { execAsync } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
+import type { ApplicationNested } from ".";
 
 const calculateSecretsHash = (envVariables: string[]): string => {
 	const hash = createHash("sha256");
@@ -75,7 +75,7 @@ export const buildRailpack = async (
 					]
 				: []),
 			"--build-arg",
-			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.64",
+			`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 			"-f",
 			`${buildAppDirectory}/railpack-plan.json`,
 			"--output",
@@ -110,6 +110,8 @@ export const buildRailpack = async (
 		return true;
 	} catch (e) {
 		throw e;
+	} finally {
+		await execAsync("docker buildx rm builder-containerd");
 	}
 };
 
@@ -155,7 +157,7 @@ export const getRailpackCommand = (
 				]
 			: []),
 		"--build-arg",
-		"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.64",
+		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 		"-f",
 		`${buildAppDirectory}/railpack-plan.json`,
 		"--output",
@@ -194,6 +196,7 @@ docker ${buildArgs.join(" ")} >> ${logPath} 2>> ${logPath} || {
 	exit 1;
 }
 echo "✅ Railpack build completed." >> ${logPath};
+docker buildx rm builder-containerd
 `;
 
 	return bashCommand;

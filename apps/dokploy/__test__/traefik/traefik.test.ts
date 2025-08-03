@@ -1,10 +1,9 @@
-import type { Domain } from "@dokploy/server";
-import type { Redirect } from "@dokploy/server";
-import type { ApplicationNested } from "@dokploy/server";
+import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
 import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	railpackVersion: "0.2.2",
 	rollbackActive: false,
 	applicationId: "",
 	herokuVersion: "",
