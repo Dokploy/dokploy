@@ -1,7 +1,15 @@
-export const S3_PROVIDERS: Array<{
+export interface CloudStorageProvider {
 	key: string;
 	name: string;
-}> = [
+	oauthRequired?: boolean;
+}
+
+export interface S3Provider {
+	key: string;
+	name: string;
+}
+
+export const S3_PROVIDERS: S3Provider[] = [
 	{
 		key: "AWS",
 		name: "Amazon Web Services (AWS) S3",
@@ -131,3 +139,29 @@ export const S3_PROVIDERS: Array<{
 		name: "Any other S3 compatible provider",
 	},
 ];
+
+export const CLOUD_STORAGE_PROVIDERS: CloudStorageProvider[] = [
+	{
+		key: "drive",
+		name: "Google Drive",
+		oauthRequired: true,
+	},
+	{
+		key: "dropbox",
+		name: "Dropbox",
+		oauthRequired: true,
+	},
+	{
+		key: "box",
+		name: "Box",
+		oauthRequired: true,
+	},
+	{
+		key: "ftp",
+		name: "FTP",
+	},
+	{
+		key: "sftp",
+		name: "SFTP",
+	},
+] as const;

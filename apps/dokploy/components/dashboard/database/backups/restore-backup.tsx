@@ -39,6 +39,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
 	TooltipContent,
@@ -54,6 +55,8 @@ import {
 	CheckIcon,
 	ChevronsUpDown,
 	Copy,
+	Cloud,
+	Database,
 	DatabaseZap,
 	RefreshCw,
 	RotateCcw,
@@ -216,8 +219,15 @@ export const RestoreBackup = ({
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+	const [activeTab, setActiveTab] = useState<"s3" | "cloud">("s3");
+	const [selectedCloudBackup, setSelectedCloudBackup] = useState<any>(null);
 
-	const { data: destinations = [] } = api.destination.all.useQuery();
+	// S3 destinations and cloud storage destinations
+	const { data: s3Destinations = [] } = api.destination.all.useQuery();
+	const { data: cloudDestinations = [] } = api.cloudStorageDestination.all.useQuery();
+
+	// Cloud storage backups list
+	const { data: cloudBackups = [] } = api.cloudStorageBackup.list.useQuery();
 
 	const form = useForm<z.infer<typeof RestoreBackupSchema>>({
 		defaultValues: {
@@ -245,21 +255,47 @@ export const RestoreBackup = ({
 		debouncedSetSearch(value);
 	};
 
-	const { data: files = [], isLoading } = api.backup.listBackupFiles.useQuery(
+	// S3 backup files query
+	const { data: s3Files = [], isLoading: isLoadingS3 } = api.backup.listBackupFiles.useQuery(
 		{
 			destinationId: destionationId,
 			search: debouncedSearchTerm,
 			serverId: serverId ?? "",
 		},
 		{
-			enabled: isOpen && !!destionationId,
+			enabled: isOpen && !!destionationId && activeTab === "s3",
 		},
 	);
+
+	// Cloud storage backup files query
+	const { data: cloudFiles = [], isLoading: isLoadingCloud, error: cloudFilesError } = api.cloudStorageBackup.listBackupFiles.useQuery(
+		{
+			destinationId: destionationId,
+			prefix: selectedCloudBackup?.prefix || "", // Use the backup's configured prefix
+			searchTerm: debouncedSearchTerm,
+			serverId: serverId ?? "",
+		},
+		{
+			enabled: isOpen && !!destionationId && activeTab === "cloud" && !!selectedCloudBackup,
+			onError: (error) => {
+				console.error("Cloud storage files error:", error);
+				toast.error("Failed to load backup files. Please check your connection and try again.");
+			},
+			onSuccess: (data) => {
+				console.log("Cloud storage files loaded:", data);
+			},
+		},
+	);
+
+	// Use the appropriate files and loading state based on active tab
+	const files = activeTab === "cloud" ? cloudFiles : s3Files;
+	const isLoading = activeTab === "cloud" ? isLoadingCloud : isLoadingS3;
 
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
 
+	// S3 restore subscription
 	api.backup.restoreBackupWithLogs.useSubscription(
 		{
 			databaseId: id,
@@ -271,7 +307,7 @@ export const RestoreBackup = ({
 			metadata: metadata,
 		},
 		{
-			enabled: isDeploying,
+			enabled: isDeploying && activeTab === "s3",
 			onData(log) {
 				if (!isDrawerOpen) {
 					setIsDrawerOpen(true);
@@ -284,7 +320,37 @@ export const RestoreBackup = ({
 				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
 			},
 			onError(error) {
-				console.error("Restore logs error:", error);
+				console.error("S3 Restore logs error:", error);
+				setIsDeploying(false);
+			},
+		},
+	);
+
+	// Cloud storage restore subscription
+	api.cloudStorageBackup.restoreBackupWithLogs.useSubscription(
+		{
+			databaseId: id,
+			databaseType: currentDatabaseType as DatabaseType,
+			databaseName: form.watch("databaseName"),
+			backupFile: form.watch("backupFile"),
+			destinationId: form.watch("destinationId"),
+			metadata: metadata,
+		},
+		{
+			enabled: isDeploying && activeTab === "cloud",
+			onData(log) {
+				if (!isDrawerOpen) {
+					setIsDrawerOpen(true);
+				}
+
+				if (log === "Restore completed successfully!") {
+					setIsDeploying(false);
+				}
+				const parsedLogs = parseLogs(log);
+				setFilteredLogs((prev) => [...prev, ...parsedLogs]);
+			},
+			onError(error) {
+				console.error("Cloud storage restore logs error:", error);
 				setIsDeploying(false);
 			},
 		},
@@ -335,77 +401,197 @@ export const RestoreBackup = ({
 					</DialogDescription>
 				</DialogHeader>
 
+				<Tabs value={activeTab} onValueChange={(value) => {
+					setActiveTab(value as "s3" | "cloud");
+					// Clear the selected backup file when switching tabs
+					form.setValue("backupFile", "");
+					// Clear search terms
+					setSearch("");
+					setDebouncedSearchTerm("");
+				}} className="w-full">
+					<TabsList className="grid w-full grid-cols-2">
+						<TabsTrigger value="s3" className="flex items-center gap-2">
+							<Database className="size-4" />
+							S3 Storage
+						</TabsTrigger>
+						<TabsTrigger value="cloud" className="flex items-center gap-2">
+							<Cloud className="size-4" />
+							Cloud Storage
+						</TabsTrigger>
+					</TabsList>
+
+					<TabsContent value="s3" className="mt-4">
+						<div className="text-sm text-muted-foreground mb-4">
+							Restore from S3-compatible storage destinations.
+						</div>
+					</TabsContent>
+
+					<TabsContent value="cloud" className="mt-4">
+						<div className="text-sm text-muted-foreground mb-4">
+							Restore from cloud storage destinations (Google Drive, Dropbox, etc.).
+						</div>
+					</TabsContent>
+				</Tabs>
+
 				<Form {...form}>
 					<form
 						id="hook-form-restore-backup"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
+						className="grid w-full gap-4 mt-4"
 					>
-						<FormField
-							control={form.control}
-							name="destinationId"
-							render={({ field }) => (
-								<FormItem className="">
-									<FormLabel>Destination</FormLabel>
-									<Popover>
-										<PopoverTrigger asChild>
-											<FormControl>
-												<Button
-													variant="outline"
-													className={cn(
-														"w-full justify-between !bg-input",
-														!field.value && "text-muted-foreground",
-													)}
-												>
-													{field.value
-														? destinations.find(
-																(d) => d.destinationId === field.value,
-															)?.name
-														: "Select Destination"}
-													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-												</Button>
-											</FormControl>
-										</PopoverTrigger>
-										<PopoverContent className="p-0" align="start">
-											<Command>
-												<CommandInput
-													placeholder="Search destinations..."
-													className="h-9"
-												/>
-												<CommandEmpty>No destinations found.</CommandEmpty>
-												<ScrollArea className="h-64">
-													<CommandGroup>
-														{destinations.map((destination) => (
-															<CommandItem
-																value={destination.destinationId}
-																key={destination.destinationId}
-																onSelect={() => {
+						{activeTab === "cloud" ? (
+							// Cloud Storage: Select from existing backup configurations
+							<FormField
+								control={form.control}
+								name="destinationId"
+								render={({ field }) => {
+									// Filter cloud backups by database type and ID
+									const filteredCloudBackups = cloudBackups?.filter((backup) => {
+										switch (databaseType) {
+											case "postgres":
+												return backup.postgresId === id;
+											case "mysql":
+												return backup.mysqlId === id;
+											case "mariadb":
+												return backup.mariadbId === id;
+											case "mongo":
+												return backup.mongoId === id;
+											case "web-server":
+												return backup.databaseType === "web-server";
+											default:
+												return false;
+										}
+									});
+
+									const getBackupDisplayName = (backup: any) => {
+										return `${backup.cloudStorageDestination?.name} - ${backup.database}`;
+									};
+
+									return (
+										<FormItem className="">
+											<FormLabel>Cloud Storage Destination</FormLabel>
+											<Popover>
+												<PopoverTrigger asChild>
+													<FormControl>
+														<Button
+															variant="outline"
+															className={cn(
+																"w-full justify-between !bg-input",
+																!field.value && "text-muted-foreground",
+															)}
+														>
+															{field.value && selectedCloudBackup
+																? getBackupDisplayName(selectedCloudBackup)
+																: "Select Cloud Storage Destination"}
+															<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+														</Button>
+													</FormControl>
+												</PopoverTrigger>
+												<PopoverContent className="p-0" align="start">
+													<Command>
+														<CommandInput
+															placeholder="Search backup configurations..."
+															className="h-9"
+														/>
+														<CommandEmpty>No backup configurations found.</CommandEmpty>
+														<ScrollArea className="h-64">
+															<CommandGroup>
+																{filteredCloudBackups?.map((backup) => (
+																	<CommandItem
+																		value={backup.id}
+																		key={backup.id}
+																		onSelect={() => {
+																			form.setValue("destinationId", backup.cloudStorageDestinationId);
+																			setSelectedCloudBackup(backup);
+																		}}
+																	>
+																		{getBackupDisplayName(backup)}
+																		<CheckIcon
+																			className={cn(
+																				"ml-auto h-4 w-4",
+																				backup.cloudStorageDestinationId === field.value
+																					? "opacity-100"
+																					: "opacity-0",
+																			)}
+																		/>
+																	</CommandItem>
+																))}
+															</CommandGroup>
+														</ScrollArea>
+													</Command>
+												</PopoverContent>
+											</Popover>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						) : (
+							// S3: Select from destinations directly
+							<FormField
+								control={form.control}
+								name="destinationId"
+								render={({ field }) => (
+									<FormItem className="">
+										<FormLabel>S3 Destination</FormLabel>
+										<Popover>
+											<PopoverTrigger asChild>
+												<FormControl>
+													<Button
+														variant="outline"
+														className={cn(
+															"w-full justify-between !bg-input",
+															!field.value && "text-muted-foreground",
+														)}
+													>
+														{field.value
+															? s3Destinations?.find(d => d.destinationId === field.value)?.name
+															: "Select S3 Destination"}
+														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+													</Button>
+												</FormControl>
+											</PopoverTrigger>
+											<PopoverContent className="p-0" align="start">
+												<Command>
+													<CommandInput
+														placeholder="Search S3 destinations..."
+														className="h-9"
+													/>
+													<CommandEmpty>No destinations found.</CommandEmpty>
+													<ScrollArea className="h-64">
+														<CommandGroup>
+															{s3Destinations.map((destination) => (
+																<CommandItem
+																	value={destination.destinationId}
+																	key={destination.destinationId}
+																	onSelect={() => {
 																	form.setValue(
 																		"destinationId",
 																		destination.destinationId,
 																	);
-																}}
-															>
-																{destination.name}
-																<CheckIcon
-																	className={cn(
-																		"ml-auto h-4 w-4",
-																		destination.destinationId === field.value
-																			? "opacity-100"
-																			: "opacity-0",
-																	)}
-																/>
-															</CommandItem>
-														))}
-													</CommandGroup>
-												</ScrollArea>
-											</Command>
-										</PopoverContent>
-									</Popover>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+																	}}
+																>
+																	{destination.name}
+																	<CheckIcon
+																		className={cn(
+																			"ml-auto h-4 w-4",
+																			destination.destinationId === field.value
+																				? "opacity-100"
+																				: "opacity-0",
+																		)}
+																	/>
+																</CommandItem>
+															))}
+														</CommandGroup>
+													</ScrollArea>
+												</Command>
+											</PopoverContent>
+										</Popover>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						<FormField
 							control={form.control}
@@ -469,52 +655,62 @@ export const RestoreBackup = ({
 												) : (
 													<ScrollArea className="h-64">
 														<CommandGroup className="w-96">
-															{files?.map((file) => (
-																<CommandItem
-																	value={file.Path}
-																	key={file.Path}
-																	onSelect={() => {
-																		form.setValue("backupFile", file.Path);
-																		if (file.IsDir) {
-																			setSearch(`${file.Path}/`);
-																			setDebouncedSearchTerm(`${file.Path}/`);
-																		} else {
-																			setSearch(file.Path);
-																			setDebouncedSearchTerm(file.Path);
-																		}
-																	}}
-																>
-																	<div className="flex w-full flex-col gap-1">
-																		<div className="flex w-full justify-between">
-																			<span className="font-medium">
-																				{file.Path}
-																			</span>
+															{files?.map((file: any) => {
+																// Handle both S3 format (Path, Size, IsDir) and cloud storage format (path, size, isDir)
+																const filePath = (file as any).Path || (file as any).path;
+																const fileName = (file as any).Name || (file as any).name || filePath;
+																const fileSize = (file as any).Size || (file as any).size;
+																const isDirectory = (file as any).IsDir || (file as any).isDir;
+																const fileHashes = (file as any).Hashes || (file as any).hashes;
 
-																			<CheckIcon
-																				className={cn(
-																					"ml-auto h-4 w-4",
-																					file.Path === field.value
-																						? "opacity-100"
-																						: "opacity-0",
-																				)}
-																			/>
-																		</div>
-																		<div className="flex items-center gap-4 text-xs text-muted-foreground">
-																			<span>
-																				Size: {formatBytes(file.Size)}
-																			</span>
-																			{file.IsDir && (
-																				<span className="text-blue-500">
-																					Directory
+																return (
+																	<CommandItem
+																		value={filePath}
+																		key={filePath}
+																		onSelect={() => {
+																			form.setValue("backupFile", filePath);
+																			if (isDirectory) {
+																				setSearch(`${filePath}/`);
+																				setDebouncedSearchTerm(`${filePath}/`);
+																			} else {
+																				// For files, clear the search to allow easy reselection
+																				setSearch("");
+																				setDebouncedSearchTerm("");
+																			}
+																		}}
+																	>
+																		<div className="flex w-full flex-col gap-1">
+																			<div className="flex w-full justify-between">
+																				<span className="font-medium">
+																					{fileName}
 																				</span>
-																			)}
-																			{file.Hashes?.MD5 && (
-																				<span>MD5: {file.Hashes.MD5}</span>
-																			)}
+
+																				<CheckIcon
+																					className={cn(
+																						"ml-auto h-4 w-4",
+																						filePath === field.value
+																							? "opacity-100"
+																							: "opacity-0",
+																					)}
+																				/>
+																			</div>
+																			<div className="flex items-center gap-4 text-xs text-muted-foreground">
+																				<span>
+																					Size: {formatBytes(fileSize || 0)}
+																				</span>
+																				{isDirectory && (
+																					<span className="text-blue-500">
+																						Directory
+																					</span>
+																				)}
+																				{fileHashes?.MD5 && (
+																					<span>MD5: {fileHashes.MD5}</span>
+																				)}
+																			</div>
 																		</div>
-																	</div>
-																</CommandItem>
-															))}
+																	</CommandItem>
+																);
+															})}
 														</CommandGroup>
 													</ScrollArea>
 												)}
@@ -793,10 +989,10 @@ export const RestoreBackup = ({
 								isLoading={isDeploying}
 								form="hook-form-restore-backup"
 								type="submit"
-								// disabled={
-								// 	!form.watch("backupFile") ||
-								// 	(backupType === "compose" && !form.watch("databaseType"))
-								// }
+							// disabled={
+							// 	!form.watch("backupFile") ||
+							// 	(backupType === "compose" && !form.watch("databaseType"))
+							// }
 							>
 								Restore
 							</Button>
