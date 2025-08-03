@@ -79,7 +79,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 
 	const form = useForm<AddCommand>({
 		defaultValues: {
-			...(type === "application" && "registryId" in data
+			...(type === "application" && data && "registryId" in data
 				? {
 						registryId: data?.registryId || "",
 					}
@@ -92,7 +92,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 	useEffect(() => {
 		if (data?.command) {
 			form.reset({
-				...(type === "application" && "registryId" in data
+				...(type === "application" && data && "registryId" in data
 					? {
 							registryId: data?.registryId || "",
 						}
