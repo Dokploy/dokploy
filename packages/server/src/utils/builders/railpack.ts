@@ -110,6 +110,8 @@ export const buildRailpack = async (
 		return true;
 	} catch (e) {
 		throw e;
+	} finally {
+		await execAsync("docker buildx rm builder-containerd");
 	}
 };
 

@@ -185,7 +185,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			isStaticSpa:
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 			railpackVersion:
-				data.buildType === BuildType.railpack ? data.railpackVersion : null,
+				data.buildType === BuildType.railpack
+					? data.railpackVersion || "0.2.2"
+					: null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
