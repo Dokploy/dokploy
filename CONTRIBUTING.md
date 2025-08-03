@@ -87,7 +87,8 @@ pnpm run dokploy:dev
 
 Go to http://localhost:3000 to see the development server
 
-Note: this project uses Biome. If your editor is configured to use another formatter such as Prettier, it's recommended to either change it to use Biome or turn it off.
+> [!NOTE]
+> This project uses Biome. If your editor is configured to use another formatter such as Prettier, it's recommended to either change it to use Biome or turn it off.
 
 ## Build
 
@@ -117,10 +118,10 @@ In the case you lost your password, you can reset it using the following command
 pnpm run reset-password
 ```
 
-If you want to test the webhooks on development mode using localtunnel, make sure to install `localtunnel`
+If you want to test the webhooks on development mode using localtunnel, make sure to install [`localtunnel`](https://localtunnel.app/)
 
 ```bash
-bunx lt --port 3000
+pnpm dlx localtunnel --port 3000
 ```
 
 If you run into permission issues of docker run the following command
