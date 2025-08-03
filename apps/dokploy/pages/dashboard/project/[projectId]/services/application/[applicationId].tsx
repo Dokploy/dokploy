@@ -1,3 +1,17 @@
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
+import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
+import type {
+	GetServerSidePropsContext,
+	InferGetServerSidePropsType,
+} from "next";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useEffect, useState } from "react";
+import { toast } from "sonner";
+import superjson from "superjson";
 import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
 import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
 import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
@@ -39,20 +53,6 @@ import {
 } from "@/components/ui/tooltip";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import copy from "copy-to-clipboard";
-import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
-import type {
-	GetServerSidePropsContext,
-	InferGetServerSidePropsType,
-} from "next";
-import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
-import { toast } from "sonner";
-import superjson from "superjson";
 
 type TabState =
 	| "projects"
@@ -345,7 +345,10 @@ const Service = (
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<AddCommand applicationId={applicationId} />
-											<ShowClusterSettings applicationId={applicationId} />
+											<ShowClusterSettings
+												id={applicationId}
+												type="application"
+											/>
 
 											<ShowResources id={applicationId} type="application" />
 											<ShowVolumes id={applicationId} type="application" />

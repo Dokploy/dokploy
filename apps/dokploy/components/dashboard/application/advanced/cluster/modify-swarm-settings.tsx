@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { HelpCircle, Settings } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -26,12 +32,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Settings } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const HealthCheckSwarmSchema = z
 	.object({
@@ -181,21 +181,38 @@ const addSwarmSettings = z.object({
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
 
 interface Props {
-	applicationId: string;
+	id: string;
+	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
 }
 
-export const AddSwarmSettings = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
-	);
+export const AddSwarmSettings = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
-	const { mutateAsync, isError, error, isLoading } =
-		api.application.update.useMutation();
+	const mutationMap = {
+		postgres: () => api.postgres.update.useMutation(),
+		redis: () => api.redis.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		application: () => api.application.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+	};
+
+	const { mutateAsync, isError, error, isLoading } = mutationMap[type]
+		? mutationMap[type]()
+		: api.mongo.update.useMutation();
 
 	const form = useForm<AddSwarmSettings>({
 		defaultValues: {
@@ -244,7 +261,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 
 	const onSubmit = async (data: AddSwarmSettings) => {
 		await mutateAsync({
-			applicationId,
+			applicationId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
+			mysqlId: id || "",
+			mariadbId: id || "",
+			mongoId: id || "",
 			healthCheckSwarm: data.healthCheckSwarm,
 			restartPolicySwarm: data.restartPolicySwarm,
 			placementSwarm: data.placementSwarm,
