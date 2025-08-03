@@ -196,6 +196,7 @@ docker ${buildArgs.join(" ")} >> ${logPath} 2>> ${logPath} || {
 	exit 1;
 }
 echo "✅ Railpack build completed." >> ${logPath};
+docker buildx rm builder-containerd
 `;
 
 	return bashCommand;
