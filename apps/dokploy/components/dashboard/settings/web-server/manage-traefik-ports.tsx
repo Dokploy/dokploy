@@ -1,3 +1,11 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,15 +27,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRightLeft, Plus, Trash2 } from "lucide-react";
-import { useTranslation } from "next-i18next";
-import type React from "react";
-import { useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 interface Props {
 	children: React.ReactNode;
@@ -37,6 +45,7 @@ interface Props {
 const PortSchema = z.object({
 	targetPort: z.number().min(1, "Target port is required"),
 	publishedPort: z.number().min(1, "Published port is required"),
+	protocol: z.enum(["tcp", "udp", "sctp"]),
 });
 
 const TraefikPortsSchema = z.object({
@@ -75,12 +84,17 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 
 	useEffect(() => {
 		if (currentPorts) {
-			form.reset({ ports: currentPorts });
+			form.reset({
+				ports: currentPorts.map((port) => ({
+					...port,
+					protocol: port.protocol as "tcp" | "udp" | "sctp",
+				})),
+			});
 		}
 	}, [currentPorts, form]);
 
 	const handleAddPort = () => {
-		append({ targetPort: 0, publishedPort: 0 });
+		append({ targetPort: 0, publishedPort: 0, protocol: "tcp" });
 	};
 
 	const onSubmit = async (data: TraefikPortsForm) => {
@@ -96,7 +110,9 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 
 	return (
 		<>
-			<div onClick={() => setOpen(true)}>{children}</div>
+			<button type="button" onClick={() => setOpen(true)}>
+				{children}
+			</button>
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-3xl">
 					<DialogHeader>
@@ -143,8 +159,8 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 									<ScrollArea className="h-[400px] pr-4">
 										<div className="grid gap-4">
 											{fields.map((field, index) => (
-												<Card key={field.id}>
-													<CardContent className="grid grid-cols-[1fr_1fr_auto] gap-4 p-4 transparent">
+												<Card key={field.id} className="bg-transparent">
+													<CardContent className="grid grid-cols-[1fr_1fr_1fr_auto] gap-4 p-4 transparent">
 														<FormField
 															control={form.control}
 															name={`ports.${index}.targetPort`}
@@ -168,7 +184,6 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																				);
 																			}}
 																			value={field.value || ""}
-																			className="w-full dark:bg-black"
 																			placeholder="e.g. 8080"
 																		/>
 																	</FormControl>
@@ -200,9 +215,44 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 																				);
 																			}}
 																			value={field.value || ""}
-																			className="w-full dark:bg-black"
 																			placeholder="e.g. 80"
 																		/>
+																	</FormControl>
+																	<FormMessage />
+																</FormItem>
+															)}
+														/>
+														<FormField
+															control={form.control}
+															name={`ports.${index}.protocol`}
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel className="text-sm font-medium text-muted-foreground">
+																		Protocol
+																	</FormLabel>
+																	<FormControl>
+																		<Select
+																			onValueChange={field.onChange}
+																			defaultValue={field.value}
+																		>
+																			<SelectTrigger>
+																				<SelectValue placeholder="Select a protocol" />
+																			</SelectTrigger>
+																			<SelectContent>
+																				<SelectGroup>
+																					{["tcp", "udp", "sctp"].map(
+																						(protocol) => (
+																							<SelectItem
+																								key={protocol}
+																								value={protocol}
+																							>
+																								{protocol}
+																							</SelectItem>
+																						),
+																					)}
+																				</SelectGroup>
+																			</SelectContent>
+																		</Select>
 																	</FormControl>
 																	<FormMessage />
 																</FormItem>
