@@ -112,7 +112,6 @@ export const cloneGitlabRepository = async (
 		appName,
 		gitlabBranch,
 		gitlabId,
-		gitlab,
 		gitlabPathNamespace,
 		enableSubmodules,
 	} = entity;
@@ -125,6 +124,7 @@ export const cloneGitlabRepository = async (
 	}
 
 	await refreshGitlabToken(gitlabId);
+	const gitlab = await findGitlabById(gitlabId);
 
 	const requirements = getErrorCloneRequirements(entity);
 
@@ -187,7 +187,6 @@ export const getGitlabCloneCommand = async (
 		gitlabBranch,
 		gitlabId,
 		serverId,
-		gitlab,
 		enableSubmodules,
 	} = entity;
 
@@ -235,6 +234,7 @@ export const getGitlabCloneCommand = async (
 
 	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
 	await refreshGitlabToken(gitlabId);
+	const gitlab = await findGitlabById(gitlabId);
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
@@ -371,9 +371,9 @@ export const cloneRawGitlabRepository = async (entity: Compose) => {
 		});
 	}
 
-	const gitlabProvider = await findGitlabById(gitlabId);
 	const { COMPOSE_PATH } = paths();
 	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
@@ -419,9 +419,9 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 			message: "Gitlab Provider not found",
 		});
 	}
-	const gitlabProvider = await findGitlabById(gitlabId);
 	const { COMPOSE_PATH } = paths(true);
 	await refreshGitlabToken(gitlabId);
+	const gitlabProvider = await findGitlabById(gitlabId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const repoClone = getGitlabRepoClone(gitlabProvider, gitlabPathNamespace);
