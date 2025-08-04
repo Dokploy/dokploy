@@ -154,10 +154,10 @@ export const validateDomain = async (
 	cdnProvider?: string;
 }> => {
 	// Skip DNS validation for wildcard domains
-	if (domain.includes('*')) {
+	if (domain.includes("*")) {
 		return {
 			isValid: true,
-			error: 'Wildcard domain - DNS validation skipped',
+			error: "Wildcard domain - DNS validation skipped",
 		};
 	}
 

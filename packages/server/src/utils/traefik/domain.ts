@@ -112,19 +112,26 @@ export const createRouterConfig = async (
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
-	const { host, path, https, uniqueConfigKey, internalPath, stripPath, isWildcard } =
-		domain;
-	
+	const {
+		host,
+		path,
+		https,
+		uniqueConfigKey,
+		internalPath,
+		stripPath,
+		isWildcard,
+	} = domain;
+
 	let rule: string;
 	if (isWildcard) {
 		// Convert wildcard domain to regex pattern
 		// e.g., "*-dev.swalha.com" becomes "HostRegexp(`^[^.]+-dev\\.swalha\\.com$`)"
-		const wildcardPattern = host.replace(/\*/g, '[^.]+');
-		rule = `HostRegexp(\`^${wildcardPattern.replace(/\./g, '\\.')}$\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`;
+		const wildcardPattern = host.replace(/\*/g, "[^.]+");
+		rule = `HostRegexp(\`^${wildcardPattern.replace(/\./g, "\\.")}$\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`;
 	} else {
 		rule = `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`;
 	}
-	
+
 	const routerConfig: HttpRouter = {
 		rule,
 		service: `${appName}-service-${uniqueConfigKey}`,
