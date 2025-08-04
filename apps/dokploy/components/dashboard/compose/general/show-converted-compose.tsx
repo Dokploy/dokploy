@@ -1,3 +1,6 @@
+import { Loader2, Puzzle, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -10,9 +13,6 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { Loader2, Puzzle, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 interface Props {
 	composeId: string;
@@ -79,7 +79,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					</div>
 				) : (
 					<>
-						<div className="flex flex-row gap-2 justify-end">
+						<div className="flex flex-row gap-2 justify-end my-4">
 							<Button
 								variant="secondary"
 								isLoading={isLoading}
