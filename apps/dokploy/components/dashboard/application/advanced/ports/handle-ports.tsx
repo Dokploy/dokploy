@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,12 +32,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const AddPortSchema = z.object({
 	publishedPort: z.number().int().min(1).max(65535),
@@ -78,6 +78,11 @@ export const HandlePorts = ({
 			targetPort: 0,
 		},
 		resolver: zodResolver(AddPortSchema),
+	});
+
+	const publishMode = useWatch({
+		control: form.control,
+		name: "publishMode",
 	});
 
 	useEffect(() => {
@@ -252,6 +257,16 @@ export const HandlePorts = ({
 							/>
 						</div>
 					</form>
+
+					{publishMode === "host" && (
+						<AlertBlock type="warning" className="mt-4">
+							<strong>Host Mode Limitation:</strong> When using Host publish
+							mode, Docker Swarm has limitations that prevent proper container
+							updates during deployments. Old containers may not be replaced
+							automatically. Consider using Ingress mode instead, or be prepared
+							to manually stop/start the application after deployments.
+						</AlertBlock>
+					)}
 
 					<DialogFooter>
 						<Button

@@ -19,17 +19,14 @@ jobs:
           fetch-depth: 0
 
       - name: Get version from package.json
-        id: package_version
         run: echo "VERSION=$(jq -r .version ./apps/dokploy/package.json)" >> $GITHUB_ENV
 
       - name: Get latest GitHub tag
-        id: latest_tag
         run: |
           LATEST_TAG=$(git ls-remote --tags origin | awk -F'/' '{print $3}' | sort -V | tail -n1)
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
           echo $LATEST_TAG
       - name: Compare versions
-        id: compare_versions
         run: |
           if [ "${{ env.VERSION }}" != "${{ env.LATEST_TAG }}" ]; then
             VERSION_CHANGED="true"
@@ -42,7 +39,6 @@ jobs:
           echo "Latest tag: ${{ env.LATEST_TAG }}"
           echo "Version changed: $VERSION_CHANGED"
       - name: Check if a PR already exists
-        id: check_pr
         run: |
           PR_EXISTS=$(gh pr list --state open --base main --head canary --json number --jq '. | length')
           echo "PR_EXISTS=$PR_EXISTS" >> $GITHUB_ENV

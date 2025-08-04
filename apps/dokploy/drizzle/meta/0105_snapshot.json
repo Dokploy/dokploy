@@ -1,5 +1,5 @@
 {
-  "id": "f34dc64f-1767-42f1-b3cb-08b50d545257",
+  "id": "5883e786-525d-4828-ada1-e5ba723de5d7",
   "prevId": "84fb0854-3c32-4cbb-bd47-f4b9a448db29",
   "version": "7",
   "dialect": "postgresql",
@@ -774,6 +774,61 @@
           "notNull": true,
           "default": "'idle'"
         },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -1237,13 +1292,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "isWildcard": {
-          "name": "isWildcard",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         }
       },
       "indexes": {},
@@ -1402,6 +1450,61 @@
           "notNull": true,
           "default": "'idle'"
         },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -1559,6 +1662,61 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "createdAt": {
           "name": "createdAt",
@@ -1736,6 +1894,62 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
+        },
+
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "createdAt": {
           "name": "createdAt",
@@ -3032,6 +3246,61 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "projectId": {
           "name": "projectId",
