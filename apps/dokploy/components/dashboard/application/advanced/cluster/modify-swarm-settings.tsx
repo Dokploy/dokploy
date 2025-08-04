@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { HelpCircle, Settings } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -26,12 +32,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Settings } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const HealthCheckSwarmSchema = z
 	.object({
@@ -181,21 +181,38 @@ const addSwarmSettings = z.object({
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
 
 interface Props {
-	applicationId: string;
+	id: string;
+	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
 }
 
-export const AddSwarmSettings = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
-	);
+export const AddSwarmSettings = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
-	const { mutateAsync, isError, error, isLoading } =
-		api.application.update.useMutation();
+	const mutationMap = {
+		postgres: () => api.postgres.update.useMutation(),
+		redis: () => api.redis.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		application: () => api.application.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+	};
+
+	const { mutateAsync, isError, error, isLoading } = mutationMap[type]
+		? mutationMap[type]()
+		: api.mongo.update.useMutation();
 
 	const form = useForm<AddSwarmSettings>({
 		defaultValues: {
@@ -244,7 +261,12 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 
 	const onSubmit = async (data: AddSwarmSettings) => {
 		await mutateAsync({
-			applicationId,
+			applicationId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
+			mysqlId: id || "",
+			mariadbId: id || "",
+			mongoId: id || "",
 			healthCheckSwarm: data.healthCheckSwarm,
 			restartPolicySwarm: data.restartPolicySwarm,
 			placementSwarm: data.placementSwarm,
@@ -270,7 +292,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-5xl p-0">
+			<DialogContent className="sm:max-w-5xl">
 				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
@@ -278,10 +300,10 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-				<div className="px-4">
+				<div>
 					<AlertBlock type="info">
-						Changing settings such as placements may cause the logs/monitoring
-						to be unavailable.
+						Changing settings such as placements may cause the logs/monitoring,
+						backups and other features to be unavailable.
 					</AlertBlock>
 				</div>
 
@@ -289,13 +311,13 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative"
+						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative mt-4"
 					>
 						<FormField
 							control={form.control}
 							name="healthCheckSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Health Check</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -351,7 +373,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="restartPolicySwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Restart Policy</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -405,7 +427,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="placementSwarm"
 							render={({ field }) => (
-								<FormItem className="relative   max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Placement</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -471,7 +493,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="updateConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Update Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -529,7 +551,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="rollbackConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Rollback Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -587,7 +609,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="modeSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Mode</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -650,7 +672,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="networkSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Network</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -709,7 +731,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="labelsSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Labels</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
