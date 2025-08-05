@@ -316,7 +316,7 @@ export const getGitlabBranches = async (input: {
 
 	while (true) {
 		const branchesResponse = await fetch(
-			`https://gitlab.com/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
+			`${gitlabProvider.gitlabUrl}/api/v4/projects/${input.id}/repository/branches?page=${page}&per_page=${perPage}`,
 			{
 				headers: {
 					Authorization: `Bearer ${gitlabProvider.accessToken}`,
