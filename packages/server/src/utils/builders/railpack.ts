@@ -75,7 +75,7 @@ export const buildRailpack = async (
 					]
 				: []),
 			"--build-arg",
-			"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.2.2",
+			`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 			"-f",
 			`${buildAppDirectory}/railpack-plan.json`,
 			"--output",
@@ -110,6 +110,8 @@ export const buildRailpack = async (
 		return true;
 	} catch (e) {
 		throw e;
+	} finally {
+		await execAsync("docker buildx rm builder-containerd");
 	}
 };
 
@@ -155,7 +157,7 @@ export const getRailpackCommand = (
 				]
 			: []),
 		"--build-arg",
-		"BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v0.0.64",
+		`BUILDKIT_SYNTAX=ghcr.io/railwayapp/railpack-frontend:v${application.railpackVersion}`,
 		"-f",
 		`${buildAppDirectory}/railpack-plan.json`,
 		"--output",
@@ -194,6 +196,7 @@ docker ${buildArgs.join(" ")} >> ${logPath} 2>> ${logPath} || {
 	exit 1;
 }
 echo "✅ Railpack build completed." >> ${logPath};
+docker buildx rm builder-containerd
 `;
 
 	return bashCommand;

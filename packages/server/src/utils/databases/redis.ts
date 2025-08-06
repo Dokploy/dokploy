@@ -3,6 +3,7 @@ import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
+	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -31,6 +32,17 @@ export const buildRedis = async (redis: RedisNested) => {
 	const defaultRedisEnv = `REDIS_PASSWORD="${databasePassword}"${
 		env ? `\n${env}` : ""
 	}`;
+
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+	} = generateConfigContainer(redis);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -51,6 +63,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
@@ -59,20 +72,17 @@ export const buildRedis = async (redis: RedisNested) => {
 					"-c",
 					command ? command : `redis-server --requirepass ${databasePassword}`,
 				],
+				Labels,
 			},
-			Networks: [{ Target: "dokploy-network" }],
+			Networks,
+			RestartPolicy,
+			Placement,
 			Resources: {
 				...resources,
 			},
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
 		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
+		Mode,
+		RollbackConfig,
 		EndpointSpec: {
 			Mode: "dnsrr",
 			Ports: externalPort
@@ -86,6 +96,7 @@ export const buildRedis = async (redis: RedisNested) => {
 					]
 				: [],
 		},
+		UpdateConfig,
 	};
 
 	try {
@@ -94,6 +105,10 @@ export const buildRedis = async (redis: RedisNested) => {
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			TaskTemplate: {
+				...settings.TaskTemplate,
+				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+			},
 		});
 	} catch {
 		await docker.createService(settings);

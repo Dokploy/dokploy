@@ -29,6 +29,9 @@ const { handler, api } = betterAuth({
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
 		},
 	},
+	logger: {
+		disabled: process.env.NODE_ENV === "production",
+	},
 	...(!IS_CLOUD && {
 		async trustedOrigins() {
 			const admin = await db.query.member.findFirst({
