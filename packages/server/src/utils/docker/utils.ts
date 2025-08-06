@@ -414,7 +414,7 @@ export const generateConfigContainer = (
 					},
 				}),
 		...(stopGracePeriodSwarm && {
-			StopGracePeriod: parseInt(stopGracePeriodSwarm, 10),
+			StopGracePeriod: stopGracePeriodSwarm,
 		}),
 		...(networkSwarm
 			? {

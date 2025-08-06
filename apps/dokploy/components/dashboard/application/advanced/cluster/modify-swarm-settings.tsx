@@ -177,7 +177,7 @@ const addSwarmSettings = z.object({
 	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
 	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
 	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
-	stopGracePeriodSwarm: z.string().nullable(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
@@ -226,6 +226,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			modeSwarm: null,
 			labelsSwarm: null,
 			networkSwarm: null,
+			stopGracePeriodSwarm: null,
 		},
 		resolver: zodResolver(addSwarmSettings),
 	});
@@ -257,7 +258,12 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				networkSwarm: data.networkSwarm
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
-				stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
+				stopGracePeriodSwarm:
+					// type === "application" &&
+					// "stopGracePeriodSwarm" in data &&
+					data.stopGracePeriodSwarm
+						? BigInt(data.stopGracePeriodSwarm)
+						: null,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -783,12 +789,12 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="stopGracePeriodSwarm"
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
-									<FormLabel>Stop Grace Period</FormLabel>
+									<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the format
+													Duration in nanoseconds
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -799,11 +805,11 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											>
 												<code>
 													<pre>
-														{`Duration string format:
-• "30s" - 30 seconds
-• "2m" - 2 minutes  
-• "1h" - 1 hour
-• "0" - no grace period`}
+														{`Enter duration in nanoseconds:
+														• 30000000000 - 30 seconds
+														• 120000000000 - 2 minutes  
+														• 3600000000000 - 1 hour
+														• 0 - no grace period`}
 													</pre>
 												</code>
 											</TooltipContent>
@@ -811,10 +817,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 									</TooltipProvider>
 									<FormControl>
 										<Input
-											placeholder="30s"
+											type="number"
+											placeholder="30000000000"
 											className="font-mono"
 											{...field}
-											value={field?.value || ""}
+											value={field?.value?.toString() || ""}
+											onChange={(e) =>
+												field.onChange(
+													e.target.value ? BigInt(e.target.value) : null,
+												)
+											}
 										/>
 									</FormControl>
 									<pre>
