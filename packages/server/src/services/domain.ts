@@ -153,6 +153,14 @@ export const validateDomain = async (
 	isCloudflare?: boolean;
 	cdnProvider?: string;
 }> => {
+	// Skip DNS validation for wildcard domains
+	if (domain.includes("*")) {
+		return {
+			isValid: true,
+			error: "Wildcard domain - DNS validation skipped",
+		};
+	}
+
 	try {
 		// Remove protocol and path if present
 		const cleanDomain = domain.replace(/^https?:\/\//, "").split("/")[0];
