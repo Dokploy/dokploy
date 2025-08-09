@@ -393,7 +393,7 @@ export const readPorts = async (
 
 export const writeTraefikSetup = async (
 	input: TraefikOptions,
-	serverId?: string,
+	serverId = input.serverId,
 ) => {
 	const resourceType = await getDockerResourceType("dokploy-traefik", serverId);
 	if (resourceType === "service") {
