@@ -56,7 +56,7 @@ export function UseKeyboardNavForApplications() {
 				setModPressed(false);
 
 				if (key in SHORTCUTS) {
-					const tab = SHORTCUTS[key];
+					const tab = SHORTCUTS[key as keyof typeof SHORTCUTS];
 					router.push(
 						`${pathname}?${updateSearchParam("tab", tab.toLowerCase())}`,
 					);
