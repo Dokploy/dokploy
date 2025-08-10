@@ -129,7 +129,6 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 									Resources that will be isolated:
 								</h4>
 								<ul className="list-disc list-inside">
-									<li>Docker volumes</li>
 									<li>Docker networks</li>
 								</ul>
 							</div>
