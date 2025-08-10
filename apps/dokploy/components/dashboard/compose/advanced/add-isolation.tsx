@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -15,6 +15,13 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import {
 	Form,
 	FormControl,
 	FormDescription,
@@ -22,7 +29,7 @@ import {
 	FormItem,
 	FormLabel,
 } from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
+
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
@@ -40,8 +47,11 @@ type IsolatedSchema = z.infer<typeof isolatedSchema>;
 export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 	const utils = api.useUtils();
 	const [compose, setCompose] = useState<string>("");
+	const [isPreviewLoading, setIsPreviewLoading] = useState<boolean>(false);
 	const { mutateAsync, error, isError } =
 		api.compose.isolatedDeployment.useMutation();
+
+	const [isOpenPreview, setIsOpenPreview] = useState<boolean>(false);
 
 	const { mutateAsync: updateCompose } = api.compose.update.useMutation();
 
@@ -58,7 +68,6 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 	});
 
 	useEffect(() => {
-		randomizeCompose();
 		if (data) {
 			form.reset({
 				isolatedDeployment: data?.isolatedDeployment || false,
@@ -72,7 +81,6 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 			isolatedDeployment: formData?.isolatedDeployment || false,
 		})
 			.then(async (_data) => {
-				await randomizeCompose();
 				await refetch();
 				toast.success("Compose updated");
 			})
@@ -81,26 +89,31 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 			});
 	};
 
-	const randomizeCompose = async () => {
-		await mutateAsync({
-			composeId,
-			suffix: data?.appName || "",
-		}).then(async (data) => {
-			await utils.project.all.invalidate();
-			setCompose(data);
-		});
+	const generatePreview = async () => {
+		setIsOpenPreview(true);
+		setIsPreviewLoading(true);
+		try {
+			await mutateAsync({
+				composeId,
+				suffix: data?.appName || "",
+			}).then(async (data) => {
+				await utils.project.all.invalidate();
+				setCompose(data);
+			});
+		} catch {
+			toast.error("Error generating preview");
+			setIsOpenPreview(false);
+		} finally {
+			setIsPreviewLoading(false);
+		}
 	};
 
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle>Enable Isolated Deployment</CardTitle>
+				<CardTitle className="text-xl">Enable Isolated Deployment</CardTitle>
 				<CardDescription>
 					Configure isolated deployment to the compose file.
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<div className="space-y-4">
 					<div className="text-sm text-muted-foreground flex flex-col gap-2">
 						<span>
 							This feature creates an isolated environment for your deployment
@@ -122,6 +135,10 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 							</div>
 						</div>
 					</div>
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<div className="space-y-4">
 					{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 					<Form {...form}>
 						<form
@@ -175,16 +192,46 @@ export const IsolatedDeploymentTab = ({ composeId }: Props) => {
 									</Button>
 								</div>
 							</div>
-							<div className="flex flex-col gap-4">
-								<Label>Preview</Label>
-								<pre>
-									<CodeEditor
-										value={compose || ""}
-										language="yaml"
-										readOnly
-										height="50rem"
-									/>
-								</pre>
+
+							<div className="flex flex-col lg:flex-row gap-4 w-full items-end justify-end">
+								<Button
+									onClick={generatePreview}
+									isLoading={isPreviewLoading}
+									variant="secondary"
+									className="lg:w-fit"
+								>
+									Preview Compose
+								</Button>
+								<Dialog open={isOpenPreview} onOpenChange={setIsOpenPreview}>
+									<DialogContent className="sm:max-w-6xl max-h-[80vh]">
+										<DialogHeader>
+											<DialogTitle>Isolated Deployment Preview</DialogTitle>
+											<DialogDescription>
+												Preview of the compose file with isolated deployment
+												configuration
+											</DialogDescription>
+										</DialogHeader>
+										<div className="flex flex-col gap-4 overflow-auto">
+											{isPreviewLoading ? (
+												<div className="flex flex-col items-center justify-center py-12 gap-4">
+													<Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+													<p className="text-muted-foreground">
+														Generating compose preview...
+													</p>
+												</div>
+											) : (
+												<pre>
+													<CodeEditor
+														value={compose || ""}
+														language="yaml"
+														readOnly
+														height="60vh"
+													/>
+												</pre>
+											)}
+										</div>
+									</DialogContent>
+								</Dialog>
 							</div>
 						</form>
 					</Form>
