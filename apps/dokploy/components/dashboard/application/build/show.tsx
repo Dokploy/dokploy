@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Cog } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,12 +21,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Cog } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 export enum BuildType {
 	dockerfile = "dockerfile",
@@ -65,6 +65,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal(BuildType.railpack),
+		railpackVersion: z.string().nullable().default("0.2.2"),
 	}),
 	z.object({
 		buildType: z.literal(BuildType.static),
@@ -86,6 +87,7 @@ interface ApplicationData {
 	herokuVersion?: string | null;
 	publishDirectory?: string | null;
 	isStaticSpa?: boolean | null;
+	railpackVersion?: string | null | undefined;
 }
 
 function isValidBuildType(value: string): value is BuildType {
@@ -123,6 +125,7 @@ const resetData = (data: ApplicationData): AddTemplate => {
 		case BuildType.railpack:
 			return {
 				buildType: BuildType.railpack,
+				railpackVersion: data.railpackVersion || null,
 			};
 		default: {
 			const buildType = data.buildType as BuildType;
@@ -181,6 +184,10 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 					: null,
 			isStaticSpa:
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
+			railpackVersion:
+				data.buildType === BuildType.railpack
+					? data.railpackVersion || "0.2.2"
+					: null,
 		})
 			.then(async () => {
 				toast.success("Build type saved");
@@ -389,6 +396,25 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 													Single Page Application (SPA)
 												</FormLabel>
 											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{buildType === BuildType.railpack && (
+							<FormField
+								control={form.control}
+								name="railpackVersion"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Railpack Version</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="Railpack Version"
+												{...field}
+												value={field.value ?? ""}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>

@@ -1,7 +1,11 @@
 import path from "node:path";
+import { member } from "@dokploy/server/db/schema";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { getAllServers } from "@dokploy/server/services/server";
+import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
+import { startLogCleanup } from "../access-log/handler";
 import {
 	cleanUpDockerBuilder,
 	cleanUpSystemPrune,
@@ -10,11 +14,6 @@ import {
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, scheduleBackup } from "./utils";
-
-import { member } from "@dokploy/server/db/schema";
-import type { BackupSchedule } from "@dokploy/server/services/backup";
-import { eq } from "drizzle-orm";
-import { startLogCleanup } from "../access-log/handler";
 
 export const initCronJobs = async () => {
 	console.log("Setting up cron jobs....");

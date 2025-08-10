@@ -2,18 +2,22 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
-	type ServiceType,
 	type apiCreateMount,
 	mounts,
+	type ServiceType,
 } from "@dokploy/server/db/schema";
 import {
 	createFile,
+	encodeBase64,
 	getCreateFileCommand,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
-import { type SQL, eq, sql } from "drizzle-orm";
+import { eq, type SQL, sql } from "drizzle-orm";
 
 export type Mount = typeof mounts.$inferSelect;
 
@@ -123,7 +127,7 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
-	return await db.transaction(async (tx) => {
+	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
 			.set({
@@ -140,13 +144,13 @@ export const updateMount = async (
 			});
 		}
 
-		if (mount.type === "file") {
-			await deleteFileMount(mountId);
-			await createFileMount(mountId);
-		}
-
 		return await findMountById(mountId);
 	});
+
+	if (mount.type === "file") {
+		await updateFileMount(mountId);
+	}
+	return mount;
 };
 
 export const findMountsByApplicationId = async (
@@ -196,6 +200,26 @@ export const deleteMount = async (mountId: string) => {
 		.where(eq(mounts.mountId, mountId))
 		.returning();
 	return deletedMount[0];
+};
+
+export const updateFileMount = async (mountId: string) => {
+	const mount = await findMountById(mountId);
+	if (!mount || !mount.filePath) return;
+	const basePath = await getBaseFilesPath(mountId);
+	const fullPath = path.join(basePath, mount.filePath);
+
+	try {
+		const serverId = await getServerId(mount);
+		const encodedContent = encodeBase64(mount.content || "");
+		const command = `echo "${encodedContent}" | base64 -d > ${fullPath}`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch {
+		console.log("Error updating file mount");
+	}
 };
 
 export const deleteFileMount = async (mountId: string) => {

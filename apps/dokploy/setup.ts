@@ -1,10 +1,3 @@
-import {
-	createDefaultMiddlewares,
-	createDefaultServerTraefikConfig,
-	createDefaultTraefikConfig,
-	initializeTraefik,
-} from "@dokploy/server/setup/traefik-setup";
-
 import { execAsync } from "@dokploy/server";
 import { setupDirectories } from "@dokploy/server/setup/config-paths";
 import { initializePostgres } from "@dokploy/server/setup/postgres-setup";
@@ -13,6 +6,13 @@ import {
 	initializeNetwork,
 	initializeSwarm,
 } from "@dokploy/server/setup/setup";
+import {
+	createDefaultMiddlewares,
+	createDefaultServerTraefikConfig,
+	createDefaultTraefikConfig,
+	initializeStandaloneTraefik,
+} from "@dokploy/server/setup/traefik-setup";
+
 (async () => {
 	try {
 		setupDirectories();
@@ -22,7 +22,7 @@ import {
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
 		await execAsync("docker pull traefik:v3.1.2");
-		await initializeTraefik();
+		await initializeStandaloneTraefik();
 		await initializeRedis();
 		await initializePostgres();
 	} catch (e) {
