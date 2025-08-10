@@ -1,1 +1,0 @@
-ALTER TABLE "domain" ADD COLUMN "isWildcard" boolean DEFAULT false NOT NULL;
