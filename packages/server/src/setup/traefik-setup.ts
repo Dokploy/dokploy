@@ -89,21 +89,14 @@ export const initializeStandaloneTraefik = async ({
 	const docker = await getRemoteDocker(serverId);
 	try {
 		const container = docker.getContainer(containerName);
-		try {
-			await container.remove({ force: true });
-			await new Promise((resolve) => setTimeout(resolve, 5000));
-			await docker.createContainer(settings);
-			const newContainer = docker.getContainer(containerName);
-			await newContainer.start();
-			console.log("Traefik Started ✅");
-		} catch (error) {
-			console.error("Error in initializeStandaloneTraefik", error);
-		}
-	} catch (error) {
-		await docker.createContainer(settings);
-		console.error("Error in initializeStandaloneTraefik", error);
-		throw error;
-	}
+		await container.remove({ force: true });
+		await new Promise((resolve) => setTimeout(resolve, 5000));
+	} catch {}
+
+	await docker.createContainer(settings);
+	const newContainer = docker.getContainer(containerName);
+	await newContainer.start();
+	console.log("Traefik Started ✅");
 };
 
 export const initializeTraefikService = async ({
