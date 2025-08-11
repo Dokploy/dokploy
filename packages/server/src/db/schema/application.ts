@@ -79,7 +79,7 @@ export const applications = pgTable("application", {
 	previewEnv: text("previewEnv"),
 	watchPaths: text("watchPaths").array(),
 	previewBuildArgs: text("previewBuildArgs"),
-	previewLabels: text("previewLabels"),
+	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
 	previewHttps: boolean("previewHttps").notNull().default(false),
