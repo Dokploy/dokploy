@@ -3,7 +3,26 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-const SHORTCUTS = {
+const PAGES = ["compose", "application", "postgres", "redis"] as const;
+type Page = typeof PAGES[number];
+
+type Shortcuts = Record<string, string>;
+type ShortcutsDictionary = Record<Page, Shortcuts>;
+
+const COMPOSE_SHORTCUTS: Shortcuts = {
+	g: "general",
+	e: "environment",
+	u: "domains",
+	d: "deployments",
+	b: "backups",
+	s: "schedules",
+	v: "volumeBackups",
+	l: "logs",
+	m: "monitoring",
+	a: "advanced",
+};
+
+const APPLICATION_SHORTCUTS: Shortcuts = {
 	g: "general",
 	e: "environment",
 	u: "domains",
@@ -16,28 +35,48 @@ const SHORTCUTS = {
 	a: "advanced",
 };
 
+const POSTGRES_SHORTCUTS: Shortcuts = {
+	g: "general",
+	e: "environment",
+	l: "logs",
+	m: "monitoring",
+	b: "backups",
+	a: "advanced",
+};
+
+const REDIS_SHORTCUTS: Shortcuts = {
+	g: "general",
+	e: "environment",
+	l: "logs",
+	m: "monitoring",
+	a: "advanced",
+};
+
+const SHORTCUTS: ShortcutsDictionary = {
+  application: APPLICATION_SHORTCUTS,
+  compose: COMPOSE_SHORTCUTS,
+  postgres: POSTGRES_SHORTCUTS,
+  redis: REDIS_SHORTCUTS,
+};
+
 /**
- * Use this to register keyboard shortcuts for the application page. Each
- * shortcut must be prefixed with `g` (like GitHub).
+ * Use this to register keyboard shortcuts for different pages. Each shortcut
+ * must be prefixed with `g` (like GitHub).
  *
+ * @example
  * - `g g` "General",
  * - `g e` "Environment",
  * - `g u` "Domains",
- * - `g p` "Preview Deployments",
- * - `g s` "Schedules",
- * - `g v` "Volume Backups",
- * - `g d` "Deployments",
- * - `g l` "Logs",
- * - `g m` "Monitoring",
- * - `g a` "Advanced"
  */
-export function UseKeyboardNavForApplications() {
+export function UseKeyboardNav({ forPage }: { forPage: Page }) {
 	const [isModPressed, setModPressed] = useState(false);
 	const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 
 	const sp = useSearchParams();
 	const router = useRouter();
 	const pathname = usePathname();
+
+  const shortcuts = SHORTCUTS[forPage];
 
 	const updateSearchParam = useCallback(
 		(name: string, value: string) => {
@@ -55,10 +94,10 @@ export function UseKeyboardNavForApplications() {
 				if (timer) clearTimeout(timer);
 				setModPressed(false);
 
-				if (key in SHORTCUTS) {
-					const tab = SHORTCUTS[key as keyof typeof SHORTCUTS];
+				if (key in shortcuts) {
+					const tab = shortcuts[key]!;
 					router.push(
-						`${pathname}?${updateSearchParam("tab", tab.toLowerCase())}`,
+						`${pathname}?${updateSearchParam("tab", tab)}`,
 					);
 				}
 			} else {
