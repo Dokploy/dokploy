@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-const PAGES = ["compose", "application", "postgres", "redis"] as const;
+const PAGES = ["compose", "application", "postgres", "redis", "mysql"] as const;
 type Page = typeof PAGES[number];
 
 type Shortcuts = Record<string, string>;
@@ -57,6 +57,7 @@ const SHORTCUTS: ShortcutsDictionary = {
   compose: COMPOSE_SHORTCUTS,
   postgres: POSTGRES_SHORTCUTS,
   redis: REDIS_SHORTCUTS,
+  mysql: POSTGRES_SHORTCUTS,
 };
 
 /**
