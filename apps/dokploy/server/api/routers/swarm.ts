@@ -53,14 +53,21 @@ export const swarmRouter = createTRPCRouter({
 			return getNodeApplications(input.serverId);
 		}),
 	getAppInfos: protectedProcedure
+		.meta({
+			openapi: {
+				path: "/drop-deployment",
+				method: "POST",
+				override: true,
+				enabled: false,
+			},
+		})
 		.input(
 			z.object({
 				appName: z
 					.string()
 					.min(1)
 					.regex(containerIdRegex, "Invalid app name.")
-					.array()
-					.min(1),
+					.array(),
 				serverId: z.string().optional(),
 			}),
 		)
