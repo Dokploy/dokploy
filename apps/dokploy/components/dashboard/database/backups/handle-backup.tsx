@@ -40,6 +40,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Tooltip,
 	TooltipContent,
@@ -50,6 +51,8 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+	Cloud,
+	Database,
 	DatabaseZap,
 	Info,
 	PenBoxIcon,
@@ -62,6 +65,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { commonCronExpressions } from "../../application/schedules/handle-schedules";
+
 
 type CacheType = "cache" | "fetch";
 
@@ -191,9 +195,11 @@ export const HandleBackup = ({
 	backupType = "database",
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const [activeTab, setActiveTab] = useState<"s3" | "cloud">("s3");
 
-	const { data, isLoading } = api.destination.all.useQuery();
-	const { data: backup } = api.backup.one.useQuery(
+	// S3 destinations and backup queries
+	const { data: s3Destinations, isLoading: isLoadingS3 } = api.destination.all.useQuery();
+	const { data: s3Backup } = api.backup.one.useQuery(
 		{
 			backupId: backupId ?? "",
 		},
@@ -201,11 +207,46 @@ export const HandleBackup = ({
 			enabled: !!backupId,
 		},
 	);
+
+	// Cloud storage destinations and backup queries
+	const { data: cloudDestinations, isLoading: isLoadingCloud } =
+		api.cloudStorageDestination.all.useQuery();
+	const { data: cloudBackup } = api.cloudStorageBackup.get.useQuery(
+		{
+			backupId: backupId ?? "",
+		},
+		{
+			enabled: !!backupId,
+		},
+	);
+
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
-	const { mutateAsync: createBackup, isLoading: isCreatingPostgresBackup } =
-		backupId
+
+	// S3 backup mutations
+	const { mutateAsync: createS3Backup, isLoading: isCreatingS3Backup } =
+		backupId && s3Backup
 			? api.backup.update.useMutation()
 			: api.backup.create.useMutation();
+
+	// Cloud storage backup mutations
+	const { mutateAsync: updateCloudBackup, isLoading: isUpdatingCloudBackup } =
+		api.cloudStorageBackup.update.useMutation();
+	const { mutateAsync: createCloudBackup, isLoading: isCreatingCloudBackup } =
+		api.cloudStorageBackup.create.useMutation();
+
+	// Determine which backup data to use based on what exists
+	const currentBackup = cloudBackup || s3Backup;
+
+	// Set active tab based on existing backup type
+	useEffect(() => {
+		if (backupId) {
+			if (cloudBackup && !s3Backup) {
+				setActiveTab("cloud");
+			} else {
+				setActiveTab("s3");
+			}
+		}
+	}, [backupId, cloudBackup, s3Backup]);
 
 	const form = useForm<z.infer<typeof Schema>>({
 		defaultValues: {
@@ -230,85 +271,133 @@ export const HandleBackup = ({
 		refetch: refetchServices,
 	} = api.compose.loadServices.useQuery(
 		{
-			composeId: backup?.composeId ?? id ?? "",
+			composeId: (currentBackup as any)?.composeId ?? id ?? "",
 			type: cacheType,
 		},
 		{
 			retry: false,
 			refetchOnWindowFocus: false,
-			enabled: backupType === "compose" && !!backup?.composeId && !!id,
+			enabled: backupType === "compose" && !!(currentBackup as any)?.composeId && !!id,
 		},
 	);
 
 	useEffect(() => {
 		form.reset({
-			database: backup?.database
-				? backup?.database
+			database: currentBackup?.database
+				? currentBackup?.database
 				: databaseType === "web-server"
 					? "dokploy"
 					: "",
-			destinationId: backup?.destinationId ?? "",
-			enabled: backup?.enabled ?? true,
-			prefix: backup?.prefix ?? "/",
-			schedule: backup?.schedule ?? "",
-			keepLatestCount: backup?.keepLatestCount ?? undefined,
-			serviceName: backup?.serviceName ?? null,
-			databaseType: backup?.databaseType ?? databaseType,
-			backupType: backup?.backupType ?? backupType,
-			metadata: backup?.metadata ?? {},
+			destinationId: activeTab === "cloud"
+				? (currentBackup as any)?.cloudStorageDestinationId ?? ""
+				: (currentBackup as any)?.destinationId ?? "",
+			enabled: currentBackup?.enabled ?? true,
+			prefix: currentBackup?.prefix ?? "/",
+			schedule: currentBackup?.schedule ?? "",
+			keepLatestCount: currentBackup?.keepLatestCount ?? undefined,
+			serviceName: (currentBackup as any)?.serviceName ?? null,
+			databaseType: (currentBackup?.databaseType as DatabaseType) ?? databaseType,
+			backupType: (currentBackup as any)?.backupType ?? backupType,
+			metadata: (currentBackup as any)?.metadata ?? {},
 		});
-	}, [form, form.reset, backupId, backup]);
+	}, [form, form.reset, backupId, currentBackup, activeTab]);
 
 	const onSubmit = async (data: z.infer<typeof Schema>) => {
-		const getDatabaseId =
-			backupType === "compose"
-				? {
-						composeId: id,
-					}
-				: databaseType === "postgres"
-					? {
-							postgresId: id,
-						}
-					: databaseType === "mariadb"
-						? {
-								mariadbId: id,
-							}
-						: databaseType === "mysql"
-							? {
-									mysqlId: id,
-								}
-							: databaseType === "mongo"
-								? {
-										mongoId: id,
-									}
-								: databaseType === "web-server"
-									? {
-											userId: id,
-										}
-									: undefined;
+		try {
+			if (activeTab === "cloud") {
+				// Handle cloud storage backup
+				const cloudBackupData = {
+					schedule: data.schedule,
+					prefix: data.prefix,
+					enabled: data.enabled,
+					database: data.database,
+					// Note: keepLatestCount is NOT included for create mutation
+					databaseType: data.databaseType || databaseType,
+					cloudStorageDestinationId: data.destinationId,
+					postgresId: databaseType === "postgres" ? id : undefined,
+					mysqlId: databaseType === "mysql" ? id : undefined,
+					mariadbId: databaseType === "mariadb" ? id : undefined,
+					mongoId: databaseType === "mongo" ? id : undefined,
+				};
 
-		await createBackup({
-			destinationId: data.destinationId,
-			prefix: data.prefix,
-			schedule: data.schedule,
-			enabled: data.enabled,
-			database: data.database,
-			keepLatestCount: data.keepLatestCount ?? null,
-			databaseType: data.databaseType || databaseType,
-			serviceName: data.serviceName,
-			...getDatabaseId,
-			backupId: backupId ?? "",
-			backupType,
-			metadata: data.metadata,
-		})
-			.then(async () => {
-				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
-				refetch();
-				setIsOpen(false);
-			})
-			.catch(() => {
-				toast.error(`Error ${backupId ? "updating" : "creating"} a backup`);
-			});
+				if (backupId && cloudBackup) {
+					// Update existing cloud backup - only include fields expected by update mutation
+					await updateCloudBackup({
+						backupId,
+						schedule: data.schedule,
+						prefix: data.prefix,
+						enabled: data.enabled,
+						database: data.database,
+						keepLatestCount: data.keepLatestCount,
+						databaseType: data.databaseType || databaseType,
+						cloudStorageDestinationId: data.destinationId,
+					});
+				} else {
+					// Create new cloud backup - include all fields needed for creation
+					await createCloudBackup({
+						schedule: data.schedule,
+						prefix: data.prefix,
+						enabled: data.enabled,
+						database: data.database,
+						databaseType: data.databaseType || databaseType,
+						cloudStorageDestinationId: data.destinationId,
+						postgresId: databaseType === "postgres" ? id : undefined,
+						mysqlId: databaseType === "mysql" ? id : undefined,
+						mariadbId: databaseType === "mariadb" ? id : undefined,
+						mongoId: databaseType === "mongo" ? id : undefined,
+					});
+				}
+			} else {
+				// Handle S3 backup
+				const getDatabaseId =
+					backupType === "compose"
+						? {
+							composeId: id,
+						}
+						: databaseType === "postgres"
+							? {
+								postgresId: id,
+							}
+							: databaseType === "mariadb"
+								? {
+									mariadbId: id,
+								}
+								: databaseType === "mysql"
+									? {
+										mysqlId: id,
+									}
+									: databaseType === "mongo"
+										? {
+											mongoId: id,
+										}
+										: databaseType === "web-server"
+											? {
+												userId: id,
+											}
+											: undefined;
+
+				await createS3Backup({
+					destinationId: data.destinationId,
+					prefix: data.prefix,
+					schedule: data.schedule,
+					enabled: data.enabled,
+					database: data.database,
+					keepLatestCount: data.keepLatestCount ?? null,
+					databaseType: data.databaseType || databaseType,
+					serviceName: data.serviceName,
+					...getDatabaseId,
+					backupId: backupId ?? "",
+					backupType,
+					metadata: data.metadata,
+				});
+			}
+
+			toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
+			refetch();
+			setIsOpen(false);
+		} catch (error) {
+			toast.error(`Error ${backupId ? "updating" : "creating"} a backup`);
+		}
 	};
 
 	return (
@@ -339,11 +428,36 @@ export const HandleBackup = ({
 					</DialogDescription>
 				</DialogHeader>
 
+				<Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "s3" | "cloud")} className="w-full">
+					<TabsList className="grid w-full grid-cols-2">
+						<TabsTrigger value="s3" className="flex items-center gap-2">
+							<Database className="size-4" />
+							S3 Storage
+						</TabsTrigger>
+						<TabsTrigger value="cloud" className="flex items-center gap-2">
+							<Cloud className="size-4" />
+							Cloud Storage
+						</TabsTrigger>
+					</TabsList>
+
+					<TabsContent value="s3" className="mt-4">
+						<div className="text-sm text-muted-foreground mb-4">
+							Configure backup to S3-compatible storage destinations.
+						</div>
+					</TabsContent>
+
+					<TabsContent value="cloud" className="mt-4">
+						<div className="text-sm text-muted-foreground mb-4">
+							Configure backup to cloud storage destinations (Google Drive, Dropbox, etc.).
+						</div>
+					</TabsContent>
+				</Tabs>
+
 				<Form {...form}>
 					<form
 						id="hook-form-add-backup"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-4"
+						className="grid w-full gap-4 mt-4"
 					>
 						<div className="grid grid-cols-1 gap-4">
 							{errorServices && (
@@ -383,77 +497,91 @@ export const HandleBackup = ({
 							<FormField
 								control={form.control}
 								name="destinationId"
-								render={({ field }) => (
-									<FormItem className="">
-										<FormLabel>Destination</FormLabel>
-										<Popover>
-											<PopoverTrigger asChild>
-												<FormControl>
-													<Button
-														variant="outline"
-														className={cn(
-															"w-full justify-between !bg-input",
-															!field.value && "text-muted-foreground",
+								render={({ field }) => {
+									const destinations = activeTab === "cloud" ? cloudDestinations : s3Destinations;
+									const isLoading = activeTab === "cloud" ? isLoadingCloud : isLoadingS3;
+									const getDestinationName = (value: string) => {
+										if (activeTab === "cloud") {
+											return cloudDestinations?.find(d => d.id === value)?.name;
+										} else {
+											return s3Destinations?.find(d => d.destinationId === value)?.name;
+										}
+									};
+
+									return (
+										<FormItem className="">
+											<FormLabel>
+												{activeTab === "cloud" ? "Cloud Storage Destination" : "S3 Destination"}
+											</FormLabel>
+											<Popover>
+												<PopoverTrigger asChild>
+													<FormControl>
+														<Button
+															variant="outline"
+															className={cn(
+																"w-full justify-between !bg-input",
+																!field.value && "text-muted-foreground",
+															)}
+														>
+															{isLoading
+																? "Loading...."
+																: field.value
+																	? getDestinationName(field.value)
+																	: `Select ${activeTab === "cloud" ? "Cloud" : "S3"} Destination`}
+
+															<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+														</Button>
+													</FormControl>
+												</PopoverTrigger>
+												<PopoverContent className="p-0" align="start">
+													<Command>
+														<CommandInput
+															placeholder={`Search ${activeTab === "cloud" ? "Cloud" : "S3"} Destination...`}
+															className="h-9"
+														/>
+														{isLoading && (
+															<span className="py-6 text-center text-sm">
+																Loading Destinations....
+															</span>
 														)}
-													>
-														{isLoading
-															? "Loading...."
-															: field.value
-																? data?.find(
-																		(destination) =>
-																			destination.destinationId === field.value,
-																	)?.name
-																: "Select Destination"}
+														<CommandEmpty>No destinations found.</CommandEmpty>
+														<ScrollArea className="h-64">
+															<CommandGroup>
+																{destinations?.map((destination) => {
+																	const id = activeTab === "cloud" ? (destination as any).id : (destination as any).destinationId;
+																	const name = (destination as any).name;
+																	const provider = activeTab === "cloud" ? ` (${(destination as any).provider})` : "";
 
-														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-													</Button>
-												</FormControl>
-											</PopoverTrigger>
-											<PopoverContent className="p-0" align="start">
-												<Command>
-													<CommandInput
-														placeholder="Search Destination..."
-														className="h-9"
-													/>
-													{isLoading && (
-														<span className="py-6 text-center text-sm">
-															Loading Destinations....
-														</span>
-													)}
-													<CommandEmpty>No destinations found.</CommandEmpty>
-													<ScrollArea className="h-64">
-														<CommandGroup>
-															{data?.map((destination) => (
-																<CommandItem
-																	value={destination.destinationId}
-																	key={destination.destinationId}
-																	onSelect={() => {
-																		form.setValue(
-																			"destinationId",
-																			destination.destinationId,
-																		);
-																	}}
-																>
-																	{destination.name}
-																	<CheckIcon
-																		className={cn(
-																			"ml-auto h-4 w-4",
-																			destination.destinationId === field.value
-																				? "opacity-100"
-																				: "opacity-0",
-																		)}
-																	/>
-																</CommandItem>
-															))}
-														</CommandGroup>
-													</ScrollArea>
-												</Command>
-											</PopoverContent>
-										</Popover>
+																	return (
+																		<CommandItem
+																			value={id}
+																			key={id}
+																			onSelect={() => {
+																				form.setValue("destinationId", id);
+																			}}
+																		>
+																			{name}{provider}
+																			<CheckIcon
+																				className={cn(
+																					"ml-auto h-4 w-4",
+																					id === field.value
+																						? "opacity-100"
+																						: "opacity-0",
+																				)}
+																			/>
+																		</CommandItem>
+																	);
+																})}
+															</CommandGroup>
+														</ScrollArea>
+													</Command>
+												</PopoverContent>
+											</Popover>
 
-										<FormMessage />
-									</FormItem>
-								)}
+											<FormMessage />
+										</FormItem>
+									);
+								}}
 							/>
 							{backupType === "compose" && (
 								<div className="flex flex-row items-end w-full gap-4">
@@ -813,7 +941,9 @@ export const HandleBackup = ({
 						</div>
 						<DialogFooter>
 							<Button
-								isLoading={isCreatingPostgresBackup}
+								isLoading={activeTab === "cloud"
+									? (backupId && cloudBackup ? isUpdatingCloudBackup : isCreatingCloudBackup)
+									: isCreatingS3Backup}
 								form="hook-form-add-backup"
 								type="submit"
 							>
