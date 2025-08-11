@@ -10,46 +10,46 @@ type Shortcuts = Record<string, string>;
 type ShortcutsDictionary = Record<Page, Shortcuts>;
 
 const COMPOSE_SHORTCUTS: Shortcuts = {
-	g: "general",
-	e: "environment",
-	u: "domains",
-	d: "deployments",
-	b: "backups",
-	s: "schedules",
-	v: "volumeBackups",
-	l: "logs",
-	m: "monitoring",
-	a: "advanced",
+  g: "general",
+  e: "environment",
+  u: "domains",
+  d: "deployments",
+  b: "backups",
+  s: "schedules",
+  v: "volumeBackups",
+  l: "logs",
+  m: "monitoring",
+  a: "advanced",
 };
 
 const APPLICATION_SHORTCUTS: Shortcuts = {
-	g: "general",
-	e: "environment",
-	u: "domains",
-	p: "preview-deployments",
-	s: "schedules",
-	v: "volume-backups",
-	d: "deployments",
-	l: "logs",
-	m: "monitoring",
-	a: "advanced",
+  g: "general",
+  e: "environment",
+  u: "domains",
+  p: "preview-deployments",
+  s: "schedules",
+  v: "volume-backups",
+  d: "deployments",
+  l: "logs",
+  m: "monitoring",
+  a: "advanced",
 };
 
 const POSTGRES_SHORTCUTS: Shortcuts = {
-	g: "general",
-	e: "environment",
-	l: "logs",
-	m: "monitoring",
-	b: "backups",
-	a: "advanced",
+  g: "general",
+  e: "environment",
+  l: "logs",
+  m: "monitoring",
+  b: "backups",
+  a: "advanced",
 };
 
 const REDIS_SHORTCUTS: Shortcuts = {
-	g: "general",
-	e: "environment",
-	l: "logs",
-	m: "monitoring",
-	a: "advanced",
+  g: "general",
+  e: "environment",
+  l: "logs",
+  m: "monitoring",
+  a: "advanced",
 };
 
 const SHORTCUTS: ShortcutsDictionary = {
@@ -60,57 +60,57 @@ const SHORTCUTS: ShortcutsDictionary = {
 };
 
 /**
- * Use this to register keyboard shortcuts for different pages. Each shortcut
- * must be prefixed with `g` (like GitHub).
- *
- * @example
- * - `g g` "General",
- * - `g e` "Environment",
- * - `g u` "Domains",
- */
+* Use this to register keyboard shortcuts for different pages. Each shortcut
+* must be prefixed with `g` (like GitHub).
+*
+* @example
+* - `g g` "General",
+* - `g e` "Environment",
+* - `g u` "Domains",
+*/
 export function UseKeyboardNav({ forPage }: { forPage: Page }) {
-	const [isModPressed, setModPressed] = useState(false);
-	const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isModPressed, setModPressed] = useState(false);
+  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 
-	const sp = useSearchParams();
-	const router = useRouter();
-	const pathname = usePathname();
+  const sp = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const shortcuts = SHORTCUTS[forPage];
 
-	const updateSearchParam = useCallback(
-		(name: string, value: string) => {
-			const params = new URLSearchParams(sp.toString());
-			params.set(name, value);
+  const updateSearchParam = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(sp.toString());
+      params.set(name, value);
 
-			return params.toString();
-		},
-		[sp],
-	);
+      return params.toString();
+    },
+    [sp],
+  );
 
-	useEffect(() => {
-		const handleKeyDown = ({ key }: KeyboardEvent) => {
-			if (isModPressed) {
-				if (timer) clearTimeout(timer);
-				setModPressed(false);
+  useEffect(() => {
+    const handleKeyDown = ({ key }: KeyboardEvent) => {
+      if (isModPressed) {
+        if (timer) clearTimeout(timer);
+        setModPressed(false);
 
-				if (key in shortcuts) {
-					const tab = shortcuts[key]!;
-					router.push(
-						`${pathname}?${updateSearchParam("tab", tab)}`,
-					);
-				}
-			} else {
-				if (key === "g") {
-					setModPressed(true);
-					setTimer(setTimeout(() => setModPressed(false), 5000));
-				}
-			}
-		};
+        if (key in shortcuts) {
+          const tab = shortcuts[key]!;
+          router.push(
+            `${pathname}?${updateSearchParam("tab", tab)}`,
+          );
+        }
+      } else {
+        if (key === "g") {
+          setModPressed(true);
+          setTimer(setTimeout(() => setModPressed(false), 5000));
+        }
+      }
+    };
 
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [isModPressed, timer, updateSearchParam, router, pathname]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModPressed, timer, updateSearchParam, router, pathname]);
 
-	return null;
+  return null;
 }
