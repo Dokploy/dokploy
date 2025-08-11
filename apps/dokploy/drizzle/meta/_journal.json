@@ -715,6 +715,41 @@
       "when": 1751751631943,
       "tag": "0101_moaning_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1751848685503,
+      "tag": "0102_opposite_grandmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1752465764072,
+      "tag": "0103_cultured_pestilence",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1754207407121,
+      "tag": "0104_omniscient_randall",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1754259281559,
+      "tag": "0105_clumsy_quicksilver",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1754906538808,
+      "tag": "0106_round_scrambler",
+      "breakpoints": true
     }
   ]
 }
