@@ -3,7 +3,15 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-const PAGES = ["compose", "application", "postgres", "redis", "mysql", "mariadb", "mongodb"] as const;
+const PAGES = [
+	"compose",
+	"application",
+	"postgres",
+	"redis",
+	"mysql",
+	"mariadb",
+	"mongodb",
+] as const;
 type Page = (typeof PAGES)[number];
 
 type Shortcuts = Record<string, string>;

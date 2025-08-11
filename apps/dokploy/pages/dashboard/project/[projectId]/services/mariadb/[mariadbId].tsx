@@ -64,7 +64,7 @@ const Mariadb = (
 
 	return (
 		<div className="pb-10">
-      <UseKeyboardNav forPage="mariadb" />
+			<UseKeyboardNav forPage="mariadb" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },

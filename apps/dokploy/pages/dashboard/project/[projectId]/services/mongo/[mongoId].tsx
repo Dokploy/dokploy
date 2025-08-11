@@ -64,7 +64,7 @@ const Mongo = (
 
 	return (
 		<div className="pb-10">
-		  <UseKeyboardNav forPage="mongodb" />
+			<UseKeyboardNav forPage="mongodb" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
