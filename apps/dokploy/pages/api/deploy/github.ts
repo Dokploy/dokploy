@@ -452,7 +452,7 @@ export default async function handler(
 							break;
 						}
 					}
-					if (hasLabel) continue;
+					if (!hasLabel) continue;
 				}
 
 				const previewLimit = app?.previewLimit || 0;
