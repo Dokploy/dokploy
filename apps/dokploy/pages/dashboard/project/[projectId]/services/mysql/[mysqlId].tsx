@@ -63,7 +63,7 @@ const MySql = (
 
 	return (
 		<div className="pb-10">
-		  <UseKeyboardNav forPage="mysql" />
+			<UseKeyboardNav forPage="mysql" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },

@@ -63,7 +63,7 @@ const Postgresql = (
 
 	return (
 		<div className="pb-10">
-		  <UseKeyboardNav forPage="postgres" />
+			<UseKeyboardNav forPage="postgres" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },

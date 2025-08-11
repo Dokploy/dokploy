@@ -92,7 +92,7 @@ const Service = (
 
 	return (
 		<div className="pb-10">
-      <UseKeyboardNav forPage="application" />
+			<UseKeyboardNav forPage="application" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
