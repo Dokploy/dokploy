@@ -30,6 +30,7 @@ import {
 	Calendar as CalendarIcon,
 	InfoIcon,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ export type LogEntry = NonNullable<
 >[0];
 
 export const ShowRequests = () => {
+	const { t } = useTranslation("dashboard");
 	const { data: isActive, refetch } =
 		api.settings.haveActivateRequests.useQuery();
 	const { mutateAsync: toggleRequests } =
@@ -73,20 +75,19 @@ export const ShowRequests = () => {
 						<CardHeader className="">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<ArrowDownUp className="size-6 text-muted-foreground self-center" />
-								Requests
+								{t("dashboard.requests.title")}
 							</CardTitle>
 							<CardDescription>
-								See all the incoming requests that pass trough Traefik
+								{t("dashboard.requests.description")}
 							</CardDescription>
 
 							<AlertBlock type="warning">
-								When you activate, you need to reload traefik to apply the
-								changes, you can reload traefik in{" "}
+								{t("dashboard.requests.warningMessage")}{" "}
 								<Link
 									href="/dashboard/settings/server"
 									className="text-primary"
 								>
-									Settings
+									{t("dashboard.requests.settings")}
 								</Link>
 							</AlertBlock>
 						</CardHeader>
@@ -95,7 +96,7 @@ export const ShowRequests = () => {
 								<div className="flex-1 flex items-center gap-4">
 									<div className="flex items-center gap-2">
 										<Label htmlFor="cron" className="min-w-32">
-											Log Cleanup Schedule
+											{t("dashboard.requests.logCleanupSchedule")}
 										</Label>
 										<TooltipProvider>
 											<Tooltip>
@@ -104,10 +105,7 @@ export const ShowRequests = () => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p className="max-w-80">
-														At the scheduled time, the cleanup job will keep
-														only the last 1000 entries in the access log file
-														and signal Traefik to reopen its log files. The
-														default schedule is daily at midnight (0 0 * * *).
+														{t("dashboard.requests.logCleanupTooltip")}
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -126,35 +124,53 @@ export const ShowRequests = () => {
 											variant="outline"
 											onClick={async () => {
 												if (!cronExpression?.trim()) {
-													toast.error("Please enter a valid cron expression");
+													toast.error(
+														t("dashboard.requests.invalidCronExpression"),
+													);
 													return;
 												}
 												try {
 													await updateLogCleanup({
 														cronExpression: cronExpression,
 													});
-													toast.success("Log cleanup schedule updated");
+													toast.success(
+														t("dashboard.requests.logCleanupUpdated"),
+													);
 												} catch (error) {
 													toast.error(
-														`Failed to update log cleanup schedule: ${error instanceof Error ? error.message : "Unknown error"}`,
+														`${t(
+															"dashboard.requests.logCleanupUpdateError",
+														)}: ${
+															error instanceof Error
+																? error.message
+																: "Unknown error"
+														}`,
 													);
 												}
 											}}
 										>
-											Update Schedule
+											{t("dashboard.requests.updateSchedule")}
 										</Button>
 									</div>
 								</div>
 								<DialogAction
-									title={isActive ? "Deactivate Requests" : "Activate Requests"}
-									description="You will also need to restart Traefik to apply the changes"
+									title={
+										isActive
+											? t("dashboard.requests.deactivateRequests")
+											: t("dashboard.requests.activateRequests")
+									}
+									description={t("dashboard.requests.activateDescription")}
 									type={isActive ? "destructive" : "default"}
 									onClick={async () => {
 										await toggleRequests({ enable: !isActive })
 											.then(() => {
 												refetch();
 												toast.success(
-													`Requests ${isActive ? "deactivated" : "activated"}`,
+													t(
+														isActive
+															? "dashboard.requests.deactivated"
+															: "dashboard.requests.activated",
+													),
 												);
 											})
 											.catch((err) => {
@@ -162,7 +178,11 @@ export const ShowRequests = () => {
 											});
 									}}
 								>
-									<Button>{isActive ? "Deactivate" : "Activate"}</Button>
+									<Button>
+										{isActive
+											? t("dashboard.requests.deactivate")
+											: t("dashboard.requests.activate")}
+									</Button>
 								</DialogAction>
 							</div>
 
@@ -177,7 +197,7 @@ export const ShowRequests = () => {
 												}
 												className="px-3"
 											>
-												Clear dates
+												{t("dashboard.requests.clearDates")}
 											</Button>
 										)}
 										<Popover>
@@ -197,7 +217,7 @@ export const ShowRequests = () => {
 															format(dateRange.from, "LLL dd, y")
 														)
 													) : (
-														<span>Pick a date range</span>
+														<span>{t("dashboard.requests.pickDateRange")}</span>
 													)}
 												</Button>
 											</PopoverTrigger>
@@ -205,38 +225,50 @@ export const ShowRequests = () => {
 												<Calendar
 													initialFocus
 													mode="range"
-													defaultMonth={dateRange.from}
-													selected={{
-														from: dateRange.from,
-														to: dateRange.to,
-													}}
-													onSelect={(range) => {
-														setDateRange({
-															from: range?.from,
-															to: range?.to,
-														});
-													}}
+													defaultMonth={dateRange?.from}
+													selected={dateRange}
+													onSelect={(range) =>
+														setDateRange(
+															range
+																? { from: range.from, to: range.to }
+																: { from: undefined, to: undefined },
+														)
+													}
 													numberOfMonths={2}
 												/>
 											</PopoverContent>
 										</Popover>
 									</div>
-									<RequestDistributionChart dateRange={dateRange} />
-									<RequestsTable dateRange={dateRange} />
+
+									<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+										<Card className="col-span-4">
+											<CardHeader>
+												<CardTitle>
+													{t("dashboard.requests.overview")}
+												</CardTitle>
+											</CardHeader>
+											<CardContent className="pl-2">
+												<RequestDistributionChart dateRange={dateRange} />
+											</CardContent>
+										</Card>
+										<Card className="col-span-3">
+											<CardHeader>
+												<CardTitle>
+													{t("dashboard.requests.recentRequests")}
+												</CardTitle>
+											</CardHeader>
+											<CardContent>
+												<RequestsTable dateRange={dateRange} />
+											</CardContent>
+										</Card>
+									</div>
 								</>
 							) : (
-								<div className="flex flex-col items-center justify-center py-12 gap-4 text-muted-foreground">
-									<AlertCircle className="size-12 text-muted-foreground/50" />
-									<div className="text-center space-y-2">
-										<h3 className="text-lg font-medium">
-											Requests are not activated
-										</h3>
-										<p className="text-sm max-w-md">
-											Activate requests to see incoming traffic statistics and
-											monitor your application's usage. After activation, you'll
-											need to reload Traefik for the changes to take effect.
-										</p>
-									</div>
+								<div className="flex flex-col items-center justify-center h-[55vh]">
+									<AlertCircle className="size-8 text-muted-foreground" />
+									<span className="text-muted-foreground text-lg font-medium">
+										{t("dashboard.requests.notActive")}
+									</span>
 								</div>
 							)}
 						</CardContent>

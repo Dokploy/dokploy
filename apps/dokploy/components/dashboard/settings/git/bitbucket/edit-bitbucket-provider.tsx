@@ -21,28 +21,31 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
-	workspaceName: z.string().optional(),
-});
+const Schema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.gitProviders.bitbucket.update.nameRequired"),
+		}),
+		username: z.string().min(1, {
+			message: t("settings.gitProviders.bitbucket.update.usernameRequired"),
+		}),
+		workspaceName: z.string().optional(),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = ReturnType<typeof Schema>["_type"];
 
 interface Props {
 	bitbucketId: string;
 }
 
 export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data: bitbucket } = api.bitbucket.one.useQuery(
 		{
 			bitbucketId,
@@ -62,7 +65,7 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 			username: "",
 			workspaceName: "",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(Schema(t)),
 	});
 
 	const username = form.watch("username");
@@ -86,11 +89,11 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Bitbucket updated successfully");
+				toast.success(t("settings.gitProviders.bitbucket.update.success"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Bitbucket");
+				toast.error(t("settings.gitProviders.bitbucket.update.error"));
 			});
 	};
 
@@ -108,7 +111,8 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update Bitbucket <BitbucketIcon className="size-5" />
+						{t("settings.gitProviders.bitbucket.update.title")}{" "}
+						<BitbucketIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -126,10 +130,14 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.bitbucket.update.name")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t(
+														"settings.gitProviders.bitbucket.update.namePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -142,10 +150,14 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 									name="username"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Bitbucket Username</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.bitbucket.update.username")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Your Bitbucket username"
+													placeholder={t(
+														"settings.gitProviders.bitbucket.update.usernamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -159,10 +171,16 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 									name="workspaceName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Workspace Name (Optional)</FormLabel>
+											<FormLabel>
+												{t(
+													"settings.gitProviders.bitbucket.update.workspaceName",
+												)}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization accounts"
+													placeholder={t(
+														"settings.gitProviders.bitbucket.update.workspaceNamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -190,10 +208,10 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 												});
 										}}
 									>
-										Test Connection
+										{t("settings.gitProviders.bitbucket.update.testConnection")}
 									</Button>
 									<Button type="submit" isLoading={form.formState.isSubmitting}>
-										Update
+										{t("settings.gitProviders.bitbucket.update.update")}
 									</Button>
 								</div>
 							</div>

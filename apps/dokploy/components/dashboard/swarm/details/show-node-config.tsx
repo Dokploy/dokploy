@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
 import { Settings } from "lucide-react";
+import { useTranslation } from "next-i18next";
 
 interface Props {
 	nodeId: string;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data } = api.swarm.getNodeInfo.useQuery({
 		nodeId,
 		serverId,
@@ -26,14 +28,14 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm" className="w-full">
 					<Settings className="h-4 w-4 mr-2" />
-					Config
+					{t("dashboard.swarm.config")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Node Config</DialogTitle>
+					<DialogTitle>{t("dashboard.swarm.nodeConfig")}</DialogTitle>
 					<DialogDescription>
-						See in detail the metadata of this node
+						{t("dashboard.swarm.nodeConfigDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card max-h-[70vh] overflow-auto ">

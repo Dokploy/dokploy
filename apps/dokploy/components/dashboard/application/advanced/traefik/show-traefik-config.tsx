@@ -8,12 +8,15 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { File, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { UpdateTraefikConfig } from "./update-traefik-config";
+
 interface Props {
 	applicationId: string;
 }
 
 export const ShowTraefikConfig = ({ applicationId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data, isLoading } = api.application.readTraefikConfig.useQuery(
 		{
 			applicationId,
@@ -25,25 +28,25 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Traefik</CardTitle>
+					<CardTitle className="text-xl">
+						{t("dashboard.traefik.traefik")}
+					</CardTitle>
 					<CardDescription>
-						Modify the traefik config, in rare cases you may need to add
-						specific config, be careful because modifying incorrectly can break
-						traefik and your application
+						{t("dashboard.traefik.description")}
 					</CardDescription>
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				{isLoading ? (
 					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center justify-center min-h-[10vh]">
-						Loading...
+						{t("dashboard.traefik.loading")}
 						<Loader2 className="animate-spin" />
 					</span>
 				) : !data ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<File className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
-							No traefik config detected
+							{t("dashboard.traefik.noTraefikConfigDetected")}
 						</span>
 					</div>
 				) : (
@@ -51,7 +54,7 @@ export const ShowTraefikConfig = ({ applicationId }: Props) => {
 						<div className="flex flex-col gap-6 max-h-[35rem] min-h-[10rem] overflow-y-auto">
 							<CodeEditor
 								lineWrapping
-								value={data || "Empty"}
+								value={data || t("dashboard.traefik.empty")}
 								disabled
 								className="font-mono"
 							/>

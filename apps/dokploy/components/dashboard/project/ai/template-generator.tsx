@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { api } from "@/utils/api";
 import { defineStepper } from "@stepperize/react";
 import { Bot } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -95,6 +96,7 @@ interface Props {
 }
 
 export const TemplateGenerator = ({ projectId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [open, setOpen] = useState(false);
 	const stepper = useStepper();
 	const { data: aiSettings } = api.ai.getAll.useQuery();
@@ -136,14 +138,14 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 			configFiles: templateInfo?.details?.configFiles || [],
 		})
 			.then(async () => {
-				toast.success("Compose Created");
+				toast.success(t("dashboard.ai.composeCreated"));
 				setOpen(false);
 				await utils.project.one.invalidate({
 					projectId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error creating the compose");
+				toast.error(t("dashboard.ai.errorCreatingCompose"));
 			});
 	};
 
@@ -155,28 +157,34 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<Bot className="size-4 text-muted-foreground" />
-					<span>AI Assistant</span>
+					<span>{t("dashboard.ai.aiAssistant")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl w-full  flex flex-col">
 				<DialogHeader>
-					<DialogTitle>AI Assistant</DialogTitle>
+					<DialogTitle>{t("dashboard.ai.aiAssistant")}</DialogTitle>
 					<DialogDescription>
-						Create a custom template based on your needs
+						{t("dashboard.ai.createCustomTemplate")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4">
 					<div className="flex justify-between">
-						<h2 className="text-lg font-semibold">Steps</h2>
+						<h2 className="text-lg font-semibold">{t("dashboard.ai.steps")}</h2>
 						<div className="flex items-center gap-2">
 							<span className="text-sm text-muted-foreground">
-								Step {stepper.current.index + 1} of {steps.length}
+								{t("dashboard.ai.stepOf", {
+									current: stepper.current.index + 1,
+									total: steps.length,
+								})}
 							</span>
 							<div />
 						</div>
 					</div>
 					<Scoped>
-						<nav aria-label="Checkout Steps" className="group my-4">
+						<nav
+							aria-label={t("dashboard.ai.checkoutSteps")}
+							className="group my-4"
+						>
 							<ol
 								className="flex items-center justify-between gap-2"
 								aria-orientation="horizontal"
@@ -221,9 +229,9 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 									{!haveAtleasOneProviderEnabled && (
 										<AlertBlock type="warning">
 											<div className="flex flex-col w-full">
-												<span>AI features are not enabled</span>
+												<span>{t("dashboard.ai.aiFeaturesNotEnabled")}</span>
 												<span>
-													To use AI-powered template generation, please{" "}
+													{t("dashboard.ai.enableAiInSettings")}{" "}
 													<Link
 														href="/dashboard/settings/ai"
 														className="font-medium underline underline-offset-4"
@@ -245,7 +253,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 														htmlFor="user-needs"
 														className="text-sm font-medium"
 													>
-														Select AI Provider
+														{t("dashboard.ai.selectAiProvider")}
 													</label>
 													<Select
 														value={templateInfo.aiId}
@@ -257,7 +265,11 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 														}
 													>
 														<SelectTrigger>
-															<SelectValue placeholder="Select an AI provider" />
+															<SelectValue
+																placeholder={t(
+																	"dashboard.ai.selectAiProviderPlaceholder",
+																)}
+															/>
 														</SelectTrigger>
 														<SelectContent>
 															{aiSettings.map((ai) => (
@@ -301,7 +313,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 								disabled={stepper.isFirst}
 								variant="secondary"
 							>
-								Back
+								{t("dashboard.ai.back")}
 							</Button>
 							<Button
 								disabled={isDisabled()}
@@ -327,7 +339,9 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 									// }
 								}}
 							>
-								{stepper.isLast ? "Create" : "Next"}
+								{stepper.isLast
+									? t("dashboard.ai.create")
+									: t("dashboard.ai.next")}
 							</Button>
 						</div>
 					</div>

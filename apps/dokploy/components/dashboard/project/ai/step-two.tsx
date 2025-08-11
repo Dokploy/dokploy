@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/utils/api";
 import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ export interface StepProps {
 }
 
 export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
+	const { t } = useTranslation("dashboard");
 	const suggestions = templateInfo.suggestions || [];
 	const selectedVariant = templateInfo.details;
 	const [showValues, setShowValues] = useState<Record<string, boolean>>({});
@@ -48,7 +50,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 				});
 			})
 			.catch((error) => {
-				toast.error("Error generating suggestions", {
+				toast.error(t("dashboard.ai.errorGeneratingSuggestions"), {
 					description: error.message,
 				});
 			});
@@ -182,9 +184,11 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 		return (
 			<div className="flex flex-col items-center justify-center h-full space-y-4">
 				<Bot className="w-16 h-16 text-primary animate-pulse" />
-				<h2 className="text-2xl font-semibold animate-pulse">Error</h2>
+				<h2 className="text-2xl font-semibold animate-pulse">
+					{t("dashboard.ai.error")}
+				</h2>
 				<AlertBlock type="error">
-					{error?.message || "Error generating suggestions"}
+					{error?.message || t("dashboard.ai.errorGeneratingSuggestions")}
 				</AlertBlock>
 			</div>
 		);
@@ -194,10 +198,10 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 			<div className="flex flex-col items-center justify-center h-full space-y-4">
 				<Bot className="w-16 h-16 text-primary animate-pulse" />
 				<h2 className="text-2xl font-semibold animate-pulse">
-					AI is processing your request
+					{t("dashboard.ai.aiProcessingRequest")}
 				</h2>
 				<p className="text-muted-foreground">
-					Generating template suggestions based on your input...
+					{t("dashboard.ai.generatingTemplateSuggestions")}
 				</p>
 				<pre className="whitespace-normal">{templateInfo.userInput}</pre>
 			</div>
@@ -208,10 +212,12 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 		<div className="flex flex-col h-full gap-6">
 			<div className="flex-grow overflow-auto pb-8">
 				<div className="space-y-6">
-					<h2 className="text-lg font-semibold">Step 2: Choose a Variant</h2>
+					<h2 className="text-lg font-semibold">
+						{t("dashboard.ai.stepTwoChooseVariant")}
+					</h2>
 					{!selectedVariant && (
 						<div className="space-y-4">
-							<div>Based on your input, we suggest the following variants:</div>
+							<div>{t("dashboard.ai.basedOnInputWeSuggest")}</div>
 							<RadioGroup
 								// value={selectedVariant?.}
 								onValueChange={(value) => {
@@ -257,7 +263,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 							<ScrollArea>
 								<Accordion type="single" collapsible className="w-full">
 									<AccordionItem value="description">
-										<AccordionTrigger>Description</AccordionTrigger>
+										<AccordionTrigger>
+											{t("dashboard.ai.description")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border p-4">
 												<ReactMarkdown className="text-muted-foreground text-sm">
@@ -267,7 +275,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="docker-compose">
-										<AccordionTrigger>Docker Compose</AccordionTrigger>
+										<AccordionTrigger>
+											{t("dashboard.ai.dockerCompose")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<CodeEditor
 												value={selectedVariant?.dockerCompose}
@@ -287,7 +297,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="env-variables">
-										<AccordionTrigger>Environment Variables</AccordionTrigger>
+										<AccordionTrigger>
+											{t("dashboard.ai.environmentVariables")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border">
 												<div className="p-4 space-y-4">
@@ -305,7 +317,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																		e.target.value,
 																	)
 																}
-																placeholder="Variable Name"
+																placeholder={t("dashboard.ai.variableName")}
 																className="flex-1"
 															/>
 															<div className="flex-1 relative">
@@ -321,7 +333,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																			e.target.value,
 																		)
 																	}
-																	placeholder="Variable Value"
+																	placeholder={t("dashboard.ai.variableValue")}
 																/>
 																<Button
 																	type="button"
@@ -355,14 +367,16 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 														onClick={addEnvVariable}
 													>
 														<PlusCircle className="h-4 w-4 mr-2" />
-														Add Variable
+														{t("dashboard.ai.addVariable")}
 													</Button>
 												</div>
 											</ScrollArea>
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="domains">
-										<AccordionTrigger>Domains</AccordionTrigger>
+										<AccordionTrigger>
+											{t("dashboard.ai.domains")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border">
 												<div className="p-4 space-y-4">
@@ -380,7 +394,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																		e.target.value,
 																	)
 																}
-																placeholder="Domain Host"
+																placeholder={t("dashboard.ai.domainHost")}
 																className="flex-1"
 															/>
 															<Input
@@ -393,7 +407,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																		Number.parseInt(e.target.value),
 																	)
 																}
-																placeholder="Port"
+																placeholder={t("dashboard.ai.port")}
 																className="w-24"
 															/>
 															<Input
@@ -405,7 +419,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																		e.target.value,
 																	)
 																}
-																placeholder="Service Name"
+																placeholder={t("dashboard.ai.serviceName")}
 																className="flex-1"
 															/>
 															<Button
@@ -426,22 +440,23 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 														onClick={addDomain}
 													>
 														<PlusCircle className="h-4 w-4 mr-2" />
-														Add Domain
+														{t("dashboard.ai.addDomain")}
 													</Button>
 												</div>
 											</ScrollArea>
 										</AccordionContent>
 									</AccordionItem>
 									<AccordionItem value="mounts">
-										<AccordionTrigger>Configuration Files</AccordionTrigger>
+										<AccordionTrigger>
+											{t("dashboard.ai.configurationFiles")}
+										</AccordionTrigger>
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border">
 												<div className="p-4 space-y-4">
 													{selectedVariant?.configFiles?.length > 0 ? (
 														<>
 															<div className="text-sm text-muted-foreground mb-4">
-																This template requires the following
-																configuration files to be mounted:
+																{t("dashboard.ai.templateRequiresMounting")}
 															</div>
 															{selectedVariant.configFiles.map(
 																(config, index) => (
@@ -455,7 +470,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																					{config.filePath}
 																				</Label>
 																				<p className="text-xs text-muted-foreground">
-																					Will be mounted as: ../files
+																					{t("dashboard.ai.willBeMountedAs")}
 																					{config.filePath}
 																				</p>
 																			</div>
@@ -491,12 +506,12 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 													) : (
 														<div className="text-center text-muted-foreground py-8">
 															<p>
-																This template doesn't require any configuration
-																files.
+																{t("dashboard.ai.templateDoesNotRequireFiles")}
 															</p>
 															<p className="text-sm mt-2">
-																All necessary configurations are handled through
-																environment variables.
+																{t(
+																	"dashboard.ai.allConfigurationsHandledThroughEnvVars",
+																)}
 															</p>
 														</div>
 													)}
@@ -520,7 +535,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 							}}
 							variant="outline"
 						>
-							Change Variant
+							{t("dashboard.ai.changeVariant")}
 						</Button>
 					)}
 				</div>

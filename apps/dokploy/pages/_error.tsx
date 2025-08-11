@@ -1,6 +1,7 @@
 import { Logo } from "@/components/shared/logo";
 import { buttonVariants } from "@/components/ui/button";
 import type { NextPageContext } from "next";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function Custom404({ statusCode, error }: Props) {
+	const { t } = useTranslation("error");
 	const displayStatusCode = statusCode || 400;
 	return (
 		<div className="h-screen">
@@ -40,8 +42,8 @@ export default function Custom404({ statusCode, error }: Props) {
 						</AlertBlock> */}
 						<p className="mt-3 text-muted-foreground">
 							{statusCode === 404
-								? "Sorry, we couldn't find your page."
-								: "Oops, something went wrong."}
+								? t("error.404.title")
+								: t("error.other.title")}
 						</p>
 						{error && (
 							<div className="mt-3 text-red-500">
@@ -71,7 +73,7 @@ export default function Custom404({ statusCode, error }: Props) {
 								>
 									<path d="m15 18-6-6 6-6" />
 								</svg>
-								Go to homepage
+								{t("error.other.button")}
 							</Link>
 						</div>
 					</div>
@@ -85,7 +87,7 @@ export default function Custom404({ statusCode, error }: Props) {
 								target="_blank"
 								className="underline hover:text-primary transition-colors"
 							>
-								Submit Log in issue on Github
+								{t("error.submitLogInIssue")}
 							</Link>
 						</p>
 					</div>

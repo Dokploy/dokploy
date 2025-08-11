@@ -14,9 +14,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD, getUserByToken } from "@dokploy/server";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
+import { type TFunction, useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect } from "react";
@@ -24,46 +26,47 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const registerSchema = z
-	.object({
-		name: z.string().min(1, {
-			message: "Name is required",
-		}),
-		email: z
-			.string()
-			.min(1, {
-				message: "Email is required",
-			})
-			.email({
-				message: "Email must be a valid email",
+const registerSchema = (t: TFunction) =>
+	z
+		.object({
+			name: z.string().min(1, {
+				message: t("invitation.nameRequired"),
 			}),
-		password: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.refine((password) => password === "" || password.length >= 8, {
-				message: "Password must be at least 8 characters",
-			}),
-		confirmPassword: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.refine(
-				(confirmPassword) =>
-					confirmPassword === "" || confirmPassword.length >= 8,
-				{
-					message: "Password must be at least 8 characters",
-				},
-			),
-	})
-	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
-		path: ["confirmPassword"],
-	});
+			email: z
+				.string()
+				.min(1, {
+					message: t("invitation.emailRequired"),
+				})
+				.email({
+					message: t("invitation.emailInvalid"),
+				}),
+			password: z
+				.string()
+				.min(1, {
+					message: t("invitation.passwordRequired"),
+				})
+				.refine((password) => password === "" || password.length >= 8, {
+					message: t("invitation.passwordMinLength"),
+				}),
+			confirmPassword: z
+				.string()
+				.min(1, {
+					message: t("invitation.passwordRequired"),
+				})
+				.refine(
+					(confirmPassword) =>
+						confirmPassword === "" || confirmPassword.length >= 8,
+					{
+						message: t("invitation.passwordMinLength"),
+					},
+				),
+		})
+		.refine((data) => data.password === data.confirmPassword, {
+			message: t("invitation.passwordsDoNotMatch"),
+			path: ["confirmPassword"],
+		});
 
-type Register = z.infer<typeof registerSchema>;
+type Register = z.infer<ReturnType<typeof registerSchema>>;
 
 interface Props {
 	token: string;
@@ -78,6 +81,7 @@ const Invitation = ({
 	isCloud,
 	userAlreadyExists,
 }: Props) => {
+	const { t } = useTranslation("invitation");
 	const router = useRouter();
 	const { data } = api.user.getUserByToken.useQuery(
 		{
@@ -96,7 +100,7 @@ const Invitation = ({
 			password: "",
 			confirmPassword: "",
 		},
-		resolver: zodResolver(registerSchema),
+		resolver: zodResolver(registerSchema(t)),
 	});
 
 	useEffect(() => {
@@ -131,10 +135,10 @@ const Invitation = ({
 				invitationId: token,
 			});
 
-			toast.success("Account created successfully");
+			toast.success(t("invitation.accountCreatedSuccessfully"));
 			router.push("/dashboard/projects");
 		} catch {
-			toast.error("An error occurred while creating your account");
+			toast.error(t("invitation.errorOccurred"));
 		}
 	};
 
@@ -150,40 +154,30 @@ const Invitation = ({
 						>
 							<Logo className="size-12" />
 						</Link>
-						Invitation
+						{t("invitation.title")}
 					</CardTitle>
 					{userAlreadyExists ? (
 						<div className="flex flex-col gap-4 justify-center items-center">
 							<AlertBlock type="success">
 								<div className="flex flex-col gap-2">
-									<span className="font-medium">Valid Invitation!</span>
+									<span className="font-medium">
+										{t("invitation.validInvitation")}
+									</span>
 									<span className="text-sm text-green-600 dark:text-green-400">
-										We detected that you already have an account with this
-										email. Please sign in to accept the invitation.
+										{t("invitation.alreadyHaveAccount")}
 									</span>
 								</div>
 							</AlertBlock>
 
 							<Button asChild variant="default" className="w-full">
-								<Link href="/">Sign In</Link>
+								<Link href="/">{t("invitation.signIn")}</Link>
 							</Button>
 						</div>
 					) : (
 						<>
-							<CardDescription>
-								Fill the form below to create your account
-							</CardDescription>
+							<CardDescription>{t("invitation.subtitle")}</CardDescription>
 							<div className="w-full">
 								<div className="p-3" />
-
-								{/* {isError && (
-									<div className="mx-5 my-2 flex flex-row items-center gap-2 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-										<AlertTriangle className="text-red-600 dark:text-red-400" />
-										<span className="text-sm text-red-600 dark:text-red-400">
-											{error?.message}
-										</span>
-									</div>
-								)} */}
 
 								<CardContent className="p-0">
 									<Form {...form}>
@@ -197,10 +191,10 @@ const Invitation = ({
 													name="name"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Name</FormLabel>
+															<FormLabel>{t("invitation.name")}</FormLabel>
 															<FormControl>
 																<Input
-																	placeholder="Enter your name"
+																	placeholder={t("invitation.namePlaceholder")}
 																	{...field}
 																/>
 															</FormControl>
@@ -213,11 +207,11 @@ const Invitation = ({
 													name="email"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Email</FormLabel>
+															<FormLabel>{t("invitation.email")}</FormLabel>
 															<FormControl>
 																<Input
 																	disabled
-																	placeholder="Email"
+																	placeholder={t("invitation.emailPlaceholder")}
 																	{...field}
 																/>
 															</FormControl>
@@ -230,11 +224,13 @@ const Invitation = ({
 													name="password"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Password</FormLabel>
+															<FormLabel>{t("invitation.password")}</FormLabel>
 															<FormControl>
 																<Input
 																	type="password"
-																	placeholder="Password"
+																	placeholder={t(
+																		"invitation.passwordPlaceholder",
+																	)}
 																	{...field}
 																/>
 															</FormControl>
@@ -248,11 +244,15 @@ const Invitation = ({
 													name="confirmPassword"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Confirm Password</FormLabel>
+															<FormLabel>
+																{t("invitation.confirmPassword")}
+															</FormLabel>
 															<FormControl>
 																<Input
 																	type="password"
-																	placeholder="Confirm Password"
+																	placeholder={t(
+																		"invitation.confirmPasswordPlaceholder",
+																	)}
 																	{...field}
 																/>
 															</FormControl>
@@ -266,7 +266,7 @@ const Invitation = ({
 													isLoading={form.formState.isSubmitting}
 													className="w-full"
 												>
-													Register
+													{t("invitation.register")}
 												</Button>
 											</div>
 
@@ -277,13 +277,13 @@ const Invitation = ({
 															className="hover:underline text-muted-foreground"
 															href="/"
 														>
-															Login
+															{t("invitation.login")}
 														</Link>
 														<Link
 															className="hover:underline text-muted-foreground"
 															href="/send-reset-password"
 														>
-															Lost your password?
+															{t("invitation.lostPassword")}
 														</Link>
 													</>
 												)}
@@ -299,25 +299,18 @@ const Invitation = ({
 		</div>
 	);
 };
-// http://localhost:3000/invitation?token=CZK4BLrUdMa32RVkAdZiLsPDdvnPiAgZ
-// /f7af93acc1a99eae864972ab4c92fee089f0d83473d415ede8e821e5dbabe79c
+
 export default Invitation;
+
 Invitation.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
+
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+	const locale = getLocale(ctx.req.cookies);
 	const { query } = ctx;
 
 	const token = query.token;
-
-	// if (IS_CLOUD) {
-	// 	return {
-	// 		redirect: {
-	// 			permanent: true,
-	// 			destination: "/",
-	// 		},
-	// 	};
-	// }
 
 	if (typeof token !== "string") {
 		return {
@@ -338,6 +331,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 					token: token,
 					invitation: invitation,
 					userAlreadyExists: true,
+					...(await serverSideTranslations(locale, ["common", "invitation"])),
 				},
 			};
 		}
@@ -356,6 +350,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 				isCloud: IS_CLOUD,
 				token: token,
 				invitation: invitation,
+				...(await serverSideTranslations(locale, ["common", "invitation"])),
 			},
 		};
 	} catch (error) {

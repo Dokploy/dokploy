@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 
 export const AcceptInvitation = () => {
+	const { t } = useTranslation("accept-invitation");
 	const { query } = useRouter();
 
 	const invitationId = query["accept-invitation"];
@@ -21,7 +23,7 @@ export const AcceptInvitation = () => {
 					console.log(result);
 				}}
 			>
-				Accept Invitation
+				{t("acceptInvitation.acceptInvitation")}
 			</Button>
 		</div>
 	);

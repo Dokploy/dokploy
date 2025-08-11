@@ -13,9 +13,11 @@ import { Switch } from "@/components/ui/switch";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { format } from "date-fns";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 
 export const AddGithubProvider = () => {
+	const { t } = useTranslation("settings");
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const { data: session } = authClient.useSession();
@@ -59,13 +61,14 @@ export const AddGithubProvider = () => {
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="flex items-center space-x-1">
 					<GithubIcon className="text-current fill-current" />
-					<span>Github</span>
+					<span>{t("settings.gitProviders.github")}</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Github Provider <GithubIcon className="size-5" />
+						{t("settings.gitProviders.github.title")}{" "}
+						<GithubIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -73,14 +76,11 @@ export const AddGithubProvider = () => {
 					<CardContent className="p-0">
 						<div className="flex flex-col ">
 							<p className="text-muted-foreground text-sm">
-								To integrate your GitHub account with our services, you'll need
-								to create and install a GitHub app. This process is
-								straightforward and only takes a few minutes. Click the button
-								below to get started.
+								{t("settings.gitProviders.github.description")}
 							</p>
 							<div className="mt-4 flex flex-col gap-4">
 								<div className="flex flex-row gap-4">
-									<span>Organization?</span>
+									<span>{t("settings.gitProviders.github.organization")}</span>
 									<Switch
 										checked={isOrganization}
 										onCheckedChange={(checked) => setIsOrganization(checked)}
@@ -90,7 +90,9 @@ export const AddGithubProvider = () => {
 								{isOrganization && (
 									<Input
 										required
-										placeholder="Organization name"
+										placeholder={t(
+											"settings.gitProviders.github.organizationNamePlaceholder",
+										)}
 										onChange={(e) => setOrganization(e.target.value)}
 									/>
 								)}
@@ -128,14 +130,14 @@ export const AddGithubProvider = () => {
 										target="_blank"
 										rel="noopener noreferrer"
 									>
-										Unsure if you already have an app?
+										{t("settings.gitProviders.github.unsureApp")}
 									</a>
 									<Button
 										disabled={isOrganization && organizationName.length < 1}
 										type="submit"
 										className="self-end"
 									>
-										Create GitHub App
+										{t("settings.gitProviders.github.createApp")}
 									</Button>
 								</div>
 							</form>

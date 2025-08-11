@@ -9,6 +9,7 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "next-i18next";
 
 interface Props {
 	title?: string | React.ReactNode;
@@ -27,26 +28,28 @@ export const DialogAction = ({
 	disabled,
 	type,
 }: Props) => {
+	const { t } = useTranslation("common");
+
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						{title ?? "Are you absolutely sure?"}
+						{title ?? t("common.dialog.areYouSure")}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						{description ?? "This action cannot be undone."}
+						{description ?? t("common.dialog.cannotUndo")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{t("common.dialog.cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={disabled}
 						onClick={onClick}
 						variant={type ?? "destructive"}
 					>
-						Confirm
+						{t("common.dialog.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

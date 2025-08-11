@@ -4,6 +4,7 @@ import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AttachAddon } from "@xterm/addon-attach";
+import { useTranslation } from "next-i18next";
 import { useTheme } from "next-themes";
 
 interface Props {
@@ -17,6 +18,7 @@ export const DockerTerminal: React.FC<Props> = ({
 	containerId,
 	serverId,
 }) => {
+	const { t } = useTranslation("dashboard");
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
 	const { resolvedTheme } = useTheme();
@@ -39,7 +41,11 @@ export const DockerTerminal: React.FC<Props> = ({
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
+		const wsUrl = `${protocol}//${
+			window.location.host
+		}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${
+			serverId ? `&serverId=${serverId}` : ""
+		}`;
 
 		const ws = new WebSocket(wsUrl);
 
@@ -59,12 +65,16 @@ export const DockerTerminal: React.FC<Props> = ({
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-2">
 				<span>
-					Select way to connect to <b>{containerId}</b>
+					{t("dashboard.docker.terminal.selectWayToConnect", { containerId })}
 				</span>
 				<Tabs value={activeWay} onValueChange={setActiveWay}>
 					<TabsList>
-						<TabsTrigger value="bash">Bash</TabsTrigger>
-						<TabsTrigger value="sh">/bin/sh</TabsTrigger>
+						<TabsTrigger value="bash">
+							{t("dashboard.docker.terminal.bash")}
+						</TabsTrigger>
+						<TabsTrigger value="sh">
+							{t("dashboard.docker.terminal.sh")}
+						</TabsTrigger>
 					</TabsList>
 				</Tabs>
 			</div>

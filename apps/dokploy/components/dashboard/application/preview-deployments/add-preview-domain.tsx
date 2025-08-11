@@ -33,14 +33,14 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { domain } from "@/server/db/validations/domain";
 import { api } from "@/utils/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Dices } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-
-import { domain } from "@/server/db/validations/domain";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Dices } from "lucide-react";
 import type z from "zod";
 
 type Domain = z.infer<typeof domain>;
@@ -56,6 +56,7 @@ export const AddPreviewDomain = ({
 	domainId = "",
 	children,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
@@ -104,12 +105,18 @@ export const AddPreviewDomain = ({
 	}, [form, form.reset, data, isLoading]);
 
 	const dictionary = {
-		success: domainId ? "Domain Updated" : "Domain Created",
-		error: domainId ? "Error updating the domain" : "Error creating the domain",
-		submit: domainId ? "Update" : "Create",
+		success: domainId
+			? t("dashboard.previewDomain.domainUpdated")
+			: t("dashboard.previewDomain.domainCreated"),
+		error: domainId
+			? t("dashboard.previewDomain.errorUpdatingDomain")
+			: t("dashboard.previewDomain.errorCreatingDomain"),
+		submit: domainId
+			? t("dashboard.previewDomain.update")
+			: t("dashboard.previewDomain.create"),
 		dialogDescription: domainId
-			? "In this section you can edit a domain"
-			: "In this section you can add domains",
+			? t("dashboard.previewDomain.editDomainDescription")
+			: t("dashboard.previewDomain.addDomainDescription"),
 	};
 
 	const onSubmit = async (data: Domain) => {
@@ -140,7 +147,7 @@ export const AddPreviewDomain = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Domain</DialogTitle>
+					<DialogTitle>{t("dashboard.previewDomain.domain")}</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -158,10 +165,15 @@ export const AddPreviewDomain = ({
 									name="host"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Host</FormLabel>
+											<FormLabel>{t("dashboard.previewDomain.host")}</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
+													<Input
+														placeholder={t(
+															"dashboard.previewDomain.hostPlaceholder",
+														)}
+														{...field}
+													/>
 												</FormControl>
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
@@ -193,7 +205,11 @@ export const AddPreviewDomain = ({
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>
+																{t(
+																	"dashboard.previewDomain.generateTraefikDomain",
+																)}
+															</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -210,9 +226,16 @@ export const AddPreviewDomain = ({
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Path</FormLabel>
+												<FormLabel>
+													{t("dashboard.previewDomain.path")}
+												</FormLabel>
 												<FormControl>
-													<Input placeholder={"/"} {...field} />
+													<Input
+														placeholder={t(
+															"dashboard.previewDomain.pathPlaceholder",
+														)}
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -226,9 +249,16 @@ export const AddPreviewDomain = ({
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Container Port</FormLabel>
+												<FormLabel>
+													{t("dashboard.previewDomain.containerPort")}
+												</FormLabel>
 												<FormControl>
-													<NumberInput placeholder={"3000"} {...field} />
+													<NumberInput
+														placeholder={t(
+															"dashboard.previewDomain.containerPortPlaceholder",
+														)}
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -242,9 +272,11 @@ export const AddPreviewDomain = ({
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>
+													{t("dashboard.previewDomain.https")}
+												</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t("dashboard.previewDomain.httpsDescription")}
 												</FormDescription>
 												<FormMessage />
 											</div>
@@ -264,21 +296,29 @@ export const AddPreviewDomain = ({
 										name="certificateType"
 										render={({ field }) => (
 											<FormItem className="col-span-2">
-												<FormLabel>Certificate Provider</FormLabel>
+												<FormLabel>
+													{t("dashboard.previewDomain.certificateProvider")}
+												</FormLabel>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={field.value || ""}
 												>
 													<FormControl>
 														<SelectTrigger>
-															<SelectValue placeholder="Select a certificate provider" />
+															<SelectValue
+																placeholder={t(
+																	"dashboard.previewDomain.selectCertificateProviderPlaceholder",
+																)}
+															/>
 														</SelectTrigger>
 													</FormControl>
 
 													<SelectContent>
-														<SelectItem value="none">None</SelectItem>
+														<SelectItem value="none">
+															{t("dashboard.previewDomain.none")}
+														</SelectItem>
 														<SelectItem value={"letsencrypt"}>
-															Let's Encrypt
+															{t("dashboard.previewDomain.letsEncrypt")}
 														</SelectItem>
 													</SelectContent>
 												</Select>

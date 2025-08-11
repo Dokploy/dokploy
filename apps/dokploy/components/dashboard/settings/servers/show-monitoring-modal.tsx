@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { ShowPaidMonitoring } from "../../monitoring/paid/servers/show-paid-monitoring";
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const ShowMonitoringModal = ({ url, token }: Props) => {
+	const { t } = useTranslation("settings");
 	const [isOpen, setIsOpen] = useState(false);
 
 	return (
@@ -18,7 +20,7 @@ export const ShowMonitoringModal = ({ url, token }: Props) => {
 					className="w-full cursor-pointer "
 					onSelect={(e) => e.preventDefault()}
 				>
-					Show Monitoring
+					{t("settings.monitoring.showMonitoring")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-7xl  ">

@@ -23,11 +23,13 @@ import {
 } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
 import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
 
 export const SearchCommand = () => {
+	const { t } = useTranslation("dashboard");
 	const router = useRouter();
 	const [open, setOpen] = React.useState(false);
 	const [search, setSearch] = React.useState("");
@@ -53,15 +55,13 @@ export const SearchCommand = () => {
 		<div>
 			<CommandDialog open={open} onOpenChange={setOpen}>
 				<CommandInput
-					placeholder={"Search projects or settings"}
+					placeholder={t("dashboard.search.placeholder")}
 					value={search}
 					onValueChange={setSearch}
 				/>
 				<CommandList>
-					<CommandEmpty>
-						No projects added yet. Click on Create project.
-					</CommandEmpty>
-					<CommandGroup heading={"Projects"}>
+					<CommandEmpty>{t("dashboard.search.empty")}</CommandEmpty>
+					<CommandGroup heading={t("dashboard.search.projects")}>
 						<CommandList>
 							{data?.map((project) => (
 								<CommandItem
@@ -78,7 +78,7 @@ export const SearchCommand = () => {
 						</CommandList>
 					</CommandGroup>
 					<CommandSeparator />
-					<CommandGroup heading={"Services"}>
+					<CommandGroup heading={t("dashboard.search.services")}>
 						<CommandList>
 							{data?.map((project) => {
 								const applications: Services[] = extractServices(project);
@@ -126,14 +126,17 @@ export const SearchCommand = () => {
 						</CommandList>
 					</CommandGroup>
 					<CommandSeparator />
-					<CommandGroup heading={"Application"} hidden={true}>
+					<CommandGroup
+						heading={t("dashboard.search.application")}
+						hidden={true}
+					>
 						<CommandItem
 							onSelect={() => {
 								router.push("/dashboard/projects");
 								setOpen(false);
 							}}
 						>
-							Projects
+							{t("dashboard.search.projectsItem")}
 						</CommandItem>
 						{!isCloud && (
 							<>
@@ -143,7 +146,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Monitoring
+									{t("dashboard.search.monitoring")}
 								</CommandItem>
 								<CommandItem
 									onSelect={() => {
@@ -151,7 +154,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Traefik
+									{t("dashboard.search.traefik")}
 								</CommandItem>
 								<CommandItem
 									onSelect={() => {
@@ -159,7 +162,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Docker
+									{t("dashboard.search.docker")}
 								</CommandItem>
 								<CommandItem
 									onSelect={() => {
@@ -167,7 +170,7 @@ export const SearchCommand = () => {
 										setOpen(false);
 									}}
 								>
-									Requests
+									{t("dashboard.search.requests")}
 								</CommandItem>
 							</>
 						)}
@@ -177,7 +180,7 @@ export const SearchCommand = () => {
 								setOpen(false);
 							}}
 						>
-							Settings
+							{t("dashboard.search.settings")}
 						</CommandItem>
 					</CommandGroup>
 				</CommandList>

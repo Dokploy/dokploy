@@ -22,25 +22,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const updateMariadbSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const updateMariadbSchema = (t: any) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("dashboard.mariadb.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateMariadb = z.infer<typeof updateMariadbSchema>;
+type UpdateMariadb = z.infer<ReturnType<typeof updateMariadbSchema>>;
 
 interface Props {
 	mariadbId: string;
 }
 
 export const UpdateMariadb = ({ mariadbId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
 		api.mariadb.update.useMutation();
@@ -57,7 +60,7 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		},
-		resolver: zodResolver(updateMariadbSchema),
+		resolver: zodResolver(updateMariadbSchema(t)),
 	});
 	useEffect(() => {
 		if (data) {
@@ -75,13 +78,13 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("MariaDB updated successfully");
+				toast.success(t("dashboard.mariadb.updatedSuccessfully"));
 				utils.mariadb.one.invalidate({
 					mariadbId: mariadbId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the Mariadb");
+				toast.error(t("dashboard.mariadb.errorUpdating"));
 			})
 			.finally(() => {});
 	};
@@ -99,8 +102,10 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify MariaDB</DialogTitle>
-					<DialogDescription>Update the MariaDB data</DialogDescription>
+					<DialogTitle>{t("dashboard.mariadb.modify")}</DialogTitle>
+					<DialogDescription>
+						{t("dashboard.mariadb.updateDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -117,11 +122,13 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("dashboard.mariadb.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("dashboard.mariadb.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
-
 											<FormMessage />
 										</FormItem>
 									)}
@@ -131,15 +138,18 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>
+												{t("dashboard.mariadb.description")}
+											</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t(
+														"dashboard.mariadb.descriptionPlaceholder",
+													)}
 													className="resize-none"
 													{...field}
 												/>
 											</FormControl>
-
 											<FormMessage />
 										</FormItem>
 									)}
@@ -150,7 +160,7 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 										form="hook-form-update-mariadb"
 										type="submit"
 									>
-										Update
+										{t("dashboard.mariadb.update")}
 									</Button>
 								</DialogFooter>
 							</form>

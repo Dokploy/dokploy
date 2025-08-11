@@ -26,34 +26,37 @@ import {
 import { useUrl } from "@/utils/hooks/use-url";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ExternalLink } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	giteaUrl: z.string().min(1, {
-		message: "Gitea URL is required",
-	}),
-	clientId: z.string().min(1, {
-		message: "Client ID is required",
-	}),
-	clientSecret: z.string().min(1, {
-		message: "Client Secret is required",
-	}),
-	redirectUri: z.string().min(1, {
-		message: "Redirect URI is required",
-	}),
-	organizationName: z.string().optional(),
-});
+const Schema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.gitProviders.gitea.nameRequired"),
+		}),
+		giteaUrl: z.string().min(1, {
+			message: t("settings.gitProviders.gitea.urlRequired"),
+		}),
+		clientId: z.string().min(1, {
+			message: t("settings.gitProviders.gitea.clientIdRequired"),
+		}),
+		clientSecret: z.string().min(1, {
+			message: t("settings.gitProviders.gitea.clientSecretRequired"),
+		}),
+		redirectUri: z.string().min(1, {
+			message: t("settings.gitProviders.gitea.redirectUriRequired"),
+		}),
+		organizationName: z.string().optional(),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = ReturnType<typeof Schema>["_type"];
 
 export const AddGiteaProvider = () => {
+	const { t } = useTranslation("settings");
 	const [isOpen, setIsOpen] = useState(false);
 
 	const urlObj = useUrl();
@@ -71,7 +74,7 @@ export const AddGiteaProvider = () => {
 			name: "",
 			giteaUrl: "https://gitea.com",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(Schema(t)),
 	});
 
 	const giteaUrl = form.watch("giteaUrl");
@@ -100,7 +103,7 @@ export const AddGiteaProvider = () => {
 
 			// Check if we have a giteaId from the response
 			if (!result || !result.giteaId) {
-				toast.error("Failed to get Gitea ID from response");
+				toast.error(t("settings.gitProviders.gitea.create.error.failed"));
 				return;
 			}
 
@@ -116,18 +119,22 @@ export const AddGiteaProvider = () => {
 			if (authUrl !== "#") {
 				window.open(authUrl, "_blank");
 			} else {
-				toast.error("Configuration Incomplete", {
-					description: "Please fill in Client ID and Gitea URL first.",
+				toast.error(t("settings.gitProviders.gitea.create.error.incomplete"), {
+					description: t(
+						"settings.gitProviders.gitea.create.error.incomplete.description",
+					),
 				});
 			}
 
-			toast.success("Gitea provider created successfully");
+			toast.success(t("settings.gitProviders.gitea.create.success"));
 			setIsOpen(false);
 		} catch (error: unknown) {
 			if (error instanceof Error) {
-				toast.error(`Error configuring Gitea: ${error.message}`);
+				toast.error(
+					`${t("settings.gitProviders.gitea.create.error")}: ${error.message}`,
+				);
 			} else {
-				toast.error("An unknown error occurred.");
+				toast.error(t("settings.gitProviders.gitea.create.error.unknown"));
 			}
 		}
 	};
@@ -140,13 +147,14 @@ export const AddGiteaProvider = () => {
 					className="flex items-center space-x-1 bg-green-700 text-white hover:bg-green-500"
 				>
 					<GiteaIcon />
-					<span>Gitea</span>
+					<span>{t("settings.gitProviders.gitea")}</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Gitea Provider <GiteaIcon className="size-5" />
+						{t("settings.gitProviders.gitea.title")}{" "}
+						<GiteaIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -160,12 +168,11 @@ export const AddGiteaProvider = () => {
 						<CardContent className="p-0">
 							<div className="flex flex-col gap-4">
 								<p className="text-muted-foreground text-sm">
-									To integrate your Gitea account, you need to create a new
-									application in your Gitea settings. Follow these steps:
+									{t("settings.gitProviders.gitea.description")}
 								</p>
 								<ol className="list-decimal list-inside text-sm text-muted-foreground">
 									<li className="flex flex-row gap-2 items-center">
-										Go to your Gitea settings{" "}
+										{t("settings.gitProviders.gitea.step1")}{" "}
 										<Link
 											href={`${giteaUrl}/user/settings/applications`}
 											target="_blank"
@@ -173,34 +180,32 @@ export const AddGiteaProvider = () => {
 											<ExternalLink className="w-fit text-primary size-4" />
 										</Link>
 									</li>
+									<li>{t("settings.gitProviders.gitea.step2")}</li>
 									<li>
-										Navigate to Applications {"->"} Create new OAuth2
-										Application
-									</li>
-									<li>
-										Create a new application with the following details:
+										{t("settings.gitProviders.gitea.step3")}
 										<ul className="list-disc list-inside ml-4">
-											<li>Name: Dokploy</li>
+											<li>{t("settings.gitProviders.gitea.step3.name")}</li>
 											<li>
-												Redirect URI:{" "}
+												{t("settings.gitProviders.gitea.step3.redirectUri")}{" "}
 												<span className="text-primary">{webhookUrl}</span>{" "}
 											</li>
 										</ul>
 									</li>
-									<li>
-										After creating, you'll receive an ID and Secret, copy them
-										and paste them below.
-									</li>
+									<li>{t("settings.gitProviders.gitea.step4")}</li>
 								</ol>
 								<FormField
 									control={form.control}
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitea.name")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t(
+														"settings.gitProviders.gitea.namePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -214,9 +219,16 @@ export const AddGiteaProvider = () => {
 									name="giteaUrl"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Gitea URL</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitea.url")}
+											</FormLabel>
 											<FormControl>
-												<Input placeholder="https://gitea.com/" {...field} />
+												<Input
+													placeholder={t(
+														"settings.gitProviders.gitea.urlPlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -228,11 +240,15 @@ export const AddGiteaProvider = () => {
 									name="redirectUri"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Redirect URI</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitea.redirectUri")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													disabled
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t(
+														"settings.gitProviders.gitea.namePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -246,9 +262,16 @@ export const AddGiteaProvider = () => {
 									name="clientId"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Client ID</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitea.clientId")}
+											</FormLabel>
 											<FormControl>
-												<Input placeholder="Client ID" {...field} />
+												<Input
+													placeholder={t(
+														"settings.gitProviders.gitea.clientId",
+													)}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -260,11 +283,15 @@ export const AddGiteaProvider = () => {
 									name="clientSecret"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Client Secret</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitea.clientSecret")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="password"
-													placeholder="Client Secret"
+													placeholder={t(
+														"settings.gitProviders.gitea.clientSecret",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -274,7 +301,7 @@ export const AddGiteaProvider = () => {
 								/>
 
 								<Button isLoading={form.formState.isSubmitting}>
-									Configure Gitea App
+									{t("settings.gitProviders.gitea.create")}
 								</Button>
 							</div>
 						</CardContent>

@@ -11,24 +11,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { ServiceType } from "../../application/advanced/show-resources";
 
-const addDockerImage = z.object({
-	dockerImage: z.string().min(1, "Docker image is required"),
-	command: z.string(),
-});
+const createAddDockerImageSchema = (t: any) =>
+	z.object({
+		dockerImage: z.string().min(1, t("dashboard.postgres.dockerImageRequired")),
+		command: z.string(),
+	});
 
 interface Props {
 	id: string;
 	type: Exclude<ServiceType, "application">;
 }
 
-type AddDockerImage = z.infer<typeof addDockerImage>;
+type AddDockerImage = z.infer<ReturnType<typeof createAddDockerImageSchema>>;
 export const ShowCustomCommand = ({ id, type }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -62,7 +65,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			dockerImage: "",
 			command: "",
 		},
-		resolver: zodResolver(addDockerImage),
+		resolver: zodResolver(createAddDockerImageSchema(t)),
 	});
 
 	useEffect(() => {
@@ -85,11 +88,11 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			command: formData?.command,
 		})
 			.then(async () => {
-				toast.success("Custom Command Updated");
+				toast.success(t("dashboard.postgres.customCommandUpdated"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the custom command");
+				toast.error(t("dashboard.postgres.errorUpdatingCustomCommand"));
 			});
 	};
 	return (
@@ -97,7 +100,9 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Advanced Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("dashboard.postgres.advancedSettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-col gap-4">
 						<Form {...form}>
@@ -111,9 +116,16 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 										name="dockerImage"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Docker Image</FormLabel>
+												<FormLabel>
+													{t("dashboard.postgres.dockerImage")}
+												</FormLabel>
 												<FormControl>
-													<Input placeholder="postgres:15" {...field} />
+													<Input
+														placeholder={t(
+															"dashboard.postgres.dockerImagePlaceholder",
+														)}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />
@@ -126,9 +138,14 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 									name="command"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Command</FormLabel>
+											<FormLabel>{t("dashboard.postgres.command")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Custom command" {...field} />
+												<Input
+													placeholder={t(
+														"dashboard.postgres.commandPlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -137,7 +154,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 								/>
 								<div className="flex w-full justify-end">
 									<Button isLoading={form.formState.isSubmitting} type="submit">
-										Save
+										{t("dashboard.postgres.save")}
 									</Button>
 								</div>
 							</form>

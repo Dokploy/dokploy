@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -47,6 +48,7 @@ export const ShowModalLogs = ({
 	serverId,
 	type = "swarm",
 }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data, isLoading } = api.docker.getContainersByAppLabel.useQuery(
 		{
 			appName,
@@ -69,20 +71,28 @@ export const ShowModalLogs = ({
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="max-h-[85vh]  sm:max-w-7xl">
 				<DialogHeader>
-					<DialogTitle>View Logs</DialogTitle>
-					<DialogDescription>View the logs for {appName}</DialogDescription>
+					<DialogTitle>
+						{t("settings.webServer.showModalLogs.title")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.webServer.showModalLogs.description")} {appName}
+					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-4 pt-2.5">
-					<Label>Select a container to view logs</Label>
+					<Label>{t("settings.webServer.showModalLogs.selectContainer")}</Label>
 					<Select onValueChange={setContainerId} value={containerId}>
 						<SelectTrigger>
 							{isLoading ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-									<span>Loading...</span>
+									<span>{t("settings.webServer.showModalLogs.loading")}</span>
 									<Loader2 className="animate-spin size-4" />
 								</div>
 							) : (
-								<SelectValue placeholder="Select a container" />
+								<SelectValue
+									placeholder={t(
+										"settings.webServer.showModalLogs.selectContainer",
+									)}
+								/>
 							)}
 						</SelectTrigger>
 						<SelectContent>
@@ -98,7 +108,10 @@ export const ShowModalLogs = ({
 										</Badge>
 									</SelectItem>
 								))}
-								<SelectLabel>Containers ({data?.length})</SelectLabel>
+								<SelectLabel>
+									{t("settings.webServer.showModalLogs.containers")} (
+									{data?.length})
+								</SelectLabel>
 							</SelectGroup>
 						</SelectContent>
 					</Select>

@@ -1,0 +1,6 @@
+{
+  "error.404.title": "Sorry, we couldn't find your page.",
+  "error.other.title": "Oops, something went wrong.",
+  "error.other.button": "Go to homepage",
+  "error.submitLogInIssue": "Submit Log in issue on Github"
+}

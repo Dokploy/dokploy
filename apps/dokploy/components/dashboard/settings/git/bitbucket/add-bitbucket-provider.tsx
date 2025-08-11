@@ -22,6 +22,7 @@ import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ExternalLink } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -29,22 +30,24 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
-	password: z.string().min(1, {
-		message: "App Password is required",
-	}),
-	workspaceName: z.string().optional(),
-});
+const Schema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.gitProviders.bitbucket.nameRequired"),
+		}),
+		username: z.string().min(1, {
+			message: t("settings.gitProviders.bitbucket.usernameRequired"),
+		}),
+		password: z.string().min(1, {
+			message: t("settings.gitProviders.bitbucket.appPasswordRequired"),
+		}),
+		workspaceName: z.string().optional(),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = ReturnType<typeof Schema>["_type"];
 
 export const AddBitbucketProvider = () => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const _url = useUrl();
@@ -57,7 +60,7 @@ export const AddBitbucketProvider = () => {
 			password: "",
 			workspaceName: "",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(Schema(t)),
 	});
 
 	useEffect(() => {
@@ -78,11 +81,11 @@ export const AddBitbucketProvider = () => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Bitbucket configured successfully");
+				toast.success(t("settings.gitProviders.bitbucket.create.success"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error configuring Bitbucket");
+				toast.error(t("settings.gitProviders.bitbucket.create.error"));
 			});
 	};
 
@@ -94,13 +97,14 @@ export const AddBitbucketProvider = () => {
 					className="flex items-center space-x-1 bg-blue-700 text-white hover:bg-blue-600"
 				>
 					<BitbucketIcon />
-					<span>Bitbucket</span>
+					<span>{t("settings.gitProviders.bitbucket")}</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Bitbucket Provider <BitbucketIcon className="size-5" />
+						{t("settings.gitProviders.bitbucket.title")}{" "}
+						<BitbucketIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -114,12 +118,11 @@ export const AddBitbucketProvider = () => {
 						<CardContent className="p-0">
 							<div className="flex flex-col gap-4">
 								<p className="text-muted-foreground text-sm">
-									To integrate your Bitbucket account, you need to create a new
-									App Password in your Bitbucket settings. Follow these steps:
+									{t("settings.gitProviders.bitbucket.description")}
 								</p>
 								<ol className="list-decimal list-inside text-sm text-muted-foreground">
 									<li className="flex flex-row gap-2 items-center">
-										Create new App Password{" "}
+										{t("settings.gitProviders.bitbucket.step1")}{" "}
 										<Link
 											href="https://bitbucket.org/account/settings/app-passwords/new"
 											target="_blank"
@@ -128,31 +131,47 @@ export const AddBitbucketProvider = () => {
 										</Link>
 									</li>
 									<li>
-										When creating the App Password, ensure you grant the
-										following permissions:
+										{t("settings.gitProviders.bitbucket.step2")}
 										<ul className="list-disc list-inside ml-4">
-											<li>Account: Read</li>
-											<li>Workspace membership: Read</li>
-											<li>Projects: Read</li>
-											<li>Repositories: Read</li>
-											<li>Pull requests: Read</li>
-											<li>Webhooks: Read and write</li>
+											<li>
+												{t("settings.gitProviders.bitbucket.step2.account")}
+											</li>
+											<li>
+												{t("settings.gitProviders.bitbucket.step2.workspace")}
+											</li>
+											<li>
+												{t("settings.gitProviders.bitbucket.step2.projects")}
+											</li>
+											<li>
+												{t(
+													"settings.gitProviders.bitbucket.step2.repositories",
+												)}
+											</li>
+											<li>
+												{t(
+													"settings.gitProviders.bitbucket.step2.pullRequests",
+												)}
+											</li>
+											<li>
+												{t("settings.gitProviders.bitbucket.step2.webhooks")}
+											</li>
 										</ul>
 									</li>
-									<li>
-										After creating, you'll receive an App Password. Copy it and
-										paste it below along with your Bitbucket username.
-									</li>
+									<li>{t("settings.gitProviders.bitbucket.step3")}</li>
 								</ol>
 								<FormField
 									control={form.control}
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.bitbucket.name")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t(
+														"settings.gitProviders.bitbucket.namePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -165,10 +184,14 @@ export const AddBitbucketProvider = () => {
 									name="username"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Bitbucket Username</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.bitbucket.username")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Your Bitbucket username"
+													placeholder={t(
+														"settings.gitProviders.bitbucket.usernamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -182,11 +205,15 @@ export const AddBitbucketProvider = () => {
 									name="password"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>App Password</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.bitbucket.appPassword")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="password"
-													placeholder="ATBBPDYUC94nR96Nj7Cqpp4pfwKk03573DD2"
+													placeholder={t(
+														"settings.gitProviders.bitbucket.appPasswordPlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -200,10 +227,14 @@ export const AddBitbucketProvider = () => {
 									name="workspaceName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Workspace Name (Optional)</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.bitbucket.workspaceName")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization accounts"
+													placeholder={t(
+														"settings.gitProviders.bitbucket.workspaceNamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -213,7 +244,7 @@ export const AddBitbucketProvider = () => {
 								/>
 
 								<Button isLoading={form.formState.isSubmitting}>
-									Configure Bitbucket
+									{t("settings.gitProviders.bitbucket.create")}
 								</Button>
 							</div>
 						</CardContent>

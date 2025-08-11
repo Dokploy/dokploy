@@ -20,8 +20,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+
 export const DockerLogs = dynamic(
 	() =>
 		import("@/components/dashboard/docker/logs/docker-logs-id").then(
@@ -40,6 +42,7 @@ interface Props {
 badgeStateColor;
 
 export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [option, setOption] = useState<"swarm" | "native">("native");
 	const [containerId, setContainerId] = useState<string | undefined>();
 
@@ -85,18 +88,20 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Logs</CardTitle>
+				<CardTitle className="text-xl">{t("dashboard.compose.logs")}</CardTitle>
 				<CardDescription>
-					Watch the logs of the application in real time
+					{t("dashboard.compose.logsDescription")}
 				</CardDescription>
 			</CardHeader>
 
 			<CardContent className="flex flex-col gap-4">
 				<div className="flex flex-row justify-between items-center gap-2">
-					<Label>Select a container to view logs</Label>
+					<Label>{t("dashboard.compose.selectContainerToViewLogs")}</Label>
 					<div className="flex flex-row gap-2 items-center">
 						<span className="text-sm text-muted-foreground">
-							{option === "native" ? "Native" : "Swarm"}
+							{option === "native"
+								? t("dashboard.compose.native")
+								: t("dashboard.compose.swarm")}
 						</span>
 						<Switch
 							checked={option === "native"}
@@ -110,11 +115,13 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 					<SelectTrigger>
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("dashboard.compose.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<SelectValue
+								placeholder={t("dashboard.compose.selectAContainer")}
+							/>
 						)}
 					</SelectTrigger>
 					<SelectContent>
@@ -150,7 +157,9 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 								</>
 							)}
 
-							<SelectLabel>Containers ({containersLenght})</SelectLabel>
+							<SelectLabel>
+								{t("dashboard.compose.containers", { count: containersLenght })}
+							</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>

@@ -11,15 +11,18 @@ import {
 import { api } from "@/utils/api";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
+
 interface Props {
 	mongoId: string;
 }
 
 export const ShowGeneralMongo = ({ mongoId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data, refetch } = api.mongo.one.useQuery(
 		{
 			mongoId,
@@ -50,7 +53,7 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 					setIsDrawerOpen(true);
 				}
 
-				if (log === "Deployment completed successfully!") {
+				if (log === t("dashboard.mongo.deploymentCompleted")) {
 					setIsDeploying(false);
 				}
 
@@ -68,13 +71,15 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">Deploy Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("dashboard.mongo.deploySettings")}
+						</CardTitle>
 					</CardHeader>
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
 							<DialogAction
-								title="Deploy Mongo"
-								description="Are you sure you want to deploy this mongo?"
+								title={t("dashboard.mongo.deployMongo")}
+								description={t("dashboard.mongo.deployMongoDescription")}
 								type="default"
 								onClick={async () => {
 									setIsDeploying(true);
@@ -91,20 +96,20 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<Rocket className="size-4 mr-1" />
-												Deploy
+												{t("dashboard.mongo.deploy")}
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Downloads and sets up the MongoDB database</p>
+												<p>{t("dashboard.mongo.deployTooltip")}</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
 								</Button>
 							</DialogAction>
 							<DialogAction
-								title="Reload Mongo"
-								description="Are you sure you want to reload this mongo?"
+								title={t("dashboard.mongo.reloadMongo")}
+								description={t("dashboard.mongo.reloadMongoDescription")}
 								type="default"
 								onClick={async () => {
 									await reload({
@@ -112,11 +117,11 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 										appName: data?.appName || "",
 									})
 										.then(() => {
-											toast.success("Mongo reloaded successfully");
+											toast.success(t("dashboard.mongo.reloadedSuccessfully"));
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error reloading Mongo");
+											toast.error(t("dashboard.mongo.errorReloading"));
 										});
 								}}
 							>
@@ -129,12 +134,12 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
 												<RefreshCcw className="size-4 mr-1" />
-												Reload
+												{t("dashboard.mongo.reload")}
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Restart the MongoDB service without rebuilding</p>
+												<p>{t("dashboard.mongo.reloadTooltip")}</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
@@ -142,19 +147,19 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 							</DialogAction>
 							{data?.applicationStatus === "idle" ? (
 								<DialogAction
-									title="Start Mongo"
-									description="Are you sure you want to start this mongo?"
+									title={t("dashboard.mongo.startMongo")}
+									description={t("dashboard.mongo.startMongoDescription")}
 									type="default"
 									onClick={async () => {
 										await start({
 											mongoId: mongoId,
 										})
 											.then(() => {
-												toast.success("Mongo started successfully");
+												toast.success(t("dashboard.mongo.startedSuccessfully"));
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting Mongo");
+												toast.error(t("dashboard.mongo.errorStarting"));
 											});
 									}}
 								>
@@ -167,15 +172,12 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<CheckCircle2 className="size-4 mr-1" />
-													Start
+													{t("dashboard.mongo.start")}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>
-														Start the MongoDB database (requires a previous
-														successful setup)
-													</p>
+													<p>{t("dashboard.mongo.startTooltip")}</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -183,18 +185,18 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 								</DialogAction>
 							) : (
 								<DialogAction
-									title="Stop Mongo"
-									description="Are you sure you want to stop this mongo?"
+									title={t("dashboard.mongo.stopMongo")}
+									description={t("dashboard.mongo.stopMongoDescription")}
 									onClick={async () => {
 										await stop({
 											mongoId: mongoId,
 										})
 											.then(() => {
-												toast.success("Mongo stopped successfully");
+												toast.success(t("dashboard.mongo.stoppedSuccessfully"));
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping Mongo");
+												toast.error(t("dashboard.mongo.errorStopping"));
 											});
 									}}
 								>
@@ -207,12 +209,12 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Ban className="size-4 mr-1" />
-													Stop
+													{t("dashboard.mongo.stop")}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Stop the currently running MongoDB database</p>
+													<p>{t("dashboard.mongo.stopTooltip")}</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>
@@ -232,12 +234,12 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 									<TooltipTrigger asChild>
 										<div className="flex items-center">
 											<Terminal className="size-4 mr-1" />
-											Open Terminal
+											{t("dashboard.mongo.openTerminal")}
 										</div>
 									</TooltipTrigger>
 									<TooltipPrimitive.Portal>
 										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Open a terminal to the MongoDB container</p>
+											<p>{t("dashboard.mongo.openTerminalTooltip")}</p>
 										</TooltipContent>
 									</TooltipPrimitive.Portal>
 								</Tooltip>

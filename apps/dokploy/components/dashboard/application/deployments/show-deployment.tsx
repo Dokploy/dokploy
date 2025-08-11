@@ -8,6 +8,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useRef, useState } from "react";
 import { TerminalLine } from "../../docker/logs/terminal-line";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
@@ -26,6 +27,7 @@ export const ShowDeployment = ({
 	serverId,
 	errorMessage,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [data, setData] = useState("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
@@ -53,7 +55,11 @@ export const ShowDeployment = ({
 		setData("");
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
-		const wsUrl = `${protocol}//${window.location.host}/listen-deployment?logPath=${logPath}${serverId ? `&serverId=${serverId}` : ""}`;
+		const wsUrl = `${protocol}//${
+			window.location.host
+		}/listen-deployment?logPath=${logPath}${
+			serverId ? `&serverId=${serverId}` : ""
+		}`;
 		const ws = new WebSocket(wsUrl);
 		wsRef.current = ws; // Store WebSocket instance in ref
 
@@ -126,12 +132,14 @@ export const ShowDeployment = ({
 		>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Deployment</DialogTitle>
+					<DialogTitle>{t("dashboard.deployments.deployment")}</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
 						<span>
-							See all the details of this deployment |{" "}
+							{t("dashboard.deployments.seeDeploymentDetails")} |{" "}
 							<Badge variant="blank" className="text-xs">
-								{filteredLogs.length} lines
+								{t("dashboard.deployments.linesCount", {
+									count: filteredLogs.length,
+								})}
 							</Badge>
 						</span>
 
@@ -148,7 +156,7 @@ export const ShowDeployment = ({
 									htmlFor="show-extra-logs"
 									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 								>
-									Show Extra Logs
+									{t("dashboard.deployments.showExtraLogs")}
 								</label>
 							</div>
 						)}

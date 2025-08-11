@@ -22,25 +22,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { type TFunction, useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const updateComposeSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdateComposeSchema = (t: TFunction) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("dashboard.compose.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateCompose = z.infer<typeof updateComposeSchema>;
+type UpdateCompose = z.infer<ReturnType<typeof createUpdateComposeSchema>>;
 
 interface Props {
 	composeId: string;
 }
 
 export const UpdateCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
@@ -58,7 +61,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		},
-		resolver: zodResolver(updateComposeSchema),
+		resolver: zodResolver(createUpdateComposeSchema(t)),
 	});
 	useEffect(() => {
 		if (data) {
@@ -76,14 +79,14 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Compose updated successfully");
+				toast.success(t("dashboard.compose.composeUpdated"));
 				utils.compose.one.invalidate({
 					composeId: composeId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating the Compose");
+				toast.error(t("dashboard.compose.errorUpdatingCompose"));
 			})
 			.finally(() => {});
 	};
@@ -101,8 +104,10 @@ export const UpdateCompose = ({ composeId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Compose</DialogTitle>
-					<DialogDescription>Update the compose data</DialogDescription>
+					<DialogTitle>{t("dashboard.compose.updateCompose")}</DialogTitle>
+					<DialogDescription>
+						{t("dashboard.compose.updateComposeDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,9 +124,12 @@ export const UpdateCompose = ({ composeId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("dashboard.compose.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("dashboard.compose.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -133,10 +141,14 @@ export const UpdateCompose = ({ composeId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>
+												{t("dashboard.compose.description")}
+											</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t(
+														"dashboard.compose.descriptionPlaceholder",
+													)}
 													className="resize-none"
 													{...field}
 												/>
@@ -152,7 +164,7 @@ export const UpdateCompose = ({ composeId }: Props) => {
 										form="hook-form-update-compose"
 										type="submit"
 									>
-										Update
+										{t("dashboard.compose.update")}
 									</Button>
 								</DialogFooter>
 							</form>

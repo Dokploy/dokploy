@@ -67,6 +67,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import type { findProjectById } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
@@ -89,6 +90,7 @@ import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
 } from "next";
+import { useTranslation } from "next-i18next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
@@ -219,6 +221,7 @@ export const extractServices = (data: Project | undefined) => {
 const Project = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const { t } = useTranslation("dashboard");
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId } = props;
 	const { data: auth } = api.user.get.useQuery();
@@ -276,13 +279,41 @@ const Project = (
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const serviceTypes = [
-		{ value: "application", label: "Application", icon: GlobeIcon },
-		{ value: "postgres", label: "PostgreSQL", icon: PostgresqlIcon },
-		{ value: "mariadb", label: "MariaDB", icon: MariadbIcon },
-		{ value: "mongo", label: "MongoDB", icon: MongodbIcon },
-		{ value: "mysql", label: "MySQL", icon: MysqlIcon },
-		{ value: "redis", label: "Redis", icon: RedisIcon },
-		{ value: "compose", label: "Compose", icon: CircuitBoard },
+		{
+			value: "application",
+			label: t("dashboard.project.application"),
+			icon: GlobeIcon,
+		},
+		{
+			value: "postgres",
+			label: t("dashboard.project.addDatabase.databasesMap.postgres"),
+			icon: PostgresqlIcon,
+		},
+		{
+			value: "mariadb",
+			label: t("dashboard.project.addDatabase.databasesMap.mariadb"),
+			icon: MariadbIcon,
+		},
+		{
+			value: "mongo",
+			label: t("dashboard.project.addDatabase.databasesMap.mongo"),
+			icon: MongodbIcon,
+		},
+		{
+			value: "mysql",
+			label: t("dashboard.project.addDatabase.databasesMap.mysql"),
+			icon: MysqlIcon,
+		},
+		{
+			value: "redis",
+			label: t("dashboard.project.addDatabase.databasesMap.redis"),
+			icon: RedisIcon,
+		},
+		{
+			value: "compose",
+			label: t("dashboard.compose.compose"),
+			icon: CircuitBoard,
+		},
 	];
 
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -391,11 +422,13 @@ const Project = (
 				}
 				success++;
 			} catch {
-				toast.error(`Error starting service ${serviceId}`);
+				toast.error(t("dashboard.project.errorStartingService", { serviceId }));
 			}
 		}
 		if (success > 0) {
-			toast.success(`${success} services started successfully`);
+			toast.success(
+				t("dashboard.project.servicesStartedSuccess", { count: success }),
+			);
 			refetch();
 		}
 		setIsBulkActionLoading(false);
@@ -438,11 +471,13 @@ const Project = (
 				}
 				success++;
 			} catch {
-				toast.error(`Error stopping service ${serviceId}`);
+				toast.error(t("dashboard.project.errorStoppingService", { serviceId }));
 			}
 		}
 		if (success > 0) {
-			toast.success(`${success} services stopped successfully`);
+			toast.success(
+				t("dashboard.project.servicesStoppedSuccess", { count: success }),
+			);
 			refetch();
 		}
 		setSelectedServices([]);
@@ -452,7 +487,7 @@ const Project = (
 
 	const handleBulkMove = async () => {
 		if (!selectedTargetProject) {
-			toast.error("Please select a target project");
+			toast.error(t("dashboard.project.selectTargetProject"));
 			return;
 		}
 
@@ -508,14 +543,14 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (error) {
-				toast.error(
-					`Error moving service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
-				);
+			} catch (_error) {
+				toast.error(t("dashboard.project.errorMovingService", { serviceId }));
 			}
 		}
 		if (success > 0) {
-			toast.success(`${success} services moved successfully`);
+			toast.success(
+				t("dashboard.project.servicesMovedSuccess", { count: success }),
+			);
 			refetch();
 		}
 		setSelectedServices([]);
@@ -571,14 +606,14 @@ const Project = (
 						break;
 				}
 				success++;
-			} catch (error) {
-				toast.error(
-					`Error deleting service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
-				);
+			} catch (_error) {
+				toast.error(t("dashboard.project.errorDeletingService", { serviceId }));
 			}
 		}
 		if (success > 0) {
-			toast.success(`${success} services deleted successfully`);
+			toast.success(
+				t("dashboard.project.servicesDeletedSuccess", { count: success }),
+			);
 			refetch();
 		}
 		setSelectedServices([]);
@@ -603,7 +638,10 @@ const Project = (
 		<div>
 			<BreadcrumbSidebar
 				list={[
-					{ name: "Projects", href: "/dashboard/projects" },
+					{
+						name: t("dashboard.project.projects"),
+						href: "/dashboard/projects",
+					},
 					{ name: data?.name || "", href: `/dashboard/project/${projectId}` },
 				]}
 			/>
@@ -624,13 +662,15 @@ const Project = (
 							<div className="flex flex-row gap-4 flex-wrap justify-between items-center">
 								<div className="flex flex-row gap-4 flex-wrap">
 									<ProjectEnvironment projectId={projectId}>
-										<Button variant="outline">Project Environment</Button>
+										<Button variant="outline">
+											{t("dashboard.project.projectEnvironment")}
+										</Button>
 									</ProjectEnvironment>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
 											<Button>
 												<PlusIcon className="h-4 w-4" />
-												Create Service
+												{t("dashboard.project.createService")}
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent
@@ -638,7 +678,7 @@ const Project = (
 											align="end"
 										>
 											<DropdownMenuLabel className="text-sm font-normal">
-												Actions
+												{t("dashboard.project.actions")}
 											</DropdownMenuLabel>
 											<DropdownMenuSeparator />
 											<AddApplication
@@ -666,7 +706,7 @@ const Project = (
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							{isLoading ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
-									<span>Loading...</span>
+									<span>{t("dashboard.project.loading")}</span>
 									<Loader2 className="animate-spin size-4" />
 								</div>
 							) : (
@@ -686,7 +726,7 @@ const Project = (
 													onCheckedChange={handleSelectAll}
 												/>
 												<span className="text-sm">
-													Select All{" "}
+													{t("dashboard.project.selectAll")}{" "}
 													{selectedServices.length > 0 &&
 														`(${selectedServices.length}/${filteredServices.length})`}
 												</span>
@@ -702,15 +742,20 @@ const Project = (
 														disabled={selectedServices.length === 0}
 														isLoading={isBulkActionLoading}
 													>
-														Bulk Actions
+														{t("dashboard.project.bulkActions")}
 													</Button>
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end">
-													<DropdownMenuLabel>Actions</DropdownMenuLabel>
+													<DropdownMenuLabel>
+														{t("dashboard.project.actions")}
+													</DropdownMenuLabel>
 													<DropdownMenuSeparator />
 													<DialogAction
-														title="Start Services"
-														description={`Are you sure you want to start ${selectedServices.length} services?`}
+														title={t("dashboard.project.startServices")}
+														description={t(
+															"dashboard.project.startServicesDescription",
+															{ count: selectedServices.length },
+														)}
 														type="default"
 														onClick={handleBulkStart}
 													>
@@ -719,12 +764,15 @@ const Project = (
 															className="w-full justify-start"
 														>
 															<CheckCircle2 className="mr-2 h-4 w-4" />
-															Start
+															{t("dashboard.project.start")}
 														</Button>
 													</DialogAction>
 													<DialogAction
-														title="Stop Services"
-														description={`Are you sure you want to stop ${selectedServices.length} services?`}
+														title={t("dashboard.project.stopServices")}
+														description={t(
+															"dashboard.project.stopServicesDescription",
+															{ count: selectedServices.length },
+														)}
 														type="destructive"
 														onClick={handleBulkStop}
 													>
@@ -733,15 +781,18 @@ const Project = (
 															className="w-full justify-start text-destructive"
 														>
 															<Ban className="mr-2 h-4 w-4" />
-															Stop
+															{t("dashboard.project.stop")}
 														</Button>
 													</DialogAction>
 													{(auth?.role === "owner" ||
 														auth?.canDeleteServices) && (
 														<>
 															<DialogAction
-																title="Delete Services"
-																description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+																title={t("dashboard.project.deleteServices")}
+																description={t(
+																	"dashboard.project.deleteServicesDescription",
+																	{ count: selectedServices.length },
+																)}
 																type="destructive"
 																onClick={handleBulkDelete}
 															>
@@ -750,7 +801,7 @@ const Project = (
 																	className="w-full justify-start text-destructive"
 																>
 																	<Trash2 className="mr-2 h-4 w-4" />
-																	Delete
+																	{t("dashboard.project.delete")}
 																</Button>
 															</DialogAction>
 															<DuplicateProject
@@ -771,15 +822,19 @@ const Project = (
 																className="w-full justify-start"
 															>
 																<FolderInput className="mr-2 h-4 w-4" />
-																Move
+																{t("dashboard.project.move")}
 															</Button>
 														</DialogTrigger>
 														<DialogContent>
 															<DialogHeader>
-																<DialogTitle>Move Services</DialogTitle>
+																<DialogTitle>
+																	{t("dashboard.project.moveServices")}
+																</DialogTitle>
 																<DialogDescription>
-																	Select the target project to move{" "}
-																	{selectedServices.length} services
+																	{t(
+																		"dashboard.project.moveServicesDescription",
+																		{ count: selectedServices.length },
+																	)}
 																</DialogDescription>
 															</DialogHeader>
 															<div className="flex flex-col gap-4">
@@ -789,8 +844,9 @@ const Project = (
 																	<div className="flex flex-col items-center justify-center gap-2 py-4">
 																		<FolderInput className="h-8 w-8 text-muted-foreground" />
 																		<p className="text-sm text-muted-foreground text-center">
-																			No other projects available. Create a new
-																			project first to move services.
+																			{t(
+																				"dashboard.project.noOtherProjectsAvailable",
+																			)}
 																		</p>
 																	</div>
 																) : (
@@ -799,7 +855,11 @@ const Project = (
 																		onValueChange={setSelectedTargetProject}
 																	>
 																		<SelectTrigger>
-																			<SelectValue placeholder="Select target project" />
+																			<SelectValue
+																				placeholder={t(
+																					"dashboard.project.selectTargetProject",
+																				)}
+																			/>
 																		</SelectTrigger>
 																		<SelectContent>
 																			{allProjects
@@ -823,7 +883,7 @@ const Project = (
 																	variant="outline"
 																	onClick={() => setIsMoveDialogOpen(false)}
 																>
-																	Cancel
+																	{t("dashboard.project.cancel")}
 																</Button>
 																<Button
 																	onClick={handleBulkMove}
@@ -834,7 +894,7 @@ const Project = (
 																		).length === 0
 																	}
 																>
-																	Move Services
+																	{t("dashboard.project.moveServicesAction")}
 																</Button>
 															</DialogFooter>
 														</DialogContent>
@@ -846,7 +906,7 @@ const Project = (
 										<div className="flex flex-col gap-2 lg:flex-row lg:gap-4 lg:items-center">
 											<div className="w-full relative">
 												<Input
-													placeholder="Filter services..."
+													placeholder={t("dashboard.project.filterServices")}
 													value={searchQuery}
 													onChange={(e) => setSearchQuery(e.target.value)}
 													className="pr-10"
@@ -855,19 +915,29 @@ const Project = (
 											</div>
 											<Select value={sortBy} onValueChange={setSortBy}>
 												<SelectTrigger className="lg:w-[280px]">
-													<SelectValue placeholder="Sort by..." />
+													<SelectValue
+														placeholder={t("dashboard.project.sortBy")}
+													/>
 												</SelectTrigger>
 												<SelectContent>
 													<SelectItem value="createdAt-desc">
-														Newest first
+														{t("dashboard.project.newestFirst")}
 													</SelectItem>
 													<SelectItem value="createdAt-asc">
-														Oldest first
+														{t("dashboard.project.oldestFirst")}
 													</SelectItem>
-													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
-													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
-													<SelectItem value="type-asc">Type (A-Z)</SelectItem>
-													<SelectItem value="type-desc">Type (Z-A)</SelectItem>
+													<SelectItem value="name-asc">
+														{t("dashboard.project.nameAZ")}
+													</SelectItem>
+													<SelectItem value="name-desc">
+														{t("dashboard.project.nameZA")}
+													</SelectItem>
+													<SelectItem value="type-asc">
+														{t("dashboard.project.typeAZ")}
+													</SelectItem>
+													<SelectItem value="type-desc">
+														{t("dashboard.project.typeZA")}
+													</SelectItem>
 												</SelectContent>
 											</Select>
 											<Popover
@@ -881,15 +951,21 @@ const Project = (
 														className="min-w-[200px] justify-between"
 													>
 														{selectedTypes.length === 0
-															? "Select types..."
-															: `${selectedTypes.length} selected`}
+															? t("dashboard.project.selectTypes")
+															: t("dashboard.project.selected", {
+																	count: selectedTypes.length,
+																})}
 														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 													</Button>
 												</PopoverTrigger>
 												<PopoverContent className="w-[200px] p-0">
 													<Command>
-														<CommandInput placeholder="Search type..." />
-														<CommandEmpty>No type found.</CommandEmpty>
+														<CommandInput
+															placeholder={t("dashboard.project.searchType")}
+														/>
+														<CommandEmpty>
+															{t("dashboard.project.noTypeFound")}
+														</CommandEmpty>
 														<CommandGroup>
 															{serviceTypes.map((type) => (
 																<CommandItem
@@ -928,7 +1004,7 @@ const Project = (
 															>
 																<div className="flex flex-row items-center">
 																	<X className="mr-2 h-4 w-4" />
-																	Clear filters
+																	{t("dashboard.project.clearFilters")}
 																</div>
 															</CommandItem>
 														</CommandGroup>
@@ -943,17 +1019,17 @@ const Project = (
 											<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 												<FolderInput className="size-8 self-center text-muted-foreground" />
 												<span className="text-center font-medium  text-muted-foreground">
-													No services added yet. Click on Create Service.
+													{t("dashboard.project.noServicesAdded")}
 												</span>
 											</div>
 										) : filteredServices.length === 0 ? (
 											<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 												<Search className="size-8 self-center text-muted-foreground" />
 												<span className="text-center font-medium text-muted-foreground">
-													No services found with the current filters
+													{t("dashboard.project.noServicesFound")}
 												</span>
 												<span className="text-sm text-muted-foreground">
-													Try adjusting your search or filters
+													{t("dashboard.project.adjustFilters")}
 												</span>
 											</div>
 										) : (
@@ -1042,7 +1118,7 @@ const Project = (
 															<CardFooter className="mt-auto">
 																<div className="space-y-1 text-sm">
 																	<DateTooltip date={service.createdAt}>
-																		Created
+																		{t("dashboard.project.created")}
 																	</DateTooltip>
 																</div>
 															</CardFooter>
@@ -1070,6 +1146,7 @@ Project.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ projectId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	const { params } = ctx;
 
 	const { req, res } = ctx;
@@ -1105,6 +1182,7 @@ export async function getServerSideProps(
 				props: {
 					trpcState: helpers.dehydrate(),
 					projectId: params?.projectId,
+					...(await serverSideTranslations(locale, ["common", "dashboard"])),
 				},
 			};
 		} catch {

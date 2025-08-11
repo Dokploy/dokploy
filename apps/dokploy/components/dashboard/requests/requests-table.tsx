@@ -46,9 +46,10 @@ import {
 	Server,
 	TrendingUpIcon,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { columns, getStatusColor } from "./columns";
+import { createColumns, getStatusColor } from "./columns";
 import type { LogEntry } from "./show-requests";
 import { DataTableFacetedFilter } from "./status-request-filter";
 
@@ -88,6 +89,7 @@ export interface RequestsTableProps {
 }
 
 export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
+	const { t } = useTranslation("dashboard");
 	const [statusFilter, setStatusFilter] = useState<string[]>([]);
 	const [search, setSearch] = useState("");
 	const [selectedRow, setSelectedRow] = useState<LogEntry>();
@@ -99,6 +101,8 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 		pageIndex: 0,
 		pageSize: 10,
 	});
+
+	const columns = createColumns(t);
 
 	const { data: statsLogs } = api.settings.readStatsLogs.useQuery(
 		{
@@ -173,7 +177,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 					<div className="flex flex-col gap-4  w-full overflow-auto">
 						<div className="flex items-center gap-2 max-sm:flex-wrap">
 							<Input
-								placeholder="Filter by name..."
+								placeholder={t("dashboard.requests.filterByName")}
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
 								className="md:max-w-sm"
@@ -181,7 +185,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							<DataTableFacetedFilter
 								value={statusFilter}
 								setValue={setStatusFilter}
-								title="Status"
+								title={t("dashboard.requests.status")}
 								options={priorities}
 							/>
 							<DropdownMenu>
@@ -190,7 +194,8 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 										variant="outline"
 										className="sm:ml-auto max-sm:w-full"
 									>
-										Columns <ChevronDown className="ml-2 h-4 w-4" />
+										{t("dashboard.requests.columns")}{" "}
+										<ChevronDown className="ml-2 h-4 w-4" />
 									</Button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end">
@@ -264,7 +269,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 												{statsLogs?.data.length === 0 && (
 													<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 														<span className="text-muted-foreground text-lg font-medium">
-															No results.
+															{t("dashboard.requests.noResults")}
 														</span>
 													</div>
 												)}
@@ -277,17 +282,18 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 						<div className="flex items-center justify-end space-x-2 py-4">
 							{statsLogs?.totalCount && (
 								<span className="text-muted-foreground text-sm">
-									Showing{" "}
+									{t("dashboard.requests.showing")}{" "}
 									{Math.min(
 										pagination.pageIndex * pagination.pageSize + 1,
 										statsLogs.totalCount,
 									)}{" "}
-									to{" "}
+									{t("dashboard.requests.to")}{" "}
 									{Math.min(
 										(pagination.pageIndex + 1) * pagination.pageSize,
 										statsLogs.totalCount,
 									)}{" "}
-									of {statsLogs.totalCount} entries
+									{t("dashboard.requests.of")} {statsLogs.totalCount}{" "}
+									{t("dashboard.requests.entries")}
 								</span>
 							)}
 							<div className="space-x-2 flex flex-wrap">
@@ -297,7 +303,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 									onClick={() => table.previousPage()}
 									disabled={!table.getCanPreviousPage()}
 								>
-									Previous
+									{t("dashboard.requests.previous")}
 								</Button>
 								<Button
 									variant="outline"
@@ -305,7 +311,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 									onClick={() => table.nextPage()}
 									disabled={!table.getCanNextPage()}
 								>
-									Next
+									{t("dashboard.requests.next")}
 								</Button>
 							</div>
 						</div>
@@ -318,9 +324,9 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 			>
 				<SheetContent className="sm:max-w-[740px]  flex flex-col">
 					<SheetHeader>
-						<SheetTitle>Request log</SheetTitle>
+						<SheetTitle>{t("dashboard.requests.requestLog")}</SheetTitle>
 						<SheetDescription>
-							Details of the request log entry.
+							{t("dashboard.requests.requestLogDescription")}
 						</SheetDescription>
 					</SheetHeader>
 					<ScrollArea className="flex-grow mt-4 pr-4">
@@ -337,7 +343,9 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 														<Copy
 															onClick={() => {
 																copy(value);
-																toast.success("Copied to clipboard");
+																toast.success(
+																	t("dashboard.requests.copiedToClipboard"),
+																);
 															}}
 															className="h-4 w-4 text-muted-foreground cursor-pointer"
 														/>
@@ -374,7 +382,7 @@ export const RequestsTable = ({ dateRange }: RequestsTableProps) => {
 							}}
 						>
 							<Download className="h-4 w-4" />
-							Download as JSON
+							{t("dashboard.requests.downloadAsJson")}
 						</Button>
 					</div>
 				</SheetContent>

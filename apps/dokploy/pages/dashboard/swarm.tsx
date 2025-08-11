@@ -1,6 +1,7 @@
 import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
@@ -20,6 +21,7 @@ Dashboard.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	if (IS_CLOUD) {
 		return {
 			redirect: {
@@ -70,6 +72,7 @@ export async function getServerSideProps(
 		return {
 			props: {
 				trpcState: helpers.dehydrate(),
+				...(await serverSideTranslations(locale, ["common", "dashboard"])),
 			},
 		};
 	} catch {

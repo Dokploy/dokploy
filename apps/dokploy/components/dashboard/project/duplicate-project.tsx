@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 import { Copy, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -46,6 +47,7 @@ export const DuplicateProject = ({
 	services,
 	selectedServiceIds,
 }: DuplicateProjectProps) => {
+	const { t } = useTranslation("dashboard");
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
@@ -63,8 +65,8 @@ export const DuplicateProject = ({
 				await utils.project.all.invalidate();
 				toast.success(
 					duplicateType === "new-project"
-						? "Project duplicated successfully"
-						: "Services duplicated successfully",
+						? t("dashboard.duplicate.projectDuplicatedSuccessfully")
+						: t("dashboard.duplicate.servicesDuplicatedSuccessfully"),
 				);
 				setOpen(false);
 				if (duplicateType === "new-project") {
@@ -78,7 +80,7 @@ export const DuplicateProject = ({
 
 	const handleDuplicate = async () => {
 		if (duplicateType === "new-project" && !name) {
-			toast.error("Project name is required");
+			toast.error(t("dashboard.duplicate.projectNameRequired"));
 			return;
 		}
 
@@ -111,20 +113,22 @@ export const DuplicateProject = ({
 			<DialogTrigger asChild>
 				<Button variant="ghost" className="w-full justify-start">
 					<Copy className="mr-2 h-4 w-4" />
-					Duplicate
+					{t("dashboard.duplicate.duplicate")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Duplicate Services</DialogTitle>
+					<DialogTitle>
+						{t("dashboard.duplicate.duplicateServices")}
+					</DialogTitle>
 					<DialogDescription>
-						Choose where to duplicate the selected services
+						{t("dashboard.duplicate.chooseWhereToDuplicate")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="grid gap-4 py-4">
 					<div className="grid gap-2">
-						<Label>Duplicate to</Label>
+						<Label>{t("dashboard.duplicate.duplicateTo")}</Label>
 						<RadioGroup
 							value={duplicateType}
 							onValueChange={setDuplicateType}
@@ -132,11 +136,15 @@ export const DuplicateProject = ({
 						>
 							<div className="flex items-center space-x-2">
 								<RadioGroupItem value="new-project" id="new-project" />
-								<Label htmlFor="new-project">New project</Label>
+								<Label htmlFor="new-project">
+									{t("dashboard.duplicate.newProject")}
+								</Label>
 							</div>
 							<div className="flex items-center space-x-2">
 								<RadioGroupItem value="same-project" id="same-project" />
-								<Label htmlFor="same-project">Same project</Label>
+								<Label htmlFor="same-project">
+									{t("dashboard.duplicate.sameProject")}
+								</Label>
 							</div>
 						</RadioGroup>
 					</div>
@@ -144,29 +152,33 @@ export const DuplicateProject = ({
 					{duplicateType === "new-project" && (
 						<>
 							<div className="grid gap-2">
-								<Label htmlFor="name">Name</Label>
+								<Label htmlFor="name">{t("dashboard.duplicate.name")}</Label>
 								<Input
 									id="name"
 									value={name}
 									onChange={(e) => setName(e.target.value)}
-									placeholder="New project name"
+									placeholder={t("dashboard.duplicate.namePlaceholder")}
 								/>
 							</div>
 
 							<div className="grid gap-2">
-								<Label htmlFor="description">Description</Label>
+								<Label htmlFor="description">
+									{t("dashboard.duplicate.description")}
+								</Label>
 								<Input
 									id="description"
 									value={description}
 									onChange={(e) => setDescription(e.target.value)}
-									placeholder="Project description (optional)"
+									placeholder={t("dashboard.duplicate.descriptionPlaceholder")}
 								/>
 							</div>
 						</>
 					)}
 
 					<div className="grid gap-2">
-						<Label>Selected services to duplicate</Label>
+						<Label>
+							{t("dashboard.duplicate.selectedServicesToDuplicate")}
+						</Label>
 						<div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-md p-4">
 							{selectedServices.map((service) => (
 								<div key={service.id} className="flex items-center space-x-2">
@@ -185,20 +197,20 @@ export const DuplicateProject = ({
 						onClick={() => setOpen(false)}
 						disabled={isLoading}
 					>
-						Cancel
+						{t("dashboard.duplicate.cancel")}
 					</Button>
 					<Button onClick={handleDuplicate} disabled={isLoading}>
 						{isLoading ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								{duplicateType === "new-project"
-									? "Duplicating project..."
-									: "Duplicating services..."}
+									? t("dashboard.duplicate.duplicatingProject")
+									: t("dashboard.duplicate.duplicatingServices")}
 							</>
 						) : duplicateType === "new-project" ? (
-							"Duplicate project"
+							t("dashboard.duplicate.duplicateProject")
 						) : (
-							"Duplicate services"
+							t("dashboard.duplicate.duplicateServices")
 						)}
 					</Button>
 				</DialogFooter>

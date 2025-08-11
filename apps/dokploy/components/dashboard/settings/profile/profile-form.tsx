@@ -127,7 +127,7 @@ export const ProfileForm = () => {
 		})
 			.then(async () => {
 				await refetch();
-				toast.success("Profile Updated");
+				toast.success(t("settings.profile.profileUpdated"));
 				form.reset({
 					email: values.email,
 					password: "",
@@ -137,7 +137,7 @@ export const ProfileForm = () => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the profile");
+				toast.error(t("settings.profile.errorUpdatingProfile"));
 			});
 	};
 
@@ -162,7 +162,7 @@ export const ProfileForm = () => {
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[35vh]">
-								<span>Loading...</span>
+								<span>{t("settings.profile.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -207,7 +207,9 @@ export const ProfileForm = () => {
 												name="currentPassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Current Password</FormLabel>
+														<FormLabel>
+															{t("settings.profile.currentPassword")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
@@ -308,13 +310,13 @@ export const ProfileForm = () => {
 													render={({ field }) => (
 														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 															<div className="space-y-0.5">
-																<FormLabel>Allow Impersonation</FormLabel>
+																<FormLabel>
+																	{t("settings.profile.allowImpersonation")}
+																</FormLabel>
 																<FormDescription>
-																	Enable this option to allow Dokploy Cloud
-																	administrators to temporarily access your
-																	account for troubleshooting and support
-																	purposes. This helps them quickly identify and
-																	resolve any issues you may encounter.
+																	{t(
+																		"settings.profile.allowImpersonationDescription",
+																	)}
 																</FormDescription>
 															</div>
 															<FormControl>

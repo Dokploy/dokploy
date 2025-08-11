@@ -25,6 +25,7 @@ import {
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InfoIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ interface Props {
 
 type AddResources = z.infer<typeof addResourcesSchema>;
 export const ShowResources = ({ id, type }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -115,27 +117,27 @@ export const ShowResources = ({ id, type }: Props) => {
 			memoryReservation: formData.memoryReservation || null,
 		})
 			.then(async () => {
-				toast.success("Resources Updated");
+				toast.success(t("dashboard.resources.resourcesUpdated"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the resources");
+				toast.error(t("dashboard.resources.errorUpdatingResources"));
 			});
 	};
 
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Resources</CardTitle>
+				<CardTitle className="text-xl">
+					{t("dashboard.resources.resources")}
+				</CardTitle>
 				<CardDescription>
-					If you want to decrease or increase the resources to a specific.
-					application or database
+					{t("dashboard.resources.description")}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<AlertBlock type="info">
-					Please remember to click Redeploy after modify the resources to apply
-					the changes.
+					{t("dashboard.resources.redeployReminder")}
 				</AlertBlock>
 				<Form {...form}>
 					<form
@@ -151,7 +153,9 @@ export const ShowResources = ({ id, type }: Props) => {
 									return (
 										<FormItem>
 											<div className="flex items-center gap-2">
-												<FormLabel>Memory Limit</FormLabel>
+												<FormLabel>
+													{t("dashboard.resources.memoryLimit")}
+												</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
 														<TooltipTrigger>
@@ -159,8 +163,7 @@ export const ShowResources = ({ id, type }: Props) => {
 														</TooltipTrigger>
 														<TooltipContent>
 															<p>
-																Memory hard limit in bytes. Example: 1GB =
-																1073741824 bytes
+																{t("dashboard.resources.memoryLimitTooltip")}
 															</p>
 														</TooltipContent>
 													</Tooltip>
@@ -168,7 +171,9 @@ export const ShowResources = ({ id, type }: Props) => {
 											</div>
 											<FormControl>
 												<Input
-													placeholder="1073741824 (1GB in bytes)"
+													placeholder={t(
+														"dashboard.resources.memoryLimitPlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -183,7 +188,9 @@ export const ShowResources = ({ id, type }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<div className="flex items-center gap-2">
-											<FormLabel>Memory Reservation</FormLabel>
+											<FormLabel>
+												{t("dashboard.resources.memoryReservation")}
+											</FormLabel>
 											<TooltipProvider>
 												<Tooltip delayDuration={0}>
 													<TooltipTrigger>
@@ -191,8 +198,9 @@ export const ShowResources = ({ id, type }: Props) => {
 													</TooltipTrigger>
 													<TooltipContent>
 														<p>
-															Memory soft limit in bytes. Example: 256MB =
-															268435456 bytes
+															{t(
+																"dashboard.resources.memoryReservationTooltip",
+															)}
 														</p>
 													</TooltipContent>
 												</Tooltip>
@@ -200,7 +208,9 @@ export const ShowResources = ({ id, type }: Props) => {
 										</div>
 										<FormControl>
 											<Input
-												placeholder="268435456 (256MB in bytes)"
+												placeholder={t(
+													"dashboard.resources.memoryReservationPlaceholder",
+												)}
 												{...field}
 											/>
 										</FormControl>
@@ -216,24 +226,25 @@ export const ShowResources = ({ id, type }: Props) => {
 									return (
 										<FormItem>
 											<div className="flex items-center gap-2">
-												<FormLabel>CPU Limit</FormLabel>
+												<FormLabel>
+													{t("dashboard.resources.cpuLimit")}
+												</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
 														<TooltipTrigger>
 															<InfoIcon className="h-4 w-4 text-muted-foreground" />
 														</TooltipTrigger>
 														<TooltipContent>
-															<p>
-																CPU quota in units of 10^-9 CPUs. Example: 2
-																CPUs = 2000000000
-															</p>
+															<p>{t("dashboard.resources.cpuLimitTooltip")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
 											</div>
 											<FormControl>
 												<Input
-													placeholder="2000000000 (2 CPUs)"
+													placeholder={t(
+														"dashboard.resources.cpuLimitPlaceholder",
+													)}
 													{...field}
 													value={field.value?.toString() || ""}
 												/>
@@ -250,7 +261,9 @@ export const ShowResources = ({ id, type }: Props) => {
 									return (
 										<FormItem>
 											<div className="flex items-center gap-2">
-												<FormLabel>CPU Reservation</FormLabel>
+												<FormLabel>
+													{t("dashboard.resources.cpuReservation")}
+												</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
 														<TooltipTrigger>
@@ -258,15 +271,19 @@ export const ShowResources = ({ id, type }: Props) => {
 														</TooltipTrigger>
 														<TooltipContent>
 															<p>
-																CPU shares (relative weight). Example: 1 CPU =
-																1000000000
+																{t("dashboard.resources.cpuReservationTooltip")}
 															</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
 											</div>
 											<FormControl>
-												<Input placeholder="1000000000 (1 CPU)" {...field} />
+												<Input
+													placeholder={t(
+														"dashboard.resources.cpuReservationPlaceholder",
+													)}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -276,7 +293,7 @@ export const ShowResources = ({ id, type }: Props) => {
 						</div>
 						<div className="flex w-full justify-end">
 							<Button isLoading={isLoading} type="submit">
-								Save
+								{t("dashboard.resources.save")}
 							</Button>
 						</div>
 					</form>

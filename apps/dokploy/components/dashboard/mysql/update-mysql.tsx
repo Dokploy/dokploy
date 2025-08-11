@@ -22,25 +22,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const updateMysqlSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdateMysqlSchema = (t: any) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("dashboard.mysql.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateMysql = z.infer<typeof updateMysqlSchema>;
+type UpdateMysql = z.infer<ReturnType<typeof createUpdateMysqlSchema>>;
 
 interface Props {
 	mysqlId: string;
 }
 
 export const UpdateMysql = ({ mysqlId }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
 		api.mysql.update.useMutation();
@@ -57,7 +60,7 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		},
-		resolver: zodResolver(updateMysqlSchema),
+		resolver: zodResolver(createUpdateMysqlSchema(t)),
 	});
 	useEffect(() => {
 		if (data) {
@@ -75,13 +78,13 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("MySQL updated successfully");
+				toast.success(t("dashboard.mysql.updatedSuccessfully"));
 				utils.mysql.one.invalidate({
 					mysqlId: mysqlId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating MySQL");
+				toast.error(t("dashboard.mysql.errorUpdating"));
 			})
 			.finally(() => {});
 	};
@@ -99,8 +102,10 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify MySQL</DialogTitle>
-					<DialogDescription>Update the MySQL data</DialogDescription>
+					<DialogTitle>{t("dashboard.mysql.modify")}</DialogTitle>
+					<DialogDescription>
+						{t("dashboard.mysql.updateDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -117,9 +122,12 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("dashboard.mysql.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("dashboard.mysql.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -131,10 +139,12 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("dashboard.mysql.description")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t(
+														"dashboard.mysql.descriptionPlaceholder",
+													)}
 													className="resize-none"
 													{...field}
 												/>
@@ -150,7 +160,7 @@ export const UpdateMysql = ({ mysqlId }: Props) => {
 										form="hook-form-mysql-update"
 										type="submit"
 									>
-										Update
+										{t("dashboard.mysql.update")}
 									</Button>
 								</DialogFooter>
 							</form>

@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+
 export const DockerLogs = dynamic(
 	() =>
 		import("@/components/dashboard/docker/logs/docker-logs-id").then(
@@ -42,6 +44,7 @@ export const ShowDockerLogsCompose = ({
 	appType,
 	serverId,
 }: Props) => {
+	const { t } = useTranslation("dashboard");
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
@@ -63,23 +66,25 @@ export const ShowDockerLogsCompose = ({
 	return (
 		<Card className="bg-background">
 			<CardHeader>
-				<CardTitle className="text-xl">Logs</CardTitle>
+				<CardTitle className="text-xl">{t("dashboard.compose.logs")}</CardTitle>
 				<CardDescription>
-					Watch the logs of the application in real time
+					{t("dashboard.compose.logsDescription")}
 				</CardDescription>
 			</CardHeader>
 
 			<CardContent className="flex flex-col gap-4">
-				<Label>Select a container to view logs</Label>
+				<Label>{t("dashboard.compose.selectContainerToViewLogs")}</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("dashboard.compose.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<SelectValue
+								placeholder={t("dashboard.compose.selectAContainer")}
+							/>
 						)}
 					</SelectTrigger>
 					<SelectContent>
@@ -95,7 +100,9 @@ export const ShowDockerLogsCompose = ({
 									</Badge>
 								</SelectItem>
 							))}
-							<SelectLabel>Containers ({data?.length})</SelectLabel>
+							<SelectLabel>
+								{t("dashboard.compose.containers", { count: data?.length })}
+							</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>
