@@ -4,9 +4,15 @@ on:
   pull_request:
     branches: [main, canary]
 
+permissions:
+  contents: read
+
 jobs:
-  lint-and-typecheck:
+  pr-check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        job: [build, test, typecheck]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -15,32 +21,5 @@ jobs:
           node-version: 20.16.0
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run server:build
-      - run: pnpm typecheck
-
-  build-and-test:
-    needs: lint-and-typecheck
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20.16.0
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run server:build
-      - run: pnpm build
-
-  parallel-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20.16.0
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run server:build
-      - run: pnpm test
+      - run: pnpm server:build
+      - run: pnpm ${{ matrix.job }}
