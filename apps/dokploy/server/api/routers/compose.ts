@@ -10,7 +10,7 @@ import {
 	compose as composeTable,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
+import { cleanQueuesByCompose, getQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import {
@@ -361,7 +361,8 @@ export const composeRouter = createTRPCRouter({
 				await deploy(jobData);
 				return true;
 			}
-			await myQueue.add(
+			const queue = getQueue(compose.serverId);
+			await queue.add(
 				"deployments",
 				{ ...jobData },
 				{
@@ -393,7 +394,8 @@ export const composeRouter = createTRPCRouter({
 				await deploy(jobData);
 				return true;
 			}
-			await myQueue.add(
+			const queue = getQueue(compose.serverId);
+			await queue.add(
 				"deployments",
 				{ ...jobData },
 				{
