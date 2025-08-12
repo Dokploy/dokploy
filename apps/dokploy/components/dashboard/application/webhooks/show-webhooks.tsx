@@ -255,10 +255,11 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 															disabled={isTesting || !webhook.enabled}
 														>
 															<Send className="size-4 mr-2" />
-															{t("test.button")}
+															Send Test
 														</DropdownMenuItem>
 														<DropdownMenuItem
-															onClick={() => {
+															onSelect={(e) => {
+																e.preventDefault();
 																setSelectedWebhookId(
 																	webhook.webhookId
 																);
@@ -266,14 +267,15 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 															}}
 														>
 															<Activity className="size-4 mr-2" />
-															{t("deliveries.title")}
+															Delivery History
 														</DropdownMenuItem>
 														<DropdownMenuItem
-															onClick={() =>
+															onSelect={(e) => {
+																e.preventDefault();
 																setEditingWebhookId(
 																	webhook.webhookId
-																)
-															}
+																);
+															}}
 														>
 															<Edit className="size-4 mr-2" />
 															Edit

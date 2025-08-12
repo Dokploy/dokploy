@@ -25,15 +25,9 @@ import {
 	RefreshCw,
 	XCircle,
 } from "lucide-react";
-import { useState } from "react";
-import { useTranslation } from "next-i18next";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +38,6 @@ interface Props {
 }
 
 export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
-	const { t } = useTranslation("webhook");
 	const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
 
 	const {
@@ -116,7 +109,7 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 		<Dialog open={open} onOpenChange={onClose}>
 			<DialogContent className="max-w-5xl max-h-[85vh]">
 				<DialogHeader>
-					<DialogTitle>{t("deliveries.title")}</DialogTitle>
+					<DialogTitle>Webhook Delivery History</DialogTitle>
 					<DialogDescription>
 						Recent webhook delivery attempts and their status
 					</DialogDescription>
@@ -169,57 +162,56 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 								</TableHeader>
 								<TableBody>
 									{deliveries.map((delivery) => (
-										<Collapsible
-											key={delivery.deliveryId}
-											open={expandedDelivery === delivery.deliveryId}
-											onOpenChange={(open) =>
-												setExpandedDelivery(
-													open ? delivery.deliveryId : null
-												)
-											}
-										>
-											<CollapsibleTrigger asChild>
-												<TableRow className="cursor-pointer hover:bg-muted/50">
-													<TableCell>
-														<ChevronDown
-															className={cn(
-																"size-4 transition-transform",
-																expandedDelivery ===
-																	delivery.deliveryId &&
-																	"rotate-180"
-															)}
-														/>
-													</TableCell>
-													<TableCell className="font-medium">
-														<div className="flex items-center gap-2">
-															{getStatusIcon(delivery.statusCode)}
-															<span className="text-sm">
-																{delivery.event}
-															</span>
-														</div>
-													</TableCell>
-													<TableCell>
-														{getStatusBadge(delivery.statusCode)}
-													</TableCell>
-													<TableCell>
-														{formatResponseTime(
-															delivery.responseTime
+										<React.Fragment key={delivery.deliveryId}>
+											<TableRow 
+												className="cursor-pointer hover:bg-muted/50"
+												onClick={() => 
+													setExpandedDelivery(
+														expandedDelivery === delivery.deliveryId 
+															? null 
+															: delivery.deliveryId
+													)
+												}
+											>
+												<TableCell>
+													<ChevronDown
+														className={cn(
+															"size-4 transition-transform",
+															expandedDelivery ===
+																delivery.deliveryId &&
+																"rotate-180"
 														)}
-													</TableCell>
-													<TableCell>
-														<Badge variant="outline" className="text-xs">
-															{delivery.attempts}
-														</Badge>
-													</TableCell>
-													<TableCell className="text-muted-foreground text-sm">
-														{formatDistanceToNow(
-															new Date(delivery.deliveredAt),
-															{ addSuffix: true }
-														)}
-													</TableCell>
-												</TableRow>
-											</CollapsibleTrigger>
-											<CollapsibleContent asChild>
+													/>
+												</TableCell>
+												<TableCell className="font-medium">
+													<div className="flex items-center gap-2">
+														{getStatusIcon(delivery.statusCode)}
+														<span className="text-sm">
+															{delivery.event}
+														</span>
+													</div>
+												</TableCell>
+												<TableCell>
+													{getStatusBadge(delivery.statusCode)}
+												</TableCell>
+												<TableCell>
+													{formatResponseTime(
+														delivery.responseTime
+													)}
+												</TableCell>
+												<TableCell>
+													<Badge variant="outline" className="text-xs">
+														{delivery.attempts}
+													</Badge>
+												</TableCell>
+												<TableCell className="text-muted-foreground text-sm">
+													{formatDistanceToNow(
+														new Date(delivery.deliveredAt),
+													{ addSuffix: true }
+													)}
+												</TableCell>
+											</TableRow>
+											{expandedDelivery === delivery.deliveryId && (
 												<TableRow>
 													<TableCell colSpan={6} className="bg-muted/30">
 														<div className="p-4 space-y-4">
@@ -252,8 +244,8 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 														</div>
 													</TableCell>
 												</TableRow>
-											</CollapsibleContent>
-										</Collapsible>
+											)}
+										</React.Fragment>
 									))}
 								</TableBody>
 							</Table>
