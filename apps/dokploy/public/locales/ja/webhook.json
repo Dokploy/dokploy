@@ -1,0 +1,58 @@
+{
+  "management": {
+    "title": "Webhook管理",
+    "description": "デプロイ通知用のWebhookを設定",
+    "empty": "Webhookが設定されていません"
+  },
+  "form": {
+    "name": "名前",
+    "namePlaceholder": "私のWebhook",
+    "url": "URL",
+    "urlPlaceholder": "https://hooks.slack.com/services/...",
+    "urlHint": "WebhookペイロードがHる送信されHTTPS URL",
+    "secret": "シークレット",
+    "secretHint": "署名検証に使用（HMAC-SHA256）",
+    "template": "テンプレート",
+    "headers": "カスタムヘッダー",
+    "customTemplate": "カスタムテンプレート",
+    "create": {
+      "title": "Webhookを作成",
+      "description": "デプロイ通知用の新しいWebhookを設定",
+      "success": "Webhookが正常に作成されました",
+      "error": "Webhookの作成に失敗しました"
+    },
+    "edit": {
+      "title": "Webhookを編集",
+      "description": "Webhook設定を更新"
+    },
+    "update": {
+      "success": "Webhookが正常に更新されました",
+      "error": "Webhookの更新に失敗しました"
+    },
+    "events": {
+      "title": "トリガーイベント"
+    }
+  },
+  "actions": {
+    "create": "Webhookを作成",
+    "edit": "編集",
+    "delete": "削除",
+    "enable": "Webhookが有効になりました",
+    "disable": "Webhookが無効になりました",
+    "toggle": {
+      "error": "Webhookの切り替えに失敗しました"
+    },
+    "delete": {
+      "success": "Webhookが正常に削除されました",
+      "error": "Webhookの削除に失敗しました"
+    }
+  },
+  "test": {
+    "button": "テスト送信",
+    "success": "テストWebhookが正常に送信されました",
+    "failure": "テストWebhookの送信に失敗しました: {{error}}"
+  },
+  "deliveries": {
+    "title": "配信履歴"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "management": {
+    "title": "Gerenciamento de Webhooks",
+    "description": "Configure webhooks para notificações de implantação",
+    "empty": "Nenhum webhook configurado"
+  },
+  "form": {
+    "name": "Nome",
+    "namePlaceholder": "Meu Webhook",
+    "url": "URL",
+    "urlPlaceholder": "https://hooks.slack.com/services/...",
+    "urlHint": "A URL HTTPS onde os payloads do webhook serão enviados",
+    "secret": "Segredo",
+    "secretHint": "Usado para validação de assinatura (HMAC-SHA256)",
+    "template": "Modelo",
+    "headers": "Cabeçalhos personalizados",
+    "customTemplate": "Modelo personalizado",
+    "create": {
+      "title": "Criar Webhook",
+      "description": "Configure um novo webhook para notificações de implantação",
+      "success": "Webhook criado com sucesso",
+      "error": "Erro ao criar webhook"
+    },
+    "edit": {
+      "title": "Editar Webhook",
+      "description": "Atualize sua configuração de webhook"
+    },
+    "update": {
+      "success": "Webhook atualizado com sucesso",
+      "error": "Erro ao atualizar webhook"
+    },
+    "events": {
+      "title": "Eventos de acionamento"
+    }
+  },
+  "actions": {
+    "create": "Criar Webhook",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "enable": "Webhook ativado",
+    "disable": "Webhook desativado",
+    "toggle": {
+      "error": "Erro ao alternar webhook"
+    },
+    "delete": {
+      "success": "Webhook excluído com sucesso",
+      "error": "Erro ao excluir webhook"
+    }
+  },
+  "test": {
+    "button": "Enviar Teste",
+    "success": "Webhook de teste enviado com sucesso",
+    "failure": "Falha ao enviar webhook de teste: {{error}}"
+  },
+  "deliveries": {
+    "title": "Histórico de entregas"
+  }
+}
