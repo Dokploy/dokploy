@@ -42,5 +42,6 @@ yarn-error.log*
 
 
 .db
-test-login*
+test-login.js
+test-login-fixed.js
 webhook-test-server.js
