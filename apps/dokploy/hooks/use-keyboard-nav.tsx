@@ -111,7 +111,8 @@ export function UseKeyboardNav({ forPage }: { forPage: Page }) {
 					tag === "TEXTAREA" ||
 					tag === "SELECT" ||
 					active.getAttribute("role") === "textbox"
-				) return;
+				)
+					return;
 			}
 
 			if (isModPressed) {
