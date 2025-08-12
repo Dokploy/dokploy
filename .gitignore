@@ -42,10 +42,4 @@ yarn-error.log*
 
 
 .db
-test-login.js
-test-login-fixed.js
-webhook-test-server.js
-install-dokploy-server.sh
-debug-dokploy.sh
-fix-dokploy-server.sh
-update-server.sh
+clean-reinstall-dokploy.sh
