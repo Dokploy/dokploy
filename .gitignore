@@ -45,3 +45,6 @@ yarn-error.log*
 test-login.js
 test-login-fixed.js
 webhook-test-server.js
+install-dokploy-server.sh
+debug-dokploy.sh
+fix-dokploy-server.sh

@@ -859,8 +859,8 @@ export const updateDeploymentStatus = async (
 				duration: duration > 0 ? duration : undefined,
 			},
 			project: {
-				id: fullDeployment.application?.projectId || fullDeployment.compose?.projectId || "",
-				name: fullDeployment.application?.project?.name || fullDeployment.compose?.project?.name || "Default",
+				id: fullDeployment.application?.projectId || fullDeployment.composeId || "",
+				name: fullDeployment.application?.name || "Default",
 			},
 			trigger: {
 				type: updatedDeployment.description?.includes("webhook") ? "webhook" : 
@@ -883,8 +883,8 @@ export const updateDeploymentStatus = async (
 				id: app.applicationId,
 				name: app.name,
 				type: "application",
-				url: app.domains?.[0]?.host ? `https://${app.domains[0].host}` : undefined,
-				domains: app.domains?.map(d => d.host) || [],
+				url: undefined, // TODO: Add domains relation
+				domains: [],
 			};
 			webhookEvent.source = {
 				type: app.sourceType,
@@ -896,18 +896,19 @@ export const updateDeploymentStatus = async (
 			triggerWebhooks(app.applicationId, "application", webhookEvent).catch((error) => {
 				console.error("Failed to trigger deployment webhook:", error);
 			});
-		} else if (fullDeployment.compose) {
-			const compose = fullDeployment.compose;
+		} else if (fullDeployment.composeId) {
+			// TODO: Load compose data if needed
+			const compose = { composeId: fullDeployment.composeId, name: "Compose" };
 			webhookEvent.compose = {
 				id: compose.composeId,
 				name: compose.name,
 				type: "compose",
-				url: compose.domains?.[0]?.host ? `https://${compose.domains[0].host}` : undefined,
+				url: undefined,
 			};
 			webhookEvent.source = {
-				type: compose.sourceType,
-				branch: compose.branch || undefined,
-				repository: compose.repository || undefined,
+				type: "github",
+				branch: undefined,
+				repository: undefined,
 			};
 			
 			// Fire webhook asynchronously

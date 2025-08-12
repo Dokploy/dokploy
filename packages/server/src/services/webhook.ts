@@ -63,7 +63,7 @@ export const createWebhook = async (data: NewWebhook): Promise<Webhook> => {
 	}
 
 	const result = await db.insert(webhooks).values(data).returning();
-	return result[0];
+	return result[0] as Webhook;
 };
 
 export const updateWebhook = async (
