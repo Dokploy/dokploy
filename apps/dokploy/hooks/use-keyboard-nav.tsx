@@ -124,7 +124,7 @@ export function UseKeyboardNav({ forPage }: { forPage: Page }) {
 				}
 			} else if (key === "g") {
 				setModPressed(true);
-				setTimer(setTimeout(() => setModPressed(false), 5000));
+				setTimer(setTimeout(() => setModPressed(false), 1500));
 			}
 		};
 
