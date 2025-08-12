@@ -51,7 +51,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { useTranslation } from "next-i18next";
 
 interface Props {
 	applicationId?: string;
@@ -59,7 +58,6 @@ interface Props {
 }
 
 export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
-	const { t } = useTranslation("webhook");
 	const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
 	const [showDeliveries, setShowDeliveries] = useState(false);
 	const [editingWebhookId, setEditingWebhookId] = useState<string | null>(null);
@@ -92,29 +90,29 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 	const handleDelete = async (webhookId: string) => {
 		try {
 			await deleteWebhook({ webhookId });
-			toast.success(t("actions.delete.success"));
+			toast.success("Webhook deleted successfully");
 			refetchWebhooks();
 		} catch (error) {
-			toast.error(t("actions.delete.error"));
+			toast.error("Failed to delete webhook");
 		}
 	};
 
 	const handleTest = async (webhookId: string) => {
 		try {
 			await testWebhook({ webhookId });
-			toast.success(t("test.success"));
+			toast.success("Test webhook sent successfully");
 		} catch (error) {
-			toast.error(t("test.failure", { error: (error as Error).message }));
+			toast.error(`Failed to send test webhook: ${(error as Error).message}`);
 		}
 	};
 
 	const handleToggle = async (webhookId: string, enabled: boolean) => {
 		try {
 			await toggleWebhook({ webhookId, enabled });
-			toast.success(enabled ? t("actions.enable") : t("actions.disable"));
+			toast.success(enabled ? "Webhook enabled" : "Webhook disabled");
 			refetchWebhooks();
 		} catch (error) {
-			toast.error(t("actions.toggle.error"));
+			toast.error("Failed to toggle webhook");
 		}
 	};
 
@@ -152,9 +150,9 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 						<div className="flex flex-col gap-2">
 							<CardTitle className="text-xl font-bold flex items-center gap-2">
 								<Webhook className="size-5" />
-								{t("management.title")}
+								Webhook Management
 							</CardTitle>
-							<CardDescription>{t("management.description")}</CardDescription>
+							<CardDescription>Configure webhooks for deployment notifications</CardDescription>
 						</div>
 
 						<HandleWebhook
@@ -181,7 +179,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 							<Table>
 								<TableHeader>
 									<TableRow>
-										<TableHead>{t("form.name")}</TableHead>
+										<TableHead>Name</TableHead>
 										<TableHead>URL</TableHead>
 										<TableHead>Template</TableHead>
 										<TableHead>Events</TableHead>
@@ -278,11 +276,11 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 															}
 														>
 															<Edit className="size-4 mr-2" />
-															{t("actions.edit")}
+															Edit
 														</DropdownMenuItem>
 														<DropdownMenuSeparator />
 														<DialogAction
-															title={t("actions.delete")}
+															title="Delete"
 															description={`Are you sure you want to delete the webhook "${webhook.name}"?`}
 															onClick={() =>
 																handleDelete(webhook.webhookId)
@@ -293,7 +291,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 																	className="text-destructive"
 																>
 																	<Trash2 className="size-4 mr-2" />
-																	{t("actions.delete")}
+																	Delete
 																</DropdownMenuItem>
 															}
 														/>
@@ -310,7 +308,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 							<Webhook className="size-8 text-muted-foreground/50" />
 							<div className="flex flex-col gap-2">
 								<span className="text-sm text-muted-foreground">
-									{t("management.empty")}
+									No webhooks configured
 								</span>
 								<span className="text-xs text-muted-foreground/70">
 									Create your first webhook to receive deployment notifications
@@ -323,7 +321,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 								trigger={
 									<Button size="sm" variant="outline">
 										<Plus className="size-4 mr-2" />
-										{t("actions.create")}
+										Create Webhook
 									</Button>
 								}
 							/>

@@ -35,7 +35,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useTranslation } from "next-i18next";
 import { cn } from "@/lib/utils";
 import {
 	Accordion,
@@ -128,7 +127,6 @@ export const HandleWebhook = ({
 	onClose,
 	trigger,
 }: Props) => {
-	const { t } = useTranslation("webhook");
 	const [open, setOpen] = useState(false);
 	const [customHeaders, setCustomHeaders] = useState<
 		Array<{ key: string; value: string }>
@@ -239,10 +237,10 @@ export const HandleWebhook = ({
 					webhookId,
 					...data,
 				});
-				toast.success(t("form.update.success"));
+				toast.success("Webhook updated successfully");
 			} else {
 				await createWebhook(data);
-				toast.success(t("form.create.success"));
+				toast.success("Webhook created successfully");
 			}
 
 			form.reset();
@@ -250,7 +248,7 @@ export const HandleWebhook = ({
 			onClose();
 		} catch (error) {
 			toast.error(
-				webhookId ? t("form.update.error") : t("form.create.error")
+				webhookId ? "Failed to update webhook" : "Failed to create webhook"
 			);
 		}
 	};
@@ -270,7 +268,7 @@ export const HandleWebhook = ({
 				{trigger || (
 					<Button size="sm">
 						<Plus className="size-4 mr-2" />
-						{t("actions.create")}
+						Create Webhook
 					</Button>
 				)}
 			</DialogTrigger>
@@ -278,10 +276,10 @@ export const HandleWebhook = ({
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Webhook className="size-5" />
-						{webhookId ? t("form.edit.title") : t("form.create.title")}
+						{webhookId ? "Edit Webhook" : "Create Webhook"}
 					</DialogTitle>
 					<DialogDescription>
-						{webhookId ? t("form.edit.description") : t("form.create.description")}
+						{webhookId ? "Update your webhook configuration" : "Configure a new webhook for deployment notifications"}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -293,10 +291,10 @@ export const HandleWebhook = ({
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("form.name")}</FormLabel>
+										<FormLabel>Name</FormLabel>
 										<FormControl>
 											<Input
-												placeholder={t("form.namePlaceholder")}
+												placeholder="My Webhook"
 												{...field}
 											/>
 										</FormControl>
@@ -310,7 +308,7 @@ export const HandleWebhook = ({
 								name="templateType"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("form.template")}</FormLabel>
+										<FormLabel>Template</FormLabel>
 										<Select
 											onValueChange={field.onChange}
 											defaultValue={field.value}
@@ -347,15 +345,15 @@ export const HandleWebhook = ({
 							name="url"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("form.url")}</FormLabel>
+									<FormLabel>URL</FormLabel>
 									<FormControl>
 										<Input
-											placeholder={t("form.urlPlaceholder")}
+											placeholder="https://hooks.slack.com/services/..."
 											type="url"
 											{...field}
 										/>
 									</FormControl>
-									<FormDescription>{t("form.urlHint")}</FormDescription>
+									<FormDescription>The HTTPS URL where webhook payloads will be sent</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -366,7 +364,7 @@ export const HandleWebhook = ({
 							name="secret"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("form.secret")}</FormLabel>
+									<FormLabel>Secret</FormLabel>
 									<FormControl>
 										<div className="flex gap-2">
 											<Input
@@ -392,7 +390,7 @@ export const HandleWebhook = ({
 											</Button>
 										</div>
 									</FormControl>
-									<FormDescription>{t("form.secretHint")}</FormDescription>
+									<FormDescription>Used for signature validation (HMAC-SHA256)</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -403,7 +401,7 @@ export const HandleWebhook = ({
 							name="events"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("form.events.title")}</FormLabel>
+									<FormLabel>Trigger Events</FormLabel>
 									<FormControl>
 										<div className="space-y-2">
 											{WEBHOOK_EVENTS.map((event) => (
@@ -454,7 +452,7 @@ export const HandleWebhook = ({
 								<AccordionTrigger>Advanced Settings</AccordionTrigger>
 								<AccordionContent className="space-y-4 pt-4">
 									<div>
-										<Label>{t("form.headers")}</Label>
+										<Label>Custom Headers</Label>
 										<div className="space-y-2 mt-2">
 											{customHeaders.map((header, index) => (
 												<div key={index} className="flex gap-2">
@@ -508,7 +506,7 @@ export const HandleWebhook = ({
 											name="customTemplate"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>{t("form.customTemplate")}</FormLabel>
+													<FormLabel>Custom Template</FormLabel>
 													<FormControl>
 														<Textarea
 															placeholder='{"text": "Deployment ${status} for ${applicationName}"}'

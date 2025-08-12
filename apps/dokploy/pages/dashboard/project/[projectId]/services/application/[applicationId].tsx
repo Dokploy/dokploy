@@ -1,6 +1,5 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import copy from "copy-to-clipboard";
 import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
 import type {
@@ -424,13 +423,11 @@ export async function getServerSideProps(
 
 			await helpers.settings.isCloud.prefetch();
 			
-			const locale = getLocale(req);
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
 					applicationId: params?.applicationId,
 					activeTab: (activeTab || "general") as TabState,
-					...(await serverSideTranslations(locale, ["webhook"])),
 				},
 			};
 		} catch {
