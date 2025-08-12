@@ -100,7 +100,20 @@ export function UseKeyboardNav({ forPage }: { forPage: Page }) {
 	);
 
 	useEffect(() => {
-		const handleKeyDown = ({ key }: KeyboardEvent) => {
+		const handleKeyDown = ({ key, target }: KeyboardEvent) => {
+			const active = target as HTMLElement | null;
+
+			if (active) {
+				const tag = active.tagName;
+				if (
+					active.isContentEditable ||
+					tag === "INPUT" ||
+					tag === "TEXTAREA" ||
+					tag === "SELECT" ||
+					active.getAttribute("role") === "textbox"
+				) return;
+			}
+
 			if (isModPressed) {
 				if (timer) clearTimeout(timer);
 				setModPressed(false);
@@ -109,11 +122,9 @@ export function UseKeyboardNav({ forPage }: { forPage: Page }) {
 					const tab = shortcuts[key]!;
 					router.push(`${pathname}?${updateSearchParam("tab", tab)}`);
 				}
-			} else {
-				if (key === "g") {
-					setModPressed(true);
-					setTimer(setTimeout(() => setModPressed(false), 5000));
-				}
+			} else if (key === "g") {
+				setModPressed(true);
+				setTimer(setTimeout(() => setModPressed(false), 5000));
 			}
 		};
 
