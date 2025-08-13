@@ -1,10 +1,10 @@
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+	WebhookDialog as Dialog,
+	WebhookDialogContent as DialogContent,
+	WebhookDialogDescription as DialogDescription,
+	WebhookDialogHeader as DialogHeader,
+	WebhookDialogTitle as DialogTitle,
+} from "./webhook-dialog";
 import {
 	Table,
 	TableBody,
@@ -14,11 +14,14 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/utils/api";
-import { formatRelative, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import {
 	AlertCircle,
 	CheckCircle2,
+	ChevronDown,
 	Clock,
 	Code,
 	Loader2,
@@ -26,18 +29,19 @@ import {
 	XCircle,
 } from "lucide-react";
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Props {
+interface WebhookHistoryModalProps {
 	webhookId: string;
 	open: boolean;
-	onClose: () => void;
+	onOpenChange: (open: boolean) => void;
 }
 
-export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
+export const WebhookHistoryModal = ({
+	webhookId,
+	open,
+	onOpenChange,
+}: WebhookHistoryModalProps) => {
 	const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
 
 	const {
@@ -46,19 +50,19 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 		refetch,
 	} = api.webhook.getDeliveries.useQuery(
 		{ webhookId, limit: 50 },
-		{ enabled: open && !!webhookId }
+		{ enabled: open && !!webhookId && webhookId !== "" }
 	);
 
 	const { data: stats } = api.webhook.getStats.useQuery(
 		{ webhookId },
-		{ enabled: open && !!webhookId }
+		{ enabled: open && !!webhookId && webhookId !== "" }
 	);
 
-	const getStatusIcon = (statusCode?: string) => {
+	const getStatusIcon = (statusCode?: string | null) => {
 		if (!statusCode || statusCode === "0") {
 			return <XCircle className="size-4 text-destructive" />;
 		}
-		const code = parseInt(statusCode);
+		const code = Number.parseInt(statusCode);
 		if (code >= 200 && code < 300) {
 			return <CheckCircle2 className="size-4 text-green-500" />;
 		}
@@ -68,7 +72,7 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 		return <Clock className="size-4 text-yellow-500" />;
 	};
 
-	const getStatusBadge = (statusCode?: string) => {
+	const getStatusBadge = (statusCode?: string | null) => {
 		if (!statusCode || statusCode === "0") {
 			return (
 				<Badge variant="destructive" className="text-xs">
@@ -76,10 +80,10 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 				</Badge>
 			);
 		}
-		const code = parseInt(statusCode);
+		const code = Number.parseInt(statusCode);
 		if (code >= 200 && code < 300) {
 			return (
-				<Badge variant="success" className="text-xs">
+				<Badge variant="green" className="text-xs">
 					{statusCode}
 				</Badge>
 			);
@@ -98,16 +102,16 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 		);
 	};
 
-	const formatResponseTime = (responseTime?: string) => {
+	const formatResponseTime = (responseTime?: string | null) => {
 		if (!responseTime) return "-";
-		const ms = parseInt(responseTime);
+		const ms = Number.parseInt(responseTime);
 		if (ms < 1000) return `${ms}ms`;
 		return `${(ms / 1000).toFixed(2)}s`;
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onClose}>
-			<DialogContent className="max-w-5xl max-h-[85vh]">
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
 				<DialogHeader>
 					<DialogTitle>Webhook Delivery History</DialogTitle>
 					<DialogDescription>
@@ -136,23 +140,23 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 						<div className="space-y-1">
 							<p className="text-sm text-muted-foreground">Avg Response Time</p>
 							<p className="text-2xl font-bold">
-								{formatResponseTime(stats.avgResponseTime.toString())}
+								{formatResponseTime(stats.avgResponseTime?.toString())}
 							</p>
 						</div>
 					</div>
 				)}
 
-				<div className="border rounded-lg">
+				<div className="border rounded-lg flex-1 overflow-hidden">
 					{isLoading ? (
 						<div className="flex items-center justify-center py-8">
 							<Loader2 className="size-6 animate-spin text-muted-foreground" />
 						</div>
 					) : deliveries && deliveries.length > 0 ? (
-						<ScrollArea className="h-[400px]">
+						<ScrollArea className="h-full max-h-[400px]">
 							<Table>
 								<TableHeader>
 									<TableRow>
-										<TableHead className="w-[40px]"></TableHead>
+										<TableHead className="w-[40px]" />
 										<TableHead>Event</TableHead>
 										<TableHead>Status</TableHead>
 										<TableHead>Response Time</TableHead>
@@ -177,8 +181,7 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 													<ChevronDown
 														className={cn(
 															"size-4 transition-transform",
-															expandedDelivery ===
-																delivery.deliveryId &&
+															expandedDelivery === delivery.deliveryId &&
 																"rotate-180"
 														)}
 													/>
@@ -195,9 +198,7 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 													{getStatusBadge(delivery.statusCode)}
 												</TableCell>
 												<TableCell>
-													{formatResponseTime(
-														delivery.responseTime
-													)}
+													{formatResponseTime(delivery.responseTime)}
 												</TableCell>
 												<TableCell>
 													<Badge variant="outline" className="text-xs">
@@ -207,7 +208,7 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 												<TableCell className="text-muted-foreground text-sm">
 													{formatDistanceToNow(
 														new Date(delivery.deliveredAt),
-													{ addSuffix: true }
+														{ addSuffix: true }
 													)}
 												</TableCell>
 											</TableRow>
@@ -268,7 +269,7 @@ export const ShowWebhookDeliveries = ({ webhookId, open, onClose }: Props) => {
 						<RefreshCw className="size-4 mr-2" />
 						Refresh
 					</Button>
-					<Button variant="secondary" onClick={onClose}>
+					<Button variant="secondary" onClick={() => onOpenChange(false)}>
 						Close
 					</Button>
 				</div>

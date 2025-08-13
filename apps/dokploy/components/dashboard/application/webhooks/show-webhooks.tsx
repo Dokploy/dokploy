@@ -16,19 +16,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { formatRelative } from "date-fns";
 import {
 	Activity,
-	AlertCircle,
-	CheckCircle2,
-	Clock,
 	Edit,
 	ExternalLink,
 	Loader2,
@@ -37,12 +27,9 @@ import {
 	Send,
 	Trash2,
 	Webhook,
-	XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { HandleWebhook } from "./handle-webhook";
-import { ShowWebhookDeliveries } from "./show-webhook-deliveries";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -51,6 +38,9 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
+import { WebhookCreateModal } from "./webhook-create-modal";
+import { WebhookEditModal } from "./webhook-edit-modal";
+import { WebhookHistoryModal } from "./webhook-history-modal";
 
 interface Props {
 	applicationId?: string;
@@ -58,9 +48,8 @@ interface Props {
 }
 
 export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
-	const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
-	const [showDeliveries, setShowDeliveries] = useState(false);
 	const [editingWebhookId, setEditingWebhookId] = useState<string | null>(null);
+	const [historyWebhookId, setHistoryWebhookId] = useState<string | null>(null);
 
 	const {
 		data: webhooks,
@@ -76,14 +65,9 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 				{ enabled: !!composeId }
 		  );
 
-	const utils = api.useUtils();
-
-	const { mutateAsync: deleteWebhook, isLoading: isDeleting } =
-		api.webhook.delete.useMutation();
-
+	const { mutateAsync: deleteWebhook } = api.webhook.delete.useMutation();
 	const { mutateAsync: testWebhook, isLoading: isTesting } =
 		api.webhook.test.useMutation();
-
 	const { mutateAsync: toggleWebhook, isLoading: isToggling } =
 		api.webhook.toggle.useMutation();
 
@@ -92,7 +76,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 			await deleteWebhook({ webhookId });
 			toast.success("Webhook deleted successfully");
 			refetchWebhooks();
-		} catch (error) {
+		} catch (_error) {
 			toast.error("Failed to delete webhook");
 		}
 	};
@@ -101,8 +85,8 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 		try {
 			await testWebhook({ webhookId });
 			toast.success("Test webhook sent successfully");
-		} catch (error) {
-			toast.error(`Failed to send test webhook: ${(error as Error).message}`);
+		} catch (_error) {
+			toast.error(`Failed to send test webhook: ${(_error as Error).message}`);
 		}
 	};
 
@@ -111,7 +95,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 			await toggleWebhook({ webhookId, enabled });
 			toast.success(enabled ? "Webhook enabled" : "Webhook disabled");
 			refetchWebhooks();
-		} catch (error) {
+		} catch (_error) {
 			toast.error("Failed to toggle webhook");
 		}
 	};
@@ -155,14 +139,16 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 							<CardDescription>Configure webhooks for deployment notifications</CardDescription>
 						</div>
 
-						<HandleWebhook
+						<WebhookCreateModal
 							applicationId={applicationId}
 							composeId={composeId}
-							webhookId={editingWebhookId}
-							onClose={() => {
-								setEditingWebhookId(null);
-								refetchWebhooks();
-							}}
+							onSuccess={refetchWebhooks}
+							trigger={
+								<Button size="sm">
+									<Plus className="size-4 mr-2" />
+									Create Webhook
+								</Button>
+							}
 						/>
 					</div>
 				</CardHeader>
@@ -249,9 +235,10 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 													</DropdownMenuTrigger>
 													<DropdownMenuContent align="end">
 														<DropdownMenuItem
-															onClick={() =>
-																handleTest(webhook.webhookId)
-															}
+															onSelect={(e) => {
+																e.preventDefault();
+																handleTest(webhook.webhookId);
+															}}
 															disabled={isTesting || !webhook.enabled}
 														>
 															<Send className="size-4 mr-2" />
@@ -260,10 +247,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 														<DropdownMenuItem
 															onSelect={(e) => {
 																e.preventDefault();
-																setSelectedWebhookId(
-																	webhook.webhookId
-																);
-																setShowDeliveries(true);
+																setHistoryWebhookId(webhook.webhookId);
 															}}
 														>
 															<Activity className="size-4 mr-2" />
@@ -272,9 +256,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 														<DropdownMenuItem
 															onSelect={(e) => {
 																e.preventDefault();
-																setEditingWebhookId(
-																	webhook.webhookId
-																);
+																setEditingWebhookId(webhook.webhookId);
 															}}
 														>
 															<Edit className="size-4 mr-2" />
@@ -287,16 +269,15 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 															onClick={() =>
 																handleDelete(webhook.webhookId)
 															}
-															trigger={
-																<DropdownMenuItem
-																	onSelect={(e) => e.preventDefault()}
-																	className="text-destructive"
-																>
-																	<Trash2 className="size-4 mr-2" />
-																	Delete
-																</DropdownMenuItem>
-															}
-														/>
+														>
+															<DropdownMenuItem
+																onSelect={(e) => e.preventDefault()}
+																className="text-destructive"
+															>
+																<Trash2 className="size-4 mr-2" />
+																Delete
+															</DropdownMenuItem>
+														</DialogAction>
 													</DropdownMenuContent>
 												</DropdownMenu>
 											</TableCell>
@@ -316,10 +297,10 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 									Create your first webhook to receive deployment notifications
 								</span>
 							</div>
-							<HandleWebhook
+							<WebhookCreateModal
 								applicationId={applicationId}
 								composeId={composeId}
-								onClose={() => refetchWebhooks()}
+								onSuccess={refetchWebhooks}
 								trigger={
 									<Button size="sm" variant="outline">
 										<Plus className="size-4 mr-2" />
@@ -332,16 +313,18 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 				</CardContent>
 			</Card>
 
-			{showDeliveries && selectedWebhookId && (
-				<ShowWebhookDeliveries
-					webhookId={selectedWebhookId}
-					open={showDeliveries}
-					onClose={() => {
-						setShowDeliveries(false);
-						setSelectedWebhookId(null);
-					}}
-				/>
-			)}
+			<WebhookEditModal
+				webhookId={editingWebhookId || ""}
+				open={!!editingWebhookId}
+				onOpenChange={(open) => !open && setEditingWebhookId(null)}
+				onSuccess={refetchWebhooks}
+			/>
+
+			<WebhookHistoryModal
+				webhookId={historyWebhookId || ""}
+				open={!!historyWebhookId}
+				onOpenChange={(open) => !open && setHistoryWebhookId(null)}
+			/>
 		</>
 	);
 };
