@@ -12,16 +12,28 @@ const Dialog = ({
 	onOpenChange,
 	open,
 	...props
-}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) => (
-	<DialogContext.Provider value={{ onOpenChange, open }}>
-		<DialogPrimitive.Root
-			open={open}
-			onOpenChange={onOpenChange}
-			{...props}
-			modal={false}
-		/>
-	</DialogContext.Provider>
-);
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) => {
+	const [isOpened, setIsOpened] = React.useState(false); // for internal control
+
+	const handleOpenChange = (open: boolean) => {
+		if (onOpenChange) {
+			onOpenChange(open);
+		} else {
+			setIsOpened(open);
+		}
+	};
+
+	return (
+		<DialogContext.Provider value={{ onOpenChange: handleOpenChange, open: open || isOpened }}>
+			<DialogPrimitive.Root
+				open={open || isOpened}
+				onOpenChange={handleOpenChange}
+				{...props}
+				modal={false}
+			/>
+		</DialogContext.Provider>
+	);
+};
 Dialog.displayName = DialogPrimitive.Root.displayName;
 
 const DialogTrigger = DialogPrimitive.Trigger;
