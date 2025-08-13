@@ -391,22 +391,22 @@ export const readPorts = async (
 	);
 };
 
-export const writeTraefikSetup = async (
-	input: TraefikOptions,
-	serverId?: string,
-) => {
-	const resourceType = await getDockerResourceType("dokploy-traefik", serverId);
+export const writeTraefikSetup = async (input: TraefikOptions) => {
+	const resourceType = await getDockerResourceType(
+		"dokploy-traefik",
+		input.serverId,
+	);
 	if (resourceType === "service") {
 		await initializeTraefikService({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
-			serverId: serverId,
+			serverId: input.serverId,
 		});
 	} else {
 		await initializeStandaloneTraefik({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
-			serverId: serverId,
+			serverId: input.serverId,
 		});
 	}
 };
