@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 import {
 	Accordion,
@@ -32,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
 
 const webhookFormSchema = z.object({
 	name: z.string().min(1, "Name is required"),
@@ -111,7 +111,6 @@ interface WebhookFormProps {
 export const WebhookForm = ({
 	initialData,
 	onSubmit,
-	isSubmitting = false,
 	formId = "webhook-form",
 }: WebhookFormProps) => {
 	const [customHeaders, setCustomHeaders] = useState<
@@ -135,7 +134,10 @@ export const WebhookForm = ({
 	useEffect(() => {
 		if (initialData?.headers && Object.keys(initialData.headers).length > 0) {
 			setCustomHeaders(
-				Object.entries(initialData.headers).map(([key, value]) => ({ key, value })),
+				Object.entries(initialData.headers).map(([key, value]) => ({
+					key,
+					value,
+				})),
 			);
 		}
 	}, [initialData]);
@@ -334,7 +336,10 @@ export const WebhookForm = ({
 													<Label className="font-medium cursor-pointer">
 														{event.label}
 													</Label>
-													<Badge variant={event.color as any} className="text-xs">
+													<Badge
+														variant={event.color as any}
+														className="text-xs"
+													>
 														{event.value}
 													</Badge>
 												</div>
@@ -411,8 +416,8 @@ export const WebhookForm = ({
 												/>
 											</FormControl>
 											<FormDescription>
-												Use variables like ${"{applicationName}"}, ${"{status}"}, $
-												{"{branch}"}
+												Use variables like ${"{applicationName}"}, ${"{status}"}
+												, ${"{branch}"}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
