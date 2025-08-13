@@ -42,4 +42,9 @@ yarn-error.log*
 
 
 .db
-clean-reinstall-dokploy.sh
+cleanup.sh
+install.sh
+.claude
+.claude-flow
+.hive-mind
+.qodo
