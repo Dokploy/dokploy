@@ -24,7 +24,9 @@ const Dialog = ({
 	};
 
 	return (
-		<DialogContext.Provider value={{ onOpenChange: handleOpenChange, open: open || isOpened }}>
+		<DialogContext.Provider
+			value={{ onOpenChange: handleOpenChange, open: open || isOpened }}
+		>
 			<DialogPrimitive.Root
 				open={open || isOpened}
 				onOpenChange={handleOpenChange}
