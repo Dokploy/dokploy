@@ -1,3 +1,6 @@
+import crypto from "crypto";
+import { and, desc, eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { db } from "../db";
 import {
 	type NewWebhook,
@@ -6,13 +9,14 @@ import {
 	webhookDeliveries,
 	webhooks,
 } from "../db/schema";
-import { eq, and, desc } from "drizzle-orm";
-import crypto from "crypto";
-import { nanoid } from "nanoid";
 
 // Types
 export interface WebhookEvent {
-	event: "deployment.started" | "deployment.success" | "deployment.failed" | "deployment.cancelled";
+	event:
+		| "deployment.started"
+		| "deployment.success"
+		| "deployment.failed"
+		| "deployment.cancelled";
 	timestamp: string;
 	deployment: {
 		id: string;
@@ -64,7 +68,7 @@ export const createWebhook = async (data: NewWebhook): Promise<Webhook> => {
 
 export const updateWebhook = async (
 	webhookId: string,
-	data: Partial<NewWebhook>
+	data: Partial<NewWebhook>,
 ): Promise<Webhook | undefined> => {
 	const result = await db
 		.update(webhooks)
@@ -79,7 +83,7 @@ export const deleteWebhook = async (webhookId: string): Promise<void> => {
 };
 
 export const findWebhookById = async (
-	webhookId: string
+	webhookId: string,
 ): Promise<Webhook | undefined> => {
 	const result = await db
 		.select()
@@ -90,7 +94,7 @@ export const findWebhookById = async (
 };
 
 export const findWebhooksByApplication = async (
-	applicationId: string
+	applicationId: string,
 ): Promise<Webhook[]> => {
 	return await db
 		.select()
@@ -98,27 +102,22 @@ export const findWebhooksByApplication = async (
 		.where(
 			and(
 				eq(webhooks.applicationId, applicationId),
-				eq(webhooks.enabled, true)
-			)
+				eq(webhooks.enabled, true),
+			),
 		);
 };
 
 export const findWebhooksByCompose = async (
-	composeId: string
+	composeId: string,
 ): Promise<Webhook[]> => {
 	return await db
 		.select()
 		.from(webhooks)
-		.where(
-			and(
-				eq(webhooks.composeId, composeId),
-				eq(webhooks.enabled, true)
-			)
-		);
+		.where(and(eq(webhooks.composeId, composeId), eq(webhooks.enabled, true)));
 };
 
 export const findAllWebhooksByApplication = async (
-	applicationId: string
+	applicationId: string,
 ): Promise<Webhook[]> => {
 	return await db
 		.select()
@@ -127,7 +126,7 @@ export const findAllWebhooksByApplication = async (
 };
 
 export const findAllWebhooksByCompose = async (
-	composeId: string
+	composeId: string,
 ): Promise<Webhook[]> => {
 	return await db
 		.select()
@@ -139,11 +138,12 @@ export const findAllWebhooksByCompose = async (
 export const triggerWebhooks = async (
 	entityId: string,
 	entityType: "application" | "compose",
-	event: WebhookEvent
+	event: WebhookEvent,
 ): Promise<void> => {
-	const entityWebhooks = entityType === "application" 
-		? await findWebhooksByApplication(entityId)
-		: await findWebhooksByCompose(entityId);
+	const entityWebhooks =
+		entityType === "application"
+			? await findWebhooksByApplication(entityId)
+			: await findWebhooksByCompose(entityId);
 
 	// Filter webhooks that subscribe to this event
 	const relevantWebhooks = entityWebhooks.filter((webhook) => {
@@ -153,13 +153,13 @@ export const triggerWebhooks = async (
 
 	// Trigger all webhooks in parallel
 	await Promise.allSettled(
-		relevantWebhooks.map((webhook) => sendWebhook(webhook, event))
+		relevantWebhooks.map((webhook) => sendWebhook(webhook, event)),
 	);
 };
 
 export const sendWebhook = async (
 	webhook: Webhook,
-	event: WebhookEvent
+	event: WebhookEvent,
 ): Promise<void> => {
 	const startTime = Date.now();
 	const deliveryId = nanoid();
@@ -167,17 +167,20 @@ export const sendWebhook = async (
 	try {
 		// Prepare payload based on template type
 		const payload = formatPayload(webhook, event);
-		
+
 		// Generate HMAC signature
-		const signature = generateSignature(webhook.secret || "", JSON.stringify(payload));
-		
+		const signature = generateSignature(
+			webhook.secret || "",
+			JSON.stringify(payload),
+		);
+
 		// Prepare headers
 		const headers: HeadersInit = {
 			"Content-Type": "application/json",
 			"X-Dokploy-Event": event.event,
-			"X-Dokploy-Signature": signature,
+			"X-Dokploy-Signature-256": `sha256=${signature}`,
 			"X-Dokploy-Delivery": deliveryId,
-			...(webhook.headers as Record<string, string> || {}),
+			...((webhook.headers as Record<string, string>) || {}),
 		};
 
 		// Send webhook
@@ -206,7 +209,7 @@ export const sendWebhook = async (
 		}
 	} catch (error) {
 		const responseTime = Date.now() - startTime;
-		
+
 		// Log failed delivery
 		await logDelivery({
 			webhookId: webhook.webhookId,
@@ -356,7 +359,10 @@ const processCustomTemplate = (template: string, event: WebhookEvent): any => {
 
 		for (const [key, value] of Object.entries(variables)) {
 			if (value !== undefined) {
-				processed = processed.replace(new RegExp(`\\$\\{${key}\\}`, "g"), value);
+				processed = processed.replace(
+					new RegExp(`\\$\\{${key}\\}`, "g"),
+					value,
+				);
 			}
 		}
 
@@ -375,22 +381,22 @@ const generateSignature = (secret: string, payload: string): string => {
 // Log webhook delivery
 const logDelivery = async (data: NewWebhookDelivery): Promise<void> => {
 	await db.insert(webhookDeliveries).values(data);
-	
+
 	// Keep only last 100 deliveries per webhook
 	const deliveries = await db
 		.select()
 		.from(webhookDeliveries)
 		.where(eq(webhookDeliveries.webhookId, data.webhookId))
 		.orderBy(desc(webhookDeliveries.deliveredAt));
-	
+
 	if (deliveries.length > 100) {
 		const toDelete = deliveries.slice(100);
 		await Promise.all(
 			toDelete.map((d) =>
 				db
 					.delete(webhookDeliveries)
-					.where(eq(webhookDeliveries.deliveryId, d.deliveryId))
-			)
+					.where(eq(webhookDeliveries.deliveryId, d.deliveryId)),
+			),
 		);
 	}
 };
@@ -399,7 +405,7 @@ const logDelivery = async (data: NewWebhookDelivery): Promise<void> => {
 const scheduleRetry = async (
 	webhook: Webhook,
 	event: WebhookEvent,
-	attempt: number
+	attempt: number,
 ): Promise<void> => {
 	if (attempt >= 3) {
 		// Max retries reached
@@ -437,19 +443,23 @@ export const testWebhook = async (webhookId: string): Promise<void> => {
 			finishedAt: new Date().toISOString(),
 			duration: 60000,
 		},
-		application: webhook.applicationId ? {
-			id: webhook.applicationId,
-			name: "Test Application",
-			type: "application",
-			url: "https://test-app.example.com",
-			domains: ["test-app.example.com"],
-		} : undefined,
-		compose: webhook.composeId ? {
-			id: webhook.composeId,
-			name: "Test Compose",
-			type: "compose",
-			url: "https://test-compose.example.com",
-		} : undefined,
+		application: webhook.applicationId
+			? {
+					id: webhook.applicationId,
+					name: "Test Application",
+					type: "application",
+					url: "https://test-app.example.com",
+					domains: ["test-app.example.com"],
+				}
+			: undefined,
+		compose: webhook.composeId
+			? {
+					id: webhook.composeId,
+					name: "Test Compose",
+					type: "compose",
+					url: "https://test-compose.example.com",
+				}
+			: undefined,
 		project: {
 			id: "test-project-id",
 			name: "Test Project",
@@ -470,10 +480,7 @@ export const testWebhook = async (webhookId: string): Promise<void> => {
 };
 
 // Get webhook deliveries
-export const getWebhookDeliveries = async (
-	webhookId: string,
-	limit = 20
-) => {
+export const getWebhookDeliveries = async (webhookId: string, limit = 20) => {
 	return await db
 		.select()
 		.from(webhookDeliveries)

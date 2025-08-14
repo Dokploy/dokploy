@@ -227,7 +227,7 @@ export const updateDeploymentStatus = async (id: string, status: string) => {
 ### Error Handling & Retries
 The webhook service includes robust error handling:
 
-- HTTP timeouts (30 seconds)
+- HTTP timeouts (10 seconds)
 - Retry mechanism with exponential backoff
 - Delivery status tracking
 - Error logging and monitoring
