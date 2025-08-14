@@ -27,12 +27,11 @@ export const WebhookEditModal = ({
 	onSuccess,
 }: WebhookEditModalProps) => {
 	const [isDeleting, setIsDeleting] = useState(false);
-	
 
 	const { data: existingWebhook, isLoading: isLoadingWebhook } =
 		api.webhook.findById.useQuery(
 			{ webhookId },
-			{ enabled: open && !!webhookId && webhookId !== "" }
+			{ enabled: open && !!webhookId && webhookId !== "" },
 		);
 
 	const { mutateAsync: updateWebhook, isLoading: isUpdating } =
@@ -42,7 +41,7 @@ export const WebhookEditModal = ({
 
 	const handleDelete = async () => {
 		if (!confirm("Are you sure you want to delete this webhook?")) return;
-		
+
 		setIsDeleting(true);
 		try {
 			await deleteWebhook({ webhookId });
@@ -82,7 +81,7 @@ export const WebhookEditModal = ({
 				events: existingWebhook.events as any,
 				headers: existingWebhook.headers as any,
 				enabled: existingWebhook.enabled,
-		  }
+			}
 		: undefined;
 
 	return (
@@ -99,18 +98,18 @@ export const WebhookEditModal = ({
 				</DialogHeader>
 
 				<div className="flex-1 overflow-y-auto py-4">
-						{isLoadingWebhook ? (
-							<div className="flex items-center justify-center py-8">
-								<Loader2 className="size-6 animate-spin text-muted-foreground" />
-							</div>
-						) : initialData ? (
-							<WebhookForm
-								initialData={initialData}
-								onSubmit={handleSubmit}
-								isSubmitting={isUpdating}
-								formId="edit-webhook-form"
-							/>
-						) : null}
+					{isLoadingWebhook ? (
+						<div className="flex items-center justify-center py-8">
+							<Loader2 className="size-6 animate-spin text-muted-foreground" />
+						</div>
+					) : initialData ? (
+						<WebhookForm
+							initialData={initialData}
+							onSubmit={handleSubmit}
+							isSubmitting={isUpdating}
+							formId="edit-webhook-form"
+						/>
+					) : null}
 				</div>
 
 				<DialogFooter>

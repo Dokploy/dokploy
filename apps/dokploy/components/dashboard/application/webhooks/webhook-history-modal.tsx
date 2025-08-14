@@ -50,12 +50,12 @@ export const WebhookHistoryModal = ({
 		refetch,
 	} = api.webhook.getDeliveries.useQuery(
 		{ webhookId, limit: 50 },
-		{ enabled: open && !!webhookId && webhookId !== "" }
+		{ enabled: open && !!webhookId && webhookId !== "" },
 	);
 
 	const { data: stats } = api.webhook.getStats.useQuery(
 		{ webhookId },
-		{ enabled: open && !!webhookId && webhookId !== "" }
+		{ enabled: open && !!webhookId && webhookId !== "" },
 	);
 
 	const getStatusIcon = (statusCode?: string | null) => {
@@ -167,13 +167,13 @@ export const WebhookHistoryModal = ({
 								<TableBody>
 									{deliveries.map((delivery) => (
 										<React.Fragment key={delivery.deliveryId}>
-											<TableRow 
+											<TableRow
 												className="cursor-pointer hover:bg-muted/50"
-												onClick={() => 
+												onClick={() =>
 													setExpandedDelivery(
-														expandedDelivery === delivery.deliveryId 
-															? null 
-															: delivery.deliveryId
+														expandedDelivery === delivery.deliveryId
+															? null
+															: delivery.deliveryId,
 													)
 												}
 											>
@@ -182,16 +182,14 @@ export const WebhookHistoryModal = ({
 														className={cn(
 															"size-4 transition-transform",
 															expandedDelivery === delivery.deliveryId &&
-																"rotate-180"
+																"rotate-180",
 														)}
 													/>
 												</TableCell>
 												<TableCell className="font-medium">
 													<div className="flex items-center gap-2">
 														{getStatusIcon(delivery.statusCode)}
-														<span className="text-sm">
-															{delivery.event}
-														</span>
+														<span className="text-sm">{delivery.event}</span>
 													</div>
 												</TableCell>
 												<TableCell>
@@ -206,10 +204,9 @@ export const WebhookHistoryModal = ({
 													</Badge>
 												</TableCell>
 												<TableCell className="text-muted-foreground text-sm">
-													{formatDistanceToNow(
-														new Date(delivery.deliveredAt),
-														{ addSuffix: true }
-													)}
+													{formatDistanceToNow(new Date(delivery.deliveredAt), {
+														addSuffix: true,
+													})}
 												</TableCell>
 											</TableRow>
 											{expandedDelivery === delivery.deliveryId && (
@@ -234,11 +231,7 @@ export const WebhookHistoryModal = ({
 																</p>
 																<div className="bg-muted rounded-md p-3">
 																	<pre className="text-xs overflow-x-auto">
-																		{JSON.stringify(
-																			delivery.payload,
-																			null,
-																			2
-																		)}
+																		{JSON.stringify(delivery.payload, null, 2)}
 																	</pre>
 																</div>
 															</div>
@@ -254,9 +247,7 @@ export const WebhookHistoryModal = ({
 					) : (
 						<div className="flex flex-col items-center justify-center py-8 text-center">
 							<RefreshCw className="size-8 text-muted-foreground/50 mb-2" />
-							<p className="text-sm text-muted-foreground">
-								No deliveries yet
-							</p>
+							<p className="text-sm text-muted-foreground">No deliveries yet</p>
 							<p className="text-xs text-muted-foreground/70 mt-1">
 								Webhook deliveries will appear here once triggered
 							</p>

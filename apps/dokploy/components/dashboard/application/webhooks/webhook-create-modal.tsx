@@ -28,7 +28,7 @@ export const WebhookCreateModal = ({
 	onSuccess,
 }: WebhookCreateModalProps) => {
 	const [open, setOpen] = useState(false);
-	
+
 	const { mutateAsync: createWebhook, isLoading: isCreating } =
 		api.webhook.create.useMutation();
 

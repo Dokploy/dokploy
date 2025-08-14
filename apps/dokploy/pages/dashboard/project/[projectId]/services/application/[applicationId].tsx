@@ -422,7 +422,7 @@ export async function getServerSideProps(
 			});
 
 			await helpers.settings.isCloud.prefetch();
-			
+
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
