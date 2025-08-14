@@ -229,10 +229,10 @@ describe("Webhook Payload Structure", () => {
 
 		expect(slackPayload).toHaveProperty("text");
 		expect(slackPayload).toHaveProperty("attachments");
-		expect(slackPayload.attachments[0]).toHaveProperty("color");
-		expect(slackPayload.attachments[0]).toHaveProperty("fields");
-		expect(Array.isArray(slackPayload.attachments[0].fields)).toBe(true);
-		expect(slackPayload.attachments[0].fields).toHaveLength(4);
+		expect(slackPayload.attachments[0]!).toHaveProperty("color");
+		expect(slackPayload.attachments[0]!).toHaveProperty("fields");
+		expect(Array.isArray(slackPayload.attachments[0]!.fields)).toBe(true);
+		expect(slackPayload.attachments[0]!.fields).toHaveLength(4);
 	});
 
 	test("should have correct n8n payload structure", () => {
