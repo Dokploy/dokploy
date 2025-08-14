@@ -1,4 +1,3 @@
-import type { z } from "zod";
 import type { Webhook } from "@dokploy/server/db/schema";
 
 export type DeploymentEvent = 
