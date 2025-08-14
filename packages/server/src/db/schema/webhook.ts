@@ -11,9 +11,12 @@ export const webhooks = pgTable("webhook", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	applicationId: text("applicationId").references(() => applications.applicationId, {
-		onDelete: "cascade",
-	}),
+	applicationId: text("applicationId").references(
+		() => applications.applicationId,
+		{
+			onDelete: "cascade",
+		},
+	),
 	composeId: text("composeId").references(() => compose.composeId, {
 		onDelete: "cascade",
 	}),
@@ -71,7 +74,7 @@ export const webhookDeliveriesRelations = relations(
 			fields: [webhookDeliveries.webhookId],
 			references: [webhooks.webhookId],
 		}),
-	})
+	}),
 );
 
 // Schemas
@@ -84,7 +87,7 @@ const createWebhookSchema = createInsertSchema(webhooks, {
 				"deployment.success",
 				"deployment.failed",
 				"deployment.cancelled",
-			])
+			]),
 		)
 		.min(1, "At least one event must be selected"),
 	templateType: z.enum(["slack", "n8n", "generic"]).default("generic"),
@@ -106,7 +109,7 @@ export const apiCreateWebhook = createWebhookSchema
 	})
 	.refine(
 		(data) => data.applicationId || data.composeId,
-		"Either applicationId or composeId must be provided"
+		"Either applicationId or composeId must be provided",
 	);
 
 export const apiUpdateWebhook = createWebhookSchema

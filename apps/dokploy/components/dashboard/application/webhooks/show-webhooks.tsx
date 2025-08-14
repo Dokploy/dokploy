@@ -58,12 +58,12 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 	} = applicationId
 		? api.webhook.findByApplication.useQuery(
 				{ applicationId },
-				{ enabled: !!applicationId }
-		  )
+				{ enabled: !!applicationId },
+			)
 		: api.webhook.findByCompose.useQuery(
 				{ composeId: composeId! },
-				{ enabled: !!composeId }
-		  );
+				{ enabled: !!composeId },
+			);
 
 	const { mutateAsync: deleteWebhook } = api.webhook.delete.useMutation();
 	const { mutateAsync: testWebhook, isLoading: isTesting } =
@@ -136,7 +136,9 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 								<Webhook className="size-5" />
 								Webhook Management
 							</CardTitle>
-							<CardDescription>Configure webhooks for deployment notifications</CardDescription>
+							<CardDescription>
+								Configure webhooks for deployment notifications
+							</CardDescription>
 						</div>
 
 						<WebhookCreateModal
@@ -190,9 +192,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 											<TableCell>
 												<Badge
 													variant={
-														getTemplateBadgeColor(
-															webhook.templateType
-														) as any
+														getTemplateBadgeColor(webhook.templateType) as any
 													}
 												>
 													{webhook.templateType}
@@ -203,9 +203,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 													{(webhook.events as string[]).map((event) => (
 														<Badge
 															key={event}
-															variant={
-																getEventBadgeColor(event) as any
-															}
+															variant={getEventBadgeColor(event) as any}
 															className="text-xs"
 														>
 															{event.replace("deployment.", "")}
@@ -266,9 +264,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 														<DialogAction
 															title="Delete"
 															description={`Are you sure you want to delete the webhook "${webhook.name}"?`}
-															onClick={() =>
-																handleDelete(webhook.webhookId)
-															}
+															onClick={() => handleDelete(webhook.webhookId)}
 														>
 															<DropdownMenuItem
 																onSelect={(e) => e.preventDefault()}

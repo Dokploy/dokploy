@@ -101,33 +101,31 @@ export const webhookRouter = createTRPCRouter({
 			return webhooks;
 		}),
 
-	test: protectedProcedure
-		.input(apiTestWebhook)
-		.mutation(async ({ input }) => {
-			try {
-				await testWebhook(input.webhookId);
-				return { success: true, message: "Test webhook sent successfully" };
-			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `Failed to send test webhook: ${error instanceof Error ? error.message : "Unknown error"}`,
-					cause: error,
-				});
-			}
-		}),
+	test: protectedProcedure.input(apiTestWebhook).mutation(async ({ input }) => {
+		try {
+			await testWebhook(input.webhookId);
+			return { success: true, message: "Test webhook sent successfully" };
+		} catch (error) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Failed to send test webhook: ${error instanceof Error ? error.message : "Unknown error"}`,
+				cause: error,
+			});
+		}
+	}),
 
 	getDeliveries: protectedProcedure
 		.input(
 			z.object({
 				webhookId: z.string(),
 				limit: z.number().min(1).max(100).default(20),
-			})
+			}),
 		)
 		.query(async ({ input }) => {
 			try {
 				const deliveries = await getWebhookDeliveries(
 					input.webhookId,
-					input.limit
+					input.limit,
 				);
 				return deliveries;
 			} catch (error) {
@@ -144,22 +142,22 @@ export const webhookRouter = createTRPCRouter({
 		.input(
 			z.object({
 				webhookIds: z.array(z.string()),
-			})
+			}),
 		)
 		.mutation(async ({ input }) => {
 			try {
 				const results = await Promise.allSettled(
-					input.webhookIds.map((id) => deleteWebhook(id))
+					input.webhookIds.map((id) => deleteWebhook(id)),
 				);
-				
-				const failures = results.filter(r => r.status === "rejected");
+
+				const failures = results.filter((r) => r.status === "rejected");
 				if (failures.length > 0) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: `Failed to delete ${failures.length} webhook(s)`,
 					});
 				}
-				
+
 				return { success: true, deleted: input.webhookIds.length };
 			} catch (error) {
 				throw new TRPCError({
@@ -176,7 +174,7 @@ export const webhookRouter = createTRPCRouter({
 			z.object({
 				webhookId: z.string(),
 				enabled: z.boolean(),
-			})
+			}),
 		)
 		.mutation(async ({ input }) => {
 			try {
@@ -204,22 +202,33 @@ export const webhookRouter = createTRPCRouter({
 		.input(
 			z.object({
 				webhookId: z.string(),
-			})
+			}),
 		)
 		.query(async ({ input }) => {
 			try {
 				const deliveries = await getWebhookDeliveries(input.webhookId, 100);
-				
+
 				const stats = {
 					total: deliveries.length,
-					successful: deliveries.filter(d => d.statusCode && parseInt(d.statusCode) >= 200 && parseInt(d.statusCode) < 300).length,
-					failed: deliveries.filter(d => !d.statusCode || parseInt(d.statusCode) >= 400).length,
-					avgResponseTime: deliveries.length > 0
-						? deliveries.reduce((acc, d) => acc + (parseInt(d.responseTime || "0")), 0) / deliveries.length
-						: 0,
+					successful: deliveries.filter(
+						(d) =>
+							d.statusCode &&
+							parseInt(d.statusCode) >= 200 &&
+							parseInt(d.statusCode) < 300,
+					).length,
+					failed: deliveries.filter(
+						(d) => !d.statusCode || parseInt(d.statusCode) >= 400,
+					).length,
+					avgResponseTime:
+						deliveries.length > 0
+							? deliveries.reduce(
+									(acc, d) => acc + parseInt(d.responseTime || "0"),
+									0,
+								) / deliveries.length
+							: 0,
 					lastDelivery: deliveries[0]?.deliveredAt || null,
 				};
-				
+
 				return stats;
 			} catch (error) {
 				throw new TRPCError({
