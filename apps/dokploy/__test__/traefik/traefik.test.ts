@@ -121,6 +121,7 @@ const baseDomain: Domain = {
 	previewDeploymentId: "",
 	internalPath: "/",
 	stripPath: false,
+	isWildcard: false,
 };
 
 const baseRedirect: Redirect = {
@@ -250,4 +251,106 @@ test("CertificateType on websecure entrypoint", async () => {
 	);
 
 	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+/** Wildcard Domain Tests */
+
+test("Web entrypoint with wildcard domain", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "*.example.com", isWildcard: true },
+		"web",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`)");
+	expect(router.middlewares).not.toContain("redirect-to-https");
+});
+
+test("Websecure entrypoint with wildcard domain", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "*.example.com", https: true, isWildcard: true },
+		"websecure",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`)");
+	expect(router.middlewares).not.toContain("redirect-to-https");
+});
+
+test("Wildcard domain with custom path", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "*.example.com", path: "/api", isWildcard: true },
+		"web",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`) && PathPrefix(`/api`)");
+});
+
+test("Complex wildcard pattern", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "*-dev.api.example.com", isWildcard: true },
+		"web",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+-dev\\.api\\.example\\.com$`)");
+});
+
+test("Wildcard domain with HTTPS redirect on web entrypoint", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "*.example.com", https: true, isWildcard: true },
+		"web",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`)");
+	expect(router.middlewares).toContain("redirect-to-https");
+});
+
+test("Wildcard domain with Let's Encrypt certificate", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, host: "*.example.com", https: true, certificateType: "letsencrypt", isWildcard: true },
+		"websecure",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`)");
+	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+test("Wildcard domain with redirects on websecure entrypoint", async () => {
+	const router = await createRouterConfig(
+		{
+			...baseApp,
+			appName: "test",
+			redirects: [{ ...baseRedirect, uniqueConfigKey: 1 }],
+		},
+		{ ...baseDomain, host: "*.example.com", https: true, isWildcard: true },
+		"websecure",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`)");
+	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.middlewares).toContain("redirect-test-1");
+});
+
+test("Wildcard domain with multiple redirects", async () => {
+	const router = await createRouterConfig(
+		{
+			...baseApp,
+			appName: "test",
+			redirects: [
+				{ ...baseRedirect, uniqueConfigKey: 1 },
+				{ ...baseRedirect, uniqueConfigKey: 2 },
+			],
+		},
+		{ ...baseDomain, host: "*.example.com", https: false, isWildcard: true },
+		"web",
+	);
+
+	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`)");
+	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.middlewares).toContain("redirect-test-1");
+	expect(router.middlewares).toContain("redirect-test-2");
 });

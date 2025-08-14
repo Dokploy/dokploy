@@ -1,3 +1,18 @@
+import {
+	CheckCircle2,
+	ExternalLink,
+	GlobeIcon,
+	InfoIcon,
+	Loader2,
+	PenBoxIcon,
+	RefreshCw,
+	Server,
+	Trash2,
+	XCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,21 +30,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import {
-	CheckCircle2,
-	ExternalLink,
-	GlobeIcon,
-	InfoIcon,
-	Loader2,
-	PenBoxIcon,
-	RefreshCw,
-	Server,
-	Trash2,
-	XCircle,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 
@@ -270,6 +270,25 @@ export const ShowDomains = ({ id, type }: Props) => {
 
 												{/* Domain Details */}
 												<div className="flex flex-wrap gap-3">
+													{item.isWildcard && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge
+																		variant="outline"
+																		className="bg-purple-500/10 text-purple-500"
+																	>
+																		<GlobeIcon className="size-3 mr-1" />
+																		Wildcard
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Wildcard domain - matches any subdomain</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>

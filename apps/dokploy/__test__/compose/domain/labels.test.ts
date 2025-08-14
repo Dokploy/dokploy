@@ -21,6 +21,7 @@ describe("createDomainLabels", () => {
 		previewDeploymentId: "",
 		internalPath: "/",
 		stripPath: false,
+		isWildcard: false,
 	};
 
 	it("should create basic labels for web entrypoint", async () => {
@@ -238,6 +239,120 @@ describe("createDomainLabels", () => {
 		// But should reference the middlewares
 		expect(websecureLabels).toContain(
 			"traefik.http.routers.test-app-1-websecure.middlewares=stripprefix-test-app-1,addprefix-test-app-1",
+		);
+	});
+
+	it("should create wildcard labels for web entrypoint", async () => {
+		const wildcardDomain = {
+			...baseDomain,
+			host: "*.example.com",
+			isWildcard: true,
+		};
+		const labels = await createDomainLabels(appName, wildcardDomain, "web");
+		
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+\\.example\\.com$`)",
+			"traefik.http.routers.test-app-1-web.entrypoints=web",
+			"traefik.http.services.test-app-1-web.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-web.service=test-app-1-web",
+		]);
+	});
+
+	it("should create wildcard labels for websecure entrypoint", async () => {
+		const wildcardDomain = {
+			...baseDomain,
+			host: "*.example.com",
+			isWildcard: true,
+		};
+		const labels = await createDomainLabels(appName, wildcardDomain, "websecure");
+		
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-websecure.rule=HostRegexp(`^[^.]+\\.example\\.com$`)",
+			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",
+			"traefik.http.services.test-app-1-websecure.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-websecure.service=test-app-1-websecure",
+		]);
+	});
+
+	it("should add path prefix to wildcard domain rule", async () => {
+		const wildcardDomain = {
+			...baseDomain,
+			host: "*.example.com",
+			path: "/api",
+			isWildcard: true,
+		};
+		const labels = await createDomainLabels(appName, wildcardDomain, "web");
+		
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+\\.example\\.com$`) && PathPrefix(`/api`)",
+		);
+	});
+
+	it("should handle complex wildcard patterns", async () => {
+		const wildcardDomain = {
+			...baseDomain,
+			host: "*-dev.api.example.com",
+			isWildcard: true,
+		};
+		const labels = await createDomainLabels(appName, wildcardDomain, "web");
+		
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+-dev\\.api\\.example\\.com$`)",
+		);
+	});
+
+	it("should add HTTPS redirect for wildcard domains on web entrypoint", async () => {
+		const wildcardDomain = {
+			...baseDomain,
+			host: "*.example.com",
+			https: true,
+			isWildcard: true,
+		};
+		const labels = await createDomainLabels(appName, wildcardDomain, "web");
+		
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-web.middlewares=redirect-to-https@file",
+		);
+	});
+
+	it("should add Let's Encrypt configuration for wildcard websecure", async () => {
+		const wildcardDomain = {
+			...baseDomain,
+			host: "*.example.com",
+			https: true,
+			certificateType: "letsencrypt" as const,
+			isWildcard: true,
+		};
+		const labels = await createDomainLabels(appName, wildcardDomain, "websecure");
+		
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-websecure.tls.certresolver=letsencrypt",
+		);
+	});
+
+	it("should combine wildcard with all middlewares", async () => {
+		const wildcardDomain = {
+			...baseDomain,
+			host: "*.example.com",
+			https: true,
+			path: "/api",
+			stripPath: true,
+			internalPath: "/internal",
+			isWildcard: true,
+		};
+		const webLabels = await createDomainLabels(appName, wildcardDomain, "web");
+		
+		expect(webLabels).toContain(
+			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+\\.example\\.com$`) && PathPrefix(`/api`)",
+		);
+		expect(webLabels).toContain(
+			"traefik.http.middlewares.stripprefix-test-app-1.stripprefix.prefixes=/api",
+		);
+		expect(webLabels).toContain(
+			"traefik.http.middlewares.addprefix-test-app-1.addprefix.prefix=/internal",
+		);
+		expect(webLabels).toContain(
+			"traefik.http.routers.test-app-1-web.middlewares=redirect-to-https@file,stripprefix-test-app-1,addprefix-test-app-1",
 		);
 	});
 });
