@@ -42,3 +42,10 @@ yarn-error.log*
 
 
 .db
+cleanup.sh
+install.sh
+.claude
+.claude-flow
+.hive-mind
+.qodo
+commit-analyse-feature-deployment-webhooks.md
