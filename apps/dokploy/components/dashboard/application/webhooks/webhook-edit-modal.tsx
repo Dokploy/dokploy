@@ -76,7 +76,7 @@ export const WebhookEditModal = ({
 		? {
 				name: existingWebhook.name,
 				url: existingWebhook.url,
-				secret: existingWebhook.secret || "",
+				secret: existingWebhook.secret || undefined, // Keep undefined if no secret
 				templateType: existingWebhook.templateType as any,
 				customTemplate: existingWebhook.customTemplate || "",
 				events: existingWebhook.events as any,

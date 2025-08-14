@@ -122,7 +122,7 @@ export const WebhookForm = ({
 		defaultValues: initialData || {
 			name: "",
 			url: "",
-			secret: "",
+			secret: undefined, // Don't send secret unless user provides it
 			templateType: "generic",
 			customTemplate: "",
 			events: [],
@@ -188,7 +188,14 @@ export const WebhookForm = ({
 			{} as Record<string, string>,
 		);
 
-		await onSubmit({ ...values, headers });
+		// Clean up the secret field - only send if user provided a value
+		const cleanedValues = {
+			...values,
+			headers,
+			secret: values.secret?.trim() || undefined,
+		};
+
+		await onSubmit(cleanedValues);
 	};
 
 	return (

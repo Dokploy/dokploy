@@ -57,11 +57,7 @@ export interface WebhookEvent {
 
 // Webhook CRUD operations
 export const createWebhook = async (data: NewWebhook): Promise<Webhook> => {
-	// Generate secret if not provided
-	if (!data.secret) {
-		data.secret = crypto.randomBytes(32).toString("hex");
-	}
-
+	// Secret is optional - only set if user provides one
 	const result = await db.insert(webhooks).values(data).returning();
 	return result[0] as Webhook;
 };
