@@ -91,7 +91,7 @@ export const CreateServer = ({ stepper }: Props) => {
 		await mutateAsync({
 			name: data.name,
 			description: data.description || "",
-			ipAddress: data.ipAddress || "",
+			ipAddress: data.ipAddress?.trim() || "",
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
