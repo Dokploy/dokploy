@@ -249,7 +249,7 @@ describe("createDomainLabels", () => {
 			isWildcard: true,
 		};
 		const labels = await createDomainLabels(appName, wildcardDomain, "web");
-		
+
 		expect(labels).toEqual([
 			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+\\.example\\.com$`)",
 			"traefik.http.routers.test-app-1-web.entrypoints=web",
@@ -264,8 +264,12 @@ describe("createDomainLabels", () => {
 			host: "*.example.com",
 			isWildcard: true,
 		};
-		const labels = await createDomainLabels(appName, wildcardDomain, "websecure");
-		
+		const labels = await createDomainLabels(
+			appName,
+			wildcardDomain,
+			"websecure",
+		);
+
 		expect(labels).toEqual([
 			"traefik.http.routers.test-app-1-websecure.rule=HostRegexp(`^[^.]+\\.example\\.com$`)",
 			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",
@@ -282,7 +286,7 @@ describe("createDomainLabels", () => {
 			isWildcard: true,
 		};
 		const labels = await createDomainLabels(appName, wildcardDomain, "web");
-		
+
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+\\.example\\.com$`) && PathPrefix(`/api`)",
 		);
@@ -295,7 +299,7 @@ describe("createDomainLabels", () => {
 			isWildcard: true,
 		};
 		const labels = await createDomainLabels(appName, wildcardDomain, "web");
-		
+
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+-dev\\.api\\.example\\.com$`)",
 		);
@@ -309,7 +313,7 @@ describe("createDomainLabels", () => {
 			isWildcard: true,
 		};
 		const labels = await createDomainLabels(appName, wildcardDomain, "web");
-		
+
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-web.middlewares=redirect-to-https@file",
 		);
@@ -323,8 +327,12 @@ describe("createDomainLabels", () => {
 			certificateType: "letsencrypt" as const,
 			isWildcard: true,
 		};
-		const labels = await createDomainLabels(appName, wildcardDomain, "websecure");
-		
+		const labels = await createDomainLabels(
+			appName,
+			wildcardDomain,
+			"websecure",
+		);
+
 		expect(labels).toContain(
 			"traefik.http.routers.test-app-1-websecure.tls.certresolver=letsencrypt",
 		);
@@ -341,7 +349,7 @@ describe("createDomainLabels", () => {
 			isWildcard: true,
 		};
 		const webLabels = await createDomainLabels(appName, wildcardDomain, "web");
-		
+
 		expect(webLabels).toContain(
 			"traefik.http.routers.test-app-1-web.rule=HostRegexp(`^[^.]+\\.example\\.com$`) && PathPrefix(`/api`)",
 		);

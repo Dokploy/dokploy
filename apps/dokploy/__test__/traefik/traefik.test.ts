@@ -284,7 +284,9 @@ test("Wildcard domain with custom path", async () => {
 		"web",
 	);
 
-	expect(router.rule).toBe("HostRegexp(`^[^.]+\\.example\\.com$`) && PathPrefix(`/api`)");
+	expect(router.rule).toBe(
+		"HostRegexp(`^[^.]+\\.example\\.com$`) && PathPrefix(`/api`)",
+	);
 });
 
 test("Complex wildcard pattern", async () => {
@@ -311,7 +313,13 @@ test("Wildcard domain with HTTPS redirect on web entrypoint", async () => {
 test("Wildcard domain with Let's Encrypt certificate", async () => {
 	const router = await createRouterConfig(
 		baseApp,
-		{ ...baseDomain, host: "*.example.com", https: true, certificateType: "letsencrypt", isWildcard: true },
+		{
+			...baseDomain,
+			host: "*.example.com",
+			https: true,
+			certificateType: "letsencrypt",
+			isWildcard: true,
+		},
 		"websecure",
 	);
 
