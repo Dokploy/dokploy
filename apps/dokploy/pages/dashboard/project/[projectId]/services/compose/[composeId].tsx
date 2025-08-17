@@ -19,6 +19,7 @@ import { ShowDomains } from "@/components/dashboard/application/domains/show-dom
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
+import { ShowWebhooks } from "@/components/dashboard/application/webhooks/show-webhooks";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
 import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -58,7 +59,8 @@ type TabState =
 	| "deployments"
 	| "domains"
 	| "monitoring"
-	| "volumeBackups";
+	| "volumeBackups"
+	| "webhooks";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -218,6 +220,7 @@ const Service = (
 											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="webhooks">Webhooks</TabsTrigger>
 											<TabsTrigger value="volumeBackups">
 												Volume Backups
 											</TabsTrigger>
@@ -248,6 +251,11 @@ const Service = (
 									<TabsContent value="schedules">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowSchedules id={composeId} scheduleType="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="webhooks">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowWebhooks composeId={composeId} />
 										</div>
 									</TabsContent>
 									<TabsContent value="volumeBackups">
