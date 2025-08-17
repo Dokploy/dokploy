@@ -26,7 +26,7 @@ export const deploymentFunction = inngest.createFunction(
 				limit: 1,
 			},
 		],
-		retries: 1,
+		retries: 0,
 	},
 	{ event: "deployment/requested" },
 
