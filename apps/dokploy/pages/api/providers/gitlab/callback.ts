@@ -12,11 +12,11 @@ export default async function handler(
 	}
 
 	const gitlab = await findGitlabById(gitlabId as string);
-	const gitlabUrl = new URL(gitlab.gitlabUrl)
+	const gitlabUrl = new URL(gitlab.gitlabUrl);
 
 	const headers: HeadersInit = {
-		"Content-Type": "application/x-www-form-urlencoded"
-	}
+		"Content-Type": "application/x-www-form-urlencoded",
+	};
 
 	// In case of basic auth being present in the URL, we need to remove it from the URL
 	// and add it to the Authorization header.
@@ -24,13 +24,14 @@ export default async function handler(
 		headers.Authorization = `Basic ${Buffer.from(`${gitlabUrl.username}:${gitlabUrl.password}`).toString("base64")}`;
 	}
 
-	const url = (gitlabUrl.username && gitlabUrl.password)
-		? new URL(gitlabUrl, {
-			...gitlabUrl,
-			username: "",
-			password: "",
-		}).toString()
-		: gitlabUrl.toString();
+	const url =
+		gitlabUrl.username && gitlabUrl.password
+			? new URL(gitlabUrl, {
+					...gitlabUrl,
+					username: "",
+					password: "",
+				}).toString()
+			: gitlabUrl.toString();
 
 	const response = await fetch(`${url}/oauth/token`, {
 		method: "POST",
