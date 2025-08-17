@@ -139,7 +139,7 @@ const DialogContent = React.forwardRef<
 				<div
 					ref={contentRef}
 					className={cn(
-						"overflow-y-auto overflow-x-hidden flex-1 min-h-0 overscroll-contain",
+						"flex flex-col overflow-auto flex-1 min-h-0 overscroll-contain",
 						!hasPaddingOverride && "p-6",
 					)}
 				>
