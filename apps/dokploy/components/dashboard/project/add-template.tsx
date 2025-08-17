@@ -309,7 +309,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 							>
 								{templates?.map((template, idx) => (
 									<div
-										key={`${template.id}-${template.version || 'default'}-${idx}`}
+										key={`${template.id}-${template.version || "default"}-${idx}`}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",

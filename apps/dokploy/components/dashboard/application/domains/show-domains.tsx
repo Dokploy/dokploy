@@ -1,3 +1,18 @@
+import {
+	CheckCircle2,
+	ExternalLink,
+	GlobeIcon,
+	InfoIcon,
+	Loader2,
+	PenBoxIcon,
+	RefreshCw,
+	Server,
+	Trash2,
+	XCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,21 +30,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import {
-	CheckCircle2,
-	ExternalLink,
-	GlobeIcon,
-	InfoIcon,
-	Loader2,
-	PenBoxIcon,
-	RefreshCw,
-	Server,
-	Trash2,
-	XCircle,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 

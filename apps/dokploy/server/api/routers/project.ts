@@ -1,23 +1,4 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
 import {
-	apiCreateProject,
-	apiFindOneProject,
-	apiRemoveProject,
-	apiUpdateProject,
-	applications,
-	compose,
-	mariadb,
-	mongo,
-	mysql,
-	postgres,
-	projects,
-	redis,
-} from "@/server/db/schema";
-import { z } from "zod";
-
-import {
-	IS_CLOUD,
 	addNewProject,
 	checkProjectAccess,
 	createApplication,
@@ -46,11 +27,29 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
+	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
+import {
+	apiCreateProject,
+	apiFindOneProject,
+	apiRemoveProject,
+	apiUpdateProject,
+	applications,
+	compose,
+	mariadb,
+	mongo,
+	mysql,
+	postgres,
+	projects,
+	redis,
+} from "@/server/db/schema";
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure

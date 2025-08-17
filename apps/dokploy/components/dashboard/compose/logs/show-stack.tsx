@@ -1,3 +1,6 @@
+import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import { badgeStateColor } from "@/components/dashboard/application/logs/show";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,9 +22,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { Loader2 } from "lucide-react";
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 export const DockerLogs = dynamic(
 	() =>
 		import("@/components/dashboard/docker/logs/docker-logs-id").then(

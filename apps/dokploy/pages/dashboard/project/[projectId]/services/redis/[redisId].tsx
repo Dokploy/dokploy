@@ -1,3 +1,15 @@
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import { HelpCircle, ServerOff } from "lucide-react";
+import type {
+	GetServerSidePropsContext,
+	InferGetServerSidePropsType,
+} from "next";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useState } from "react";
+import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -32,18 +44,6 @@ import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle, ServerOff } from "lucide-react";
-import type {
-	GetServerSidePropsContext,
-	InferGetServerSidePropsType,
-} from "next";
-import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
-import superjson from "superjson";
 
 type TabState = "projects" | "monitoring" | "settings" | "advanced";
 

@@ -1,3 +1,14 @@
+import {
+	createRegistry,
+	execAsyncRemote,
+	execFileAsync,
+	findRegistryById,
+	IS_CLOUD,
+	removeRegistry,
+	updateRegistry,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import {
 	apiCreateRegistry,
@@ -7,17 +18,6 @@ import {
 	apiUpdateRegistry,
 	registry,
 } from "@/server/db/schema";
-import {
-	IS_CLOUD,
-	createRegistry,
-	execAsyncRemote,
-	execFileAsync,
-	findRegistryById,
-	removeRegistry,
-	updateRegistry,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure

@@ -1,6 +1,6 @@
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/router";
 
 export const AcceptInvitation = () => {
 	const { query } = useRouter();

@@ -1,5 +1,24 @@
 "use client";
 
+import copy from "copy-to-clipboard";
+import { format } from "date-fns";
+import {
+	Building2,
+	Calendar,
+	CheckIcon,
+	ChevronsUpDown,
+	Copy,
+	CreditCard,
+	Fingerprint,
+	Key,
+	Server,
+	Settings2,
+	Shield,
+	UserIcon,
+	XIcon,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Logo } from "@/components/shared/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -26,25 +45,6 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
-import { format } from "date-fns";
-import {
-	Building2,
-	Calendar,
-	CheckIcon,
-	ChevronsUpDown,
-	Copy,
-	CreditCard,
-	Fingerprint,
-	Key,
-	Server,
-	Settings2,
-	Shield,
-	UserIcon,
-	XIcon,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 type User = typeof authClient.$Infer.Session.user;
 

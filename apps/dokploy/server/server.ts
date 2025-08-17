@@ -1,19 +1,19 @@
 import http from "node:http";
-import { migration } from "@/server/db/migration";
 import {
-	IS_CLOUD,
 	createDefaultMiddlewares,
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
+	IS_CLOUD,
 	initCronJobs,
+	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
-	initializeNetwork,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
+import { migration } from "@/server/db/migration";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";

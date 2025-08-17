@@ -1,20 +1,3 @@
-import {
-	BitbucketIcon,
-	GiteaIcon,
-	GithubIcon,
-	GitlabIcon,
-} from "@/components/icons/data-tools-icons";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { useUrl } from "@/utils/hooks/use-url";
 import { formatDate } from "date-fns";
 import {
 	ExternalLinkIcon,
@@ -25,6 +8,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import {
+	BitbucketIcon,
+	GiteaIcon,
+	GithubIcon,
+	GitlabIcon,
+} from "@/components/icons/data-tools-icons";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
 import { AddGiteaProvider } from "./gitea/add-gitea-provider";
@@ -33,7 +34,6 @@ import { AddGithubProvider } from "./github/add-github-provider";
 import { EditGithubProvider } from "./github/edit-github-provider";
 import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
 import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
-import { Badge } from "@/components/ui/badge";
 
 export const ShowGitProviders = () => {
 	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();

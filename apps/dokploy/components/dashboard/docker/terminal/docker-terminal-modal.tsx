@@ -1,3 +1,5 @@
+import dynamic from "next/dynamic";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -9,8 +11,6 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import dynamic from "next/dynamic";
-import { useState } from "react";
 
 const Terminal = dynamic(
 	() => import("./docker-terminal").then((e) => e.DockerTerminal),

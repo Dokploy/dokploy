@@ -1,8 +1,8 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateGitea,
-	gitProvider,
 	gitea,
+	gitProvider,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
