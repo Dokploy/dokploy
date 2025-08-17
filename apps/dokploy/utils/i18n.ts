@@ -5,4 +5,19 @@ export function getLocale(cookies: NextApiRequestCookies) {
 	return locale;
 }
 
-export { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { serverSideTranslations as originalServerSideTranslations } from "next-i18next/serverSideTranslations";
+import { Languages } from "@/lib/languages";
+
+export const serverSideTranslations = (
+	locale: string,
+	namespaces = ["common"],
+) =>
+	originalServerSideTranslations(locale, namespaces, {
+		fallbackLng: "en",
+		keySeparator: false,
+		i18n: {
+			defaultLocale: "en",
+			locales: Object.values(Languages).map((language) => language.code),
+			localeDetection: false,
+		},
+	});

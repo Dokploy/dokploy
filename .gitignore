@@ -49,3 +49,8 @@ install.sh
 .hive-mind
 .qodo
 commit-analyse-feature-deployment-webhooks.md
+
+# Webhook documentation files (feature branch specific)
+apps/dokploy/components/dashboard/application/webhooks/webhook-templates/README.md
+docs/webhooks-implementation.md
+docs/webhooks-user-guide.md
