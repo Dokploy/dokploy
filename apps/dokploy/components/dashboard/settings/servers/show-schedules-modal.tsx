@@ -1,7 +1,7 @@
+import { useState } from "react";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 
 interface Props {
 	serverId: string;

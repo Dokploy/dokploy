@@ -141,7 +141,7 @@ services:
 					</form>
 				</Form>
 				<div className="flex justify-between flex-col lg:flex-row gap-2">
-					<div className="w-full flex flex-col lg:flex-row gap-4 items-end"></div>
+					<div className="w-full flex flex-col lg:flex-row gap-4 items-end" />
 					<Button
 						type="submit"
 						form="hook-form-save-compose-file"

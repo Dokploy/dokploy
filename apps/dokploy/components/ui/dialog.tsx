@@ -1,7 +1,7 @@
-import { cn } from "@/lib/utils";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 const DialogContext = React.createContext<{
 	onOpenChange?: (open: boolean) => void;
@@ -12,16 +12,30 @@ const Dialog = ({
 	onOpenChange,
 	open,
 	...props
-}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) => (
-	<DialogContext.Provider value={{ onOpenChange, open }}>
-		<DialogPrimitive.Root
-			open={open}
-			onOpenChange={onOpenChange}
-			{...props}
-			modal={false}
-		/>
-	</DialogContext.Provider>
-);
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>) => {
+	const [isOpened, setIsOpened] = React.useState(false); // for internal control
+
+	const handleOpenChange = (open: boolean) => {
+		if (onOpenChange) {
+			onOpenChange(open);
+		} else {
+			setIsOpened(open);
+		}
+	};
+
+	return (
+		<DialogContext.Provider
+			value={{ onOpenChange: handleOpenChange, open: open || isOpened }}
+		>
+			<DialogPrimitive.Root
+				open={open || isOpened}
+				onOpenChange={handleOpenChange}
+				{...props}
+				modal={false}
+			/>
+		</DialogContext.Provider>
+	);
+};
 Dialog.displayName = DialogPrimitive.Root.displayName;
 
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -37,7 +51,7 @@ const DialogOverlay = React.forwardRef<
 	<DialogPrimitive.Overlay
 		ref={ref}
 		className={cn(
-			"fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+			"fixed inset-0 z-50 bg-black/80 pointer-events-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
 			className,
 		)}
 		{...props}
@@ -61,7 +75,6 @@ const DialogContent = React.forwardRef<
 		const originalPaddingRight = body.style.paddingRight;
 		const originalOverflow = body.style.overflow;
 
-		body.style.overflow = "hidden";
 		if (scrollbarWidth > 0) {
 			body.style.paddingRight = `${scrollbarWidth}px`;
 		}
@@ -74,8 +87,21 @@ const DialogContent = React.forwardRef<
 
 	// Handle outside interactions properly with Command components
 	const handleInteractOutside = React.useCallback(
-		(_e: Event) => {
+		(event: Event | React.MouseEvent) => {
+			// Don't close when clicking inside popovers, dropdowns, or command components
+			const target = event.target as HTMLElement;
+			if (
+				target.closest("[data-radix-popper-content-wrapper]") ||
+				target.closest("[cmdk-root]") ||
+				target.closest("[data-radix-command-root]")
+			) {
+				event.preventDefault();
+				return;
+			}
+
 			if (onOpenChange) {
+				event.preventDefault();
+				event.stopPropagation();
 				onOpenChange(false);
 			}
 		},
@@ -96,7 +122,10 @@ const DialogContent = React.forwardRef<
 	return (
 		<DialogPortal>
 			{/* Custom overlay for modal=false - no click handler to avoid Command conflicts */}
-			<div className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+			<div
+				className="fixed inset-0 z-50 bg-black/80 pointer-events-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+				onClick={handleInteractOutside}
+			/>
 			<DialogPrimitive.Content
 				ref={ref}
 				className={cn(
@@ -104,26 +133,13 @@ const DialogContent = React.forwardRef<
 					"flex flex-col max-h-[90vh]",
 					className,
 				)}
-				onInteractOutside={(e) => {
-					const target = e.target as HTMLElement;
-					// Don't close when clicking inside popovers, dropdowns, or command components
-					if (
-						target.closest("[data-radix-popper-content-wrapper]") ||
-						target.closest("[cmdk-root]") ||
-						target.closest("[data-radix-command-root]")
-					) {
-						e.preventDefault();
-						return;
-					}
-					// Use our custom handler for modal=false behavior
-					handleInteractOutside(e);
-				}}
+				onInteractOutside={(event) => event.preventDefault()}
 				{...props}
 			>
 				<div
 					ref={contentRef}
 					className={cn(
-						"overflow-y-auto overflow-x-hidden flex-1 min-h-0 overscroll-contain",
+						"flex flex-col overflow-auto flex-1 min-h-0 overscroll-contain",
 						!hasPaddingOverride && "p-6",
 					)}
 				>

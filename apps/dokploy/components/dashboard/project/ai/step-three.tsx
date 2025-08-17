@@ -1,5 +1,5 @@
-import { CodeEditor } from "@/components/shared/code-editor";
 import ReactMarkdown from "react-markdown";
+import { CodeEditor } from "@/components/shared/code-editor";
 import type { StepProps } from "./step-two";
 
 export const StepThree = ({ templateInfo }: StepProps) => {

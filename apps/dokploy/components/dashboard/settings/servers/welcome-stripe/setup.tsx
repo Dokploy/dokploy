@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
 	type LogLine,
 	parseLogs,
@@ -23,7 +24,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { useState } from "react";
 import { EditScript } from "../edit-script";
 
 export const Setup = () => {

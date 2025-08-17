@@ -1,5 +1,4 @@
-import fs, { writeFileSync } from "node:fs";
-import { createReadStream } from "node:fs";
+import fs, { createReadStream, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";

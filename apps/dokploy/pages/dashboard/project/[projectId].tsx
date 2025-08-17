@@ -1,7 +1,36 @@
+import type { findProjectById } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import {
+	Ban,
+	Check,
+	CheckCircle2,
+	ChevronsUpDown,
+	CircuitBoard,
+	FolderInput,
+	GlobeIcon,
+	Loader2,
+	PlusIcon,
+	Search,
+	ServerIcon,
+	Trash2,
+	X,
+} from "lucide-react";
+import type {
+	GetServerSidePropsContext,
+	InferGetServerSidePropsType,
+} from "next";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import superjson from "superjson";
+import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
 import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
+import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
@@ -16,9 +45,6 @@ import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
-
-import { AddAiAssistant } from "@/components/dashboard/project/add-ai-assistant";
-import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import {
 	Card,
 	CardContent,
@@ -67,33 +93,6 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import type { findProjectById } from "@dokploy/server";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import {
-	Ban,
-	Check,
-	CheckCircle2,
-	ChevronsUpDown,
-	CircuitBoard,
-	FolderInput,
-	GlobeIcon,
-	Loader2,
-	PlusIcon,
-	Search,
-	ServerIcon,
-	Trash2,
-	X,
-} from "lucide-react";
-import type {
-	GetServerSidePropsContext,
-	InferGetServerSidePropsType,
-} from "next";
-import Head from "next/head";
-import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import superjson from "superjson";
 
 export type Services = {
 	appName: string;

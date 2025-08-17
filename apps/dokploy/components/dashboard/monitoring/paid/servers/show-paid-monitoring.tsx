@@ -1,3 +1,5 @@
+import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
 	Select,
 	SelectContent,
@@ -6,8 +8,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { Clock, Cpu, HardDrive, Loader2, MemoryStick } from "lucide-react";
-import { useEffect, useState } from "react";
 import { CPUChart } from "./cpu-chart";
 import { DiskChart } from "./disk-chart";
 import { MemoryChart } from "./memory-chart";

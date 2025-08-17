@@ -1,12 +1,11 @@
-import { ShowRegistry } from "@/components/dashboard/settings/cluster/registry/show-registry";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-
-import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowRegistry } from "@/components/dashboard/settings/cluster/registry/show-registry";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { appRouter } from "@/server/api/root";
 
 const Page = () => {
 	return (

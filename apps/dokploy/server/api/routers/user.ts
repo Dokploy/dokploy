@@ -1,11 +1,11 @@
 import {
-	IS_CLOUD,
 	createApiKey,
 	findAdmin,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
 	getUserByToken,
+	IS_CLOUD,
 	removeUserById,
 	sendEmailNotification,
 	updateUser,
@@ -15,8 +15,8 @@ import {
 	account,
 	apiAssignPermissions,
 	apiFindOneToken,
-	apiUpdateUser,
 	apikey,
+	apiUpdateUser,
 	invitation,
 	member,
 } from "@dokploy/server/db/schema";

@@ -1,3 +1,5 @@
+import { Paintbrush } from "lucide-react";
+import { toast } from "sonner";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -11,8 +13,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
-import { Paintbrush } from "lucide-react";
-import { toast } from "sonner";
 
 interface Props {
 	id: string;

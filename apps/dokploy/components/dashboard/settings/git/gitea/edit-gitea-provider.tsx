@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -19,13 +26,6 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 import { getGiteaOAuthUrl } from "@/utils/gitea-utils";
 import { useUrl } from "@/utils/hooks/use-url";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon } from "lucide-react";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const formSchema = z.object({
 	name: z.string().min(1, "Name is required"),

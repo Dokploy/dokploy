@@ -1,3 +1,15 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	AlertTriangle,
+	Mail,
+	MessageCircleMore,
+	PenBoxIcon,
+	PlusIcon,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import {
 	DiscordIcon,
 	SlackIcon,
@@ -27,18 +39,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	AlertTriangle,
-	Mail,
-	MessageCircleMore,
-	PenBoxIcon,
-	PlusIcon,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {

@@ -1,7 +1,7 @@
-import { Logo } from "@/components/shared/logo";
-import { buttonVariants } from "@/components/ui/button";
 import type { NextPageContext } from "next";
 import Link from "next/link";
+import { Logo } from "@/components/shared/logo";
+import { buttonVariants } from "@/components/ui/button";
 
 interface Props {
 	statusCode: number;

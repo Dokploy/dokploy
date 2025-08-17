@@ -1,13 +1,13 @@
-import { ShowProjects } from "@/components/dashboard/projects/show";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { appRouter } from "@/server/api/root";
-import { api } from "@/utils/api";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import dynamic from "next/dynamic";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowProjects } from "@/components/dashboard/projects/show";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { appRouter } from "@/server/api/root";
+import { api } from "@/utils/api";
 
 const ShowWelcomeDokploy = dynamic(
 	() =>

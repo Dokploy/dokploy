@@ -1,3 +1,4 @@
+import { Settings } from "lucide-react";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,6 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { Settings } from "lucide-react";
 
 interface Props {
 	nodeId: string;

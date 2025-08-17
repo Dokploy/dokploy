@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Dices } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import type z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,15 +39,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { domain } from "@/server/db/validations/domain";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Dices } from "lucide-react";
-import type z from "zod";
+import { api } from "@/utils/api";
 
 type Domain = z.infer<typeof domain>;
 
