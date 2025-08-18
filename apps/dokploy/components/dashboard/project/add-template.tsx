@@ -80,6 +80,7 @@ interface Props {
 export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
+	const [popoverOpen, setPopoverOpen] = useState(false); // Neuer State für Popover
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
@@ -111,6 +112,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 			enabled: open,
 		},
 	);
+
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: tags, isLoading: isLoadingTags } = api.compose.getTags.useQuery(
@@ -119,8 +121,8 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 			enabled: open,
 		},
 	);
-	const utils = api.useUtils();
 
+	const utils = api.useUtils();
 	const [serverId, setServerId] = useState<string | undefined>(undefined);
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.deployTemplate.useMutation();
@@ -140,7 +142,14 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 	const hasServers = servers && servers.length > 0;
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={(newOpen) => {
+				if (!popoverOpen) {
+					setOpen(newOpen);
+				}
+			}}
+		>
 			<DialogTrigger className="w-full">
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
@@ -175,7 +184,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 									className="w-full sm:w-[300px]"
 									value={customBaseUrl || ""}
 								/>
-								<Popover modal={true}>
+								<Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
@@ -188,11 +197,17 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 												: selectedTags.length > 0
 													? `Selected ${selectedTags.length} tags`
 													: "Select tag"}
-
 											<ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className="p-0" align="start">
+									<PopoverContent
+										className="p-0"
+										align="start"
+										onInteractOutside={(e) => {
+											setPopoverOpen(false);
+											e.preventDefault();
+										}}
+									>
 										<Command>
 											<CommandInput
 												placeholder="Search tag..."
@@ -215,9 +230,12 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																	setSelectedTags(
 																		selectedTags.filter((t) => t !== tag),
 																	);
-																	return;
+																} else {
+																	setSelectedTags([...selectedTags, tag]);
 																}
-																setSelectedTags([...selectedTags, tag]);
+																setTimeout(() => {
+																	setPopoverOpen(true);
+																}, 0);
 															}}
 														>
 															{tag}
@@ -257,7 +275,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 									<Badge
 										key={tag}
 										variant="secondary"
-										className="cursor-pointer"
+										className="cursor-pointer hover:bg-secondary/80"
 										onClick={() =>
 											setSelectedTags(selectedTags.filter((t) => t !== tag))
 										}
@@ -265,6 +283,14 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 										{tag} ×
 									</Badge>
 								))}
+								<Button
+									size="sm"
+									variant="ghost"
+									onClick={() => setSelectedTags([])}
+									className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+								>
+									Clear all
+								</Button>
 							</div>
 						)}
 					</div>
