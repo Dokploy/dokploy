@@ -175,7 +175,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 									className="w-full sm:w-[300px]"
 									value={customBaseUrl || ""}
 								/>
-								<Popover modal={false}>
+								<Popover modal={true}>
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
