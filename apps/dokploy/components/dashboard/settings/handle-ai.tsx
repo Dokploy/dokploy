@@ -53,7 +53,6 @@ export const HandleAi = ({ aiId }: Props) => {
 	const utils = api.useUtils();
 	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
-	const [fetchModels, setFetchModels] = useState(false);
 	const { data, refetch } = api.ai.one.useQuery(
 		{
 			aiId: aiId || "",
@@ -90,6 +89,7 @@ export const HandleAi = ({ aiId }: Props) => {
 	const apiUrl = form.watch("apiUrl");
 	const apiKey = form.watch("apiKey");
 
+	const isOllama = apiUrl.includes(":11434") || apiUrl.includes("ollama");
 	const { data: models, isLoading: isLoadingServerModels } =
 		api.ai.getModels.useQuery(
 			{
@@ -97,17 +97,12 @@ export const HandleAi = ({ aiId }: Props) => {
 				apiKey: apiKey ?? "",
 			},
 			{
-				enabled: fetchModels,
+				enabled: !!apiUrl && (isOllama || !!apiKey),
 				onError: (error) => {
 					setError(`Failed to fetch models: ${error.message}`);
 				},
 			},
 		);
-	
-	useEffect(() => {
-		const isOllama = apiUrl.includes(":11434") || apiUrl.includes("ollama");
-		setFetchModels(!!apiUrl && isOllama || !!apiKey);
-	}, [apiUrl, apiKey]);
 
 	useEffect(() => {
 		const apiUrl = form.watch("apiUrl");
@@ -197,27 +192,29 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
-						<FormField
-							control={form.control}
-							name="apiKey"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>API Key</FormLabel>
-									<FormControl>
-										<Input
-											type="password"
-											placeholder="sk-..."
-											autoComplete="one-time-code"
-											{...field}
-										/>
-									</FormControl>
-									<FormDescription>
-										Your API key for authentication
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{!isOllama && (
+							<FormField
+								control={form.control}
+								name="apiKey"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Key</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="sk-..."
+												autoComplete="one-time-code"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Your API key for authentication
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						{isLoadingServerModels && (
 							<span className="text-sm text-muted-foreground">
