@@ -14,8 +14,7 @@ function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.cohere.ai")) return "cohere";
 	if (apiUrl.includes("api.perplexity.ai")) return "perplexity";
 	if (apiUrl.includes("api.mistral.ai")) return "mistral";
-	if (apiUrl.includes("localhost:11434") || apiUrl.includes("ollama"))
-		return "ollama";
+	if (apiUrl.includes(":11434") || apiUrl.includes("ollama")) return "ollama";
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
 	return "custom";
 }
