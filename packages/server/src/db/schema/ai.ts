@@ -32,7 +32,7 @@ export const aiRelations = relations(ai, ({ one }) => ({
 const createSchema = createInsertSchema(ai, {
 	name: z.string().min(1, { message: "Name is required" }),
 	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
-	apiKey: z.string().min(1, { message: "API Key is required" }),
+	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
 	isEnabled: z.boolean().optional(),
 });

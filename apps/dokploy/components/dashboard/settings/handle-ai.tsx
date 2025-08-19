@@ -38,7 +38,7 @@ import { api } from "@/utils/api";
 const Schema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
-	apiKey: z.string().min(1, { message: "API Key is required" }),
+	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
 	isEnabled: z.boolean(),
 });
@@ -53,6 +53,7 @@ export const HandleAi = ({ aiId }: Props) => {
 	const utils = api.useUtils();
 	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
+	const [fetchModels, setFetchModels] = useState(false);
 	const { data, refetch } = api.ai.one.useQuery(
 		{
 			aiId: aiId || "",
@@ -71,7 +72,7 @@ export const HandleAi = ({ aiId }: Props) => {
 			name: "",
 			apiUrl: "",
 			apiKey: "",
-			model: "gpt-3.5-turbo",
+			model: "",
 			isEnabled: true,
 		},
 	});
@@ -81,7 +82,7 @@ export const HandleAi = ({ aiId }: Props) => {
 			name: data?.name ?? "",
 			apiUrl: data?.apiUrl ?? "https://api.openai.com/v1",
 			apiKey: data?.apiKey ?? "",
-			model: data?.model ?? "gpt-3.5-turbo",
+			model: data?.model ?? "",
 			isEnabled: data?.isEnabled ?? true,
 		});
 	}, [aiId, form, data]);
@@ -96,12 +97,17 @@ export const HandleAi = ({ aiId }: Props) => {
 				apiKey: apiKey ?? "",
 			},
 			{
-				enabled: !!apiUrl && !!apiKey,
+				enabled: fetchModels,
 				onError: (error) => {
 					setError(`Failed to fetch models: ${error.message}`);
 				},
 			},
 		);
+	
+	useEffect(() => {
+		const isOllama = apiUrl.includes(":11434") || apiUrl.includes("ollama");
+		setFetchModels(!!apiUrl && isOllama || !!apiKey);
+	}, [apiUrl, apiKey]);
 
 	useEffect(() => {
 		const apiUrl = form.watch("apiUrl");

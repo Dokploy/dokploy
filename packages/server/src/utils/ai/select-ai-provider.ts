@@ -7,7 +7,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOllama } from "ollama-ai-provider";
 
-function getProviderName(apiUrl: string) {
+export function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.openai.com")) return "openai";
 	if (apiUrl.includes("azure.com")) return "azure";
 	if (apiUrl.includes("api.anthropic.com")) return "anthropic";
