@@ -60,6 +60,7 @@ export const domain = z
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		isWildcard: z.boolean().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -195,6 +196,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customCertResolver: undefined,
 			serviceName: undefined,
 			domainType: type,
+			isWildcard: false,
 		},
 		mode: "onChange",
 	});
@@ -216,6 +218,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				isWildcard: data?.isWildcard || false,
 			});
 		}
 
@@ -230,6 +233,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
+				isWildcard: false,
 			});
 		}
 	}, [form, data, isLoading, domainId]);
@@ -703,6 +707,28 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										)}
 									</>
 								)}
+
+								<FormField
+									control={form.control}
+									name="isWildcard"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Wildcard Domain</FormLabel>
+												<FormDescription>
+													Allow any subdomain to route to this application
+													(e.g., *-dev.dokploy.com)
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value || false}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
 							</div>
 						</div>
 					</form>

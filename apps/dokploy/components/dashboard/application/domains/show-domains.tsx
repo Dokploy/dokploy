@@ -270,6 +270,25 @@ export const ShowDomains = ({ id, type }: Props) => {
 
 												{/* Domain Details */}
 												<div className="flex flex-wrap gap-3">
+													{item.isWildcard && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge
+																		variant="outline"
+																		className="bg-purple-500/10 text-purple-500"
+																	>
+																		<GlobeIcon className="size-3 mr-1" />
+																		Wildcard
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Wildcard domain - matches any subdomain</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>
