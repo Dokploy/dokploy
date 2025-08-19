@@ -198,7 +198,12 @@ export const HandleAi = ({ aiId }: Props) => {
 								<FormItem>
 									<FormLabel>API Key</FormLabel>
 									<FormControl>
-										<Input type="password" placeholder="sk-..." {...field} />
+										<Input
+											type="password"
+											placeholder="sk-..."
+											autoComplete="one-time-code"
+											{...field}
+										/>
 									</FormControl>
 									<FormDescription>
 										Your API key for authentication
