@@ -40,6 +40,7 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -598,6 +599,13 @@ const Project = (
 		return sortServices(filtered);
 	}, [applications, searchQuery, selectedTypes, sortBy]);
 
+	const selectedServicesWithRunningStatus = useMemo(() => {
+		return filteredServices.filter(
+			(service) =>
+				selectedServices.includes(service.id) && service.status === "running",
+		);
+	}, [filteredServices, selectedServices]);
+
 	return (
 		<div>
 			<BreadcrumbSidebar
@@ -740,8 +748,34 @@ const Project = (
 														<>
 															<DialogAction
 																title="Delete Services"
-																description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+																description={
+																	<div className="space-y-3">
+																		<p>
+																			Are you sure you want to delete{" "}
+																			{selectedServices.length} services? This
+																			action cannot be undone.
+																		</p>
+																		{selectedServicesWithRunningStatus.length >
+																			0 && (
+																			<AlertBlock type="warning">
+																				Warning:{" "}
+																				{
+																					selectedServicesWithRunningStatus.length
+																				}{" "}
+																				of the selected services are currently
+																				running. Please stop these services
+																				first before deleting:{" "}
+																				{selectedServicesWithRunningStatus
+																					.map((s) => s.name)
+																					.join(", ")}
+																			</AlertBlock>
+																		)}
+																	</div>
+																}
 																type="destructive"
+																disabled={
+																	selectedServicesWithRunningStatus.length > 0
+																}
 																onClick={handleBulkDelete}
 															>
 																<Button
