@@ -5,7 +5,7 @@ import { createDeepInfra } from "@ai-sdk/deepinfra";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { createOllama } from "ollama-ai-provider";
+import { createOllama } from "ai-sdk-ollama";
 
 export function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.openai.com")) return "openai";
@@ -59,7 +59,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 		case "ollama":
 			return createOllama({
 				// optional settings, e.g.
-				baseURL: `${config.apiUrl}/api`,
+				baseURL: config.apiUrl,
 			});
 		case "deepinfra":
 			return createDeepInfra({
