@@ -225,6 +225,12 @@ export const HandleAi = ({ aiId }: Props) => {
 							</span>
 						)}
 
+						{!isLoadingServerModels && !models?.length && (
+							<span className="text-sm text-muted-foreground">
+								No models available
+							</span>
+						)}
+
 						{!isLoadingServerModels && models && models.length > 0 && (
 							<FormField
 								control={form.control}
