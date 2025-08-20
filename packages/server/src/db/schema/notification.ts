@@ -11,6 +11,7 @@ export const notificationType = pgEnum("notificationType", [
 	"discord",
 	"email",
 	"gotify",
+	"ntfy",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -42,6 +43,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
+		onDelete: "cascade",
+	}),
+	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -101,6 +105,18 @@ export const gotify = pgTable("gotify", {
 	decoration: boolean("decoration"),
 });
 
+export const ntfy = pgTable("ntfy", {
+	ntfyId: text("ntfyId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	serverUrl: text("serverUrl").notNull(),
+	topic: text("topic").notNull(),
+	accessToken: text("accessToken").notNull(),
+	priority: integer("priority").notNull().default(3),
+	decoration: boolean("decoration"),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -121,6 +137,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	gotify: one(gotify, {
 		fields: [notifications.gotifyId],
 		references: [gotify.gotifyId],
+	}),
+	ntfy: one(ntfy, {
+		fields: [notifications.ntfyId],
+		references: [ntfy.ntfyId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -284,6 +304,36 @@ export const apiTestGotifyConnection = apiCreateGotify
 		decoration: z.boolean().optional(),
 	});
 
+export const apiCreateNtfy = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+	})
+	.extend({
+		serverUrl: z.string().min(1),
+		topic: z.string().min(1),
+		accessToken: z.string().min(1),
+		priority: z.number().min(1),
+	})
+	.required();
+
+export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
+	notificationId: z.string().min(1),
+	ntfyId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestNtfyConnection = apiCreateNtfy.pick({
+	serverUrl: true,
+	topic: true,
+	accessToken: true,
+	priority: true,
+});
+
 export const apiFindOneNotification = notificationsSchema
 	.pick({
 		notificationId: true,
@@ -303,7 +353,9 @@ export const apiSendTest = notificationsSchema
 		password: z.string(),
 		toAddresses: z.array(z.string()),
 		serverUrl: z.string(),
+		topic: z.string(),
 		appToken: z.string(),
+		accessToken: z.string(),
 		priority: z.number(),
 	})
 	.partial();

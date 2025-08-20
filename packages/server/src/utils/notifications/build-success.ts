@@ -9,6 +9,7 @@ import {
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
+	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -43,11 +44,12 @@ export const sendBuildSuccessNotifications = async ({
 			telegram: true,
 			slack: true,
 			gotify: true,
+			ntfy: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy } = notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -123,6 +125,19 @@ export const sendBuildSuccessNotifications = async ({
 					`${decorate("❔", `Type: ${applicationType}`)}` +
 					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
 					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
+			);
+		}
+
+		if (ntfy) {
+			await sendNtfyNotification(
+				ntfy,
+				"Build Success",
+				"white_check_mark",
+				`view, Build details, ${buildLink}, clear=true;`,
+				`🛠Project: ${projectName}\n` +
+					`⚙️Application: ${applicationName}\n` +
+					`❔Type: ${applicationType}\n` +
+					`🕒Date: ${date.toLocaleString()}`,
 			);
 		}
 
