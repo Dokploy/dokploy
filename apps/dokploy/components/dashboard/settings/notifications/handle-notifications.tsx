@@ -944,7 +944,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="topic"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Server URL</FormLabel>
+													<FormLabel>Topic</FormLabel>
 													<FormControl>
 														<Input placeholder="deployments" {...field} />
 													</FormControl>
