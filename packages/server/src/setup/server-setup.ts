@@ -15,6 +15,7 @@ import {
 } from "@dokploy/server/setup/traefik-setup";
 import slug from "slugify";
 import { Client } from "ssh2";
+import { encodeBase64 } from "../utils/docker/utils";
 import { recreateDirectory } from "../utils/filesystem/directory";
 
 export const slugify = (text: string | undefined) => {
@@ -74,10 +75,7 @@ SYS_ARCH=$(uname -m)
 CURRENT_USER=$USER
 
 echo "Installing requirements for: OS: $OS_TYPE"
-if [ $EUID != 0 ]; then
-	echo "Please run this script as root or with sudo ❌"
-	exit
-fi
+
 
 # Check if the OS is manjaro, if so, change it to arch
 if [ "$OS_TYPE" = "manjaro" ] || [ "$OS_TYPE" = "manjaro-arm" ]; then
@@ -192,7 +190,15 @@ const installRequirements = async (
 	return new Promise<void>((resolve, reject) => {
 		client
 			.once("ready", () => {
-				const command = server.command || defaultCommand();
+				const base64Command = encodeBase64(server.command || defaultCommand());
+				const newCommand = `
+				echo "${base64Command}" | base64 -d > setup.sh
+				chmod +x setup.sh
+				sudo bash setup.sh
+				rm setup.sh
+				`;
+
+				const command = newCommand;
 				client.exec(command, (err, stream) => {
 					if (err) {
 						onData?.(err.message);
@@ -216,16 +222,16 @@ const installRequirements = async (
 				client.end();
 				if (err.level === "client-authentication") {
 					onData?.(
-						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+						"Authentication failed: Invalid SSH private key. ❌ Error: $err.message$err.level",
 					);
 					reject(
 						new Error(
-							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
+							"Authentication failed: Invalid SSH private key. ❌ Error: $err.message$err.level",
 						),
 					);
 				} else {
-					onData?.(`SSH connection error: ${err.message} ${err.level}`);
-					reject(new Error(`SSH connection error: ${err.message}`));
+					onData?.("SSH connection error: $err.message$err.level");
+					reject(new Error("SSH connection error: $err.message"));
 				}
 			})
 			.connect({
@@ -247,8 +253,8 @@ const setupDirectories = () => {
 	const chmodCommand = `chmod 700 "${SSH_PATH}"`;
 
 	const command = `
-	${createDirsCommand}
-	${chmodCommand}
+	$createDirsCommand
+	$chmodCommand
 	`;
 
 	return command;
@@ -526,6 +532,9 @@ const createTraefikConfig = () => {
 	const config = getDefaultServerTraefikConfig();
 
 	const command = `
+	# Create Traefik directories if they don't exist
+	mkdir -p /etc/dokploy/traefik/dynamic
+	
 	if [ -f "/etc/dokploy/traefik/dynamic/acme.json" ]; then
 		chmod 600 "/etc/dokploy/traefik/dynamic/acme.json"
 	fi
@@ -542,6 +551,9 @@ const createTraefikConfig = () => {
 const createDefaultMiddlewares = () => {
 	const config = getDefaultMiddlewares();
 	const command = `
+	# Ensure dynamic directory exists
+	mkdir -p /etc/dokploy/traefik/dynamic
+	
 	if [ -f "/etc/dokploy/traefik/dynamic/middlewares.yml" ]; then
 		echo "Middlewares config already exists ✅"
 	else
