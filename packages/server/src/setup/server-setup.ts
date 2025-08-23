@@ -144,6 +144,9 @@ ${installRClone()}
 echo -e "4. Installing Docker. "
 ${installDocker()}
 
+echo -e "4.1. Setting up Docker permissions"
+${setupDockerPermissions()}
+
 echo -e "5. Setting up Docker Swarm"
 ${setupSwarm()}
 
@@ -570,6 +573,49 @@ export const installRClone = () => `
 		curl https://rclone.org/install.sh | sudo bash
 		RCLONE_VERSION=$(rclone --version | head -n 1 | awk '{print $2}' | sed 's/^v//')
 		echo "RClone version $RCLONE_VERSION installed ✅"
+	fi
+`;
+
+const setupDockerPermissions = () => `
+	# Get the original user who ran sudo (if any)
+	ORIGINAL_USER=\${SUDO_USER:-\$USER}
+	
+	# Add user to docker group
+	if getent group docker > /dev/null 2>&1; then
+		if ! groups \$ORIGINAL_USER | grep -q docker; then
+			echo "Adding user \$ORIGINAL_USER to docker group..."
+			usermod -aG docker \$ORIGINAL_USER
+			echo "User \$ORIGINAL_USER added to docker group ✅"
+		else
+			echo "User \$ORIGINAL_USER already in docker group ✅"
+		fi
+	else
+		echo "Docker group not found, creating it..."
+		groupadd docker
+		usermod -aG docker \$ORIGINAL_USER
+		echo "Docker group created and user added ✅"
+	fi
+	
+	# Configure sudo to allow docker commands without password for the user
+	if [ "\$ORIGINAL_USER" != "root" ]; then
+		echo "Configuring passwordless sudo for Docker commands..."
+		echo "\$ORIGINAL_USER ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/local/bin/docker-compose" > /etc/sudoers.d/\$ORIGINAL_USER-docker
+		chmod 440 /etc/sudoers.d/\$ORIGINAL_USER-docker
+		echo "Docker sudo configuration completed ✅"
+	fi
+	
+	# Restart docker service to ensure group changes take effect
+	systemctl restart docker
+	echo "Docker service restarted ✅"
+	
+	# Create a configuration file to tell Dokploy to use sudo for Docker commands
+	if [ "\$ORIGINAL_USER" != "root" ]; then
+		echo "Creating Dokploy Docker configuration..."
+		mkdir -p /etc/dokploy/config
+		echo "USE_SUDO_FOR_DOCKER=true" > /etc/dokploy/config/docker.conf
+		echo "DOCKER_USER=\$ORIGINAL_USER" >> /etc/dokploy/config/docker.conf
+		chown -R \$ORIGINAL_USER:\$ORIGINAL_USER /etc/dokploy/config
+		echo "Dokploy Docker configuration created ✅"
 	fi
 `;
 
