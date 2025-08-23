@@ -10,6 +10,7 @@ import {
 	FolderInput,
 	GlobeIcon,
 	Loader2,
+	Play,
 	PlusIcon,
 	Search,
 	ServerIcon,
@@ -312,6 +313,7 @@ const Project = (
 		stop: api.compose.stop.useMutation(),
 		move: api.compose.move.useMutation(),
 		delete: api.compose.delete.useMutation(),
+		deploy: api.compose.deploy.useMutation(),
 	};
 
 	const applicationActions = {
@@ -319,6 +321,7 @@ const Project = (
 		stop: api.application.stop.useMutation(),
 		move: api.application.move.useMutation(),
 		delete: api.application.delete.useMutation(),
+		deploy: api.application.deploy.useMutation(),
 	};
 
 	const postgresActions = {
@@ -326,6 +329,7 @@ const Project = (
 		stop: api.postgres.stop.useMutation(),
 		move: api.postgres.move.useMutation(),
 		delete: api.postgres.remove.useMutation(),
+		deploy: api.postgres.deploy.useMutation(),
 	};
 
 	const mysqlActions = {
@@ -333,6 +337,7 @@ const Project = (
 		stop: api.mysql.stop.useMutation(),
 		move: api.mysql.move.useMutation(),
 		delete: api.mysql.remove.useMutation(),
+		deploy: api.mysql.deploy.useMutation(),
 	};
 
 	const mariadbActions = {
@@ -340,6 +345,7 @@ const Project = (
 		stop: api.mariadb.stop.useMutation(),
 		move: api.mariadb.move.useMutation(),
 		delete: api.mariadb.remove.useMutation(),
+		deploy: api.mariadb.deploy.useMutation(),
 	};
 
 	const redisActions = {
@@ -347,6 +353,7 @@ const Project = (
 		stop: api.redis.stop.useMutation(),
 		move: api.redis.move.useMutation(),
 		delete: api.redis.remove.useMutation(),
+		deploy: api.redis.deploy.useMutation(),
 	};
 
 	const mongoActions = {
@@ -354,6 +361,7 @@ const Project = (
 		stop: api.mongo.stop.useMutation(),
 		move: api.mongo.move.useMutation(),
 		delete: api.mongo.remove.useMutation(),
+		deploy: api.mongo.deploy.useMutation(),
 	};
 
 	const handleBulkStart = async () => {
@@ -586,6 +594,83 @@ const Project = (
 		setIsBulkActionLoading(false);
 	};
 
+	const handleBulkDeploy = async () => {
+		let success = 0;
+		let failed = 0;
+		setIsBulkActionLoading(true);
+
+		for (const serviceId of selectedServices) {
+			try {
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.deploy.mutateAsync({
+							applicationId: serviceId,
+						});
+						break;
+					case "compose":
+						await composeActions.deploy.mutateAsync({
+							composeId: serviceId,
+						});
+
+						break;
+					case "postgres":
+						await postgresActions.deploy.mutateAsync({
+							postgresId: serviceId,
+						});
+
+						break;
+					case "mysql":
+						await mysqlActions.deploy.mutateAsync({
+							mysqlId: serviceId,
+						});
+
+						break;
+					case "mariadb":
+						await mariadbActions.deploy.mutateAsync({
+							mariadbId: serviceId,
+						});
+
+						break;
+					case "redis":
+						await redisActions.deploy.mutateAsync({
+							redisId: serviceId,
+						});
+
+						break;
+					case "mongo":
+						await mongoActions.deploy.mutateAsync({
+							mongoId: serviceId,
+						});
+
+						break;
+				}
+				success++;
+			} catch (error) {
+				failed++;
+				toast.error(
+					`Error deploying service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		}
+		if (success > 0) {
+			toast.success(
+				`${success} service${success !== 1 ? "s" : ""} deployed successfully`,
+			);
+		}
+		if (failed > 0) {
+			toast.error(
+				`${failed} service${failed !== 1 ? "s" : ""} failed to deploy`,
+			);
+		}
+
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
+		setIsBulkActionLoading(false);
+	};
+
 	const filteredServices = useMemo(() => {
 		if (!applications) return [];
 		const filtered = applications.filter(
@@ -727,6 +812,24 @@ const Project = (
 														>
 															<CheckCircle2 className="mr-2 h-4 w-4" />
 															Start
+														</Button>
+													</DialogAction>
+													<DialogAction
+														title="Deploy Services"
+														description={`Are you sure you want to deploy ${selectedServices.length} service${selectedServices.length !== 1 ? "s" : ""}? This will redeploy/restart the selected services.`}
+														onClick={handleBulkDeploy}
+														type="default"
+														disabled={
+															selectedServices.length === 0 ||
+															isBulkActionLoading
+														}
+													>
+														<Button
+															variant="ghost"
+															className="w-full justify-start"
+														>
+															<Play className="mr-2 h-4 w-4" />
+															Deploy
 														</Button>
 													</DialogAction>
 													<DialogAction
