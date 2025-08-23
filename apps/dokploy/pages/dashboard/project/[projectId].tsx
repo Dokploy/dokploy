@@ -45,6 +45,7 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -289,6 +290,8 @@ const Project = (
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [selectedServices, setSelectedServices] = useState<string[]>([]);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+	const [deleteVolumes, setDeleteVolumes] = useState(false);
 
 	const handleSelectAll = () => {
 		if (selectedServices.length === filteredServices.length) {
@@ -524,7 +527,7 @@ const Project = (
 		setIsBulkActionLoading(false);
 	};
 
-	const handleBulkDelete = async () => {
+	const handleBulkDelete = async (deleteVolumes = false) => {
 		let success = 0;
 		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
@@ -541,7 +544,7 @@ const Project = (
 					case "compose":
 						await composeActions.delete.mutateAsync({
 							composeId: serviceId,
-							deleteVolumes: false,
+							deleteVolumes,
 						});
 						break;
 					case "postgres":
@@ -776,7 +779,7 @@ const Project = (
 																disabled={
 																	selectedServicesWithRunningStatus.length > 0
 																}
-																onClick={handleBulkDelete}
+																onClick={() => setIsBulkDeleteDialogOpen(true)}
 															>
 																<Button
 																	variant="ghost"
@@ -868,6 +871,113 @@ const Project = (
 																	}
 																>
 																	Move Services
+																</Button>
+															</DialogFooter>
+														</DialogContent>
+													</Dialog>
+
+													{/* Bulk Delete Dialog */}
+													<Dialog
+														open={isBulkDeleteDialogOpen}
+														onOpenChange={setIsBulkDeleteDialogOpen}
+													>
+														<DialogContent>
+															<DialogHeader>
+																<DialogTitle>Delete Services</DialogTitle>
+																<DialogDescription>
+																	Are you sure you want to delete{" "}
+																	{selectedServices.length} service
+																	{selectedServices.length !== 1 ? "s" : ""}?
+																	This action cannot be undone.
+																</DialogDescription>
+															</DialogHeader>
+
+															<div className="space-y-4">
+																{/* Show services to be deleted */}
+																<div className="max-h-40 overflow-y-auto space-y-2">
+																	{selectedServices.map((serviceId) => {
+																		const service = filteredServices.find(
+																			(s) => s.id === serviceId,
+																		);
+																		return service ? (
+																			<div
+																				key={serviceId}
+																				className="flex items-center space-x-2 text-sm"
+																			>
+																				<Badge variant="secondary">
+																					{service.type}
+																				</Badge>
+																				<span>{service.name}</span>
+																			</div>
+																		) : null;
+																	})}
+																</div>
+
+																{/* Volume deletion option for services that support it */}
+																{(() => {
+																	const servicesWithVolumeSupport =
+																		selectedServices.filter((serviceId) => {
+																			const service = filteredServices.find(
+																				(s) => s.id === serviceId,
+																			);
+																			// Currently only compose services support volume deletion
+																			return service?.type === "compose";
+																		});
+
+																	if (servicesWithVolumeSupport.length === 0)
+																		return null;
+
+																	return (
+																		<div className="space-y-2">
+																			<div className="flex items-center space-x-2">
+																				<Checkbox
+																					id="deleteVolumes"
+																					checked={deleteVolumes}
+																					onCheckedChange={(checked) =>
+																						setDeleteVolumes(checked === true)
+																					}
+																				/>
+																				<label
+																					htmlFor="deleteVolumes"
+																					className="text-sm font-medium"
+																				>
+																					Delete volumes associated with
+																					services
+																				</label>
+																			</div>
+																			<p className="text-xs text-muted-foreground">
+																				Volume deletion is available for:{" "}
+																				{servicesWithVolumeSupport.length}{" "}
+																				compose service
+																				{servicesWithVolumeSupport.length !== 1
+																					? "s"
+																					: ""}
+																			</p>
+																		</div>
+																	);
+																})()}
+															</div>
+
+															<DialogFooter>
+																<Button
+																	variant="outline"
+																	onClick={() => {
+																		setIsBulkDeleteDialogOpen(false);
+																		setDeleteVolumes(false); // Reset checkbox
+																	}}
+																>
+																	Cancel
+																</Button>
+																<Button
+																	variant="destructive"
+																	onClick={() => {
+																		handleBulkDelete(deleteVolumes);
+																		setIsBulkDeleteDialogOpen(false);
+																		setDeleteVolumes(false); // Reset checkbox
+																	}}
+																	isLoading={isBulkActionLoading}
+																>
+																	Delete Services
 																</Button>
 															</DialogFooter>
 														</DialogContent>
