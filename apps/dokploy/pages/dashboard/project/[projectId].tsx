@@ -46,6 +46,7 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
