@@ -55,8 +55,7 @@ const formSchema = z
 		cronExpression: z.string().min(1, "Cron expression is required"),
 		volumeName: z.string().min(1, "Volume name is required"),
 		prefix: z.string(),
-		keepLatestCount: z
-			.coerce
+		keepLatestCount: z.coerce
 			.number()
 			.int()
 			.gte(1, "Must be at least 1")
@@ -188,7 +187,8 @@ export const HandleVolumeBackups = ({
 				serviceType: volumeBackup.serviceType,
 			});
 			setKeepLatestCountInput(
-				volumeBackup.keepLatestCount !== null && volumeBackup.keepLatestCount !== undefined
+				volumeBackup.keepLatestCount !== null &&
+					volumeBackup.keepLatestCount !== undefined
 					? String(volumeBackup.keepLatestCount)
 					: "",
 			);
@@ -203,7 +203,7 @@ export const HandleVolumeBackups = ({
 		if (!id && !volumeBackupId) return;
 
 		const preparedKeepLatestCount =
-			keepLatestCountInput === "" ? null : values.keepLatestCount ?? null;
+			keepLatestCountInput === "" ? null : (values.keepLatestCount ?? null);
 
 		await mutateAsync({
 			...values,
