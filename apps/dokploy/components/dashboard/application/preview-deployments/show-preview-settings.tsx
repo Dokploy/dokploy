@@ -211,86 +211,90 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 											</FormItem>
 										)}
 									/>
-							        <FormField
-							        	control={form.control}
-							        	name="previewLabels"
-							        	render={({ field }) => (
-							        		<FormItem className="md:col-span-2">
-							        			<div className="flex items-center gap-2">
-							        				<FormLabel>Preview Labels</FormLabel>
-							        				<TooltipProvider>
-							        					<Tooltip>
-							        						<TooltipTrigger asChild>
-							        							<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-							        						</TooltipTrigger>
-							        						<TooltipContent>
-							        							<p>
-                                                                    Add a labels that will trigger a preview deployment
-                                                                    for a pull request. If no labels are specified, all
-                                                                    pull requests will trigger a preview deployment.
-							        							</p>
-							        						</TooltipContent>
-							        					</Tooltip>
-							        				</TooltipProvider>
-							        			</div>
-							        			<div className="flex flex-wrap gap-2 mb-2">
-							        				{field.value?.map((label, index) => (
-							        					<Badge
-							        						key={index}
-							        						variant="secondary"
-							        						className="flex items-center gap-1"
-							        					>
-							        						{label}
-							        						<X
-							        							className="size-3 cursor-pointer hover:text-destructive"
-							        							onClick={() => {
-							        								const newLabels = [...(field.value || [])];
-							        								newLabels.splice(index, 1);
-							        								field.onChange(newLabels);
-							        							}}
-							        						/>
-							        					</Badge>
-							        				))}
-							        			</div>
-							        			<div className="flex gap-2">
-							        				<FormControl>
-							        					<Input
-							        						placeholder="Enter a label (e.g. enhancements, needs-review)"
-							        						onKeyDown={(e) => {
-							        							if (e.key === "Enter") {
-							        								e.preventDefault();
-							        								const input = e.currentTarget;
-							        								const label = input.value.trim();
-							        								if (label) {
-							        									field.onChange([...(field.value || []), label]);
-							        									input.value = "";
-							        								}
-							        							}
-							        						}}
-							        					/>
-							        				</FormControl>
-							        				<Button
-							        					type="button"
-							        					variant="outline"
-							        					size="icon"
-							        					onClick={() => {
-							        						const input = document.querySelector(
-							        							'input[placeholder*="Enter a label"]',
-							        						) as HTMLInputElement;
-							        						const label = input.value.trim();
-							        						if (label) {
-							        							field.onChange([...(field.value || []), label]);
-							        							input.value = "";
-							        						}
-							        					}}
-							        				>
-							        					<Plus className="size-4" />
-							        				</Button>
-							        			</div>
-							        			<FormMessage />
-							        		</FormItem>
-							        	)}
-							        />
+									<FormField
+										control={form.control}
+										name="previewLabels"
+										render={({ field }) => (
+											<FormItem className="md:col-span-2">
+												<div className="flex items-center gap-2">
+													<FormLabel>Preview Labels</FormLabel>
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
+																<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>
+																	Add a labels that will trigger a preview
+																	deployment for a pull request. If no labels
+																	are specified, all pull requests will trigger
+																	a preview deployment.
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
+												<div className="flex flex-wrap gap-2 mb-2">
+													{field.value?.map((label, index) => (
+														<Badge
+															key={index}
+															variant="secondary"
+															className="flex items-center gap-1"
+														>
+															{label}
+															<X
+																className="size-3 cursor-pointer hover:text-destructive"
+																onClick={() => {
+																	const newLabels = [...(field.value || [])];
+																	newLabels.splice(index, 1);
+																	field.onChange(newLabels);
+																}}
+															/>
+														</Badge>
+													))}
+												</div>
+												<div className="flex gap-2">
+													<FormControl>
+														<Input
+															placeholder="Enter a label (e.g. enhancements, needs-review)"
+															onKeyDown={(e) => {
+																if (e.key === "Enter") {
+																	e.preventDefault();
+																	const input = e.currentTarget;
+																	const label = input.value.trim();
+																	if (label) {
+																		field.onChange([
+																			...(field.value || []),
+																			label,
+																		]);
+																		input.value = "";
+																	}
+																}
+															}}
+														/>
+													</FormControl>
+													<Button
+														type="button"
+														variant="outline"
+														size="icon"
+														onClick={() => {
+															const input = document.querySelector(
+																'input[placeholder*="Enter a label"]',
+															) as HTMLInputElement;
+															const label = input.value.trim();
+															if (label) {
+																field.onChange([...(field.value || []), label]);
+																input.value = "";
+															}
+														}}
+													>
+														<Plus className="size-4" />
+													</Button>
+												</div>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 									<FormField
 										control={form.control}
 										name="previewLimit"
