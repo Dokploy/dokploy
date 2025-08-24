@@ -1,5 +1,4 @@
-import { findAdmin } from "@dokploy/server";
-import { generateRandomPassword } from "@dokploy/server";
+import { findAdmin, generateRandomPassword } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { account } from "@dokploy/server/db/schema";
 import { eq } from "drizzle-orm";

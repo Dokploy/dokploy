@@ -1,5 +1,11 @@
-import { Button } from "@/components/ui/button";
+import { zodResolver, zodResolver } from "@hookform/resolvers/zod";
+import { HelpCircle, Plus, Settings2, Settings2, X } from "lucide-react";
+import { useEffect, useEffect, useState, useState } from "react";
+import { useForm, useForm } from "react-hook-form";
+import { toast, toast } from "sonner";
+import { z, z } from "zod";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -35,12 +41,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Plus, Settings2, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const schema = z
 	.object({

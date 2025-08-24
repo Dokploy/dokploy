@@ -1,6 +1,6 @@
 import { updateGitea } from "@dokploy/server";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { type Gitea, findGitea, redirectWithError } from "./helper";
+import { findGitea, type Gitea, redirectWithError } from "./helper";
 
 // Helper to parse the state parameter
 const parseState = (state: string): string | null => {

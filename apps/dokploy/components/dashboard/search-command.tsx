@@ -1,5 +1,8 @@
 "use client";
 
+import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import React from "react";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -18,13 +21,10 @@ import {
 } from "@/components/ui/command";
 import { authClient } from "@/lib/auth-client";
 import {
-	type Services,
 	extractServices,
+	type Services,
 } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
-import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
-import { useRouter } from "next/router";
-import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
 
 export const SearchCommand = () => {

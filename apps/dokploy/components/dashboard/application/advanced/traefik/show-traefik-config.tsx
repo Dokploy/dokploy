@@ -1,3 +1,4 @@
+import { File, Loader2 } from "lucide-react";
 import { CodeEditor } from "@/components/shared/code-editor";
 import {
 	Card,
@@ -7,8 +8,8 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { File, Loader2 } from "lucide-react";
 import { UpdateTraefikConfig } from "./update-traefik-config";
+
 interface Props {
 	applicationId: string;
 }

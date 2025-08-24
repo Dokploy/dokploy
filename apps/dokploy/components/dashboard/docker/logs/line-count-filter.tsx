@@ -1,3 +1,7 @@
+import { Command as CommandPrimitive } from "cmdk";
+import { debounce } from "lodash";
+import { CheckIcon, Hash } from "lucide-react";
+import React, { useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,10 +11,6 @@ import {
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Command as CommandPrimitive } from "cmdk";
-import { debounce } from "lodash";
-import { CheckIcon, Hash } from "lucide-react";
-import React, { useCallback, useRef } from "react";
 
 const lineCountOptions = [
 	{ label: "100 lines", value: 100 },

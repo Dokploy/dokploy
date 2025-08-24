@@ -1,4 +1,28 @@
+import {
+	addNewService,
+	checkServiceAccess,
+	createMount,
+	createMysql,
+	deployMySql,
+	findBackupsByDbId,
+	findMySqlById,
+	findProjectById,
+	IS_CLOUD,
+	rebuildDatabase,
+	removeMySqlById,
+	removeService,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
+	updateMySqlById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangeMySqlStatus,
 	apiCreateMySql,
@@ -11,33 +35,7 @@ import {
 	apiUpdateMySql,
 	mysql as mysqlTable,
 } from "@/server/db/schema";
-
-import { TRPCError } from "@trpc/server";
-
-import { db } from "@/server/db";
 import { cancelJobs } from "@/server/utils/backup";
-import {
-	IS_CLOUD,
-	addNewService,
-	checkServiceAccess,
-	createMount,
-	createMysql,
-	deployMySql,
-	findBackupsByDbId,
-	findMySqlById,
-	findProjectById,
-	rebuildDatabase,
-	removeMySqlById,
-	removeService,
-	startService,
-	startServiceRemote,
-	stopService,
-	stopServiceRemote,
-	updateMySqlById,
-} from "@dokploy/server";
-import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
-import { z } from "zod";
 
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure

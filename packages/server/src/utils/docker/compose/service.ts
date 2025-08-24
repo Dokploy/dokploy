@@ -6,6 +6,7 @@
 
 import _ from "lodash";
 import type { ComposeSpecification, DefinitionsService } from "../types";
+
 type DependsOnObject = NonNullable<
 	Exclude<DefinitionsService["depends_on"], string[]> extends infer T
 		? { [K in keyof T]: T[K] }

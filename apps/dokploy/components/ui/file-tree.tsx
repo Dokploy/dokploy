@@ -1,12 +1,12 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 // import { ScrollArea } from "@acme/components/ui/scroll-area";
 // import { cn } from "@acme/components/lib/utils";
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import React from "react";
 import useResizeObserver from "use-resize-observer";
+import { cn } from "@/lib/utils";
 import { ScrollArea } from "./scroll-area";
 
 interface TreeDataItem {

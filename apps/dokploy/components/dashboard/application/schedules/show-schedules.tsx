@@ -1,3 +1,12 @@
+import {
+	ClipboardList,
+	Clock,
+	Loader2,
+	Play,
+	Terminal,
+	Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,15 +24,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import {
-	ClipboardList,
-	Clock,
-	Loader2,
-	Play,
-	Terminal,
-	Trash2,
-} from "lucide-react";
-import { toast } from "sonner";
 import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 import { HandleSchedules } from "./handle-schedules";
 

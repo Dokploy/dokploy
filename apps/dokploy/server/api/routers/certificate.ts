@@ -1,19 +1,18 @@
+import {
+	createCertificate,
+	findCertificateById,
+	IS_CLOUD,
+	removeCertificateById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiCreateCertificate,
 	apiFindCertificate,
 	certificates,
 } from "@/server/db/schema";
-
-import { db } from "@/server/db";
-import {
-	IS_CLOUD,
-	createCertificate,
-	findCertificateById,
-	removeCertificateById,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 
 export const certificateRouter = createTRPCRouter({
 	create: adminProcedure

@@ -1,3 +1,4 @@
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
 	Card,
 	CardContent,
@@ -11,7 +12,6 @@ import {
 	ChartTooltip,
 } from "@/components/ui/chart";
 import { formatTimestamp } from "@/lib/utils";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 interface MemoryChartProps {
 	data: any[];

@@ -1,9 +1,4 @@
 import {
-	apiCreateSecurity,
-	apiFindOneSecurity,
-	apiUpdateSecurity,
-} from "@/server/db/schema";
-import {
 	createSecurity,
 	deleteSecurityById,
 	findApplicationById,
@@ -11,6 +6,11 @@ import {
 	updateSecurityById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import {
+	apiCreateSecurity,
+	apiFindOneSecurity,
+	apiUpdateSecurity,
+} from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const securityRouter = createTRPCRouter({
