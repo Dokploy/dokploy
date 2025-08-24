@@ -309,6 +309,7 @@ const createSchema = createInsertSchema(applications, {
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
+	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
 });
 
