@@ -1,3 +1,26 @@
+import {
+	addNewService,
+	checkServiceAccess,
+	createMariadb,
+	createMount,
+	deployMariadb,
+	findBackupsByDbId,
+	findMariadbById,
+	findProjectById,
+	IS_CLOUD,
+	rebuildDatabase,
+	removeMariadbById,
+	removeService,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
+	updateMariadbById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -13,29 +36,6 @@ import {
 	mariadb as mariadbTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
-import {
-	IS_CLOUD,
-	addNewService,
-	checkServiceAccess,
-	createMariadb,
-	createMount,
-	deployMariadb,
-	findBackupsByDbId,
-	findMariadbById,
-	findProjectById,
-	removeMariadbById,
-	removeService,
-	startService,
-	startServiceRemote,
-	stopService,
-	stopServiceRemote,
-	updateMariadbById,
-} from "@dokploy/server";
-import { rebuildDatabase } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
-import { z } from "zod";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMariaDB)

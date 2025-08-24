@@ -1,3 +1,5 @@
+import { Bell, Loader2, Mail, MessageCircleMore, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
 	DiscordIcon,
 	SlackIcon,
@@ -13,8 +15,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Bell, Loader2, Mail, MessageCircleMore, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { HandleNotifications } from "./handle-notifications";
 
 export const ShowNotifications = () => {

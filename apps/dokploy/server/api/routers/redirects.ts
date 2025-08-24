@@ -1,9 +1,4 @@
 import {
-	apiCreateRedirect,
-	apiFindOneRedirect,
-	apiUpdateRedirect,
-} from "@/server/db/schema";
-import {
 	createRedirect,
 	findApplicationById,
 	findRedirectById,
@@ -11,6 +6,11 @@ import {
 	updateRedirectById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import {
+	apiCreateRedirect,
+	apiFindOneRedirect,
+	apiUpdateRedirect,
+} from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const redirectsRouter = createTRPCRouter({

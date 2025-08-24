@@ -1,13 +1,3 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import {
-	apiCreateGitea,
-	apiFindGiteaBranches,
-	apiFindOneGitea,
-	apiGiteaTestConnection,
-	apiUpdateGitea,
-} from "@/server/db/schema";
-
-import { db } from "@/server/db";
 import {
 	createGitea,
 	findGiteaById,
@@ -15,11 +5,19 @@ import {
 	getGiteaRepositories,
 	haveGiteaRequirements,
 	testGiteaConnection,
-	updateGitProvider,
 	updateGitea,
+	updateGitProvider,
 } from "@dokploy/server";
-
 import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
+import {
+	apiCreateGitea,
+	apiFindGiteaBranches,
+	apiFindOneGitea,
+	apiGiteaTestConnection,
+	apiUpdateGitea,
+} from "@/server/db/schema";
 
 export const giteaRouter = createTRPCRouter({
 	create: protectedProcedure

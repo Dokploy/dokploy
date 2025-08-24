@@ -13,8 +13,7 @@ import { deployPostgres } from "@dokploy/server/services/postgres";
 import { deployRedis } from "@dokploy/server/services/redis";
 import { eq } from "drizzle-orm";
 import { removeService } from "../docker/utils";
-import { execAsyncRemote } from "../process/execAsync";
-import { execAsync } from "../process/execAsync";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 
 type DatabaseType = "postgres" | "mysql" | "mariadb" | "mongo" | "redis";
 

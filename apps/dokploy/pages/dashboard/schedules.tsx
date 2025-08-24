@@ -1,11 +1,12 @@
-import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { Card } from "@/components/ui/card";
-import { api } from "@/utils/api";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { Card } from "@/components/ui/card";
+import { api } from "@/utils/api";
+
 function SchedulesPage() {
 	const { data: user } = api.user.get.useQuery();
 	return (

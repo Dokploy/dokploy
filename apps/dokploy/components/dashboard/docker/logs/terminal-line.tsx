@@ -1,3 +1,5 @@
+import { FancyAnsi } from "fancy-ansi";
+import { escapeRegExp } from "lodash";
 import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
@@ -7,9 +9,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { FancyAnsi } from "fancy-ansi";
-import { escapeRegExp } from "lodash";
-import { type LogLine, getLogType } from "./utils";
+import { getLogType, type LogLine } from "./utils";
 
 interface LogLineProps {
 	log: LogLine;

@@ -1,6 +1,5 @@
-import esbuild from "esbuild";
-
 import dotenv, { type DotenvParseOutput } from "dotenv";
+import esbuild from "esbuild";
 
 const result = dotenv.config({ path: ".env.production" });
 

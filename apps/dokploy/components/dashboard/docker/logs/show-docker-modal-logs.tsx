@@ -1,3 +1,5 @@
+import dynamic from "next/dynamic";
+import type React from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -7,8 +9,6 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import dynamic from "next/dynamic";
-import type React from "react";
 export const DockerLogsId = dynamic(
 	() =>
 		import("@/components/dashboard/docker/logs/docker-logs-id").then(

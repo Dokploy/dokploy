@@ -1,11 +1,3 @@
-import { db } from "@/server/db";
-import {
-	apiFindAllByApplication,
-	apiFindAllByCompose,
-	apiFindAllByServer,
-	apiFindAllByType,
-	deployments,
-} from "@/server/db/schema";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -21,6 +13,14 @@ import {
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { db } from "@/server/db";
+import {
+	apiFindAllByApplication,
+	apiFindAllByCompose,
+	apiFindAllByServer,
+	apiFindAllByType,
+	deployments,
+} from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const deploymentRouter = createTRPCRouter({

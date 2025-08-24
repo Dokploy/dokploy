@@ -1,3 +1,5 @@
+import { Rss, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -9,9 +11,8 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Rss, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { HandlePorts } from "./handle-ports";
+
 interface Props {
 	applicationId: string;
 }
