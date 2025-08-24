@@ -273,6 +273,14 @@ export const prepareEnvironmentVariables = (
 				throw new Error(`Invalid project environment variable: project.${ref}`);
 			});
 		}
+
+		resolvedValue = resolvedValue.replace(/\$\{\{(.*?)\}\}/g, (_, ref) => {
+			if (serviceVars[ref] !== undefined) {
+				return serviceVars[ref];
+			}
+			throw new Error(`Invalid service environment variable: ${ref}`);
+		});
+
 		return `${key}=${resolvedValue}`;
 	});
 
