@@ -273,9 +273,8 @@ export const HandleVolumeBackups = ({
 			</DialogTrigger>
 			<DialogContent
 				className={cn(
-					"overflow-y-auto",
 					volumeBackupType === "compose" || volumeBackupType === "application"
-						? "max-h-[95vh] sm:max-w-2xl"
+						? "sm:max-w-2xl"
 						: " sm:max-w-lg",
 				)}
 			>
