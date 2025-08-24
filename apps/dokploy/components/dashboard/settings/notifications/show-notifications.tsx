@@ -88,6 +88,11 @@ export const ShowNotifications = () => {
 																	<MessageCircleMore className="size-6 text-muted-foreground" />
 																</div>
 															)}
+															{notification.notificationType === "ntfy" && (
+																<div className="flex  items-center justify-center rounded-lg ">
+																	<MessageCircleMore className="size-6 text-muted-foreground" />
+																</div>
+															)}
 
 															{notification.name}
 														</span>

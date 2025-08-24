@@ -8,6 +8,7 @@ import {
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
+	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -42,11 +43,12 @@ export const sendBuildErrorNotifications = async ({
 			telegram: true,
 			slack: true,
 			gotify: true,
+			ntfy: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy } = notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -129,6 +131,20 @@ export const sendBuildErrorNotifications = async ({
 					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
 					`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
 					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
+			);
+		}
+
+		if (ntfy) {
+			await sendNtfyNotification(
+				ntfy,
+				"Build Failed",
+				"warning",
+				`view, Build details, ${buildLink}, clear=true;`,
+				`🛠️Project: ${projectName}\n` +
+					`⚙️Application: ${applicationName}\n` +
+					`❔Type: ${applicationType}\n` +
+					`🕒Date: ${date.toLocaleString()}\n` +
+					`⚠️Error:\n${errorMessage}`,
 			);
 		}
 
