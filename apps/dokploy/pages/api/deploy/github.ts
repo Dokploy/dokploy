@@ -343,7 +343,9 @@ export default async function handler(
 		if (
 			action === "opened" ||
 			action === "synchronize" ||
-			action === "reopened"
+			action === "reopened" ||
+			action === "labeled" ||
+			action === "unlabeled"
 		) {
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
@@ -442,6 +444,19 @@ export default async function handler(
 			}
 
 			for (const app of secureApps) {
+				// check for labels
+				if (app?.previewLabels && app?.previewLabels?.length > 0) {
+					let hasLabel = false;
+					const labels = githubBody?.pull_request?.labels;
+					for (const label of labels) {
+						if (app?.previewLabels?.includes(label.name)) {
+							hasLabel = true;
+							break;
+						}
+					}
+					if (!hasLabel) continue;
+				}
+
 				const previewLimit = app?.previewLimit || 0;
 				if (app?.previewDeployments?.length > previewLimit) {
 					continue;
