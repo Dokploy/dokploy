@@ -70,7 +70,7 @@ export const findApplicationByPreview = async (applicationId: string) => {
 	if (!application) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: "Applicationnot found",
+			message: "Application not found",
 		});
 	}
 	return application;
@@ -78,35 +78,41 @@ export const findApplicationByPreview = async (applicationId: string) => {
 
 export const removePreviewDeployment = async (previewDeploymentId: string) => {
 	try {
-		const application = await findApplicationByPreview(previewDeploymentId);
 		const previewDeployment =
 			await findPreviewDeploymentById(previewDeploymentId);
-
-		const deployment = await db
-			.delete(previewDeployments)
-			.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
-			.returning();
+		const application = await findApplicationById(
+			previewDeployment.applicationId,
+		);
 
 		application.appName = previewDeployment.appName;
 		const cleanupOperations = [
 			async () =>
+				await removeService(application?.appName, application?.serverId),
+			async () =>
 				await removeDeploymentsByPreviewDeploymentId(
 					previewDeployment,
-					application.serverId,
+					application?.serverId,
 				),
 			async () =>
-				await removeDirectoryCode(application.appName, application.serverId),
+				await removeDirectoryCode(application?.appName, application?.serverId),
 			async () =>
-				await removeTraefikConfig(application.appName, application.serverId),
+				await removeTraefikConfig(application?.appName, application?.serverId),
 			async () =>
-				await removeService(application?.appName, application.serverId),
+				await db
+					.delete(previewDeployments)
+					.where(
+						eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+					)
+					.returning(),
 		];
 		for (const operation of cleanupOperations) {
 			try {
 				await operation();
-			} catch {}
+			} catch (error) {
+				console.error(error);
+			}
 		}
-		return deployment[0];
+		return previewDeployment;
 	} catch (error) {
 		const message =
 			error instanceof Error
