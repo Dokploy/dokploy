@@ -1,4 +1,14 @@
 import {
+	ClipboardList,
+	Database,
+	DatabaseBackup,
+	Play,
+	Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
@@ -22,16 +32,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import {
-	ClipboardList,
-	Database,
-	DatabaseBackup,
-	Play,
-	Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { ShowDeploymentsModal } from "../../application/deployments/show-deployments-modal";
 import { HandleBackup } from "./handle-backup";

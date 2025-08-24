@@ -1,7 +1,7 @@
 import { paths } from "@dokploy/server/constants";
 import { findAdmin } from "@dokploy/server/services/admin";
 import { updateUser } from "@dokploy/server/services/user";
-import { scheduleJob, scheduledJobs } from "node-schedule";
+import { scheduledJobs, scheduleJob } from "node-schedule";
 import { execAsync } from "../process/execAsync";
 
 const LOG_CLEANUP_JOB_NAME = "access-log-cleanup";

@@ -1,3 +1,7 @@
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useRouter } from "next/router";
+import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -8,10 +12,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
-import { useRouter } from "next/router";
-import { toast } from "sonner";
 import { DockerTerminalModal } from "../../settings/web-server/docker-terminal-modal";
 
 interface Props {

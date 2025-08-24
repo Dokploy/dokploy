@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
-
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -8,8 +8,6 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-import { Badge } from "@/components/ui/badge";
 import { ShowContainerConfig } from "../config/show-container-config";
 import { ShowDockerModalLogs } from "../logs/show-docker-modal-logs";
 import { DockerTerminalModal } from "../terminal/docker-terminal-modal";

@@ -1,12 +1,12 @@
-import { ShowCertificates } from "@/components/dashboard/settings/certificates/show-certificates";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-
-import { appRouter } from "@/server/api/root";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowCertificates } from "@/components/dashboard/settings/certificates/show-certificates";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { appRouter } from "@/server/api/root";
+
 const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">

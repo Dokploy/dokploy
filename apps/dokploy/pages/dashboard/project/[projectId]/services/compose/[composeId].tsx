@@ -49,6 +49,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
@@ -84,6 +85,7 @@ const Service = (
 
 	return (
 		<div className="pb-10">
+			<UseKeyboardNav forPage="compose" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },

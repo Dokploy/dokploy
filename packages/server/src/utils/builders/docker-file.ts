@@ -1,11 +1,11 @@
 import type { WriteStream } from "node:fs";
 import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
-import type { ApplicationNested } from ".";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
 } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
+import type { ApplicationNested } from ".";
 import { createEnvFile, createEnvFileCommand } from "./utils";
 
 export const buildCustomDocker = async (

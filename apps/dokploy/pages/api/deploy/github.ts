@@ -1,22 +1,22 @@
-import { db } from "@/server/db";
-import { applications, compose, github } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
 import {
-	IS_CLOUD,
 	checkUserRepositoryPermissions,
 	createPreviewDeployment,
 	createSecurityBlockedComment,
 	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
+	IS_CLOUD,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { db } from "@/server/db";
+import { applications, compose, github } from "@/server/db/schema";
+import type { DeploymentJob } from "@/server/queues/queue-types";
+import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
 
 export default async function handler(
@@ -343,7 +343,9 @@ export default async function handler(
 		if (
 			action === "opened" ||
 			action === "synchronize" ||
-			action === "reopened"
+			action === "reopened" ||
+			action === "labeled" ||
+			action === "unlabeled"
 		) {
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
@@ -442,6 +444,19 @@ export default async function handler(
 			}
 
 			for (const app of secureApps) {
+				// check for labels
+				if (app?.previewLabels && app?.previewLabels?.length > 0) {
+					let hasLabel = false;
+					const labels = githubBody?.pull_request?.labels;
+					for (const label of labels) {
+						if (app?.previewLabels?.includes(label.name)) {
+							hasLabel = true;
+							break;
+						}
+					}
+					if (!hasLabel) continue;
+				}
+
 				const previewLimit = app?.previewLimit || 0;
 				if (app?.previewDeployments?.length > previewLimit) {
 					continue;

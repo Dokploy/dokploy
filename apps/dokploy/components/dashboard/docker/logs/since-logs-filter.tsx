@@ -1,3 +1,4 @@
+import { CheckIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +15,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { CheckIcon } from "lucide-react";
 
 export type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
 

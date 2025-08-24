@@ -1,3 +1,11 @@
+import {
+	Activity,
+	Loader2,
+	Monitor,
+	Server,
+	Settings,
+	WorkflowIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,14 +16,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import {
-	Activity,
-	Loader2,
-	Monitor,
-	Server,
-	Settings,
-	WorkflowIcon,
-} from "lucide-react";
 import { NodeCard } from "./details/details-card";
 
 interface Props {

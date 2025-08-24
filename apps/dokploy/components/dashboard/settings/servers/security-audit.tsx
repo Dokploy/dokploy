@@ -1,3 +1,5 @@
+import { Loader2, LockKeyhole, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,8 +10,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Loader2, LockKeyhole, RefreshCw } from "lucide-react";
-import { useState } from "react";
 import { StatusRow } from "./gpu-support";
 
 interface Props {

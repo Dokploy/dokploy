@@ -6,6 +6,7 @@ const baseApp: ApplicationNested = {
 	railpackVersion: "0.2.2",
 	rollbackActive: false,
 	applicationId: "",
+	previewLabels: [],
 	herokuVersion: "",
 	giteaRepository: "",
 	giteaOwner: "",

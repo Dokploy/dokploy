@@ -1,3 +1,12 @@
+import { IS_CLOUD } from "@dokploy/server";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { GetServerSidePropsContext } from "next";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
@@ -13,15 +22,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { IS_CLOUD } from "@dokploy/server";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { GetServerSidePropsContext } from "next";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const loginSchema = z.object({
 	email: z

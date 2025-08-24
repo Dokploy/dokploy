@@ -1,3 +1,6 @@
+import { format } from "date-fns";
+import { Loader2, MoreHorizontal, Users } from "lucide-react";
+import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,10 +29,6 @@ import {
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import { format } from "date-fns";
-import { MoreHorizontal, Users } from "lucide-react";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { AddUserPermissions } from "./add-permissions";
 
 export const ShowUsers = () => {

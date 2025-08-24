@@ -1,4 +1,28 @@
+import {
+	addNewService,
+	checkServiceAccess,
+	createMount,
+	createRedis,
+	deployRedis,
+	findProjectById,
+	findRedisById,
+	IS_CLOUD,
+	rebuildDatabase,
+	removeRedisById,
+	removeService,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
+	updateRedisById,
+} from "@dokploy/server";
+
+import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
 import {
 	apiChangeRedisStatus,
 	apiCreateRedis,
@@ -11,31 +35,6 @@ import {
 	apiUpdateRedis,
 	redis as redisTable,
 } from "@/server/db/schema";
-
-import { TRPCError } from "@trpc/server";
-
-import { db } from "@/server/db";
-import {
-	IS_CLOUD,
-	addNewService,
-	checkServiceAccess,
-	createMount,
-	createRedis,
-	deployRedis,
-	findProjectById,
-	findRedisById,
-	removeRedisById,
-	removeService,
-	startService,
-	startServiceRemote,
-	stopService,
-	stopServiceRemote,
-	updateRedisById,
-} from "@dokploy/server";
-import { rebuildDatabase } from "@dokploy/server";
-import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
-import { z } from "zod";
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedis)

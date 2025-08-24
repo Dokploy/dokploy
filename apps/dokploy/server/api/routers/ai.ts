@@ -1,10 +1,3 @@
-import { slugify } from "@/lib/slug";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
-import { generatePassword } from "@/templates/utils";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import {
 	apiCreateAi,
@@ -26,11 +19,18 @@ import {
 	checkServiceAccess,
 } from "@dokploy/server/services/user";
 import {
-	type Model,
 	getProviderHeaders,
+	type Model,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { slugify } from "@/lib/slug";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
+import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
 	one: protectedProcedure

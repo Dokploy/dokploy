@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import Link from "next/link";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,13 +46,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
-import Link from "next/link";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const GithubProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),

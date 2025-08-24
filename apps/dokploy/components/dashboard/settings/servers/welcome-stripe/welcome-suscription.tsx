@@ -1,3 +1,18 @@
+import { defineStepper } from "@stepperize/react";
+import {
+	BookIcon,
+	Code2,
+	Database,
+	GitMerge,
+	Globe,
+	Plug,
+	Puzzle,
+	Users,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import React, { useEffect, useState } from "react";
+import ConfettiExplosion from "react-confetti-explosion";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -10,14 +25,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { defineStepper } from "@stepperize/react";
-import { BookIcon, Puzzle } from "lucide-react";
-import { Code2, Database, GitMerge, Globe, Plug, Users } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import React from "react";
-import ConfettiExplosion from "react-confetti-explosion";
 import { CreateServer } from "./create-server";
 import { CreateSSHKey } from "./create-ssh-key";
 import { Setup } from "./setup";
