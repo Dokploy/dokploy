@@ -27,6 +27,7 @@ if (typeof window === "undefined") {
 const baseApp: ApplicationNested = {
 	railpackVersion: "0.2.2",
 	applicationId: "",
+	previewLabels: [],
 	herokuVersion: "",
 	giteaBranch: "",
 	giteaBuildPath: "",
