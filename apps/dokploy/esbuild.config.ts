@@ -19,7 +19,6 @@ function prepareDefine(config: DotenvParseOutput | undefined) {
 
 const define = prepareDefine(result.parsed);
 
-console.log(define);
 try {
 	esbuild
 		.build({
