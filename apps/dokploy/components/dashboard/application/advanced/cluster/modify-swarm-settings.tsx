@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
 	Dialog,
 	DialogContent,
@@ -176,6 +177,7 @@ const addSwarmSettings = z.object({
 	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
 	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
 	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
+	stopGracePeriodSwarm: z.string().nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
@@ -255,6 +257,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				networkSwarm: data.networkSwarm
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
+				stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -275,6 +278,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			modeSwarm: data.modeSwarm,
 			labelsSwarm: data.labelsSwarm,
 			networkSwarm: data.networkSwarm,
+			stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -774,7 +778,51 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								</FormItem>
 							)}
 						/>
-
+						<FormField
+							control={form.control}
+							name="stopGracePeriodSwarm"
+							render={({ field }) => (
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+									<FormLabel>Stop Grace Period</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the format
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`Duration string format:
+• "30s" - 30 seconds
+• "2m" - 2 minutes  
+• "1h" - 1 hour
+• "0" - no grace period`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+									<FormControl>
+										<Input
+											placeholder="30s"
+											className="font-mono"
+											{...field}
+											value={field?.value || ""}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
 								isLoading={isLoading}

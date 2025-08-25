@@ -370,6 +370,7 @@ export const generateConfigContainer = (
 		replicas,
 		mounts,
 		networkSwarm,
+		stopGracePeriodSwarm,
 	} = application;
 
 	const haveMounts = mounts && mounts.length > 0;
@@ -420,6 +421,9 @@ export const generateConfigContainer = (
 						Order: "start-first",
 					},
 				}),
+		...(stopGracePeriodSwarm && {
+			StopGracePeriod: parseInt(stopGracePeriodSwarm, 10),
+		}),
 		...(networkSwarm
 			? {
 					Networks: networkSwarm,
