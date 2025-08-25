@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
+import { getQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 
 export default async function handler(
@@ -193,7 +193,8 @@ export default async function handler(
 				await deploy(jobData);
 				return true;
 			}
-			await myQueue.add(
+			const queue = getQueue(application.serverId);
+			await queue.add(
 				"deployments",
 				{ ...jobData },
 				{

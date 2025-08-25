@@ -1062,6 +1062,13 @@
           "notNull": true,
           "default": false
         },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "metricsConfig": {
           "name": "metricsConfig",
           "type": "jsonb",
@@ -4740,6 +4747,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'root'"
+        },
+        "buildsConcurrency": {
+          "name": "buildsConcurrency",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "appName": {
           "name": "appName",
