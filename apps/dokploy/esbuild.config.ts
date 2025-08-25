@@ -7,10 +7,6 @@ function prepareDefine(config: DotenvParseOutput | undefined) {
 	const define = {};
 	// @ts-ignore
 	for (const [key, value] of Object.entries(config)) {
-		// Skip DATABASE_URL to allow runtime environment variable override
-		if (key === "DATABASE_URL") {
-			continue;
-		}
 		// @ts-ignore
 		define[`process.env.${key}`] = JSON.stringify(value);
 	}
@@ -18,7 +14,6 @@ function prepareDefine(config: DotenvParseOutput | undefined) {
 }
 
 const define = prepareDefine(result.parsed);
-
 try {
 	esbuild
 		.build({

@@ -6,18 +6,14 @@ declare global {
 	var db: PostgresJsDatabase<typeof schema> | undefined;
 }
 
-const dbUrl =
-	process.env.DATABASE_URL ||
-	"postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
-
 export let db: PostgresJsDatabase<typeof schema>;
 if (process.env.NODE_ENV === "production") {
-	db = drizzle(postgres(dbUrl!), {
+	db = drizzle(postgres(process.env.DATABASE_URL!), {
 		schema,
 	});
 } else {
 	if (!global.db)
-		global.db = drizzle(postgres(dbUrl!), {
+		global.db = drizzle(postgres(process.env.DATABASE_URL!), {
 			schema,
 		});
 
