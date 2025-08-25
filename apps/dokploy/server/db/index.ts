@@ -5,7 +5,6 @@ import * as schema from "./schema";
 declare global {
 	var db: PostgresJsDatabase<typeof schema> | undefined;
 }
-
 const dbUrl =
 	process.env.DATABASE_URL ||
 	"postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
