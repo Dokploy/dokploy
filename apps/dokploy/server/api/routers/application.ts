@@ -54,7 +54,11 @@ import {
 	applications,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import {
+	addJobWithUserContext,
+	cleanQueuesByApplication,
+	myQueue,
+} from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
@@ -668,14 +672,7 @@ export const applicationRouter = createTRPCRouter({
 
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			await addJobWithUserContext({ ...jobData }, ctx.user.id);
 		}),
 
 	cleanQueues: protectedProcedure

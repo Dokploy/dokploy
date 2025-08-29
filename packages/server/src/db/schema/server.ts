@@ -48,6 +48,7 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
+	concurrency: integer("concurrency").notNull().default(1),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {

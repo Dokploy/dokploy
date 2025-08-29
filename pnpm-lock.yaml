@@ -280,9 +280,6 @@ importers:
       boxen:
         specifier: ^7.1.1
         version: 7.1.1
-      bullmq:
-        specifier: 5.4.2
-        version: 5.4.2
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -367,6 +364,9 @@ importers:
       otpauth:
         specifier: ^9.4.0
         version: 9.4.0
+      p-limit:
+        specifier: ^7.1.1
+        version: 7.1.1
       pino:
         specifier: 9.4.0
         version: 9.4.0
@@ -6411,6 +6411,10 @@ packages:
   p-limit@5.0.0:
     resolution: {integrity: sha512-/Eaoq+QyLSiXQ4lyYV23f14mZRQcXnxfHrN0vCai+ak9G0pp9iEQukIIZq5NccEvwRB8PUnZT0KsOoDCINS1qQ==}
     engines: {node: '>=18'}
+
+  p-limit@7.1.1:
+    resolution: {integrity: sha512-i8PyM2JnsNChVSYWLr2BAjNoLi0BAYC+wecOnZnVV+YSNJkzP7cWmvI34dk0WArWfH9KwBHNoZI3P3MppImlIA==}
+    engines: {node: '>=20'}
 
   p-locate@4.1.0:
     resolution: {integrity: sha512-R79ZZ/0wAxKGu3oYMlz8jy/kbhsNrS7SKZ7PxEHBgJ5+F2mtFW2fK2cOtBh1cHYkQsbzFV7I+EoRKe6Yt0oK7A==}
@@ -13866,6 +13870,10 @@ snapshots:
       yocto-queue: 1.2.1
 
   p-limit@5.0.0:
+    dependencies:
+      yocto-queue: 1.2.1
+
+  p-limit@7.1.1:
     dependencies:
       yocto-queue: 1.2.1
 

@@ -1,122 +1,58 @@
-import {
-	deployApplication,
-	deployCompose,
-	deployPreviewApplication,
-	deployRemoteApplication,
-	deployRemoteCompose,
-	deployRemotePreviewApplication,
-	rebuildApplication,
-	rebuildCompose,
-	rebuildRemoteApplication,
-	rebuildRemoteCompose,
-	updateApplicationStatus,
-	updateCompose,
-	updatePreviewDeployment,
-} from "@dokploy/server";
-import { type Job, Worker } from "bullmq";
-import type { DeploymentJob } from "./queue-types";
-import { redisConfig } from "./redis-connection";
+// This file is kept for backward compatibility but now uses the new service-queue system
+// The actual queue logic has been moved to service-queue.ts using p-limit
 
-export const deploymentWorker = new Worker(
-	"deployments",
-	async (job: Job<DeploymentJob>) => {
-		try {
-			if (job.data.applicationType === "application") {
-				await updateApplicationStatus(job.data.applicationId, "running");
+import { serviceQueueManager } from "./service-queue";
 
-				if (job.data.server) {
-					if (job.data.type === "redeploy") {
-						await rebuildRemoteApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "deploy") {
-						await deployRemoteApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					}
-				} else {
-					if (job.data.type === "redeploy") {
-						await rebuildApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "deploy") {
-						await deployApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					}
-				}
-			} else if (job.data.applicationType === "compose") {
-				await updateCompose(job.data.composeId, {
-					composeStatus: "running",
-				});
-
-				if (job.data.server) {
-					if (job.data.type === "redeploy") {
-						await rebuildRemoteCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "deploy") {
-						await deployRemoteCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					}
-				} else {
-					if (job.data.type === "deploy") {
-						await deployCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					} else if (job.data.type === "redeploy") {
-						await rebuildCompose({
-							composeId: job.data.composeId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-						});
-					}
-				}
-			} else if (job.data.applicationType === "application-preview") {
-				await updatePreviewDeployment(job.data.previewDeploymentId, {
-					previewStatus: "running",
-				});
-				if (job.data.server) {
-					if (job.data.type === "deploy") {
-						await deployRemotePreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
-						});
-					}
-				} else {
-					if (job.data.type === "deploy") {
-						await deployPreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
-						});
-					}
-				}
-			}
-		} catch (error) {
-			console.log("Error", error);
-		}
+// Legacy compatibility - this is no longer used but kept to avoid breaking imports
+export const deploymentWorker = {
+	run: async () => {
+		console.log(
+			"Legacy deploymentWorker.run() called - now using service-queue system",
+		);
+		// The service queue manager starts automatically, no need to do anything
+		return Promise.resolve();
 	},
-	{
-		autorun: false,
-		connection: redisConfig,
+	close: async () => {
+		console.log("Legacy deploymentWorker.close() called");
+		return Promise.resolve();
 	},
-);
+};
+
+// Legacy exports for backward compatibility
+export const getWorkersMap = () => {
+	console.warn(
+		"getWorkersMap() is deprecated - use serviceQueueManager instead",
+	);
+	return {};
+};
+
+export const getWorker = (_serverId?: string) => {
+	console.warn("getWorker() is deprecated - use serviceQueueManager instead");
+	return undefined;
+};
+
+export const createDeploymentWorker = (defaultConcurrency = 1) => {
+	console.warn(
+		"createDeploymentWorker() is deprecated - use serviceQueueManager instead",
+	);
+	serviceQueueManager.setGlobalConcurrency(defaultConcurrency);
+	return deploymentWorker;
+};
+
+export const createServerDeploymentWorker = (
+	_serverId: string,
+	_concurrency = 1,
+) => {
+	console.warn(
+		"createServerDeploymentWorker() is deprecated - use serviceQueueManager instead",
+	);
+	// The new system automatically creates queues per service, no need for explicit worker creation
+	return deploymentWorker;
+};
+
+export const removeServerDeploymentWorker = (serverId: string) => {
+	console.warn(
+		"removeServerDeploymentWorker() is deprecated - use removeServiceQueue instead",
+	);
+	serviceQueueManager.removeServiceQueue(serverId);
+};
