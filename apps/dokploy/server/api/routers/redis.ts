@@ -80,7 +80,7 @@ export const redisRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newRedis;
 			} catch (error) {
 				throw error;
 			}
