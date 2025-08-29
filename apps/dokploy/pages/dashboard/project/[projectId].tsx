@@ -10,6 +10,7 @@ import {
 	FolderInput,
 	GlobeIcon,
 	Loader2,
+	Play,
 	PlusIcon,
 	Search,
 	ServerIcon,
@@ -40,10 +41,12 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -288,6 +291,8 @@ const Project = (
 	const [openCombobox, setOpenCombobox] = useState(false);
 	const [selectedServices, setSelectedServices] = useState<string[]>([]);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+	const [deleteVolumes, setDeleteVolumes] = useState(false);
 
 	const handleSelectAll = () => {
 		if (selectedServices.length === filteredServices.length) {
@@ -311,6 +316,7 @@ const Project = (
 		stop: api.compose.stop.useMutation(),
 		move: api.compose.move.useMutation(),
 		delete: api.compose.delete.useMutation(),
+		deploy: api.compose.deploy.useMutation(),
 	};
 
 	const applicationActions = {
@@ -318,6 +324,7 @@ const Project = (
 		stop: api.application.stop.useMutation(),
 		move: api.application.move.useMutation(),
 		delete: api.application.delete.useMutation(),
+		deploy: api.application.deploy.useMutation(),
 	};
 
 	const postgresActions = {
@@ -325,6 +332,7 @@ const Project = (
 		stop: api.postgres.stop.useMutation(),
 		move: api.postgres.move.useMutation(),
 		delete: api.postgres.remove.useMutation(),
+		deploy: api.postgres.deploy.useMutation(),
 	};
 
 	const mysqlActions = {
@@ -332,6 +340,7 @@ const Project = (
 		stop: api.mysql.stop.useMutation(),
 		move: api.mysql.move.useMutation(),
 		delete: api.mysql.remove.useMutation(),
+		deploy: api.mysql.deploy.useMutation(),
 	};
 
 	const mariadbActions = {
@@ -339,6 +348,7 @@ const Project = (
 		stop: api.mariadb.stop.useMutation(),
 		move: api.mariadb.move.useMutation(),
 		delete: api.mariadb.remove.useMutation(),
+		deploy: api.mariadb.deploy.useMutation(),
 	};
 
 	const redisActions = {
@@ -346,6 +356,7 @@ const Project = (
 		stop: api.redis.stop.useMutation(),
 		move: api.redis.move.useMutation(),
 		delete: api.redis.remove.useMutation(),
+		deploy: api.redis.deploy.useMutation(),
 	};
 
 	const mongoActions = {
@@ -353,6 +364,7 @@ const Project = (
 		stop: api.mongo.stop.useMutation(),
 		move: api.mongo.move.useMutation(),
 		delete: api.mongo.remove.useMutation(),
+		deploy: api.mongo.deploy.useMutation(),
 	};
 
 	const handleBulkStart = async () => {
@@ -523,7 +535,7 @@ const Project = (
 		setIsBulkActionLoading(false);
 	};
 
-	const handleBulkDelete = async () => {
+	const handleBulkDelete = async (deleteVolumes = false) => {
 		let success = 0;
 		setIsBulkActionLoading(true);
 		for (const serviceId of selectedServices) {
@@ -540,7 +552,7 @@ const Project = (
 					case "compose":
 						await composeActions.delete.mutateAsync({
 							composeId: serviceId,
-							deleteVolumes: false,
+							deleteVolumes,
 						});
 						break;
 					case "postgres":
@@ -585,6 +597,83 @@ const Project = (
 		setIsBulkActionLoading(false);
 	};
 
+	const handleBulkDeploy = async () => {
+		let success = 0;
+		let failed = 0;
+		setIsBulkActionLoading(true);
+
+		for (const serviceId of selectedServices) {
+			try {
+				const service = filteredServices.find((s) => s.id === serviceId);
+				if (!service) continue;
+
+				switch (service.type) {
+					case "application":
+						await applicationActions.deploy.mutateAsync({
+							applicationId: serviceId,
+						});
+						break;
+					case "compose":
+						await composeActions.deploy.mutateAsync({
+							composeId: serviceId,
+						});
+
+						break;
+					case "postgres":
+						await postgresActions.deploy.mutateAsync({
+							postgresId: serviceId,
+						});
+
+						break;
+					case "mysql":
+						await mysqlActions.deploy.mutateAsync({
+							mysqlId: serviceId,
+						});
+
+						break;
+					case "mariadb":
+						await mariadbActions.deploy.mutateAsync({
+							mariadbId: serviceId,
+						});
+
+						break;
+					case "redis":
+						await redisActions.deploy.mutateAsync({
+							redisId: serviceId,
+						});
+
+						break;
+					case "mongo":
+						await mongoActions.deploy.mutateAsync({
+							mongoId: serviceId,
+						});
+
+						break;
+				}
+				success++;
+			} catch (error) {
+				failed++;
+				toast.error(
+					`Error deploying service ${serviceId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+				);
+			}
+		}
+		if (success > 0) {
+			toast.success(
+				`${success} service${success !== 1 ? "s" : ""} deployed successfully`,
+			);
+		}
+		if (failed > 0) {
+			toast.error(
+				`${failed} service${failed !== 1 ? "s" : ""} failed to deploy`,
+			);
+		}
+
+		setSelectedServices([]);
+		setIsDropdownOpen(false);
+		setIsBulkActionLoading(false);
+	};
+
 	const filteredServices = useMemo(() => {
 		if (!applications) return [];
 		const filtered = applications.filter(
@@ -597,6 +686,13 @@ const Project = (
 		);
 		return sortServices(filtered);
 	}, [applications, searchQuery, selectedTypes, sortBy]);
+
+	const selectedServicesWithRunningStatus = useMemo(() => {
+		return filteredServices.filter(
+			(service) =>
+				selectedServices.includes(service.id) && service.status === "running",
+		);
+	}, [filteredServices, selectedServices]);
 
 	return (
 		<div>
@@ -722,6 +818,24 @@ const Project = (
 														</Button>
 													</DialogAction>
 													<DialogAction
+														title="Deploy Services"
+														description={`Are you sure you want to deploy ${selectedServices.length} service${selectedServices.length !== 1 ? "s" : ""}? This will redeploy/restart the selected services.`}
+														onClick={handleBulkDeploy}
+														type="default"
+														disabled={
+															selectedServices.length === 0 ||
+															isBulkActionLoading
+														}
+													>
+														<Button
+															variant="ghost"
+															className="w-full justify-start"
+														>
+															<Play className="mr-2 h-4 w-4" />
+															Deploy
+														</Button>
+													</DialogAction>
+													<DialogAction
 														title="Stop Services"
 														description={`Are you sure you want to stop ${selectedServices.length} services?`}
 														type="destructive"
@@ -740,9 +854,35 @@ const Project = (
 														<>
 															<DialogAction
 																title="Delete Services"
-																description={`Are you sure you want to delete ${selectedServices.length} services? This action cannot be undone.`}
+																description={
+																	<div className="space-y-3">
+																		<p>
+																			Are you sure you want to delete{" "}
+																			{selectedServices.length} services? This
+																			action cannot be undone.
+																		</p>
+																		{selectedServicesWithRunningStatus.length >
+																			0 && (
+																			<AlertBlock type="warning">
+																				Warning:{" "}
+																				{
+																					selectedServicesWithRunningStatus.length
+																				}{" "}
+																				of the selected services are currently
+																				running. Please stop these services
+																				first before deleting:{" "}
+																				{selectedServicesWithRunningStatus
+																					.map((s) => s.name)
+																					.join(", ")}
+																			</AlertBlock>
+																		)}
+																	</div>
+																}
 																type="destructive"
-																onClick={handleBulkDelete}
+																disabled={
+																	selectedServicesWithRunningStatus.length > 0
+																}
+																onClick={() => setIsBulkDeleteDialogOpen(true)}
 															>
 																<Button
 																	variant="ghost"
@@ -834,6 +974,113 @@ const Project = (
 																	}
 																>
 																	Move Services
+																</Button>
+															</DialogFooter>
+														</DialogContent>
+													</Dialog>
+
+													{/* Bulk Delete Dialog */}
+													<Dialog
+														open={isBulkDeleteDialogOpen}
+														onOpenChange={setIsBulkDeleteDialogOpen}
+													>
+														<DialogContent>
+															<DialogHeader>
+																<DialogTitle>Delete Services</DialogTitle>
+																<DialogDescription>
+																	Are you sure you want to delete{" "}
+																	{selectedServices.length} service
+																	{selectedServices.length !== 1 ? "s" : ""}?
+																	This action cannot be undone.
+																</DialogDescription>
+															</DialogHeader>
+
+															<div className="space-y-4">
+																{/* Show services to be deleted */}
+																<div className="max-h-40 overflow-y-auto space-y-2">
+																	{selectedServices.map((serviceId) => {
+																		const service = filteredServices.find(
+																			(s) => s.id === serviceId,
+																		);
+																		return service ? (
+																			<div
+																				key={serviceId}
+																				className="flex items-center space-x-2 text-sm"
+																			>
+																				<span className="px-2 py-1 text-xs bg-secondary rounded">
+																					{service.type}
+																				</span>
+																				<span>{service.name}</span>
+																			</div>
+																		) : null;
+																	})}
+																</div>
+
+																{/* Volume deletion option for compose services */}
+																{(() => {
+																	const servicesWithVolumeSupport =
+																		selectedServices.filter((serviceId) => {
+																			const service = filteredServices.find(
+																				(s) => s.id === serviceId,
+																			);
+																			// Currently only compose services support volume deletion
+																			return service?.type === "compose";
+																		});
+
+																	if (servicesWithVolumeSupport.length === 0)
+																		return null;
+
+																	return (
+																		<div className="space-y-2">
+																			<div className="flex items-center space-x-2">
+																				<Checkbox
+																					id="deleteVolumes"
+																					checked={deleteVolumes}
+																					onCheckedChange={(checked) =>
+																						setDeleteVolumes(checked === true)
+																					}
+																				/>
+																				<label
+																					htmlFor="deleteVolumes"
+																					className="text-sm font-medium"
+																				>
+																					Delete volumes associated with
+																					services
+																				</label>
+																			</div>
+																			<p className="text-xs text-muted-foreground">
+																				Volume deletion is available for:{" "}
+																				{servicesWithVolumeSupport.length}{" "}
+																				compose service
+																				{servicesWithVolumeSupport.length !== 1
+																					? "s"
+																					: ""}
+																			</p>
+																		</div>
+																	);
+																})()}
+															</div>
+
+															<DialogFooter>
+																<Button
+																	variant="outline"
+																	onClick={() => {
+																		setIsBulkDeleteDialogOpen(false);
+																		setDeleteVolumes(false); // Reset checkbox
+																	}}
+																>
+																	Cancel
+																</Button>
+																<Button
+																	variant="destructive"
+																	onClick={() => {
+																		handleBulkDelete(deleteVolumes);
+																		setIsBulkDeleteDialogOpen(false);
+																		setDeleteVolumes(false); // Reset checkbox
+																	}}
+																	disabled={isBulkActionLoading}
+																>
+																	Delete Services
 																</Button>
 															</DialogFooter>
 														</DialogContent>

@@ -20,6 +20,7 @@ import {
 } from "@dokploy/server/services/user";
 import {
 	getProviderHeaders,
+	getProviderName,
 	type Model,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
@@ -47,11 +48,24 @@ export const aiRouter = createTRPCRouter({
 		}),
 
 	getModels: protectedProcedure
-		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string().min(1) }))
+		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
 			try {
+				const providerName = getProviderName(input.apiUrl);
 				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
-				const response = await fetch(`${input.apiUrl}/models`, { headers });
+				let response = null;
+				switch (providerName) {
+					case "ollama":
+						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
+						break;
+					default:
+						if (!input.apiKey)
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "API key must contain at least 1 character(s)",
+							});
+						response = await fetch(`${input.apiUrl}/models`, { headers });
+				}
 
 				if (!response.ok) {
 					const errorText = await response.text();
