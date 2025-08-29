@@ -708,7 +708,7 @@ export const settingsRouter = createTRPCRouter({
 	isCloud: publicProcedure.query(async () => {
 		return IS_CLOUD;
 	}),
-	isUserSubscribed: publicProcedure.query(async ({ ctx }) => {
+	isUserSubscribed: protectedProcedure.query(async ({ ctx }) => {
 		const haveServers = await db.query.server.findMany({
 			where: eq(server.organizationId, ctx.session?.activeOrganizationId || ""),
 		});
