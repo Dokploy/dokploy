@@ -130,14 +130,14 @@ export const serverRouter = createTRPCRouter({
 			orderBy: desc(server.createdAt),
 			where: IS_CLOUD
 				? and(
-					isNotNull(server.sshKeyId),
-					eq(server.organizationId, ctx.session.activeOrganizationId),
-					eq(server.serverStatus, "active"),
-				)
+						isNotNull(server.sshKeyId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
+						eq(server.serverStatus, "active"),
+					)
 				: and(
-					isNotNull(server.sshKeyId),
-					eq(server.organizationId, ctx.session.activeOrganizationId),
-				),
+						isNotNull(server.sshKeyId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
+					),
 		});
 		return result;
 	}),

@@ -244,7 +244,7 @@ export const applicationRouter = createTRPCRouter({
 			for (const operation of cleanupOperations) {
 				try {
 					await operation();
-				} catch (_) { }
+				} catch (_) {}
 			}
 
 			return result[0];
