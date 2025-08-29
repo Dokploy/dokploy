@@ -1,6 +1,6 @@
 {
-  "id": "edde8c54-b715-4db6-bc3a-85d435226083",
-  "prevId": "fdc95bd1-866c-4efd-9dce-20ed08f5b0b5",
+  "id": "5568024c-5daa-4554-a224-8a005a53f97c",
+  "prevId": "5883e786-525d-4828-ada1-e5ba723de5d7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -53,6 +53,12 @@
         "previewBuildArgs": {
           "name": "previewBuildArgs",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previewLabels": {
+          "name": "previewLabels",
+          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -110,6 +116,13 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
+        },
+        "previewRequireCollaboratorPermissions": {
+          "name": "previewRequireCollaboratorPermissions",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
         },
         "rollbackActive": {
           "name": "rollbackActive",
@@ -469,6 +482,13 @@
           "notNull": true,
           "default": "'nixpacks'"
         },
+        "railpackVersion": {
+          "name": "railpackVersion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0.2.2'"
+        },
         "herokuVersion": {
           "name": "herokuVersion",
           "type": "text",
@@ -759,6 +779,61 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "createdAt": {
           "name": "createdAt",
@@ -1209,6 +1284,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
+        },
+        "internalPath": {
+          "name": "internalPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'/'"
+        },
+        "stripPath": {
+          "name": "stripPath",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -1367,6 +1456,61 @@
           "notNull": true,
           "default": "'idle'"
         },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -1524,6 +1668,61 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "createdAt": {
           "name": "createdAt",
@@ -1701,6 +1900,61 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "createdAt": {
           "name": "createdAt",
@@ -2190,6 +2444,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "volumeBackupId": {
+          "name": "volumeBackupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2281,6 +2541,19 @@
           ],
           "columnsTo": [
             "rollbackId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_volumeBackupId_volume_backup_volumeBackupId_fk": {
+          "name": "deployment_volumeBackupId_volume_backup_volumeBackupId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "volume_backup",
+          "columnsFrom": [
+            "volumeBackupId"
+          ],
+          "columnsTo": [
+            "volumeBackupId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2833,6 +3106,14 @@
           "primaryKey": false,
           "notNull": true
         },
+        "publishMode": {
+          "name": "publishMode",
+          "type": "publishModeType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'host'"
+        },
         "targetPort": {
           "name": "targetPort",
           "type": "integer",
@@ -2970,6 +3251,61 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
+        },
+        "healthCheckSwarm": {
+          "name": "healthCheckSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "restartPolicySwarm": {
+          "name": "restartPolicySwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "placementSwarm": {
+          "name": "placementSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updateConfigSwarm": {
+          "name": "updateConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rollbackConfigSwarm": {
+          "name": "rollbackConfigSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modeSwarm": {
+          "name": "modeSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelsSwarm": {
+          "name": "labelsSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "networkSwarm": {
+          "name": "networkSwarm",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "replicas": {
+          "name": "replicas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
         "projectId": {
           "name": "projectId",
@@ -3235,6 +3571,13 @@
         },
         "isolatedDeployment": {
           "name": "isolatedDeployment",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "isolatedDeploymentsVolume": {
+          "name": "isolatedDeploymentsVolume",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -5621,6 +5964,247 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.volume_backup": {
+      "name": "volume_backup",
+      "schema": "",
+      "columns": {
+        "volumeBackupId": {
+          "name": "volumeBackupId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volumeName": {
+          "name": "volumeName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serviceType": {
+          "name": "serviceType",
+          "type": "serviceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'application'"
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serviceName": {
+          "name": "serviceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "turnOff": {
+          "name": "turnOff",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cronExpression": {
+          "name": "cronExpression",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keepLatestCount": {
+          "name": "keepLatestCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "postgresId": {
+          "name": "postgresId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mariadbId": {
+          "name": "mariadbId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mongoId": {
+          "name": "mongoId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mysqlId": {
+          "name": "mysqlId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "redisId": {
+          "name": "redisId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destinationId": {
+          "name": "destinationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "volume_backup_applicationId_application_applicationId_fk": {
+          "name": "volume_backup_applicationId_application_applicationId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_postgresId_postgres_postgresId_fk": {
+          "name": "volume_backup_postgresId_postgres_postgresId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "postgres",
+          "columnsFrom": [
+            "postgresId"
+          ],
+          "columnsTo": [
+            "postgresId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_mariadbId_mariadb_mariadbId_fk": {
+          "name": "volume_backup_mariadbId_mariadb_mariadbId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "mariadb",
+          "columnsFrom": [
+            "mariadbId"
+          ],
+          "columnsTo": [
+            "mariadbId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_mongoId_mongo_mongoId_fk": {
+          "name": "volume_backup_mongoId_mongo_mongoId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "mongo",
+          "columnsFrom": [
+            "mongoId"
+          ],
+          "columnsTo": [
+            "mongoId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_mysqlId_mysql_mysqlId_fk": {
+          "name": "volume_backup_mysqlId_mysql_mysqlId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "mysql",
+          "columnsFrom": [
+            "mysqlId"
+          ],
+          "columnsTo": [
+            "mysqlId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_redisId_redis_redisId_fk": {
+          "name": "volume_backup_redisId_redis_redisId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "redis",
+          "columnsFrom": [
+            "redisId"
+          ],
+          "columnsTo": [
+            "redisId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_composeId_compose_composeId_fk": {
+          "name": "volume_backup_composeId_compose_composeId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_destinationId_destination_destinationId_fk": {
+          "name": "volume_backup_destinationId_destination_destinationId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "destination",
+          "columnsFrom": [
+            "destinationId"
+          ],
+          "columnsTo": [
+            "destinationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -5714,6 +6298,14 @@
       "values": [
         "tcp",
         "udp"
+      ]
+    },
+    "public.publishModeType": {
+      "name": "publishModeType",
+      "schema": "public",
+      "values": [
+        "ingress",
+        "host"
       ]
     },
     "public.applicationStatus": {

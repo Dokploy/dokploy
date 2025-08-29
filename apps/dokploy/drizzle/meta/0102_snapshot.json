@@ -1,6 +1,6 @@
 {
-  "id": "edde8c54-b715-4db6-bc3a-85d435226083",
-  "prevId": "fdc95bd1-866c-4efd-9dce-20ed08f5b0b5",
+  "id": "218e3c9b-ef86-4665-98af-56d65282b73b",
+  "prevId": "69f87478-2c7c-4e43-ad98-7718bcd91259",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1209,6 +1209,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'none'"
+        },
+        "internalPath": {
+          "name": "internalPath",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'/'"
+        },
+        "stripPath": {
+          "name": "stripPath",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
@@ -2190,6 +2204,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "volumeBackupId": {
+          "name": "volumeBackupId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2281,6 +2301,19 @@
           ],
           "columnsTo": [
             "rollbackId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deployment_volumeBackupId_volume_backup_volumeBackupId_fk": {
+          "name": "deployment_volumeBackupId_volume_backup_volumeBackupId_fk",
+          "tableFrom": "deployment",
+          "tableTo": "volume_backup",
+          "columnsFrom": [
+            "volumeBackupId"
+          ],
+          "columnsTo": [
+            "volumeBackupId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2833,6 +2866,14 @@
           "primaryKey": false,
           "notNull": true
         },
+        "publishMode": {
+          "name": "publishMode",
+          "type": "publishModeType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'host'"
+        },
         "targetPort": {
           "name": "targetPort",
           "type": "integer",
@@ -3235,6 +3276,13 @@
         },
         "isolatedDeployment": {
           "name": "isolatedDeployment",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "isolatedDeploymentsVolume": {
+          "name": "isolatedDeploymentsVolume",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -5621,6 +5669,247 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.volume_backup": {
+      "name": "volume_backup",
+      "schema": "",
+      "columns": {
+        "volumeBackupId": {
+          "name": "volumeBackupId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volumeName": {
+          "name": "volumeName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serviceType": {
+          "name": "serviceType",
+          "type": "serviceType",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'application'"
+        },
+        "appName": {
+          "name": "appName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "serviceName": {
+          "name": "serviceName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "turnOff": {
+          "name": "turnOff",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cronExpression": {
+          "name": "cronExpression",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "keepLatestCount": {
+          "name": "keepLatestCount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "postgresId": {
+          "name": "postgresId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mariadbId": {
+          "name": "mariadbId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mongoId": {
+          "name": "mongoId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mysqlId": {
+          "name": "mysqlId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "redisId": {
+          "name": "redisId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destinationId": {
+          "name": "destinationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "volume_backup_applicationId_application_applicationId_fk": {
+          "name": "volume_backup_applicationId_application_applicationId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_postgresId_postgres_postgresId_fk": {
+          "name": "volume_backup_postgresId_postgres_postgresId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "postgres",
+          "columnsFrom": [
+            "postgresId"
+          ],
+          "columnsTo": [
+            "postgresId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_mariadbId_mariadb_mariadbId_fk": {
+          "name": "volume_backup_mariadbId_mariadb_mariadbId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "mariadb",
+          "columnsFrom": [
+            "mariadbId"
+          ],
+          "columnsTo": [
+            "mariadbId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_mongoId_mongo_mongoId_fk": {
+          "name": "volume_backup_mongoId_mongo_mongoId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "mongo",
+          "columnsFrom": [
+            "mongoId"
+          ],
+          "columnsTo": [
+            "mongoId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_mysqlId_mysql_mysqlId_fk": {
+          "name": "volume_backup_mysqlId_mysql_mysqlId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "mysql",
+          "columnsFrom": [
+            "mysqlId"
+          ],
+          "columnsTo": [
+            "mysqlId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_redisId_redis_redisId_fk": {
+          "name": "volume_backup_redisId_redis_redisId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "redis",
+          "columnsFrom": [
+            "redisId"
+          ],
+          "columnsTo": [
+            "redisId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_composeId_compose_composeId_fk": {
+          "name": "volume_backup_composeId_compose_composeId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "volume_backup_destinationId_destination_destinationId_fk": {
+          "name": "volume_backup_destinationId_destination_destinationId_fk",
+          "tableFrom": "volume_backup",
+          "tableTo": "destination",
+          "columnsFrom": [
+            "destinationId"
+          ],
+          "columnsTo": [
+            "destinationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -5714,6 +6003,14 @@
       "values": [
         "tcp",
         "udp"
+      ]
+    },
+    "public.publishModeType": {
+      "name": "publishModeType",
+      "schema": "public",
+      "values": [
+        "ingress",
+        "host"
       ]
     },
     "public.applicationStatus": {
