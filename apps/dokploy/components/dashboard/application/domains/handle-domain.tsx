@@ -160,6 +160,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
+	const { mutateAsync: reloadApplication } = api.application.reload.useMutation();
+	const { mutateAsync: redeployCompose } = api.compose.redeploy.useMutation();
+
 	const { data: canGenerateTraefikMeDomains } =
 		api.domain.canGenerateTraefikMeDomains.useQuery({
 			serverId: application?.serverId || "",
@@ -271,10 +274,14 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					await utils.application.readTraefikConfig.invalidate({
 						applicationId: id,
 					});
+					
+					await reloadApplication({ applicationId: id, appName: application?.appName || 'unknown' });
 				} else if (data.domainType === "compose") {
 					await utils.domain.byComposeId.invalidate({
 						composeId: id,
 					});
+					
+					await redeployCompose({ composeId: id });
 				}
 
 				if (domainId) {
