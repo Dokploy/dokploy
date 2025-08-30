@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, Database, HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -37,14 +43,14 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Database } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 type DbType = typeof mySchema._type.type;
 
@@ -162,6 +168,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const redisMutation = api.redis.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
+
+	const hasServers = servers && servers.length > 0;
 
 	const form = useForm<AddDatabase>({
 		defaultValues: {
@@ -374,45 +382,62 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								<FormField
-									control={form.control}
-									name="serverId"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Select a Server</FormLabel>
-											<Select
-												onValueChange={field.onChange}
-												defaultValue={field.value || ""}
-											>
-												<SelectTrigger>
-													<SelectValue placeholder="Select a Server" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectGroup>
-														{servers?.map((server) => (
-															<SelectItem
-																key={server.serverId}
-																value={server.serverId}
-															>
-																{server.name}
-															</SelectItem>
-														))}
-														<SelectLabel>
-															Servers ({servers?.length})
-														</SelectLabel>
-													</SelectGroup>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+								{hasServers && (
+									<FormField
+										control={form.control}
+										name="serverId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Select a Server</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value || ""}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a Server" />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectGroup>
+															{servers?.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+															<SelectLabel>
+																Servers ({servers?.length})
+															</SelectLabel>
+														</SelectGroup>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
 								<FormField
 									control={form.control}
 									name="appName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>App Name</FormLabel>
+											<FormLabel className="flex items-center gap-2">
+												App Name
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</TooltipTrigger>
+														<TooltipContent side="right">
+															<p>
+																This will be the name of the Docker Swarm
+																service
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</FormLabel>
 											<FormControl>
 												<Input placeholder="my-app" {...field} />
 											</FormControl>

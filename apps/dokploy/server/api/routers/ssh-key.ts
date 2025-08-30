@@ -1,3 +1,12 @@
+import {
+	createSshKey,
+	findSSHKeyById,
+	generateSSHKey,
+	removeSSHKeyById,
+	updateSSHKeyById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -8,15 +17,6 @@ import {
 	apiUpdateSshKey,
 	sshKeys,
 } from "@/server/db/schema";
-import {
-	createSshKey,
-	findSSHKeyById,
-	generateSSHKey,
-	removeSSHKeyById,
-	updateSSHKeyById,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
 
 export const sshRouter = createTRPCRouter({
 	create: protectedProcedure

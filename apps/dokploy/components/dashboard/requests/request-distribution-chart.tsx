@@ -1,11 +1,4 @@
 import {
-	type ChartConfig,
-	ChartContainer,
-	ChartTooltip,
-	ChartTooltipContent,
-} from "@/components/ui/chart";
-import { api } from "@/utils/api";
-import {
 	Area,
 	AreaChart,
 	CartesianGrid,
@@ -13,6 +6,13 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import {
+	type ChartConfig,
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@/components/ui/chart";
+import { api } from "@/utils/api";
 
 export interface RequestDistributionChartProps {
 	dateRange?: {

@@ -81,7 +81,7 @@ const getMongoSpecificCommand = (
 	backupFile: string,
 ): string => {
 	const tempDir = "/tmp/dokploy-restore";
-	const fileName = backupFile.split("/").pop() || "backup.dump.gz";
+	const fileName = backupFile.split("/").pop() || "backup.sql.gz";
 	const decompressedName = fileName.replace(".gz", "");
 	return `
 rm -rf ${tempDir} && \

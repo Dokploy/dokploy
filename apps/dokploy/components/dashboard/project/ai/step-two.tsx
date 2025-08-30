@@ -1,3 +1,7 @@
+import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import {
@@ -12,10 +16,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/utils/api";
-import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { toast } from "sonner";
 import type { TemplateInfo } from "./template-generator";
 
 export interface StepProps {
@@ -199,7 +199,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 				<p className="text-muted-foreground">
 					Generating template suggestions based on your input...
 				</p>
-				<pre>{templateInfo.userInput}</pre>
+				<pre className="whitespace-normal">{templateInfo.userInput}</pre>
 			</div>
 		);
 	}

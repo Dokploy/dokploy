@@ -1,10 +1,3 @@
-import { slugify } from "@/lib/slug";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
-import { generatePassword } from "@/templates/utils";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import {
 	apiCreateAi,
@@ -26,11 +19,19 @@ import {
 	checkServiceAccess,
 } from "@dokploy/server/services/user";
 import {
-	type Model,
 	getProviderHeaders,
+	getProviderName,
+	type Model,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { slugify } from "@/lib/slug";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
+import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
 	one: protectedProcedure
@@ -47,11 +48,24 @@ export const aiRouter = createTRPCRouter({
 		}),
 
 	getModels: protectedProcedure
-		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string().min(1) }))
+		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
 			try {
+				const providerName = getProviderName(input.apiUrl);
 				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
-				const response = await fetch(`${input.apiUrl}/models`, { headers });
+				let response = null;
+				switch (providerName) {
+					case "ollama":
+						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
+						break;
+					default:
+						if (!input.apiKey)
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "API key must contain at least 1 character(s)",
+							});
+						response = await fetch(`${input.apiUrl}/models`, { headers });
+				}
 
 				if (!response.ok) {
 					const errorText = await response.text();

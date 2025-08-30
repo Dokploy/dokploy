@@ -1,7 +1,12 @@
-import { Button } from "@/components/ui/button";
-
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -12,12 +17,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { validateAndFormatYAML } from "../application/advanced/traefik/update-traefik-config";
 
 const UpdateServerMiddlewareConfigSchema = z.object({

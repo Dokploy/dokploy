@@ -1,3 +1,24 @@
+import {
+	createServer,
+	defaultCommand,
+	deleteServer,
+	findServerById,
+	findServersByUserId,
+	findUserById,
+	getPublicIpWithFallback,
+	haveActiveServices,
+	IS_CLOUD,
+	removeDeploymentsByServerId,
+	serverAudit,
+	serverSetup,
+	serverValidate,
+	setupMonitoring,
+	updateServerById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
@@ -17,27 +38,6 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
-import {
-	IS_CLOUD,
-	createServer,
-	defaultCommand,
-	deleteServer,
-	findServerById,
-	findServersByUserId,
-	findUserById,
-	getPublicIpWithFallback,
-	haveActiveServices,
-	removeDeploymentsByServerId,
-	serverAudit,
-	serverSetup,
-	serverValidate,
-	setupMonitoring,
-	updateServerById,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
-import { z } from "zod";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure

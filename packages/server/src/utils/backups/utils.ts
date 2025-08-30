@@ -1,7 +1,7 @@
 import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
-import { scheduleJob, scheduledJobs } from "node-schedule";
+import { scheduledJobs, scheduleJob } from "node-schedule";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
 import { runMariadbBackup } from "./mariadb";

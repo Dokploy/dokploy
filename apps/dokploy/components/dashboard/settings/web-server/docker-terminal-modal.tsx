@@ -1,3 +1,7 @@
+import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,10 +24,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { Loader2 } from "lucide-react";
-import dynamic from "next/dynamic";
-import type React from "react";
-import { useEffect, useState } from "react";
 import { badgeStateColor } from "../../application/logs/show";
 
 const Terminal = dynamic(

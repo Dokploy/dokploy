@@ -5,6 +5,11 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import {
+	initializeStandaloneTraefik,
+	initializeTraefikService,
+	type TraefikOptions,
+} from "../setup/traefik-setup";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -241,5 +246,167 @@ export const cleanupFullDocker = async (serverId?: string | null) => {
 					`);
 	} catch (error) {
 		console.log(error);
+	}
+};
+
+export const getDockerResourceType = async (
+	resourceName: string,
+	serverId?: string,
+) => {
+	let result = "";
+	const command = `
+	RESOURCE_NAME="${resourceName}"
+		if docker service inspect "$RESOURCE_NAME" &>/dev/null; then
+			echo "service"
+			exit 0
+		fi
+
+		if docker inspect "$RESOURCE_NAME" &>/dev/null; then
+			echo "standalone"
+			exit 0
+		fi
+
+		echo "unknown"
+		exit 0
+	`;
+
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, command);
+		result = stdout.trim();
+	} else {
+		const { stdout } = await execAsync(command);
+		result = stdout.trim();
+	}
+	if (result === "service") {
+		return "service";
+	}
+	if (result === "standalone") {
+		return "standalone";
+	}
+	return "unknown";
+};
+
+export const reloadDockerResource = async (
+	resourceName: string,
+	serverId?: string,
+) => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service update --force ${resourceName}`;
+	} else {
+		command = `docker restart ${resourceName}`;
+	}
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
+};
+
+export const readEnvironmentVariables = async (
+	resourceName: string,
+	serverId?: string,
+) => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service inspect ${resourceName} --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}'`;
+	} else {
+		command = `docker container inspect ${resourceName} --format '{{json .Config.Env}}'`;
+	}
+	let result = "";
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, command);
+		result = stdout.trim();
+	} else {
+		const { stdout } = await execAsync(command);
+		result = stdout.trim();
+	}
+	if (result === "null") {
+		return "";
+	}
+	return JSON.parse(result)?.join("\n");
+};
+
+export const readPorts = async (
+	resourceName: string,
+	serverId?: string,
+): Promise<
+	{ targetPort: number; publishedPort: number; protocol?: string }[]
+> => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service inspect ${resourceName} --format '{{json .Spec.EndpointSpec.Ports}}'`;
+	} else {
+		command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
+	}
+	let result = "";
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, command);
+		result = stdout.trim();
+	} else {
+		const { stdout } = await execAsync(command);
+		result = stdout.trim();
+	}
+
+	if (result === "null") {
+		return [];
+	}
+
+	const parsedResult = JSON.parse(result);
+
+	if (resourceType === "service") {
+		return parsedResult
+			.map((port: any) => ({
+				targetPort: port.TargetPort,
+				publishedPort: port.PublishedPort,
+				protocol: port.Protocol,
+			}))
+			.filter((port: any) => port.targetPort !== 80 && port.targetPort !== 443);
+	}
+	const ports: {
+		targetPort: number;
+		publishedPort: number;
+		protocol?: string;
+	}[] = [];
+	for (const key in parsedResult) {
+		if (Object.hasOwn(parsedResult, key)) {
+			const containerPortMapppings = parsedResult[key];
+			const protocol = key.split("/")[1];
+			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
+
+			containerPortMapppings.forEach((mapping: any) => {
+				ports.push({
+					targetPort: targetPort,
+					publishedPort: Number.parseInt(mapping.HostPort, 10),
+					protocol: protocol,
+				});
+			});
+		}
+	}
+	return ports.filter(
+		(port: any) => port.targetPort !== 80 && port.targetPort !== 443,
+	);
+};
+
+export const writeTraefikSetup = async (input: TraefikOptions) => {
+	const resourceType = await getDockerResourceType(
+		"dokploy-traefik",
+		input.serverId,
+	);
+	if (resourceType === "service") {
+		await initializeTraefikService({
+			env: input.env,
+			additionalPorts: input.additionalPorts,
+			serverId: input.serverId,
+		});
+	} else {
+		await initializeStandaloneTraefik({
+			env: input.env,
+			additionalPorts: input.additionalPorts,
+			serverId: input.serverId,
+		});
 	}
 };

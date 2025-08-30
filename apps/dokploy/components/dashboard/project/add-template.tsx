@@ -1,3 +1,18 @@
+import {
+	BookText,
+	CheckIcon,
+	ChevronsUpDown,
+	Globe,
+	HelpCircle,
+	LayoutGrid,
+	List,
+	Loader2,
+	PuzzleIcon,
+	SearchIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import {
@@ -54,21 +69,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import {
-	BookText,
-	CheckIcon,
-	ChevronsUpDown,
-	Globe,
-	HelpCircle,
-	LayoutGrid,
-	List,
-	Loader2,
-	PuzzleIcon,
-	SearchIcon,
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
 
@@ -136,6 +136,8 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 				template.description.toLowerCase().includes(query.toLowerCase());
 			return matchesTags && matchesQuery;
 		}) || [];
+
+	const hasServers = servers && servers.length > 0;
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -305,9 +307,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 										: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
 								)}
 							>
-								{templates?.map((template) => (
+								{templates?.map((template, idx) => (
 									<div
-										key={template?.id}
+										key={`${template.id}-${template.version || "default"}-${idx}`}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",
@@ -425,60 +427,62 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															project.
 														</AlertDialogDescription>
 
-														<div>
-															<TooltipProvider delayDuration={0}>
-																<Tooltip>
-																	<TooltipTrigger asChild>
-																		<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
-																			Select a Server{" "}
-																			{!isCloud ? "(Optional)" : ""}
-																			<HelpCircle className="size-4 text-muted-foreground" />
-																		</Label>
-																	</TooltipTrigger>
-																	<TooltipContent
-																		className="z-[999] w-[300px]"
-																		align="start"
-																		side="top"
-																	>
-																		<span>
-																			If no server is selected, the application
-																			will be deployed on the server where the
-																			user is logged in.
-																		</span>
-																	</TooltipContent>
-																</Tooltip>
-															</TooltipProvider>
+														{hasServers && (
+															<div>
+																<TooltipProvider delayDuration={0}>
+																	<Tooltip>
+																		<TooltipTrigger asChild>
+																			<Label className="break-all w-fit flex flex-row gap-1 items-center pb-2 pt-3.5">
+																				Select a Server{" "}
+																				{!isCloud ? "(Optional)" : ""}
+																				<HelpCircle className="size-4 text-muted-foreground" />
+																			</Label>
+																		</TooltipTrigger>
+																		<TooltipContent
+																			className="z-[999] w-[300px]"
+																			align="start"
+																			side="top"
+																		>
+																			<span>
+																				If no server is selected, the
+																				application will be deployed on the
+																				server where the user is logged in.
+																			</span>
+																		</TooltipContent>
+																	</Tooltip>
+																</TooltipProvider>
 
-															<Select
-																onValueChange={(e) => {
-																	setServerId(e);
-																}}
-															>
-																<SelectTrigger>
-																	<SelectValue placeholder="Select a Server" />
-																</SelectTrigger>
-																<SelectContent>
-																	<SelectGroup>
-																		{servers?.map((server) => (
-																			<SelectItem
-																				key={server.serverId}
-																				value={server.serverId}
-																			>
-																				<span className="flex items-center gap-2 justify-between w-full">
-																					<span>{server.name}</span>
-																					<span className="text-muted-foreground text-xs self-center">
-																						{server.ipAddress}
+																<Select
+																	onValueChange={(e) => {
+																		setServerId(e);
+																	}}
+																>
+																	<SelectTrigger>
+																		<SelectValue placeholder="Select a Server" />
+																	</SelectTrigger>
+																	<SelectContent>
+																		<SelectGroup>
+																			{servers?.map((server) => (
+																				<SelectItem
+																					key={server.serverId}
+																					value={server.serverId}
+																				>
+																					<span className="flex items-center gap-2 justify-between w-full">
+																						<span>{server.name}</span>
+																						<span className="text-muted-foreground text-xs self-center">
+																							{server.ipAddress}
+																						</span>
 																					</span>
-																				</span>
-																			</SelectItem>
-																		))}
-																		<SelectLabel>
-																			Servers ({servers?.length})
-																		</SelectLabel>
-																	</SelectGroup>
-																</SelectContent>
-															</Select>
-														</div>
+																				</SelectItem>
+																			))}
+																			<SelectLabel>
+																				Servers ({servers?.length})
+																			</SelectLabel>
+																		</SelectGroup>
+																	</SelectContent>
+																</Select>
+															</div>
+														)}
 													</AlertDialogHeader>
 													<AlertDialogFooter>
 														<AlertDialogCancel>Cancel</AlertDialogCancel>

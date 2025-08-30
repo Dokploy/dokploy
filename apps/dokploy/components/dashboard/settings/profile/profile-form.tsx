@@ -1,4 +1,12 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, User } from "lucide-react";
+import { useTranslation } from "next-i18next";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -19,15 +27,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { generateSHA256Hash } from "@/lib/utils";
+import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, User } from "lucide-react";
-import { useTranslation } from "next-i18next";
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { Disable2FA } from "./disable-2fa";
 import { Enable2FA } from "./enable-2fa";
 
@@ -36,6 +37,7 @@ const profileSchema = z.object({
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
+	name: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
 
@@ -84,6 +86,7 @@ export const ProfileForm = () => {
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
+			name: data?.user?.name || "",
 		},
 		resolver: zodResolver(profileSchema),
 	});
@@ -97,6 +100,7 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
+					name: data?.user?.name || "",
 				},
 				{
 					keepValues: true,
@@ -119,6 +123,7 @@ export const ProfileForm = () => {
 			image: values.image,
 			currentPassword: values.currentPassword || undefined,
 			allowImpersonation: values.allowImpersonation,
+			name: values.name || undefined,
 		})
 			.then(async () => {
 				await refetch();
@@ -128,6 +133,7 @@ export const ProfileForm = () => {
 					password: "",
 					image: values.image,
 					currentPassword: "",
+					name: values.name || "",
 				});
 			})
 			.catch(() => {
@@ -167,6 +173,19 @@ export const ProfileForm = () => {
 										className="grid gap-4"
 									>
 										<div className="space-y-4">
+											<FormField
+												control={form.control}
+												name="name"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Name</FormLabel>
+														<FormControl>
+															<Input placeholder="Name" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 											<FormField
 												control={form.control}
 												name="email"
@@ -239,6 +258,24 @@ export const ProfileForm = () => {
 																value={field.value}
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
+																<FormItem key="no-avatar">
+																	<FormLabel className="[&:has([data-state=checked])>.default-avatar]:border-primary [&:has([data-state=checked])>.default-avatar]:border-1 [&:has([data-state=checked])>.default-avatar]:p-px cursor-pointer">
+																		<FormControl>
+																			<RadioGroupItem
+																				value=""
+																				className="sr-only"
+																			/>
+																		</FormControl>
+
+																		<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
+																			<AvatarFallback className="rounded-lg">
+																				{getFallbackAvatarInitials(
+																					data?.user?.name,
+																				)}
+																			</AvatarFallback>
+																		</Avatar>
+																	</FormLabel>
+																</FormItem>
 																{availableAvatars.map((image) => (
 																	<FormItem key={image}>
 																		<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">

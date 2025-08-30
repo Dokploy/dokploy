@@ -1,3 +1,11 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PlusIcon } from "lucide-react";
+import Link from "next/link";
+import { useTranslation } from "next-i18next";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,14 +38,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
-import { useTranslation } from "next-i18next";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const Schema = z.object({
 	name: z.string().min(1, {
@@ -112,7 +112,7 @@ export const HandleServers = ({ serverId }: Props) => {
 		await mutateAsync({
 			name: data.name,
 			description: data.description || "",
-			ipAddress: data.ipAddress || "",
+			ipAddress: data.ipAddress?.trim() || "",
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
@@ -218,7 +218,7 @@ export const HandleServers = ({ serverId }: Props) => {
 					</AlertBlock>
 				</div>
 				{!canCreateMoreServers && (
-					<AlertBlock type="warning">
+					<AlertBlock type="warning" className="mt-4">
 						You cannot create more servers,{" "}
 						<Link href="/dashboard/settings/billing" className="text-primary">
 							Please upgrade your plan

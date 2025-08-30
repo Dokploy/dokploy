@@ -1,4 +1,3 @@
-import { getPublicIpWithFallback } from "@/server/wss/terminal";
 import {
 	type DockerNode,
 	execAsync,
@@ -8,6 +7,7 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { getPublicIpWithFallback } from "@/server/wss/terminal";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const clusterRouter = createTRPCRouter({
 	getNodes: protectedProcedure

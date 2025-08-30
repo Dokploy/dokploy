@@ -273,6 +273,14 @@ export const prepareEnvironmentVariables = (
 				throw new Error(`Invalid project environment variable: project.${ref}`);
 			});
 		}
+
+		resolvedValue = resolvedValue.replace(/\$\{\{(.*?)\}\}/g, (_, ref) => {
+			if (serviceVars[ref] !== undefined) {
+				return serviceVars[ref];
+			}
+			throw new Error(`Invalid service environment variable: ${ref}`);
+		});
+
 		return `${key}=${resolvedValue}`;
 	});
 
@@ -348,7 +356,9 @@ export const calculateResources = ({
 	};
 };
 
-export const generateConfigContainer = (application: ApplicationNested) => {
+export const generateConfigContainer = (
+	application: Partial<ApplicationNested>,
+) => {
 	const {
 		healthCheckSwarm,
 		restartPolicySwarm,
@@ -362,7 +372,7 @@ export const generateConfigContainer = (application: ApplicationNested) => {
 		networkSwarm,
 	} = application;
 
-	const haveMounts = mounts.length > 0;
+	const haveMounts = mounts && mounts.length > 0;
 
 	return {
 		...(healthCheckSwarm && {

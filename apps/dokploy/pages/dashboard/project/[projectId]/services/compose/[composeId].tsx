@@ -1,3 +1,17 @@
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import copy from "copy-to-clipboard";
+import { CircuitBoard, HelpCircle, ServerOff } from "lucide-react";
+import type {
+	GetServerSidePropsContext,
+	InferGetServerSidePropsType,
+} from "next";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useEffect, useState } from "react";
+import { toast } from "sonner";
+import superjson from "superjson";
 import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
@@ -6,6 +20,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
+import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
@@ -33,23 +48,9 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import copy from "copy-to-clipboard";
-import { CircuitBoard, ServerOff } from "lucide-react";
-import { HelpCircle } from "lucide-react";
-import type {
-	GetServerSidePropsContext,
-	InferGetServerSidePropsType,
-} from "next";
-import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { type ReactElement, useEffect, useState } from "react";
-import { toast } from "sonner";
-import superjson from "superjson";
 
 type TabState =
 	| "projects"
@@ -82,6 +83,7 @@ const Service = (
 
 	return (
 		<div className="pb-10">
+			<UseKeyboardNav forPage="compose" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
@@ -351,6 +353,7 @@ const Service = (
 											<AddCommandCompose composeId={composeId} />
 											<ShowVolumes id={composeId} type="compose" />
 											<ShowImport composeId={composeId} />
+											<IsolatedDeploymentTab composeId={composeId} />
 										</div>
 									</TabsContent>
 								</Tabs>

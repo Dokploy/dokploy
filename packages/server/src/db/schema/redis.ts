@@ -1,12 +1,28 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
-import { applicationStatus } from "./shared";
+import {
+	applicationStatus,
+	type HealthCheckSwarm,
+	HealthCheckSwarmSchema,
+	type LabelsSwarm,
+	LabelsSwarmSchema,
+	type NetworkSwarm,
+	NetworkSwarmSchema,
+	type PlacementSwarm,
+	PlacementSwarmSchema,
+	type RestartPolicySwarm,
+	RestartPolicySwarmSchema,
+	type ServiceModeSwarm,
+	ServiceModeSwarmSchema,
+	type UpdateConfigSwarm,
+	UpdateConfigSwarmSchema,
+} from "./shared";
 import { generateAppName } from "./utils";
 
 export const redis = pgTable("redis", {
@@ -35,6 +51,15 @@ export const redis = pgTable("redis", {
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
+	healthCheckSwarm: json("healthCheckSwarm").$type<HealthCheckSwarm>(),
+	restartPolicySwarm: json("restartPolicySwarm").$type<RestartPolicySwarm>(),
+	placementSwarm: json("placementSwarm").$type<PlacementSwarm>(),
+	updateConfigSwarm: json("updateConfigSwarm").$type<UpdateConfigSwarm>(),
+	rollbackConfigSwarm: json("rollbackConfigSwarm").$type<UpdateConfigSwarm>(),
+	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
+	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
+	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	replicas: integer("replicas").default(1).notNull(),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
@@ -73,6 +98,14 @@ const createSchema = createInsertSchema(redis, {
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
+	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
+	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
+	placementSwarm: PlacementSwarmSchema.nullable(),
+	updateConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	rollbackConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	modeSwarm: ServiceModeSwarmSchema.nullable(),
+	labelsSwarm: LabelsSwarmSchema.nullable(),
+	networkSwarm: NetworkSwarmSchema.nullable(),
 });
 
 export const apiCreateRedis = createSchema

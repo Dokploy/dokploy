@@ -12,12 +12,11 @@ import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { projects } from "./project";
+import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-
-import { schedules } from "./schedule";
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",

@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, LayoutDashboardIcon, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,12 +38,6 @@ import {
 import { extractServices } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, LayoutDashboardIcon, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 interface Props {
 	serverId?: string;

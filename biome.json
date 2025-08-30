@@ -19,14 +19,16 @@
 			},
 			"complexity": {
 				"noUselessCatch": "off",
-				"noBannedTypes": "off"
+				"noBannedTypes": "off",
+				"noUselessFragments": "off"
 			},
 			"correctness": {
 				"useExhaustiveDependencies": "off",
 				"noUnsafeOptionalChaining": "off",
 				"noUnusedImports": "error",
 				"noUnusedFunctionParameters": "error",
-				"noUnusedVariables": "error"
+				"noUnusedVariables": "off",
+				"useHookAtTopLevel": "off"
 			},
 			"style": {
 				"noNonNullAssertion": "off",
@@ -44,12 +46,15 @@
 			"suspicious": {
 				"noArrayIndexKey": "off",
 				"noExplicitAny": "off",
-				"noRedeclare": "off"
+				"noRedeclare": "off",
+				"noTemplateCurlyInString": "off"
 			},
 			"a11y": {
 				"noSvgWithoutTitle": "off",
 				"useKeyWithClickEvents": "off",
-				"useAriaPropsForRole": "off"
+				"useAriaPropsForRole": "off",
+				"useAriaPropsSupportedByRole": "off",
+				"noStaticElementInteractions": "off"
 			}
 		}
 	}
