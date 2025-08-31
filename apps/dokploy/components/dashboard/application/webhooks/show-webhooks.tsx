@@ -38,8 +38,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { WebhookCreateModal } from "./webhook-create-modal";
-import { WebhookEditModal } from "./webhook-edit-modal";
+import { HandleWebhook } from "./handle-webhook";
 import { WebhookHistoryModal } from "./webhook-history-modal";
 
 interface Props {
@@ -141,7 +140,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 							</CardDescription>
 						</div>
 
-						<WebhookCreateModal
+						<HandleWebhook
 							applicationId={applicationId}
 							composeId={composeId}
 							onSuccess={refetchWebhooks}
@@ -293,7 +292,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 									Create your first webhook to receive deployment notifications
 								</span>
 							</div>
-							<WebhookCreateModal
+							<HandleWebhook
 								applicationId={applicationId}
 								composeId={composeId}
 								onSuccess={refetchWebhooks}
@@ -309,7 +308,7 @@ export const ShowWebhooks = ({ applicationId, composeId }: Props) => {
 				</CardContent>
 			</Card>
 
-			<WebhookEditModal
+			<HandleWebhook
 				webhookId={editingWebhookId || ""}
 				open={!!editingWebhookId}
 				onOpenChange={(open) => !open && setEditingWebhookId(null)}
