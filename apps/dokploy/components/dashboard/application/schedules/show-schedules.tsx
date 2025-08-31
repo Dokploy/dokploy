@@ -98,7 +98,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											<Clock className="size-4 text-primary/70" />
 										</div>
 										<div className="space-y-1.5">
-											<div className="flex items-center gap-2">
+											<div className="flex items-center gap-2 flex-wrap">
 												<h3 className="text-sm font-medium leading-none [overflow-wrap:anywhere] line-clamp-3">
 													{schedule.name}
 												</h3>
@@ -226,7 +226,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 						})}
 					</div>
 				) : (
-					<div className="flex flex-col gap-2 items-center justify-center py-12  rounded-lg">
+					<div className="flex flex-col gap-2 items-center justify-center py-12 rounded-lg">
 						<Clock className="size-8 mb-4 text-muted-foreground" />
 						<p className="text-lg font-medium text-muted-foreground">
 							No scheduled tasks
