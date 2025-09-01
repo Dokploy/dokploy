@@ -83,7 +83,13 @@ const baseDatabaseSchema = z.object({
 			message:
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
-	databasePassword: z.string(),
+	databasePassword: z
+		.string()
+		.min(1, "Password is required")
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		}),
 	dockerImage: z.string(),
 	description: z.string().nullable(),
 	serverId: z.string().nullable(),
@@ -112,7 +118,12 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("mysql"),
-			databaseRootPassword: z.string().default(""),
+			databaseRootPassword: z
+				.string()
+				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+					message:
+						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+				}),
 			databaseUser: z.string().default("mysql"),
 			databaseName: z.string().default("mysql"),
 		})
@@ -121,7 +132,12 @@ const mySchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("mariadb"),
 			dockerImage: z.string().default("mariadb:4"),
-			databaseRootPassword: z.string().default(""),
+			databaseRootPassword: z
+				.string()
+				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+					message:
+						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+				}),
 			databaseUser: z.string().default("mariadb"),
 			databaseName: z.string().default("mariadb"),
 		})

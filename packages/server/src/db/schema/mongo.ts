@@ -89,7 +89,13 @@ const createSchema = createInsertSchema(mongo, {
 	createdAt: z.string(),
 	mongoId: z.string(),
 	name: z.string().min(1),
-	databasePassword: z.string(),
+	databasePassword: z
+		.string()
+		.min(1, "Password is required")
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		}),
 	databaseUser: z.string().min(1),
 	dockerImage: z.string().default("mongo:15"),
 	command: z.string().optional(),

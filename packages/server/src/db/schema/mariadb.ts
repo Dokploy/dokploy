@@ -94,8 +94,20 @@ const createSchema = createInsertSchema(mariadb, {
 	createdAt: z.string(),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	databasePassword: z.string(),
-	databaseRootPassword: z.string().optional(),
+	databasePassword: z
+		.string()
+		.min(1, "Password is required")
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		}),
+	databaseRootPassword: z
+		.string()
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		})
+		.optional(),
 	dockerImage: z.string().default("mariadb:6"),
 	command: z.string().optional(),
 	env: z.string().optional(),
