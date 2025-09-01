@@ -4,6 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { backups } from "./backups";
+import { environments } from "./environment";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
@@ -67,6 +68,9 @@ export const mysql = pgTable("mysql", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	environmentId: text("environmentId")
+		.notNull()
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -76,6 +80,10 @@ export const mysqlRelations = relations(mysql, ({ one, many }) => ({
 	project: one(projects, {
 		fields: [mysql.projectId],
 		references: [projects.projectId],
+	}),
+	environment: one(environments, {
+		fields: [mysql.environmentId],
+		references: [environments.environmentId],
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
@@ -134,6 +142,7 @@ export const apiCreateMySql = createSchema
 		appName: true,
 		dockerImage: true,
 		projectId: true,
+		environmentId: true,
 		description: true,
 		databaseName: true,
 		databaseUser: true,

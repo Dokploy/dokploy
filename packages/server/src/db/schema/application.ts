@@ -13,6 +13,7 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { environments } from "./environment";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
@@ -182,6 +183,9 @@ export const applications = pgTable("application", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	environmentId: text("environmentId")
+		.notNull()
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -205,6 +209,10 @@ export const applicationsRelations = relations(
 		project: one(projects, {
 			fields: [applications.projectId],
 			references: [projects.projectId],
+		}),
+		environment: one(environments, {
+			fields: [applications.environmentId],
+			references: [environments.environmentId],
 		}),
 		deployments: many(deployments),
 		customGitSSHKey: one(sshKeys, {
@@ -274,6 +282,7 @@ const createSchema = createInsertSchema(applications, {
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
 	projectId: z.string(),
+	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
@@ -318,6 +327,7 @@ export const apiCreateApplication = createSchema.pick({
 	appName: true,
 	description: true,
 	projectId: true,
+	environmentId: true,
 	serverId: true,
 });
 

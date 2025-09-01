@@ -11,6 +11,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { createProductionEnvironment } from "./environment";
 
 export type Project = typeof projects.$inferSelect;
 
@@ -34,6 +35,14 @@ export const createProject = async (
 		});
 	}
 
+	// Automatically create a production environment
+	try {
+		await createProductionEnvironment(newProject.projectId);
+	} catch (error) {
+		console.error("Error creating production environment:", error);
+		// Don't fail project creation if environment creation fails
+	}
+
 	return newProject;
 };
 
@@ -41,13 +50,17 @@ export const findProjectById = async (projectId: string) => {
 	const project = await db.query.projects.findFirst({
 		where: eq(projects.projectId, projectId),
 		with: {
-			applications: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
-			compose: true,
+			environments: {
+				with: {
+					applications: true,
+					mariadb: true,
+					mongo: true,
+					mysql: true,
+					postgres: true,
+					redis: true,
+					compose: true,
+				},
+			},
 		},
 	});
 	if (!project) {

@@ -32,6 +32,7 @@ import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
+import { EnvironmentManagement } from "@/components/dashboard/project/environment-management";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
@@ -46,7 +47,6 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -721,6 +721,9 @@ const Project = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
+									<EnvironmentManagement projectId={projectId}>
+										<Button variant="outline">Environments</Button>
+									</EnvironmentManagement>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
 											<Button>

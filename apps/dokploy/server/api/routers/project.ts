@@ -117,29 +117,42 @@ export const projectRouter = createTRPCRouter({
 						eq(projects.organizationId, ctx.session.activeOrganizationId),
 					),
 					with: {
-						applications: {
-							where: buildServiceFilter(
-								applications.applicationId,
-								accessedServices,
-							),
-						},
-						compose: {
-							where: buildServiceFilter(compose.composeId, accessedServices),
-						},
-						mariadb: {
-							where: buildServiceFilter(mariadb.mariadbId, accessedServices),
-						},
-						mongo: {
-							where: buildServiceFilter(mongo.mongoId, accessedServices),
-						},
-						mysql: {
-							where: buildServiceFilter(mysql.mysqlId, accessedServices),
-						},
-						postgres: {
-							where: buildServiceFilter(postgres.postgresId, accessedServices),
-						},
-						redis: {
-							where: buildServiceFilter(redis.redisId, accessedServices),
+						environments: {
+							with: {
+								applications: {
+									where: buildServiceFilter(
+										applications.applicationId,
+										accessedServices,
+									),
+								},
+								compose: {
+									where: buildServiceFilter(
+										compose.composeId,
+										accessedServices,
+									),
+								},
+								mariadb: {
+									where: buildServiceFilter(
+										mariadb.mariadbId,
+										accessedServices,
+									),
+								},
+								mongo: {
+									where: buildServiceFilter(mongo.mongoId, accessedServices),
+								},
+								mysql: {
+									where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								},
+								postgres: {
+									where: buildServiceFilter(
+										postgres.postgresId,
+										accessedServices,
+									),
+								},
+								redis: {
+									where: buildServiceFilter(redis.redisId, accessedServices),
+								},
+							},
 						},
 					},
 				});
@@ -182,31 +195,38 @@ export const projectRouter = createTRPCRouter({
 					eq(projects.organizationId, ctx.session.activeOrganizationId),
 				),
 				with: {
-					applications: {
-						where: buildServiceFilter(
-							applications.applicationId,
-							accessedServices,
-						),
-						with: { domains: true },
-					},
-					mariadb: {
-						where: buildServiceFilter(mariadb.mariadbId, accessedServices),
-					},
-					mongo: {
-						where: buildServiceFilter(mongo.mongoId, accessedServices),
-					},
-					mysql: {
-						where: buildServiceFilter(mysql.mysqlId, accessedServices),
-					},
-					postgres: {
-						where: buildServiceFilter(postgres.postgresId, accessedServices),
-					},
-					redis: {
-						where: buildServiceFilter(redis.redisId, accessedServices),
-					},
-					compose: {
-						where: buildServiceFilter(compose.composeId, accessedServices),
-						with: { domains: true },
+					environments: {
+						with: {
+							applications: {
+								where: buildServiceFilter(
+									applications.applicationId,
+									accessedServices,
+								),
+								with: { domains: true },
+							},
+							mariadb: {
+								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
+							},
+							mongo: {
+								where: buildServiceFilter(mongo.mongoId, accessedServices),
+							},
+							mysql: {
+								where: buildServiceFilter(mysql.mysqlId, accessedServices),
+							},
+							postgres: {
+								where: buildServiceFilter(
+									postgres.postgresId,
+									accessedServices,
+								),
+							},
+							redis: {
+								where: buildServiceFilter(redis.redisId, accessedServices),
+							},
+							compose: {
+								where: buildServiceFilter(compose.composeId, accessedServices),
+								with: { domains: true },
+							},
+						},
 					},
 				},
 				orderBy: desc(projects.createdAt),
@@ -215,19 +235,23 @@ export const projectRouter = createTRPCRouter({
 
 		return await db.query.projects.findMany({
 			with: {
-				applications: {
+				environments: {
 					with: {
-						domains: true,
-					},
-				},
-				mariadb: true,
-				mongo: true,
-				mysql: true,
-				postgres: true,
-				redis: true,
-				compose: {
-					with: {
-						domains: true,
+						applications: {
+							with: {
+								domains: true,
+							},
+						},
+						mariadb: true,
+						mongo: true,
+						mysql: true,
+						postgres: true,
+						redis: true,
+						compose: {
+							with: {
+								domains: true,
+							},
+						},
 					},
 				},
 			},

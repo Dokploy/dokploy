@@ -3,6 +3,7 @@ import { integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { environments } from "./environment";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
@@ -63,6 +64,9 @@ export const redis = pgTable("redis", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	environmentId: text("environmentId")
+		.notNull()
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -72,6 +76,10 @@ export const redisRelations = relations(redis, ({ one, many }) => ({
 	project: one(projects, {
 		fields: [redis.projectId],
 		references: [projects.projectId],
+	}),
+	environment: one(environments, {
+		fields: [redis.environmentId],
+		references: [environments.environmentId],
 	}),
 	mounts: many(mounts),
 	server: one(server, {
@@ -94,6 +102,7 @@ const createSchema = createInsertSchema(redis, {
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	projectId: z.string(),
+	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
@@ -115,6 +124,7 @@ export const apiCreateRedis = createSchema
 		databasePassword: true,
 		dockerImage: true,
 		projectId: true,
+		environmentId: true,
 		description: true,
 		serverId: true,
 	})
