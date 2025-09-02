@@ -180,7 +180,7 @@ const rollbackApplication = async (
 	serverId?: string | null,
 	fullContext?: Application & {
 		environment: {
-				project: Project;
+			project: Project;
 		};
 		mounts: Mount[];
 		ports: Port[];

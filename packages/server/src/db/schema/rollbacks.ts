@@ -28,7 +28,7 @@ export const rollbacks = pgTable("rollback", {
 	fullContext: jsonb("fullContext").$type<
 		Application & {
 			environment: {
-					project: Project;
+				project: Project;
 			};
 			mounts: Mount[];
 			ports: Port[];
