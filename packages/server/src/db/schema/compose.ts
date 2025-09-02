@@ -85,9 +85,6 @@ export const compose = pgTable("compose", {
 		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
-	projectId: text("projectId")
-		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -113,10 +110,7 @@ export const compose = pgTable("compose", {
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [compose.projectId],
-		references: [projects.projectId],
-	}),
+
 	environment: one(environments, {
 		fields: [compose.environmentId],
 		references: [environments.environmentId],
@@ -157,7 +151,6 @@ const createSchema = createInsertSchema(compose, {
 	description: z.string(),
 	env: z.string().optional(),
 	composeFile: z.string().optional(),
-	projectId: z.string(),
 	environmentId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
@@ -169,7 +162,6 @@ const createSchema = createInsertSchema(compose, {
 export const apiCreateCompose = createSchema.pick({
 	name: true,
 	description: true,
-	projectId: true,
 	environmentId: true,
 	composeType: true,
 	appName: true,
@@ -179,7 +171,6 @@ export const apiCreateCompose = createSchema.pick({
 
 export const apiCreateComposeByTemplate = createSchema
 	.pick({
-		projectId: true,
 		environmentId: true,
 	})
 	.extend({

@@ -67,9 +67,7 @@ export const mariadb = pgTable("mariadb", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
-		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -79,10 +77,7 @@ export const mariadb = pgTable("mariadb", {
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [mariadb.projectId],
-		references: [projects.projectId],
-	}),
+
 	environment: one(environments, {
 		fields: [mariadb.environmentId],
 		references: [environments.environmentId],
@@ -123,7 +118,6 @@ const createSchema = createInsertSchema(mariadb, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
@@ -145,7 +139,6 @@ export const apiCreateMariaDB = createSchema
 		appName: true,
 		dockerImage: true,
 		databaseRootPassword: true,
-		projectId: true,
 		environmentId: true,
 		description: true,
 		databaseName: true,

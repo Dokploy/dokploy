@@ -180,9 +180,6 @@ export const applications = pgTable("application", {
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
-	projectId: text("projectId")
-		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -206,10 +203,7 @@ export const applications = pgTable("application", {
 export const applicationsRelations = relations(
 	applications,
 	({ one, many }) => ({
-		project: one(projects, {
-			fields: [applications.projectId],
-			references: [projects.projectId],
-		}),
+
 		environment: one(environments, {
 			fields: [applications.environmentId],
 			references: [environments.environmentId],
@@ -281,7 +275,6 @@ const createSchema = createInsertSchema(applications, {
 	customGitBuildPath: z.string().optional(),
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
-	projectId: z.string(),
 	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
@@ -326,7 +319,6 @@ export const apiCreateApplication = createSchema.pick({
 	name: true,
 	appName: true,
 	description: true,
-	projectId: true,
 	environmentId: true,
 	serverId: true,
 });

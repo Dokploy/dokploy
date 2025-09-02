@@ -5,6 +5,7 @@ import {
 	createMysql,
 	deployMySql,
 	findBackupsByDbId,
+	findEnvironmentById,
 	findMySqlById,
 	findProjectById,
 	IS_CLOUD,
@@ -42,10 +43,14 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiCreateMySql)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				// Get project from environment
+				const environment = await findEnvironmentById(input.environmentId);
+				const project = await findProjectById(environment.projectId);
+
 				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
-						input.projectId,
+						project.projectId,
 						ctx.session.activeOrganizationId,
 						"create",
 					);
@@ -57,8 +62,7 @@ export const mysqlRouter = createTRPCRouter({
 						message: "You need to use a server to create a MySQL",
 					});
 				}
-				1;
-				const project = await findProjectById(input.projectId);
+
 				if (project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -66,7 +70,9 @@ export const mysqlRouter = createTRPCRouter({
 					});
 				}
 
-				const newMysql = await createMysql(input);
+				const newMysql = await createMysql({
+					...input,
+				});
 				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,

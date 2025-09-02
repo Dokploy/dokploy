@@ -64,11 +64,11 @@ const AddTemplateSchema = z.object({
 type AddTemplate = z.infer<typeof AddTemplateSchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddApplication = ({ projectId, projectName }: Props) => {
+export const AddApplication = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [visible, setVisible] = useState(false);
@@ -94,15 +94,15 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 			name: data.name,
 			appName: data.appName,
 			description: data.description,
-			projectId,
+			environmentId,
 			serverId: data.serverId,
 		})
 			.then(async () => {
 				toast.success("Service Created");
 				form.reset();
 				setVisible(false);
-				await utils.project.one.invalidate({
-					projectId,
+				await utils.environment.one.invalidate({
+					environmentId,
 				});
 			})
 			.catch(() => {

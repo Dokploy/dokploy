@@ -65,9 +65,7 @@ export const postgres = pgTable("postgres", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
-		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -77,10 +75,7 @@ export const postgres = pgTable("postgres", {
 });
 
 export const postgresRelations = relations(postgres, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [postgres.projectId],
-		references: [projects.projectId],
-	}),
+
 	environment: one(environments, {
 		fields: [postgres.environmentId],
 		references: [environments.environmentId],
@@ -112,7 +107,6 @@ const createSchema = createInsertSchema(postgres, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
@@ -137,7 +131,6 @@ export const apiCreatePostgres = createSchema
 		databaseUser: true,
 		databasePassword: true,
 		dockerImage: true,
-		projectId: true,
 		environmentId: true,
 		description: true,
 		serverId: true,

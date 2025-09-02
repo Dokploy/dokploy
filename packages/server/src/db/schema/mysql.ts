@@ -65,9 +65,7 @@ export const mysql = pgTable("mysql", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
-		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -77,10 +75,7 @@ export const mysql = pgTable("mysql", {
 });
 
 export const mysqlRelations = relations(mysql, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [mysql.projectId],
-		references: [projects.projectId],
-	}),
+
 	environment: one(environments, {
 		fields: [mysql.environmentId],
 		references: [environments.environmentId],
@@ -121,7 +116,6 @@ const createSchema = createInsertSchema(mysql, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
@@ -141,7 +135,6 @@ export const apiCreateMySql = createSchema
 		name: true,
 		appName: true,
 		dockerImage: true,
-		projectId: true,
 		environmentId: true,
 		description: true,
 		databaseName: true,

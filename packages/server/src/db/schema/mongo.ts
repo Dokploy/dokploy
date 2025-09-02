@@ -63,9 +63,7 @@ export const mongo = pgTable("mongo", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
-		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -76,10 +74,7 @@ export const mongo = pgTable("mongo", {
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [mongo.projectId],
-		references: [projects.projectId],
-	}),
+
 	environment: one(environments, {
 		fields: [mongo.environmentId],
 		references: [environments.environmentId],
@@ -112,7 +107,6 @@ const createSchema = createInsertSchema(mongo, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
@@ -134,7 +128,6 @@ export const apiCreateMongo = createSchema
 		name: true,
 		appName: true,
 		dockerImage: true,
-		projectId: true,
 		environmentId: true,
 		description: true,
 		databaseUser: true,

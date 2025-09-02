@@ -99,7 +99,7 @@ export const updateProjectById = async (
 };
 
 export const validUniqueServerAppName = async (appName: string) => {
-	const query = await db.query.projects.findMany({
+	const query = await db.query.environments.findMany({
 		with: {
 			applications: {
 				where: eq(applications.appName, appName),

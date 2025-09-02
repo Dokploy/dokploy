@@ -4,6 +4,7 @@ import {
 	createMount,
 	createRedis,
 	deployRedis,
+	findEnvironmentById,
 	findProjectById,
 	findRedisById,
 	IS_CLOUD,
@@ -40,10 +41,14 @@ export const redisRouter = createTRPCRouter({
 		.input(apiCreateRedis)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				// Get project from environment
+				const environment = await findEnvironmentById(input.environmentId);
+				const project = await findProjectById(environment.projectId);
+
 				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
-						input.projectId,
+						project.projectId,
 						ctx.session.activeOrganizationId,
 						"create",
 					);
@@ -55,15 +60,16 @@ export const redisRouter = createTRPCRouter({
 						message: "You need to use a server to create a Redis",
 					});
 				}
-
-				const project = await findProjectById(input.projectId);
+				
 				if (project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
 				}
-				const newRedis = await createRedis(input);
+				const newRedis = await createRedis({
+					...input,
+				});
 				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,

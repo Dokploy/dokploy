@@ -61,9 +61,7 @@ export const redis = pgTable("redis", {
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	replicas: integer("replicas").default(1).notNull(),
-	projectId: text("projectId")
-		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -73,10 +71,7 @@ export const redis = pgTable("redis", {
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [redis.projectId],
-		references: [projects.projectId],
-	}),
+
 	environment: one(environments, {
 		fields: [redis.environmentId],
 		references: [environments.environmentId],
@@ -101,7 +96,6 @@ const createSchema = createInsertSchema(redis, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
@@ -123,7 +117,6 @@ export const apiCreateRedis = createSchema
 		appName: true,
 		databasePassword: true,
 		dockerImage: true,
-		projectId: true,
 		environmentId: true,
 		description: true,
 		serverId: true,

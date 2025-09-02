@@ -90,11 +90,11 @@ export const { useStepper, steps, Scoped } = defineStepper(
 );
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const TemplateGenerator = ({ projectId }: Props) => {
+export const TemplateGenerator = ({ environmentId }: Props) => {
 	const [open, setOpen] = useState(false);
 	const stepper = useStepper();
 	const { data: aiSettings } = api.ai.getAll.useQuery();
@@ -102,6 +102,9 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 	const [templateInfo, setTemplateInfo] =
 		useState<TemplateInfo>(defaultTemplateInfo);
 	const utils = api.useUtils();
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const haveAtleasOneProviderEnabled = aiSettings?.some(
 		(ai) => ai.isEnabled === true,
@@ -121,7 +124,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 
 	const onSubmit = async () => {
 		await mutateAsync({
-			projectId,
+			projectId: environment?.projectId || "",
 			id: templateInfo.details?.id || "",
 			name: templateInfo?.details?.name || "",
 			description: templateInfo?.details?.shortDescription || "",
@@ -138,9 +141,8 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 			.then(async () => {
 				toast.success("Compose Created");
 				setOpen(false);
-				await utils.project.one.invalidate({
-					projectId,
-				});
+				// Invalidate the project query to refresh the environment data
+				await utils.project.one.invalidate();
 			})
 			.catch(() => {
 				toast.error("Error creating the compose");

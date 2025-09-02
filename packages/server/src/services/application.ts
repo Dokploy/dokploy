@@ -76,6 +76,7 @@ export const createApplication = async (
 		});
 	}
 
+	console.log("input", input);
 	return await db.transaction(async (tx) => {
 		const newApplication = await tx
 			.insert(applications)
@@ -85,6 +86,8 @@ export const createApplication = async (
 			})
 			.returning()
 			.then((value) => value[0]);
+
+			console.log("newApplication", newApplication);
 
 		if (!newApplication) {
 			throw new TRPCError({
@@ -105,7 +108,7 @@ export const findApplicationById = async (applicationId: string) => {
 	const application = await db.query.applications.findFirst({
 		where: eq(applications.applicationId, applicationId),
 		with: {
-			project: true,
+			environment: true,
 			domains: true,
 			deployments: true,
 			mounts: true,

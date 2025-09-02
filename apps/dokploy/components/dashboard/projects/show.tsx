@@ -96,22 +96,8 @@ export const ShowProjects = () => {
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
 				case "services": {
-					const aTotalServices =
-						a.mariadb.length +
-						a.mongo.length +
-						a.mysql.length +
-						a.postgres.length +
-						a.redis.length +
-						a.applications.length +
-						a.compose.length;
-					const bTotalServices =
-						b.mariadb.length +
-						b.mongo.length +
-						b.mysql.length +
-						b.postgres.length +
-						b.redis.length +
-						b.applications.length +
-						b.compose.length;
+					const aTotalServices = a.environments.length;
+					const bTotalServices = b.environments.length;
 					comparison = aTotalServices - bTotalServices;
 					break;
 				}
@@ -201,23 +187,23 @@ export const ShowProjects = () => {
 									)}
 									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
-											const emptyServices =
-												project?.mariadb.length === 0 &&
-												project?.mongo.length === 0 &&
-												project?.mysql.length === 0 &&
-												project?.postgres.length === 0 &&
-												project?.redis.length === 0 &&
-												project?.applications.length === 0 &&
-												project?.compose.length === 0;
+											// const emptyServices =
+											// 	project?.environments.length === 0 &&
+											// 	project?.mongo.length === 0 &&
+											// 	project?.environments.mysql.length === 0 &&
+											// 	project?.environments.postgres.length === 0 &&
+											// 	project?.environments.redis.length === 0 &&
+											// 	project?.applications.length === 0 &&
+											// 	project?.compose.length === 0;
 
-											const totalServices =
-												project?.mariadb.length +
-												project?.mongo.length +
-												project?.mysql.length +
-												project?.postgres.length +
-												project?.redis.length +
-												project?.applications.length +
-												project?.compose.length;
+											// const totalServices =
+											// 	project?.mariadb.length +
+											// 	project?.mongo.length +
+											// 	project?.mysql.length +
+											// 	project?.postgres.length +
+											// 	project?.redis.length +
+											// 	project?.applications.length +
+											// 	project?.compose.length;
 
 											return (
 												<div
@@ -228,7 +214,7 @@ export const ShowProjects = () => {
 														href={`/dashboard/project/${project.projectId}`}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
-															{project.applications.length > 0 ||
+															{/* {project.applications.length > 0 ||
 															project.compose.length > 0 ? (
 																<DropdownMenu>
 																	<DropdownMenuTrigger asChild>
@@ -322,7 +308,7 @@ export const ShowProjects = () => {
 																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
-															) : null}
+															) : null} */}
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2">
 																	<span className="flex flex-col gap-1.5">
@@ -393,7 +379,7 @@ export const ShowProjects = () => {
 																										Are you sure to delete this
 																										project?
 																									</AlertDialogTitle>
-																									{!emptyServices ? (
+																									{/* {!emptyServices ? (
 																										<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
 																											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 																											<span className="text-sm text-yellow-600 dark:text-yellow-400">
@@ -407,14 +393,14 @@ export const ShowProjects = () => {
 																											This action cannot be
 																											undone
 																										</AlertDialogDescription>
-																									)}
+																									)} */}
 																								</AlertDialogHeader>
 																								<AlertDialogFooter>
 																									<AlertDialogCancel>
 																										Cancel
 																									</AlertDialogCancel>
 																									<AlertDialogAction
-																										disabled={!emptyServices}
+																										// disabled={!emptyServices}
 																										onClick={async () => {
 																											await mutateAsync({
 																												projectId:
@@ -452,12 +438,12 @@ export const ShowProjects = () => {
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>
-																	<span>
+																	{/* <span>
 																		{totalServices}{" "}
 																		{totalServices === 1
 																			? "service"
 																			: "services"}
-																	</span>
+																	</span> */}
 																</div>
 															</CardFooter>
 														</Card>

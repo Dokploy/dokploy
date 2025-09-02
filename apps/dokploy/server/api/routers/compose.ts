@@ -12,6 +12,7 @@ import {
 	deleteMount,
 	findComposeById,
 	findDomainsByComposeId,
+	findEnvironmentById,
 	findGitProviderById,
 	findProjectById,
 	findServerById,
@@ -64,10 +65,14 @@ export const composeRouter = createTRPCRouter({
 		.input(apiCreateCompose)
 		.mutation(async ({ ctx, input }) => {
 			try {
+				// Get project from environment
+				const environment = await findEnvironmentById(input.environmentId);
+				const project = await findProjectById(environment.projectId);
+
 				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
-						input.projectId,
+						project.projectId,
 						ctx.session.activeOrganizationId,
 						"create",
 					);
@@ -79,14 +84,15 @@ export const composeRouter = createTRPCRouter({
 						message: "You need to use a server to create a compose",
 					});
 				}
-				const project = await findProjectById(input.projectId);
 				if (project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
 				}
-				const newService = await createCompose(input);
+				const newService = await createCompose({
+					...input,
+				});
 
 				if (ctx.user.role === "member") {
 					await addNewService(
@@ -462,17 +468,19 @@ export const composeRouter = createTRPCRouter({
 	deployTemplate: protectedProcedure
 		.input(
 			z.object({
-				projectId: z.string(),
+				environmentId: z.string(),
 				serverId: z.string().optional(),
 				id: z.string(),
 				baseUrl: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const environment = await findEnvironmentById(input.environmentId);
+
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
-					input.projectId,
+					environment.projectId,
 					ctx.session.activeOrganizationId,
 					"create",
 				);
@@ -490,7 +498,7 @@ export const composeRouter = createTRPCRouter({
 			const admin = await findUserById(ctx.user.ownerId);
 			let serverIp = admin.serverIp || "127.0.0.1";
 
-			const project = await findProjectById(input.projectId);
+			const project = await findProjectById(environment.projectId);
 
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);

@@ -33,6 +33,16 @@ export const createEnvironment = async (
 export const findEnvironmentById = async (environmentId: string) => {
 	const environment = await db.query.environments.findFirst({
 		where: eq(environments.environmentId, environmentId),
+		with: {
+			applications: true,
+			mariadb: true,
+			mongo: true,
+			mysql: true,
+			postgres: true,
+			redis: true,
+			compose: true,
+			project: true,
+		},
 	});
 	if (!environment) {
 		throw new TRPCError({

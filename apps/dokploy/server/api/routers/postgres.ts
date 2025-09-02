@@ -5,6 +5,7 @@ import {
 	createPostgres,
 	deployPostgres,
 	findBackupsByDbId,
+	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
 	IS_CLOUD,
@@ -41,10 +42,14 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiCreatePostgres)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				// Get project from environment
+				const environment = await findEnvironmentById(input.environmentId);
+				const project = await findProjectById(environment.projectId);
+
 				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
-						input.projectId,
+						project.projectId,
 						ctx.session.activeOrganizationId,
 						"create",
 					);
@@ -57,14 +62,15 @@ export const postgresRouter = createTRPCRouter({
 					});
 				}
 
-				const project = await findProjectById(input.projectId);
 				if (project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
 				}
-				const newPostgres = await createPostgres(input);
+				const newPostgres = await createPostgres({
+					...input,
+				});
 				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,

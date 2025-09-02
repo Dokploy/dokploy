@@ -4,6 +4,7 @@ import {
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
+	findEnvironmentById,
 	findGitProviderById,
 	findProjectById,
 	getApplicationStats,
@@ -63,10 +64,14 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiCreateApplication)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				// Get project from environment
+				const environment = await findEnvironmentById(input.environmentId);
+				const project = await findProjectById(environment.projectId);
+
 				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
-						input.projectId,
+						project.projectId,
 						ctx.session.activeOrganizationId,
 						"create",
 					);
@@ -79,13 +84,14 @@ export const applicationRouter = createTRPCRouter({
 					});
 				}
 
-				const project = await findProjectById(input.projectId);
 				if (project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
 				}
+
+				console.log("newApplication", input);
 				const newApplication = await createApplication(input);
 
 				if (ctx.user.role === "member") {
@@ -97,6 +103,7 @@ export const applicationRouter = createTRPCRouter({
 				}
 				return newApplication;
 			} catch (error: unknown) {
+				console.log("error", error);
 				if (error instanceof TRPCError) {
 					throw error;
 				}
