@@ -65,6 +65,7 @@ export const AddCertificate = () => {
 	const { mutateAsync, isError, error, isLoading } =
 		api.certificates.create.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
+	const hasServers = servers && servers.length > 0;
 
 	const form = useForm<AddCertificate>({
 		defaultValues: {
@@ -85,7 +86,7 @@ export const AddCertificate = () => {
 			certificateData: data.certificateData,
 			privateKey: data.privateKey,
 			autoRenew: data.autoRenew,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 			organizationId: "",
 		})
 			.then(async () => {
@@ -174,52 +175,62 @@ export const AddCertificate = () => {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="serverId"
-							render={({ field }) => (
-								<FormItem>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server {!isCloud && "(Optional)"}
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormLabel>
-											</TooltipTrigger>
-										</Tooltip>
-									</TooltipProvider>
+						{hasServers && servers.length > 1 && (
+							<FormField
+								control={form.control}
+								name="serverId"
+								render={({ field }) => (
+									<FormItem>
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+														Select a Server {!isCloud && "(Optional)"}
+														<HelpCircle className="size-4 text-muted-foreground" />
+													</FormLabel>
+												</TooltipTrigger>
+											</Tooltip>
+										</TooltipProvider>
 
-									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Select a Server" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectGroup>
-												{servers?.map((server) => (
-													<SelectItem
-														key={server.serverId}
-														value={server.serverId}
-													>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value || "dokploy"}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Dokploy" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													<SelectItem value="dokploy">
 														<span className="flex items-center gap-2 justify-between w-full">
-															<span>{server.name}</span>
+															<span>Dokploy</span>
 															<span className="text-muted-foreground text-xs self-center">
-																{server.ipAddress}
+																Default
 															</span>
 														</span>
 													</SelectItem>
-												))}
-												<SelectLabel>Servers ({servers?.length})</SelectLabel>
-											</SelectGroup>
-										</SelectContent>
-									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+													{servers?.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>{server.name}</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	{server.ipAddress}
+																</span>
+															</span>
+														</SelectItem>
+													))}
+													<SelectLabel>Servers ({servers?.length + 1})</SelectLabel>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 					</form>
 
 					<DialogFooter className="flex w-full flex-row !justify-end">

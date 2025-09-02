@@ -427,7 +427,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															project.
 														</AlertDialogDescription>
 
-														{hasServers && (
+														{hasServers && servers.length > 1 && (
 															<div>
 																<TooltipProvider delayDuration={0}>
 																	<Tooltip>
@@ -456,12 +456,21 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																	onValueChange={(e) => {
 																		setServerId(e);
 																	}}
+																	defaultValue="dokploy"
 																>
 																	<SelectTrigger>
-																		<SelectValue placeholder="Select a Server" />
+																		<SelectValue placeholder="Dokploy" />
 																	</SelectTrigger>
 																	<SelectContent>
 																		<SelectGroup>
+																			<SelectItem value="dokploy">
+																				<span className="flex items-center gap-2 justify-between w-full">
+																					<span>Dokploy</span>
+																					<span className="text-muted-foreground text-xs self-center">
+																						Default
+																					</span>
+																				</span>
+																			</SelectItem>
 																			{servers?.map((server) => (
 																				<SelectItem
 																					key={server.serverId}
@@ -476,7 +485,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																				</SelectItem>
 																			))}
 																			<SelectLabel>
-																				Servers ({servers?.length})
+																				Servers ({servers?.length + 1})
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>
@@ -491,7 +500,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															onClick={async () => {
 																const promise = mutateAsync({
 																	projectId,
-																	serverId: serverId || undefined,
+																	serverId: serverId === "dokploy" ? undefined : serverId,
 																	id: template.id,
 																	baseUrl: customBaseUrl,
 																});

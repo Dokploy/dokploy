@@ -220,7 +220,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			appName: data.appName,
 			dockerImage: defaultDockerImage,
 			projectId,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 			description: data.description,
 		};
 
@@ -232,7 +232,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 			});
 		} else if (data.type === "mongo") {
 			promise = mongoMutation.mutateAsync({
@@ -240,14 +240,14 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databasePassword: data.databasePassword,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 				replicaSets: data.replicaSets,
 			});
 		} else if (data.type === "redis") {
 			promise = redisMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 				projectId,
 			});
 		} else if (data.type === "mariadb") {
@@ -258,7 +258,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 			});
 		} else if (data.type === "mysql") {
 			promise = mysqlMutation.mutateAsync({
@@ -268,7 +268,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				databaseRootPassword: data.databaseRootPassword,
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 			});
 		}
 
@@ -398,7 +398,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								{hasServers && (
+								{hasServers && servers.length > 1 && (
 									<FormField
 										control={form.control}
 										name="serverId"
@@ -407,13 +407,21 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<FormLabel>Select a Server</FormLabel>
 												<Select
 													onValueChange={field.onChange}
-													defaultValue={field.value || ""}
+													defaultValue={field.value || "dokploy"}
 												>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a Server" />
+														<SelectValue placeholder="Dokploy" />
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
+															<SelectItem value="dokploy">
+																<span className="flex items-center gap-2 justify-between w-full">
+																	<span>Dokploy</span>
+																	<span className="text-muted-foreground text-xs self-center">
+																		Default
+																	</span>
+																</span>
+															</SelectItem>
 															{servers?.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -423,7 +431,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length})
+																Servers ({servers?.length + 1})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>

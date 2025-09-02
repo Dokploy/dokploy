@@ -95,7 +95,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 			appName: data.appName,
 			description: data.description,
 			projectId,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 		})
 			.then(async () => {
 				toast.success("Service Created");
@@ -157,7 +157,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 								</FormItem>
 							)}
 						/>
-						{hasServers && (
+						{hasServers && servers.length > 1 && (
 							<FormField
 								control={form.control}
 								name="serverId"
@@ -186,13 +186,21 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 
 										<Select
 											onValueChange={field.onChange}
-											defaultValue={field.value}
+											defaultValue={field.value || "dokploy"}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Server" />
+												<SelectValue placeholder="Dokploy" />
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
+													<SelectItem value="dokploy">
+														<span className="flex items-center gap-2 justify-between w-full">
+															<span>Dokploy</span>
+															<span className="text-muted-foreground text-xs self-center">
+																Default
+															</span>
+														</span>
+													</SelectItem>
 													{servers?.map((server) => (
 														<SelectItem
 															key={server.serverId}
@@ -206,7 +214,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 															</span>
 														</SelectItem>
 													))}
-													<SelectLabel>Servers ({servers?.length})</SelectLabel>
+													<SelectLabel>Servers ({servers?.length + 1})</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>

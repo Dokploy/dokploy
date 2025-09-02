@@ -48,34 +48,49 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 						/>
 					</div>
 
-					{hasServers && (
+					{hasServers && servers.length > 1 && (
 						<div className="space-y-2">
 							<Label htmlFor="server-deploy">
 								Select the server where you want to deploy (optional)
 							</Label>
 							<Select
-								value={templateInfo.server?.serverId}
+								value={templateInfo.server?.serverId || "dokploy"}
 								onValueChange={(value) => {
-									const server = servers?.find((s) => s.serverId === value);
-									if (server) {
+									if (value === "dokploy") {
 										setTemplateInfo({
 											...templateInfo,
-											server: server,
+											server: undefined,
 										});
+									} else {
+										const server = servers?.find((s) => s.serverId === value);
+										if (server) {
+											setTemplateInfo({
+												...templateInfo,
+												server: server,
+											});
+										}
 									}
 								}}
 							>
 								<SelectTrigger className="w-full">
-									<SelectValue placeholder="Select a server" />
+									<SelectValue placeholder="Dokploy" />
 								</SelectTrigger>
 								<SelectContent>
 									<SelectGroup>
+										<SelectItem value="dokploy">
+											<span className="flex items-center gap-2 justify-between w-full">
+												<span>Dokploy</span>
+												<span className="text-muted-foreground text-xs self-center">
+													Default
+												</span>
+											</span>
+										</SelectItem>
 										{servers?.map((server) => (
 											<SelectItem key={server.serverId} value={server.serverId}>
 												{server.name}
 											</SelectItem>
 										))}
-										<SelectLabel>Servers ({servers?.length})</SelectLabel>
+										<SelectLabel>Servers ({servers?.length + 1})</SelectLabel>
 									</SelectGroup>
 								</SelectContent>
 							</Select>
