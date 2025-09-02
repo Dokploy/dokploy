@@ -113,6 +113,11 @@ export type Services = {
 	id: string;
 	createdAt: string;
 	status?: "idle" | "running" | "done" | "error";
+	latestDeployment?: {
+		deploymentId: string;
+		createdAt: string;
+		status: string;
+	} | null;
 };
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
@@ -128,6 +133,7 @@ export const extractServices = (data: Project | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			latestDeployment: item.latestDeployment,
 		})) || [];
 
 	const mariadb: Services[] =
@@ -200,6 +206,7 @@ export const extractServices = (data: Project | undefined) => {
 			status: item.composeStatus,
 			description: item.description,
 			serverId: item.serverId,
+			latestDeployment: item.latestDeployment,
 		})) || [];
 
 	applications.push(
@@ -1287,9 +1294,15 @@ const Project = (
 															</CardHeader>
 															<CardFooter className="mt-auto">
 																<div className="space-y-1 text-sm">
-																	<DateTooltip date={service.createdAt}>
-																		Created
-																	</DateTooltip>
+																	{(service.type === "application" || service.type === "compose") && service.latestDeployment ? (
+																		<DateTooltip date={service.latestDeployment.createdAt}>
+																			Last deploy
+																		</DateTooltip>
+																	) : (
+																		<DateTooltip date={service.createdAt}>
+																			Created
+																		</DateTooltip>
+																	)}
 																</div>
 															</CardFooter>
 														</Card>

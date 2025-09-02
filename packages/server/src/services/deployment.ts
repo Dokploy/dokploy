@@ -10,13 +10,15 @@ import {
 	type apiCreateDeploymentSchedule,
 	type apiCreateDeploymentServer,
 	type apiCreateDeploymentVolumeBackup,
+	applications,
+	compose,
 	deployments,
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, or, sql } from "drizzle-orm";
 import {
 	type Application,
 	findApplicationById,
@@ -825,4 +827,39 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 		orderBy: desc(deployments.createdAt),
 	});
 	return deploymentsList;
+};
+
+export const findLatestDeploymentByProjectId = async (projectId: string) => {
+	const latestDeployment = await db.query.deployments.findFirst({
+		where: or(
+			sql`${deployments.applicationId} IN (
+				SELECT ${applications.applicationId} 
+				FROM ${applications} 
+				WHERE ${applications.projectId} = ${projectId}
+			)`,
+			sql`${deployments.composeId} IN (
+				SELECT ${compose.composeId} 
+				FROM ${compose} 
+				WHERE ${compose.projectId} = ${projectId}
+			)`
+		),
+		orderBy: desc(deployments.createdAt),
+	});
+	return latestDeployment;
+};
+
+export const findLatestDeploymentByApplicationId = async (applicationId: string) => {
+	const latestDeployment = await db.query.deployments.findFirst({
+		where: eq(deployments.applicationId, applicationId),
+		orderBy: desc(deployments.createdAt),
+	});
+	return latestDeployment;
+};
+
+export const findLatestDeploymentByComposeId = async (composeId: string) => {
+	const latestDeployment = await db.query.deployments.findFirst({
+		where: eq(deployments.composeId, composeId),
+		orderBy: desc(deployments.createdAt),
+	});
+	return latestDeployment;
 };
