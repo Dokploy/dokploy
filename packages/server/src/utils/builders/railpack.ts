@@ -26,7 +26,7 @@ export const buildRailpack = async (
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		application.project.env,
+		application.environment.project.env,
 	);
 
 	try {
@@ -123,7 +123,7 @@ export const getRailpackCommand = (
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		application.project.env,
+		application.environment.project.env,
 	);
 
 	// Prepare command

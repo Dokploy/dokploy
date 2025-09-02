@@ -231,11 +231,11 @@ export const deployApplication = async ({
 		}
 
 		await sendBuildSuccessNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
 		});
 	} catch (error) {
@@ -243,13 +243,13 @@ export const deployApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 
 		await sendBuildErrorNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 		});
 
 		throw error;
@@ -367,11 +367,11 @@ export const deployRemoteApplication = async ({
 		}
 
 		await sendBuildSuccessNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
 		});
 	} catch (error) {
@@ -391,12 +391,12 @@ export const deployRemoteApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 
 		await sendBuildErrorNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			errorMessage: `Please check the logs for details: ${errorMessage}`,
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 		});
 
 		throw error;
