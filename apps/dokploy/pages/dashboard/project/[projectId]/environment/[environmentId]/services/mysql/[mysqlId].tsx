@@ -54,7 +54,7 @@ const MySql = (
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { mysqlId, activeTab } = props;
 	const router = useRouter();
-	const { projectId } = router.query;
+	const { projectId, environmentId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mysql.one.useQuery({ mysqlId });
 	const { data: auth } = api.user.get.useQuery();
@@ -73,7 +73,7 @@ const MySql = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/services/mysql/${mysqlId}`,
+						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/mysql/${mysqlId}`,
 					},
 				]}
 			/>
@@ -180,7 +180,7 @@ const MySql = (
 										className="w-full"
 										onValueChange={(e) => {
 											setSab(e as TabState);
-											const newPath = `/dashboard/project/${projectId}/services/mysql/${mysqlId}?tab=${e}`;
+											const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/mysql/${mysqlId}?tab=${e}`;
 
 											router.push(newPath, undefined, { shallow: true });
 										}}
@@ -286,7 +286,7 @@ MySql.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ mysqlId: string; activeTab: TabState }>,
+	ctx: GetServerSidePropsContext<{ mysqlId: string; activeTab: TabState; environmentId: string }>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;

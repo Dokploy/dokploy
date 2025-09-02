@@ -1251,7 +1251,7 @@ const EnvironmentPage = (
 														key={service.id}
 														onClick={() => {
 															router.push(
-																`/dashboard/project/${projectId}/services/${service.type}/${service.id}`,
+																`/dashboard/project/${projectId}/environment/${environmentId}/services/${service.type}/${service.id}`,
 															);
 														}}
 														className="flex flex-col group relative cursor-pointer bg-transparent transition-colors hover:bg-border"

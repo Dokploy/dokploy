@@ -14,14 +14,14 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
-import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
-import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
-import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
-import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
+import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
+import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
+import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/general/show-internal-mongo-credentials";
+import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
-import { MariadbIcon } from "@/components/icons/data-tools-icons";
+import { MongodbIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -48,23 +48,23 @@ import { api } from "@/utils/api";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
-const Mariadb = (
+const Mongo = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
-
-	const { mariadbId, activeTab } = props;
+	const { mongoId, activeTab } = props;
 	const router = useRouter();
-	const { projectId } = router.query;
+	const { projectId, environmentId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
-	const { data } = api.mariadb.one.useQuery({ mariadbId });
+	const { data } = api.mongo.one.useQuery({ mongoId });
+
 	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<div className="pb-10">
-			<UseKeyboardNav forPage="mariadb" />
+			<UseKeyboardNav forPage="mongodb" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
@@ -74,16 +74,16 @@ const Mariadb = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/services/mariadb/${mariadbId}`,
+						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/mongo/${mongoId}`,
 					},
 				]}
 			/>
-			<div className="flex flex-col gap-4">
-				<Head>
-					<title>
-						Database: {data?.name} - {data?.project.name} | Dokploy
-					</title>
-				</Head>
+			<Head>
+				<title>
+					Database: {data?.name} - {data?.project.name} | Dokploy
+				</title>
+			</Head>
+			<div className="w-full">
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="flex flex-row justify-between items-center">
@@ -94,7 +94,7 @@ const Mariadb = (
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
-										<MariadbIcon className="h-6 w-6 text-muted-foreground" />
+										<MongodbIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
 									{data?.name}
 								</CardTitle>
@@ -142,10 +142,11 @@ const Mariadb = (
 										</TooltipProvider>
 									)}
 								</div>
+
 								<div className="flex flex-row gap-2 justify-end">
-									<UpdateMariadb mariadbId={mariadbId} />
+									<UpdateMongo mongoId={mongoId} />
 									{(auth?.role === "owner" || auth?.canDeleteServices) && (
-										<DeleteService id={mariadbId} type="mariadb" />
+										<DeleteService id={mongoId} type="mongo" />
 									)}
 								</div>
 							</div>
@@ -179,7 +180,7 @@ const Mariadb = (
 									className="w-full"
 									onValueChange={(e) => {
 										setSab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/services/mariadb/${mariadbId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/mongo/${mongoId}?tab=${e}`;
 
 										router.push(newPath, undefined, { shallow: true });
 									}}
@@ -208,14 +209,14 @@ const Mariadb = (
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowGeneralMariadb mariadbId={mariadbId} />
-											<ShowInternalMariadbCredentials mariadbId={mariadbId} />
-											<ShowExternalMariadbCredentials mariadbId={mariadbId} />
+											<ShowGeneralMongo mongoId={mongoId} />
+											<ShowInternalMongoCredentials mongoId={mongoId} />
+											<ShowExternalMongoCredentials mongoId={mongoId} />
 										</div>
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment id={mariadbId} type="mariadb" />
+											<ShowEnvironment id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 									<TabsContent value="monitoring">
@@ -273,15 +274,16 @@ const Mariadb = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={mariadbId} databaseType="mariadb" />
+											<ShowBackups
+												id={mongoId}
+												databaseType="mongo"
+												backupType="database"
+											/>
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDatabaseAdvancedSettings
-												id={mariadbId}
-												type="mariadb"
-											/>
+											<ShowDatabaseAdvancedSettings id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -294,13 +296,13 @@ const Mariadb = (
 	);
 };
 
-export default Mariadb;
-Mariadb.getLayout = (page: ReactElement) => {
+export default Mongo;
+Mongo.getLayout = (page: ReactElement) => {
 	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ mariadbId: string; activeTab: TabState }>,
+	ctx: GetServerSidePropsContext<{ mongoId: string; activeTab: TabState; environmentId: string }>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
@@ -327,17 +329,18 @@ export async function getServerSideProps(
 		transformer: superjson,
 	});
 
-	if (typeof params?.mariadbId === "string") {
+	if (typeof params?.mongoId === "string") {
 		try {
-			await helpers.mariadb.one.fetch({
-				mariadbId: params?.mariadbId,
+			await helpers.mongo.one.fetch({
+				mongoId: params?.mongoId,
 			});
 			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
-					mariadbId: params?.mariadbId,
+					mongoId: params?.mongoId,
 					activeTab: (activeTab || "general") as TabState,
+					environmentId: params?.environmentId,
 				},
 			};
 		} catch {

@@ -87,7 +87,7 @@ export const SearchCommand = () => {
 										key={application.id}
 										onSelect={() => {
 											router.push(
-												`/dashboard/project/${project.projectId}/services/${application.type}/${application.id}`,
+												`/dashboard/project/${project.projectId}/environment/${application.environmentId}/services/${application.type}/${application.id}`,
 											);
 											setOpen(false);
 										}}
