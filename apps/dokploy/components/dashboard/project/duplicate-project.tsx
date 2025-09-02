@@ -124,7 +124,7 @@ export const DuplicateProject = ({
 				id: service.id,
 				type: service.type,
 			})),
-			duplicateInSameProject: duplicateType === "same-project",
+			duplicateInSameProject: duplicateType === "existing-environment",
 		});
 	};
 
