@@ -28,7 +28,10 @@ import { api } from "@/utils/api";
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
 
-type Environment = Omit<Awaited<ReturnType<typeof findEnvironmentById>>, "project"> ;
+type Environment = Omit<
+	Awaited<ReturnType<typeof findEnvironmentById>>,
+	"project"
+>;
 
 export type Services = {
 	appName: string;

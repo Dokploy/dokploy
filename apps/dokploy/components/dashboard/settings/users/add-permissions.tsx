@@ -334,7 +334,9 @@ export const AddUserPermissions = ({ userId }: Props) => {
 									)}
 									<div className="grid md:grid-cols-2  gap-4">
 										{projects?.map((item, index) => {
-											const applications = item.environments.flatMap(env => extractServices(env));
+											const applications = item.environments.flatMap((env) =>
+												extractServices(env),
+											);
 											return (
 												<FormField
 													key={`project-${index}`}
