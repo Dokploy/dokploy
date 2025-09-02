@@ -20,7 +20,7 @@ export const buildNixpacks = async (
 	const buildContainerId = `${appName}-${nanoid(10)}`;
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		application.project.env,
+		application.environment.project.env,
 	);
 
 	const writeToStream = (data: string) => {
@@ -101,7 +101,7 @@ export const getNixpacksCommand = (
 	const buildContainerId = `${appName}-${nanoid(10)}`;
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		application.project.env,
+		application.environment.project.env,
 	);
 
 	const args = ["build", buildAppDirectory, "--name", appName];

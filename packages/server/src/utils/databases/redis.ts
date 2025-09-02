@@ -12,7 +12,7 @@ import { getRemoteDocker } from "../servers/remote-docker";
 
 export type RedisNested = InferResultType<
 	"redis",
-	{ mounts: true; project: true }
+	{ mounts: true; environment: { with: { project: true } } }
 >;
 export const buildRedis = async (redis: RedisNested) => {
 	const {
@@ -51,7 +51,7 @@ export const buildRedis = async (redis: RedisNested) => {
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultRedisEnv,
-		redis.project.env,
+		redis.environment.project.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);

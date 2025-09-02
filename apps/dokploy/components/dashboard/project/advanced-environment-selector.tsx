@@ -33,7 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { findEnvironmentById } from "@dokploy/server";
 
-type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
+type Environment = Omit<Awaited<ReturnType<typeof findEnvironmentById>>, "project">;
 interface AdvancedEnvironmentSelectorProps {
 	projectId: string;
 	currentEnvironmentId?: string;
@@ -242,17 +242,6 @@ export const AdvancedEnvironmentSelector = ({
 									>
 										<PencilIcon className="h-3 w-3" />
 									</Button>
-									{/* <Button
-										variant="ghost"
-										size="sm"
-										className="h-6 w-6 p-0"
-										onClick={(e) => {
-											e.stopPropagation();
-											handleDuplicateEnvironment(environment);
-										}}
-									>
-										<CopyIcon className="h-3 w-3" />
-									</Button> */}
 									<Button
 										variant="ghost"
 										size="sm"

@@ -17,13 +17,22 @@ import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
 import { buildPaketo, getPaketoCommand } from "./paketo";
 import { buildRailpack, getRailpackCommand } from "./railpack";
 import { buildStatic, getStaticCommand } from "./static";
-import { findApplicationById } from "@dokploy/server/services/application";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
 // PAKETO codeDirectory = where is the path of the code directory
 // DOCKERFILE codeDirectory = where is the exact path of the (Dockerfile)
-export type ApplicationNested = Awaited<ReturnType<typeof findApplicationById>>;
+export type ApplicationNested = InferResultType<
+	"applications",
+	{
+		mounts: true;
+		security: true;
+		redirects: true;
+		ports: true;
+		registry: true;
+		environment: { with: { project: true } };
+	}
+>;
 
 export const buildApplication = async (
 	application: ApplicationNested,

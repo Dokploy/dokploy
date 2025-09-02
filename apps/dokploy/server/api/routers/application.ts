@@ -255,7 +255,7 @@ export const applicationRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return result[0];
+			return application;
 		}),
 
 	stop: protectedProcedure

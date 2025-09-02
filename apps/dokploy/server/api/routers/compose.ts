@@ -208,7 +208,6 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to delete this compose",
 				});
 			}
-			4;
 
 			const result = await db
 				.delete(composeTable)
@@ -227,7 +226,7 @@ export const composeRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return result[0];
+			return composeResult;
 		}),
 	cleanQueues: protectedProcedure
 		.input(apiFindCompose)
