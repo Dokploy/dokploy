@@ -1,5 +1,5 @@
 {
-  "id": "7d12191c-c00e-498a-b3c3-9b979fa65aee",
+  "id": "9b77fa3f-52d5-4488-930b-1d7ef304af19",
   "prevId": "5568024c-5daa-4554-a224-8a005a53f97c",
   "version": "7",
   "dialect": "postgresql",
@@ -1303,8 +1303,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "projectId": {
-          "name": "projectId",
+        "environmentId": {
+          "name": "environmentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1368,15 +1368,15 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "application_projectId_project_projectId_fk": {
-          "name": "application_projectId_project_projectId_fk",
+        "application_environmentId_environment_environmentId_fk": {
+          "name": "application_environmentId_environment_environmentId_fk",
           "tableFrom": "application",
-          "tableTo": "project",
+          "tableTo": "environment",
           "columnsFrom": [
-            "projectId"
+            "environmentId"
           ],
           "columnsTo": [
-            "projectId"
+            "environmentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2074,8 +2074,8 @@
           "notNull": true,
           "default": "'idle'"
         },
-        "projectId": {
-          "name": "projectId",
+        "environmentId": {
+          "name": "environmentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2138,15 +2138,15 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "compose_projectId_project_projectId_fk": {
-          "name": "compose_projectId_project_projectId_fk",
+        "compose_environmentId_environment_environmentId_fk": {
+          "name": "compose_environmentId_environment_environmentId_fk",
           "tableFrom": "compose",
-          "tableTo": "project",
+          "tableTo": "environment",
           "columnsFrom": [
-            "projectId"
+            "environmentId"
           ],
           "columnsTo": [
-            "projectId"
+            "environmentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3272,8 +3272,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "projectId": {
-          "name": "projectId",
+        "environmentId": {
+          "name": "environmentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3287,15 +3287,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "mariadb_projectId_project_projectId_fk": {
-          "name": "mariadb_projectId_project_projectId_fk",
+        "mariadb_environmentId_environment_environmentId_fk": {
+          "name": "mariadb_environmentId_environment_environmentId_fk",
           "tableFrom": "mariadb",
-          "tableTo": "project",
+          "tableTo": "environment",
           "columnsFrom": [
-            "projectId"
+            "environmentId"
           ],
           "columnsTo": [
-            "projectId"
+            "environmentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3485,8 +3485,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "projectId": {
-          "name": "projectId",
+        "environmentId": {
+          "name": "environmentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3507,15 +3507,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "mongo_projectId_project_projectId_fk": {
-          "name": "mongo_projectId_project_projectId_fk",
+        "mongo_environmentId_environment_environmentId_fk": {
+          "name": "mongo_environmentId_environment_environmentId_fk",
           "tableFrom": "mongo",
-          "tableTo": "project",
+          "tableTo": "environment",
           "columnsFrom": [
-            "projectId"
+            "environmentId"
           ],
           "columnsTo": [
-            "projectId"
+            "environmentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3915,8 +3915,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "projectId": {
-          "name": "projectId",
+        "environmentId": {
+          "name": "environmentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -3930,15 +3930,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "mysql_projectId_project_projectId_fk": {
-          "name": "mysql_projectId_project_projectId_fk",
+        "mysql_environmentId_environment_environmentId_fk": {
+          "name": "mysql_environmentId_environment_environmentId_fk",
           "tableFrom": "mysql",
-          "tableTo": "project",
+          "tableTo": "environment",
           "columnsFrom": [
-            "projectId"
+            "environmentId"
           ],
           "columnsTo": [
-            "projectId"
+            "environmentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4593,8 +4593,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "projectId": {
-          "name": "projectId",
+        "environmentId": {
+          "name": "environmentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4608,15 +4608,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "postgres_projectId_project_projectId_fk": {
-          "name": "postgres_projectId_project_projectId_fk",
+        "postgres_environmentId_environment_environmentId_fk": {
+          "name": "postgres_environmentId_environment_environmentId_fk",
           "tableFrom": "postgres",
-          "tableTo": "project",
+          "tableTo": "environment",
           "columnsFrom": [
-            "projectId"
+            "environmentId"
           ],
           "columnsTo": [
-            "projectId"
+            "environmentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -5062,8 +5062,8 @@
           "notNull": true,
           "default": 1
         },
-        "projectId": {
-          "name": "projectId",
+        "environmentId": {
+          "name": "environmentId",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -5077,15 +5077,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "redis_projectId_project_projectId_fk": {
-          "name": "redis_projectId_project_projectId_fk",
+        "redis_environmentId_environment_environmentId_fk": {
+          "name": "redis_environmentId_environment_environmentId_fk",
           "tableFrom": "redis",
-          "tableTo": "project",
+          "tableTo": "environment",
           "columnsFrom": [
-            "projectId"
+            "environmentId"
           ],
           "columnsTo": [
-            "projectId"
+            "environmentId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
