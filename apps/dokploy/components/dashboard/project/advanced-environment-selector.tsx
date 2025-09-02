@@ -22,17 +22,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon, CopyIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { findEnvironmentById } from "@dokploy/server";
 
-interface Environment {
-	environmentId: string;
-	name: string;
-	description?: string | null;
-	createdAt: string;
-}
 
+type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
 interface AdvancedEnvironmentSelectorProps {
 	projectId: string;
 	environments: Environment[];
@@ -59,7 +55,16 @@ export const AdvancedEnvironmentSelector = ({
 		enabled: !!currentEnvironmentId,
 	});
 
-	const haveServices = environment && (environment?.mariadb?.length > 0 || environment?.mongo?.length > 0 || environment?.mysql?.length > 0 || environment?.postgres?.length > 0 || environment?.redis?.length > 0 || environment?.applications?.length > 0 || environment?.compose?.length > 0);
+
+	const haveServices = selectedEnvironment && (
+		(selectedEnvironment?.mariadb?.length || 0) > 0 || 
+		(selectedEnvironment?.mongo?.length || 0) > 0 || 
+		(selectedEnvironment?.mysql?.length || 0) > 0 || 
+		(selectedEnvironment?.postgres?.length || 0) > 0 || 
+		(selectedEnvironment?.redis?.length || 0) > 0 || 
+		(selectedEnvironment?.applications?.length || 0) > 0 || 
+		(selectedEnvironment?.compose?.length || 0) > 0
+	);
 	const createEnvironment = api.environment.create.useMutation();
 	const updateEnvironment = api.environment.update.useMutation();
 	const deleteEnvironment = api.environment.remove.useMutation();
@@ -221,6 +226,17 @@ export const AdvancedEnvironmentSelector = ({
 									>
 										<PencilIcon className="h-3 w-3" />
 									</Button>
+									{/* <Button
+										variant="ghost"
+										size="sm"
+										className="h-6 w-6 p-0"
+										onClick={(e) => {
+											e.stopPropagation();
+											handleDuplicateEnvironment(environment);
+										}}
+									>
+										<CopyIcon className="h-3 w-3" />
+									</Button> */}
 									<Button
 										variant="ghost"
 										size="sm"
@@ -258,7 +274,7 @@ export const AdvancedEnvironmentSelector = ({
 					</DialogHeader>
 					
 					<div className="space-y-4">
-						<div>
+						<div className="space-y-1">
 							<Label htmlFor="name">Name</Label>
 							<Input
 								id="name"
@@ -267,7 +283,7 @@ export const AdvancedEnvironmentSelector = ({
 								placeholder="Environment name"
 							/>
 						</div>
-						<div>
+						<div className="space-y-1">
 							<Label htmlFor="description">Description (optional)</Label>
 							<Textarea
 								id="description"
@@ -310,7 +326,7 @@ export const AdvancedEnvironmentSelector = ({
 					</DialogHeader>
 					
 					<div className="space-y-4">
-						<div>
+						<div className="space-y-1">
 							<Label htmlFor="edit-name">Name</Label>
 							<Input
 								id="edit-name"
@@ -319,7 +335,7 @@ export const AdvancedEnvironmentSelector = ({
 								placeholder="Environment name"
 							/>
 						</div>
-						<div>
+						<div className="space-y-1">
 							<Label htmlFor="edit-description">Description (optional)</Label>
 							<Textarea
 								id="edit-description"
@@ -382,7 +398,7 @@ export const AdvancedEnvironmentSelector = ({
 						<Button
 							variant="destructive"
 							onClick={handleDeleteEnvironment}
-							disabled={deleteEnvironment.isLoading || haveServices}
+							disabled={deleteEnvironment.isLoading || haveServices || !selectedEnvironment}
 						>
 							{deleteEnvironment.isLoading ? "Deleting..." : "Delete"}
 						</Button>
