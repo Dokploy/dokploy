@@ -754,7 +754,6 @@ const EnvironmentPage = (
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
 						name: projectData?.name || "",
-						href: `/dashboard/project/${projectId}`,
 					},
 					{
 						name: currentEnvironment.name,

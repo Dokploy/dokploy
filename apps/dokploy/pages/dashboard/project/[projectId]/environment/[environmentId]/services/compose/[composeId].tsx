@@ -89,7 +89,6 @@ const Service = (
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
 						name: data?.environment?.project?.name || "",
-						href: `/dashboard/project/${projectId}`,
 					},
 					{
 						name: data?.environment?.name || "",
