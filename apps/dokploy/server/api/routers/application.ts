@@ -91,7 +91,6 @@ export const applicationRouter = createTRPCRouter({
 					});
 				}
 
-				console.log("newApplication", input);
 				const newApplication = await createApplication(input);
 
 				if (ctx.user.role === "member") {

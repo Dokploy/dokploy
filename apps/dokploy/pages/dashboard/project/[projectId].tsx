@@ -79,16 +79,6 @@ const Project = (
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
 
-									{/* Selector Avanzado de Ambientes */}
-									{!emptyEnvironments && (
-										<AdvancedEnvironmentSelector
-											projectId={projectId}
-											environments={data?.environments || []}
-											currentEnvironmentId={undefined} // En la página principal no hay ambiente actual
-										/>
-									)}
-
-
 								</div>
 							</div>
 						</div>

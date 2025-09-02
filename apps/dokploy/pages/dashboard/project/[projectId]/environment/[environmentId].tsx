@@ -96,6 +96,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { Badge } from "@/components/ui/badge";
 
 export type Services = {
 	appName: string;
@@ -752,9 +753,9 @@ const EnvironmentPage = (
 									<FolderInput className="size-6 text-muted-foreground self-center" />
 									{currentEnvironment.name}
 									{currentEnvironment.name === "production" && (
-										<span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+										<Badge >
 											Production
-										</span>
+										</Badge>
 									)}
 								</CardTitle>
 								<CardDescription>

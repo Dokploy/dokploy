@@ -76,7 +76,6 @@ export const createApplication = async (
 		});
 	}
 
-	console.log("input", input);
 	return await db.transaction(async (tx) => {
 		const newApplication = await tx
 			.insert(applications)
@@ -87,7 +86,6 @@ export const createApplication = async (
 			.returning()
 			.then((value) => value[0]);
 
-			console.log("newApplication", newApplication);
 
 		if (!newApplication) {
 			throw new TRPCError({
