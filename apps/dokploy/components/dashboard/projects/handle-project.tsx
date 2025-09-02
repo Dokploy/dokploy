@@ -101,7 +101,9 @@ export const HandleProject = ({ projectId }: Props) => {
 				toast.success(projectId ? "Project Updated" : "Project Created");
 				setIsOpen(false);
 				if (!projectId) {
-					router.push(`/dashboard/project/${data?.project?.projectId}/environment/${data?.environment?.environmentId}`);
+					router.push(
+						`/dashboard/project/${data?.project?.projectId}/environment/${data?.environment?.environmentId}`,
+					);
 				} else {
 					refetch();
 				}

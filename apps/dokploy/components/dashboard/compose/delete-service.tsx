@@ -101,7 +101,9 @@ export const DeleteService = ({ id, type }: Props) => {
 				deleteVolumes,
 			})
 				.then((result) => {
-					push(`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`);
+					push(
+						`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`,
+					);
 					toast.success("deleted successfully");
 					setIsOpen(false);
 				})

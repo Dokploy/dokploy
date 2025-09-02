@@ -72,7 +72,10 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 					NODE_ENV: process.env.NODE_ENV,
 					PATH: process.env.PATH,
 					...(composeType === "stack" && {
-						...getEnviromentVariablesObject(compose.env, compose.environment.project.env),
+						...getEnviromentVariablesObject(
+							compose.env,
+							compose.environment.project.env,
+						),
 					}),
 				},
 			},

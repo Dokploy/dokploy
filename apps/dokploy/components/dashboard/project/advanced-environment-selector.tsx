@@ -33,7 +33,10 @@ import { Badge } from "@/components/ui/badge";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { findEnvironmentById } from "@dokploy/server";
 
-type Environment = Omit<Awaited<ReturnType<typeof findEnvironmentById>>, "project">;
+type Environment = Omit<
+	Awaited<ReturnType<typeof findEnvironmentById>>,
+	"project"
+>;
 interface AdvancedEnvironmentSelectorProps {
 	projectId: string;
 	currentEnvironmentId?: string;
