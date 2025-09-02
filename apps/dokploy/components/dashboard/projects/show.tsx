@@ -187,28 +187,40 @@ export const ShowProjects = () => {
 									)}
 									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
-											const emptyServices =
-												project?.environments.map((env) => env.applications.length === 0 &&
-												env.mariadb.length === 0 &&
-												env.mongo.length === 0 &&
-												env.mysql.length === 0 &&
-												env.postgres.length === 0 &&
-												env.redis.length === 0 &&
-												env.applications.length === 0 &&
-												env.compose.length === 0).every(Boolean);
+											const emptyServices = project?.environments
+												.map(
+													(env) =>
+														env.applications.length === 0 &&
+														env.mariadb.length === 0 &&
+														env.mongo.length === 0 &&
+														env.mysql.length === 0 &&
+														env.postgres.length === 0 &&
+														env.redis.length === 0 &&
+														env.applications.length === 0 &&
+														env.compose.length === 0,
+												)
+												.every(Boolean);
 
-											const totalServices =
-												project?.environments.map((env) => env.mariadb.length +
-												env.mongo.length +
-												env.mysql.length +
-												env.postgres.length +
-												env.redis.length +
-												env.applications.length +
-												env.compose.length ).reduce((acc, curr) => acc + curr, 0);
+											const totalServices = project?.environments
+												.map(
+													(env) =>
+														env.mariadb.length +
+														env.mongo.length +
+														env.mysql.length +
+														env.postgres.length +
+														env.redis.length +
+														env.applications.length +
+														env.compose.length,
+												)
+												.reduce((acc, curr) => acc + curr, 0);
 
-												const haveServicesWithDomains =
-													project?.environments.map((env) => env.applications.length > 0 ||
-													env.compose.length > 0).some(Boolean);
+											const haveServicesWithDomains = project?.environments
+												.map(
+													(env) =>
+														env.applications.length > 0 ||
+														env.compose.length > 0,
+												)
+												.some(Boolean);
 
 											return (
 												<div
@@ -234,12 +246,14 @@ export const ShowProjects = () => {
 																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
 																		onClick={(e) => e.stopPropagation()}
 																	>
-																		{project.environments.some((env) => env.applications.length > 0) && (
+																		{project.environments.some(
+																			(env) => env.applications.length > 0,
+																		) && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
 																					Applications
 																				</DropdownMenuLabel>
-																				{project.environments.map((env) => 
+																				{project.environments.map((env) =>
 																					env.applications.map((app) => (
 																						<div key={app.applicationId}>
 																							<DropdownMenuSeparator />
@@ -247,7 +261,9 @@ export const ShowProjects = () => {
 																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
 																									{app.name}
 																									<StatusTooltip
-																										status={app.applicationStatus}
+																										status={
+																											app.applicationStatus
+																										}
 																									/>
 																								</DropdownMenuLabel>
 																								<DropdownMenuSeparator />
@@ -270,7 +286,7 @@ export const ShowProjects = () => {
 																								))}
 																							</DropdownMenuGroup>
 																						</div>
-																					))
+																					)),
 																				)}
 																			</DropdownMenuGroup>
 																		)}
@@ -445,7 +461,7 @@ export const ShowProjects = () => {
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>
-																	 <span>
+																	<span>
 																		{totalServices}{" "}
 																		{totalServices === 1
 																			? "service"

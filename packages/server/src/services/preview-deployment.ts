@@ -49,8 +49,6 @@ export const findPreviewDeploymentById = async (
 	return application;
 };
 
-
-
 export const removePreviewDeployment = async (previewDeploymentId: string) => {
 	try {
 		const previewDeployment =

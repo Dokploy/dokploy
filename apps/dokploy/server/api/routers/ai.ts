@@ -4,7 +4,11 @@ import {
 	apiUpdateAi,
 	deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
-import { createDomain, createMount, findEnvironmentById } from "@dokploy/server/index";
+import {
+	createDomain,
+	createMount,
+	findEnvironmentById,
+} from "@dokploy/server/index";
 import {
 	deleteAiSettings,
 	getAiSettingById,
@@ -193,8 +197,6 @@ export const aiRouter = createTRPCRouter({
 					message: "You need to use a server to create a compose",
 				});
 			}
-
-			
 
 			const projectName = slugify(`${project.name} ${input.id}`);
 

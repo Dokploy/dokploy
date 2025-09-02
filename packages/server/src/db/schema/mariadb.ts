@@ -77,7 +77,6 @@ export const mariadb = pgTable("mariadb", {
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
-
 	environment: one(environments, {
 		fields: [mariadb.environmentId],
 		references: [environments.environmentId],

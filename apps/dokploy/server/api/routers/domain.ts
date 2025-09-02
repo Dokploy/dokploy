@@ -34,7 +34,8 @@ export const domainRouter = createTRPCRouter({
 				if (input.domainType === "compose" && input.composeId) {
 					const compose = await findComposeById(input.composeId);
 					if (
-						compose.environment.project.organizationId !== ctx.session.activeOrganizationId
+						compose.environment.project.organizationId !==
+						ctx.session.activeOrganizationId
 					) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
@@ -70,7 +71,8 @@ export const domainRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.environment.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -83,7 +85,10 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
-			if (compose.environment.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
@@ -122,7 +127,8 @@ export const domainRouter = createTRPCRouter({
 			if (currentDomain.applicationId) {
 				const newApp = await findApplicationById(currentDomain.applicationId);
 				if (
-					newApp.environment.project.organizationId !== ctx.session.activeOrganizationId
+					newApp.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -132,7 +138,8 @@ export const domainRouter = createTRPCRouter({
 			} else if (currentDomain.composeId) {
 				const newCompose = await findComposeById(currentDomain.composeId);
 				if (
-					newCompose.environment.project.organizationId !== ctx.session.activeOrganizationId
+					newCompose.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -144,8 +151,8 @@ export const domainRouter = createTRPCRouter({
 					currentDomain.previewDeploymentId,
 				);
 				if (
-					newPreviewDeployment.application.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
+					newPreviewDeployment.application.environment.project
+						.organizationId !== ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -175,7 +182,8 @@ export const domainRouter = createTRPCRouter({
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
 			if (
-				application.environment.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -184,7 +192,10 @@ export const domainRouter = createTRPCRouter({
 			}
 		} else if (domain.composeId) {
 			const compose = await findComposeById(domain.composeId);
-			if (compose.environment.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
@@ -211,7 +222,8 @@ export const domainRouter = createTRPCRouter({
 			} else if (domain.composeId) {
 				const compose = await findComposeById(domain.composeId);
 				if (
-					compose.environment.project.organizationId !== ctx.session.activeOrganizationId
+					compose.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",

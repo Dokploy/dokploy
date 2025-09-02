@@ -71,7 +71,6 @@ export const redis = pgTable("redis", {
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
-
 	environment: one(environments, {
 		fields: [redis.environmentId],
 		references: [environments.environmentId],

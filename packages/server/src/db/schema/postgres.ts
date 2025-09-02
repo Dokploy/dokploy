@@ -75,7 +75,6 @@ export const postgres = pgTable("postgres", {
 });
 
 export const postgresRelations = relations(postgres, ({ one, many }) => ({
-
 	environment: one(environments, {
 		fields: [postgres.environmentId],
 		references: [environments.environmentId],

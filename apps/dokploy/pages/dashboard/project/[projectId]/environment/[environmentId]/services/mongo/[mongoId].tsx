@@ -305,7 +305,11 @@ Mongo.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ mongoId: string; activeTab: TabState; environmentId: string }>,
+	ctx: GetServerSidePropsContext<{
+		mongoId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;

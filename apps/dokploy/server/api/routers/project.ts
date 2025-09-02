@@ -347,10 +347,15 @@ export const projectRouter = createTRPCRouter({
 				}
 
 				// Get source project
-				const sourceEnvironment = input.duplicateInSameProject ? await findEnvironmentById(input.sourceEnvironmentId) : null;
+				const sourceEnvironment = input.duplicateInSameProject
+					? await findEnvironmentById(input.sourceEnvironmentId)
+					: null;
 
-				
-				if (input.duplicateInSameProject &&sourceEnvironment?.project.organizationId !== ctx.session.activeOrganizationId) {
+				if (
+					input.duplicateInSameProject &&
+					sourceEnvironment?.project.organizationId !==
+						ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
@@ -369,8 +374,7 @@ export const projectRouter = createTRPCRouter({
 							ctx.session.activeOrganizationId,
 						).then((value) => value.environment);
 
-						console.log("targetProject", targetProject);
-
+				console.log("targetProject", targetProject);
 
 				if (input.includeServices) {
 					const servicesToDuplicate = input.selectedServices || [];

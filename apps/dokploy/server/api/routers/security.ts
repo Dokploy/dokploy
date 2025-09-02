@@ -19,7 +19,8 @@ export const securityRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.environment.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -34,7 +35,8 @@ export const securityRouter = createTRPCRouter({
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
 			if (
-				application.environment.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -49,7 +51,8 @@ export const securityRouter = createTRPCRouter({
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
 			if (
-				application.environment.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -64,7 +67,8 @@ export const securityRouter = createTRPCRouter({
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
 			if (
-				application.environment.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",

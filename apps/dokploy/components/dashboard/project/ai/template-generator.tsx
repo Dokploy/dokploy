@@ -103,7 +103,6 @@ export const TemplateGenerator = ({ environmentId }: Props) => {
 		useState<TemplateInfo>(defaultTemplateInfo);
 	const utils = api.useUtils();
 
-
 	const haveAtleasOneProviderEnabled = aiSettings?.some(
 		(ai) => ai.isEnabled === true,
 	);

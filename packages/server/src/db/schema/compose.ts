@@ -110,7 +110,6 @@ export const compose = pgTable("compose", {
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
-
 	environment: one(environments, {
 		fields: [compose.environmentId],
 		references: [environments.environmentId],

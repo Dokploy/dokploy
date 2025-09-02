@@ -284,10 +284,11 @@ const EnvironmentPage = (
 	const [selectedTargetEnvironment, setSelectedTargetEnvironment] =
 		useState<string>("");
 
-	const { data: selectedProjectEnvironments } = api.environment.byProjectId.useQuery(
-		{ projectId: selectedTargetProject },
-		{ enabled: !!selectedTargetProject }
-	);
+	const { data: selectedProjectEnvironments } =
+		api.environment.byProjectId.useQuery(
+			{ projectId: selectedTargetProject },
+			{ enabled: !!selectedTargetProject },
+		);
 
 	const emptyServices =
 		!currentEnvironment ||
@@ -617,7 +618,7 @@ const EnvironmentPage = (
 						});
 						break;
 				}
-				await utils.environment.one.invalidate({	
+				await utils.environment.one.invalidate({
 					environmentId,
 				});
 				success++;
@@ -774,9 +775,7 @@ const EnvironmentPage = (
 									<FolderInput className="size-6 text-muted-foreground self-center" />
 									{currentEnvironment.name}
 									{currentEnvironment.name === "production" && (
-										<Badge >
-											Production
-										</Badge>
+										<Badge>Production</Badge>
 									)}
 								</CardTitle>
 								<CardDescription>
@@ -819,9 +818,7 @@ const EnvironmentPage = (
 												projectName={projectData?.name}
 												environmentId={environmentId}
 											/>
-											<AddTemplate
-												environmentId={environmentId}
-											/>
+											<AddTemplate environmentId={environmentId} />
 											<AddAiAssistant
 												projectName={projectData?.name}
 												environmentId={environmentId}
@@ -980,12 +977,14 @@ const EnvironmentPage = (
 														<DialogHeader>
 															<DialogTitle>Move Services</DialogTitle>
 															<DialogDescription>
-																Select the target project and environment to move{" "}
-																{selectedServices.length} services
+																Select the target project and environment to
+																move {selectedServices.length} services
 															</DialogDescription>
 														</DialogHeader>
 														<div className="flex flex-col gap-4">
-															{allProjects?.filter((p) => p.projectId !== projectId).length === 0 ? (
+															{allProjects?.filter(
+																(p) => p.projectId !== projectId,
+															).length === 0 ? (
 																<div className="flex flex-col items-center justify-center gap-2 py-4">
 																	<FolderInput className="h-8 w-8 text-muted-foreground" />
 																	<p className="text-sm text-muted-foreground text-center">
@@ -997,7 +996,9 @@ const EnvironmentPage = (
 																<>
 																	{/* Step 1: Select Project */}
 																	<div className="flex flex-col gap-2">
-																		<label className="text-sm font-medium">Target Project</label>
+																		<label className="text-sm font-medium">
+																			Target Project
+																		</label>
 																		<Select
 																			value={selectedTargetProject}
 																			onValueChange={(value) => {
@@ -1010,7 +1011,9 @@ const EnvironmentPage = (
 																			</SelectTrigger>
 																			<SelectContent>
 																				{allProjects
-																					?.filter((p) => p.projectId !== projectId)
+																					?.filter(
+																						(p) => p.projectId !== projectId,
+																					)
 																					.map((project) => (
 																						<SelectItem
 																							key={project.projectId}
@@ -1026,23 +1029,29 @@ const EnvironmentPage = (
 																	{/* Step 2: Select Environment (only show if project is selected) */}
 																	{selectedTargetProject && (
 																		<div className="flex flex-col gap-2">
-																			<label className="text-sm font-medium">Target Environment</label>
+																			<label className="text-sm font-medium">
+																				Target Environment
+																			</label>
 																			<Select
 																				value={selectedTargetEnvironment}
-																				onValueChange={setSelectedTargetEnvironment}
+																				onValueChange={
+																					setSelectedTargetEnvironment
+																				}
 																			>
 																				<SelectTrigger>
 																					<SelectValue placeholder="Select target environment" />
 																				</SelectTrigger>
 																				<SelectContent>
-																					{selectedProjectEnvironments?.map((env) => (
-																						<SelectItem
-																							key={env.environmentId}
-																							value={env.environmentId}
-																						>
-																							{env.name}
-																						</SelectItem>
-																					))}
+																					{selectedProjectEnvironments?.map(
+																						(env) => (
+																							<SelectItem
+																								key={env.environmentId}
+																								value={env.environmentId}
+																							>
+																								{env.name}
+																							</SelectItem>
+																						),
+																					)}
 																				</SelectContent>
 																			</Select>
 																		</div>
@@ -1065,7 +1074,9 @@ const EnvironmentPage = (
 																onClick={handleBulkMove}
 																isLoading={isBulkActionLoading}
 																disabled={
-																	allProjects?.filter((p) => p.projectId !== projectId).length === 0 ||
+																	allProjects?.filter(
+																		(p) => p.projectId !== projectId,
+																	).length === 0 ||
 																	!selectedTargetProject ||
 																	!selectedTargetEnvironment
 																}

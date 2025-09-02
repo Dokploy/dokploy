@@ -325,7 +325,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										<FormLabel className="text-base">Projects</FormLabel>
 										<FormDescription>
 											Select the Projects that the user can access
-									</FormDescription>
+										</FormDescription>
 									</div>
 									{projects?.length === 0 && (
 										<p className="text-sm text-muted-foreground">

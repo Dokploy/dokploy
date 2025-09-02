@@ -75,7 +75,6 @@ export const mysql = pgTable("mysql", {
 });
 
 export const mysqlRelations = relations(mysql, ({ one, many }) => ({
-
 	environment: one(environments, {
 		fields: [mysql.environmentId],
 		references: [environments.environmentId],

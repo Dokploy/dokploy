@@ -74,7 +74,6 @@ export const mongo = pgTable("mongo", {
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
-
 	environment: one(environments, {
 		fields: [mongo.environmentId],
 		references: [environments.environmentId],

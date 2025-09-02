@@ -22,11 +22,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon, CopyIcon } from "lucide-react";
+import {
+	ChevronDownIcon,
+	PlusIcon,
+	PencilIcon,
+	TrashIcon,
+	CopyIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { findEnvironmentById } from "@dokploy/server";
-
 
 type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
 interface AdvancedEnvironmentSelectorProps {
@@ -42,11 +47,15 @@ export const AdvancedEnvironmentSelector = ({
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-	const [selectedEnvironment, setSelectedEnvironment] = useState<Environment | null>(null);
+	const [selectedEnvironment, setSelectedEnvironment] =
+		useState<Environment | null>(null);
 
-	const { data: project } = api.project.one.useQuery({ projectId },{
-		enabled: !!projectId,
-	});
+	const { data: project } = api.project.one.useQuery(
+		{ projectId },
+		{
+			enabled: !!projectId,
+		},
+	);
 	const environments = project?.environments || [];
 
 	// Form states
@@ -54,20 +63,22 @@ export const AdvancedEnvironmentSelector = ({
 	const [description, setDescription] = useState("");
 
 	// API mutations
-	const { data: environment } = api.environment.one.useQuery({ environmentId: currentEnvironmentId || "" },{
-		enabled: !!currentEnvironmentId,
-	});
-
-
-	const haveServices = selectedEnvironment && (
-		(selectedEnvironment?.mariadb?.length || 0) > 0 || 
-		(selectedEnvironment?.mongo?.length || 0) > 0 || 
-		(selectedEnvironment?.mysql?.length || 0) > 0 || 
-		(selectedEnvironment?.postgres?.length || 0) > 0 || 
-		(selectedEnvironment?.redis?.length || 0) > 0 || 
-		(selectedEnvironment?.applications?.length || 0) > 0 || 
-		(selectedEnvironment?.compose?.length || 0) > 0
+	const { data: environment } = api.environment.one.useQuery(
+		{ environmentId: currentEnvironmentId || "" },
+		{
+			enabled: !!currentEnvironmentId,
+		},
 	);
+
+	const haveServices =
+		selectedEnvironment &&
+		((selectedEnvironment?.mariadb?.length || 0) > 0 ||
+			(selectedEnvironment?.mongo?.length || 0) > 0 ||
+			(selectedEnvironment?.mysql?.length || 0) > 0 ||
+			(selectedEnvironment?.postgres?.length || 0) > 0 ||
+			(selectedEnvironment?.redis?.length || 0) > 0 ||
+			(selectedEnvironment?.applications?.length || 0) > 0 ||
+			(selectedEnvironment?.compose?.length || 0) > 0);
 	const createEnvironment = api.environment.create.useMutation();
 	const updateEnvironment = api.environment.update.useMutation();
 	const deleteEnvironment = api.environment.remove.useMutation();
@@ -83,7 +94,7 @@ export const AdvancedEnvironmentSelector = ({
 				name: name.trim(),
 				description: description.trim() || null,
 			});
-			
+
 			toast.success("Environment created successfully");
 			utils.project.one.invalidate({ projectId });
 			setIsCreateDialogOpen(false);
@@ -103,7 +114,7 @@ export const AdvancedEnvironmentSelector = ({
 				name: name.trim(),
 				description: description.trim() || null,
 			});
-			
+
 			toast.success("Environment updated successfully");
 			utils.project.one.invalidate({ projectId });
 			setIsEditDialogOpen(false);
@@ -122,7 +133,7 @@ export const AdvancedEnvironmentSelector = ({
 			await deleteEnvironment.mutateAsync({
 				environmentId: selectedEnvironment.environmentId,
 			});
-			
+
 			toast.success("Environment deleted successfully");
 			utils.project.one.invalidate({ projectId });
 			setIsDeleteDialogOpen(false);
@@ -130,9 +141,13 @@ export const AdvancedEnvironmentSelector = ({
 
 			// Redirect to production if we deleted the current environment
 			if (selectedEnvironment.environmentId === currentEnvironmentId) {
-				const productionEnv = environments.find(env => env.name === "production");
+				const productionEnv = environments.find(
+					(env) => env.name === "production",
+				);
 				if (productionEnv) {
-					router.push(`/dashboard/project/${projectId}/environment/${productionEnv.environmentId}`);
+					router.push(
+						`/dashboard/project/${projectId}/environment/${productionEnv.environmentId}`,
+					);
 				}
 			}
 		} catch (error) {
@@ -147,12 +162,14 @@ export const AdvancedEnvironmentSelector = ({
 				name: `${environment.name}-copy`,
 				description: environment.description,
 			});
-			
+
 			toast.success("Environment duplicated successfully");
 			utils.project.one.invalidate({ projectId });
-			
+
 			// Navigate to the new duplicated environment
-			router.push(`/dashboard/project/${projectId}/environment/${result.environmentId}`);
+			router.push(
+				`/dashboard/project/${projectId}/environment/${result.environmentId}`,
+			);
 		} catch (error) {
 			toast.error("Failed to duplicate environment");
 		}
@@ -170,7 +187,9 @@ export const AdvancedEnvironmentSelector = ({
 		setIsDeleteDialogOpen(true);
 	};
 
-	const currentEnv = environments.find(env => env.environmentId === currentEnvironmentId);
+	const currentEnv = environments.find(
+		(env) => env.environmentId === currentEnvironmentId,
+	);
 
 	return (
 		<>
@@ -179,11 +198,7 @@ export const AdvancedEnvironmentSelector = ({
 					<Button variant="outline" className="min-w-[200px] justify-between">
 						<div className="flex items-center gap-2">
 							<span>{currentEnv?.name || "Select Environment"}</span>
-							{currentEnv?.name === "production" && (
-								<Badge >
-									Prod
-								</Badge>
-							)}
+							{currentEnv?.name === "production" && <Badge>Prod</Badge>}
 						</div>
 						<ChevronDownIcon className="h-4 w-4" />
 					</Button>
@@ -191,30 +206,28 @@ export const AdvancedEnvironmentSelector = ({
 				<DropdownMenuContent className="w-[300px]" align="start">
 					<DropdownMenuLabel>Environments</DropdownMenuLabel>
 					<DropdownMenuSeparator />
-					
+
 					{environments.map((environment) => (
 						<div key={environment.environmentId} className="flex items-center">
 							<DropdownMenuItem
 								className="flex-1 cursor-pointer"
 								onClick={() => {
-									router.push(`/dashboard/project/${projectId}/environment/${environment.environmentId}`);
+									router.push(
+										`/dashboard/project/${projectId}/environment/${environment.environmentId}`,
+									);
 								}}
 							>
 								<div className="flex items-center justify-between w-full">
 									<div className="flex items-center gap-2">
 										<span>{environment.name}</span>
-										{environment.name === "production" && (
-											<Badge >
-												Prod
-											</Badge>
-										)}
+										{environment.name === "production" && <Badge>Prod</Badge>}
 									</div>
 									{environment.environmentId === currentEnvironmentId && (
 										<div className="w-2 h-2 bg-blue-500 rounded-full" />
 									)}
 								</div>
 							</DropdownMenuItem>
-							
+
 							{/* Action buttons for non-production environments */}
 							{environment.name !== "production" && (
 								<div className="flex items-center gap-1 px-2">
@@ -255,7 +268,7 @@ export const AdvancedEnvironmentSelector = ({
 							)}
 						</div>
 					))}
-					
+
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						className="cursor-pointer"
@@ -275,7 +288,7 @@ export const AdvancedEnvironmentSelector = ({
 							Create a new environment for your project.
 						</DialogDescription>
 					</DialogHeader>
-					
+
 					<div className="space-y-4">
 						<div className="space-y-1">
 							<Label htmlFor="name">Name</Label>
@@ -296,7 +309,7 @@ export const AdvancedEnvironmentSelector = ({
 							/>
 						</div>
 					</div>
-					
+
 					<DialogFooter>
 						<Button
 							variant="outline"
@@ -327,7 +340,7 @@ export const AdvancedEnvironmentSelector = ({
 							Update the environment details.
 						</DialogDescription>
 					</DialogHeader>
-					
+
 					<div className="space-y-4">
 						<div className="space-y-1">
 							<Label htmlFor="edit-name">Name</Label>
@@ -348,7 +361,7 @@ export const AdvancedEnvironmentSelector = ({
 							/>
 						</div>
 					</div>
-					
+
 					<DialogFooter>
 						<Button
 							variant="outline"
@@ -377,17 +390,18 @@ export const AdvancedEnvironmentSelector = ({
 					<DialogHeader>
 						<DialogTitle>Delete Environment</DialogTitle>
 						<DialogDescription>
-							Are you sure you want to delete the environment "{selectedEnvironment?.name}"? 
-							This action cannot be undone and will also delete all services in this environment.
+							Are you sure you want to delete the environment "
+							{selectedEnvironment?.name}"? This action cannot be undone and
+							will also delete all services in this environment.
 						</DialogDescription>
 					</DialogHeader>
 
 					{haveServices && (
 						<AlertBlock type="warning">
-						This environment have active services, please delete them first.
-					</AlertBlock>
+							This environment have active services, please delete them first.
+						</AlertBlock>
 					)}
-					
+
 					<DialogFooter>
 						<Button
 							variant="outline"
@@ -401,7 +415,11 @@ export const AdvancedEnvironmentSelector = ({
 						<Button
 							variant="destructive"
 							onClick={handleDeleteEnvironment}
-							disabled={deleteEnvironment.isLoading || haveServices || !selectedEnvironment}
+							disabled={
+								deleteEnvironment.isLoading ||
+								haveServices ||
+								!selectedEnvironment
+							}
 						>
 							{deleteEnvironment.isLoading ? "Deleting..." : "Delete"}
 						</Button>

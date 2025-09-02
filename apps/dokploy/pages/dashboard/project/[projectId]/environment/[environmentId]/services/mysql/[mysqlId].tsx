@@ -83,7 +83,8 @@ const MySql = (
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>
-						Database: {data?.name} - {data?.environment?.project?.name} | Dokploy
+						Database: {data?.name} - {data?.environment?.project?.name} |
+						Dokploy
 					</title>
 				</Head>
 				<div className="w-full">
@@ -289,7 +290,11 @@ MySql.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ mysqlId: string; activeTab: TabState; environmentId: string }>,
+	ctx: GetServerSidePropsContext<{
+		mysqlId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;

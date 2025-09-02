@@ -86,7 +86,6 @@ export const createApplication = async (
 			.returning()
 			.then((value) => value[0]);
 
-
 		if (!newApplication) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",

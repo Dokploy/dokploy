@@ -73,8 +73,7 @@ const Postgresql = (
 					},
 					{
 						name: data?.environment?.name || "",
-						href:
-							`/dashboard/project/${projectId}/environment/${environmentId}`,
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.name || "",
@@ -83,9 +82,7 @@ const Postgresql = (
 			/>
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.environment?.project?.name}
-					{" "}
-					| Dokploy
+					Database: {data?.name} - {data?.environment?.project?.name} | Dokploy
 				</title>
 			</Head>
 			<div className="w-full">
@@ -96,9 +93,7 @@ const Postgresql = (
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<div className="relative flex flex-row gap-4">
 										<div className="absolute -right-1  -top-2">
-											<StatusTooltip
-												status={data?.applicationStatus}
-											/>
+											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
 										<PostgresqlIcon className="h-6 w-6 text-muted-foreground" />
@@ -106,9 +101,7 @@ const Postgresql = (
 									{data?.name}
 								</CardTitle>
 								{data?.description && (
-									<CardDescription>
-										{data?.description}
-									</CardDescription>
+									<CardDescription>{data?.description}</CardDescription>
 								)}
 
 								<span className="text-sm text-muted-foreground">
@@ -118,17 +111,17 @@ const Postgresql = (
 							<div className="flex flex-col h-fit w-fit gap-2">
 								<div className="flex flex-row h-fit w-fit gap-2">
 									<Badge
-										variant={!data?.serverId
-											? "default"
-											: data?.server?.serverStatus ===
-													"active"
-											? "default"
-											: "destructive"}
+										variant={
+											!data?.serverId
+												? "default"
+												: data?.server?.serverStatus === "active"
+													? "default"
+													: "destructive"
+										}
 									>
 										{data?.server?.name || "Dokploy Server"}
 									</Badge>
-									{data?.server?.serverStatus ===
-											"inactive" && (
+									{data?.server?.serverStatus === "inactive" && (
 										<TooltipProvider delayDuration={0}>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -142,11 +135,9 @@ const Postgresql = (
 													side="top"
 												>
 													<span>
-														You cannot, deploy this
-														application because the
-														server is inactive,
-														please upgrade your plan
-														to add more servers.
+														You cannot, deploy this application because the
+														server is inactive, please upgrade your plan to add
+														more servers.
 													</span>
 												</TooltipContent>
 											</Tooltip>
@@ -156,178 +147,138 @@ const Postgresql = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdatePostgres postgresId={postgresId} />
-									{(auth?.role === "owner" ||
-										auth?.canDeleteServices) && (
-										<DeleteService
-											id={postgresId}
-											type="postgres"
-										/>
+									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+										<DeleteService id={postgresId} type="postgres" />
 									)}
 								</div>
 							</div>
 						</CardHeader>
 						<CardContent className="space-y-2 py-8 border-t">
-							{data?.server?.serverStatus === "inactive"
-								? (
-									<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
-										<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
-											<ServerOff className="size-10 text-muted-foreground self-center" />
-											<span className="text-center text-base text-muted-foreground">
-												This service is hosted on the
-												server{" "}
-												{data.server.name}, but this
-												server has been disabled because
-												your current plan doesn't
-												include enough servers. Please
-												purchase more servers to regain
-												access to this application.
-											</span>
-											<span className="text-center text-base text-muted-foreground">
-												Go to{" "}
-												<Link
-													href="/dashboard/settings/billing"
-													className="text-primary"
-												>
-													Billing
-												</Link>
-											</span>
-										</div>
+							{data?.server?.serverStatus === "inactive" ? (
+								<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
+									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
+										<ServerOff className="size-10 text-muted-foreground self-center" />
+										<span className="text-center text-base text-muted-foreground">
+											This service is hosted on the server {data.server.name},
+											but this server has been disabled because your current
+											plan doesn't include enough servers. Please purchase more
+											servers to regain access to this application.
+										</span>
+										<span className="text-center text-base text-muted-foreground">
+											Go to{" "}
+											<Link
+												href="/dashboard/settings/billing"
+												className="text-primary"
+											>
+												Billing
+											</Link>
+										</span>
 									</div>
-								)
-								: (
-									<Tabs
-										value={tab}
-										defaultValue="general"
-										className="w-full"
-										onValueChange={(e) => {
-											setSab(e as TabState);
-											const newPath =
-												`/dashboard/project/${projectId}/environment/${environmentId}/services/postgres/${postgresId}?tab=${e}`;
+								</div>
+							) : (
+								<Tabs
+									value={tab}
+									defaultValue="general"
+									className="w-full"
+									onValueChange={(e) => {
+										setSab(e as TabState);
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/postgres/${postgresId}?tab=${e}`;
 
-											router.push(newPath, undefined, {
-												shallow: true,
-											});
-										}}
-									>
-										<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
-											<TabsList
-												className={cn(
-													"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
-													isCloud && data?.serverId
-														? "md:grid-cols-6"
-														: data?.serverId
+										router.push(newPath, undefined, {
+											shallow: true,
+										});
+									}}
+								>
+									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
+										<TabsList
+											className={cn(
+												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
+												isCloud && data?.serverId
+													? "md:grid-cols-6"
+													: data?.serverId
 														? "md:grid-cols-5"
 														: "md:grid-cols-6",
-												)}
-											>
-												<TabsTrigger value="general">
-													General
-												</TabsTrigger>
-												<TabsTrigger value="environment">
-													Environment
-												</TabsTrigger>
-												<TabsTrigger value="logs">
-													Logs
-												</TabsTrigger>
-												{((data?.serverId && isCloud) ||
-													!data?.server) && (
-													<TabsTrigger value="monitoring">
-														Monitoring
-													</TabsTrigger>
-												)}
-												<TabsTrigger value="backups">
-													Backups
-												</TabsTrigger>
-												<TabsTrigger value="advanced">
-													Advanced
-												</TabsTrigger>
-											</TabsList>
-										</div>
+											)}
+										>
+											<TabsTrigger value="general">General</TabsTrigger>
+											<TabsTrigger value="environment">Environment</TabsTrigger>
+											<TabsTrigger value="logs">Logs</TabsTrigger>
+											{((data?.serverId && isCloud) || !data?.server) && (
+												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+											)}
+											<TabsTrigger value="backups">Backups</TabsTrigger>
+											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+										</TabsList>
+									</div>
 
-										<TabsContent value="general">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowGeneralPostgres
-													postgresId={postgresId}
-												/>
-												<ShowInternalPostgresCredentials
-													postgresId={postgresId}
-												/>
-												<ShowExternalPostgresCredentials
-													postgresId={postgresId}
-												/>
+									<TabsContent value="general">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowGeneralPostgres postgresId={postgresId} />
+											<ShowInternalPostgresCredentials
+												postgresId={postgresId}
+											/>
+											<ShowExternalPostgresCredentials
+												postgresId={postgresId}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="environment">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowEnvironment id={postgresId} type="postgres" />
+										</div>
+									</TabsContent>
+									<TabsContent value="monitoring">
+										<div className="pt-2.5">
+											<div className="flex flex-col gap-4 border rounded-lg p-6">
+												{data?.serverId && isCloud ? (
+													<ContainerPaidMonitoring
+														appName={data?.appName || ""}
+														baseUrl={`${
+															data?.serverId
+																? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}`
+																: "http://localhost:4500"
+														}`}
+														token={
+															data?.server?.metricsConfig?.server?.token || ""
+														}
+													/>
+												) : (
+													<>
+														<ContainerFreeMonitoring
+															appName={data?.appName || ""}
+														/>
+													</>
+												)}
 											</div>
-										</TabsContent>
-										<TabsContent value="environment">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowEnvironment
-													id={postgresId}
-													type="postgres"
-												/>
-											</div>
-										</TabsContent>
-										<TabsContent value="monitoring">
-											<div className="pt-2.5">
-												<div className="flex flex-col gap-4 border rounded-lg p-6">
-													{data?.serverId && isCloud
-														? (
-															<ContainerPaidMonitoring
-																appName={data
-																	?.appName ||
-																	""}
-																baseUrl={`${
-																	data?.serverId
-																		? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}`
-																		: "http://localhost:4500"
-																}`}
-																token={data
-																	?.server
-																	?.metricsConfig
-																	?.server
-																	?.token ||
-																	""}
-															/>
-														)
-														: (
-															<>
-																<ContainerFreeMonitoring
-																	appName={data
-																		?.appName ||
-																		""}
-																/>
-															</>
-														)}
-												</div>
-											</div>
-										</TabsContent>
-										<TabsContent value="logs">
-											<div className="flex flex-col gap-4  pt-2.5">
-												<ShowDockerLogs
-													serverId={data?.serverId ||
-														""}
-													appName={data?.appName ||
-														""}
-												/>
-											</div>
-										</TabsContent>
-										<TabsContent value="backups">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowBackups
-													id={postgresId}
-													databaseType="postgres"
-													backupType="database"
-												/>
-											</div>
-										</TabsContent>
-										<TabsContent value="advanced">
-											<div className="flex flex-col gap-4 pt-2.5">
-												<ShowDatabaseAdvancedSettings
-													id={postgresId}
-													type="postgres"
-												/>
-											</div>
-										</TabsContent>
-									</Tabs>
-								)}
+										</div>
+									</TabsContent>
+									<TabsContent value="logs">
+										<div className="flex flex-col gap-4  pt-2.5">
+											<ShowDockerLogs
+												serverId={data?.serverId || ""}
+												appName={data?.appName || ""}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="backups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowBackups
+												id={postgresId}
+												databaseType="postgres"
+												backupType="database"
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="advanced">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowDatabaseAdvancedSettings
+												id={postgresId}
+												type="postgres"
+											/>
+										</div>
+									</TabsContent>
+								</Tabs>
+							)}
 						</CardContent>
 					</div>
 				</Card>
@@ -342,9 +293,11 @@ Postgresql.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<
-		{ postgresId: string; activeTab: TabState; environmentId: string }
-	>,
+	ctx: GetServerSidePropsContext<{
+		postgresId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;

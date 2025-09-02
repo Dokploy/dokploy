@@ -203,7 +203,6 @@ export const applications = pgTable("application", {
 export const applicationsRelations = relations(
 	applications,
 	({ one, many }) => ({
-
 		environment: one(environments, {
 			fields: [applications.environmentId],
 			references: [environments.environmentId],

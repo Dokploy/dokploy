@@ -73,8 +73,7 @@ const Redis = (
 					},
 					{
 						name: data?.environment?.name || "",
-						href:
-							`/dashboard/project/${projectId}/environment/${environmentId}`,
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.name || "",
@@ -295,7 +294,11 @@ Redis.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ redisId: string; activeTab: TabState; environmentId: string }>,
+	ctx: GetServerSidePropsContext<{
+		redisId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;

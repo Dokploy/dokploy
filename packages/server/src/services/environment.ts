@@ -62,7 +62,6 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 };
 
 export const deleteEnvironment = async (environmentId: string) => {
-
 	const currentEnvironment = await findEnvironmentById(environmentId);
 	if (currentEnvironment.name === "production") {
 		throw new TRPCError({

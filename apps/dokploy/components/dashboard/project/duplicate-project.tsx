@@ -57,17 +57,20 @@ export const DuplicateProject = ({
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [duplicateType, setDuplicateType] = useState("new-project"); // "new-project" or "existing-environment"
-	const [selectedTargetProject, setSelectedTargetProject] = useState<string>("");
-	const [selectedTargetEnvironment, setSelectedTargetEnvironment] = useState<string>("");
+	const [selectedTargetProject, setSelectedTargetProject] =
+		useState<string>("");
+	const [selectedTargetEnvironment, setSelectedTargetEnvironment] =
+		useState<string>("");
 	const utils = api.useUtils();
 	const router = useRouter();
 
 	// Queries for project and environment selection
 	const { data: allProjects } = api.project.all.useQuery();
-	const { data: selectedProjectEnvironments } = api.environment.byProjectId.useQuery(
-		{ projectId: selectedTargetProject },
-		{ enabled: !!selectedTargetProject }
-	);
+	const { data: selectedProjectEnvironments } =
+		api.environment.byProjectId.useQuery(
+			{ projectId: selectedTargetProject },
+			{ enabled: !!selectedTargetProject },
+		);
 
 	const selectedServices = services.filter((service) =>
 		selectedServiceIds.includes(service.id),
@@ -84,7 +87,9 @@ export const DuplicateProject = ({
 				);
 				setOpen(false);
 				if (duplicateType === "new-project") {
-					router.push(`/dashboard/project/${newProject?.projectId}/environment/${newProject?.environmentId}`);
+					router.push(
+						`/dashboard/project/${newProject?.projectId}/environment/${newProject?.environmentId}`,
+					);
 				}
 			},
 			onError: (error) => {
@@ -172,8 +177,13 @@ export const DuplicateProject = ({
 								<Label htmlFor="new-project">New project</Label>
 							</div>
 							<div className="flex items-center space-x-2">
-								<RadioGroupItem value="existing-environment" id="existing-environment" />
-								<Label htmlFor="existing-environment">Existing environment</Label>
+								<RadioGroupItem
+									value="existing-environment"
+									id="existing-environment"
+								/>
+								<Label htmlFor="existing-environment">
+									Existing environment
+								</Label>
 							</div>
 						</RadioGroup>
 					</div>
@@ -204,7 +214,8 @@ export const DuplicateProject = ({
 
 					{duplicateType === "existing-environment" && (
 						<>
-							{allProjects?.filter((p) => p.projectId !== environmentId).length === 0 ? (
+							{allProjects?.filter((p) => p.projectId !== environmentId)
+								.length === 0 ? (
 								<div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
 									<p className="text-sm text-muted-foreground">
 										No other projects available. Create a new project first.
@@ -291,12 +302,13 @@ export const DuplicateProject = ({
 					>
 						Cancel
 					</Button>
-					<Button 
-						onClick={handleDuplicate} 
+					<Button
+						onClick={handleDuplicate}
 						disabled={
 							isLoading ||
 							(duplicateType === "new-project" && !name) ||
-							(duplicateType === "existing-environment" && (!selectedTargetProject || !selectedTargetEnvironment))
+							(duplicateType === "existing-environment" &&
+								(!selectedTargetProject || !selectedTargetEnvironment))
 						}
 					>
 						{isLoading ? (

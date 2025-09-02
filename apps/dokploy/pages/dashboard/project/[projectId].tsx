@@ -159,17 +159,22 @@ const Project = (
 	// Redirigir automáticamente al ambiente de producción por defecto
 	useEffect(() => {
 		if (data?.environments && data.environments.length > 0) {
-			const productionEnv = data.environments.find(env => env.name === "production");
+			const productionEnv = data.environments.find(
+				(env) => env.name === "production",
+			);
 			const defaultEnv = productionEnv || data.environments[0];
-			
+
 			// Redirigir al ambiente por defecto
 			if (defaultEnv) {
-				router.push(`/dashboard/project/${projectId}/environment/${defaultEnv.environmentId}`);
+				router.push(
+					`/dashboard/project/${projectId}/environment/${defaultEnv.environmentId}`,
+				);
 			}
 		}
 	}, [data?.environments, projectId, router]);
 
-	const emptyEnvironments = !data?.environments || data.environments.length === 0;
+	const emptyEnvironments =
+		!data?.environments || data.environments.length === 0;
 
 	return (
 		<div>
@@ -198,7 +203,6 @@ const Project = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-
 								</div>
 							</div>
 						</div>
@@ -212,7 +216,8 @@ const Project = (
 								<div className="flex h-[70vh] w-full flex-col items-center justify-center">
 									<FolderInput className="size-8 self-center text-muted-foreground" />
 									<span className="text-center font-medium text-muted-foreground">
-										No environments created yet. Click on Environments to create one.
+										No environments created yet. Click on Environments to create
+										one.
 									</span>
 								</div>
 							) : (
