@@ -15,7 +15,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can create an organization",
@@ -86,7 +86,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can update it",
@@ -109,7 +109,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can delete it",

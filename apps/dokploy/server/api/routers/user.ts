@@ -86,7 +86,11 @@ export const userRouter = createTRPCRouter({
 			// Allow access if:
 			// 1. User is requesting their own information
 			// 2. User has owner role (admin permissions) AND user is in the same organization
-			if (memberResult.userId !== ctx.user.id && ctx.user.role !== "owner") {
+			if (
+				memberResult.userId !== ctx.user.id &&
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin"
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this user",
