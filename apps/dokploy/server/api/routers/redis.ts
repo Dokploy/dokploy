@@ -330,7 +330,7 @@ export const redisRouter = createTRPCRouter({
 		.input(
 			z.object({
 				redisId: z.string(),
-				targetProjectId: z.string(),
+				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -342,11 +342,11 @@ export const redisRouter = createTRPCRouter({
 				});
 			}
 
-			const targetProject = await findProjectById(input.targetProjectId);
-			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+			const targetEnvironment = await findEnvironmentById(input.targetEnvironmentId);
+			if (targetEnvironment.project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this project",
+					message: "You are not authorized to move to this environment",
 				});
 			}
 
@@ -354,7 +354,7 @@ export const redisRouter = createTRPCRouter({
 			const updatedRedis = await db
 				.update(redisTable)
 				.set({
-					projectId: input.targetProjectId,
+					environmentId: input.targetEnvironmentId,
 				})
 				.where(eq(redisTable.redisId, input.redisId))
 				.returning()

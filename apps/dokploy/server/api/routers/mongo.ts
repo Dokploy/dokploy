@@ -351,7 +351,7 @@ export const mongoRouter = createTRPCRouter({
 		.input(
 			z.object({
 				mongoId: z.string(),
-				targetProjectId: z.string(),
+				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -363,11 +363,11 @@ export const mongoRouter = createTRPCRouter({
 				});
 			}
 
-			const targetProject = await findProjectById(input.targetProjectId);
-			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+			const targetEnvironment = await findEnvironmentById(input.targetEnvironmentId);
+			if (targetEnvironment.project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this project",
+					message: "You are not authorized to move to this environment",
 				});
 			}
 
@@ -375,7 +375,7 @@ export const mongoRouter = createTRPCRouter({
 			const updatedMongo = await db
 				.update(mongoTable)
 				.set({
-					projectId: input.targetProjectId,
+					environmentId: input.targetEnvironmentId,
 				})
 				.where(eq(mongoTable.mongoId, input.mongoId))
 				.returning()

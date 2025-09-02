@@ -346,7 +346,7 @@ export const mysqlRouter = createTRPCRouter({
 		.input(
 			z.object({
 				mysqlId: z.string(),
-				targetProjectId: z.string(),
+				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -358,11 +358,11 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
-			const targetProject = await findProjectById(input.targetProjectId);
-			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+			const targetEnvironment = await findEnvironmentById(input.targetEnvironmentId);
+			if (targetEnvironment.project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this project",
+					message: "You are not authorized to move to this environment",
 				});
 			}
 
@@ -370,7 +370,7 @@ export const mysqlRouter = createTRPCRouter({
 			const updatedMysql = await db
 				.update(mysqlTable)
 				.set({
-					projectId: input.targetProjectId,
+					environmentId: input.targetEnvironmentId,
 				})
 				.where(eq(mysqlTable.mysqlId, input.mysqlId))
 				.returning()

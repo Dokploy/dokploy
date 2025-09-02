@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Environment {
 	environmentId: string;
@@ -165,9 +166,9 @@ export const AdvancedEnvironmentSelector = ({
 						<div className="flex items-center gap-2">
 							<span>{currentEnv?.name || "Select Environment"}</span>
 							{currentEnv?.name === "production" && (
-								<span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded">
+								<Badge >
 									Prod
-								</span>
+								</Badge>
 							)}
 						</div>
 						<ChevronDownIcon className="h-4 w-4" />
@@ -189,9 +190,9 @@ export const AdvancedEnvironmentSelector = ({
 									<div className="flex items-center gap-2">
 										<span>{environment.name}</span>
 										{environment.name === "production" && (
-											<span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded">
+											<Badge >
 												Prod
-											</span>
+											</Badge>
 										)}
 									</div>
 									{environment.environmentId === currentEnvironmentId && (
@@ -241,7 +242,6 @@ export const AdvancedEnvironmentSelector = ({
 				</DropdownMenuContent>
 			</DropdownMenu>
 
-			{/* Create Environment Dialog */}
 			<Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
 				<DialogContent>
 					<DialogHeader>
@@ -285,9 +285,9 @@ export const AdvancedEnvironmentSelector = ({
 						</Button>
 						<Button
 							onClick={handleCreateEnvironment}
-							disabled={!name.trim() || createEnvironment.isPending}
+							disabled={!name.trim() || createEnvironment.isLoading}
 						>
-							{createEnvironment.isPending ? "Creating..." : "Create"}
+							{createEnvironment.isLoading ? "Creating..." : "Create"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -338,9 +338,9 @@ export const AdvancedEnvironmentSelector = ({
 						</Button>
 						<Button
 							onClick={handleUpdateEnvironment}
-							disabled={!name.trim() || updateEnvironment.isPending}
+							disabled={!name.trim() || updateEnvironment.isLoading}
 						>
-							{updateEnvironment.isPending ? "Updating..." : "Update"}
+							{updateEnvironment.isLoading ? "Updating..." : "Update"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -370,9 +370,9 @@ export const AdvancedEnvironmentSelector = ({
 						<Button
 							variant="destructive"
 							onClick={handleDeleteEnvironment}
-							disabled={deleteEnvironment.isPending}
+							disabled={deleteEnvironment.isLoading}
 						>
-							{deleteEnvironment.isPending ? "Deleting..." : "Delete"}
+							{deleteEnvironment.isLoading ? "Deleting..." : "Delete"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

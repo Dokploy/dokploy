@@ -275,12 +275,19 @@ const EnvironmentPage = (
 	const { data: currentEnvironment } = api.environment.one.useQuery({
 		environmentId,
 	});
+	const { data: allProjects } = api.project.all.useQuery();
 	const router = useRouter();
-
 
 	const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
 	const [selectedTargetProject, setSelectedTargetProject] =
 		useState<string>("");
+	const [selectedTargetEnvironment, setSelectedTargetEnvironment] =
+		useState<string>("");
+
+	const { data: selectedProjectEnvironments } = api.environment.byProjectId.useQuery(
+		{ projectId: selectedTargetProject },
+		{ enabled: !!selectedTargetProject }
+	);
 
 	const emptyServices =
 		!currentEnvironment ||
@@ -484,6 +491,10 @@ const EnvironmentPage = (
 			toast.error("Please select a target project");
 			return;
 		}
+		if (!selectedTargetEnvironment) {
+			toast.error("Please select a target environment");
+			return;
+		}
 
 		let success = 0;
 		setIsBulkActionLoading(true);
@@ -492,50 +503,54 @@ const EnvironmentPage = (
 				const service = filteredServices.find((s) => s.id === serviceId);
 				if (!service) continue;
 
+				// TODO: Update move APIs to use targetEnvironmentId instead of targetProjectId
 				switch (service.type) {
 					case "application":
 						await applicationActions.move.mutateAsync({
 							applicationId: serviceId,
-							targetProjectId: selectedTargetProject,
+							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
 					case "compose":
 						await composeActions.move.mutateAsync({
 							composeId: serviceId,
-							targetProjectId: selectedTargetProject,
+							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
 					case "postgres":
 						await postgresActions.move.mutateAsync({
 							postgresId: serviceId,
-							targetProjectId: selectedTargetProject,
+							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
 					case "mysql":
 						await mysqlActions.move.mutateAsync({
 							mysqlId: serviceId,
-							targetProjectId: selectedTargetProject,
+							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
 					case "mariadb":
 						await mariadbActions.move.mutateAsync({
 							mariadbId: serviceId,
-							targetProjectId: selectedTargetProject,
+							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
 					case "redis":
 						await redisActions.move.mutateAsync({
 							redisId: serviceId,
-							targetProjectId: selectedTargetProject,
+							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
 					case "mongo":
 						await mongoActions.move.mutateAsync({
 							mongoId: serviceId,
-							targetProjectId: selectedTargetProject,
+							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
 				}
+				await utils.environment.one.invalidate({
+					environmentId,
+				});
 				success++;
 			} catch (error) {
 				toast.error(
@@ -551,6 +566,9 @@ const EnvironmentPage = (
 		setIsDropdownOpen(false);
 		setIsMoveDialogOpen(false);
 		setIsBulkActionLoading(false);
+		// Reset move dialog state
+		setSelectedTargetProject("");
+		setSelectedTargetEnvironment("");
 	};
 
 	const handleBulkDelete = async (deleteVolumes = false) => {
@@ -964,14 +982,12 @@ const EnvironmentPage = (
 														<DialogHeader>
 															<DialogTitle>Move Services</DialogTitle>
 															<DialogDescription>
-																Select the target project to move{" "}
+																Select the target project and environment to move{" "}
 																{selectedServices.length} services
 															</DialogDescription>
 														</DialogHeader>
 														<div className="flex flex-col gap-4">
-															{projectData?.environments?.filter(
-																(p) => p.projectId !== projectId,
-															).length === 0 ? (
+															{allProjects?.filter((p) => p.projectId !== projectId).length === 0 ? (
 																<div className="flex flex-col items-center justify-center gap-2 py-4">
 																	<FolderInput className="h-8 w-8 text-muted-foreground" />
 																	<p className="text-sm text-muted-foreground text-center">
@@ -980,32 +996,70 @@ const EnvironmentPage = (
 																	</p>
 																</div>
 															) : (
-																<Select
-																	value={selectedTargetProject}
-																	onValueChange={setSelectedTargetProject}
-																>
-																	<SelectTrigger>
-																		<SelectValue placeholder="Select target project" />
-																	</SelectTrigger>
-																	<SelectContent>
-																		{allProjects
-																			?.filter((p) => p.projectId !== projectId)
-																			.map((project) => (
-																				<SelectItem
-																					key={project.projectId}
-																					value={project.projectId}
-																				>
-																					{project.name}
-																				</SelectItem>
-																			))}
-																	</SelectContent>
-																</Select>
+																<>
+																	{/* Step 1: Select Project */}
+																	<div className="flex flex-col gap-2">
+																		<label className="text-sm font-medium">Target Project</label>
+																		<Select
+																			value={selectedTargetProject}
+																			onValueChange={(value) => {
+																				setSelectedTargetProject(value);
+																				setSelectedTargetEnvironment(""); // Reset environment when project changes
+																			}}
+																		>
+																			<SelectTrigger>
+																				<SelectValue placeholder="Select target project" />
+																			</SelectTrigger>
+																			<SelectContent>
+																				{allProjects
+																					?.filter((p) => p.projectId !== projectId)
+																					.map((project) => (
+																						<SelectItem
+																							key={project.projectId}
+																							value={project.projectId}
+																						>
+																							{project.name}
+																						</SelectItem>
+																					))}
+																			</SelectContent>
+																		</Select>
+																	</div>
+
+																	{/* Step 2: Select Environment (only show if project is selected) */}
+																	{selectedTargetProject && (
+																		<div className="flex flex-col gap-2">
+																			<label className="text-sm font-medium">Target Environment</label>
+																			<Select
+																				value={selectedTargetEnvironment}
+																				onValueChange={setSelectedTargetEnvironment}
+																			>
+																				<SelectTrigger>
+																					<SelectValue placeholder="Select target environment" />
+																				</SelectTrigger>
+																				<SelectContent>
+																					{selectedProjectEnvironments?.map((env) => (
+																						<SelectItem
+																							key={env.environmentId}
+																							value={env.environmentId}
+																						>
+																							{env.name}
+																						</SelectItem>
+																					))}
+																				</SelectContent>
+																			</Select>
+																		</div>
+																	)}
+																</>
 															)}
 														</div>
 														<DialogFooter>
 															<Button
 																variant="outline"
-																onClick={() => setIsMoveDialogOpen(false)}
+																onClick={() => {
+																	setIsMoveDialogOpen(false);
+																	setSelectedTargetProject("");
+																	setSelectedTargetEnvironment("");
+																}}
 															>
 																Cancel
 															</Button>
@@ -1013,9 +1067,9 @@ const EnvironmentPage = (
 																onClick={handleBulkMove}
 																isLoading={isBulkActionLoading}
 																disabled={
-																	projectData?.environments?.filter(
-																		(p) => p.projectId !== projectId,
-																	).length === 0
+																	allProjects?.filter((p) => p.projectId !== projectId).length === 0 ||
+																	!selectedTargetProject ||
+																	!selectedTargetEnvironment
 																}
 															>
 																Move Services

@@ -655,7 +655,7 @@ export const composeRouter = createTRPCRouter({
 		.input(
 			z.object({
 				composeId: z.string(),
-				targetProjectId: z.string(),
+				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -667,18 +667,18 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			const targetProject = await findProjectById(input.targetProjectId);
-			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+			const targetEnvironment = await findEnvironmentById(input.targetEnvironmentId);
+			if (targetEnvironment.project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this project",
+					message: "You are not authorized to move to this environment",
 				});
 			}
 
 			const updatedCompose = await db
 				.update(composeTable)
 				.set({
-					projectId: input.targetProjectId,
+					environmentId: input.targetEnvironmentId,
 				})
 				.where(eq(composeTable.composeId, input.composeId))
 				.returning()

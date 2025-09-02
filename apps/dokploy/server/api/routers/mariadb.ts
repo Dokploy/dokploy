@@ -337,7 +337,7 @@ export const mariadbRouter = createTRPCRouter({
 		.input(
 			z.object({
 				mariadbId: z.string(),
-				targetProjectId: z.string(),
+				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
@@ -349,11 +349,11 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
-			const targetProject = await findProjectById(input.targetProjectId);
-			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+			const targetEnvironment = await findEnvironmentById(input.targetEnvironmentId);
+			if (targetEnvironment.project.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this project",
+					message: "You are not authorized to move to this environment",
 				});
 			}
 
@@ -361,7 +361,7 @@ export const mariadbRouter = createTRPCRouter({
 			const updatedMariadb = await db
 				.update(mariadbTable)
 				.set({
-					projectId: input.targetProjectId,
+					environmentId: input.targetEnvironmentId,
 				})
 				.where(eq(mariadbTable.mariadbId, input.mariadbId))
 				.returning()
