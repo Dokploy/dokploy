@@ -1,4 +1,4 @@
-import type { findProjectById } from "@dokploy/server";
+import type { findEnvironmentById, findProjectById } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import { FolderInput, Loader2, PlusIcon } from "lucide-react";
@@ -10,7 +10,6 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { type ReactElement, useEffect } from "react";
 import superjson from "superjson";
-import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
@@ -28,6 +27,127 @@ import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
+
+type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
+
+export type Services = {
+	appName: string;
+	serverId?: string | null;
+	name: string;
+	type:
+		| "mariadb"
+		| "application"
+		| "postgres"
+		| "mysql"
+		| "mongo"
+		| "redis"
+		| "compose";
+	description?: string | null;
+	id: string;
+	createdAt: string;
+	status?: "idle" | "running" | "done" | "error";
+};
+
+export const extractServices = (data: Environment | undefined) => {
+	const applications: Services[] =
+		data?.applications.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "application",
+			id: item.applicationId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const mariadb: Services[] =
+		data?.mariadb.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "mariadb",
+			id: item.mariadbId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const postgres: Services[] =
+		data?.postgres.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "postgres",
+			id: item.postgresId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const mongo: Services[] =
+		data?.mongo.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "mongo",
+			id: item.mongoId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const redis: Services[] =
+		data?.redis.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "redis",
+			id: item.redisId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const mysql: Services[] =
+		data?.mysql.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "mysql",
+			id: item.mysqlId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const compose: Services[] =
+		data?.compose.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "compose",
+			id: item.composeId,
+			createdAt: item.createdAt,
+			status: item.composeStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	applications.push(
+		...mysql,
+		...redis,
+		...mongo,
+		...postgres,
+		...mariadb,
+		...compose,
+	);
+
+	applications.sort((a, b) => {
+		return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+	});
+
+	return applications;
+};
 
 const Project = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,

@@ -230,6 +230,7 @@ export const extractServicesFromEnvironment = (
 const EnvironmentPage = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
+	const utils = api.useUtils();
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
@@ -598,6 +599,9 @@ const EnvironmentPage = (
 						});
 						break;
 				}
+				await utils.environment.one.invalidate({	
+					environmentId,
+				});
 				success++;
 			} catch (error) {
 				toast.error(
