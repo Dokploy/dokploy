@@ -216,7 +216,7 @@ export const ShowProjects = () => {
 													className="w-full lg:max-w-md"
 												>
 													<Link
-														href={`/dashboard/project/${project.projectId}`}
+														href={`/dashboard/project/${project.projectId}/environment/${project?.environments?.[0]?.environmentId}`}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
 															{haveServicesWithDomains ? (

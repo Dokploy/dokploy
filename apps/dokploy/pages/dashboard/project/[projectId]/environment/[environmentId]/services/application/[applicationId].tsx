@@ -106,7 +106,6 @@ const Service = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/application/${applicationId}`,
 					},
 				]}
 			/>

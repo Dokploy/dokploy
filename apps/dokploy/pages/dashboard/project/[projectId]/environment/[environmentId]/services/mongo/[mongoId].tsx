@@ -78,7 +78,6 @@ const Mongo = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/mongo/${mongoId}`,
 					},
 				]}
 			/>

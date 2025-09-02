@@ -757,7 +757,6 @@ const EnvironmentPage = (
 					},
 					{
 						name: currentEnvironment.name,
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 				]}
 			/>

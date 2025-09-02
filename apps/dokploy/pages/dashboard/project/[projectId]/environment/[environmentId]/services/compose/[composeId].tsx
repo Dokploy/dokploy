@@ -97,7 +97,6 @@ const Service = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/compose/${composeId}`,
 					},
 				]}
 			/>

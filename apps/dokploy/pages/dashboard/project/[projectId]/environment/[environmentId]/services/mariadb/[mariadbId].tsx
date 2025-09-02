@@ -78,7 +78,6 @@ const Mariadb = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/mariadb/${mariadbId}`,
 					},
 				]}
 			/>

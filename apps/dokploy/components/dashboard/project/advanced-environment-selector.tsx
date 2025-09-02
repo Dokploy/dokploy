@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AlertBlock } from "@/components/shared/alert-block";
 
 interface Environment {
 	environmentId: string;
@@ -54,6 +55,11 @@ export const AdvancedEnvironmentSelector = ({
 	const [description, setDescription] = useState("");
 
 	// API mutations
+	const { data: environment } = api.environment.one.useQuery({ environmentId: currentEnvironmentId || "" },{
+		enabled: !!currentEnvironmentId,
+	});
+
+	const haveServices = environment && (environment?.mariadb?.length > 0 || environment?.mongo?.length > 0 || environment?.mysql?.length > 0 || environment?.postgres?.length > 0 || environment?.redis?.length > 0 || environment?.applications?.length > 0 || environment?.compose?.length > 0);
 	const createEnvironment = api.environment.create.useMutation();
 	const updateEnvironment = api.environment.update.useMutation();
 	const deleteEnvironment = api.environment.remove.useMutation();
@@ -356,6 +362,12 @@ export const AdvancedEnvironmentSelector = ({
 							This action cannot be undone and will also delete all services in this environment.
 						</DialogDescription>
 					</DialogHeader>
+
+					{haveServices && (
+						<AlertBlock type="warning">
+						This environment have active services, please delete them first.
+					</AlertBlock>
+					)}
 					
 					<DialogFooter>
 						<Button
@@ -370,7 +382,7 @@ export const AdvancedEnvironmentSelector = ({
 						<Button
 							variant="destructive"
 							onClick={handleDeleteEnvironment}
-							disabled={deleteEnvironment.isLoading}
+							disabled={deleteEnvironment.isLoading || haveServices}
 						>
 							{deleteEnvironment.isLoading ? "Deleting..." : "Delete"}
 						</Button>

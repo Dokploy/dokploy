@@ -78,8 +78,6 @@ const Postgresql = (
 					},
 					{
 						name: data?.name || "",
-						href:
-							`/dashboard/project/${projectId}/environment/${environmentId}/services/postgres/${postgresId}`,
 					},
 				]}
 			/>

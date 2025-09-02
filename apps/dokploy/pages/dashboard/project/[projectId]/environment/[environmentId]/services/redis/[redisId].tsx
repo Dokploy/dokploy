@@ -78,7 +78,6 @@ const Redis = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/redis/${redisId}`,
 					},
 				]}
 			/>

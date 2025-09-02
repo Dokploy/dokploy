@@ -62,13 +62,21 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 };
 
 export const deleteEnvironment = async (environmentId: string) => {
-	const environment = await db
+
+	const currentEnvironment = await findEnvironmentById(environmentId);
+	if (currentEnvironment.name === "production") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "You cannot delete the production environment",
+		});
+	}
+	const deletedEnvironment = await db
 		.delete(environments)
 		.where(eq(environments.environmentId, environmentId))
 		.returning()
 		.then((value) => value[0]);
 
-	return environment;
+	return deletedEnvironment;
 };
 
 export const updateEnvironmentById = async (

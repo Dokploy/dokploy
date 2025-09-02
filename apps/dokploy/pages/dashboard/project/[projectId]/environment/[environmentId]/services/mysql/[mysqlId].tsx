@@ -77,7 +77,6 @@ const MySql = (
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}/services/mysql/${mysqlId}`,
 					},
 				]}
 			/>
