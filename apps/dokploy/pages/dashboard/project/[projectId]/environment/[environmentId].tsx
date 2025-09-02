@@ -790,7 +790,6 @@ const EnvironmentPage = (
 									</ProjectEnvironment>
 									<AdvancedEnvironmentSelector
 										projectId={projectId}
-										environments={projectData?.environments || []}
 										currentEnvironmentId={environmentId}
 									/>
 									<DropdownMenu>
@@ -957,7 +956,7 @@ const EnvironmentPage = (
 															</Button>
 														</DialogAction>
 														<DuplicateProject
-															projectId={projectId}
+															environmentId={environmentId}
 															services={applications}
 															selectedServiceIds={selectedServices}
 														/>

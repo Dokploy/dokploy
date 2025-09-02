@@ -19,6 +19,7 @@ import {
 	deleteProject,
 	findApplicationById,
 	findComposeById,
+	findEnvironmentById,
 	findMariadbById,
 	findMemberById,
 	findMongoById,
@@ -80,7 +81,7 @@ export const projectRouter = createTRPCRouter({
 				if (ctx.user.role === "member") {
 					await addNewProject(
 						ctx.user.id,
-						project.projectId,
+						project.project.projectId,
 						ctx.session.activeOrganizationId,
 					);
 				}
@@ -312,7 +313,7 @@ export const projectRouter = createTRPCRouter({
 	duplicate: protectedProcedure
 		.input(
 			z.object({
-				sourceProjectId: z.string(),
+				sourceEnvironmentId: z.string(),
 				name: z.string(),
 				description: z.string().optional(),
 				includeServices: z.boolean().default(true),
@@ -346,9 +347,10 @@ export const projectRouter = createTRPCRouter({
 				}
 
 				// Get source project
-				const sourceProject = await findProjectById(input.sourceProjectId);
+				const sourceEnvironment = input.duplicateInSameProject ? await findEnvironmentById(input.sourceEnvironmentId) : null;
 
-				if (sourceProject.organizationId !== ctx.session.activeOrganizationId) {
+				
+				if (input.duplicateInSameProject &&sourceEnvironment?.project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
@@ -357,15 +359,18 @@ export const projectRouter = createTRPCRouter({
 
 				// Create new project or use existing one
 				const targetProject = input.duplicateInSameProject
-					? sourceProject
+					? sourceEnvironment
 					: await createProject(
 							{
 								name: input.name,
 								description: input.description,
-								env: sourceProject.env,
+								env: sourceEnvironment?.project.env,
 							},
 							ctx.session.activeOrganizationId,
-						);
+						).then((value) => value.environment);
+
+						console.log("targetProject", targetProject);
+
 
 				if (input.includeServices) {
 					const servicesToDuplicate = input.selectedServices || [];
@@ -398,7 +403,7 @@ export const projectRouter = createTRPCRouter({
 									name: input.duplicateInSameProject
 										? `${application.name} (copy)`
 										: application.name,
-									projectId: targetProject.projectId,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const domain of domains) {
@@ -468,7 +473,7 @@ export const projectRouter = createTRPCRouter({
 									name: input.duplicateInSameProject
 										? `${postgres.name} (copy)`
 										: postgres.name,
-									projectId: targetProject.projectId,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -504,7 +509,7 @@ export const projectRouter = createTRPCRouter({
 									name: input.duplicateInSameProject
 										? `${mariadb.name} (copy)`
 										: mariadb.name,
-									projectId: targetProject.projectId,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -540,7 +545,7 @@ export const projectRouter = createTRPCRouter({
 									name: input.duplicateInSameProject
 										? `${mongo.name} (copy)`
 										: mongo.name,
-									projectId: targetProject.projectId,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -576,7 +581,7 @@ export const projectRouter = createTRPCRouter({
 									name: input.duplicateInSameProject
 										? `${mysql.name} (copy)`
 										: mysql.name,
-									projectId: targetProject.projectId,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -612,7 +617,7 @@ export const projectRouter = createTRPCRouter({
 									name: input.duplicateInSameProject
 										? `${redis.name} (copy)`
 										: redis.name,
-									projectId: targetProject.projectId,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -647,7 +652,7 @@ export const projectRouter = createTRPCRouter({
 									name: input.duplicateInSameProject
 										? `${compose.name} (copy)`
 										: compose.name,
-									projectId: targetProject.projectId,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -682,7 +687,7 @@ export const projectRouter = createTRPCRouter({
 				if (!input.duplicateInSameProject && ctx.user.role === "member") {
 					await addNewProject(
 						ctx.user.id,
-						targetProject.projectId,
+						targetProject?.projectId || "",
 						ctx.session.activeOrganizationId,
 					);
 				}

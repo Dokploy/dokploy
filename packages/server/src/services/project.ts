@@ -36,14 +36,13 @@ export const createProject = async (
 	}
 
 	// Automatically create a production environment
-	try {
-		await createProductionEnvironment(newProject.projectId);
-	} catch (error) {
-		console.error("Error creating production environment:", error);
-		// Don't fail project creation if environment creation fails
-	}
+	const newEnvironment = await createProductionEnvironment(newProject.projectId);
+		return {
+			project: newProject,
+			environment: newEnvironment,
+		};
 
-	return newProject;
+
 };
 
 export const findProjectById = async (projectId: string) => {

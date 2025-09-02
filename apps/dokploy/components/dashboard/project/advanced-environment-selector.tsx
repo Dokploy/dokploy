@@ -31,13 +31,11 @@ import { findEnvironmentById } from "@dokploy/server";
 type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
 interface AdvancedEnvironmentSelectorProps {
 	projectId: string;
-	environments: Environment[];
 	currentEnvironmentId?: string;
 }
 
 export const AdvancedEnvironmentSelector = ({
 	projectId,
-	environments,
 	currentEnvironmentId,
 }: AdvancedEnvironmentSelectorProps) => {
 	const router = useRouter();
@@ -45,6 +43,11 @@ export const AdvancedEnvironmentSelector = ({
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [selectedEnvironment, setSelectedEnvironment] = useState<Environment | null>(null);
+
+	const { data: project } = api.project.one.useQuery({ projectId },{
+		enabled: !!projectId,
+	});
+	const environments = project?.environments || [];
 
 	// Form states
 	const [name, setName] = useState("");
