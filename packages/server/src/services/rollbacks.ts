@@ -179,7 +179,9 @@ const rollbackApplication = async (
 	image: string,
 	serverId?: string | null,
 	fullContext?: Application & {
-		project: Project;
+		environment: {
+				project: Project;
+		};
 		mounts: Mount[];
 		ports: Port[];
 	},
@@ -225,7 +227,7 @@ const rollbackApplication = async (
 	const bindsMount = generateBindMounts(mounts);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		fullContext.project.env,
+		fullContext.environment.project.env,
 	);
 
 	// For rollback, we use the provided image instead of calculating it

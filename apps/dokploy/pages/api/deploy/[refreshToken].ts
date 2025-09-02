@@ -20,7 +20,11 @@ export default async function handler(
 		const application = await db.query.applications.findFirst({
 			where: eq(applications.refreshToken, refreshToken as string),
 			with: {
-				project: true,
+				environment: {
+					with: {
+						project: true,
+					},
+				},
 				bitbucket: true,
 			},
 		});
