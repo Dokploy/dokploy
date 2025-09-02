@@ -68,7 +68,7 @@ const Postgresql = (
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.project?.name || "",
+						name: data?.environment?.project?.name || "",
 						href: `/dashboard/project/${projectId}`,
 					},
 					{
@@ -79,7 +79,7 @@ const Postgresql = (
 			/>
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.project.name} | Dokploy
+					Database: {data?.name} - {data?.environment?.project?.name} | Dokploy
 				</title>
 			</Head>
 			<div className="w-full">
