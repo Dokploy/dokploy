@@ -187,23 +187,28 @@ export const ShowProjects = () => {
 									)}
 									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
-											// const emptyServices =
-											// 	project?.environments.length === 0 &&
-											// 	project?.mongo.length === 0 &&
-											// 	project?.environments.mysql.length === 0 &&
-											// 	project?.environments.postgres.length === 0 &&
-											// 	project?.environments.redis.length === 0 &&
-											// 	project?.applications.length === 0 &&
-											// 	project?.compose.length === 0;
+											const emptyServices =
+												project?.environments.map((env) => env.applications.length === 0 &&
+												env.mariadb.length === 0 &&
+												env.mongo.length === 0 &&
+												env.mysql.length === 0 &&
+												env.postgres.length === 0 &&
+												env.redis.length === 0 &&
+												env.applications.length === 0 &&
+												env.compose.length === 0).every(Boolean);
 
-											// const totalServices =
-											// 	project?.mariadb.length +
-											// 	project?.mongo.length +
-											// 	project?.mysql.length +
-											// 	project?.postgres.length +
-											// 	project?.redis.length +
-											// 	project?.applications.length +
-											// 	project?.compose.length;
+											const totalServices =
+												project?.environments.map((env) => env.mariadb.length +
+												env.mongo.length +
+												env.mysql.length +
+												env.postgres.length +
+												env.redis.length +
+												env.applications.length +
+												env.compose.length ).reduce((acc, curr) => acc + curr, 0);
+
+												const haveServicesWithDomains =
+													project?.environments.map((env) => env.applications.length > 0 ||
+													env.compose.length > 0).some(Boolean);
 
 											return (
 												<div
@@ -214,8 +219,7 @@ export const ShowProjects = () => {
 														href={`/dashboard/project/${project.projectId}`}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
-															{/* {project.applications.length > 0 ||
-															project.compose.length > 0 ? (
+															{haveServicesWithDomains ? (
 																<DropdownMenu>
 																	<DropdownMenuTrigger asChild>
 																		<Button
@@ -230,44 +234,47 @@ export const ShowProjects = () => {
 																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
 																		onClick={(e) => e.stopPropagation()}
 																	>
-																		{project.applications.length > 0 && (
+																		{project.environments.some((env) => env.applications.length > 0) && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
 																					Applications
 																				</DropdownMenuLabel>
-																				{project.applications.map((app) => (
-																					<div key={app.applicationId}>
-																						<DropdownMenuSeparator />
-																						<DropdownMenuGroup>
-																							<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																								{app.name}
-																								<StatusTooltip
-																									status={app.applicationStatus}
-																								/>
-																							</DropdownMenuLabel>
+																				{project.environments.map((env) => 
+																					env.applications.map((app) => (
+																						<div key={app.applicationId}>
 																							<DropdownMenuSeparator />
-																							{app.domains.map((domain) => (
-																								<DropdownMenuItem
-																									key={domain.domainId}
-																									asChild
-																								>
-																									<Link
-																										className="space-x-4 text-xs cursor-pointer justify-between"
-																										target="_blank"
-																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																							<DropdownMenuGroup>
+																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
+																									{app.name}
+																									<StatusTooltip
+																										status={app.applicationStatus}
+																									/>
+																								</DropdownMenuLabel>
+																								<DropdownMenuSeparator />
+																								{app.domains.map((domain) => (
+																									<DropdownMenuItem
+																										key={domain.domainId}
+																										asChild
 																									>
-																										<span className="truncate">
-																											{domain.host}
-																										</span>
-																										<ExternalLinkIcon className="size-4 shrink-0" />
-																									</Link>
-																								</DropdownMenuItem>
-																							))}
-																						</DropdownMenuGroup>
-																					</div>
-																				))}
+																										<Link
+																											className="space-x-4 text-xs cursor-pointer justify-between"
+																											target="_blank"
+																											href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																										>
+																											<span className="truncate">
+																												{domain.host}
+																											</span>
+																											<ExternalLinkIcon className="size-4 shrink-0" />
+																										</Link>
+																									</DropdownMenuItem>
+																								))}
+																							</DropdownMenuGroup>
+																						</div>
+																					))
+																				)}
 																			</DropdownMenuGroup>
 																		)}
+																		{/* 
 																		{project.compose.length > 0 && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
@@ -305,10 +312,10 @@ export const ShowProjects = () => {
 																					</div>
 																				))}
 																			</DropdownMenuGroup>
-																		)}
+																		)} */}
 																	</DropdownMenuContent>
 																</DropdownMenu>
-															) : null} */}
+															) : null}
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2">
 																	<span className="flex flex-col gap-1.5">
@@ -379,7 +386,7 @@ export const ShowProjects = () => {
 																										Are you sure to delete this
 																										project?
 																									</AlertDialogTitle>
-																									{/* {!emptyServices ? (
+																									{!emptyServices ? (
 																										<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
 																											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 																											<span className="text-sm text-yellow-600 dark:text-yellow-400">
@@ -393,14 +400,14 @@ export const ShowProjects = () => {
 																											This action cannot be
 																											undone
 																										</AlertDialogDescription>
-																									)} */}
+																									)}
 																								</AlertDialogHeader>
 																								<AlertDialogFooter>
 																									<AlertDialogCancel>
 																										Cancel
 																									</AlertDialogCancel>
 																									<AlertDialogAction
-																										// disabled={!emptyServices}
+																										disabled={!emptyServices}
 																										onClick={async () => {
 																											await mutateAsync({
 																												projectId:
@@ -438,12 +445,12 @@ export const ShowProjects = () => {
 																	<DateTooltip date={project.createdAt}>
 																		Created
 																	</DateTooltip>
-																	{/* <span>
+																	 <span>
 																		{totalServices}{" "}
 																		{totalServices === 1
 																			? "service"
 																			: "services"}
-																	</span> */}
+																	</span>
 																</div>
 															</CardFooter>
 														</Card>

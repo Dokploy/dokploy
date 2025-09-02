@@ -15,7 +15,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !== ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -31,7 +31,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 				input.previewDeploymentId,
 			);
 			if (
-				previewDeployment.application.project.organizationId !==
+				previewDeployment.application.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -49,7 +49,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 				input.previewDeploymentId,
 			);
 			if (
-				previewDeployment.application.project.organizationId !==
+				previewDeployment.application.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
