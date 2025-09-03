@@ -1,11 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Settings } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { HelpCircle, Settings, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -31,159 +30,989 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 
-const HealthCheckSwarmSchema = z
-	.object({
-		Test: z.array(z.string()).optional(),
-		Interval: z.number().optional(),
-		Timeout: z.number().optional(),
-		StartPeriod: z.number().optional(),
-		Retries: z.number().optional(),
-	})
-	.strict();
-
-const RestartPolicySwarmSchema = z
-	.object({
-		Condition: z.string().optional(),
-		Delay: z.number().optional(),
-		MaxAttempts: z.number().optional(),
-		Window: z.number().optional(),
-	})
-	.strict();
-
-const PreferenceSchema = z
-	.object({
-		Spread: z.object({
-			SpreadDescriptor: z.string(),
-		}),
-	})
-	.strict();
-
-const PlatformSchema = z
-	.object({
-		Architecture: z.string(),
-		OS: z.string(),
-	})
-	.strict();
-
-const PlacementSwarmSchema = z
-	.object({
-		Constraints: z.array(z.string()).optional(),
-		Preferences: z.array(PreferenceSchema).optional(),
-		MaxReplicas: z.number().optional(),
-		Platforms: z.array(PlatformSchema).optional(),
-	})
-	.strict();
-
-const UpdateConfigSwarmSchema = z
-	.object({
-		Parallelism: z.number(),
-		Delay: z.number().optional(),
-		FailureAction: z.string().optional(),
-		Monitor: z.number().optional(),
-		MaxFailureRatio: z.number().optional(),
-		Order: z.string(),
-	})
-	.strict();
-
-const ReplicatedSchema = z
-	.object({
-		Replicas: z.number().optional(),
-	})
-	.strict();
-
-const ReplicatedJobSchema = z
-	.object({
-		MaxConcurrent: z.number().optional(),
-		TotalCompletions: z.number().optional(),
-	})
-	.strict();
-
-const ServiceModeSwarmSchema = z
-	.object({
-		Replicated: ReplicatedSchema.optional(),
-		Global: z.object({}).optional(),
-		ReplicatedJob: ReplicatedJobSchema.optional(),
-		GlobalJob: z.object({}).optional(),
-	})
-	.strict();
-
-const NetworkSwarmSchema = z.array(
-	z
-		.object({
-			Target: z.string().optional(),
-			Aliases: z.array(z.string()).optional(),
-			DriverOpts: z.object({}).optional(),
-		})
-		.strict(),
-);
-
-const LabelsSwarmSchema = z.record(z.string());
-
-const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
-	return z
-		.string()
-		.transform((str, ctx) => {
-			if (str === null || str === "") {
-				return null;
-			}
-			try {
-				return JSON.parse(str);
-			} catch {
-				ctx.addIssue({ code: "custom", message: "Invalid JSON format" });
-				return z.NEVER;
-			}
-		})
-		.superRefine((data, ctx) => {
-			if (data === null) {
-				return;
-			}
-
-			if (Object.keys(data).length === 0) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Object cannot be empty",
-				});
-				return;
-			}
-
-			const parseResult = schema.safeParse(data);
-			if (!parseResult.success) {
-				for (const error of parseResult.error.issues) {
-					const path = error.path.join(".");
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: `${path} ${error.message}`,
-					});
-				}
-			}
-		});
-};
-
-const addSwarmSettings = z.object({
-	healthCheckSwarm: createStringToJSONSchema(HealthCheckSwarmSchema).nullable(),
-	restartPolicySwarm: createStringToJSONSchema(
-		RestartPolicySwarmSchema,
-	).nullable(),
-	placementSwarm: createStringToJSONSchema(PlacementSwarmSchema).nullable(),
-	updateConfigSwarm: createStringToJSONSchema(
-		UpdateConfigSwarmSchema,
-	).nullable(),
-	rollbackConfigSwarm: createStringToJSONSchema(
-		UpdateConfigSwarmSchema,
-	).nullable(),
-	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
-	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
-	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
+// Form-based schemas for better UX
+const HealthCheckFormSchema = z.object({
+	enabled: z.boolean().default(false),
+	test: z.array(z.string()).default([]),
+	interval: z.number().min(0).optional(),
+	timeout: z.number().min(0).optional(),
+	startPeriod: z.number().min(0).optional(),
+	retries: z.number().min(0).optional(),
 });
 
-type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
+const RestartPolicyFormSchema = z.object({
+	enabled: z.boolean().default(false),
+	condition: z.enum(["on-failure", "any", "none"]).optional(),
+	delay: z.number().min(0).optional(),
+	maxAttempts: z.number().min(0).optional(),
+	window: z.number().min(0).optional(),
+});
+
+const PreferenceFormSchema = z.object({
+	spreadDescriptor: z.string(),
+});
+
+const PlatformFormSchema = z.object({
+	architecture: z.string(),
+	os: z.string(),
+});
+
+const PlacementFormSchema = z.object({
+	enabled: z.boolean().default(false),
+	constraints: z.array(z.string()).default([]),
+	preferences: z.array(PreferenceFormSchema).default([]),
+	maxReplicas: z.number().min(0).optional(),
+	platforms: z.array(PlatformFormSchema).default([]),
+});
+
+const UpdateConfigFormSchema = z.object({
+	enabled: z.boolean().default(false),
+	parallelism: z.number().min(1).default(1),
+	delay: z.number().min(0).optional(),
+	failureAction: z.enum(["continue", "pause", "rollback"]).optional(),
+	monitor: z.number().min(0).optional(),
+	maxFailureRatio: z.number().min(0).max(1).optional(),
+	order: z.enum(["start-first", "stop-first"]).default("start-first"),
+});
+
+const ServiceModeFormSchema = z.object({
+	enabled: z.boolean().default(false),
+	mode: z.enum(["replicated", "global", "replicated-job", "global-job"]).default("replicated"),
+	replicas: z.number().min(0).optional(),
+	maxConcurrent: z.number().min(0).optional(),
+	totalCompletions: z.number().min(0).optional(),
+});
+
+const NetworkFormSchema = z.object({
+	enabled: z.boolean().default(false),
+	networks: z.array(z.object({
+		target: z.string(),
+		aliases: z.array(z.string()).default([]),
+		driverOpts: z.record(z.string()).default({}),
+	})).default([]),
+});
+
+const LabelFormSchema = z.object({
+	enabled: z.boolean().default(false),
+	labels: z.array(z.object({
+		key: z.string(),
+		value: z.string(),
+	})).default([]),
+});
+
+const SwarmSettingsFormSchema = z.object({
+	healthCheck: HealthCheckFormSchema,
+	restartPolicy: RestartPolicyFormSchema,
+	placement: PlacementFormSchema,
+	updateConfig: UpdateConfigFormSchema,
+	rollbackConfig: UpdateConfigFormSchema,
+	mode: ServiceModeFormSchema,
+	network: NetworkFormSchema,
+	labels: LabelFormSchema,
+});
+
+type SwarmSettingsForm = z.infer<typeof SwarmSettingsFormSchema>;
 
 interface Props {
 	id: string;
 	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
 }
+
+// Individual form components
+const HealthCheckForm = ({ form }: { form: any }) => {
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "healthCheck.test",
+	});
+
+	return (
+		<div className="space-y-4">
+			<div>
+				<FormLabel>Test Commands</FormLabel>
+				<FormDescription>
+					Commands to run for health checking
+				</FormDescription>
+				<div className="space-y-2 mt-2">
+					{fields.map((field, index) => (
+						<div key={field.id} className="flex gap-2">
+							<FormField
+								control={form.control}
+								name={`healthCheck.test.${index}`}
+								render={({ field }) => (
+									<FormItem className="flex-1">
+										<FormControl>
+											<Input placeholder="e.g., CMD-SHELL, curl -f http://localhost:3000/health" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => remove(index)}
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					))}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => append("")}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Command
+					</Button>
+				</div>
+			</div>
+
+			<div className="grid grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name="healthCheck.interval"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Interval (ms)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000"
+													{...field}
+													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="healthCheck.timeout"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Timeout (ms)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000"
+													{...field}
+													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="healthCheck.startPeriod"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Start Period (ms)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000"
+													{...field}
+													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="healthCheck.retries"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Retries</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10"
+													{...field}
+													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
+					);
+				};
+
+const RestartPolicyForm = ({ form }: { form: any }) => {
+	return (
+		<div className="space-y-4">
+			<div className="grid grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name="restartPolicy.condition"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Condition</FormLabel>
+							<Select onValueChange={field.onChange} value={field.value}>
+								<FormControl>
+									<SelectTrigger>
+										<SelectValue placeholder="Select condition" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									<SelectItem value="on-failure">On Failure</SelectItem>
+									<SelectItem value="any">Any</SelectItem>
+									<SelectItem value="none">None</SelectItem>
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="restartPolicy.delay"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Delay (ms)</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10000"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="restartPolicy.maxAttempts"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Max Attempts</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name="restartPolicy.window"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Window (ms)</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10000"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+		</div>
+	);
+};
+
+const ServiceModeForm = ({ form }: { form: any }) => {
+	const mode = form.watch("mode.mode");
+	
+	return (
+		<div className="space-y-4">
+			<FormField
+				control={form.control}
+				name="mode.mode"
+				render={({ field }) => (
+					<FormItem className="space-y-3">
+						<FormLabel>Service Mode</FormLabel>
+						<FormControl>
+							<RadioGroup
+								onValueChange={field.onChange}
+								value={field.value}
+								className="flex flex-col space-y-1"
+							>
+								<FormItem className="flex items-center space-x-3 space-y-0">
+									<FormControl>
+										<RadioGroupItem value="replicated" />
+									</FormControl>
+									<FormLabel className="font-normal">Replicated</FormLabel>
+								</FormItem>
+								<FormItem className="flex items-center space-x-3 space-y-0">
+									<FormControl>
+										<RadioGroupItem value="global" />
+									</FormControl>
+									<FormLabel className="font-normal">Global</FormLabel>
+								</FormItem>
+								<FormItem className="flex items-center space-x-3 space-y-0">
+									<FormControl>
+										<RadioGroupItem value="replicated-job" />
+									</FormControl>
+									<FormLabel className="font-normal">Replicated Job</FormLabel>
+								</FormItem>
+								<FormItem className="flex items-center space-x-3 space-y-0">
+									<FormControl>
+										<RadioGroupItem value="global-job" />
+									</FormControl>
+									<FormLabel className="font-normal">Global Job</FormLabel>
+								</FormItem>
+							</RadioGroup>
+						</FormControl>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+
+			{mode === "replicated" && (
+				<FormField
+					control={form.control}
+					name="mode.replicas"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Replicas</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="1"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			)}
+
+			{mode === "replicated-job" && (
+				<div className="grid grid-cols-2 gap-4">
+					<FormField
+						control={form.control}
+						name="mode.maxConcurrent"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Max Concurrent</FormLabel>
+								<FormControl>
+									<Input
+										type="number"
+										placeholder="1"
+										{...field}
+										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+
+					<FormField
+						control={form.control}
+						name="mode.totalCompletions"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Total Completions</FormLabel>
+								<FormControl>
+									<Input
+										type="number"
+										placeholder="1"
+										{...field}
+										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
+			)}
+		</div>
+	);
+};
+
+const PlacementForm = ({ form }: { form: any }) => {
+	const { fields: constraintFields, append: appendConstraint, remove: removeConstraint } = useFieldArray({
+		control: form.control,
+		name: "placement.constraints",
+	});
+
+	const { fields: preferenceFields, append: appendPreference, remove: removePreference } = useFieldArray({
+		control: form.control,
+		name: "placement.preferences",
+	});
+
+	const { fields: platformFields, append: appendPlatform, remove: removePlatform } = useFieldArray({
+		control: form.control,
+		name: "placement.platforms",
+	});
+
+	return (
+		<div className="space-y-4">
+			<div>
+				<FormLabel>Constraints</FormLabel>
+				<FormDescription>
+					Placement constraints for the service
+				</FormDescription>
+				<div className="space-y-2 mt-2">
+					{constraintFields.map((field, index) => (
+						<div key={field.id} className="flex gap-2">
+							<FormField
+								control={form.control}
+								name={`placement.constraints.${index}`}
+								render={({ field }) => (
+									<FormItem className="flex-1">
+										<FormControl>
+											<Input placeholder="e.g., node.role==manager" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => removeConstraint(index)}
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					))}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => appendConstraint("")}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Constraint
+					</Button>
+				</div>
+			</div>
+
+			<div>
+				<FormLabel>Preferences</FormLabel>
+				<FormDescription>
+					Placement preferences for the service
+				</FormDescription>
+				<div className="space-y-2 mt-2">
+					{preferenceFields.map((field, index) => (
+						<div key={field.id} className="flex gap-2">
+							<FormField
+								control={form.control}
+								name={`placement.preferences.${index}.spreadDescriptor`}
+								render={({ field }) => (
+									<FormItem className="flex-1">
+										<FormControl>
+											<Input placeholder="e.g., node.labels.region" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => removePreference(index)}
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					))}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => appendPreference({ spreadDescriptor: "" })}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Preference
+					</Button>
+				</div>
+			</div>
+
+			<div className="grid grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name="placement.maxReplicas"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Max Replicas</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+
+			<div>
+				<FormLabel>Platforms</FormLabel>
+				<FormDescription>
+					Platform constraints for the service
+				</FormDescription>
+				<div className="space-y-2 mt-2">
+					{platformFields.map((field, index) => (
+						<div key={field.id} className="flex gap-2">
+							<FormField
+								control={form.control}
+								name={`placement.platforms.${index}.architecture`}
+								render={({ field }) => (
+									<FormItem className="flex-1">
+										<FormControl>
+											<Input placeholder="e.g., amd64" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name={`placement.platforms.${index}.os`}
+								render={({ field }) => (
+									<FormItem className="flex-1">
+										<FormControl>
+											<Input placeholder="e.g., linux" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => removePlatform(index)}
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					))}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => appendPlatform({ architecture: "", os: "" })}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Platform
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+};
+
+const UpdateConfigForm = ({ form, name }: { form: any; name: string }) => {
+	return (
+		<div className="space-y-4">
+			<div className="grid grid-cols-2 gap-4">
+				<FormField
+					control={form.control}
+					name={`${name}.parallelism`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Parallelism</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="1"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name={`${name}.order`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Order</FormLabel>
+							<Select onValueChange={field.onChange} value={field.value}>
+								<FormControl>
+									<SelectTrigger>
+										<SelectValue placeholder="Select order" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									<SelectItem value="start-first">Start First</SelectItem>
+									<SelectItem value="stop-first">Stop First</SelectItem>
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name={`${name}.delay`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Delay (ms)</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10000"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name={`${name}.failureAction`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Failure Action</FormLabel>
+							<Select onValueChange={field.onChange} value={field.value}>
+								<FormControl>
+									<SelectTrigger>
+										<SelectValue placeholder="Select action" />
+									</SelectTrigger>
+								</FormControl>
+								<SelectContent>
+									<SelectItem value="continue">Continue</SelectItem>
+									<SelectItem value="pause">Pause</SelectItem>
+									<SelectItem value="rollback">Rollback</SelectItem>
+								</SelectContent>
+							</Select>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name={`${name}.monitor`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Monitor (ms)</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10000"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<FormField
+					control={form.control}
+					name={`${name}.maxFailureRatio`}
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Max Failure Ratio</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									step="0.1"
+									min="0"
+									max="1"
+									placeholder="0.1"
+									{...field}
+									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+		</div>
+	);
+};
+
+const NetworkForm = ({ form }: { form: any }) => {
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "network.networks",
+	});
+
+	return (
+		<div className="space-y-4">
+			<div>
+				<FormLabel>Network Configurations</FormLabel>
+				<FormDescription>
+					Configure network settings for the service
+				</FormDescription>
+				<div className="space-y-4 mt-2">
+					{fields.map((field, index) => (
+						<div key={field.id} className="p-4 border rounded-lg space-y-4">
+							<div className="flex justify-between items-center">
+								<FormLabel>Network {index + 1}</FormLabel>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() => remove(index)}
+								>
+									<Trash2 className="h-4 w-4" />
+								</Button>
+							</div>
+
+							<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name={`network.networks.${index}.target`}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Target</FormLabel>
+											<FormControl>
+												<Input placeholder="e.g., dokploy-network" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div>
+								<FormLabel>Aliases</FormLabel>
+								<FormDescription>
+									Network aliases for this network
+								</FormDescription>
+								<NetworkAliasesForm form={form} networkIndex={index} />
+							</div>
+
+							<div>
+								<FormLabel>Driver Options</FormLabel>
+								<FormDescription>
+									Driver-specific options for this network
+								</FormDescription>
+								<NetworkDriverOptsForm form={form} networkIndex={index} />
+							</div>
+						</div>
+					))}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => append({ target: "", aliases: [], driverOpts: {} })}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Network
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+};
+
+const NetworkAliasesForm = ({ form, networkIndex }: { form: any; networkIndex: number }) => {
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: `network.networks.${networkIndex}.aliases`,
+	});
+
+	return (
+		<div className="space-y-2 mt-2">
+			{fields.map((field, index) => (
+				<div key={field.id} className="flex gap-2">
+					<FormField
+						control={form.control}
+						name={`network.networks.${networkIndex}.aliases.${index}`}
+						render={({ field }) => (
+							<FormItem className="flex-1">
+								<FormControl>
+									<Input placeholder="e.g., my-alias" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => remove(index)}
+					>
+						<Trash2 className="h-4 w-4" />
+					</Button>
+				</div>
+			))}
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				onClick={() => append("")}
+			>
+				<Plus className="h-4 w-4 mr-2" />
+				Add Alias
+			</Button>
+		</div>
+	);
+};
+
+const NetworkDriverOptsForm = ({ form, networkIndex }: { form: any; networkIndex: number }) => {
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: `network.networks.${networkIndex}.driverOpts`,
+	});
+
+	return (
+		<div className="space-y-2 mt-2">
+			{fields.map((field, index) => (
+				<div key={field.id} className="flex gap-2">
+					<FormField
+						control={form.control}
+						name={`network.networks.${networkIndex}.driverOpts.${index}.key`}
+						render={({ field }) => (
+							<FormItem className="flex-1">
+								<FormControl>
+									<Input placeholder="e.g., com.docker.network.driver.mtu" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<FormField
+						control={form.control}
+						name={`network.networks.${networkIndex}.driverOpts.${index}.value`}
+						render={({ field }) => (
+							<FormItem className="flex-1">
+								<FormControl>
+									<Input placeholder="e.g., 1500" {...field} />
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => remove(index)}
+					>
+						<Trash2 className="h-4 w-4" />
+					</Button>
+				</div>
+			))}
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				onClick={() => append({ key: "", value: "" })}
+			>
+				<Plus className="h-4 w-4 mr-2" />
+				Add Driver Option
+			</Button>
+		</div>
+	);
+};
+
+const LabelsForm = ({ form }: { form: any }) => {
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "labels.labels",
+	});
+
+	return (
+		<div className="space-y-4">
+			<div>
+				<FormLabel>Service Labels</FormLabel>
+				<FormDescription>
+					Configure labels for the service
+				</FormDescription>
+				<div className="space-y-2 mt-2">
+					{fields.map((field, index) => (
+						<div key={field.id} className="flex gap-2">
+							<FormField
+								control={form.control}
+								name={`labels.labels.${index}.key`}
+								render={({ field }) => (
+									<FormItem className="flex-1">
+										<FormControl>
+											<Input placeholder="e.g., com.example.app.name" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name={`labels.labels.${index}.value`}
+								render={({ field }) => (
+									<FormItem className="flex-1">
+										<FormControl>
+											<Input placeholder="e.g., my-app" {...field} />
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => remove(index)}
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						</div>
+					))}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => append({ key: "", value: "" })}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Label
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+};
 
 export const AddSwarmSettings = ({ id, type }: Props) => {
 	const queryMap = {
@@ -214,52 +1043,261 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
-	const form = useForm<AddSwarmSettings>({
+	const form = useForm<SwarmSettingsForm>({
 		defaultValues: {
-			healthCheckSwarm: null,
-			restartPolicySwarm: null,
-			placementSwarm: null,
-			updateConfigSwarm: null,
-			rollbackConfigSwarm: null,
-			modeSwarm: null,
-			labelsSwarm: null,
-			networkSwarm: null,
+			healthCheck: {
+				enabled: false,
+				test: [],
+				interval: undefined,
+				timeout: undefined,
+				startPeriod: undefined,
+				retries: undefined,
+			},
+			restartPolicy: {
+				enabled: false,
+				condition: undefined,
+				delay: undefined,
+				maxAttempts: undefined,
+				window: undefined,
+			},
+			placement: {
+				enabled: false,
+				constraints: [],
+				preferences: [],
+				maxReplicas: undefined,
+				platforms: [],
+			},
+			updateConfig: {
+				enabled: false,
+				parallelism: 1,
+				delay: undefined,
+				failureAction: undefined,
+				monitor: undefined,
+				maxFailureRatio: undefined,
+				order: "start-first",
+			},
+			rollbackConfig: {
+				enabled: false,
+				parallelism: 1,
+				delay: undefined,
+				failureAction: undefined,
+				monitor: undefined,
+				maxFailureRatio: undefined,
+				order: "start-first",
+			},
+			mode: {
+				enabled: false,
+				mode: "replicated",
+				replicas: undefined,
+				maxConcurrent: undefined,
+				totalCompletions: undefined,
+			},
+			network: {
+				enabled: false,
+				networks: [],
+			},
+			labels: {
+				enabled: false,
+				labels: [],
+			},
 		},
-		resolver: zodResolver(addSwarmSettings),
+		resolver: zodResolver(SwarmSettingsFormSchema),
 	});
+
+	// Helper function to convert form data to API format
+	const convertFormToApiFormat = (formData: SwarmSettingsForm) => {
+		const result: any = {};
+
+		// Health Check
+		if (formData.healthCheck.enabled && formData.healthCheck.test.length > 0) {
+			result.healthCheckSwarm = {
+				Test: formData.healthCheck.test,
+				...(formData.healthCheck.interval && { Interval: formData.healthCheck.interval }),
+				...(formData.healthCheck.timeout && { Timeout: formData.healthCheck.timeout }),
+				...(formData.healthCheck.startPeriod && { StartPeriod: formData.healthCheck.startPeriod }),
+				...(formData.healthCheck.retries && { Retries: formData.healthCheck.retries }),
+			};
+		}
+
+		// Restart Policy
+		if (formData.restartPolicy.enabled) {
+			result.restartPolicySwarm = {
+				...(formData.restartPolicy.condition && { Condition: formData.restartPolicy.condition }),
+				...(formData.restartPolicy.delay && { Delay: formData.restartPolicy.delay }),
+				...(formData.restartPolicy.maxAttempts && { MaxAttempts: formData.restartPolicy.maxAttempts }),
+				...(formData.restartPolicy.window && { Window: formData.restartPolicy.window }),
+			};
+		}
+
+		// Placement
+		if (formData.placement.enabled) {
+			result.placementSwarm = {
+				...(formData.placement.constraints.length > 0 && { Constraints: formData.placement.constraints }),
+				...(formData.placement.preferences.length > 0 && { 
+					Preferences: formData.placement.preferences.map(p => ({
+						Spread: { SpreadDescriptor: p.spreadDescriptor }
+					}))
+				}),
+				...(formData.placement.maxReplicas && { MaxReplicas: formData.placement.maxReplicas }),
+				...(formData.placement.platforms.length > 0 && { 
+					Platforms: formData.placement.platforms.map(p => ({
+						Architecture: p.architecture,
+						OS: p.os
+					}))
+				}),
+			};
+		}
+
+		// Update Config
+		if (formData.updateConfig.enabled) {
+			result.updateConfigSwarm = {
+				Parallelism: formData.updateConfig.parallelism,
+				...(formData.updateConfig.delay && { Delay: formData.updateConfig.delay }),
+				...(formData.updateConfig.failureAction && { FailureAction: formData.updateConfig.failureAction }),
+				...(formData.updateConfig.monitor && { Monitor: formData.updateConfig.monitor }),
+				...(formData.updateConfig.maxFailureRatio && { MaxFailureRatio: formData.updateConfig.maxFailureRatio }),
+				Order: formData.updateConfig.order,
+			};
+		}
+
+		// Rollback Config
+		if (formData.rollbackConfig.enabled) {
+			result.rollbackConfigSwarm = {
+				Parallelism: formData.rollbackConfig.parallelism,
+				...(formData.rollbackConfig.delay && { Delay: formData.rollbackConfig.delay }),
+				...(formData.rollbackConfig.failureAction && { FailureAction: formData.rollbackConfig.failureAction }),
+				...(formData.rollbackConfig.monitor && { Monitor: formData.rollbackConfig.monitor }),
+				...(formData.rollbackConfig.maxFailureRatio && { MaxFailureRatio: formData.rollbackConfig.maxFailureRatio }),
+				Order: formData.rollbackConfig.order,
+			};
+		}
+
+		// Mode
+		if (formData.mode.enabled) {
+			const modeConfig: any = {};
+			if (formData.mode.mode === "replicated" && formData.mode.replicas) {
+				modeConfig.Replicated = { Replicas: formData.mode.replicas };
+			} else if (formData.mode.mode === "global") {
+				modeConfig.Global = {};
+			} else if (formData.mode.mode === "replicated-job") {
+				modeConfig.ReplicatedJob = {
+					...(formData.mode.maxConcurrent && { MaxConcurrent: formData.mode.maxConcurrent }),
+					...(formData.mode.totalCompletions && { TotalCompletions: formData.mode.totalCompletions }),
+				};
+			} else if (formData.mode.mode === "global-job") {
+				modeConfig.GlobalJob = {};
+			}
+			result.modeSwarm = modeConfig;
+		}
+
+		// Network
+		if (formData.network.enabled && formData.network.networks.length > 0) {
+			result.networkSwarm = formData.network.networks.map(network => ({
+				...(network.target && { Target: network.target }),
+				...(network.aliases.length > 0 && { Aliases: network.aliases }),
+				...(Object.keys(network.driverOpts).length > 0 && { DriverOpts: network.driverOpts }),
+			}));
+		}
+
+		// Labels
+		if (formData.labels.enabled && formData.labels.labels.length > 0) {
+			result.labelsSwarm = formData.labels.labels.reduce((acc, label) => {
+				if (label.key && label.value) {
+					acc[label.key] = label.value;
+				}
+				return acc;
+			}, {} as Record<string, string>);
+		}
+
+		return result;
+	};
+
+	// Helper function to convert API data to form format
+	const convertApiToFormFormat = (apiData: any): SwarmSettingsForm => {
+		return {
+			healthCheck: {
+				enabled: !!apiData.healthCheckSwarm,
+				test: apiData.healthCheckSwarm?.Test || [],
+				interval: apiData.healthCheckSwarm?.Interval,
+				timeout: apiData.healthCheckSwarm?.Timeout,
+				startPeriod: apiData.healthCheckSwarm?.StartPeriod,
+				retries: apiData.healthCheckSwarm?.Retries,
+			},
+			restartPolicy: {
+				enabled: !!apiData.restartPolicySwarm,
+				condition: apiData.restartPolicySwarm?.Condition,
+				delay: apiData.restartPolicySwarm?.Delay,
+				maxAttempts: apiData.restartPolicySwarm?.MaxAttempts,
+				window: apiData.restartPolicySwarm?.Window,
+			},
+			placement: {
+				enabled: !!apiData.placementSwarm,
+				constraints: apiData.placementSwarm?.Constraints || [],
+				preferences: apiData.placementSwarm?.Preferences?.map((p: any) => ({
+					spreadDescriptor: p.Spread?.SpreadDescriptor || ""
+				})) || [],
+				maxReplicas: apiData.placementSwarm?.MaxReplicas,
+				platforms: apiData.placementSwarm?.Platforms?.map((p: any) => ({
+					architecture: p.Architecture || "",
+					os: p.OS || ""
+				})) || [],
+			},
+			updateConfig: {
+				enabled: !!apiData.updateConfigSwarm,
+				parallelism: apiData.updateConfigSwarm?.Parallelism || 1,
+				delay: apiData.updateConfigSwarm?.Delay,
+				failureAction: apiData.updateConfigSwarm?.FailureAction,
+				monitor: apiData.updateConfigSwarm?.Monitor,
+				maxFailureRatio: apiData.updateConfigSwarm?.MaxFailureRatio,
+				order: apiData.updateConfigSwarm?.Order || "start-first",
+			},
+			rollbackConfig: {
+				enabled: !!apiData.rollbackConfigSwarm,
+				parallelism: apiData.rollbackConfigSwarm?.Parallelism || 1,
+				delay: apiData.rollbackConfigSwarm?.Delay,
+				failureAction: apiData.rollbackConfigSwarm?.FailureAction,
+				monitor: apiData.rollbackConfigSwarm?.Monitor,
+				maxFailureRatio: apiData.rollbackConfigSwarm?.MaxFailureRatio,
+				order: apiData.rollbackConfigSwarm?.Order || "start-first",
+			},
+			mode: {
+				enabled: !!apiData.modeSwarm,
+				mode: apiData.modeSwarm?.Replicated ? "replicated" :
+					  apiData.modeSwarm?.Global ? "global" :
+					  apiData.modeSwarm?.ReplicatedJob ? "replicated-job" :
+					  apiData.modeSwarm?.GlobalJob ? "global-job" : "replicated",
+				replicas: apiData.modeSwarm?.Replicated?.Replicas,
+				maxConcurrent: apiData.modeSwarm?.ReplicatedJob?.MaxConcurrent,
+				totalCompletions: apiData.modeSwarm?.ReplicatedJob?.TotalCompletions,
+			},
+			network: {
+				enabled: !!apiData.networkSwarm && apiData.networkSwarm.length > 0,
+				networks: apiData.networkSwarm?.map((n: any) => ({
+					target: n.Target || "",
+					aliases: n.Aliases || [],
+					driverOpts: n.DriverOpts || {},
+				})) || [],
+			},
+			labels: {
+				enabled: !!apiData.labelsSwarm && Object.keys(apiData.labelsSwarm).length > 0,
+				labels: apiData.labelsSwarm ? Object.entries(apiData.labelsSwarm).map(([key, value]) => ({
+					key,
+					value: value as string
+				})) : [],
+			},
+		};
+	};
 
 	useEffect(() => {
 		if (data) {
-			form.reset({
-				healthCheckSwarm: data.healthCheckSwarm
-					? JSON.stringify(data.healthCheckSwarm, null, 2)
-					: null,
-				restartPolicySwarm: data.restartPolicySwarm
-					? JSON.stringify(data.restartPolicySwarm, null, 2)
-					: null,
-				placementSwarm: data.placementSwarm
-					? JSON.stringify(data.placementSwarm, null, 2)
-					: null,
-				updateConfigSwarm: data.updateConfigSwarm
-					? JSON.stringify(data.updateConfigSwarm, null, 2)
-					: null,
-				rollbackConfigSwarm: data.rollbackConfigSwarm
-					? JSON.stringify(data.rollbackConfigSwarm, null, 2)
-					: null,
-				modeSwarm: data.modeSwarm
-					? JSON.stringify(data.modeSwarm, null, 2)
-					: null,
-				labelsSwarm: data.labelsSwarm
-					? JSON.stringify(data.labelsSwarm, null, 2)
-					: null,
-				networkSwarm: data.networkSwarm
-					? JSON.stringify(data.networkSwarm, null, 2)
-					: null,
-			});
+			const formData = convertApiToFormFormat(data);
+			form.reset(formData);
 		}
-	}, [form, form.reset, data]);
+	}, [form, data]);
 
-	const onSubmit = async (data: AddSwarmSettings) => {
+	const onSubmit = async (formData: SwarmSettingsForm) => {
+		const apiData = convertFormToApiFormat(formData);
+		
 		await mutateAsync({
 			applicationId: id || "",
 			postgresId: id || "",
@@ -267,14 +1305,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			mysqlId: id || "",
 			mariadbId: id || "",
 			mongoId: id || "",
-			healthCheckSwarm: data.healthCheckSwarm,
-			restartPolicySwarm: data.restartPolicySwarm,
-			placementSwarm: data.placementSwarm,
-			updateConfigSwarm: data.updateConfigSwarm,
-			rollbackConfigSwarm: data.rollbackConfigSwarm,
-			modeSwarm: data.modeSwarm,
-			labelsSwarm: data.labelsSwarm,
-			networkSwarm: data.networkSwarm,
+			...apiData,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -292,11 +1323,11 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-5xl">
+			<DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
-						Update certain settings using a json object.
+						Configure Docker Swarm settings using intuitive form fields.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -309,479 +1340,289 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 
 				<Form {...form}>
 					<form
-						id="hook-form-add-permissions"
+						id="swarm-settings-form"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative mt-4"
+						className="space-y-6 mt-4"
 					>
+						{/* Health Check Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-							name="healthCheckSwarm"
+									name="healthCheck.enabled"
 							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Health Check</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
-	Test?: string[] | undefined;
-	Interval?: number | undefined;
-	Timeout?: number | undefined;
-	StartPeriod?: number | undefined;
-	Retries?: number | undefined;
-}`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
-	"Interval" : 10000,
-	"Timeout" : 10000,
-	"StartPeriod" : 10000,
-	"Retries" : 10
-}`}
-											className="h-[12rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Health Check
+												</FormLabel>
+												<FormDescription>
+													Configure health check settings for the service
+												</FormDescription>
+											</div>
 								</FormItem>
 							)}
 						/>
+							</div>
 
+							{form.watch("healthCheck.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<HealthCheckForm form={form} />
+								</div>
+							)}
+						</div>
+
+						{/* Restart Policy Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-							name="restartPolicySwarm"
+									name="restartPolicy.enabled"
 							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Restart Policy</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
-	Condition?: string | undefined;
-	Delay?: number | undefined;
-	MaxAttempts?: number | undefined;
-	Window?: number | undefined;
-}`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Condition" : "on-failure",
-	"Delay" : 10000,
-	"MaxAttempts" : 10,
-	"Window" : 10000
-}                                                  `}
-											className="h-[12rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Restart Policy
+												</FormLabel>
+												<FormDescription>
+													Configure restart policy for the service
+												</FormDescription>
+											</div>
 								</FormItem>
 							)}
 						/>
+							</div>
 
+							{form.watch("restartPolicy.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<RestartPolicyForm form={form} />
+								</div>
+							)}
+						</div>
+
+						{/* Placement Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-							name="placementSwarm"
+									name="placement.enabled"
 							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Placement</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
-	Constraints?: string[] | undefined;
-	Preferences?: Array<{ Spread: { SpreadDescriptor: string } }> | undefined;
-	MaxReplicas?: number | undefined;
-	Platforms?:
-		| Array<{
-				Architecture: string;
-				OS: string;
-		  }>
-		| undefined;
-}`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Constraints" : ["node.role==manager"],
-	"Preferences" : [{
-		"Spread" : {
-			"SpreadDescriptor" : "node.labels.region"
-		}
-	}],
-	"MaxReplicas" : 10,
-	"Platforms" : [{
-		"Architecture" : "amd64",
-		"OS" : "linux"
-	}]
-}                                                `}
-											className="h-[21rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Placement
+												</FormLabel>
+												<FormDescription>
+													Configure placement constraints and preferences
+												</FormDescription>
+											</div>
 								</FormItem>
 							)}
 						/>
+							</div>
 
+							{form.watch("placement.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<PlacementForm form={form} />
+								</div>
+							)}
+						</div>
+
+						{/* Update Config Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-							name="updateConfigSwarm"
+									name="updateConfig.enabled"
 							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Update Config</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
-	Parallelism?: number;
-	Delay?: number | undefined;
-	FailureAction?: string | undefined;
-	Monitor?: number | undefined;
-	MaxFailureRatio?: number | undefined;
-	Order: string;
-}`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Parallelism" : 1,
-	"Delay" : 10000,
-	"FailureAction" : "continue",
-	"Monitor" : 10000,
-	"MaxFailureRatio" : 10,
-	"Order" : "start-first"
-}`}
-											className="h-[21rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Update Config
+												</FormLabel>
+												<FormDescription>
+													Configure update settings for the service
+												</FormDescription>
+											</div>
 								</FormItem>
 							)}
 						/>
+							</div>
 
+							{form.watch("updateConfig.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<UpdateConfigForm form={form} name="updateConfig" />
+								</div>
+							)}
+						</div>
+
+						{/* Rollback Config Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-							name="rollbackConfigSwarm"
+									name="rollbackConfig.enabled"
 							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Rollback Config</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
-	Parallelism?: number;
-	Delay?: number | undefined;
-	FailureAction?: string | undefined;
-	Monitor?: number | undefined;
-	MaxFailureRatio?: number | undefined;
-	Order: string;
-}`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Parallelism" : 1,
-	"Delay" : 10000,
-	"FailureAction" : "continue",
-	"Monitor" : 10000,
-	"MaxFailureRatio" : 10,
-	"Order" : "start-first"
-}`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Rollback Config
+												</FormLabel>
+												<FormDescription>
+													Configure rollback settings for the service
+												</FormDescription>
+											</div>
 								</FormItem>
 							)}
 						/>
+							</div>
 
+							{form.watch("rollbackConfig.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<UpdateConfigForm form={form} name="rollbackConfig" />
+								</div>
+							)}
+						</div>
+
+						{/* Mode Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-							name="modeSwarm"
+									name="mode.enabled"
 							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Mode</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="center"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
-	Replicated?: { Replicas?: number | undefined } | undefined;
-	Global?: {} | undefined;
-	ReplicatedJob?:
-		| {
-				MaxConcurrent?: number | undefined;
-				TotalCompletions?: number | undefined;
-		  }
-		| undefined;
-	GlobalJob?: {} | undefined;
-}`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Replicated" : {
-		"Replicas" : 1
-	},
-	"Global" : {},
-	"ReplicatedJob" : {
-		"MaxConcurrent" : 1,
-		"TotalCompletions" : 1
-	},
-	"GlobalJob" : {}
-}`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Service Mode
+												</FormLabel>
+												<FormDescription>
+													Configure service mode and scaling settings
+												</FormDescription>
+											</div>
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="networkSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Network</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`[
-  {
-	"Target" : string | undefined;
-	"Aliases" : string[] | undefined;
-	"DriverOpts" : { [key: string]: string } | undefined;
-  }
-]`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`[
- {
-	"Target" : "dokploy-network",
-	"Aliases" : ["dokploy-network"],
-	"DriverOpts" : {
-		"com.docker.network.driver.mtu" : "1500",
-		"com.docker.network.driver.host_binding" : "true",
-		"com.docker.network.driver.mtu" : "1500",
-		"com.docker.network.driver.host_binding" : "true"
-	}
- }
-]`}
-											className="h-[20rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="labelsSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Labels</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
-	[name: string]: string;
-}`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"com.example.app.name" : "my-app",
-	"com.example.app.version" : "1.0.0"
-}`}
-											className="h-[20rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+							</div>
 
-						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
+							{form.watch("mode.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<ServiceModeForm form={form} />
+								</div>
+							)}
+						</div>
+
+						{/* Network Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
+						<FormField
+							control={form.control}
+									name="network.enabled"
+							render={({ field }) => (
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+									<FormControl>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Network
+												</FormLabel>
+												<FormDescription>
+													Configure network settings for the service
+												</FormDescription>
+											</div>
+								</FormItem>
+							)}
+						/>
+							</div>
+
+							{form.watch("network.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<NetworkForm form={form} />
+								</div>
+							)}
+						</div>
+
+						{/* Labels Section */}
+						<div className="space-y-4 p-4 border rounded-lg">
+							<div className="flex items-center space-x-2">
+						<FormField
+							control={form.control}
+									name="labels.enabled"
+							render={({ field }) => (
+										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+									<FormControl>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+											<div className="space-y-1 leading-none">
+												<FormLabel className="text-base font-medium">
+													Labels
+												</FormLabel>
+												<FormDescription>
+													Configure labels for the service
+												</FormDescription>
+											</div>
+								</FormItem>
+							)}
+						/>
+							</div>
+
+							{form.watch("labels.enabled") && (
+								<div className="space-y-4 pl-6 border-l-2 border-muted">
+									<LabelsForm form={form} />
+								</div>
+							)}
+						</div>
+
+						<DialogFooter className="flex w-full flex-row justify-end m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
 								isLoading={isLoading}
-								form="hook-form-add-permissions"
+								form="swarm-settings-form"
 								type="submit"
 							>
-								Update
+								Update Settings
 							</Button>
 						</DialogFooter>
 					</form>
