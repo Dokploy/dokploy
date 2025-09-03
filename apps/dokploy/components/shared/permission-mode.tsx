@@ -51,7 +51,7 @@ export const PermissionMode = ({
 		const [o, g, t] = n
 			.slice(-3)
 			.split("")
-			.map((d) => parseInt(d, 10)) as [number, number, number];
+			.map((d) => Number.parseInt(d, 10)) as [number, number, number];
 		const toBits = (d: number) => ({
 			r: !!(d & 4),
 			w: !!(d & 2),
