@@ -1,3 +1,8 @@
+import { db } from "@/server/db";
+import { applications, compose, github } from "@/server/db/schema";
+import type { DeploymentJob } from "@/server/queues/queue-types";
+import { getQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
 import {
 	checkUserRepositoryPermissions,
 	createPreviewDeployment,
@@ -12,11 +17,6 @@ import {
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/server/db";
-import { applications, compose, github } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
 
 export default async function handler(
@@ -131,7 +131,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-				await myQueue.add(
+				const queue = getQueue(app.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -168,8 +169,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-
-				await myQueue.add(
+				const queue = getQueue(composeApp.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -249,7 +250,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-				await myQueue.add(
+				const queue = getQueue(app.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -295,7 +297,8 @@ export default async function handler(
 					continue;
 				}
 
-				await myQueue.add(
+				const queue = getQueue(composeApp.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
@@ -494,7 +497,8 @@ export default async function handler(
 					await deploy(jobData);
 					continue;
 				}
-				await myQueue.add(
+				const queue = getQueue(app.serverId);
+				await queue.add(
 					"deployments",
 					{ ...jobData },
 					{
