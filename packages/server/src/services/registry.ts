@@ -10,15 +10,15 @@ import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
 
-function shQ(s: string): string {
+function shEscape(s: string | undefined): string {
   if (!s) return "''";
   return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
-function safeDockerLoginCommand(registry: string, user: string, pass: string) {
-  const escapedRegistry = shQ(registry)
-  const escapedUser = shQ(user)
-  const escapedPassword = shQ(pass)
+function safeDockerLoginCommand(registry: string | undefined, user: string | undefined, pass: string | undefined) {
+  const escapedRegistry = shEscape(registry)
+  const escapedUser = shEscape(user)
+  const escapedPassword = shEscape(pass)
   return `echo ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
 }
 
@@ -103,7 +103,7 @@ export const updateRegistry = async (
 			.returning()
 			.then((res) => res[0]);
 
-		const loginCommand = `echo ${response?.password} | docker login ${response?.registryUrl} --username ${response?.username} --password-stdin`;
+		const loginCommand = safeDockerLoginCommand(response?.registryUrl, response?.username, response?.password)
 
 		if (
 			IS_CLOUD &&
