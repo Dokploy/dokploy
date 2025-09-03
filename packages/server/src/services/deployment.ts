@@ -18,7 +18,7 @@ import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
-import { desc, eq, or, sql } from "drizzle-orm";
+import { desc, eq, inArray, or, sql } from "drizzle-orm";
 import {
 	type Application,
 	findApplicationById,
@@ -830,36 +830,35 @@ export const findAllDeploymentsByServerId = async (serverId: string) => {
 };
 
 export const findLatestDeploymentByProjectId = async (projectId: string) => {
+	// First get all application and compose IDs for this project
+	const projectApplications = await db.query.applications.findMany({
+		where: eq(applications.projectId, projectId),
+		columns: { applicationId: true },
+	});
+	
+	const projectCompose = await db.query.compose.findMany({
+		where: eq(compose.projectId, projectId),
+		columns: { composeId: true },
+	});
+
+	const applicationIds = projectApplications.map(app => app.applicationId);
+	const composeIds = projectCompose.map(comp => comp.composeId);
+
+	// If no applications or compose services, return null
+	if (applicationIds.length === 0 && composeIds.length === 0) {
+		return null;
+	}
+
+	// Find the latest deployment across all applications and compose services
 	const latestDeployment = await db.query.deployments.findFirst({
 		where: or(
-			sql`${deployments.applicationId} IN (
-				SELECT ${applications.applicationId} 
-				FROM ${applications} 
-				WHERE ${applications.projectId} = ${projectId}
-			)`,
-			sql`${deployments.composeId} IN (
-				SELECT ${compose.composeId} 
-				FROM ${compose} 
-				WHERE ${compose.projectId} = ${projectId}
-			)`
+			applicationIds.length > 0 ? inArray(deployments.applicationId, applicationIds) : sql`false`,
+			composeIds.length > 0 ? inArray(deployments.composeId, composeIds) : sql`false`
 		),
 		orderBy: desc(deployments.createdAt),
 	});
+	
 	return latestDeployment;
 };
 
-export const findLatestDeploymentByApplicationId = async (applicationId: string) => {
-	const latestDeployment = await db.query.deployments.findFirst({
-		where: eq(deployments.applicationId, applicationId),
-		orderBy: desc(deployments.createdAt),
-	});
-	return latestDeployment;
-};
 
-export const findLatestDeploymentByComposeId = async (composeId: string) => {
-	const latestDeployment = await db.query.deployments.findFirst({
-		where: eq(deployments.composeId, composeId),
-		orderBy: desc(deployments.createdAt),
-	});
-	return latestDeployment;
-};

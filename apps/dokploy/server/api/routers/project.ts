@@ -19,8 +19,6 @@ import {
 	deleteProject,
 	findApplicationById,
 	findComposeById,
-	findLatestDeploymentByApplicationId,
-	findLatestDeploymentByComposeId,
 	findLatestDeploymentByProjectId,
 	findMariadbById,
 	findMemberById,
@@ -46,6 +44,7 @@ import {
 	apiUpdateProject,
 	applications,
 	compose,
+	deployments,
 	mariadb,
 	mongo,
 	mysql,
@@ -157,7 +156,10 @@ export const projectRouter = createTRPCRouter({
 				// Add latest deployment information to applications and compose services
 				const applicationsWithDeployments = await Promise.all(
 					project.applications.map(async (app) => {
-						const latestDeployment = await findLatestDeploymentByApplicationId(app.applicationId);
+						const latestDeployment = await db.query.deployments.findFirst({
+							where: eq(deployments.applicationId, app.applicationId),
+							orderBy: desc(deployments.createdAt),
+						});
 						return {
 							...app,
 							latestDeployment,
@@ -167,7 +169,10 @@ export const projectRouter = createTRPCRouter({
 
 				const composeWithDeployments = await Promise.all(
 					project.compose.map(async (comp) => {
-						const latestDeployment = await findLatestDeploymentByComposeId(comp.composeId);
+						const latestDeployment = await db.query.deployments.findFirst({
+							where: eq(deployments.composeId, comp.composeId),
+							orderBy: desc(deployments.createdAt),
+						});
 						return {
 							...comp,
 							latestDeployment,
@@ -193,7 +198,10 @@ export const projectRouter = createTRPCRouter({
 			// Add latest deployment information to applications and compose services
 			const applicationsWithDeployments = await Promise.all(
 				project.applications.map(async (app) => {
-					const latestDeployment = await findLatestDeploymentByApplicationId(app.applicationId);
+					const latestDeployment = await db.query.deployments.findFirst({
+						where: eq(deployments.applicationId, app.applicationId),
+						orderBy: desc(deployments.createdAt),
+					});
 					return {
 						...app,
 						latestDeployment,
@@ -203,7 +211,10 @@ export const projectRouter = createTRPCRouter({
 
 			const composeWithDeployments = await Promise.all(
 				project.compose.map(async (comp) => {
-					const latestDeployment = await findLatestDeploymentByComposeId(comp.composeId);
+					const latestDeployment = await db.query.deployments.findFirst({
+						where: eq(deployments.composeId, comp.composeId),
+						orderBy: desc(deployments.createdAt),
+					});
 					return {
 						...comp,
 						latestDeployment,
