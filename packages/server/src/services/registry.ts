@@ -10,6 +10,18 @@ import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
 
+function shQ(s: string): string {
+  if (!s) return "''";
+  return `'${s.replace(/'/g, `'\\''`)}'`;
+}
+
+function safeDockerLoginCommand(registry: string, user: string, pass: string) {
+  const escapedRegistry = shQ(registry)
+  const escapedUser = shQ(user)
+  const escapedPassword = shQ(pass)
+  return `echo ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
+}
+
 export const createRegistry = async (
 	input: typeof apiCreateRegistry._type,
 	organizationId: string,
@@ -37,7 +49,7 @@ export const createRegistry = async (
 				message: "Select a server to add the registry",
 			});
 		}
-		const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+		const loginCommand = safeDockerLoginCommand(input.registryUrl, input.username, input.password)
 		if (input.serverId && input.serverId !== "none") {
 			await execAsyncRemote(input.serverId, loginCommand);
 		} else if (newRegistry.registryType === "cloud") {
