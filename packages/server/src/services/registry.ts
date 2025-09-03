@@ -19,7 +19,7 @@ function safeDockerLoginCommand(registry: string | undefined, user: string | und
   const escapedRegistry = shEscape(registry)
   const escapedUser = shEscape(user)
   const escapedPassword = shEscape(pass)
-  return `echo ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
+  return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
 }
 
 export const createRegistry = async (
