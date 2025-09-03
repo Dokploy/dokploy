@@ -43,17 +43,19 @@ export default async function handler(
 
 		if (sourceType === "docker") {
 			const applicationDockerTag = extractImageTag(application.dockerImage);
-			const webhookDockerTag = extractImageTagFromRequest(
+			const webhookDockerTags = extractImageTagFromRequest(
 				req.headers,
 				req.body,
 			);
-			if (
+			const isMismatch =
 				applicationDockerTag &&
-				webhookDockerTag &&
-				webhookDockerTag !== applicationDockerTag
-			) {
+				webhookDockerTags &&
+				webhookDockerTags.length > 0 &&
+				!webhookDockerTags.includes(applicationDockerTag);
+
+			if (isMismatch) {
 				res.status(301).json({
-					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
+					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag(s) (${webhookDockerTags.join(", ")}).`,
 				});
 				return;
 			}
@@ -236,10 +238,38 @@ function extractImageTag(dockerImage: string | null) {
 export const extractImageTagFromRequest = (
 	headers: any,
 	body: any,
-): string | null => {
+): string[] | null => {
 	if (headers["user-agent"]?.includes("Go-http-client")) {
 		if (body.push_data && body.repository) {
-			return body.push_data.tag;
+			return [body.push_data.tag] as string[];
+		}
+	}
+	// GitHub Packages: package or registry_package events (container tags)
+	// See: https://docs.github.com/en/webhooks/webhook-events-and-payloads#package
+	const githubEvent = headers["x-github-event"];
+
+	if (githubEvent === "package" || githubEvent === "registry_package") {
+		const pkg = body?.package ?? body?.registry_package?.package ?? null;
+		const packageVersion =
+			body?.package_version ?? body?.registry_package?.package_version ?? null;
+		const packageType = pkg?.package_type;
+
+		if (packageType === "container" && packageVersion) {
+			const tags =
+				packageVersion?.metadata?.container?.tags ??
+				packageVersion?.container?.tags ??
+				null;
+			if (Array.isArray(tags) && tags.length > 0) {
+				return tags as string[];
+			}
+			const singleTag =
+				packageVersion?.metadata?.container?.tag ??
+				packageVersion?.metadata?.tag ??
+				packageVersion?.tag ??
+				null;
+			if (typeof singleTag === "string") {
+				return [singleTag] as string[];
+			}
 		}
 	}
 	return null;
