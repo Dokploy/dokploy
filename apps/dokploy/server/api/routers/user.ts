@@ -217,10 +217,51 @@ export const userRouter = createTRPCRouter({
 				userId: z.string(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
+
+			// Ensure the acting user has admin privileges in the active organization
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners or admins can delete users",
+				});
+			}
+
+			// Fetch target member within the active organization
+			const targetMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, input.userId),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+			});
+
+			if (!targetMember) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Target user is not a member of this organization",
+				});
+			}
+
+			// Never allow deleting the organization owner via this endpoint
+			if (targetMember.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot delete the organization owner",
+				});
+			}
+
+			// Admin self-protection: an admin cannot delete themselves
+			if (targetMember.role === "admin" && input.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Admins cannot delete themselves. Ask the owner or another admin.",
+				});
+			}
+
 			return await removeUserById(input.userId);
 		}),
 	assignPermissions: adminProcedure

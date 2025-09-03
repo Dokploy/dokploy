@@ -35,7 +35,10 @@ export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
+	const { mutateAsync: removeMember } =
+		api.organization.removeMember.useMutation();
 	const utils = api.useUtils();
+	const { data: session } = authClient.useSession();
 
 	return (
 		<div className="w-full">
@@ -134,55 +137,14 @@ export const ShowUsers = () => {
 
 																		{member.role !== "owner" && (
 																			<>
-																				{!isCloud && (
-																					<DialogAction
-																						title="Delete User"
-																						description="Are you sure you want to delete this user?"
-																						type="destructive"
-																						onClick={async () => {
-																							await mutateAsync({
-																								userId: member.user.id,
-																							})
-																								.then(() => {
-																									toast.success(
-																										"User deleted successfully",
-																									);
-																									refetch();
-																								})
-																								.catch(() => {
-																									toast.error(
-																										"Error deleting destination",
-																									);
-																								});
-																						}}
-																					>
-																						<DropdownMenuItem
-																							className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																							onSelect={(e) =>
-																								e.preventDefault()
-																							}
-																						>
-																							Delete User
-																						</DropdownMenuItem>
-																					</DialogAction>
-																				)}
-
-																				<DialogAction
-																					title="Unlink User"
-																					description="Are you sure you want to unlink this user?"
-																					type="destructive"
-																					onClick={async () => {
-																						if (!isCloud) {
-																							const orgCount =
-																								await utils.user.checkUserOrganizations.fetch(
-																									{
-																										userId: member.user.id,
-																									},
-																								);
-
-																							console.log(orgCount);
-
-																							if (orgCount === 1) {
+																				{!isCloud &&
+																					member.user.id !==
+																						session?.user?.id && (
+																						<DialogAction
+																							title="Delete User"
+																							description="Are you sure you want to delete this user?"
+																							type="destructive"
+																							onClick={async () => {
 																								await mutateAsync({
 																									userId: member.user.id,
 																								})
@@ -192,41 +154,78 @@ export const ShowUsers = () => {
 																										);
 																										refetch();
 																									})
-																									.catch(() => {
+																									.catch((err) => {
 																										toast.error(
-																											"Error deleting user",
+																											err?.message ||
+																												"Error deleting user",
 																										);
 																									});
-																								return;
+																							}}
+																						>
+																							<DropdownMenuItem
+																								className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																								onSelect={(e) =>
+																									e.preventDefault()
+																								}
+																							>
+																								Delete User
+																							</DropdownMenuItem>
+																						</DialogAction>
+																					)}
+
+																				{!(
+																					member.role === "admin" &&
+																					member.user.id === session?.user?.id
+																				) && (
+																					<DialogAction
+																						title="Unlink User"
+																						description="Are you sure you want to unlink this user?"
+																						type="destructive"
+																						onClick={async () => {
+																							try {
+																								if (!isCloud) {
+																									const orgCount =
+																										await utils.user.checkUserOrganizations.fetch(
+																											{
+																												userId: member.user.id,
+																											},
+																										);
+																									if (orgCount === 1) {
+																										await mutateAsync({
+																											userId: member.user.id,
+																										});
+																										toast.success(
+																											"User deleted successfully",
+																										);
+																										refetch();
+																										return;
+																									}
+																								}
+																								await removeMember({
+																									memberId: member.id,
+																								});
+																								toast.success(
+																									"User unlinked successfully",
+																								);
+																								refetch();
+																							} catch (error: any) {
+																								toast.error(
+																									error?.message ||
+																										"Error unlinking user",
+																								);
 																							}
-																						}
-
-																						const { error } =
-																							await authClient.organization.removeMember(
-																								{
-																									memberIdOrEmail: member.id,
-																								},
-																							);
-
-																						if (!error) {
-																							toast.success(
-																								"User unlinked successfully",
-																							);
-																							refetch();
-																						} else {
-																							toast.error(
-																								"Error unlinking user",
-																							);
-																						}
-																					}}
-																				>
-																					<DropdownMenuItem
-																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																						onSelect={(e) => e.preventDefault()}
+																						}}
 																					>
-																						Unlink User
-																					</DropdownMenuItem>
-																				</DialogAction>
+																						<DropdownMenuItem
+																							className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																							onSelect={(e) =>
+																								e.preventDefault()
+																							}
+																						>
+																							Unlink User
+																						</DropdownMenuItem>
+																					</DialogAction>
+																				)}
 																			</>
 																		)}
 																	</DropdownMenuContent>
