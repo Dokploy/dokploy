@@ -25,10 +25,33 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { api } from "@/utils/api";
+import { PermissionMode } from "@/components/shared/permission-mode";
 
 const mountSchema = z.object({
 	mountPath: z.string().min(1, "Mount path required"),
+});
+
+const uidSchema = z.preprocess(
+	(v) => (v === "" || v === null ? undefined : v),
+	z.coerce.number().int().positive().optional(),
+);
+const gidSchema = z.preprocess(
+	(v) => (v === "" || v === null ? undefined : v),
+	z.coerce.number().int().positive().optional(),
+);
+const modeSchema = z.preprocess(
+	(v) => (v === "" || v === null ? undefined : v),
+	z
+		.string()
+		.regex(/^[0-7]{3,4}$/, "Use octal digits like 644 or 0775")
+		.optional(),
+);
+const ownershipSchema = z.object({
+	uid: uidSchema,
+	gid: gidSchema,
+	mode: modeSchema,
 });
 
 const mySchema = z.discriminatedUnion("type", [
@@ -37,20 +60,23 @@ const mySchema = z.discriminatedUnion("type", [
 			type: z.literal("bind"),
 			hostPath: z.string().min(1, "Host path required"),
 		})
-		.merge(mountSchema),
+		.merge(mountSchema)
+		.merge(ownershipSchema),
 	z
 		.object({
 			type: z.literal("volume"),
 			volumeName: z.string().min(1, "Volume name required"),
 		})
-		.merge(mountSchema),
+		.merge(mountSchema)
+		.merge(ownershipSchema),
 	z
 		.object({
 			type: z.literal("file"),
 			content: z.string().optional(),
 			filePath: z.string().min(1, "File path required"),
 		})
-		.merge(mountSchema),
+		.merge(mountSchema)
+		.merge(ownershipSchema),
 ]);
 
 type UpdateMount = z.infer<typeof mySchema>;
@@ -95,6 +121,9 @@ export const UpdateVolume = ({
 			type,
 			hostPath: "",
 			mountPath: "",
+			uid: undefined,
+			gid: undefined,
+			mode: "",
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -108,12 +137,18 @@ export const UpdateVolume = ({
 					hostPath: data.hostPath || "",
 					mountPath: data.mountPath,
 					type: "bind",
+					uid: data.uid ?? undefined,
+					gid: data.gid ?? undefined,
+					mode: data.mode ?? "",
 				});
 			} else if (typeForm === "volume") {
 				form.reset({
 					volumeName: data.volumeName || "",
 					mountPath: data.mountPath,
 					type: "volume",
+					uid: data.uid ?? undefined,
+					gid: data.gid ?? undefined,
+					mode: data.mode ?? "",
 				});
 			} else if (typeForm === "file") {
 				form.reset({
@@ -121,6 +156,9 @@ export const UpdateVolume = ({
 					mountPath: serviceType === "compose" ? "/" : data.mountPath,
 					filePath: data.filePath || "",
 					type: "file",
+					uid: data.uid ?? undefined,
+					gid: data.gid ?? undefined,
+					mode: data.mode ?? "",
 				});
 			}
 		}
@@ -133,6 +171,9 @@ export const UpdateVolume = ({
 				mountPath: data.mountPath,
 				type: data.type,
 				mountId,
+				uid: data.uid,
+				gid: data.gid,
+				mode: data.mode,
 			})
 				.then(() => {
 					toast.success("Mount Update");
@@ -147,6 +188,9 @@ export const UpdateVolume = ({
 				mountPath: data.mountPath,
 				type: data.type,
 				mountId,
+				uid: data.uid,
+				gid: data.gid,
+				mode: data.mode,
 			})
 				.then(() => {
 					toast.success("Mount Update");
@@ -162,6 +206,9 @@ export const UpdateVolume = ({
 				type: data.type,
 				filePath: data.filePath,
 				mountId,
+				uid: data.uid,
+				gid: data.gid,
+				mode: data.mode,
 			})
 				.then(() => {
 					toast.success("Mount Update");
@@ -301,6 +348,71 @@ PORT=3000
 									)}
 								/>
 							)}
+
+							<div className="mt-2">
+								<FormLabel className="text-base font-medium">
+									Ownership / Permissions (optional)
+								</FormLabel>
+								<p className="text-sm text-muted-foreground">
+									If unset, mounts remain root-owned with default permissions.
+								</p>
+								<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+									<FormField
+										control={form.control}
+										name="uid"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>UID</FormLabel>
+												<FormControl>
+													<Input placeholder="e.g. 1000" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="gid"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>GID</FormLabel>
+												<FormControl>
+													<Input placeholder="e.g. 1000" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="mode"
+										render={({ field }) => (
+											<FormItem className="sm:col-span-3">
+												<FormLabel className="flex items-center gap-2">
+													<span>Mode</span>
+													<Badge variant="blank" className="text-sm h-5 px-2">
+														{(() => {
+															const v = field.value ?? "";
+															if (!/^\d{3,4}$/.test(v)) return "644";
+															if (v.length === 4 && v[0] === "0")
+																return v.slice(1);
+															return v.slice(-3);
+														})()}
+													</Badge>
+												</FormLabel>
+												<FormControl>
+													<PermissionMode
+														value={field.value ?? ""}
+														onChange={(v) => field.onChange(v)}
+														showAdvancedInput={false}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</div>
 						</div>
 						<DialogFooter>
 							<Button

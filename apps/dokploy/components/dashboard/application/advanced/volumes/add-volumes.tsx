@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
+import { PermissionMode } from "@/components/shared/permission-mode";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
@@ -49,26 +51,50 @@ const mountSchema = z.object({
 	mountPath: z.string().min(1, "Mount path required"),
 });
 
+const uidSchema = z.preprocess(
+	(v) => (v === "" || v === null ? undefined : v),
+	z.coerce.number().int().positive().optional(),
+);
+const gidSchema = z.preprocess(
+	(v) => (v === "" || v === null ? undefined : v),
+	z.coerce.number().int().positive().optional(),
+);
+const modeSchema = z.preprocess(
+	(v) => (v === "" || v === null ? undefined : v),
+	z
+		.string()
+		.regex(/^[0-7]{3,4}$/, "Use octal digits like 644 or 0775")
+		.optional(),
+);
+const ownershipSchema = z.object({
+	uid: uidSchema,
+	gid: gidSchema,
+	mode: modeSchema,
+});
+
 const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("bind"),
 			hostPath: z.string().min(1, "Host path required"),
 		})
-		.merge(mountSchema),
+		.merge(mountSchema)
+		.merge(ownershipSchema),
 	z
 		.object({
 			type: z.literal("volume"),
 			volumeName: z.string().min(1, "Volume name required"),
 		})
-		.merge(mountSchema),
+		.merge(mountSchema)
+		.merge(ownershipSchema),
 	z
 		.object({
 			type: z.literal("file"),
 			filePath: z.string().min(1, "File path required"),
 			content: z.string().optional(),
 		})
-		.merge(mountSchema),
+		.merge(mountSchema)
+		.merge(ownershipSchema),
 ]);
 
 type AddMount = z.infer<typeof mySchema>;
@@ -86,6 +112,9 @@ export const AddVolumes = ({
 			type: serviceType === "compose" ? "file" : "bind",
 			hostPath: "",
 			mountPath: serviceType === "compose" ? "/" : "",
+			uid: undefined,
+			gid: undefined,
+			mode: "",
 		},
 		resolver: zodResolver(mySchema),
 	});
@@ -103,6 +132,9 @@ export const AddVolumes = ({
 				mountPath: data.mountPath,
 				type: data.type,
 				serviceType,
+				uid: data.uid,
+				gid: data.gid,
+				mode: data.mode,
 			})
 				.then(() => {
 					toast.success("Mount Created");
@@ -118,6 +150,9 @@ export const AddVolumes = ({
 				mountPath: data.mountPath,
 				type: data.type,
 				serviceType,
+				uid: data.uid,
+				gid: data.gid,
+				mode: data.mode,
 			})
 				.then(() => {
 					toast.success("Mount Created");
@@ -134,6 +169,9 @@ export const AddVolumes = ({
 				filePath: data.filePath,
 				type: data.type,
 				serviceType,
+				uid: data.uid,
+				gid: data.gid,
+				mode: data.mode,
 			})
 				.then(() => {
 					toast.success("Mount Created");
@@ -157,13 +195,13 @@ export const AddVolumes = ({
 					<DialogTitle>Volumes / Mounts</DialogTitle>
 				</DialogHeader>
 				{/* {isError && (
-        <div className="flex items-center flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
-          <AlertTriangle className="text-red-600 dark:text-red-400" />
-          <span className="text-sm text-red-600 dark:text-red-400">
-            {error?.message}
-          </span>
-        </div>
-      )} */}
+				<div className="flex items-center flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
+				  <AlertTriangle className="text-red-600 dark:text-red-400" />
+				  <span className="text-sm text-red-600 dark:text-red-400">
+					{error?.message}
+				  </span>
+				</div>
+			  )} */}
 
 				<Form {...form}>
 					<form
@@ -372,6 +410,72 @@ PORT=3000
 										)}
 									/>
 								)}
+
+								<div className="mt-4">
+									<FormLabel className="text-base font-medium">
+										Ownership / Permissions (optional)
+									</FormLabel>
+									<p className="text-sm text-muted-foreground">
+										If unset, mounts remain root-owned with default permissions.
+									</p>
+									<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+										<FormField
+											control={form.control}
+											name="uid"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>UID</FormLabel>
+													<FormControl>
+														<Input placeholder="e.g. 1000" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="gid"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>GID</FormLabel>
+													<FormControl>
+														<Input placeholder="e.g. 1000" {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="mode"
+											render={({ field }) => (
+												<FormItem className="sm:col-span-3">
+													<FormLabel className="flex items-center gap-2">
+														<span>Mode</span>
+														<Badge variant="blank" className="text-sm h-5 px-2">
+															{(() => {
+																const v = field.value ?? "";
+																if (!/^\d{3,4}$/.test(v)) return "644";
+																if (v.length === 4 && v[0] === "0")
+																	return v.slice(1);
+																return v.slice(-3);
+															})()}
+														</Badge>
+													</FormLabel>
+
+													<FormControl>
+														<PermissionMode
+															value={field.value ?? ""}
+															onChange={(v) => field.onChange(v)}
+															showAdvancedInput={false}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</div>
+								</div>
 							</div>
 						</div>
 					</form>
