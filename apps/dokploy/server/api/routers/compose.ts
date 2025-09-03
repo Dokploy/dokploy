@@ -47,9 +47,11 @@ import { db } from "@/server/db";
 import {
 	apiCreateCompose,
 	apiDeleteCompose,
+	apiDeployCompose,
 	apiFetchServices,
 	apiFindCompose,
 	apiRandomizeCompose,
+	apiRedeployCompose,
 	apiUpdateCompose,
 	compose as composeTable,
 } from "@/server/db/schema";
@@ -337,7 +339,7 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	deploy: protectedProcedure
-		.input(apiFindCompose)
+		.input(apiDeployCompose)
 		.mutation(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
 
@@ -349,10 +351,10 @@ export const composeRouter = createTRPCRouter({
 			}
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
-				titleLog: "Manual deployment",
+				titleLog: input.title || "Manual deployment",
 				type: "deploy",
 				applicationType: "compose",
-				descriptionLog: "",
+				descriptionLog: input.description || "",
 				server: !!compose.serverId,
 			};
 
@@ -371,7 +373,7 @@ export const composeRouter = createTRPCRouter({
 			);
 		}),
 	redeploy: protectedProcedure
-		.input(apiFindCompose)
+		.input(apiRedeployCompose)
 		.mutation(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
 			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
@@ -382,10 +384,10 @@ export const composeRouter = createTRPCRouter({
 			}
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
-				titleLog: "Rebuild deployment",
+				titleLog: input.title || "Rebuild deployment",
 				type: "redeploy",
 				applicationType: "compose",
-				descriptionLog: "",
+				descriptionLog: input.description || "",
 				server: !!compose.serverId,
 			};
 			if (IS_CLOUD && compose.serverId) {

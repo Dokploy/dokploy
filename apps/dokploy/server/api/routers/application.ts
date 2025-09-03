@@ -39,8 +39,10 @@ import {
 import { db } from "@/server/db";
 import {
 	apiCreateApplication,
+	apiDeployApplication,
 	apiFindMonitoringStats,
 	apiFindOneApplication,
+	apiRedeployApplication,
 	apiReloadApplication,
 	apiSaveBitbucketProvider,
 	apiSaveBuildType,
@@ -292,7 +294,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	redeploy: protectedProcedure
-		.input(apiFindOneApplication)
+		.input(apiRedeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -305,8 +307,8 @@ export const applicationRouter = createTRPCRouter({
 			}
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
-				titleLog: "Rebuild deployment",
-				descriptionLog: "",
+				titleLog: input.title || "Rebuild deployment",
+				descriptionLog: input.description || "",
 				type: "redeploy",
 				applicationType: "application",
 				server: !!application.serverId,
@@ -643,7 +645,7 @@ export const applicationRouter = createTRPCRouter({
 			return true;
 		}),
 	deploy: protectedProcedure
-		.input(apiFindOneApplication)
+		.input(apiDeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -656,8 +658,8 @@ export const applicationRouter = createTRPCRouter({
 			}
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
-				titleLog: "Manual deployment",
-				descriptionLog: "",
+				titleLog: input.title || "Manual deployment",
+				descriptionLog: input.description || "",
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,

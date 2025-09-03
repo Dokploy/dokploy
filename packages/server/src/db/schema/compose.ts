@@ -180,6 +180,18 @@ export const apiFindCompose = z.object({
 	composeId: z.string().min(1),
 });
 
+export const apiDeployCompose = z.object({
+	composeId: z.string().min(1),
+	title: z.string().optional(),
+	description: z.string().optional(),
+});
+
+export const apiRedeployCompose = z.object({
+	composeId: z.string().min(1),
+	title: z.string().optional(),
+	description: z.string().optional(),
+});
+
 export const apiDeleteCompose = z.object({
 	composeId: z.string().min(1),
 	deleteVolumes: z.boolean(),

@@ -5,7 +5,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Inngest } from "inngest";
 import { serve as serveInngest } from "inngest/hono";
 import { logger } from "./logger.js";
-import { type DeployJob, deployJobSchema } from "./schema.js";
+import { type DeployJob, deployJobSchema, deployRequestSchema } from "./schema.js";
 import { deploy } from "./utils.js";
 
 const app = new Hono();
@@ -84,15 +84,22 @@ app.use(async (c, next) => {
 	return next();
 });
 
-app.post("/deploy", zValidator("json", deployJobSchema), async (c) => {
+app.post("/deploy", zValidator("json", deployRequestSchema), async (c) => {
 	const data = c.req.valid("json");
 	logger.info("Received deployment request", data);
 
 	try {
+		// Transform the request to the internal job format
+		const jobData: DeployJob = {
+			...data,
+			titleLog: data.title || "Manual deployment",
+			descriptionLog: data.description || "",
+		};
+
 		// Send event to Inngest instead of adding to Redis queue
 		await inngest.send({
 			name: "deployment/requested",
-			data,
+			data: jobData,
 		});
 
 		logger.info("Deployment event sent to Inngest", {
