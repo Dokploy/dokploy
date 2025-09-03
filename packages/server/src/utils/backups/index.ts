@@ -123,6 +123,12 @@ export const keepLatestNBackups = async (
 			await execAsync(rcloneCommand);
 		}
 	} catch (error) {
-		console.error(error);
+		const raw = error instanceof Error ? error.message : String(error);
+		console.error(
+			raw.replace(
+				/(--s3-access-key-id|--s3-secret-access-key)=("[^"]+"|'[^']+'|[^ \n]+)/g,
+				"$1=****",
+			),
+		);
 	}
 };

@@ -52,9 +52,7 @@ export const removeScheduleBackup = (backupId: string) => {
 };
 
 export const normalizeS3Path = (prefix: string) => {
-	// Trim whitespace and remove leading/trailing slashes
 	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
-	// Return empty string if prefix is empty, otherwise append trailing slash
 	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
@@ -69,12 +67,43 @@ export const getS3Credentials = (destination: Destination) => {
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
 	];
-
 	if (provider) {
 		rcloneFlags.unshift(`--s3-provider=${provider}`);
 	}
-
 	return rcloneFlags;
+};
+
+// Masks sensitive values in commands and connection strings before logging
+export const maskSensitive = (text: string) => {
+	if (!text) return text;
+	let out = text;
+	// Rclone S3 flags
+	out = out.replace(
+		/--s3-access-key-id=("[^"]+"|'[^']+'|[^ \n]+)/g,
+		"--s3-access-key-id=****",
+	);
+	out = out.replace(
+		/--s3-secret-access-key=("[^"]+"|'[^']+'|[^ \n]+)/g,
+		"--s3-secret-access-key=****",
+	);
+	// Connection string style used in UI or elsewhere
+	out = out.replace(
+		/access_key_id=("[^"]+"|'[^']+'|[^, \n:]+)/g,
+		"access_key_id=****",
+	);
+	out = out.replace(
+		/secret_access_key=("[^"]+"|'[^']+'|[^, \n:]+)/g,
+		"secret_access_key=****",
+	);
+	// Common DB password flags
+	out = out.replace(
+		/--password(=|\s+)("[^"]+"|'[^']+'|[^ \n]+)/g,
+		"--password=****",
+	);
+	// Short -p forms (with or without space/quotes)
+	out = out.replace(/\s-p\s+("[^"]+"|'[^']+'|[^ \n]+)/g, " -p ****");
+	out = out.replace(/\s-p[^\s]*/g, " -p****");
+	return out;
 };
 
 export const getPostgresBackupCommand = (
@@ -142,14 +171,13 @@ const getContainerSearchCommand = (backup: BackupSchedule) => {
 };
 
 export const generateBackupCommand = (backup: BackupSchedule) => {
-	const { backupType, databaseType } = backup;
-	switch (databaseType) {
+	switch (backup.databaseType) {
 		case "postgres": {
 			const postgres = backup.postgres;
-			if (backupType === "database" && postgres) {
+			if (backup.backupType === "database" && postgres) {
 				return getPostgresBackupCommand(backup.database, postgres.databaseUser);
 			}
-			if (backupType === "compose" && backup.metadata?.postgres) {
+			if (backup.backupType === "compose" && backup.metadata?.postgres) {
 				return getPostgresBackupCommand(
 					backup.database,
 					backup.metadata.postgres.databaseUser,
@@ -159,13 +187,13 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 		}
 		case "mysql": {
 			const mysql = backup.mysql;
-			if (backupType === "database" && mysql) {
+			if (backup.backupType === "database" && mysql) {
 				return getMysqlBackupCommand(
 					backup.database,
 					mysql.databaseRootPassword,
 				);
 			}
-			if (backupType === "compose" && backup.metadata?.mysql) {
+			if (backup.backupType === "compose" && backup.metadata?.mysql) {
 				return getMysqlBackupCommand(
 					backup.database,
 					backup.metadata?.mysql?.databaseRootPassword || "",
@@ -175,14 +203,14 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 		}
 		case "mariadb": {
 			const mariadb = backup.mariadb;
-			if (backupType === "database" && mariadb) {
+			if (backup.backupType === "database" && mariadb) {
 				return getMariadbBackupCommand(
 					backup.database,
 					mariadb.databaseUser,
 					mariadb.databasePassword,
 				);
 			}
-			if (backupType === "compose" && backup.metadata?.mariadb) {
+			if (backup.backupType === "compose" && backup.metadata?.mariadb) {
 				return getMariadbBackupCommand(
 					backup.database,
 					backup.metadata.mariadb.databaseUser,
@@ -193,14 +221,14 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 		}
 		case "mongo": {
 			const mongo = backup.mongo;
-			if (backupType === "database" && mongo) {
+			if (backup.backupType === "database" && mongo) {
 				return getMongoBackupCommand(
 					backup.database,
 					mongo.databaseUser,
 					mongo.databasePassword,
 				);
 			}
-			if (backupType === "compose" && backup.metadata?.mongo) {
+			if (backup.backupType === "compose" && backup.metadata?.mongo) {
 				return getMongoBackupCommand(
 					backup.database,
 					backup.metadata.mongo.databaseUser,
@@ -210,9 +238,8 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 			break;
 		}
 		default:
-			throw new Error(`Database type not supported: ${databaseType}`);
+			throw new Error(`Database type not supported: ${backup.databaseType}`);
 	}
-
 	return null;
 };
 
@@ -227,8 +254,8 @@ export const getBackupCommand = (
 	logger.info(
 		{
 			containerSearch,
-			backupCommand,
-			rcloneCommand,
+			backupCommand: maskSensitive(backupCommand || ""),
+			rcloneCommand: maskSensitive(rcloneCommand),
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,

@@ -10,7 +10,7 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { execAsync } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import { getS3Credentials, normalizeS3Path, maskSensitive } from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
@@ -80,7 +80,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write("Zipped database and filesystem\n");
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
-			writeStream.write(`Running command: ${uploadCommand}\n`);
+			writeStream.write(`Running command: ${maskSensitive(uploadCommand)}\n`);
 			await execAsync(uploadCommand);
 			writeStream.write("Uploaded backup to S3 ✅\n");
 			writeStream.end();

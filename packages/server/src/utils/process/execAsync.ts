@@ -10,6 +10,35 @@ interface ExecOptions {
 	env?: NodeJS.ProcessEnv;
 }
 
+// Minimal masking to avoid leaking secrets in error messages
+const maskSensitive = (text: string) => {
+	if (!text) return text;
+	let out = text;
+	out = out.replace(
+		/--s3-access-key-id=("[^"]+"|'[^']+'|[^ \n]+)/g,
+		"--s3-access-key-id=****",
+	);
+	out = out.replace(
+		/--s3-secret-access-key=("[^"]+"|'[^']+'|[^ \n]+)/g,
+		"--s3-secret-access-key=****",
+	);
+	out = out.replace(
+		/access_key_id=("[^"]+"|'[^']+'|[^, \n:]+)/g,
+		"access_key_id=****",
+	);
+	out = out.replace(
+		/secret_access_key=("[^"]+"|'[^']+'|[^, \n:]+)/g,
+		"secret_access_key=****",
+	);
+	out = out.replace(
+		/--password(=|\s+)("[^"]+"|'[^']+'|[^ \n]+)/g,
+		"--password=****",
+	);
+	out = out.replace(/\s-p\s+("[^"]+"|'[^']+'|[^ \n]+)/g, " -p ****");
+	out = out.replace(/\s-p[^\s]*/g, " -p****");
+	return out;
+};
+
 export const execAsyncStream = (
 	command: string,
 	onData?: (data: string) => void,
@@ -118,7 +147,7 @@ export const execAsyncRemote = async (
 							} else {
 								reject(
 									new Error(
-										`Command exited with code ${code}. Stderr: ${stderr}, command: ${command}`,
+										`Command exited with code ${code}. Stderr: ${stderr}, command: ${maskSensitive(command)}`,
 									),
 								);
 							}

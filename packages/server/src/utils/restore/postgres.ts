@@ -2,7 +2,7 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import { getS3Credentials, maskSensitive } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -36,7 +36,7 @@ export const restorePostgresBackup = async (
 			restoreType: "database",
 		});
 
-		emit(`Executing command: ${command}`);
+		emit(`Executing command: ${maskSensitive(command)}`);
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);

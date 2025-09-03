@@ -46,7 +46,14 @@ const cleanupOldVolumeBackups = async (
 			await execAsync(fullCommand);
 		}
 	} catch (error) {
-		console.error("Volume backup retention error", error);
+		const msg = error instanceof Error ? error.message : String(error);
+		console.error(
+			"Volume backup retention error",
+			msg.replace(
+				/(--s3-access-key-id|--s3-secret-access-key)=("[^"]+"|'[^']+'|[^ \n]+)/g,
+				"$1=****",
+			),
+		);
 	}
 };
 

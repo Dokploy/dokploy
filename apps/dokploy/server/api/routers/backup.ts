@@ -23,6 +23,7 @@ import {
 	runWebServerBackup,
 	scheduleBackup,
 	updateBackupById,
+	maskSensitive,
 } from "@dokploy/server";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
@@ -357,7 +358,7 @@ export const backupRouter = createTRPCRouter({
 					code: "BAD_REQUEST",
 					message:
 						error instanceof Error
-							? error.message
+							? maskSensitive(error.message)
 							: "Error listing backup files",
 					cause: error,
 				});
