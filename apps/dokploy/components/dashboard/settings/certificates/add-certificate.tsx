@@ -66,6 +66,10 @@ export const AddCertificate = () => {
 		api.certificates.create.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const form = useForm<AddCertificate>({
 		defaultValues: {
@@ -175,7 +179,7 @@ export const AddCertificate = () => {
 								</FormItem>
 							)}
 						/>
-						{hasServers && (
+						{shouldShowServerDropdown && (
 							<FormField
 								control={form.control}
 								name="serverId"
@@ -194,21 +198,23 @@ export const AddCertificate = () => {
 
 										<Select
 											onValueChange={field.onChange}
-											defaultValue={field.value || "dokploy"}
+											defaultValue={field.value || (!isCloud ? "dokploy" : undefined)}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Dokploy" />
+												<SelectValue placeholder={!isCloud ? "Dokploy" : "Select a Server"} />
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
-													<SelectItem value="dokploy">
-														<span className="flex items-center gap-2 justify-between w-full">
-															<span>Dokploy</span>
-															<span className="text-muted-foreground text-xs self-center">
-																Default
+													{!isCloud && (
+														<SelectItem value="dokploy">
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>Dokploy</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	Default
+																</span>
 															</span>
-														</span>
-													</SelectItem>
+														</SelectItem>
+													)}
 													{servers?.map((server) => (
 														<SelectItem
 															key={server.serverId}
@@ -223,7 +229,7 @@ export const AddCertificate = () => {
 														</SelectItem>
 													))}
 													<SelectLabel>
-														Servers ({servers?.length + 1})
+														Servers ({servers?.length + (!isCloud ? 1 : 0)})
 													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>

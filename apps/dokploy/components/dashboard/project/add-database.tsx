@@ -178,6 +178,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
@@ -186,6 +187,10 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const mysqlMutation = api.mysql.create.useMutation();
 
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const form = useForm<AddDatabase>({
 		defaultValues: {
@@ -398,7 +403,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								{hasServers && (
+								{shouldShowServerDropdown && (
 									<FormField
 										control={form.control}
 										name="serverId"
@@ -407,21 +412,23 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<FormLabel>Select a Server</FormLabel>
 												<Select
 													onValueChange={field.onChange}
-													defaultValue={field.value || "dokploy"}
+													defaultValue={field.value || (!isCloud ? "dokploy" : undefined)}
 												>
 													<SelectTrigger>
-														<SelectValue placeholder="Dokploy" />
+														<SelectValue placeholder={!isCloud ? "Dokploy" : "Select a Server"} />
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
-															<SelectItem value="dokploy">
-																<span className="flex items-center gap-2 justify-between w-full">
-																	<span>Dokploy</span>
-																	<span className="text-muted-foreground text-xs self-center">
-																		Default
+															{!isCloud && (
+																<SelectItem value="dokploy">
+																	<span className="flex items-center gap-2 justify-between w-full">
+																		<span>Dokploy</span>
+																		<span className="text-muted-foreground text-xs self-center">
+																			Default
+																		</span>
 																	</span>
-																</span>
-															</SelectItem>
+																</SelectItem>
+															)}
 															{servers?.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -431,7 +438,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length + 1})
+																Servers ({servers?.length + (!isCloud ? 1 : 0)})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>

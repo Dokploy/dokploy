@@ -138,6 +138,10 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 		}) || [];
 
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -427,7 +431,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															project.
 														</AlertDialogDescription>
 
-														{hasServers && (
+														{shouldShowServerDropdown && (
 															<div>
 																<TooltipProvider delayDuration={0}>
 																	<Tooltip>
@@ -456,21 +460,23 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																	onValueChange={(e) => {
 																		setServerId(e);
 																	}}
-																	defaultValue="dokploy"
+																	defaultValue={!isCloud ? "dokploy" : undefined}
 																>
 																	<SelectTrigger>
-																		<SelectValue placeholder="Dokploy" />
+																		<SelectValue placeholder={!isCloud ? "Dokploy" : "Select a Server"} />
 																	</SelectTrigger>
 																	<SelectContent>
 																		<SelectGroup>
-																			<SelectItem value="dokploy">
-																				<span className="flex items-center gap-2 justify-between w-full">
-																					<span>Dokploy</span>
-																					<span className="text-muted-foreground text-xs self-center">
-																						Default
+																			{!isCloud && (
+																				<SelectItem value="dokploy">
+																					<span className="flex items-center gap-2 justify-between w-full">
+																						<span>Dokploy</span>
+																						<span className="text-muted-foreground text-xs self-center">
+																							Default
+																						</span>
 																					</span>
-																				</span>
-																			</SelectItem>
+																				</SelectItem>
+																			)}
 																			{servers?.map((server) => (
 																				<SelectItem
 																					key={server.serverId}
@@ -485,7 +491,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																				</SelectItem>
 																			))}
 																			<SelectLabel>
-																				Servers ({servers?.length + 1})
+																				Servers ({servers?.length + (!isCloud ? 1 : 0)})
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>
