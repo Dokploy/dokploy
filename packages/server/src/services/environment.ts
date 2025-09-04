@@ -5,7 +5,7 @@ import {
 	environments,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 export type Environment = typeof environments.$inferSelect;
 
@@ -56,7 +56,17 @@ export const findEnvironmentById = async (environmentId: string) => {
 export const findEnvironmentsByProjectId = async (projectId: string) => {
 	const projectEnvironments = await db.query.environments.findMany({
 		where: eq(environments.projectId, projectId),
-		orderBy: (environments, { asc }) => [asc(environments.createdAt)],
+		orderBy: asc(environments.createdAt),
+		with: {
+			applications: true,
+			mariadb: true,
+			mongo: true,
+			mysql: true,
+			postgres: true,
+			redis: true,
+			compose: true,
+			project: true,
+		},
 	});
 	return projectEnvironments;
 };

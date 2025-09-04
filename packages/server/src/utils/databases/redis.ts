@@ -52,6 +52,7 @@ export const buildRedis = async (redis: RedisNested) => {
 	const envVariables = prepareEnvironmentVariables(
 		defaultRedisEnv,
 		redis.environment.project.env,
+		redis.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);

@@ -149,6 +149,7 @@ export const mechanizeDockerContainer = async (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
+		application.environment.env,
 	);
 
 	const image = getImageName(application);

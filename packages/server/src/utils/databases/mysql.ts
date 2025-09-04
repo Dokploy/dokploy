@@ -61,6 +61,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 	const envVariables = prepareEnvironmentVariables(
 		defaultMysqlEnv,
 		mysql.environment.project.env,
+		mysql.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);

@@ -206,6 +206,7 @@ const createEnvFile = (compose: ComposeNested) => {
 	const envFileContent = prepareEnvironmentVariables(
 		envContent,
 		compose.environment.project.env,
+		compose.environment.env,
 	).join("\n");
 
 	if (!existsSync(dirname(envFilePath))) {
@@ -236,6 +237,7 @@ export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const envFileContent = prepareEnvironmentVariables(
 		envContent,
 		compose.environment.project.env,
+		compose.environment.env,
 	).join("\n");
 
 	const encodedContent = encodeBase64(envFileContent);

@@ -54,6 +54,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 	const envVariables = prepareEnvironmentVariables(
 		defaultPostgresEnv,
 		postgres.environment.project.env,
+		postgres.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);

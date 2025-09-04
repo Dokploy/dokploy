@@ -29,6 +29,7 @@ export const buildCustomDocker = async (
 		const args = prepareEnvironmentVariables(
 			buildArgs,
 			application.environment.project.env,
+			application.environment.env,
 		);
 
 		const dockerContextPath = getDockerContextPath(application);
@@ -51,7 +52,12 @@ export const buildCustomDocker = async (
 			as it could be publicly exposed.
 		*/
 		if (!publishDirectory) {
-			createEnvFile(dockerFilePath, env, application.environment.project.env);
+			createEnvFile(
+				dockerFilePath,
+				env,
+				application.environment.project.env,
+				application.environment.env,
+			);
 		}
 
 		await spawnAsync(
@@ -93,6 +99,7 @@ export const getDockerCommand = (
 		const args = prepareEnvironmentVariables(
 			buildArgs,
 			application.environment.project.env,
+			application.environment.env,
 		);
 
 		const dockerContextPath =
@@ -122,6 +129,7 @@ export const getDockerCommand = (
 				dockerFilePath,
 				env,
 				application.environment.project.env,
+				application.environment.env,
 			);
 		}
 

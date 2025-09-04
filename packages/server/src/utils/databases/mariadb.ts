@@ -55,6 +55,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 	const envVariables = prepareEnvironmentVariables(
 		defaultMariadbEnv,
 		mariadb.environment.project.env,
+		mariadb.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);

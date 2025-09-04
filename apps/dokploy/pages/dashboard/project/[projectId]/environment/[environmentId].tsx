@@ -1460,6 +1460,10 @@ export async function getServerSideProps(
 				environmentId: params.environmentId,
 			});
 
+			await helpers.environment.byProjectId.fetch({
+				projectId: params.projectId,
+			});
+
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),

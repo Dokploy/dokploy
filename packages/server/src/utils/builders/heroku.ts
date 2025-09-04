@@ -14,6 +14,7 @@ export const buildHeroku = async (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
+		application.environment.env,
 	);
 	try {
 		const args = [
@@ -54,6 +55,7 @@ export const getHerokuCommand = (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
+		application.environment.env,
 	);
 
 	const args = [

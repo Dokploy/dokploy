@@ -1,4 +1,4 @@
-import type { findEnvironmentById } from "@dokploy/server";
+import type { findEnvironmentsByProjectId } from "@dokploy/server";
 import {
 	ChevronDownIcon,
 	PencilIcon,
@@ -33,10 +33,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-type Environment = Omit<
-	Awaited<ReturnType<typeof findEnvironmentById>>,
-	"project"
->;
+type Environment = Awaited<
+	ReturnType<typeof findEnvironmentsByProjectId>
+>[number];
 interface AdvancedEnvironmentSelectorProps {
 	projectId: string;
 	currentEnvironmentId?: string;
@@ -53,13 +52,12 @@ export const AdvancedEnvironmentSelector = ({
 	const [selectedEnvironment, setSelectedEnvironment] =
 		useState<Environment | null>(null);
 
-	const { data: project } = api.project.one.useQuery(
-		{ projectId },
+	const { data: environments } = api.environment.byProjectId.useQuery(
+		{ projectId: projectId },
 		{
 			enabled: !!projectId,
 		},
 	);
-	const environments = project?.environments || [];
 
 	// Form states
 	const [name, setName] = useState("");
@@ -144,7 +142,7 @@ export const AdvancedEnvironmentSelector = ({
 
 			// Redirect to production if we deleted the current environment
 			if (selectedEnvironment.environmentId === currentEnvironmentId) {
-				const productionEnv = environments.find(
+				const productionEnv = environments?.find(
 					(env) => env.name === "production",
 				);
 				if (productionEnv) {
@@ -190,7 +188,7 @@ export const AdvancedEnvironmentSelector = ({
 		setIsDeleteDialogOpen(true);
 	};
 
-	const currentEnv = environments.find(
+	const currentEnv = environments?.find(
 		(env) => env.environmentId === currentEnvironmentId,
 	);
 
@@ -210,7 +208,7 @@ export const AdvancedEnvironmentSelector = ({
 					<DropdownMenuLabel>Environments</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 
-					{environments.map((environment) => (
+					{environments?.map((environment) => (
 						<div key={environment.environmentId} className="flex items-center">
 							<DropdownMenuItem
 								className="flex-1 cursor-pointer"
@@ -229,6 +227,18 @@ export const AdvancedEnvironmentSelector = ({
 							</DropdownMenuItem>
 
 							{/* Action buttons for non-production environments */}
+							<EnvironmentVariables environmentId={environment.environmentId}>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-6 w-6 p-0"
+									onClick={(e) => {
+										e.stopPropagation();
+									}}
+								>
+									<Terminal className="h-3 w-3" />
+								</Button>
+							</EnvironmentVariables>
 							{environment.name !== "production" && (
 								<div className="flex items-center gap-1 px-2">
 									<Button
@@ -242,20 +252,7 @@ export const AdvancedEnvironmentSelector = ({
 									>
 										<PencilIcon className="h-3 w-3" />
 									</Button>
-									<EnvironmentVariables
-										environmentId={environment.environmentId}
-									>
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-6 w-6 p-0"
-											onClick={(e) => {
-												e.stopPropagation();
-											}}
-										>
-											<Terminal className="h-3 w-3" />
-										</Button>
-									</EnvironmentVariables>
+
 									<Button
 										variant="ghost"
 										size="sm"

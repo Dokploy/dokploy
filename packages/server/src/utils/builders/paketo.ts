@@ -13,6 +13,7 @@ export const buildPaketo = async (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
+		application.environment.env,
 	);
 	try {
 		const args = [
@@ -53,6 +54,7 @@ export const getPaketoCommand = (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
+		application.environment.env,
 	);
 
 	const args = [

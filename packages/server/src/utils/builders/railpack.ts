@@ -27,6 +27,7 @@ export const buildRailpack = async (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
+		application.environment.env,
 	);
 
 	try {
@@ -124,6 +125,7 @@ export const getRailpackCommand = (
 	const envVariables = prepareEnvironmentVariables(
 		env,
 		application.environment.project.env,
+		application.environment.env,
 	);
 
 	// Prepare command

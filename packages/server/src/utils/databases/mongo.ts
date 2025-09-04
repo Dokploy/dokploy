@@ -103,6 +103,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 	const envVariables = prepareEnvironmentVariables(
 		defaultMongoEnv,
 		mongo.environment.project.env,
+		mongo.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
