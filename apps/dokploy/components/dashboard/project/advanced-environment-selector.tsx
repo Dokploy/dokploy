@@ -9,6 +9,7 @@ import {
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -241,16 +242,20 @@ export const AdvancedEnvironmentSelector = ({
 									>
 										<PencilIcon className="h-3 w-3" />
 									</Button>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-6 w-6 p-0"
-										onClick={(e) => {
-											e.stopPropagation();
-										}}
+									<EnvironmentVariables
+										environmentId={environment.environmentId}
 									>
-										<Terminal className="h-3 w-3" />
-									</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-6 w-6 p-0"
+											onClick={(e) => {
+												e.stopPropagation();
+											}}
+										>
+											<Terminal className="h-3 w-3" />
+										</Button>
+									</EnvironmentVariables>
 									<Button
 										variant="ghost"
 										size="sm"
