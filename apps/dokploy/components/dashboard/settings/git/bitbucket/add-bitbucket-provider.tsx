@@ -122,18 +122,19 @@ export const AddBitbucketProvider = () => {
 										<ExternalLink className="w-fit text-primary size-4" />
 									</Link>
 								</div>
-								
+
 								<p className="text-muted-foreground text-sm">
-									Make sure to create an API Token with the following permissions:
+									Make sure to create an API Token with the following
+									permissions:
 								</p>
-										<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
-											<li>Account: Read</li>
-											<li>Workspace membership: Read</li>
-											<li>Projects: Read</li>
-											<li>Repositories: Read</li>
-											<li>Pull requests: Read</li>
-											<li>Webhooks: Read and write</li>
-										</ul>
+								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
+									<li>Account: Read</li>
+									<li>Workspace membership: Read</li>
+									<li>Projects: Read</li>
+									<li>Repositories: Read</li>
+									<li>Pull requests: Read</li>
+									<li>Webhooks: Read and write</li>
+								</ul>
 
 								<FormField
 									control={form.control}
