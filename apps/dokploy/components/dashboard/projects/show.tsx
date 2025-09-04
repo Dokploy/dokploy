@@ -64,9 +64,9 @@ export const ShowProjects = () => {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
-			return localStorage.getItem("projectsSort") || "lastDeploy-desc";
+			return localStorage.getItem("projectsSort") || "createdAt-desc";
 		}
-		return "lastDeploy-desc";
+		return "createdAt-desc";
 	});
 
 	useEffect(() => {
@@ -95,12 +95,6 @@ export const ShowProjects = () => {
 					comparison =
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
-				case "lastDeploy": {
-					const aDate = a.latestDeployment?.createdAt || a.createdAt;
-					const bDate = b.latestDeployment?.createdAt || b.createdAt;
-					comparison = new Date(aDate).getTime() - new Date(bDate).getTime();
-					break;
-				}
 				case "services": {
 					const aTotalServices =
 						a.mariadb.length +
@@ -181,17 +175,11 @@ export const ShowProjects = () => {
 												<SelectContent>
 													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
 													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
-													<SelectItem value="lastDeploy-desc">
-														Last deploy (newest)
-													</SelectItem>
-													<SelectItem value="lastDeploy-asc">
-														Last deploy (oldest)
-													</SelectItem>
 													<SelectItem value="createdAt-desc">
-														Created (newest)
+														Newest first
 													</SelectItem>
 													<SelectItem value="createdAt-asc">
-														Created (oldest)
+														Oldest first
 													</SelectItem>
 													<SelectItem value="services-desc">
 														Most services
@@ -461,15 +449,9 @@ export const ShowProjects = () => {
 															</CardHeader>
 															<CardFooter className="pt-4">
 																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
-																	{project.latestDeployment ? (
-																		<DateTooltip date={project.latestDeployment.createdAt}>
-																			Last deploy
-																		</DateTooltip>
-																	) : (
-																		<DateTooltip date={project.createdAt}>
-																			Created
-																		</DateTooltip>
-																	)}
+																	<DateTooltip date={project.createdAt}>
+																		Created
+																	</DateTooltip>
 																	<span>
 																		{totalServices}{" "}
 																		{totalServices === 1

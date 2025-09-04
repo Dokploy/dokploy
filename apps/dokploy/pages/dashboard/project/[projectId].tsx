@@ -233,9 +233,9 @@ const Project = (
 	const { data: auth } = api.user.get.useQuery();
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
-			return localStorage.getItem("servicesSort") || "createdAt-desc";
+			return localStorage.getItem("servicesSort") || "lastDeploy-desc";
 		}
-		return "createdAt-desc";
+		return "lastDeploy-desc";
 	});
 
 	useEffect(() => {
@@ -257,6 +257,12 @@ const Project = (
 					comparison =
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
+				case "lastDeploy": {
+					const aDate = a.latestDeployment?.createdAt || a.createdAt;
+					const bDate = b.latestDeployment?.createdAt || b.createdAt;
+					comparison = new Date(aDate).getTime() - new Date(bDate).getTime();
+					break;
+				}
 				default:
 					comparison = 0;
 			}
@@ -1111,11 +1117,17 @@ const Project = (
 													<SelectValue placeholder="Sort by..." />
 												</SelectTrigger>
 												<SelectContent>
+													<SelectItem value="lastDeploy-desc">
+														Last deploy (newest)
+													</SelectItem>
+													<SelectItem value="lastDeploy-asc">
+														Last deploy (oldest)
+													</SelectItem>
 													<SelectItem value="createdAt-desc">
-														Newest first
+														Created (newest)
 													</SelectItem>
 													<SelectItem value="createdAt-asc">
-														Oldest first
+														Created (oldest)
 													</SelectItem>
 													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
 													<SelectItem value="name-desc">Name (Z-A)</SelectItem>

@@ -303,18 +303,7 @@ export const projectRouter = createTRPCRouter({
 			});
 		}
 
-		// Add latest deployment information to each project
-		const projectsWithLatestDeployment = await Promise.all(
-			projectsData.map(async (project) => {
-				const latestDeployment = await findLatestDeploymentByProjectId(project.projectId);
-				return {
-					...project,
-					latestDeployment,
-				};
-			})
-		);
-
-		return projectsWithLatestDeployment;
+		return projectsData;
 	}),
 
 	remove: protectedProcedure
