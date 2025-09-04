@@ -500,7 +500,10 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															onClick={async () => {
 																const promise = mutateAsync({
 																	projectId,
-																	serverId: serverId === "dokploy" ? undefined : serverId,
+																	serverId:
+																		serverId === "dokploy"
+																			? undefined
+																			: serverId,
 																	id: template.id,
 																	baseUrl: customBaseUrl,
 																});

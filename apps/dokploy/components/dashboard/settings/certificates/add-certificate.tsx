@@ -222,7 +222,9 @@ export const AddCertificate = () => {
 															</span>
 														</SelectItem>
 													))}
-													<SelectLabel>Servers ({servers?.length + 1})</SelectLabel>
+													<SelectLabel>
+														Servers ({servers?.length + 1})
+													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>

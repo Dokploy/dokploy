@@ -214,7 +214,9 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 															</span>
 														</SelectItem>
 													))}
-													<SelectLabel>Servers ({servers?.length + 1})</SelectLabel>
+													<SelectLabel>
+														Servers ({servers?.length + 1})
+													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>
