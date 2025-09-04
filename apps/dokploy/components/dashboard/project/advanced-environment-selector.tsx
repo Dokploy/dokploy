@@ -97,7 +97,7 @@ export const AdvancedEnvironmentSelector = ({
 			});
 
 			toast.success("Environment created successfully");
-			utils.project.one.invalidate({ projectId });
+			utils.environment.byProjectId.invalidate({ projectId });
 			setIsCreateDialogOpen(false);
 			setName("");
 			setDescription("");
@@ -117,7 +117,7 @@ export const AdvancedEnvironmentSelector = ({
 			});
 
 			toast.success("Environment updated successfully");
-			utils.project.one.invalidate({ projectId });
+			utils.environment.byProjectId.invalidate({ projectId });
 			setIsEditDialogOpen(false);
 			setSelectedEnvironment(null);
 			setName("");
@@ -136,7 +136,7 @@ export const AdvancedEnvironmentSelector = ({
 			});
 
 			toast.success("Environment deleted successfully");
-			utils.project.one.invalidate({ projectId });
+			utils.environment.byProjectId.invalidate({ projectId });
 			setIsDeleteDialogOpen(false);
 			setSelectedEnvironment(null);
 
