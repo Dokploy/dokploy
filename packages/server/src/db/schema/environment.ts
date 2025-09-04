@@ -22,6 +22,7 @@ export const environments = pgTable("environment", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	env: text("env").notNull().default(""),
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),

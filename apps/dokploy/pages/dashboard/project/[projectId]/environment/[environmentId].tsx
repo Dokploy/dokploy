@@ -47,7 +47,6 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -770,12 +769,13 @@ const EnvironmentPage = (
 					<div className="rounded-xl bg-background shadow-md">
 						<div className="flex justify-between gap-4 w-full items-center flex-wrap p-6">
 							<CardHeader className="p-0">
-								<CardTitle className="text-xl flex flex-row gap-2">
+								<CardTitle className="text-xl flex flex-row gap-2 items-center">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
 									{currentEnvironment.project.name}
-									{currentEnvironment.name === "production" && (
-										<Badge>Production</Badge>
-									)}
+									<AdvancedEnvironmentSelector
+										projectId={projectId}
+										currentEnvironmentId={environmentId}
+									/>
 								</CardTitle>
 								<CardDescription>
 									{currentEnvironment.description || "No description provided"}
@@ -786,10 +786,6 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									<AdvancedEnvironmentSelector
-										projectId={projectId}
-										currentEnvironmentId={environmentId}
-									/>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
 											<Button>
@@ -995,7 +991,10 @@ const EnvironmentPage = (
 																<>
 																	{/* Step 1: Select Project */}
 																	<div className="flex flex-col gap-2">
-																		<label className="text-sm font-medium">
+																		<label
+																			htmlFor="target-project"
+																			className="text-sm font-medium"
+																		>
 																			Target Project
 																		</label>
 																		<Select
@@ -1028,7 +1027,10 @@ const EnvironmentPage = (
 																	{/* Step 2: Select Environment (only show if project is selected) */}
 																	{selectedTargetProject && (
 																		<div className="flex flex-col gap-2">
-																			<label className="text-sm font-medium">
+																			<label
+																				htmlFor="target-environment"
+																				className="text-sm font-medium"
+																			>
 																				Target Environment
 																			</label>
 																			<Select

@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { useRouter } from "next/router";
-import { api } from "@/utils/api";
-import { Button } from "@/components/ui/button";
+import type { findEnvironmentById } from "@dokploy/server";
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+	ChevronDownIcon,
+	PencilIcon,
+	PlusIcon,
+	Terminal,
+	TrashIcon,
+} from "lucide-react";
+import { useRouter } from "next/router";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -18,20 +19,18 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import {
-	ChevronDownIcon,
-	PlusIcon,
-	PencilIcon,
-	TrashIcon,
-	CopyIcon,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { findEnvironmentById } from "@dokploy/server";
+import { api } from "@/utils/api";
 
 type Environment = Omit<
 	Awaited<ReturnType<typeof findEnvironmentById>>,
@@ -198,12 +197,12 @@ export const AdvancedEnvironmentSelector = ({
 		<>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button variant="outline" className="min-w-[200px] justify-between">
-						<div className="flex items-center gap-2">
+					<Button variant="ghost" className="h-auto p-2 font-normal">
+						<div className="flex items-center gap-1">
+							<span className="text-muted-foreground">/</span>
 							<span>{currentEnv?.name || "Select Environment"}</span>
-							{currentEnv?.name === "production" && <Badge>Prod</Badge>}
+							<ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
 						</div>
-						<ChevronDownIcon className="h-4 w-4" />
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent className="w-[300px]" align="start">
@@ -221,10 +220,7 @@ export const AdvancedEnvironmentSelector = ({
 								}}
 							>
 								<div className="flex items-center justify-between w-full">
-									<div className="flex items-center gap-2">
-										<span>{environment.name}</span>
-										{environment.name === "production" && <Badge>Prod</Badge>}
-									</div>
+									<span>{environment.name}</span>
 									{environment.environmentId === currentEnvironmentId && (
 										<div className="w-2 h-2 bg-blue-500 rounded-full" />
 									)}
@@ -244,6 +240,16 @@ export const AdvancedEnvironmentSelector = ({
 										}}
 									>
 										<PencilIcon className="h-3 w-3" />
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-6 w-6 p-0"
+										onClick={(e) => {
+											e.stopPropagation();
+										}}
+									>
+										<Terminal className="h-3 w-3" />
 									</Button>
 									<Button
 										variant="ghost"
