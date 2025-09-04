@@ -113,6 +113,11 @@ export type Services = {
 	id: string;
 	createdAt: string;
 	status?: "idle" | "running" | "done" | "error";
+	latestDeployment?: {
+		deploymentId: string;
+		createdAt: string;
+		status: string;
+	} | null;
 };
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
@@ -128,6 +133,7 @@ export const extractServices = (data: Project | undefined) => {
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			latestDeployment: item.latestDeployment,
 		})) || [];
 
 	const mariadb: Services[] =
@@ -200,6 +206,7 @@ export const extractServices = (data: Project | undefined) => {
 			status: item.composeStatus,
 			description: item.description,
 			serverId: item.serverId,
+			latestDeployment: item.latestDeployment,
 		})) || [];
 
 	applications.push(
@@ -226,9 +233,9 @@ const Project = (
 	const { data: auth } = api.user.get.useQuery();
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
-			return localStorage.getItem("servicesSort") || "createdAt-desc";
+			return localStorage.getItem("servicesSort") || "lastDeploy-desc";
 		}
-		return "createdAt-desc";
+		return "lastDeploy-desc";
 	});
 
 	useEffect(() => {
@@ -250,6 +257,12 @@ const Project = (
 					comparison =
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
+				case "lastDeploy": {
+					const aDate = a.latestDeployment?.createdAt || a.createdAt;
+					const bDate = b.latestDeployment?.createdAt || b.createdAt;
+					comparison = new Date(aDate).getTime() - new Date(bDate).getTime();
+					break;
+				}
 				default:
 					comparison = 0;
 			}
@@ -1104,11 +1117,17 @@ const Project = (
 													<SelectValue placeholder="Sort by..." />
 												</SelectTrigger>
 												<SelectContent>
+													<SelectItem value="lastDeploy-desc">
+														Last deploy (newest)
+													</SelectItem>
+													<SelectItem value="lastDeploy-asc">
+														Last deploy (oldest)
+													</SelectItem>
 													<SelectItem value="createdAt-desc">
-														Newest first
+														Created (newest)
 													</SelectItem>
 													<SelectItem value="createdAt-asc">
-														Oldest first
+														Created (oldest)
 													</SelectItem>
 													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
 													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
@@ -1287,9 +1306,15 @@ const Project = (
 															</CardHeader>
 															<CardFooter className="mt-auto">
 																<div className="space-y-1 text-sm">
-																	<DateTooltip date={service.createdAt}>
-																		Created
-																	</DateTooltip>
+																	{(service.type === "application" || service.type === "compose") && service.latestDeployment ? (
+																		<DateTooltip date={service.latestDeployment.createdAt}>
+																			Last deploy
+																		</DateTooltip>
+																	) : (
+																		<DateTooltip date={service.createdAt}>
+																			Created
+																		</DateTooltip>
+																	)}
 																</div>
 															</CardFooter>
 														</Card>

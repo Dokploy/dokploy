@@ -19,6 +19,7 @@ import {
 	deleteProject,
 	findApplicationById,
 	findComposeById,
+	findLatestDeploymentByProjectId,
 	findMariadbById,
 	findMemberById,
 	findMongoById,
@@ -43,6 +44,7 @@ import {
 	apiUpdateProject,
 	applications,
 	compose,
+	deployments,
 	mariadb,
 	mongo,
 	mysql,
@@ -150,7 +152,39 @@ export const projectRouter = createTRPCRouter({
 						message: "Project not found",
 					});
 				}
-				return project;
+
+				// Add latest deployment information to applications and compose services
+				const applicationsWithDeployments = await Promise.all(
+					project.applications.map(async (app) => {
+						const latestDeployment = await db.query.deployments.findFirst({
+							where: eq(deployments.applicationId, app.applicationId),
+							orderBy: desc(deployments.createdAt),
+						});
+						return {
+							...app,
+							latestDeployment,
+						};
+					})
+				);
+
+				const composeWithDeployments = await Promise.all(
+					project.compose.map(async (comp) => {
+						const latestDeployment = await db.query.deployments.findFirst({
+							where: eq(deployments.composeId, comp.composeId),
+							orderBy: desc(deployments.createdAt),
+						});
+						return {
+							...comp,
+							latestDeployment,
+						};
+					})
+				);
+
+				return {
+					...project,
+					applications: applicationsWithDeployments,
+					compose: composeWithDeployments,
+				};
 			}
 			const project = await findProjectById(input.projectId);
 
@@ -160,9 +194,43 @@ export const projectRouter = createTRPCRouter({
 					message: "You are not authorized to access this project",
 				});
 			}
-			return project;
+
+			// Add latest deployment information to applications and compose services
+			const applicationsWithDeployments = await Promise.all(
+				project.applications.map(async (app) => {
+					const latestDeployment = await db.query.deployments.findFirst({
+						where: eq(deployments.applicationId, app.applicationId),
+						orderBy: desc(deployments.createdAt),
+					});
+					return {
+						...app,
+						latestDeployment,
+					};
+				})
+			);
+
+			const composeWithDeployments = await Promise.all(
+				project.compose.map(async (comp) => {
+					const latestDeployment = await db.query.deployments.findFirst({
+						where: eq(deployments.composeId, comp.composeId),
+						orderBy: desc(deployments.createdAt),
+					});
+					return {
+						...comp,
+						latestDeployment,
+					};
+				})
+			);
+
+			return {
+				...project,
+				applications: applicationsWithDeployments,
+				compose: composeWithDeployments,
+			};
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
+		let projectsData;
+		
 		if (ctx.user.role === "member") {
 			const { accessedProjects, accessedServices } = await findMemberById(
 				ctx.user.id,
@@ -173,7 +241,7 @@ export const projectRouter = createTRPCRouter({
 				return [];
 			}
 
-			return await db.query.projects.findMany({
+			projectsData = await db.query.projects.findMany({
 				where: and(
 					sql`${projects.projectId} IN (${sql.join(
 						accessedProjects.map((projectId) => sql`${projectId}`),
@@ -211,29 +279,31 @@ export const projectRouter = createTRPCRouter({
 				},
 				orderBy: desc(projects.createdAt),
 			});
+		} else {
+			projectsData = await db.query.projects.findMany({
+				with: {
+					applications: {
+						with: {
+							domains: true,
+						},
+					},
+					mariadb: true,
+					mongo: true,
+					mysql: true,
+					postgres: true,
+					redis: true,
+					compose: {
+						with: {
+							domains: true,
+						},
+					},
+				},
+				where: eq(projects.organizationId, ctx.session.activeOrganizationId),
+				orderBy: desc(projects.createdAt),
+			});
 		}
 
-		return await db.query.projects.findMany({
-			with: {
-				applications: {
-					with: {
-						domains: true,
-					},
-				},
-				mariadb: true,
-				mongo: true,
-				mysql: true,
-				postgres: true,
-				redis: true,
-				compose: {
-					with: {
-						domains: true,
-					},
-				},
-			},
-			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
-			orderBy: desc(projects.createdAt),
-		});
+		return projectsData;
 	}),
 
 	remove: protectedProcedure
