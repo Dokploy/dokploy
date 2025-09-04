@@ -48,7 +48,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 						/>
 					</div>
 
-					{hasServers && servers.length > 1 && (
+					{hasServers && (
 						<div className="space-y-2">
 							<Label htmlFor="server-deploy">
 								Select the server where you want to deploy (optional)

@@ -427,7 +427,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															project.
 														</AlertDialogDescription>
 
-														{hasServers && servers.length > 1 && (
+														{hasServers && (
 															<div>
 																<TooltipProvider delayDuration={0}>
 																	<Tooltip>

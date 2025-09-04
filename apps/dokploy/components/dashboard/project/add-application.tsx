@@ -157,7 +157,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 								</FormItem>
 							)}
 						/>
-						{hasServers && servers.length > 1 && (
+						{hasServers && (
 							<FormField
 								control={form.control}
 								name="serverId"

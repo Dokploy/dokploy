@@ -232,7 +232,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		} else if (data.type === "mongo") {
 			promise = mongoMutation.mutateAsync({
@@ -240,14 +240,14 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databasePassword: data.databasePassword,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 				replicaSets: data.replicaSets,
 			});
 		} else if (data.type === "redis") {
 			promise = redisMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 				projectId,
 			});
 		} else if (data.type === "mariadb") {
@@ -258,7 +258,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		} else if (data.type === "mysql") {
 			promise = mysqlMutation.mutateAsync({
@@ -268,7 +268,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				databaseRootPassword: data.databaseRootPassword,
-				serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		}
 
@@ -398,7 +398,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								{hasServers && servers.length > 1 && (
+								{hasServers && (
 									<FormField
 										control={form.control}
 										name="serverId"

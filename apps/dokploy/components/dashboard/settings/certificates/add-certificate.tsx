@@ -175,7 +175,7 @@ export const AddCertificate = () => {
 								</FormItem>
 							)}
 						/>
-						{hasServers && servers.length > 1 && (
+						{hasServers && (
 							<FormField
 								control={form.control}
 								name="serverId"

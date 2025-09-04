@@ -165,7 +165,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 								)}
 							/>
 						</div>
-						{hasServers && servers.length > 1 && (
+						{hasServers && (
 							<FormField
 								control={form.control}
 								name="serverId"
