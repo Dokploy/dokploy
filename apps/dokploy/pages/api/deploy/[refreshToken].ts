@@ -147,9 +147,13 @@ export default async function handler(
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
 				application.bitbucketOwner,
-				application.bitbucket?.appPassword || "",
+				application.bitbucket?.apiToken ||
+					application.bitbucket?.appPassword ||
+					"",
 				application.bitbucketRepository || "",
+				!!application.bitbucket?.apiToken,
 			);
+
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
 				commitedPaths,
@@ -355,8 +359,9 @@ export const getProviderByHeader = (headers: any) => {
 export const extractCommitedPaths = async (
 	body: any,
 	bitbucketUsername: string | null,
-	bitbucketAppPassword: string | null,
+	credential: string | null,
 	repository: string | null,
+	useApiToken: boolean,
 ) => {
 	const changes = body.push?.changes || [];
 
@@ -368,15 +373,16 @@ export const extractCommitedPaths = async (
 		const url = `https://api.bitbucket.org/2.0/repositories/${bitbucketUsername}/${repository}/diffstat/${commit}`;
 
 		try {
-			const response = await fetch(url, {
-				headers: {
-					Authorization: `Basic ${Buffer.from(`${bitbucketUsername}:${bitbucketAppPassword}`).toString("base64")}`,
-				},
-			});
+			const headers = useApiToken
+				? { Authorization: `Bearer ${credential}` }
+				: {
+						Authorization: `Basic ${Buffer.from(`${bitbucketUsername}:${credential}`).toString("base64")}`,
+					};
+			const response = await fetch(url, { headers });
 
 			const data = await response.json();
 			for (const value of data.values) {
-				commitedPaths.push(value.new?.path);
+				if (value?.new?.path) commitedPaths.push(value.new.path);
 			}
 		} catch (error) {
 			console.error(

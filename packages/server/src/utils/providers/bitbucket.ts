@@ -23,6 +23,22 @@ export type ComposeWithBitbucket = InferResultType<
 	{ bitbucket: true }
 >;
 
+export const getBitbucketCloneUrl = (
+	bitbucketProvider: {
+		apiToken?: string | null;
+		bitbucketUsername?: string | null;
+		appPassword?: string | null;
+	} | null,
+	repoClone: string,
+) => {
+	if (!bitbucketProvider) {
+		throw new Error("Bitbucket provider is required");
+	}
+	return bitbucketProvider.apiToken
+		? `https://x-token-auth:${bitbucketProvider.apiToken}@${repoClone}`
+		: `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
+};
+
 export const cloneBitbucketRepository = async (
 	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
 	logPath: string,
@@ -51,7 +67,7 @@ export const cloneBitbucketRepository = async (
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucket?.bitbucketUsername}:${bitbucket?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
 	try {
 		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
 		const cloneArgs = [
@@ -103,7 +119,7 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
 
 	try {
 		const cloneArgs = [
@@ -153,7 +169,7 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
 
 	try {
 		const cloneCommand = `
@@ -206,7 +222,7 @@ export const getBitbucketCloneCommand = async (
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
 
 	const cloneCommand = `
 rm -rf ${outputPath};
@@ -241,9 +257,11 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 		while (url) {
 			const response = await fetch(url, {
 				method: "GET",
-				headers: {
-					Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-				},
+				headers: bitbucketProvider.apiToken
+					? { Authorization: `Bearer ${bitbucketProvider.apiToken}` }
+					: {
+							Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+						},
 			});
 
 			if (!response.ok) {
@@ -284,9 +302,11 @@ export const getBitbucketBranches = async (
 	try {
 		const response = await fetch(url, {
 			method: "GET",
-			headers: {
-				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-			},
+			headers: bitbucketProvider.apiToken
+				? { Authorization: `Bearer ${bitbucketProvider.apiToken}` }
+				: {
+						Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+					},
 		});
 
 		if (!response.ok) {
@@ -335,9 +355,11 @@ export const testBitbucketConnection = async (
 	try {
 		const response = await fetch(url, {
 			method: "GET",
-			headers: {
-				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-			},
+			headers: bitbucketProvider.apiToken
+				? { Authorization: `Bearer ${bitbucketProvider.apiToken}` }
+				: {
+						Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+					},
 		});
 
 		if (!response.ok) {

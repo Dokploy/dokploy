@@ -16,6 +16,12 @@ import {
 } from "@/components/icons/data-tools-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
 	Card,
@@ -157,7 +163,26 @@ export const ShowGitProviders = () => {
 																</div>
 															</div>
 
-															<div className="flex flex-row gap-1">
+															<div className="flex flex-row gap-1 items-center">
+																{isBitbucket &&
+																gitProvider.bitbucket?.appPassword &&
+																!gitProvider.bitbucket?.apiToken ? (
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<Badge variant="yellow">
+																					Deprecated
+																				</Badge>
+																			</TooltipTrigger>
+																			<TooltipContent side="left">
+																				App Passwords are deprecated in
+																				Bitbucket. Add an API Token to keep
+																				using this provider.
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+																) : null}
+
 																{!haveGithubRequirements && isGithub && (
 																	<div className="flex flex-row gap-1 items-center">
 																		<Badge

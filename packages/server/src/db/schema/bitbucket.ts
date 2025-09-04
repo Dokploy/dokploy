@@ -12,6 +12,7 @@ export const bitbucket = pgTable("bitbucket", {
 		.$defaultFn(() => nanoid()),
 	bitbucketUsername: text("bitbucketUsername"),
 	appPassword: text("appPassword"),
+	apiToken: text("apiToken"),
 	bitbucketWorkspaceName: text("bitbucketWorkspaceName"),
 	gitProviderId: text("gitProviderId")
 		.notNull()
@@ -30,6 +31,7 @@ const createSchema = createInsertSchema(bitbucket);
 export const apiCreateBitbucket = createSchema.extend({
 	bitbucketUsername: z.string().optional(),
 	appPassword: z.string().optional(),
+	apiToken: z.string().optional(),
 	bitbucketWorkspaceName: z.string().optional(),
 	gitProviderId: z.string().optional(),
 	authId: z.string().min(1),
