@@ -31,8 +31,8 @@ import { AddApplication } from "@/components/dashboard/project/add-application";
 import { AddCompose } from "@/components/dashboard/project/add-compose";
 import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
-import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
+import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
@@ -47,6 +47,7 @@ import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -96,7 +97,6 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { Badge } from "@/components/ui/badge";
 
 export type Services = {
 	appName: string;
@@ -772,7 +772,7 @@ const EnvironmentPage = (
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									{currentEnvironment.name}
+									{currentEnvironment.project.name}
 									{currentEnvironment.name === "production" && (
 										<Badge>Production</Badge>
 									)}
