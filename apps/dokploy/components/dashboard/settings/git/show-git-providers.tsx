@@ -161,9 +161,7 @@ export const ShowGitProviders = () => {
 																{isBitbucket &&
 																gitProvider.bitbucket?.appPassword &&
 																!gitProvider.bitbucket?.apiToken ? (
-																	<Badge variant="yellow">
-																		Deprecated
-																	</Badge>
+																	<Badge variant="yellow">Deprecated</Badge>
 																) : null}
 
 																{!haveGithubRequirements && isGithub && (
