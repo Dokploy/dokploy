@@ -254,7 +254,6 @@ export const getDockerResourceType = async (
 	serverId?: string,
 ) => {
 	try {
-		console.log("resourceName", resourceName);
 		let result = "";
 		const command = `
 RESOURCE_NAME="${resourceName}"
@@ -266,8 +265,6 @@ else
 	echo "unknown"
 fi`;
 
-		console.log("command", command);
-
 		if (serverId) {
 			const { stdout } = await execAsyncRemote(serverId, command);
 			result = stdout.trim();
@@ -275,10 +272,6 @@ fi`;
 			const { stdout } = await execAsync(command);
 			result = stdout.trim();
 		}
-		console.log("result", result);
-		console.log("final result2 ", result.length);
-
-		console.log("fin");
 		if (result === "service") {
 			return "service";
 		}
@@ -297,7 +290,6 @@ export const reloadDockerResource = async (
 	serverId?: string,
 ) => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
-	console.log("resourceType", resourceType);
 	let command = "";
 	if (resourceType === "service") {
 		command = `docker service update --force ${resourceName}`;
