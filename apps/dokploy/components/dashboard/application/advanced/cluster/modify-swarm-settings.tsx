@@ -7,7 +7,6 @@ import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
 	Dialog,
 	DialogContent,
@@ -26,6 +25,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Tooltip,
 	TooltipContent,
@@ -259,8 +259,6 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
 				stopGracePeriodSwarm:
-					// type === "application" &&
-					// "stopGracePeriodSwarm" in data &&
 					data.stopGracePeriodSwarm
 						? BigInt(data.stopGracePeriodSwarm)
 						: null,
