@@ -170,11 +170,11 @@ const databasesMap = {
 type AddDatabase = z.infer<typeof mySchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddDatabase = ({ projectId, projectName }: Props) => {
+export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -184,6 +184,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const redisMutation = api.redis.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 
@@ -219,7 +222,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			name: data.name,
 			appName: data.appName,
 			dockerImage: defaultDockerImage,
-			projectId,
+			projectId: environment?.projectId || "",
+			environmentId,
 			serverId: data.serverId,
 			description: data.description,
 		};
@@ -248,7 +252,6 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				serverId: data.serverId,
-				projectId,
 			});
 		} else if (data.type === "mariadb") {
 			promise = mariadbMutation.mutateAsync({
@@ -287,8 +290,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 						databaseUser: "",
 					});
 					setVisible(false);
-					await utils.project.one.invalidate({
-						projectId,
+					// Invalidate the project query to refresh the environment data
+					await utils.environment.one.invalidate({
+						environmentId,
 					});
 				})
 				.catch(() => {

@@ -15,6 +15,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
 
 export type Services = {
@@ -36,22 +43,34 @@ export type Services = {
 };
 
 interface DuplicateProjectProps {
-	projectId: string;
+	environmentId: string;
 	services: Services[];
 	selectedServiceIds: string[];
 }
 
 export const DuplicateProject = ({
-	projectId,
+	environmentId,
 	services,
 	selectedServiceIds,
 }: DuplicateProjectProps) => {
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-	const [duplicateType, setDuplicateType] = useState("new-project"); // "new-project" or "same-project"
+	const [duplicateType, setDuplicateType] = useState("new-project"); // "new-project" or "existing-environment"
+	const [selectedTargetProject, setSelectedTargetProject] =
+		useState<string>("");
+	const [selectedTargetEnvironment, setSelectedTargetEnvironment] =
+		useState<string>("");
 	const utils = api.useUtils();
 	const router = useRouter();
+
+	// Queries for project and environment selection
+	const { data: allProjects } = api.project.all.useQuery();
+	const { data: selectedProjectEnvironments } =
+		api.environment.byProjectId.useQuery(
+			{ projectId: selectedTargetProject },
+			{ enabled: !!selectedTargetProject },
+		);
 
 	const selectedServices = services.filter((service) =>
 		selectedServiceIds.includes(service.id),
@@ -68,7 +87,9 @@ export const DuplicateProject = ({
 				);
 				setOpen(false);
 				if (duplicateType === "new-project") {
-					router.push(`/dashboard/project/${newProject.projectId}`);
+					router.push(
+						`/dashboard/project/${newProject?.projectId}/environment/${newProject?.environmentId}`,
+					);
 				}
 			},
 			onError: (error) => {
@@ -82,8 +103,20 @@ export const DuplicateProject = ({
 			return;
 		}
 
+		if (duplicateType === "existing-environment") {
+			if (!selectedTargetProject) {
+				toast.error("Please select a target project");
+				return;
+			}
+			if (!selectedTargetEnvironment) {
+				toast.error("Please select a target environment");
+				return;
+			}
+		}
+
+		// TODO: Update duplicate API to support targetProjectId and targetEnvironmentId
 		await duplicateProject({
-			sourceProjectId: projectId,
+			sourceEnvironmentId: selectedTargetEnvironment,
 			name,
 			description,
 			includeServices: true,
@@ -91,7 +124,7 @@ export const DuplicateProject = ({
 				id: service.id,
 				type: service.type,
 			})),
-			duplicateInSameProject: duplicateType === "same-project",
+			duplicateInSameProject: duplicateType === "existing-environment",
 		});
 	};
 
@@ -105,6 +138,8 @@ export const DuplicateProject = ({
 					setName("");
 					setDescription("");
 					setDuplicateType("new-project");
+					setSelectedTargetProject("");
+					setSelectedTargetEnvironment("");
 				}
 			}}
 		>
@@ -127,7 +162,14 @@ export const DuplicateProject = ({
 						<Label>Duplicate to</Label>
 						<RadioGroup
 							value={duplicateType}
-							onValueChange={setDuplicateType}
+							onValueChange={(value) => {
+								setDuplicateType(value);
+								// Reset selections when changing type
+								if (value !== "existing-environment") {
+									setSelectedTargetProject("");
+									setSelectedTargetEnvironment("");
+								}
+							}}
 							className="grid gap-2"
 						>
 							<div className="flex items-center space-x-2">
@@ -135,8 +177,13 @@ export const DuplicateProject = ({
 								<Label htmlFor="new-project">New project</Label>
 							</div>
 							<div className="flex items-center space-x-2">
-								<RadioGroupItem value="same-project" id="same-project" />
-								<Label htmlFor="same-project">Same project</Label>
+								<RadioGroupItem
+									value="existing-environment"
+									id="existing-environment"
+								/>
+								<Label htmlFor="existing-environment">
+									Existing environment
+								</Label>
 							</div>
 						</RadioGroup>
 					</div>
@@ -165,6 +212,74 @@ export const DuplicateProject = ({
 						</>
 					)}
 
+					{duplicateType === "existing-environment" && (
+						<>
+							{allProjects?.filter((p) => p.projectId !== environmentId)
+								.length === 0 ? (
+								<div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
+									<p className="text-sm text-muted-foreground">
+										No other projects available. Create a new project first.
+									</p>
+								</div>
+							) : (
+								<>
+									{/* Step 1: Select Project */}
+									<div className="grid gap-2">
+										<Label>Target Project</Label>
+										<Select
+											value={selectedTargetProject}
+											onValueChange={(value) => {
+												setSelectedTargetProject(value);
+												setSelectedTargetEnvironment(""); // Reset environment when project changes
+											}}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Select target project" />
+											</SelectTrigger>
+											<SelectContent>
+												{allProjects
+													?.filter((p) => p.projectId !== environmentId)
+													.map((project) => (
+														<SelectItem
+															key={project.projectId}
+															value={project.projectId}
+														>
+															{project.name}
+														</SelectItem>
+													))}
+											</SelectContent>
+										</Select>
+									</div>
+
+									{/* Step 2: Select Environment (only show if project is selected) */}
+									{selectedTargetProject && (
+										<div className="grid gap-2">
+											<Label>Target Environment</Label>
+											<Select
+												value={selectedTargetEnvironment}
+												onValueChange={setSelectedTargetEnvironment}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select target environment" />
+												</SelectTrigger>
+												<SelectContent>
+													{selectedProjectEnvironments?.map((env) => (
+														<SelectItem
+															key={env.environmentId}
+															value={env.environmentId}
+														>
+															{env.name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</div>
+									)}
+								</>
+							)}
+						</>
+					)}
+
 					<div className="grid gap-2">
 						<Label>Selected services to duplicate</Label>
 						<div className="space-y-2 max-h-[200px] overflow-y-auto border rounded-md p-4">
@@ -187,18 +302,26 @@ export const DuplicateProject = ({
 					>
 						Cancel
 					</Button>
-					<Button onClick={handleDuplicate} disabled={isLoading}>
+					<Button
+						onClick={handleDuplicate}
+						disabled={
+							isLoading ||
+							(duplicateType === "new-project" && !name) ||
+							(duplicateType === "existing-environment" &&
+								(!selectedTargetProject || !selectedTargetEnvironment))
+						}
+					>
 						{isLoading ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
 								{duplicateType === "new-project"
-									? "Duplicating project..."
-									: "Duplicating services..."}
+									? "Duplicating to new project..."
+									: "Duplicating to environment..."}
 							</>
 						) : duplicateType === "new-project" ? (
-							"Duplicate project"
+							"Duplicate to new project"
 						) : (
-							"Duplicate services"
+							"Duplicate to environment"
 						)}
 					</Button>
 				</DialogFooter>

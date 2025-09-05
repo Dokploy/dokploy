@@ -73,11 +73,11 @@ import { api } from "@/utils/api";
 const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	baseUrl?: string;
 }
 
-export const AddTemplate = ({ projectId, baseUrl }: Props) => {
+export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
@@ -90,6 +90,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 		}
 		return undefined;
 	});
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	// Save to localStorage when customBaseUrl changes
 	useEffect(() => {
@@ -490,7 +493,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															disabled={isLoading}
 															onClick={async () => {
 																const promise = mutateAsync({
-																	projectId,
+																	environmentId,
 																	serverId: serverId || undefined,
 																	id: template.id,
 																	baseUrl: customBaseUrl,
@@ -498,8 +501,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																toast.promise(promise, {
 																	loading: "Setting up...",
 																	success: () => {
-																		utils.project.one.invalidate({
-																			projectId,
+																		// Invalidate the project query to refresh the environment data
+																		utils.environment.one.invalidate({
+																			environmentId,
 																		});
 																		setOpen(false);
 																		return `${template.name} template created successfully`;

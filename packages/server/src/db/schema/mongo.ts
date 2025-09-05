@@ -4,6 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { backups } from "./backups";
+import { environments } from "./environment";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
@@ -62,9 +63,10 @@ export const mongo = pgTable("mongo", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
+
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -72,9 +74,9 @@ export const mongo = pgTable("mongo", {
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [mongo.projectId],
-		references: [projects.projectId],
+	environment: one(environments, {
+		fields: [mongo.environmentId],
+		references: [environments.environmentId],
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
@@ -104,7 +106,7 @@ const createSchema = createInsertSchema(mongo, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
@@ -125,7 +127,7 @@ export const apiCreateMongo = createSchema
 		name: true,
 		appName: true,
 		dockerImage: true,
-		projectId: true,
+		environmentId: true,
 		description: true,
 		databaseUser: true,
 		databasePassword: true,

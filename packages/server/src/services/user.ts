@@ -23,6 +23,23 @@ export const addNewProject = async (
 		);
 };
 
+export const addNewEnvironment = async (
+	userId: string,
+	environmentId: string,
+	organizationId: string,
+) => {
+	const userR = await findMemberById(userId, organizationId);
+
+	await db
+		.update(member)
+		.set({
+			accessedEnvironments: [...userR.accessedEnvironments, environmentId],
+		})
+		.where(
+			and(eq(member.id, userR.id), eq(member.organizationId, organizationId)),
+		);
+};
+
 export const addNewService = async (
 	userId: string,
 	serviceId: string,
@@ -131,6 +148,21 @@ export const canPerformAccessProject = async (
 	return false;
 };
 
+export const canPerformAccessEnvironment = async (
+	userId: string,
+	environmentId: string,
+	organizationId: string,
+) => {
+	const { accessedEnvironments } = await findMemberById(userId, organizationId);
+	const haveAccessToEnvironment = accessedEnvironments.includes(environmentId);
+
+	if (haveAccessToEnvironment) {
+		return true;
+	}
+
+	return false;
+};
+
 export const canAccessToTraefikFiles = async (
 	userId: string,
 	organizationId: string,
@@ -168,6 +200,32 @@ export const checkServiceAccess = async (
 			hasPermission = await canPeformDeleteService(
 				userId,
 				serviceId,
+				organizationId,
+			);
+			break;
+		default:
+			hasPermission = false;
+	}
+	if (!hasPermission) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Permission denied",
+		});
+	}
+};
+
+export const checkEnvironmentAccess = async (
+	userId: string,
+	environmentId: string,
+	organizationId: string,
+	action = "access" as const,
+) => {
+	let hasPermission = false;
+	switch (action) {
+		case "access":
+			hasPermission = await canPerformAccessEnvironment(
+				userId,
+				environmentId,
 				organizationId,
 			);
 			break;

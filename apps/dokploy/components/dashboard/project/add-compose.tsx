@@ -65,11 +65,11 @@ const AddComposeSchema = z.object({
 type AddCompose = z.infer<typeof AddComposeSchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddCompose = ({ projectId, projectName }: Props) => {
+export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -77,6 +77,9 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 
@@ -98,7 +101,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 		await mutateAsync({
 			name: data.name,
 			description: data.description,
-			projectId,
+			environmentId,
 			composeType: data.composeType,
 			appName: data.appName,
 			serverId: data.serverId,
@@ -106,8 +109,9 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 			.then(async () => {
 				toast.success("Compose Created");
 				setVisible(false);
-				await utils.project.one.invalidate({
-					projectId,
+				// Invalidate the project query to refresh the environment data
+				await utils.environment.one.invalidate({
+					environmentId,
 				});
 			})
 			.catch(() => {

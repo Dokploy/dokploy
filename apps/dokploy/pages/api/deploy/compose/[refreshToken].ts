@@ -27,7 +27,11 @@ export default async function handler(
 		const composeResult = await db.query.compose.findFirst({
 			where: eq(compose.refreshToken, refreshToken as string),
 			with: {
-				project: true,
+				environment: {
+					with: {
+						project: true,
+					},
+				},
 				bitbucket: true,
 			},
 		});
