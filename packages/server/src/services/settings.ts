@@ -257,20 +257,14 @@ export const getDockerResourceType = async (
 		console.log("resourceName", resourceName);
 		let result = "";
 		const command = `
-	RESOURCE_NAME="${resourceName}"
-		if docker service inspect "$RESOURCE_NAME" &>/dev/null; then
-			echo "service"
-			exit 0
-		fi
-
-		if docker inspect "$RESOURCE_NAME" &>/dev/null; then
-			echo "standalone"
-			exit 0
-		fi
-
-		echo "unknown"
-		exit 0
-	`;
+RESOURCE_NAME="${resourceName}"
+if docker service inspect "$RESOURCE_NAME" >/dev/null 2>&1; then
+	echo "service"
+elif docker inspect "$RESOURCE_NAME" >/dev/null 2>&1; then
+	echo "standalone"
+else
+	echo "unknown"
+fi`;
 
 		console.log("command", command);
 
