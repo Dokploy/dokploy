@@ -1638,7 +1638,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							</TabsContent>
 						</Tabs>
 
-						<DialogFooter className="flex w-full flex-row justify-end m-0 sticky bottom-0 right-0 bg-muted border">
+						<DialogFooter className="flex w-full flex-row justify-end">
 							<Button
 								isLoading={isLoading}
 								form="swarm-settings-form"
