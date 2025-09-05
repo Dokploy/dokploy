@@ -1,11 +1,11 @@
+import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import { eq } from "drizzle-orm";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
-import { eq } from "drizzle-orm";
-import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
 	req: NextApiRequest,
@@ -20,7 +20,11 @@ export default async function handler(
 		const application = await db.query.applications.findFirst({
 			where: eq(applications.refreshToken, refreshToken as string),
 			with: {
-				project: true,
+				environment: {
+					with: {
+						project: true,
+					},
+				},
 				bitbucket: true,
 			},
 		});

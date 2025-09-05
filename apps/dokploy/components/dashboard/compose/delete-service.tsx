@@ -1,3 +1,13 @@
+import type { ServiceType } from "@dokploy/server/db/schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
+import { Copy, Trash2 } from "lucide-react";
+import { useRouter } from "next/router";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,15 +30,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import type { ServiceType } from "@dokploy/server/db/schema";
-import { zodResolver } from "@hookform/resolvers/zod";
-import copy from "copy-to-clipboard";
-import { Copy, Trash2 } from "lucide-react";
-import { useRouter } from "next/router";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const deleteComposeSchema = z.object({
 	projectName: z.string().min(1, {
@@ -100,7 +101,9 @@ export const DeleteService = ({ id, type }: Props) => {
 				deleteVolumes,
 			})
 				.then((result) => {
-					push(`/dashboard/project/${result?.projectId}`);
+					push(
+						`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`,
+					);
 					toast.success("deleted successfully");
 					setIsOpen(false);
 				})
@@ -113,6 +116,12 @@ export const DeleteService = ({ id, type }: Props) => {
 			});
 		}
 	};
+
+	const isDisabled =
+		(data &&
+			"applicationStatus" in data &&
+			data?.applicationStatus === "running") ||
+		(data && "composeStatus" in data && data?.composeStatus === "running");
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -202,6 +211,12 @@ export const DeleteService = ({ id, type }: Props) => {
 						</form>
 					</Form>
 				</div>
+				{isDisabled && (
+					<AlertBlock type="warning" className="w-full mt-5">
+						Cannot delete the service while it is running. Please wait for the
+						build to finish and then try again.
+					</AlertBlock>
+				)}
 				<DialogFooter>
 					<Button
 						variant="secondary"
@@ -211,8 +226,10 @@ export const DeleteService = ({ id, type }: Props) => {
 					>
 						Cancel
 					</Button>
+
 					<Button
 						isLoading={isLoading}
+						disabled={isDisabled}
 						form="hook-form-delete-compose"
 						type="submit"
 						variant="destructive"

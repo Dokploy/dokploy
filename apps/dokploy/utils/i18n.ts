@@ -5,8 +5,8 @@ export function getLocale(cookies: NextApiRequestCookies) {
 	return locale;
 }
 
-import { Languages } from "@/lib/languages";
 import { serverSideTranslations as originalServerSideTranslations } from "next-i18next/serverSideTranslations";
+import { Languages } from "@/lib/languages";
 
 export const serverSideTranslations = (
 	locale: string,

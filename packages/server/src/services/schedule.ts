@@ -4,11 +4,11 @@ import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { paths } from "../constants";
 import { db } from "../db";
-import { type Schedule, schedules } from "../db/schema/schedule";
 import type {
 	createScheduleSchema,
 	updateScheduleSchema,
 } from "../db/schema/schedule";
+import { type Schedule, schedules } from "../db/schema/schedule";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 
@@ -35,9 +35,29 @@ export const findScheduleById = async (scheduleId: string) => {
 	const schedule = await db.query.schedules.findFirst({
 		where: eq(schedules.scheduleId, scheduleId),
 		with: {
-			application: true,
-			compose: true,
-			server: true,
+			application: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			server: {
+				with: {
+					organization: true,
+				},
+			},
 		},
 	});
 
@@ -48,6 +68,21 @@ export const findScheduleById = async (scheduleId: string) => {
 		});
 	}
 	return schedule;
+};
+
+export const findScheduleOrganizationId = async (scheduleId: string) => {
+	const schedule = await findScheduleById(scheduleId);
+
+	if (schedule?.application) {
+		return schedule?.application?.environment?.project?.organizationId;
+	}
+	if (schedule?.compose) {
+		return schedule?.compose?.environment?.project?.organizationId;
+	}
+	if (schedule?.server) {
+		return schedule?.server?.organization?.id;
+	}
+	return null;
 };
 
 export const deleteSchedule = async (scheduleId: string) => {

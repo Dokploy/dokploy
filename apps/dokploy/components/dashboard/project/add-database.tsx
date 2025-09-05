@@ -83,7 +83,12 @@ const baseDatabaseSchema = z.object({
 			message:
 				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
 		}),
-	databasePassword: z.string(),
+	databasePassword: z
+		.string()
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		}),
 	dockerImage: z.string(),
 	description: z.string().nullable(),
 	serverId: z.string().nullable(),
@@ -112,7 +117,13 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("mysql"),
-			databaseRootPassword: z.string().default(""),
+			databaseRootPassword: z
+				.string()
+				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+					message:
+						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+				})
+				.optional(),
 			databaseUser: z.string().default("mysql"),
 			databaseName: z.string().default("mysql"),
 		})
@@ -121,7 +132,13 @@ const mySchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("mariadb"),
 			dockerImage: z.string().default("mariadb:4"),
-			databaseRootPassword: z.string().default(""),
+			databaseRootPassword: z
+				.string()
+				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+					message:
+						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+				})
+				.optional(),
 			databaseUser: z.string().default("mariadb"),
 			databaseName: z.string().default("mariadb"),
 		})
@@ -154,11 +171,11 @@ const databasesMap = {
 type AddDatabase = z.infer<typeof mySchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddDatabase = ({ projectId, projectName }: Props) => {
+export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -168,6 +185,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const redisMutation = api.redis.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 
@@ -203,7 +223,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			name: data.name,
 			appName: data.appName,
 			dockerImage: defaultDockerImage,
-			projectId,
+			projectId: environment?.projectId || "",
+			environmentId,
 			serverId: data.serverId,
 			description: data.description,
 		};
@@ -232,13 +253,12 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				serverId: data.serverId,
-				projectId,
 			});
 		} else if (data.type === "mariadb") {
 			promise = mariadbMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseRootPassword: data.databaseRootPassword,
+				databaseRootPassword: data.databaseRootPassword || "",
 				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
@@ -251,7 +271,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseName: data.databaseName || "mysql",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				databaseRootPassword: data.databaseRootPassword,
+				databaseRootPassword: data.databaseRootPassword || "",
 				serverId: data.serverId,
 			});
 		}
@@ -271,8 +291,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 						databaseUser: "",
 					});
 					setVisible(false);
-					await utils.project.one.invalidate({
-						projectId,
+					// Invalidate the project query to refresh the environment data
+					await utils.environment.one.invalidate({
+						environmentId,
 					});
 				})
 				.catch(() => {

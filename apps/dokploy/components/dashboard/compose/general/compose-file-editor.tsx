@@ -1,3 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,13 +13,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
-import { ShowUtilities } from "./show-utilities";
 
 interface Props {
 	composeId: string;
@@ -142,9 +141,7 @@ services:
 					</form>
 				</Form>
 				<div className="flex justify-between flex-col lg:flex-row gap-2">
-					<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
-						<ShowUtilities composeId={composeId} />
-					</div>
+					<div className="w-full flex flex-col lg:flex-row gap-4 items-end" />
 					<Button
 						type="submit"
 						form="hook-form-save-compose-file"

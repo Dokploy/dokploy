@@ -1,6 +1,7 @@
-import { Button } from "@/components/ui/button";
-
+import { useTranslation } from "next-i18next";
+import { toast } from "sonner";
 import { UpdateServerIp } from "@/components/dashboard/settings/web-server/update-server-ip";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,8 +12,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
-import { useTranslation } from "next-i18next";
-import { toast } from "sonner";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";

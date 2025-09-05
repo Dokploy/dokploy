@@ -1,3 +1,18 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
+import { debounce } from "lodash";
+import {
+	CheckIcon,
+	ChevronsUpDown,
+	Copy,
+	DatabaseZap,
+	RefreshCw,
+	RotateCcw,
+} from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,21 +62,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import copy from "copy-to-clipboard";
-import { debounce } from "lodash";
-import {
-	CheckIcon,
-	ChevronsUpDown,
-	Copy,
-	DatabaseZap,
-	RefreshCw,
-	RotateCcw,
-} from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import type { ServiceType } from "../../application/advanced/show-resources";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 

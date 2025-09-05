@@ -14,6 +14,7 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { environments } from "./environment";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
@@ -80,6 +81,7 @@ export const applications = pgTable("application", {
 	previewEnv: text("previewEnv"),
 	watchPaths: text("watchPaths").array(),
 	previewBuildArgs: text("previewBuildArgs"),
+	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
 	previewHttps: boolean("previewHttps").notNull().default(false),
@@ -180,9 +182,9 @@ export const applications = pgTable("application", {
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
-	projectId: text("projectId")
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -203,9 +205,9 @@ export const applications = pgTable("application", {
 export const applicationsRelations = relations(
 	applications,
 	({ one, many }) => ({
-		project: one(projects, {
-			fields: [applications.projectId],
-			references: [projects.projectId],
+		environment: one(environments, {
+			fields: [applications.environmentId],
+			references: [environments.environmentId],
 		}),
 		deployments: many(deployments),
 		customGitSSHKey: one(sshKeys, {
@@ -274,7 +276,7 @@ const createSchema = createInsertSchema(applications, {
 	customGitBuildPath: z.string().optional(),
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
@@ -310,6 +312,7 @@ const createSchema = createInsertSchema(applications, {
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
+	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 });
@@ -318,7 +321,7 @@ export const apiCreateApplication = createSchema.pick({
 	name: true,
 	appName: true,
 	description: true,
-	projectId: true,
+	environmentId: true,
 	serverId: true,
 });
 

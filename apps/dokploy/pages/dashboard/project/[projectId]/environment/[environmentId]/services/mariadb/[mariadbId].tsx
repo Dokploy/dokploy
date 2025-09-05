@@ -1,3 +1,15 @@
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import { HelpCircle, ServerOff } from "lucide-react";
+import type {
+	GetServerSidePropsContext,
+	InferGetServerSidePropsType,
+} from "next";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useState } from "react";
+import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -29,21 +41,10 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import { HelpCircle, ServerOff } from "lucide-react";
-import type {
-	GetServerSidePropsContext,
-	InferGetServerSidePropsType,
-} from "next";
-import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
-import superjson from "superjson";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
@@ -54,7 +55,7 @@ const Mariadb = (
 
 	const { mariadbId, activeTab } = props;
 	const router = useRouter();
-	const { projectId } = router.query;
+	const { projectId, environmentId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.mariadb.one.useQuery({ mariadbId });
 	const { data: auth } = api.user.get.useQuery();
@@ -63,23 +64,27 @@ const Mariadb = (
 
 	return (
 		<div className="pb-10">
+			<UseKeyboardNav forPage="mariadb" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.project?.name || "",
-						href: `/dashboard/project/${projectId}`,
+						name: data?.environment?.project?.name || "",
+					},
+					{
+						name: data?.environment?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/services/mariadb/${mariadbId}`,
 					},
 				]}
 			/>
 			<div className="flex flex-col gap-4">
 				<Head>
 					<title>
-						Database: {data?.name} - {data?.project.name} | Dokploy
+						Database: {data?.name} - {data?.environment?.project?.name} |
+						Dokploy
 					</title>
 				</Head>
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
@@ -177,7 +182,7 @@ const Mariadb = (
 									className="w-full"
 									onValueChange={(e) => {
 										setSab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/services/mariadb/${mariadbId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/mariadb/${mariadbId}?tab=${e}`;
 
 										router.push(newPath, undefined, { shallow: true });
 									}}
@@ -298,7 +303,11 @@ Mariadb.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ mariadbId: string; activeTab: TabState }>,
+	ctx: GetServerSidePropsContext<{
+		mariadbId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
@@ -336,6 +345,7 @@ export async function getServerSideProps(
 					trpcState: helpers.dehydrate(),
 					mariadbId: params?.mariadbId,
 					activeTab: (activeTab || "general") as TabState,
+					environmentId: params?.environmentId,
 				},
 			};
 		} catch {

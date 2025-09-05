@@ -5,10 +5,10 @@ import type { Schedule } from "@dokploy/server/db/schema/schedule";
 import {
 	createDeploymentSchedule,
 	updateDeployment,
+	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { updateDeploymentStatus } from "@dokploy/server/services/deployment";
 import { findScheduleById } from "@dokploy/server/services/schedule";
-import { scheduleJob as scheduleJobNode, scheduledJobs } from "node-schedule";
+import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";

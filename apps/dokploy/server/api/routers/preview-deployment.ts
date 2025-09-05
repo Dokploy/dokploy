@@ -1,4 +1,3 @@
-import { apiFindAllByApplication } from "@/server/db/schema";
 import {
 	findApplicationById,
 	findPreviewDeploymentById,
@@ -7,6 +6,7 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { apiFindAllByApplication } from "@/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const previewDeploymentRouter = createTRPCRouter({
@@ -15,7 +15,8 @@ export const previewDeploymentRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -31,7 +32,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 				input.previewDeploymentId,
 			);
 			if (
-				previewDeployment.application.project.organizationId !==
+				previewDeployment.application.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -49,7 +50,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 				input.previewDeploymentId,
 			);
 			if (
-				previewDeployment.application.project.organizationId !==
+				previewDeployment.application.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({

@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -18,13 +24,8 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const organizationSchema = z.object({
 	name: z.string().min(1, {
@@ -54,6 +55,8 @@ export function AddOrganization({ organizationId }: Props) {
 	const { mutateAsync, isLoading } = organizationId
 		? api.organization.update.useMutation()
 		: api.organization.create.useMutation();
+	const { refetch: refetchActiveOrganization } =
+		authClient.useActiveOrganization();
 
 	const form = useForm<OrganizationFormValues>({
 		resolver: zodResolver(organizationSchema),
@@ -84,6 +87,10 @@ export function AddOrganization({ organizationId }: Props) {
 					`Organization ${organizationId ? "updated" : "created"} successfully`,
 				);
 				utils.organization.all.invalidate();
+				if (organizationId) {
+					utils.organization.one.invalidate({ organizationId });
+					refetchActiveOrganization();
+				}
 				setOpen(false);
 			})
 			.catch((error) => {

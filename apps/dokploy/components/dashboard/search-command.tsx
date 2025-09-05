@@ -1,5 +1,8 @@
 "use client";
 
+import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import React from "react";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -17,14 +20,11 @@ import {
 	CommandSeparator,
 } from "@/components/ui/command";
 import { authClient } from "@/lib/auth-client";
-import {
-	type Services,
-	extractServices,
-} from "@/pages/dashboard/project/[projectId]";
+// import {
+// 	extractServices,
+// 	type Services,
+// } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
-import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
-import { useRouter } from "next/router";
-import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
 
 export const SearchCommand = () => {
@@ -51,7 +51,7 @@ export const SearchCommand = () => {
 
 	return (
 		<div>
-			<CommandDialog open={open} onOpenChange={setOpen}>
+			{/* <CommandDialog open={open} onOpenChange={setOpen}>
 				<CommandInput
 					placeholder={"Search projects or settings"}
 					value={search}
@@ -87,7 +87,7 @@ export const SearchCommand = () => {
 										key={application.id}
 										onSelect={() => {
 											router.push(
-												`/dashboard/project/${project.projectId}/services/${application.type}/${application.id}`,
+												`/dashboard/project/${project.projectId}/environment/${application.environmentId}/services/${application.type}/${application.id}`,
 											);
 											setOpen(false);
 										}}
@@ -181,7 +181,7 @@ export const SearchCommand = () => {
 						</CommandItem>
 					</CommandGroup>
 				</CommandList>
-			</CommandDialog>
+			</CommandDialog> */}
 		</div>
 	);
 };

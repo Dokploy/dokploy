@@ -1,3 +1,15 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+	DatabaseZap,
+	Info,
+	PenBoxIcon,
+	PlusCircle,
+	RefreshCw,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,18 +46,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	DatabaseZap,
-	Info,
-	PenBoxIcon,
-	PlusCircle,
-	RefreshCw,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import type { CacheType } from "../domains/handle-domain";
 import { commonCronExpressions } from "../schedules/handle-schedules";
 
@@ -55,7 +55,12 @@ const formSchema = z
 		cronExpression: z.string().min(1, "Cron expression is required"),
 		volumeName: z.string().min(1, "Volume name is required"),
 		prefix: z.string(),
-		// keepLatestCount: z.coerce.number().optional(),
+		keepLatestCount: z.coerce
+			.number()
+			.int()
+			.gte(1, "Must be at least 1")
+			.optional()
+			.nullable(),
 		turnOff: z.boolean().default(false),
 		enabled: z.boolean().default(true),
 		serviceType: z.enum([
@@ -108,6 +113,7 @@ export const HandleVolumeBackups = ({
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
+	const [keepLatestCountInput, setKeepLatestCountInput] = useState("");
 
 	const utils = api.useUtils();
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -117,7 +123,7 @@ export const HandleVolumeBackups = ({
 			cronExpression: "",
 			volumeName: "",
 			prefix: "",
-			// keepLatestCount: undefined,
+			keepLatestCount: undefined,
 			turnOff: false,
 			enabled: true,
 			serviceName: "",
@@ -173,13 +179,19 @@ export const HandleVolumeBackups = ({
 				cronExpression: volumeBackup.cronExpression,
 				volumeName: volumeBackup.volumeName || "",
 				prefix: volumeBackup.prefix,
-				// keepLatestCount: volumeBackup.keepLatestCount || undefined,
+				keepLatestCount: volumeBackup.keepLatestCount || undefined,
 				turnOff: volumeBackup.turnOff,
 				enabled: volumeBackup.enabled || false,
 				serviceName: volumeBackup.serviceName || "",
 				destinationId: volumeBackup.destinationId,
 				serviceType: volumeBackup.serviceType,
 			});
+			setKeepLatestCountInput(
+				volumeBackup.keepLatestCount !== null &&
+					volumeBackup.keepLatestCount !== undefined
+					? String(volumeBackup.keepLatestCount)
+					: "",
+			);
 		}
 	}, [form, volumeBackup, volumeBackupId]);
 
@@ -190,8 +202,12 @@ export const HandleVolumeBackups = ({
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
 		if (!id && !volumeBackupId) return;
 
+		const preparedKeepLatestCount =
+			keepLatestCountInput === "" ? null : (values.keepLatestCount ?? null);
+
 		await mutateAsync({
 			...values,
+			keepLatestCount: preparedKeepLatestCount,
 			destinationId: values.destinationId,
 			volumeBackupId: volumeBackupId || "",
 			serviceType: volumeBackupType,
@@ -257,9 +273,8 @@ export const HandleVolumeBackups = ({
 			</DialogTrigger>
 			<DialogContent
 				className={cn(
-					"overflow-y-auto",
 					volumeBackupType === "compose" || volumeBackupType === "application"
-						? "max-h-[95vh] sm:max-w-2xl"
+						? "sm:max-w-2xl"
 						: " sm:max-w-lg",
 				)}
 			>
@@ -600,29 +615,38 @@ export const HandleVolumeBackups = ({
 							)}
 						/>
 
-						{/* <FormField
+						<FormField
 							control={form.control}
 							name="keepLatestCount"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Keep Latest Count</FormLabel>
+									<FormLabel>Keep Latest Backups</FormLabel>
 									<FormControl>
 										<Input
-											type="number"
-											placeholder="5"
 											{...field}
-											onChange={(e) =>
-												field.onChange(Number(e.target.value) || undefined)
-											}
+											type="number"
+											min={1}
+											autoComplete="off"
+											placeholder="Leave empty to keep all"
+											value={keepLatestCountInput}
+											onChange={(e) => {
+												const raw = e.target.value;
+												setKeepLatestCountInput(raw);
+												if (raw === "") {
+													field.onChange(undefined);
+												} else if (/^\d+$/.test(raw)) {
+													field.onChange(Number(raw));
+												}
+											}}
 										/>
 									</FormControl>
 									<FormDescription>
-										Number of backup files to keep (optional)
+										How many recent backups to keep. Empty means no cleanup.
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
-						/> */}
+						/>
 
 						<FormField
 							control={form.control}

@@ -1,3 +1,6 @@
+import { Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -10,10 +13,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { type RouterOutputs, api } from "@/utils/api";
-import { Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
 import { RefreshToken } from "./refresh-token";
@@ -77,7 +77,7 @@ export const ShowDeployments = ({
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
 					<CardDescription>
-						See all the 10 last deployments for this {type}
+						See the last 10 deployments for this {type}
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center gap-2">
@@ -104,7 +104,9 @@ export const ShowDeployments = ({
 							<span>Webhook URL: </span>
 							<div className="flex flex-row items-center gap-2">
 								<span className="break-all text-muted-foreground">
-									{`${url}/api/deploy${type === "compose" ? "/compose" : ""}/${refreshToken}`}
+									{`${url}/api/deploy${
+										type === "compose" ? "/compose" : ""
+									}/${refreshToken}`}
 								</span>
 								{(type === "application" || type === "compose") && (
 									<RefreshToken id={id} type={type} />

@@ -1,18 +1,20 @@
 "use client";
 
+import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import {
 	type ColumnDef,
 	type ColumnFiltersState,
-	type SortingState,
-	type VisibilityState,
 	flexRender,
 	getCoreRowModel,
 	getFilteredRowModel,
 	getPaginationRowModel,
 	getSortedRowModel,
+	type SortingState,
 	useReactTable,
+	type VisibilityState,
 } from "@tanstack/react-table";
-
+import { ChevronDown } from "lucide-react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -28,9 +30,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
-import { ChevronDown } from "lucide-react";
-import React from "react";
 
 interface DataTableProps<TData, TValue> {
 	columns: ColumnDef<TData, TValue>[];

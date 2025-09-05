@@ -4,13 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
-import { applications } from "./application";
-import { compose } from "./compose";
-import { mariadb } from "./mariadb";
-import { mongo } from "./mongo";
-import { mysql } from "./mysql";
-import { postgres } from "./postgres";
-import { redis } from "./redis";
+import { environments } from "./environment";
 
 export const projects = pgTable("project", {
 	projectId: text("projectId")
@@ -30,13 +24,7 @@ export const projects = pgTable("project", {
 });
 
 export const projectRelations = relations(projects, ({ many, one }) => ({
-	mysql: many(mysql),
-	postgres: many(postgres),
-	mariadb: many(mariadb),
-	applications: many(applications),
-	mongo: many(mongo),
-	redis: many(redis),
-	compose: many(compose),
+	environments: many(environments),
 	organization: one(organization, {
 		fields: [projects.organizationId],
 		references: [organization.id],

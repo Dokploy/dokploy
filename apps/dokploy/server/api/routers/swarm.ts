@@ -67,8 +67,7 @@ export const swarmRouter = createTRPCRouter({
 					.string()
 					.min(1)
 					.regex(containerIdRegex, "Invalid app name.")
-					.array()
-					.min(1),
+					.array(),
 				serverId: z.string().optional(),
 			}),
 		)

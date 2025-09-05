@@ -3,9 +3,9 @@ import {
 	buildCustomDocker,
 	getDockerCommand,
 } from "@dokploy/server/utils/builders/docker-file";
-import type { ApplicationNested } from ".";
 import { createFile, getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
+import type { ApplicationNested } from ".";
 
 const nginxSpaConfig = `
 worker_processes 1;

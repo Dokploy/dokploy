@@ -30,7 +30,7 @@ export type ApplicationNested = InferResultType<
 		redirects: true;
 		ports: true;
 		registry: true;
-		project: true;
+		environment: { with: { project: true } };
 	}
 >;
 
@@ -149,7 +149,8 @@ export const mechanizeDockerContainer = async (
 	const filesMount = generateFileMounts(appName, application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		application.project.env,
+		application.environment.project.env,
+		application.environment.env,
 	);
 
 	const image = getImageName(application);

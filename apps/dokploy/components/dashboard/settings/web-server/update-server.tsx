@@ -1,3 +1,16 @@
+import type { IUpdateData } from "@dokploy/server/index";
+import {
+	Bug,
+	Download,
+	Info,
+	RefreshCcw,
+	Server,
+	Sparkles,
+	Stars,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -12,19 +25,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import type { IUpdateData } from "@dokploy/server/index";
-import {
-	Bug,
-	Download,
-	Info,
-	RefreshCcw,
-	Server,
-	Sparkles,
-	Stars,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
 import { ToggleAutoCheckUpdates } from "./toggle-auto-check-updates";
 import { UpdateWebServer } from "./update-webserver";
 

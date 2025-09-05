@@ -1,3 +1,14 @@
+import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
+import type { GetServerSidePropsContext } from "next";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
@@ -26,17 +37,6 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { IS_CLOUD, isAdminPresent } from "@dokploy/server";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { REGEXP_ONLY_DIGITS } from "input-otp";
-import type { GetServerSidePropsContext } from "next";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { type ReactElement, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const LoginSchema = z.object({
 	email: z.string().email(),
@@ -329,6 +329,7 @@ export default function Home({ IS_CLOUD }: Props) {
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
 									autoComplete="off"
+									autoFocus
 								>
 									<InputOTPGroup>
 										<InputOTPSlot index={0} className="border-border" />

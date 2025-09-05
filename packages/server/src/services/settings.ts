@@ -253,37 +253,36 @@ export const getDockerResourceType = async (
 	resourceName: string,
 	serverId?: string,
 ) => {
-	let result = "";
-	const command = `
-	RESOURCE_NAME="${resourceName}"
-		if docker service inspect "$RESOURCE_NAME" &>/dev/null; then
-			echo "service"
-			exit 0
-		fi
+	try {
+		let result = "";
+		const command = `
+RESOURCE_NAME="${resourceName}"
+if docker service inspect "$RESOURCE_NAME" >/dev/null 2>&1; then
+	echo "service"
+elif docker inspect "$RESOURCE_NAME" >/dev/null 2>&1; then
+	echo "standalone"
+else
+	echo "unknown"
+fi`;
 
-		if docker inspect "$RESOURCE_NAME" &>/dev/null; then
-			echo "standalone"
-			exit 0
-		fi
-
-		echo "unknown"
-		exit 0
-	`;
-
-	if (serverId) {
-		const { stdout } = await execAsyncRemote(serverId, command);
-		result = stdout.trim();
-	} else {
-		const { stdout } = await execAsync(command);
-		result = stdout.trim();
+		if (serverId) {
+			const { stdout } = await execAsyncRemote(serverId, command);
+			result = stdout.trim();
+		} else {
+			const { stdout } = await execAsync(command);
+			result = stdout.trim();
+		}
+		if (result === "service") {
+			return "service";
+		}
+		if (result === "standalone") {
+			return "standalone";
+		}
+		return "unknown";
+	} catch (error) {
+		console.error(error);
+		return "unknown";
 	}
-	if (result === "service") {
-		return "service";
-	}
-	if (result === "standalone") {
-		return "standalone";
-	}
-	return "unknown";
 };
 
 export const reloadDockerResource = async (
@@ -294,8 +293,10 @@ export const reloadDockerResource = async (
 	let command = "";
 	if (resourceType === "service") {
 		command = `docker service update --force ${resourceName}`;
-	} else {
+	} else if (resourceType === "standalone") {
 		command = `docker restart ${resourceName}`;
+	} else {
+		throw new Error("Resource type not found");
 	}
 	if (serverId) {
 		await execAsyncRemote(serverId, command);
@@ -312,7 +313,7 @@ export const readEnvironmentVariables = async (
 	let command = "";
 	if (resourceType === "service") {
 		command = `docker service inspect ${resourceName} --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}'`;
-	} else {
+	} else if (resourceType === "standalone") {
 		command = `docker container inspect ${resourceName} --format '{{json .Config.Env}}'`;
 	}
 	let result = "";
@@ -339,7 +340,7 @@ export const readPorts = async (
 	let command = "";
 	if (resourceType === "service") {
 		command = `docker service inspect ${resourceName} --format '{{json .Spec.EndpointSpec.Ports}}'`;
-	} else {
+	} else if (resourceType === "standalone") {
 		command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
 	}
 	let result = "";
@@ -391,22 +392,22 @@ export const readPorts = async (
 	);
 };
 
-export const writeTraefikSetup = async (
-	input: TraefikOptions,
-	serverId?: string,
-) => {
-	const resourceType = await getDockerResourceType("dokploy-traefik", serverId);
+export const writeTraefikSetup = async (input: TraefikOptions) => {
+	const resourceType = await getDockerResourceType(
+		"dokploy-traefik",
+		input.serverId,
+	);
 	if (resourceType === "service") {
 		await initializeTraefikService({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
-			serverId: serverId,
+			serverId: input.serverId,
 		});
 	} else {
 		await initializeStandaloneTraefik({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
-			serverId: serverId,
+			serverId: input.serverId,
 		});
 	}
 };
