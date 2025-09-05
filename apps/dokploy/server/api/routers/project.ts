@@ -164,7 +164,7 @@ export const projectRouter = createTRPCRouter({
 							...app,
 							latestDeployment,
 						};
-					})
+					}),
 				);
 
 				const composeWithDeployments = await Promise.all(
@@ -177,7 +177,7 @@ export const projectRouter = createTRPCRouter({
 							...comp,
 							latestDeployment,
 						};
-					})
+					}),
 				);
 
 				return {
@@ -206,7 +206,7 @@ export const projectRouter = createTRPCRouter({
 						...app,
 						latestDeployment,
 					};
-				})
+				}),
 			);
 
 			const composeWithDeployments = await Promise.all(
@@ -219,7 +219,7 @@ export const projectRouter = createTRPCRouter({
 						...comp,
 						latestDeployment,
 					};
-				})
+				}),
 			);
 
 			return {
@@ -230,7 +230,7 @@ export const projectRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		let projectsData;
-		
+
 		if (ctx.user.role === "member") {
 			const { accessedProjects, accessedServices } = await findMemberById(
 				ctx.user.id,

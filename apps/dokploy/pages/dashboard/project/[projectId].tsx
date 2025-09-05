@@ -1306,8 +1306,12 @@ const Project = (
 															</CardHeader>
 															<CardFooter className="mt-auto">
 																<div className="space-y-1 text-sm">
-																	{(service.type === "application" || service.type === "compose") && service.latestDeployment ? (
-																		<DateTooltip date={service.latestDeployment.createdAt}>
+																	{(service.type === "application" ||
+																		service.type === "compose") &&
+																	service.latestDeployment ? (
+																		<DateTooltip
+																			date={service.latestDeployment.createdAt}
+																		>
 																			Last deploy
 																		</DateTooltip>
 																	) : (

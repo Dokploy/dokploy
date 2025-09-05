@@ -835,14 +835,14 @@ export const findLatestDeploymentByProjectId = async (projectId: string) => {
 		where: eq(applications.projectId, projectId),
 		columns: { applicationId: true },
 	});
-	
+
 	const projectCompose = await db.query.compose.findMany({
 		where: eq(compose.projectId, projectId),
 		columns: { composeId: true },
 	});
 
-	const applicationIds = projectApplications.map(app => app.applicationId);
-	const composeIds = projectCompose.map(comp => comp.composeId);
+	const applicationIds = projectApplications.map((app) => app.applicationId);
+	const composeIds = projectCompose.map((comp) => comp.composeId);
 
 	// If no applications or compose services, return null
 	if (applicationIds.length === 0 && composeIds.length === 0) {
@@ -852,13 +852,15 @@ export const findLatestDeploymentByProjectId = async (projectId: string) => {
 	// Find the latest deployment across all applications and compose services
 	const latestDeployment = await db.query.deployments.findFirst({
 		where: or(
-			applicationIds.length > 0 ? inArray(deployments.applicationId, applicationIds) : sql`false`,
-			composeIds.length > 0 ? inArray(deployments.composeId, composeIds) : sql`false`
+			applicationIds.length > 0
+				? inArray(deployments.applicationId, applicationIds)
+				: sql`false`,
+			composeIds.length > 0
+				? inArray(deployments.composeId, composeIds)
+				: sql`false`,
 		),
 		orderBy: desc(deployments.createdAt),
 	});
-	
+
 	return latestDeployment;
 };
-
-
