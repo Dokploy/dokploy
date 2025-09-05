@@ -58,6 +58,13 @@ export const environmentRouter = createTRPCRouter({
 				// This would typically involve checking project ownership/membership
 				// For now, we'll use a basic organization check
 
+				if (input.name === "production") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Environment name cannot be production",
+					});
+				}
+
 				const environment = await createEnvironment(input);
 
 				if (ctx.user.role === "member") {
@@ -229,6 +236,14 @@ export const environmentRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const { environmentId, ...updateData } = input;
+
+				if (updateData.name === "production") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Environment name cannot be production",
+					});
+				}
+
 				if (ctx.user.role === "member") {
 					await checkEnvironmentAccess(
 						ctx.user.id,
