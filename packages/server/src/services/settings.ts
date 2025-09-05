@@ -277,6 +277,7 @@ export const getDockerResourceType = async (
 		const { stdout } = await execAsync(command);
 		result = stdout.trim();
 	}
+	console.log("result", result);
 	if (result === "service") {
 		return "service";
 	}
@@ -291,11 +292,14 @@ export const reloadDockerResource = async (
 	serverId?: string,
 ) => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
+	console.log("resourceType", resourceType);
 	let command = "";
 	if (resourceType === "service") {
 		command = `docker service update --force ${resourceName}`;
-	} else {
+	} else if (resourceType === "standalone") {
 		command = `docker restart ${resourceName}`;
+	} else {
+		throw new Error("Resource type not found");
 	}
 	if (serverId) {
 		await execAsyncRemote(serverId, command);
