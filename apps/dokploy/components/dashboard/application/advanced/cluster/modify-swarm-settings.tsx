@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
 
 // Form-based schemas for better UX
@@ -1327,7 +1328,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
-						Configure Docker Swarm settings using intuitive form fields.
+						Configure Docker Swarm settings using organized tabs and intuitive form fields.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -1342,279 +1343,300 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					<form
 						id="swarm-settings-form"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="space-y-6 mt-4"
+						className="mt-4"
 					>
-						{/* Health Check Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+						<Tabs defaultValue="health-check" className="w-full">
+							<TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+								<TabsTrigger value="health-check">Health Check</TabsTrigger>
+								<TabsTrigger value="restart-policy">Restart Policy</TabsTrigger>
+								<TabsTrigger value="placement">Placement</TabsTrigger>
+								<TabsTrigger value="update-config">Update Config</TabsTrigger>
+								<TabsTrigger value="rollback-config">Rollback Config</TabsTrigger>
+								<TabsTrigger value="mode">Service Mode</TabsTrigger>
+								<TabsTrigger value="network">Network</TabsTrigger>
+								<TabsTrigger value="labels">Labels</TabsTrigger>
+							</TabsList>
+
+							<TabsContent value="health-check" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="healthCheck.enabled"
+											name="healthCheck.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Health Check
-												</FormLabel>
-												<FormDescription>
-													Configure health check settings for the service
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Health Check
+														</FormLabel>
+														<FormDescription>
+															Configure health check settings for the service
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("healthCheck.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<HealthCheckForm form={form} />
+									{form.watch("healthCheck.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<HealthCheckForm form={form} />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
 
-						{/* Restart Policy Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+							<TabsContent value="restart-policy" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="restartPolicy.enabled"
+											name="restartPolicy.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Restart Policy
-												</FormLabel>
-												<FormDescription>
-													Configure restart policy for the service
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Restart Policy
+														</FormLabel>
+														<FormDescription>
+															Configure restart policy for the service
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("restartPolicy.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<RestartPolicyForm form={form} />
+									{form.watch("restartPolicy.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<RestartPolicyForm form={form} />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
 
-						{/* Placement Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+							<TabsContent value="placement" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="placement.enabled"
+											name="placement.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Placement
-												</FormLabel>
-												<FormDescription>
-													Configure placement constraints and preferences
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Placement
+														</FormLabel>
+														<FormDescription>
+															Configure placement constraints and preferences
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("placement.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<PlacementForm form={form} />
+									{form.watch("placement.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<PlacementForm form={form} />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
 
-						{/* Update Config Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+							<TabsContent value="update-config" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="updateConfig.enabled"
+											name="updateConfig.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Update Config
-												</FormLabel>
-												<FormDescription>
-													Configure update settings for the service
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Update Config
+														</FormLabel>
+														<FormDescription>
+															Configure update settings for the service
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("updateConfig.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<UpdateConfigForm form={form} name="updateConfig" />
+									{form.watch("updateConfig.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<UpdateConfigForm form={form} name="updateConfig" />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
 
-						{/* Rollback Config Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+							<TabsContent value="rollback-config" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="rollbackConfig.enabled"
+											name="rollbackConfig.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Rollback Config
-												</FormLabel>
-												<FormDescription>
-													Configure rollback settings for the service
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Rollback Config
+														</FormLabel>
+														<FormDescription>
+															Configure rollback settings for the service
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("rollbackConfig.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<UpdateConfigForm form={form} name="rollbackConfig" />
+									{form.watch("rollbackConfig.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<UpdateConfigForm form={form} name="rollbackConfig" />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
 
-						{/* Mode Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+							<TabsContent value="mode" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="mode.enabled"
+											name="mode.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Service Mode
-												</FormLabel>
-												<FormDescription>
-													Configure service mode and scaling settings
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Service Mode
+														</FormLabel>
+														<FormDescription>
+															Configure service mode and scaling settings
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("mode.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<ServiceModeForm form={form} />
+									{form.watch("mode.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<ServiceModeForm form={form} />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
 
-						{/* Network Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+							<TabsContent value="network" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="network.enabled"
+											name="network.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Network
-												</FormLabel>
-												<FormDescription>
-													Configure network settings for the service
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Network
+														</FormLabel>
+														<FormDescription>
+															Configure network settings for the service
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("network.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<NetworkForm form={form} />
+									{form.watch("network.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<NetworkForm form={form} />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
 
-						{/* Labels Section */}
-						<div className="space-y-4 p-4 border rounded-lg">
-							<div className="flex items-center space-x-2">
+							<TabsContent value="labels" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="flex items-center space-x-2">
 						<FormField
 							control={form.control}
-									name="labels.enabled"
+											name="labels.enabled"
 							render={({ field }) => (
-										<FormItem className="flex flex-row items-center space-x-3 space-y-0">
+												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
 									<FormControl>
-												<Checkbox
-													checked={field.value}
-													onCheckedChange={field.onChange}
+														<Checkbox
+															checked={field.value}
+															onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-											<div className="space-y-1 leading-none">
-												<FormLabel className="text-base font-medium">
-													Labels
-												</FormLabel>
-												<FormDescription>
-													Configure labels for the service
-												</FormDescription>
-											</div>
+													<div className="space-y-1 leading-none">
+														<FormLabel className="text-base font-medium">
+															Labels
+														</FormLabel>
+														<FormDescription>
+															Configure labels for the service
+														</FormDescription>
+													</div>
 								</FormItem>
 							)}
 						/>
-							</div>
+									</div>
 
-							{form.watch("labels.enabled") && (
-								<div className="space-y-4 pl-6 border-l-2 border-muted">
-									<LabelsForm form={form} />
+									{form.watch("labels.enabled") && (
+										<div className="space-y-4 pl-6 border-l-2 border-muted">
+											<LabelsForm form={form} />
+										</div>
+									)}
 								</div>
-							)}
-						</div>
+							</TabsContent>
+						</Tabs>
 
 						<DialogFooter className="flex w-full flex-row justify-end m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
