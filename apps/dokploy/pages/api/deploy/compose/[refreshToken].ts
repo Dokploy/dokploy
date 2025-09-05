@@ -100,8 +100,11 @@ export default async function handler(
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
 				composeResult.bitbucketOwner,
-				composeResult.bitbucket?.appPassword || "",
+				composeResult.bitbucket?.apiToken ||
+					composeResult.bitbucket?.appPassword ||
+					"",
 				composeResult.bitbucketRepository || "",
+				!!composeResult.bitbucket?.apiToken,
 			);
 
 			const shouldDeployPaths = shouldDeploy(
