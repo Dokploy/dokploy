@@ -122,7 +122,8 @@ const mySchema = z.discriminatedUnion("type", [
 				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 					message:
 						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				}),
+				})
+				.optional(),
 			databaseUser: z.string().default("mysql"),
 			databaseName: z.string().default("mysql"),
 		})
@@ -136,7 +137,8 @@ const mySchema = z.discriminatedUnion("type", [
 				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 					message:
 						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				}),
+				})
+				.optional(),
 			databaseUser: z.string().default("mariadb"),
 			databaseName: z.string().default("mariadb"),
 		})
@@ -256,7 +258,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 			promise = mariadbMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseRootPassword: data.databaseRootPassword,
+				databaseRootPassword: data.databaseRootPassword || "",
 				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
@@ -269,7 +271,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 				databaseName: data.databaseName || "mysql",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				databaseRootPassword: data.databaseRootPassword,
+				databaseRootPassword: data.databaseRootPassword || "",
 				serverId: data.serverId,
 			});
 		}
