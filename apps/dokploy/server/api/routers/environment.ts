@@ -1,4 +1,6 @@
 import {
+	addNewEnvironment,
+	checkEnvironmentAccess,
 	createEnvironment,
 	deleteEnvironment,
 	duplicateEnvironment,
@@ -18,16 +20,53 @@ import {
 	apiUpdateEnvironment,
 } from "@/server/db/schema";
 
+// Helper function to filter services within an environment based on user permissions
+const filterEnvironmentServices = (
+	environment: any,
+	accessedServices: string[],
+) => ({
+	...environment,
+	applications: environment.applications.filter((app: any) =>
+		accessedServices.includes(app.applicationId),
+	),
+	mariadb: environment.mariadb.filter((db: any) =>
+		accessedServices.includes(db.mariadbId),
+	),
+	mongo: environment.mongo.filter((db: any) =>
+		accessedServices.includes(db.mongoId),
+	),
+	mysql: environment.mysql.filter((db: any) =>
+		accessedServices.includes(db.mysqlId),
+	),
+	postgres: environment.postgres.filter((db: any) =>
+		accessedServices.includes(db.postgresId),
+	),
+	redis: environment.redis.filter((db: any) =>
+		accessedServices.includes(db.redisId),
+	),
+	compose: environment.compose.filter((comp: any) =>
+		accessedServices.includes(comp.composeId),
+	),
+});
+
 export const environmentRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateEnvironment)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				// Check if user has access to the project
 				// This would typically involve checking project ownership/membership
 				// For now, we'll use a basic organization check
 
 				const environment = await createEnvironment(input);
+
+				if (ctx.user.role === "member") {
+					await addNewEnvironment(
+						ctx.user.id,
+						environment.environmentId,
+						ctx.session.activeOrganizationId,
+					);
+				}
 				return environment;
 			} catch (error) {
 				throw new TRPCError({
@@ -42,6 +81,14 @@ export const environmentRouter = createTRPCRouter({
 		.input(apiFindOneEnvironment)
 		.query(async ({ input, ctx }) => {
 			try {
+				if (ctx.user.role === "member") {
+					await checkEnvironmentAccess(
+						ctx.user.id,
+						input.environmentId,
+						ctx.session.activeOrganizationId,
+						"access",
+					);
+				}
 				const environment = await findEnvironmentById(input.environmentId);
 				if (
 					environment.project.organizationId !==
@@ -66,30 +113,10 @@ export const environmentRouter = createTRPCRouter({
 					}
 
 					// Filter services based on member permissions
-					const filteredEnvironment = {
-						...environment,
-						applications: environment.applications.filter((app) =>
-							accessedServices.includes(app.applicationId),
-						),
-						mariadb: environment.mariadb.filter((db) =>
-							accessedServices.includes(db.mariadbId),
-						),
-						mongo: environment.mongo.filter((db) =>
-							accessedServices.includes(db.mongoId),
-						),
-						mysql: environment.mysql.filter((db) =>
-							accessedServices.includes(db.mysqlId),
-						),
-						postgres: environment.postgres.filter((db) =>
-							accessedServices.includes(db.postgresId),
-						),
-						redis: environment.redis.filter((db) =>
-							accessedServices.includes(db.redisId),
-						),
-						compose: environment.compose.filter((comp) =>
-							accessedServices.includes(comp.composeId),
-						),
-					};
+					const filteredEnvironment = filterEnvironmentServices(
+						environment,
+						accessedServices,
+					);
 
 					return filteredEnvironment;
 				}
@@ -125,15 +152,17 @@ export const environmentRouter = createTRPCRouter({
 
 				// Filter environments for members based on their permissions
 				if (ctx.user.role === "member") {
-					const { accessedEnvironments } = await findMemberById(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
+					const { accessedEnvironments, accessedServices } =
+						await findMemberById(ctx.user.id, ctx.session.activeOrganizationId);
 
 					// Filter environments to only show those the member has access to
-					const filteredEnvironments = environments.filter((environment) =>
-						accessedEnvironments.includes(environment.environmentId),
-					);
+					const filteredEnvironments = environments
+						.filter((environment) =>
+							accessedEnvironments.includes(environment.environmentId),
+						)
+						.map((environment) =>
+							filterEnvironmentServices(environment, accessedServices),
+						);
 
 					return filteredEnvironments;
 				}
@@ -151,6 +180,14 @@ export const environmentRouter = createTRPCRouter({
 		.input(apiRemoveEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				if (ctx.user.role === "member") {
+					await checkEnvironmentAccess(
+						ctx.user.id,
+						input.environmentId,
+						ctx.session.activeOrganizationId,
+						"access",
+					);
+				}
 				const environment = await findEnvironmentById(input.environmentId);
 				if (
 					environment.project.organizationId !==
@@ -192,6 +229,14 @@ export const environmentRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const { environmentId, ...updateData } = input;
+				if (ctx.user.role === "member") {
+					await checkEnvironmentAccess(
+						ctx.user.id,
+						environmentId,
+						ctx.session.activeOrganizationId,
+						"access",
+					);
+				}
 				const currentEnvironment = await findEnvironmentById(environmentId);
 				if (
 					currentEnvironment.project.organizationId !==
@@ -237,6 +282,14 @@ export const environmentRouter = createTRPCRouter({
 		.input(apiDuplicateEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				if (ctx.user.role === "member") {
+					await checkEnvironmentAccess(
+						ctx.user.id,
+						input.environmentId,
+						ctx.session.activeOrganizationId,
+						"access",
+					);
+				}
 				const environment = await findEnvironmentById(input.environmentId);
 				if (
 					environment.project.organizationId !==

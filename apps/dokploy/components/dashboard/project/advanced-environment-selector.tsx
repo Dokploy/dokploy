@@ -208,66 +208,81 @@ export const AdvancedEnvironmentSelector = ({
 					<DropdownMenuLabel>Environments</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 
-					{environments?.map((environment) => (
-						<div key={environment.environmentId} className="flex items-center">
-							<DropdownMenuItem
-								className="flex-1 cursor-pointer"
-								onClick={() => {
-									router.push(
-										`/dashboard/project/${projectId}/environment/${environment.environmentId}`,
-									);
-								}}
+					{environments?.map((environment) => {
+						const servicesCount =
+							environment.mariadb.length +
+							environment.mongo.length +
+							environment.mysql.length +
+							environment.postgres.length +
+							environment.redis.length +
+							environment.applications.length +
+							environment.compose.length;
+						return (
+							<div
+								key={environment.environmentId}
+								className="flex items-center"
 							>
-								<div className="flex items-center justify-between w-full">
-									<span>{environment.name}</span>
-									{environment.environmentId === currentEnvironmentId && (
-										<div className="w-2 h-2 bg-blue-500 rounded-full" />
-									)}
-								</div>
-							</DropdownMenuItem>
-
-							{/* Action buttons for non-production environments */}
-							<EnvironmentVariables environmentId={environment.environmentId}>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="h-6 w-6 p-0"
-									onClick={(e) => {
-										e.stopPropagation();
+								<DropdownMenuItem
+									className="flex-1 cursor-pointer"
+									onClick={() => {
+										router.push(
+											`/dashboard/project/${projectId}/environment/${environment.environmentId}`,
+										);
 									}}
 								>
-									<Terminal className="h-3 w-3" />
-								</Button>
-							</EnvironmentVariables>
-							{environment.name !== "production" && (
-								<div className="flex items-center gap-1 px-2">
+									<div className="flex items-center justify-between w-full">
+										<span>
+											{environment.name} ({servicesCount})
+										</span>
+										{environment.environmentId === currentEnvironmentId && (
+											<div className="w-2 h-2 bg-blue-500 rounded-full" />
+										)}
+									</div>
+								</DropdownMenuItem>
+
+								{/* Action buttons for non-production environments */}
+								<EnvironmentVariables environmentId={environment.environmentId}>
 									<Button
 										variant="ghost"
 										size="sm"
 										className="h-6 w-6 p-0"
 										onClick={(e) => {
 											e.stopPropagation();
-											openEditDialog(environment);
 										}}
 									>
-										<PencilIcon className="h-3 w-3" />
+										<Terminal className="h-3 w-3" />
 									</Button>
+								</EnvironmentVariables>
+								{environment.name !== "production" && (
+									<div className="flex items-center gap-1 px-2">
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-6 w-6 p-0"
+											onClick={(e) => {
+												e.stopPropagation();
+												openEditDialog(environment);
+											}}
+										>
+											<PencilIcon className="h-3 w-3" />
+										</Button>
 
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-										onClick={(e) => {
-											e.stopPropagation();
-											openDeleteDialog(environment);
-										}}
-									>
-										<TrashIcon className="h-3 w-3" />
-									</Button>
-								</div>
-							)}
-						</div>
-					))}
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+											onClick={(e) => {
+												e.stopPropagation();
+												openDeleteDialog(environment);
+											}}
+										>
+											<TrashIcon className="h-3 w-3" />
+										</Button>
+									</div>
+								)}
+							</div>
+						);
+					})}
 
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
