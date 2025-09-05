@@ -55,7 +55,7 @@ export const apiUpdateAi = createSchema
 	.omit({ organizationId: true });
 
 export const deploySuggestionSchema = z.object({
-	projectId: z.string().min(1),
+	environmentId: z.string().min(1),
 	id: z.string().min(1),
 	dockerCompose: z.string().min(1),
 	envVariables: z.string(),

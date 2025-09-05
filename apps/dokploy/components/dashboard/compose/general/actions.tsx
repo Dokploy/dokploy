@@ -47,7 +47,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 								toast.success("Compose deployed successfully");
 								refetch();
 								router.push(
-									`/dashboard/project/${data?.project.projectId}/services/compose/${composeId}?tab=deployments`,
+									`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
 								);
 							})
 							.catch(() => {

@@ -13,14 +13,15 @@ import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { ShowExternalMongoCredentials } from "@/components/dashboard/mongo/general/show-external-mongo-credentials";
+import { ShowGeneralMongo } from "@/components/dashboard/mongo/general/show-general-mongo";
+import { ShowInternalMongoCredentials } from "@/components/dashboard/mongo/general/show-internal-mongo-credentials";
+import { UpdateMongo } from "@/components/dashboard/mongo/update-mongo";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
-import { ShowGeneralRedis } from "@/components/dashboard/redis/general/show-general-redis";
-import { ShowInternalRedisCredentials } from "@/components/dashboard/redis/general/show-internal-redis-credentials";
-import { UpdateRedis } from "@/components/dashboard/redis/update-redis";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
-import { RedisIcon } from "@/components/icons/data-tools-icons";
+import { MongodbIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -45,17 +46,17 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
-type TabState = "projects" | "monitoring" | "settings" | "advanced";
+type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
-const Redis = (
+const Mongo = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
-	const { redisId, activeTab } = props;
+	const { mongoId, activeTab } = props;
 	const router = useRouter();
-	const { projectId } = router.query;
+	const { projectId, environmentId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
-	const { data } = api.redis.one.useQuery({ redisId });
+	const { data } = api.mongo.one.useQuery({ mongoId });
 
 	const { data: auth } = api.user.get.useQuery();
 
@@ -63,23 +64,25 @@ const Redis = (
 
 	return (
 		<div className="pb-10">
-			<UseKeyboardNav forPage="redis" />
+			<UseKeyboardNav forPage="mongodb" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.project?.name || "",
-						href: `/dashboard/project/${projectId}`,
+						name: data?.environment?.project?.name || "",
+					},
+					{
+						name: data?.environment?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/services/redis/${redisId}`,
 					},
 				]}
 			/>
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.project.name} | Dokploy
+					Database: {data?.name} - {data?.environment?.project?.name} | Dokploy
 				</title>
 			</Head>
 			<div className="w-full">
@@ -93,7 +96,7 @@ const Redis = (
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
-										<RedisIcon className="h-6 w-6 text-muted-foreground" />
+										<MongodbIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
 									{data?.name}
 								</CardTitle>
@@ -143,9 +146,9 @@ const Redis = (
 								</div>
 
 								<div className="flex flex-row gap-2 justify-end">
-									<UpdateRedis redisId={redisId} />
+									<UpdateMongo mongoId={mongoId} />
 									{(auth?.role === "owner" || auth?.canDeleteServices) && (
-										<DeleteService id={redisId} type="redis" />
+										<DeleteService id={mongoId} type="mongo" />
 									)}
 								</div>
 							</div>
@@ -179,7 +182,7 @@ const Redis = (
 									className="w-full"
 									onValueChange={(e) => {
 										setSab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/services/redis/${redisId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/mongo/${mongoId}?tab=${e}`;
 
 										router.push(newPath, undefined, { shallow: true });
 									}}
@@ -189,10 +192,10 @@ const Redis = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-5"
+													? "md:grid-cols-6"
 													: data?.serverId
-														? "md:grid-cols-4"
-														: "md:grid-cols-5",
+														? "md:grid-cols-5"
+														: "md:grid-cols-6",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
@@ -201,20 +204,21 @@ const Redis = (
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
+											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="advanced">Advanced</TabsTrigger>
 										</TabsList>
 									</div>
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowGeneralRedis redisId={redisId} />
-											<ShowInternalRedisCredentials redisId={redisId} />
-											<ShowExternalRedisCredentials redisId={redisId} />
+											<ShowGeneralMongo mongoId={mongoId} />
+											<ShowInternalMongoCredentials mongoId={mongoId} />
+											<ShowExternalMongoCredentials mongoId={mongoId} />
 										</div>
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment id={redisId} type="redis" />
+											<ShowEnvironment id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 									<TabsContent value="monitoring">
@@ -270,9 +274,18 @@ const Redis = (
 											/>
 										</div>
 									</TabsContent>
+									<TabsContent value="backups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowBackups
+												id={mongoId}
+												databaseType="mongo"
+												backupType="database"
+											/>
+										</div>
+									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDatabaseAdvancedSettings id={redisId} type="redis" />
+											<ShowDatabaseAdvancedSettings id={mongoId} type="mongo" />
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -285,13 +298,17 @@ const Redis = (
 	);
 };
 
-export default Redis;
-Redis.getLayout = (page: ReactElement) => {
+export default Mongo;
+Mongo.getLayout = (page: ReactElement) => {
 	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ redisId: string; activeTab: TabState }>,
+	ctx: GetServerSidePropsContext<{
+		mongoId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
@@ -317,17 +334,19 @@ export async function getServerSideProps(
 		},
 		transformer: superjson,
 	});
-	if (typeof params?.redisId === "string") {
+
+	if (typeof params?.mongoId === "string") {
 		try {
-			await helpers.redis.one.fetch({
-				redisId: params?.redisId,
+			await helpers.mongo.one.fetch({
+				mongoId: params?.mongoId,
 			});
 			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
-					redisId: params?.redisId,
+					mongoId: params?.mongoId,
 					activeTab: (activeTab || "general") as TabState,
+					environmentId: params?.environmentId,
 				},
 			};
 		} catch {
