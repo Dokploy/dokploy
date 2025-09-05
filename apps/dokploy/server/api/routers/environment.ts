@@ -4,6 +4,7 @@ import {
 	duplicateEnvironment,
 	findEnvironmentById,
 	findEnvironmentsByProjectId,
+	findMemberById,
 	updateEnvironmentById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -51,6 +52,48 @@ export const environmentRouter = createTRPCRouter({
 						message: "You are not allowed to access this environment",
 					});
 				}
+
+				// Check environment access and filter services for members
+				if (ctx.user.role === "member") {
+					const { accessedEnvironments, accessedServices } =
+						await findMemberById(ctx.user.id, ctx.session.activeOrganizationId);
+
+					if (!accessedEnvironments.includes(environment.environmentId)) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You are not allowed to access this environment",
+						});
+					}
+
+					// Filter services based on member permissions
+					const filteredEnvironment = {
+						...environment,
+						applications: environment.applications.filter((app) =>
+							accessedServices.includes(app.applicationId),
+						),
+						mariadb: environment.mariadb.filter((db) =>
+							accessedServices.includes(db.mariadbId),
+						),
+						mongo: environment.mongo.filter((db) =>
+							accessedServices.includes(db.mongoId),
+						),
+						mysql: environment.mysql.filter((db) =>
+							accessedServices.includes(db.mysqlId),
+						),
+						postgres: environment.postgres.filter((db) =>
+							accessedServices.includes(db.postgresId),
+						),
+						redis: environment.redis.filter((db) =>
+							accessedServices.includes(db.redisId),
+						),
+						compose: environment.compose.filter((comp) =>
+							accessedServices.includes(comp.composeId),
+						),
+					};
+
+					return filteredEnvironment;
+				}
+
 				return environment;
 			} catch (error) {
 				throw new TRPCError({
@@ -65,6 +108,8 @@ export const environmentRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			try {
 				const environments = await findEnvironmentsByProjectId(input.projectId);
+
+				// Check organization access
 				if (
 					environments.some(
 						(environment) =>
@@ -77,6 +122,22 @@ export const environmentRouter = createTRPCRouter({
 						message: "You are not allowed to access this environment",
 					});
 				}
+
+				// Filter environments for members based on their permissions
+				if (ctx.user.role === "member") {
+					const { accessedEnvironments } = await findMemberById(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+
+					// Filter environments to only show those the member has access to
+					const filteredEnvironments = environments.filter((environment) =>
+						accessedEnvironments.includes(environment.environmentId),
+					);
+
+					return filteredEnvironments;
+				}
+
 				return environments;
 			} catch (error) {
 				throw new TRPCError({
@@ -100,6 +161,22 @@ export const environmentRouter = createTRPCRouter({
 						message: "You are not allowed to access this environment",
 					});
 				}
+
+				// Check environment access for members
+				if (ctx.user.role === "member") {
+					const { accessedEnvironments } = await findMemberById(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+
+					if (!accessedEnvironments.includes(environment.environmentId)) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You are not allowed to delete this environment",
+						});
+					}
+				}
+
 				const deletedEnvironment = await deleteEnvironment(input.environmentId);
 				return deletedEnvironment;
 			} catch (error) {
@@ -125,6 +202,24 @@ export const environmentRouter = createTRPCRouter({
 						message: "You are not allowed to access this environment",
 					});
 				}
+
+				// Check environment access for members
+				if (ctx.user.role === "member") {
+					const { accessedEnvironments } = await findMemberById(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+
+					if (
+						!accessedEnvironments.includes(currentEnvironment.environmentId)
+					) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You are not allowed to update this environment",
+						});
+					}
+				}
+
 				const environment = await updateEnvironmentById(
 					environmentId,
 					updateData,
@@ -152,6 +247,22 @@ export const environmentRouter = createTRPCRouter({
 						message: "You are not allowed to access this environment",
 					});
 				}
+
+				// Check environment access for members
+				if (ctx.user.role === "member") {
+					const { accessedEnvironments } = await findMemberById(
+						ctx.user.id,
+						ctx.session.activeOrganizationId,
+					);
+
+					if (!accessedEnvironments.includes(environment.environmentId)) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You are not allowed to duplicate this environment",
+						});
+					}
+				}
+
 				const duplicatedEnvironment = await duplicateEnvironment(input);
 				return duplicatedEnvironment;
 			} catch (error) {

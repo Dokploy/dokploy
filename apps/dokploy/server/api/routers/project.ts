@@ -44,6 +44,7 @@ import {
 	apiUpdateProject,
 	applications,
 	compose,
+	environments,
 	mariadb,
 	mongo,
 	mysql,
@@ -178,14 +179,21 @@ export const projectRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		if (ctx.user.role === "member") {
-			const { accessedProjects, accessedServices } = await findMemberById(
-				ctx.user.id,
-				ctx.session.activeOrganizationId,
-			);
+			const { accessedProjects, accessedEnvironments, accessedServices } =
+				await findMemberById(ctx.user.id, ctx.session.activeOrganizationId);
 
 			if (accessedProjects.length === 0) {
 				return [];
 			}
+
+			// Build environment filter
+			const environmentFilter =
+				accessedEnvironments.length === 0
+					? sql`false`
+					: sql`${environments.environmentId} IN (${sql.join(
+							accessedEnvironments.map((envId) => sql`${envId}`),
+							sql`, `,
+						)})`;
 
 			return await db.query.projects.findMany({
 				where: and(
@@ -197,6 +205,7 @@ export const projectRouter = createTRPCRouter({
 				),
 				with: {
 					environments: {
+						where: environmentFilter,
 						with: {
 							applications: {
 								where: buildServiceFilter(
