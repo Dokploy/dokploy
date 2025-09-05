@@ -39,6 +39,18 @@ export const getBitbucketCloneUrl = (
 		: `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
 };
 
+export const getBitbucketHeaders = (bitbucketProvider: {
+	apiToken?: string | null;
+	bitbucketUsername?: string | null;
+	appPassword?: string | null;
+}) => {
+	return bitbucketProvider.apiToken
+		? { Authorization: `Bearer ${bitbucketProvider.apiToken}` }
+		: {
+				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+			};
+};
+
 export const cloneBitbucketRepository = async (
 	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
 	logPath: string,
@@ -257,11 +269,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 		while (url) {
 			const response = await fetch(url, {
 				method: "GET",
-				headers: bitbucketProvider.apiToken
-					? { Authorization: `Bearer ${bitbucketProvider.apiToken}` }
-					: {
-							Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-						},
+				headers: getBitbucketHeaders(bitbucketProvider),
 			});
 
 			if (!response.ok) {
@@ -302,11 +310,7 @@ export const getBitbucketBranches = async (
 	try {
 		const response = await fetch(url, {
 			method: "GET",
-			headers: bitbucketProvider.apiToken
-				? { Authorization: `Bearer ${bitbucketProvider.apiToken}` }
-				: {
-						Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-					},
+			headers: getBitbucketHeaders(bitbucketProvider),
 		});
 
 		if (!response.ok) {
@@ -355,11 +359,7 @@ export const testBitbucketConnection = async (
 	try {
 		const response = await fetch(url, {
 			method: "GET",
-			headers: bitbucketProvider.apiToken
-				? { Authorization: `Bearer ${bitbucketProvider.apiToken}` }
-				: {
-						Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-					},
+			headers: getBitbucketHeaders(bitbucketProvider),
 		});
 
 		if (!response.ok) {
