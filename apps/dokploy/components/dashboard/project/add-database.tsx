@@ -85,7 +85,6 @@ const baseDatabaseSchema = z.object({
 		}),
 	databasePassword: z
 		.string()
-		.min(1, "Password is required")
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 			message:
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",

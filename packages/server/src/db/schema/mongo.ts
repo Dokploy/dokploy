@@ -6,7 +6,6 @@ import { z } from "zod";
 import { backups } from "./backups";
 import { environments } from "./environment";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -93,7 +92,6 @@ const createSchema = createInsertSchema(mongo, {
 	name: z.string().min(1),
 	databasePassword: z
 		.string()
-		.min(1, "Password is required")
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 			message:
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
