@@ -39,9 +39,18 @@ export const environmentRouter = createTRPCRouter({
 
 	one: protectedProcedure
 		.input(apiFindOneEnvironment)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
 				const environment = await findEnvironmentById(input.environmentId);
+				if (
+					environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not allowed to access this environment",
+					});
+				}
 				return environment;
 			} catch (error) {
 				throw new TRPCError({
@@ -53,9 +62,21 @@ export const environmentRouter = createTRPCRouter({
 
 	byProjectId: protectedProcedure
 		.input(z.object({ projectId: z.string() }))
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
 				const environments = await findEnvironmentsByProjectId(input.projectId);
+				if (
+					environments.some(
+						(environment) =>
+							environment.project.organizationId !==
+							ctx.session.activeOrganizationId,
+					)
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not allowed to access this environment",
+					});
+				}
 				return environments;
 			} catch (error) {
 				throw new TRPCError({
@@ -67,8 +88,18 @@ export const environmentRouter = createTRPCRouter({
 
 	remove: protectedProcedure
 		.input(apiRemoveEnvironment)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const environment = await findEnvironmentById(input.environmentId);
+				if (
+					environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not allowed to access this environment",
+					});
+				}
 				const deletedEnvironment = await deleteEnvironment(input.environmentId);
 				return deletedEnvironment;
 			} catch (error) {
@@ -81,9 +112,19 @@ export const environmentRouter = createTRPCRouter({
 
 	update: protectedProcedure
 		.input(apiUpdateEnvironment)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
 				const { environmentId, ...updateData } = input;
+				const currentEnvironment = await findEnvironmentById(environmentId);
+				if (
+					currentEnvironment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not allowed to access this environment",
+					});
+				}
 				const environment = await updateEnvironmentById(
 					environmentId,
 					updateData,
@@ -99,8 +140,18 @@ export const environmentRouter = createTRPCRouter({
 
 	duplicate: protectedProcedure
 		.input(apiDuplicateEnvironment)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const environment = await findEnvironmentById(input.environmentId);
+				if (
+					environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not allowed to access this environment",
+					});
+				}
 				const duplicatedEnvironment = await duplicateEnvironment(input);
 				return duplicatedEnvironment;
 			} catch (error) {
