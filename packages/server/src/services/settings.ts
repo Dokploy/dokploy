@@ -253,9 +253,10 @@ export const getDockerResourceType = async (
 	resourceName: string,
 	serverId?: string,
 ) => {
-	console.log("resourceName", resourceName);
-	let result = "";
-	const command = `
+	try {
+		console.log("resourceName", resourceName);
+		let result = "";
+		const command = `
 	RESOURCE_NAME="${resourceName}"
 		if docker service inspect "$RESOURCE_NAME" &>/dev/null; then
 			echo "service"
@@ -271,23 +272,30 @@ export const getDockerResourceType = async (
 		exit 0
 	`;
 
-	console.log("command", command);
+		console.log("command", command);
 
-	if (serverId) {
-		const { stdout } = await execAsyncRemote(serverId, command);
-		result = stdout.trim();
-	} else {
-		const { stdout } = await execAsync(command);
-		result = stdout.trim();
+		if (serverId) {
+			const { stdout } = await execAsyncRemote(serverId, command);
+			result = stdout.trim();
+		} else {
+			const { stdout } = await execAsync(command);
+			result = stdout.trim();
+		}
+		console.log("result", result);
+		console.log("final result2 ", result.length);
+
+		console.log("fin");
+		if (result === "service") {
+			return "service";
+		}
+		if (result === "standalone") {
+			return "standalone";
+		}
+		return "unknown";
+	} catch (error) {
+		console.error(error);
+		return "unknown";
 	}
-	console.log("result", result);
-	if (result === "service") {
-		return "service";
-	}
-	if (result === "standalone") {
-		return "standalone";
-	}
-	return "unknown";
 };
 
 export const reloadDockerResource = async (
@@ -319,7 +327,7 @@ export const readEnvironmentVariables = async (
 	let command = "";
 	if (resourceType === "service") {
 		command = `docker service inspect ${resourceName} --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}'`;
-	} else {
+	} else if (resourceType === "standalone") {
 		command = `docker container inspect ${resourceName} --format '{{json .Config.Env}}'`;
 	}
 	let result = "";
@@ -346,7 +354,7 @@ export const readPorts = async (
 	let command = "";
 	if (resourceType === "service") {
 		command = `docker service inspect ${resourceName} --format '{{json .Spec.EndpointSpec.Ports}}'`;
-	} else {
+	} else if (resourceType === "standalone") {
 		command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
 	}
 	let result = "";
