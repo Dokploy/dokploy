@@ -114,7 +114,6 @@ export const ntfy = pgTable("ntfy", {
 	topic: text("topic").notNull(),
 	accessToken: text("accessToken").notNull(),
 	priority: integer("priority").notNull().default(3),
-	decoration: boolean("decoration"),
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({

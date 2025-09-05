@@ -1,0 +1,1 @@
+ALTER TABLE "ntfy" DROP COLUMN "decoration";
