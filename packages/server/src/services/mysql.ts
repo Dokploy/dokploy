@@ -56,7 +56,11 @@ export const findMySqlById = async (mysqlId: string) => {
 	const result = await db.query.mysql.findFirst({
 		where: eq(mysql.mysqlId, mysqlId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			mounts: true,
 			server: true,
 			backups: {

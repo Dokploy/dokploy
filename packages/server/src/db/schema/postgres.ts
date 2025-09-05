@@ -4,8 +4,8 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { backups } from "./backups";
+import { environments } from "./environment";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -64,18 +64,19 @@ export const postgres = pgTable("postgres", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
+
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
 });
 
 export const postgresRelations = relations(postgres, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [postgres.projectId],
-		references: [projects.projectId],
+	environment: one(environments, {
+		fields: [postgres.environmentId],
+		references: [environments.environmentId],
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
@@ -90,7 +91,6 @@ const createSchema = createInsertSchema(postgres, {
 	name: z.string().min(1),
 	databasePassword: z
 		.string()
-		.min(1, "Password is required")
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 			message:
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
@@ -104,7 +104,7 @@ const createSchema = createInsertSchema(postgres, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	createdAt: z.string(),
@@ -128,7 +128,7 @@ export const apiCreatePostgres = createSchema
 		databaseUser: true,
 		databasePassword: true,
 		dockerImage: true,
-		projectId: true,
+		environmentId: true,
 		description: true,
 		serverId: true,
 	})

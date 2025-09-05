@@ -1,10 +1,10 @@
 import { TemplateGenerator } from "@/components/dashboard/project/ai/template-generator";
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddAiAssistant = ({ projectId }: Props) => {
-	return <TemplateGenerator projectId={projectId} />;
+export const AddAiAssistant = ({ environmentId }: Props) => {
+	return <TemplateGenerator environmentId={environmentId} />;
 };

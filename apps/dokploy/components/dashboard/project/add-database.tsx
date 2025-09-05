@@ -85,7 +85,6 @@ const baseDatabaseSchema = z.object({
 		}),
 	databasePassword: z
 		.string()
-		.min(1, "Password is required")
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 			message:
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
@@ -123,7 +122,8 @@ const mySchema = z.discriminatedUnion("type", [
 				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 					message:
 						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				}),
+				})
+				.optional(),
 			databaseUser: z.string().default("mysql"),
 			databaseName: z.string().default("mysql"),
 		})
@@ -137,7 +137,8 @@ const mySchema = z.discriminatedUnion("type", [
 				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 					message:
 						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				}),
+				})
+				.optional(),
 			databaseUser: z.string().default("mariadb"),
 			databaseName: z.string().default("mariadb"),
 		})
@@ -170,11 +171,11 @@ const databasesMap = {
 type AddDatabase = z.infer<typeof mySchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddDatabase = ({ projectId, projectName }: Props) => {
+export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -185,6 +186,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const redisMutation = api.redis.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
@@ -224,8 +228,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			name: data.name,
 			appName: data.appName,
 			dockerImage: defaultDockerImage,
-			projectId,
 			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+			environmentId,
 			description: data.description,
 		};
 
@@ -253,13 +257,12 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				...commonParams,
 				databasePassword: data.databasePassword,
 				serverId: data.serverId === "dokploy" ? null : data.serverId,
-				projectId,
 			});
 		} else if (data.type === "mariadb") {
 			promise = mariadbMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseRootPassword: data.databaseRootPassword,
+				databaseRootPassword: data.databaseRootPassword || "",
 				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
@@ -272,8 +275,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseName: data.databaseName || "mysql",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				databaseRootPassword: data.databaseRootPassword,
 				serverId: data.serverId === "dokploy" ? null : data.serverId,
+				databaseRootPassword: data.databaseRootPassword || "",
 			});
 		}
 
@@ -292,8 +295,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 						databaseUser: "",
 					});
 					setVisible(false);
-					await utils.project.one.invalidate({
-						projectId,
+					// Invalidate the project query to refresh the environment data
+					await utils.environment.one.invalidate({
+						environmentId,
 					});
 				})
 				.catch(() => {
@@ -412,10 +416,16 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<FormLabel>Select a Server</FormLabel>
 												<Select
 													onValueChange={field.onChange}
-													defaultValue={field.value || (!isCloud ? "dokploy" : undefined)}
+													defaultValue={
+														field.value || (!isCloud ? "dokploy" : undefined)
+													}
 												>
 													<SelectTrigger>
-														<SelectValue placeholder={!isCloud ? "Dokploy" : "Select a Server"} />
+														<SelectValue
+															placeholder={
+																!isCloud ? "Dokploy" : "Select a Server"
+															}
+														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>

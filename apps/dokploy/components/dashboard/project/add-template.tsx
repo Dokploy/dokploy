@@ -73,11 +73,11 @@ import { api } from "@/utils/api";
 const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	baseUrl?: string;
 }
 
-export const AddTemplate = ({ projectId, baseUrl }: Props) => {
+export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
@@ -90,6 +90,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 		}
 		return undefined;
 	});
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	// Save to localStorage when customBaseUrl changes
 	useEffect(() => {
@@ -460,10 +463,16 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																	onValueChange={(e) => {
 																		setServerId(e);
 																	}}
-																	defaultValue={!isCloud ? "dokploy" : undefined}
+																	defaultValue={
+																		!isCloud ? "dokploy" : undefined
+																	}
 																>
 																	<SelectTrigger>
-																		<SelectValue placeholder={!isCloud ? "Dokploy" : "Select a Server"} />
+																		<SelectValue
+																			placeholder={
+																				!isCloud ? "Dokploy" : "Select a Server"
+																			}
+																		/>
 																	</SelectTrigger>
 																	<SelectContent>
 																		<SelectGroup>
@@ -491,7 +500,8 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																				</SelectItem>
 																			))}
 																			<SelectLabel>
-																				Servers ({servers?.length + (!isCloud ? 1 : 0)})
+																				Servers (
+																				{servers?.length + (!isCloud ? 1 : 0)})
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>
@@ -505,19 +515,20 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															disabled={isLoading}
 															onClick={async () => {
 																const promise = mutateAsync({
-																	projectId,
 																	serverId:
 																		serverId === "dokploy"
 																			? undefined
 																			: serverId,
+																	environmentId,
 																	id: template.id,
 																	baseUrl: customBaseUrl,
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
 																	success: () => {
-																		utils.project.one.invalidate({
-																			projectId,
+																		// Invalidate the project query to refresh the environment data
+																		utils.environment.one.invalidate({
+																			environmentId,
 																		});
 																		setOpen(false);
 																		return `${template.name} template created successfully`;

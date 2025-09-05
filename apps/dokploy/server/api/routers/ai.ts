@@ -4,7 +4,11 @@ import {
 	apiUpdateAi,
 	deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
-import { createDomain, createMount } from "@dokploy/server/index";
+import {
+	createDomain,
+	createMount,
+	findEnvironmentById,
+} from "@dokploy/server/index";
 import {
 	deleteAiSettings,
 	getAiSettingById,
@@ -177,10 +181,12 @@ export const aiRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
+			const environment = await findEnvironmentById(input.environmentId);
+			const project = await findProjectById(environment.projectId);
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.session.activeOrganizationId,
-					input.projectId,
+					environment.projectId,
 					"create",
 				);
 			}
@@ -191,8 +197,6 @@ export const aiRouter = createTRPCRouter({
 					message: "You need to use a server to create a compose",
 				});
 			}
-
-			const project = await findProjectById(input.projectId);
 
 			const projectName = slugify(`${project.name} ${input.id}`);
 
@@ -205,6 +209,7 @@ export const aiRouter = createTRPCRouter({
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
 				isolatedDeployment: true,
+				environmentId: input.environmentId,
 			});
 
 			if (input.domains && input.domains?.length > 0) {

@@ -31,7 +31,11 @@ export const findPreviewDeploymentById = async (
 			application: {
 				with: {
 					server: true,
-					project: true,
+					environment: {
+						with: {
+							project: true,
+						},
+					},
 				},
 			},
 		},
@@ -40,37 +44,6 @@ export const findPreviewDeploymentById = async (
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Preview Deployment not found",
-		});
-	}
-	return application;
-};
-
-export const findApplicationByPreview = async (applicationId: string) => {
-	const application = await db.query.applications.findFirst({
-		with: {
-			previewDeployments: {
-				where: eq(previewDeployments.applicationId, applicationId),
-			},
-			project: true,
-			domains: true,
-			deployments: true,
-			mounts: true,
-			redirects: true,
-			security: true,
-			ports: true,
-			registry: true,
-			gitlab: true,
-			github: true,
-			bitbucket: true,
-			gitea: true,
-			server: true,
-		},
-	});
-
-	if (!application) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Application not found",
 		});
 	}
 	return application;
@@ -163,7 +136,7 @@ export const createPreviewDeployment = async (
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
 	const org = await db.query.organization.findFirst({
-		where: eq(organization.id, application.project.organizationId),
+		where: eq(organization.id, application.environment.project.organizationId),
 	});
 	const generateDomain = await generateWildcardDomain(
 		application.previewWildcard || "*.traefik.me",

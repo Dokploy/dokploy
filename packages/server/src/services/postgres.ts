@@ -51,7 +51,11 @@ export const findPostgresById = async (postgresId: string) => {
 	const result = await db.query.postgres.findFirst({
 		where: eq(postgres.postgresId, postgresId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			mounts: true,
 			server: true,
 			backups: {

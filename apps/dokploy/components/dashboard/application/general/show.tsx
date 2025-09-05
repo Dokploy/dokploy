@@ -69,7 +69,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										toast.success("Application deployed successfully");
 										refetch();
 										router.push(
-											`/dashboard/project/${data?.projectId}/services/application/${applicationId}?tab=deployments`,
+											`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
 										);
 									})
 									.catch(() => {
