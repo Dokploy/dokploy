@@ -253,6 +253,7 @@ export const getDockerResourceType = async (
 	resourceName: string,
 	serverId?: string,
 ) => {
+	console.log("resourceName", resourceName);
 	let result = "";
 	const command = `
 	RESOURCE_NAME="${resourceName}"
@@ -269,6 +270,8 @@ export const getDockerResourceType = async (
 		echo "unknown"
 		exit 0
 	`;
+
+	console.log("command", command);
 
 	if (serverId) {
 		const { stdout } = await execAsyncRemote(serverId, command);
