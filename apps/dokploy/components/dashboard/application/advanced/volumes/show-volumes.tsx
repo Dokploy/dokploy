@@ -2,6 +2,7 @@ import { Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -81,7 +82,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
 										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 flex-col gap-4 sm:gap-8">
+										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Mount Type</span>
 												<span className="text-sm text-muted-foreground">
@@ -127,6 +128,69 @@ export const ShowVolumes = ({ id, type }: Props) => {
 												<span className="text-sm text-muted-foreground">
 													{mount.mountPath}
 												</span>
+											</div>
+
+											<div className="flex flex-col gap-1">
+												<span className="font-medium">Ownership</span>
+												<span className="text-sm text-muted-foreground">
+													{(() => {
+														const uid = mount.uid ?? null;
+														const gid = mount.gid ?? null;
+														if (uid === null && gid === null) return "—";
+														if (uid !== null && gid !== null)
+															return `${uid}:${gid}`;
+														if (uid !== null) return `${uid}`;
+														return `:${gid}`;
+													})()}
+												</span>
+											</div>
+
+											<div className="flex flex-col gap-1">
+												<span className="font-medium">Mode</span>
+												<div className="flex items-center gap-2">
+													<Badge variant="blank" className="text-sm h-5 px-2">
+														{(() => {
+															const v = mount.mode ?? "";
+															if (!/^\d{3,4}$/.test(v)) return "644";
+															if (v.length === 4 && v[0] === "0")
+																return v.slice(1);
+															return v.slice(-3);
+														})()}
+													</Badge>
+													<span className="text-xs text-muted-foreground">
+														{(() => {
+															const v = mount.mode ?? "";
+															const n = (() => {
+																if (!/^\d{3,4}$/.test(v)) return "644";
+																if (v.length === 4 && v[0] === "0")
+																	return v.slice(1);
+																return v.slice(-3);
+															})();
+															const toBits = (d: number) => ({
+																r: !!(d & 4),
+																w: !!(d & 2),
+																x: !!(d & 1),
+															});
+															const [o, g, t] = n
+																.split("")
+																.map((d) => Number.parseInt(d, 10)) as [
+																number,
+																number,
+																number,
+															];
+															const fmt = (b: {
+																r: boolean;
+																w: boolean;
+																x: boolean;
+															}) =>
+																`${b.r ? "r" : "-"}${b.w ? "w" : "-"}${b.x ? "x" : "-"}`;
+															const b0 = toBits(o);
+															const b1 = toBits(g);
+															const b2 = toBits(t);
+															return `${fmt(b0)} ${fmt(b1)} ${fmt(b2)}`;
+														})()}
+													</span>
+												</div>
 											</div>
 										</div>
 										<div className="flex flex-row gap-1">
