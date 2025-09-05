@@ -977,9 +977,7 @@ const EnvironmentPage = (
 															</DialogDescription>
 														</DialogHeader>
 														<div className="flex flex-col gap-4">
-															{allProjects?.filter(
-																(p) => p.projectId !== projectId,
-															).length === 0 ? (
+															{allProjects?.length === 0 ? (
 																<div className="flex flex-col items-center justify-center gap-2 py-4">
 																	<FolderInput className="h-8 w-8 text-muted-foreground" />
 																	<p className="text-sm text-muted-foreground text-center">
@@ -1008,18 +1006,14 @@ const EnvironmentPage = (
 																				<SelectValue placeholder="Select target project" />
 																			</SelectTrigger>
 																			<SelectContent>
-																				{allProjects
-																					?.filter(
-																						(p) => p.projectId !== projectId,
-																					)
-																					.map((project) => (
-																						<SelectItem
-																							key={project.projectId}
-																							value={project.projectId}
-																						>
-																							{project.name}
-																						</SelectItem>
-																					))}
+																				{allProjects?.map((project) => (
+																					<SelectItem
+																						key={project.projectId}
+																						value={project.projectId}
+																					>
+																						{project.name}
+																					</SelectItem>
+																				))}
 																			</SelectContent>
 																		</Select>
 																	</div>
@@ -1043,16 +1037,20 @@ const EnvironmentPage = (
 																					<SelectValue placeholder="Select target environment" />
 																				</SelectTrigger>
 																				<SelectContent>
-																					{selectedProjectEnvironments?.map(
-																						(env) => (
+																					{selectedProjectEnvironments
+																						?.filter(
+																							(env) =>
+																								env.environmentId !==
+																								environmentId,
+																						)
+																						.map((env) => (
 																							<SelectItem
 																								key={env.environmentId}
 																								value={env.environmentId}
 																							>
 																								{env.name}
 																							</SelectItem>
-																						),
-																					)}
+																						))}
 																				</SelectContent>
 																			</Select>
 																		</div>
@@ -1075,9 +1073,7 @@ const EnvironmentPage = (
 																onClick={handleBulkMove}
 																isLoading={isBulkActionLoading}
 																disabled={
-																	allProjects?.filter(
-																		(p) => p.projectId !== projectId,
-																	).length === 0 ||
+																	allProjects?.length === 0 ||
 																	!selectedTargetProject ||
 																	!selectedTargetEnvironment
 																}
