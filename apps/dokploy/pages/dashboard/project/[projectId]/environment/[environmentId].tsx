@@ -786,43 +786,42 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									{auth?.role === "owner" ||
-										(auth?.canCreateServices && (
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button>
-														<PlusIcon className="h-4 w-4" />
-														Create Service
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent
-													className="w-[200px] space-y-2"
-													align="end"
-												>
-													<DropdownMenuLabel className="text-sm font-normal">
-														Actions
-													</DropdownMenuLabel>
-													<DropdownMenuSeparator />
-													<AddApplication
-														projectName={projectData?.name}
-														environmentId={environmentId}
-													/>
-													<AddDatabase
-														projectName={projectData?.name}
-														environmentId={environmentId}
-													/>
-													<AddCompose
-														projectName={projectData?.name}
-														environmentId={environmentId}
-													/>
-													<AddTemplate environmentId={environmentId} />
-													<AddAiAssistant
-														projectName={projectData?.name}
-														environmentId={environmentId}
-													/>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										))}
+									{(auth?.role === "owner" || auth?.canCreateServices) && (
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button>
+													<PlusIcon className="h-4 w-4" />
+													Create Service
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent
+												className="w-[200px] space-y-2"
+												align="end"
+											>
+												<DropdownMenuLabel className="text-sm font-normal">
+													Actions
+												</DropdownMenuLabel>
+												<DropdownMenuSeparator />
+												<AddApplication
+													projectName={projectData?.name}
+													environmentId={environmentId}
+												/>
+												<AddDatabase
+													projectName={projectData?.name}
+													environmentId={environmentId}
+												/>
+												<AddCompose
+													projectName={projectData?.name}
+													environmentId={environmentId}
+												/>
+												<AddTemplate environmentId={environmentId} />
+												<AddAiAssistant
+													projectName={projectData?.name}
+													environmentId={environmentId}
+												/>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									)}
 								</div>
 							</div>
 						</div>
