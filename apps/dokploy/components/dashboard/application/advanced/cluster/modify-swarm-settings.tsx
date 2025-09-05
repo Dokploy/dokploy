@@ -258,10 +258,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				networkSwarm: data.networkSwarm
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
-				stopGracePeriodSwarm:
-					data.stopGracePeriodSwarm
-						? BigInt(data.stopGracePeriodSwarm)
-						: null,
+				stopGracePeriodSwarm: data.stopGracePeriodSwarm
+					? BigInt(data.stopGracePeriodSwarm)
+					: null,
 			});
 		}
 	}, [form, form.reset, data]);
