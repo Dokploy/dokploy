@@ -28,6 +28,8 @@ interface Props {
 
 const AddRedirectSchema = z.object({
 	command: z.string(),
+	preDeployCommand: z.string().optional().nullable(),
+	postDeployCommand: z.string().optional().nullable(),
 });
 
 type AddCommand = z.infer<typeof AddRedirectSchema>;
@@ -47,31 +49,44 @@ export const AddCommand = ({ applicationId }: Props) => {
 	const form = useForm<AddCommand>({
 		defaultValues: {
 			command: "",
+			preDeployCommand: "",
+			postDeployCommand: "",
 		},
 		resolver: zodResolver(AddRedirectSchema),
 	});
 
 	useEffect(() => {
-		if (data?.command) {
+		if (data) {
 			form.reset({
 				command: data?.command || "",
+				preDeployCommand: data?.preDeployCommand || "",
+				postDeployCommand: data?.postDeployCommand || "",
 			});
 		}
-	}, [form, form.reset, form.formState.isSubmitSuccessful, data?.command]);
+	}, [
+		form,
+		form.reset,
+		form.formState.isSubmitSuccessful,
+		data?.command,
+		data?.preDeployCommand,
+		data?.postDeployCommand,
+	]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
 			applicationId,
 			command: data?.command,
+			preDeployCommand: data?.preDeployCommand || "",
+			postDeployCommand: data?.postDeployCommand || "",
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success("Commands Updated");
 				await utils.application.one.invalidate({
 					applicationId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error("Error updating commands");
 			});
 	};
 
@@ -79,10 +94,9 @@ export const AddCommand = ({ applicationId }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Run Command</CardTitle>
+					<CardTitle className="text-xl">Commands</CardTitle>
 					<CardDescription>
-						Run a custom command in the container after the application
-						initialized
+						Define container start command and pre/post deploy hooks
 					</CardDescription>
 				</div>
 			</CardHeader>
@@ -98,11 +112,43 @@ export const AddCommand = ({ applicationId }: Props) => {
 								name="command"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Command</FormLabel>
+										<FormLabel>Container Start Command</FormLabel>
 										<FormControl>
-											<Input placeholder="Custom command" {...field} />
+											<Input placeholder="e.g. npm start" {...field} />
 										</FormControl>
 
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="preDeployCommand"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Pre-Deploy Hook (runs once)</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="e.g. npm run db:migrate"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="postDeployCommand"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Post-Deploy Hook (runs once)</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="e.g. npm run cache:warm"
+												{...field}
+											/>
+										</FormControl>
 										<FormMessage />
 									</FormItem>
 								)}

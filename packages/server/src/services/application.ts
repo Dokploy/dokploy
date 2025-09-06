@@ -10,6 +10,7 @@ import {
 	buildApplication,
 	getBuildCommand,
 	mechanizeDockerContainer,
+	runDeployHook,
 } from "@dokploy/server/utils/builders";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
@@ -349,7 +350,22 @@ export const deployRemoteApplication = async ({
 				command += getBuildCommand(application, deployment.logPath);
 			}
 			await execAsyncRemote(application.serverId, command);
+
+			// Run pre-deploy hook (remote) before service is created
+			if (application.preDeployCommand) {
+				try {
+					await runDeployHook(application, application.preDeployCommand);
+				} catch (_) {}
+			}
+
 			await mechanizeDockerContainer(application);
+
+			// Run post-deploy hook (remote) after service is created
+			if (application.postDeployCommand) {
+				try {
+					await runDeployHook(application, application.postDeployCommand);
+				} catch (_) {}
+			}
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -595,7 +611,22 @@ export const deployRemotePreviewApplication = async ({
 
 			command += getBuildCommand(application, deployment.logPath);
 			await execAsyncRemote(application.serverId, command);
+
+			// Pre-deploy hook (remote)
+			if (application.preDeployCommand) {
+				try {
+					await runDeployHook(application, application.preDeployCommand);
+				} catch (_) {}
+			}
+
 			await mechanizeDockerContainer(application);
+
+			// Post-deploy hook (remote)
+			if (application.postDeployCommand) {
+				try {
+					await runDeployHook(application, application.postDeployCommand);
+				} catch (_) {}
+			}
 		}
 
 		const successComment = getIssueComment(
@@ -651,7 +682,22 @@ export const rebuildRemoteApplication = async ({
 				command += getBuildCommand(application, deployment.logPath);
 				await execAsyncRemote(application.serverId, command);
 			}
+
+			// Pre-deploy hook (remote)
+			if (application.preDeployCommand) {
+				try {
+					await runDeployHook(application, application.preDeployCommand);
+				} catch (_) {}
+			}
+
 			await mechanizeDockerContainer(application);
+
+			// Post-deploy hook (remote)
+			if (application.postDeployCommand) {
+				try {
+					await runDeployHook(application, application.postDeployCommand);
+				} catch (_) {}
+			}
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");

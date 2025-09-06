@@ -107,6 +107,8 @@ export const applications = pgTable("application", {
 	enabled: boolean("enabled"),
 	subtitle: text("subtitle"),
 	command: text("command"),
+	preDeployCommand: text("preDeployCommand"),
+	postDeployCommand: text("postDeployCommand"),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceType("sourceType").notNull().default("github"),
 	cleanCache: boolean("cleanCache").default(false),
