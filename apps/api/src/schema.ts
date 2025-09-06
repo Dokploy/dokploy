@@ -31,5 +31,4 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 	}),
 ]);
 
-
 export type DeployJob = z.infer<typeof deployJobSchema>;
