@@ -65,11 +65,11 @@ const AddComposeSchema = z.object({
 type AddCompose = z.infer<typeof AddComposeSchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddCompose = ({ projectId, projectName }: Props) => {
+export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
@@ -78,7 +78,14 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
 
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
+
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const form = useForm<AddCompose>({
 		defaultValues: {
@@ -98,16 +105,17 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 		await mutateAsync({
 			name: data.name,
 			description: data.description,
-			projectId,
+			environmentId,
 			composeType: data.composeType,
 			appName: data.appName,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 		})
 			.then(async () => {
 				toast.success("Compose Created");
 				setVisible(false);
-				await utils.project.one.invalidate({
-					projectId,
+				// Invalidate the project query to refresh the environment data
+				await utils.environment.one.invalidate({
+					environmentId,
 				});
 			})
 			.catch(() => {
@@ -165,7 +173,7 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 								)}
 							/>
 						</div>
-						{hasServers && (
+						{shouldShowServerDropdown && (
 							<FormField
 								control={form.control}
 								name="serverId"
@@ -194,13 +202,27 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 
 										<Select
 											onValueChange={field.onChange}
-											defaultValue={field.value}
+											defaultValue={
+												field.value || (!isCloud ? "dokploy" : undefined)
+											}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Server" />
+												<SelectValue
+													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
+													{!isCloud && (
+														<SelectItem value="dokploy">
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>Dokploy</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	Default
+																</span>
+															</span>
+														</SelectItem>
+													)}
 													{servers?.map((server) => (
 														<SelectItem
 															key={server.serverId}
@@ -214,7 +236,9 @@ export const AddCompose = ({ projectId, projectName }: Props) => {
 															</span>
 														</SelectItem>
 													))}
-													<SelectLabel>Servers ({servers?.length})</SelectLabel>
+													<SelectLabel>
+														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>

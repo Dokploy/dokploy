@@ -13,7 +13,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 interface Props {
 	list: {
 		name: string;
-		href: string;
+		href?: string;
 	}[];
 }
 
@@ -29,11 +29,11 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 							{list.map((item, index) => (
 								<Fragment key={item.name}>
 									<BreadcrumbItem className="block">
-										<BreadcrumbLink href={item.href} asChild={!!item.href}>
+										<BreadcrumbLink href={item?.href} asChild={!!item?.href}>
 											{item.href ? (
-												<Link href={item.href}>{item.name}</Link>
+												<Link href={item?.href}>{item?.name}</Link>
 											) : (
-												item.name
+												item?.name
 											)}
 										</BreadcrumbLink>
 									</BreadcrumbItem>

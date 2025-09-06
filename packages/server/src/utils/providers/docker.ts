@@ -42,7 +42,9 @@ export const buildDocker = async (
 		await mechanizeDockerContainer(application);
 		writeStream.write("\nDocker Deployed: ✅\n");
 	} catch (error) {
-		writeStream.write("❌ Error");
+		writeStream.write(
+			`❌ Error: ${error instanceof Error ? error.message : String(error)}`,
+		);
 		throw error;
 	} finally {
 		writeStream.end();

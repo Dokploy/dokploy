@@ -76,9 +76,24 @@ export const createRollback = async (
 	});
 };
 
-const findRollbackById = async (rollbackId: string) => {
+export const findRollbackById = async (rollbackId: string) => {
 	const result = await db.query.rollbacks.findFirst({
 		where: eq(rollbacks.rollbackId, rollbackId),
+		with: {
+			deployment: {
+				with: {
+					application: {
+						with: {
+							environment: {
+								with: {
+									project: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	});
 
 	if (!result) {
@@ -179,7 +194,9 @@ const rollbackApplication = async (
 	image: string,
 	serverId?: string | null,
 	fullContext?: Application & {
-		project: Project;
+		environment: {
+			project: Project;
+		};
 		mounts: Mount[];
 		ports: Port[];
 	},
@@ -225,7 +242,7 @@ const rollbackApplication = async (
 	const bindsMount = generateBindMounts(mounts);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		fullContext.project.env,
+		fullContext.environment.project.env,
 	);
 
 	// For rollback, we use the provided image instead of calculating it

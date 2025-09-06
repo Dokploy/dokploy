@@ -112,6 +112,10 @@ export const member = pgTable("member", {
 		.array()
 		.notNull()
 		.default(sql`ARRAY[]::text[]`),
+	accessedEnvironments: text("accessedEnvironments")
+		.array()
+		.notNull()
+		.default(sql`ARRAY[]::text[]`),
 	accessedServices: text("accesedServices")
 		.array()
 		.notNull()

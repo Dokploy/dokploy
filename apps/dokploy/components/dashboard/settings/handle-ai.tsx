@@ -38,7 +38,7 @@ import { api } from "@/utils/api";
 const Schema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
-	apiKey: z.string().min(1, { message: "API Key is required" }),
+	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
 	isEnabled: z.boolean(),
 });
@@ -71,7 +71,7 @@ export const HandleAi = ({ aiId }: Props) => {
 			name: "",
 			apiUrl: "",
 			apiKey: "",
-			model: "gpt-3.5-turbo",
+			model: "",
 			isEnabled: true,
 		},
 	});
@@ -81,7 +81,7 @@ export const HandleAi = ({ aiId }: Props) => {
 			name: data?.name ?? "",
 			apiUrl: data?.apiUrl ?? "https://api.openai.com/v1",
 			apiKey: data?.apiKey ?? "",
-			model: data?.model ?? "gpt-3.5-turbo",
+			model: data?.model ?? "",
 			isEnabled: data?.isEnabled ?? true,
 		});
 	}, [aiId, form, data]);
@@ -89,6 +89,7 @@ export const HandleAi = ({ aiId }: Props) => {
 	const apiUrl = form.watch("apiUrl");
 	const apiKey = form.watch("apiKey");
 
+	const isOllama = apiUrl.includes(":11434") || apiUrl.includes("ollama");
 	const { data: models, isLoading: isLoadingServerModels } =
 		api.ai.getModels.useQuery(
 			{
@@ -96,7 +97,7 @@ export const HandleAi = ({ aiId }: Props) => {
 				apiKey: apiKey ?? "",
 			},
 			{
-				enabled: !!apiUrl && !!apiKey,
+				enabled: !!apiUrl && (isOllama || !!apiKey),
 				onError: (error) => {
 					setError(`Failed to fetch models: ${error.message}`);
 				},
@@ -191,26 +192,39 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
-						<FormField
-							control={form.control}
-							name="apiKey"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>API Key</FormLabel>
-									<FormControl>
-										<Input type="password" placeholder="sk-..." {...field} />
-									</FormControl>
-									<FormDescription>
-										Your API key for authentication
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{!isOllama && (
+							<FormField
+								control={form.control}
+								name="apiKey"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Key</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="sk-..."
+												autoComplete="one-time-code"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Your API key for authentication
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						{isLoadingServerModels && (
 							<span className="text-sm text-muted-foreground">
 								Loading models...
+							</span>
+						)}
+
+						{!isLoadingServerModels && !models?.length && (
+							<span className="text-sm text-muted-foreground">
+								No models available
 							</span>
 						)}
 

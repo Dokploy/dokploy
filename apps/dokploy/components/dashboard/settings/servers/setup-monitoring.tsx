@@ -35,9 +35,9 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { extractServices } from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
+import { extractServices } from "../users/add-permissions";
 
 interface Props {
 	serverId?: string;
@@ -95,11 +95,13 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 
 	const { data: projects } = api.project.all.useQuery();
 
-	const extractServicesFromProjects = (projects: any[] | undefined) => {
+	const extractServicesFromProjects = () => {
 		if (!projects) return [];
 
 		const allServices = projects.flatMap((project) => {
-			const services = extractServices(project);
+			const services = project.environments.flatMap((env) =>
+				extractServices(env),
+			);
 			return serverId
 				? services
 						.filter((service) => service.serverId === serverId)
@@ -110,7 +112,7 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 		return [...new Set(allServices)];
 	};
 
-	const services = extractServicesFromProjects(projects);
+	const services = extractServicesFromProjects();
 
 	const form = useForm<Schema>({
 		resolver: zodResolver(Schema),

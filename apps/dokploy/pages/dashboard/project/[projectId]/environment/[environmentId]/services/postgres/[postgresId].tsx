@@ -54,7 +54,7 @@ const Postgresql = (
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { postgresId, activeTab } = props;
 	const router = useRouter();
-	const { projectId } = router.query;
+	const { projectId, environmentId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
 	const { data } = api.postgres.one.useQuery({ postgresId });
 	const { data: auth } = api.user.get.useQuery();
@@ -68,18 +68,20 @@ const Postgresql = (
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.project?.name || "",
-						href: `/dashboard/project/${projectId}`,
+						name: data?.environment?.project?.name || "",
+					},
+					{
+						name: data?.environment?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/services/postgres/${postgresId}`,
 					},
 				]}
 			/>
 			<Head>
 				<title>
-					Database: {data?.name} - {data?.project.name} | Dokploy
+					Database: {data?.name} - {data?.environment?.project?.name} | Dokploy
 				</title>
 			</Head>
 			<div className="w-full">
@@ -179,9 +181,11 @@ const Postgresql = (
 									className="w-full"
 									onValueChange={(e) => {
 										setSab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/services/postgres/${postgresId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/postgres/${postgresId}?tab=${e}`;
 
-										router.push(newPath, undefined, { shallow: true });
+										router.push(newPath, undefined, {
+											shallow: true,
+										});
 									}}
 								>
 									<div className="flex flex-row items-center justify-between w-full gap-4 overflow-x-scroll">
@@ -228,7 +232,11 @@ const Postgresql = (
 												{data?.serverId && isCloud ? (
 													<ContainerPaidMonitoring
 														appName={data?.appName || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														baseUrl={`${
+															data?.serverId
+																? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}`
+																: "http://localhost:4500"
+														}`}
 														token={
 															data?.server?.metricsConfig?.server?.token || ""
 														}
@@ -284,7 +292,11 @@ Postgresql.getLayout = (page: ReactElement) => {
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ postgresId: string; activeTab: TabState }>,
+	ctx: GetServerSidePropsContext<{
+		postgresId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;

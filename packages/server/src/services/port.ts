@@ -27,6 +27,17 @@ export const createPort = async (input: typeof apiCreatePort._type) => {
 export const finPortById = async (portId: string) => {
 	const result = await db.query.ports.findFirst({
 		where: eq(ports.portId, portId),
+		with: {
+			application: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+		},
 	});
 	if (!result) {
 		throw new TRPCError({

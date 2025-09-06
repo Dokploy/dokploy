@@ -1,7 +1,7 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import copy from "copy-to-clipboard";
-import { GlobeIcon, HelpCircle, ServerOff } from "lucide-react";
+import { CircuitBoard, HelpCircle, ServerOff } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -12,27 +12,24 @@ import { useRouter } from "next/router";
 import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
-import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
-import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
-import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
-import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
-import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
-import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
-import { ShowTraefikConfig } from "@/components/dashboard/application/advanced/traefik/show-traefik-config";
+import { ShowImport } from "@/components/dashboard/application/advanced/import/show-import";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
 import { ShowDeployments } from "@/components/dashboard/application/deployments/show-deployments";
 import { ShowDomains } from "@/components/dashboard/application/domains/show-domains";
-import { ShowEnvironment } from "@/components/dashboard/application/environment/show";
-import { ShowGeneralApplication } from "@/components/dashboard/application/general/show";
-import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
-import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
+import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
-import { ShowWebhooks } from "@/components/dashboard/application/webhooks/show-webhooks";
-import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
+import { ShowWebhooks } from "@/components/dashboard/application/webhooks/show-webhooks";
+import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
+import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
-import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
-import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
+import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
+import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
+import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
+import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
+import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -63,17 +60,16 @@ type TabState =
 	| "deployments"
 	| "domains"
 	| "monitoring"
-	| "preview-deployments"
-	| "volume-backups"
+	| "volumeBackups"
 	| "webhooks";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
-	const { applicationId, activeTab } = props;
+	const { composeId, activeTab } = props;
 	const router = useRouter();
-	const { projectId } = router.query;
+	const { projectId, environmentId } = router.query;
 	const [tab, setTab] = useState<TabState>(activeTab);
 
 	useEffect(() => {
@@ -82,112 +78,111 @@ const Service = (
 		}
 	}, [router.query.tab]);
 
-	const { data } = api.application.one.useQuery(
-		{ applicationId },
-		{
-			refetchInterval: 5000,
-		},
-	);
+	const { data } = api.compose.one.useQuery({ composeId });
 
-	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<div className="pb-10">
-			<UseKeyboardNav forPage="application" />
+			<UseKeyboardNav forPage="compose" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.project?.name || "",
-						href: `/dashboard/project/${projectId}`,
+						name: data?.environment?.project?.name || "",
+					},
+					{
+						name: data?.environment?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/services/application/${applicationId}`,
 					},
 				]}
 			/>
 			<Head>
 				<title>
-					Application: {data?.name} - {data?.project.name} | Dokploy
+					Compose: {data?.name} - {data?.environment?.project?.name} | Dokploy
 				</title>
 			</Head>
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
-						<CardHeader className="flex flex-row justify-between items-center">
-							<div className="flex flex-col">
-								<CardTitle className="text-xl flex flex-row gap-2">
-									<div className="relative flex flex-row gap-4">
-										<div className="absolute -right-1 -top-2">
-											<StatusTooltip status={data?.applicationStatus} />
+						<div className="flex flex-col gap-4">
+							<CardHeader className="flex flex-row justify-between items-center">
+								<div className="flex flex-col">
+									<CardTitle className="text-xl flex flex-row gap-2">
+										<div className="relative flex flex-row gap-4">
+											<div className="absolute -right-1 -top-2">
+												<StatusTooltip status={data?.composeStatus} />
+											</div>
+
+											<CircuitBoard className="h-6 w-6 text-muted-foreground" />
 										</div>
+										{data?.name}
+									</CardTitle>
+									{data?.description && (
+										<CardDescription>{data?.description}</CardDescription>
+									)}
 
-										<GlobeIcon className="h-6 w-6 text-muted-foreground" />
-									</div>
-									{data?.name}
-								</CardTitle>
-								{data?.description && (
-									<CardDescription>{data?.description}</CardDescription>
-								)}
-
-								<span className="text-sm text-muted-foreground">
-									{data?.appName}
-								</span>
-							</div>
-							<div className="flex flex-col h-fit w-fit gap-2">
-								<div className="flex flex-row h-fit w-fit gap-2">
-									<Badge
-										className="cursor-pointer"
-										onClick={() => {
-											if (data?.server?.ipAddress) {
-												copy(data.server.ipAddress);
-												toast.success("IP Address Copied!");
-											}
-										}}
-										variant={
-											!data?.serverId
-												? "default"
-												: data?.server?.serverStatus === "active"
+									<span className="text-sm text-muted-foreground">
+										{data?.appName}
+									</span>
+								</div>
+								<div className="flex flex-col h-fit w-fit gap-2">
+									<div className="flex flex-row h-fit w-fit gap-2">
+										<Badge
+											className="cursor-pointer"
+											onClick={() => {
+												if (data?.server?.ipAddress) {
+													copy(data.server.ipAddress);
+													toast.success("IP Address Copied!");
+												}
+											}}
+											variant={
+												!data?.serverId
 													? "default"
-													: "destructive"
-										}
-									>
-										{data?.server?.name || "Dokploy Server"}
-									</Badge>
-									{data?.server?.serverStatus === "inactive" && (
-										<TooltipProvider delayDuration={0}>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<Label className="break-all w-fit flex flex-row gap-1 items-center">
-														<HelpCircle className="size-4 text-muted-foreground" />
-													</Label>
-												</TooltipTrigger>
-												<TooltipContent
-													className="z-[999] w-[300px]"
-													align="start"
-													side="top"
-												>
-													<span>
-														You cannot, deploy this application because the
-														server is inactive, please upgrade your plan to add
-														more servers.
-													</span>
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
-									)}
-								</div>
+													: data?.server?.serverStatus === "active"
+														? "default"
+														: "destructive"
+											}
+										>
+											{data?.server?.name || "Dokploy Server"}
+										</Badge>
+										{data?.server?.serverStatus === "inactive" && (
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Label className="break-all w-fit flex flex-row gap-1 items-center">
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</Label>
+													</TooltipTrigger>
+													<TooltipContent
+														className="z-[999] w-[300px]"
+														align="start"
+														side="top"
+													>
+														<span>
+															You cannot, deploy this application because the
+															server is inactive, please upgrade your plan to
+															add more servers.
+														</span>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										)}
+									</div>
+									<div className="flex flex-row gap-2 justify-end">
+										<UpdateCompose composeId={composeId} />
 
-								<div className="flex flex-row gap-2 justify-end">
-									<UpdateApplication applicationId={applicationId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
-										<DeleteService id={applicationId} type="application" />
-									)}
+										{(auth?.role === "owner" || auth?.canDeleteServices) && (
+											<DeleteService id={composeId} type="compose" />
+										)}
+									</div>
 								</div>
-							</div>
-						</CardHeader>
+							</CardHeader>
+						</div>
 						<CardContent className="space-y-2 py-8 border-t">
 							{data?.server?.serverStatus === "inactive" ? (
 								<div className="flex h-[55vh] border-2 rounded-xl border-dashed p-4">
@@ -217,24 +212,22 @@ const Service = (
 									className="w-full"
 									onValueChange={(e) => {
 										setTab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/services/application/${applicationId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/compose/${composeId}?tab=${e}`;
 										router.push(newPath);
 									}}
 								>
-									<div className="flex flex-row items-center justify-between w-full overflow-auto">
+									<div className="flex flex-row items-center w-full overflow-auto">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
-											<TabsTrigger value="preview-deployments">
-												Preview Deployments
-											</TabsTrigger>
+											<TabsTrigger value="deployments">Deployments</TabsTrigger>
+											<TabsTrigger value="backups">Backups</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
 											<TabsTrigger value="webhooks">Webhooks</TabsTrigger>
-											<TabsTrigger value="volume-backups">
+											<TabsTrigger value="volumeBackups">
 												Volume Backups
 											</TabsTrigger>
-											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
@@ -245,32 +238,58 @@ const Service = (
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowGeneralApplication applicationId={applicationId} />
+											<ShowGeneralCompose composeId={composeId} />
 										</div>
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment applicationId={applicationId} />
+											<ShowEnvironment id={composeId} type="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="backups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowBackups id={composeId} backupType="compose" />
 										</div>
 									</TabsContent>
 
+									<TabsContent value="schedules">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowSchedules id={composeId} scheduleType="compose" />
+										</div>
+									</TabsContent>
+									<TabsContent value="webhooks">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowWebhooks composeId={composeId} />
+										</div>
+									</TabsContent>
+									<TabsContent value="volumeBackups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowVolumeBackups
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+											/>
+										</div>
+									</TabsContent>
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg p-6">
+											<div className="flex flex-col border rounded-lg ">
 												{data?.serverId && isCloud ? (
-													<ContainerPaidMonitoring
-														appName={data?.appName || ""}
+													<ComposePaidMonitoring
+														serverId={data?.serverId || ""}
 														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+														appName={data?.appName || ""}
 														token={
 															data?.server?.metricsConfig?.server?.token || ""
 														}
+														appType={data?.composeType || "docker-compose"}
 													/>
 												) : (
 													<>
 														{/* {monitoring?.enabledFeatures &&
 															isCloud &&
 															data?.serverId && (
-																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
 																	<Label className="text-muted-foreground">
 																		Change Monitoring
 																	</Label>
@@ -279,22 +298,25 @@ const Service = (
 																		onCheckedChange={setToggleMonitoring}
 																	/>
 																</div>
-															)} */}
+															)}
 
-														{/* {toggleMonitoring ? (
-															<ContainerPaidMonitoring
+														{toggleMonitoring ? (
+															<ComposePaidMonitoring
 																appName={data?.appName || ""}
 																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
 																token={
 																	monitoring?.metricsConfig?.server?.token || ""
 																}
+																appType={data?.composeType || "docker-compose"}
 															/>
 														) : ( */}
-														<div>
-															<ContainerFreeMonitoring
-																appName={data?.appName || ""}
-															/>
-														</div>
+														{/* <div> */}
+														<ComposeFreeMonitoring
+															serverId={data?.serverId || ""}
+															appName={data?.appName || ""}
+															appType={data?.composeType || "docker-compose"}
+														/>
+														{/* </div> */}
 														{/* )} */}
 													</>
 												)}
@@ -304,68 +326,44 @@ const Service = (
 
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDockerLogs
-												appName={data?.appName || ""}
-												serverId={data?.serverId || ""}
-											/>
+											{data?.composeType === "docker-compose" ? (
+												<ShowDockerLogsCompose
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+													appType={data?.composeType || "docker-compose"}
+												/>
+											) : (
+												<ShowDockerLogsStack
+													serverId={data?.serverId || ""}
+													appName={data?.appName || ""}
+												/>
+											)}
 										</div>
 									</TabsContent>
-									<TabsContent value="schedules">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowSchedules
-												id={applicationId}
-												scheduleType="application"
-											/>
-										</div>
-									</TabsContent>
-									<TabsContent value="webhooks">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowWebhooks applicationId={applicationId} />
-										</div>
-									</TabsContent>
+
 									<TabsContent value="deployments" className="w-full pt-2.5">
 										<div className="flex flex-col gap-4 border rounded-lg">
 											<ShowDeployments
-												id={applicationId}
-												type="application"
+												id={composeId}
+												type="compose"
 												serverId={data?.serverId || ""}
 												refreshToken={data?.refreshToken || ""}
 											/>
 										</div>
 									</TabsContent>
-									<TabsContent value="volume-backups" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4 border rounded-lg">
-											<ShowVolumeBackups
-												id={applicationId}
-												type="application"
-												serverId={data?.serverId || ""}
-											/>
-										</div>
-									</TabsContent>
-									<TabsContent value="preview-deployments" className="w-full">
+
+									<TabsContent value="domains">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowPreviewDeployments applicationId={applicationId} />
+											<ShowDomains id={composeId} type="compose" />
 										</div>
 									</TabsContent>
-									<TabsContent value="domains" className="w-full">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains id={applicationId} type="application" />
-										</div>
-									</TabsContent>
+
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<AddCommand applicationId={applicationId} />
-											<ShowClusterSettings
-												id={applicationId}
-												type="application"
-											/>
-
-											<ShowResources id={applicationId} type="application" />
-											<ShowVolumes id={applicationId} type="application" />
-											<ShowRedirects applicationId={applicationId} />
-											<ShowSecurity applicationId={applicationId} />
-											<ShowPorts applicationId={applicationId} />
-											<ShowTraefikConfig applicationId={applicationId} />
+											<AddCommandCompose composeId={composeId} />
+											<ShowVolumes id={composeId} type="compose" />
+											<ShowImport composeId={composeId} />
+											<IsolatedDeploymentTab composeId={composeId} />
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -385,8 +383,9 @@ Service.getLayout = (page: ReactElement) => {
 
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{
-		applicationId: string;
+		composeId: string;
 		activeTab: TabState;
+		environmentId: string;
 	}>,
 ) {
 	const { query, params, req, res } = ctx;
@@ -415,19 +414,18 @@ export async function getServerSideProps(
 	});
 
 	// Valid project, if not return to initial homepage....
-	if (typeof params?.applicationId === "string") {
+	if (typeof params?.composeId === "string") {
 		try {
-			await helpers.application.one.fetch({
-				applicationId: params?.applicationId,
+			await helpers.compose.one.fetch({
+				composeId: params?.composeId,
 			});
-
 			await helpers.settings.isCloud.prefetch();
-
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
-					applicationId: params?.applicationId,
+					composeId: params?.composeId,
 					activeTab: (activeTab || "general") as TabState,
+					environmentId: params?.environmentId,
 				},
 			};
 		} catch {

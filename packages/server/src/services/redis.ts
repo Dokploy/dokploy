@@ -52,7 +52,11 @@ export const findRedisById = async (redisId: string) => {
 	const result = await db.query.redis.findFirst({
 		where: eq(redis.redisId, redisId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			mounts: true,
 			server: true,
 		},
