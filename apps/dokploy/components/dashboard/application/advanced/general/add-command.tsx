@@ -128,10 +128,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 									<FormItem>
 										<FormLabel>Pre-Deploy Hook (runs once)</FormLabel>
 										<FormControl>
-											<Input
-												placeholder="e.g. npm run db:migrate"
-												{...field}
-											/>
+											<Input placeholder="e.g. npm run db:migrate" {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -144,10 +141,7 @@ export const AddCommand = ({ applicationId }: Props) => {
 									<FormItem>
 										<FormLabel>Post-Deploy Hook (runs once)</FormLabel>
 										<FormControl>
-											<Input
-												placeholder="e.g. npm run cache:warm"
-												{...field}
-											/>
+											<Input placeholder="e.g. npm run cache:warm" {...field} />
 										</FormControl>
 										<FormMessage />
 									</FormItem>
