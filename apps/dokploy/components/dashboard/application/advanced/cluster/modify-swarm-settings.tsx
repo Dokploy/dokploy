@@ -31,7 +31,13 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -85,7 +91,9 @@ const UpdateConfigFormSchema = z.object({
 
 const ServiceModeFormSchema = z.object({
 	enabled: z.boolean().default(false),
-	mode: z.enum(["replicated", "global", "replicated-job", "global-job"]).default("replicated"),
+	mode: z
+		.enum(["replicated", "global", "replicated-job", "global-job"])
+		.default("replicated"),
 	replicas: z.number().min(0).optional(),
 	maxConcurrent: z.number().min(0).optional(),
 	totalCompletions: z.number().min(0).optional(),
@@ -93,19 +101,27 @@ const ServiceModeFormSchema = z.object({
 
 const NetworkFormSchema = z.object({
 	enabled: z.boolean().default(false),
-	networks: z.array(z.object({
-		target: z.string(),
-		aliases: z.array(z.string()).default([]),
-		driverOpts: z.record(z.string()).default({}),
-	})).default([]),
+	networks: z
+		.array(
+			z.object({
+				target: z.string(),
+				aliases: z.array(z.string()).default([]),
+				driverOpts: z.record(z.string()).default({}),
+			}),
+		)
+		.default([]),
 });
 
 const LabelFormSchema = z.object({
 	enabled: z.boolean().default(false),
-	labels: z.array(z.object({
-		key: z.string(),
-		value: z.string(),
-	})).default([]),
+	labels: z
+		.array(
+			z.object({
+				key: z.string(),
+				value: z.string(),
+			}),
+		)
+		.default([]),
 });
 
 const SwarmSettingsFormSchema = z.object({
@@ -137,9 +153,7 @@ const HealthCheckForm = ({ form }: { form: any }) => {
 		<div className="space-y-4">
 			<div>
 				<FormLabel>Test Commands</FormLabel>
-				<FormDescription>
-					Commands to run for health checking
-				</FormDescription>
+				<FormDescription>Commands to run for health checking</FormDescription>
 				<div className="space-y-2 mt-2">
 					{fields.map((field, index) => (
 						<div key={field.id} className="flex gap-2">
@@ -149,7 +163,10 @@ const HealthCheckForm = ({ form }: { form: any }) => {
 								render={({ field }) => (
 									<FormItem className="flex-1">
 										<FormControl>
-											<Input placeholder="e.g., CMD-SHELL, curl -f http://localhost:3000/health" {...field} />
+											<Input
+												placeholder="e.g., CMD-SHELL, curl -f http://localhost:3000/health"
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -184,79 +201,95 @@ const HealthCheckForm = ({ form }: { form: any }) => {
 					render={({ field }) => (
 						<FormItem>
 							<FormLabel>Interval (ms)</FormLabel>
-											<FormControl>
-												<Input
-													type="number"
-													placeholder="10000"
-													{...field}
-													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10000"
+									{...field}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
 
-								<FormField
-									control={form.control}
-									name="healthCheck.timeout"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Timeout (ms)</FormLabel>
-											<FormControl>
-												<Input
-													type="number"
-													placeholder="10000"
-													{...field}
-													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
+				<FormField
+					control={form.control}
+					name="healthCheck.timeout"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Timeout (ms)</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10000"
+									{...field}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
 
-								<FormField
-									control={form.control}
-									name="healthCheck.startPeriod"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Start Period (ms)</FormLabel>
-											<FormControl>
-												<Input
-													type="number"
-													placeholder="10000"
-													{...field}
-													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
+				<FormField
+					control={form.control}
+					name="healthCheck.startPeriod"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Start Period (ms)</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10000"
+									{...field}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
 
-								<FormField
-									control={form.control}
-									name="healthCheck.retries"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Retries</FormLabel>
-											<FormControl>
-												<Input
-													type="number"
-													placeholder="10"
-													{...field}
-													onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
+				<FormField
+					control={form.control}
+					name="healthCheck.retries"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Retries</FormLabel>
+							<FormControl>
+								<Input
+									type="number"
+									placeholder="10"
+									{...field}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
-							</div>
-						</div>
-					);
-				};
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+			</div>
+		</div>
+	);
+};
 
 const RestartPolicyForm = ({ form }: { form: any }) => {
 	return (
@@ -296,7 +329,11 @@ const RestartPolicyForm = ({ form }: { form: any }) => {
 									type="number"
 									placeholder="10000"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -315,7 +352,11 @@ const RestartPolicyForm = ({ form }: { form: any }) => {
 									type="number"
 									placeholder="10"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -334,7 +375,11 @@ const RestartPolicyForm = ({ form }: { form: any }) => {
 									type="number"
 									placeholder="10000"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -348,7 +393,7 @@ const RestartPolicyForm = ({ form }: { form: any }) => {
 
 const ServiceModeForm = ({ form }: { form: any }) => {
 	const mode = form.watch("mode.mode");
-	
+
 	return (
 		<div className="space-y-4">
 			<FormField
@@ -406,7 +451,11 @@ const ServiceModeForm = ({ form }: { form: any }) => {
 									type="number"
 									placeholder="1"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -428,7 +477,11 @@ const ServiceModeForm = ({ form }: { form: any }) => {
 										type="number"
 										placeholder="1"
 										{...field}
-										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										onChange={(e) =>
+											field.onChange(
+												e.target.value ? Number(e.target.value) : undefined,
+											)
+										}
 									/>
 								</FormControl>
 								<FormMessage />
@@ -447,7 +500,11 @@ const ServiceModeForm = ({ form }: { form: any }) => {
 										type="number"
 										placeholder="1"
 										{...field}
-										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										onChange={(e) =>
+											field.onChange(
+												e.target.value ? Number(e.target.value) : undefined,
+											)
+										}
 									/>
 								</FormControl>
 								<FormMessage />
@@ -461,17 +518,29 @@ const ServiceModeForm = ({ form }: { form: any }) => {
 };
 
 const PlacementForm = ({ form }: { form: any }) => {
-	const { fields: constraintFields, append: appendConstraint, remove: removeConstraint } = useFieldArray({
+	const {
+		fields: constraintFields,
+		append: appendConstraint,
+		remove: removeConstraint,
+	} = useFieldArray({
 		control: form.control,
 		name: "placement.constraints",
 	});
 
-	const { fields: preferenceFields, append: appendPreference, remove: removePreference } = useFieldArray({
+	const {
+		fields: preferenceFields,
+		append: appendPreference,
+		remove: removePreference,
+	} = useFieldArray({
 		control: form.control,
 		name: "placement.preferences",
 	});
 
-	const { fields: platformFields, append: appendPlatform, remove: removePlatform } = useFieldArray({
+	const {
+		fields: platformFields,
+		append: appendPlatform,
+		remove: removePlatform,
+	} = useFieldArray({
 		control: form.control,
 		name: "placement.platforms",
 	});
@@ -480,9 +549,7 @@ const PlacementForm = ({ form }: { form: any }) => {
 		<div className="space-y-4">
 			<div>
 				<FormLabel>Constraints</FormLabel>
-				<FormDescription>
-					Placement constraints for the service
-				</FormDescription>
+				<FormDescription>Placement constraints for the service</FormDescription>
 				<div className="space-y-2 mt-2">
 					{constraintFields.map((field, index) => (
 						<div key={field.id} className="flex gap-2">
@@ -492,7 +559,10 @@ const PlacementForm = ({ form }: { form: any }) => {
 								render={({ field }) => (
 									<FormItem className="flex-1">
 										<FormControl>
-											<Input placeholder="e.g., node.role==manager" {...field} />
+											<Input
+												placeholder="e.g., node.role==manager"
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -522,9 +592,7 @@ const PlacementForm = ({ form }: { form: any }) => {
 
 			<div>
 				<FormLabel>Preferences</FormLabel>
-				<FormDescription>
-					Placement preferences for the service
-				</FormDescription>
+				<FormDescription>Placement preferences for the service</FormDescription>
 				<div className="space-y-2 mt-2">
 					{preferenceFields.map((field, index) => (
 						<div key={field.id} className="flex gap-2">
@@ -534,7 +602,10 @@ const PlacementForm = ({ form }: { form: any }) => {
 								render={({ field }) => (
 									<FormItem className="flex-1">
 										<FormControl>
-											<Input placeholder="e.g., node.labels.region" {...field} />
+											<Input
+												placeholder="e.g., node.labels.region"
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -574,7 +645,11 @@ const PlacementForm = ({ form }: { form: any }) => {
 									type="number"
 									placeholder="10"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -585,9 +660,7 @@ const PlacementForm = ({ form }: { form: any }) => {
 
 			<div>
 				<FormLabel>Platforms</FormLabel>
-				<FormDescription>
-					Platform constraints for the service
-				</FormDescription>
+				<FormDescription>Platform constraints for the service</FormDescription>
 				<div className="space-y-2 mt-2">
 					{platformFields.map((field, index) => (
 						<div key={field.id} className="flex gap-2">
@@ -655,7 +728,11 @@ const UpdateConfigForm = ({ form, name }: { form: any; name: string }) => {
 									type="number"
 									placeholder="1"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -696,7 +773,11 @@ const UpdateConfigForm = ({ form, name }: { form: any; name: string }) => {
 									type="number"
 									placeholder="10000"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -738,7 +819,11 @@ const UpdateConfigForm = ({ form, name }: { form: any; name: string }) => {
 									type="number"
 									placeholder="10000"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -760,7 +845,11 @@ const UpdateConfigForm = ({ form, name }: { form: any; name: string }) => {
 									max="1"
 									placeholder="0.1"
 									{...field}
-									onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									onChange={(e) =>
+										field.onChange(
+											e.target.value ? Number(e.target.value) : undefined,
+										)
+									}
 								/>
 							</FormControl>
 							<FormMessage />
@@ -848,7 +937,13 @@ const NetworkForm = ({ form }: { form: any }) => {
 	);
 };
 
-const NetworkAliasesForm = ({ form, networkIndex }: { form: any; networkIndex: number }) => {
+const NetworkAliasesForm = ({
+	form,
+	networkIndex,
+}: {
+	form: any;
+	networkIndex: number;
+}) => {
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
 		name: `network.networks.${networkIndex}.aliases`,
@@ -893,7 +988,13 @@ const NetworkAliasesForm = ({ form, networkIndex }: { form: any; networkIndex: n
 	);
 };
 
-const NetworkDriverOptsForm = ({ form, networkIndex }: { form: any; networkIndex: number }) => {
+const NetworkDriverOptsForm = ({
+	form,
+	networkIndex,
+}: {
+	form: any;
+	networkIndex: number;
+}) => {
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
 		name: `network.networks.${networkIndex}.driverOpts`,
@@ -909,7 +1010,10 @@ const NetworkDriverOptsForm = ({ form, networkIndex }: { form: any; networkIndex
 						render={({ field }) => (
 							<FormItem className="flex-1">
 								<FormControl>
-									<Input placeholder="e.g., com.docker.network.driver.mtu" {...field} />
+									<Input
+										placeholder="e.g., com.docker.network.driver.mtu"
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -960,9 +1064,7 @@ const LabelsForm = ({ form }: { form: any }) => {
 		<div className="space-y-4">
 			<div>
 				<FormLabel>Service Labels</FormLabel>
-				<FormDescription>
-					Configure labels for the service
-				</FormDescription>
+				<FormDescription>Configure labels for the service</FormDescription>
 				<div className="space-y-2 mt-2">
 					{fields.map((field, index) => (
 						<div key={field.id} className="flex gap-2">
@@ -972,7 +1074,10 @@ const LabelsForm = ({ form }: { form: any }) => {
 								render={({ field }) => (
 									<FormItem className="flex-1">
 										<FormControl>
-											<Input placeholder="e.g., com.example.app.name" {...field} />
+											<Input
+												placeholder="e.g., com.example.app.name"
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -1113,38 +1218,58 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		if (formData.healthCheck.enabled && formData.healthCheck.test.length > 0) {
 			result.healthCheckSwarm = {
 				Test: formData.healthCheck.test,
-				...(formData.healthCheck.interval && { Interval: formData.healthCheck.interval }),
-				...(formData.healthCheck.timeout && { Timeout: formData.healthCheck.timeout }),
-				...(formData.healthCheck.startPeriod && { StartPeriod: formData.healthCheck.startPeriod }),
-				...(formData.healthCheck.retries && { Retries: formData.healthCheck.retries }),
+				...(formData.healthCheck.interval && {
+					Interval: formData.healthCheck.interval,
+				}),
+				...(formData.healthCheck.timeout && {
+					Timeout: formData.healthCheck.timeout,
+				}),
+				...(formData.healthCheck.startPeriod && {
+					StartPeriod: formData.healthCheck.startPeriod,
+				}),
+				...(formData.healthCheck.retries && {
+					Retries: formData.healthCheck.retries,
+				}),
 			};
 		}
 
 		// Restart Policy
 		if (formData.restartPolicy.enabled) {
 			result.restartPolicySwarm = {
-				...(formData.restartPolicy.condition && { Condition: formData.restartPolicy.condition }),
-				...(formData.restartPolicy.delay && { Delay: formData.restartPolicy.delay }),
-				...(formData.restartPolicy.maxAttempts && { MaxAttempts: formData.restartPolicy.maxAttempts }),
-				...(formData.restartPolicy.window && { Window: formData.restartPolicy.window }),
+				...(formData.restartPolicy.condition && {
+					Condition: formData.restartPolicy.condition,
+				}),
+				...(formData.restartPolicy.delay && {
+					Delay: formData.restartPolicy.delay,
+				}),
+				...(formData.restartPolicy.maxAttempts && {
+					MaxAttempts: formData.restartPolicy.maxAttempts,
+				}),
+				...(formData.restartPolicy.window && {
+					Window: formData.restartPolicy.window,
+				}),
 			};
 		}
 
 		// Placement
 		if (formData.placement.enabled) {
 			result.placementSwarm = {
-				...(formData.placement.constraints.length > 0 && { Constraints: formData.placement.constraints }),
-				...(formData.placement.preferences.length > 0 && { 
-					Preferences: formData.placement.preferences.map(p => ({
-						Spread: { SpreadDescriptor: p.spreadDescriptor }
-					}))
+				...(formData.placement.constraints.length > 0 && {
+					Constraints: formData.placement.constraints,
 				}),
-				...(formData.placement.maxReplicas && { MaxReplicas: formData.placement.maxReplicas }),
-				...(formData.placement.platforms.length > 0 && { 
-					Platforms: formData.placement.platforms.map(p => ({
+				...(formData.placement.preferences.length > 0 && {
+					Preferences: formData.placement.preferences.map((p) => ({
+						Spread: { SpreadDescriptor: p.spreadDescriptor },
+					})),
+				}),
+				...(formData.placement.maxReplicas && {
+					MaxReplicas: formData.placement.maxReplicas,
+				}),
+				...(formData.placement.platforms.length > 0 && {
+					Platforms: formData.placement.platforms.map((p) => ({
 						Architecture: p.architecture,
-						OS: p.os
-					}))
+						OS: p.os,
+					})),
 				}),
 			};
 		}
@@ -1153,10 +1278,18 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		if (formData.updateConfig.enabled) {
 			result.updateConfigSwarm = {
 				Parallelism: formData.updateConfig.parallelism,
-				...(formData.updateConfig.delay && { Delay: formData.updateConfig.delay }),
-				...(formData.updateConfig.failureAction && { FailureAction: formData.updateConfig.failureAction }),
-				...(formData.updateConfig.monitor && { Monitor: formData.updateConfig.monitor }),
-				...(formData.updateConfig.maxFailureRatio && { MaxFailureRatio: formData.updateConfig.maxFailureRatio }),
+				...(formData.updateConfig.delay && {
+					Delay: formData.updateConfig.delay,
+				}),
+				...(formData.updateConfig.failureAction && {
+					FailureAction: formData.updateConfig.failureAction,
+				}),
+				...(formData.updateConfig.monitor && {
+					Monitor: formData.updateConfig.monitor,
+				}),
+				...(formData.updateConfig.maxFailureRatio && {
+					MaxFailureRatio: formData.updateConfig.maxFailureRatio,
+				}),
 				Order: formData.updateConfig.order,
 			};
 		}
@@ -1165,10 +1298,18 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		if (formData.rollbackConfig.enabled) {
 			result.rollbackConfigSwarm = {
 				Parallelism: formData.rollbackConfig.parallelism,
-				...(formData.rollbackConfig.delay && { Delay: formData.rollbackConfig.delay }),
-				...(formData.rollbackConfig.failureAction && { FailureAction: formData.rollbackConfig.failureAction }),
-				...(formData.rollbackConfig.monitor && { Monitor: formData.rollbackConfig.monitor }),
-				...(formData.rollbackConfig.maxFailureRatio && { MaxFailureRatio: formData.rollbackConfig.maxFailureRatio }),
+				...(formData.rollbackConfig.delay && {
+					Delay: formData.rollbackConfig.delay,
+				}),
+				...(formData.rollbackConfig.failureAction && {
+					FailureAction: formData.rollbackConfig.failureAction,
+				}),
+				...(formData.rollbackConfig.monitor && {
+					Monitor: formData.rollbackConfig.monitor,
+				}),
+				...(formData.rollbackConfig.maxFailureRatio && {
+					MaxFailureRatio: formData.rollbackConfig.maxFailureRatio,
+				}),
 				Order: formData.rollbackConfig.order,
 			};
 		}
@@ -1182,8 +1323,12 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				modeConfig.Global = {};
 			} else if (formData.mode.mode === "replicated-job") {
 				modeConfig.ReplicatedJob = {
-					...(formData.mode.maxConcurrent && { MaxConcurrent: formData.mode.maxConcurrent }),
-					...(formData.mode.totalCompletions && { TotalCompletions: formData.mode.totalCompletions }),
+					...(formData.mode.maxConcurrent && {
+						MaxConcurrent: formData.mode.maxConcurrent,
+					}),
+					...(formData.mode.totalCompletions && {
+						TotalCompletions: formData.mode.totalCompletions,
+					}),
 				};
 			} else if (formData.mode.mode === "global-job") {
 				modeConfig.GlobalJob = {};
@@ -1193,21 +1338,26 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 
 		// Network
 		if (formData.network.enabled && formData.network.networks.length > 0) {
-			result.networkSwarm = formData.network.networks.map(network => ({
+			result.networkSwarm = formData.network.networks.map((network) => ({
 				...(network.target && { Target: network.target }),
 				...(network.aliases.length > 0 && { Aliases: network.aliases }),
-				...(Object.keys(network.driverOpts).length > 0 && { DriverOpts: network.driverOpts }),
+				...(Object.keys(network.driverOpts).length > 0 && {
+					DriverOpts: network.driverOpts,
+				}),
 			}));
 		}
 
 		// Labels
 		if (formData.labels.enabled && formData.labels.labels.length > 0) {
-			result.labelsSwarm = formData.labels.labels.reduce((acc, label) => {
-				if (label.key && label.value) {
-					acc[label.key] = label.value;
-				}
-				return acc;
-			}, {} as Record<string, string>);
+			result.labelsSwarm = formData.labels.labels.reduce(
+				(acc, label) => {
+					if (label.key && label.value) {
+						acc[label.key] = label.value;
+					}
+					return acc;
+				},
+				{} as Record<string, string>,
+			);
 		}
 
 		return result;
@@ -1234,14 +1384,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			placement: {
 				enabled: !!apiData.placementSwarm,
 				constraints: apiData.placementSwarm?.Constraints || [],
-				preferences: apiData.placementSwarm?.Preferences?.map((p: any) => ({
-					spreadDescriptor: p.Spread?.SpreadDescriptor || ""
-				})) || [],
+				preferences:
+					apiData.placementSwarm?.Preferences?.map((p: any) => ({
+						spreadDescriptor: p.Spread?.SpreadDescriptor || "",
+					})) || [],
 				maxReplicas: apiData.placementSwarm?.MaxReplicas,
-				platforms: apiData.placementSwarm?.Platforms?.map((p: any) => ({
-					architecture: p.Architecture || "",
-					os: p.OS || ""
-				})) || [],
+				platforms:
+					apiData.placementSwarm?.Platforms?.map((p: any) => ({
+						architecture: p.Architecture || "",
+						os: p.OS || "",
+					})) || [],
 			},
 			updateConfig: {
 				enabled: !!apiData.updateConfigSwarm,
@@ -1263,28 +1415,37 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			},
 			mode: {
 				enabled: !!apiData.modeSwarm,
-				mode: apiData.modeSwarm?.Replicated ? "replicated" :
-					  apiData.modeSwarm?.Global ? "global" :
-					  apiData.modeSwarm?.ReplicatedJob ? "replicated-job" :
-					  apiData.modeSwarm?.GlobalJob ? "global-job" : "replicated",
+				mode: apiData.modeSwarm?.Replicated
+					? "replicated"
+					: apiData.modeSwarm?.Global
+						? "global"
+						: apiData.modeSwarm?.ReplicatedJob
+							? "replicated-job"
+							: apiData.modeSwarm?.GlobalJob
+								? "global-job"
+								: "replicated",
 				replicas: apiData.modeSwarm?.Replicated?.Replicas,
 				maxConcurrent: apiData.modeSwarm?.ReplicatedJob?.MaxConcurrent,
 				totalCompletions: apiData.modeSwarm?.ReplicatedJob?.TotalCompletions,
 			},
 			network: {
 				enabled: !!apiData.networkSwarm && apiData.networkSwarm.length > 0,
-				networks: apiData.networkSwarm?.map((n: any) => ({
-					target: n.Target || "",
-					aliases: n.Aliases || [],
-					driverOpts: n.DriverOpts || {},
-				})) || [],
+				networks:
+					apiData.networkSwarm?.map((n: any) => ({
+						target: n.Target || "",
+						aliases: n.Aliases || [],
+						driverOpts: n.DriverOpts || {},
+					})) || [],
 			},
 			labels: {
-				enabled: !!apiData.labelsSwarm && Object.keys(apiData.labelsSwarm).length > 0,
-				labels: apiData.labelsSwarm ? Object.entries(apiData.labelsSwarm).map(([key, value]) => ({
-					key,
-					value: value as string
-				})) : [],
+				enabled:
+					!!apiData.labelsSwarm && Object.keys(apiData.labelsSwarm).length > 0,
+				labels: apiData.labelsSwarm
+					? Object.entries(apiData.labelsSwarm).map(([key, value]) => ({
+							key,
+							value: value as string,
+						}))
+					: [],
 			},
 		};
 	};
@@ -1298,7 +1459,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 
 	const onSubmit = async (formData: SwarmSettingsForm) => {
 		const apiData = convertFormToApiFormat(formData);
-		
+
 		await mutateAsync({
 			applicationId: id || "",
 			postgresId: id || "",
@@ -1328,7 +1489,8 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
-						Configure Docker Swarm settings using organized tabs and intuitive form fields.
+						Configure Docker Swarm settings using organized tabs and intuitive
+						form fields.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -1351,7 +1513,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								<TabsTrigger value="restart-policy">Restart Policy</TabsTrigger>
 								<TabsTrigger value="placement">Placement</TabsTrigger>
 								<TabsTrigger value="update-config">Update Config</TabsTrigger>
-								<TabsTrigger value="rollback-config">Rollback Config</TabsTrigger>
+								<TabsTrigger value="rollback-config">
+									Rollback Config
+								</TabsTrigger>
 								<TabsTrigger value="mode">Service Mode</TabsTrigger>
 								<TabsTrigger value="network">Network</TabsTrigger>
 								<TabsTrigger value="labels">Labels</TabsTrigger>
@@ -1360,17 +1524,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="health-check" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="healthCheck.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Health Check
@@ -1379,9 +1543,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure health check settings for the service
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("healthCheck.enabled") && (
@@ -1395,17 +1559,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="restart-policy" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="restartPolicy.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Restart Policy
@@ -1414,9 +1578,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure restart policy for the service
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("restartPolicy.enabled") && (
@@ -1430,17 +1594,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="placement" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="placement.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Placement
@@ -1449,9 +1613,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure placement constraints and preferences
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("placement.enabled") && (
@@ -1465,17 +1629,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="update-config" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="updateConfig.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Update Config
@@ -1484,9 +1648,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure update settings for the service
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("updateConfig.enabled") && (
@@ -1500,17 +1664,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="rollback-config" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="rollbackConfig.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Rollback Config
@@ -1519,9 +1683,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure rollback settings for the service
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("rollbackConfig.enabled") && (
@@ -1535,17 +1699,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="mode" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="mode.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Service Mode
@@ -1554,9 +1718,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure service mode and scaling settings
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("mode.enabled") && (
@@ -1570,17 +1734,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="network" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="network.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Network
@@ -1589,9 +1753,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure network settings for the service
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("network.enabled") && (
@@ -1605,17 +1769,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							<TabsContent value="labels" className="space-y-4">
 								<div className="space-y-4 p-4 border rounded-lg">
 									<div className="flex items-center space-x-2">
-						<FormField
-							control={form.control}
+										<FormField
+											control={form.control}
 											name="labels.enabled"
-							render={({ field }) => (
+											render={({ field }) => (
 												<FormItem className="flex flex-row items-center space-x-3 space-y-0">
-									<FormControl>
+													<FormControl>
 														<Checkbox
 															checked={field.value}
 															onCheckedChange={field.onChange}
-										/>
-									</FormControl>
+														/>
+													</FormControl>
 													<div className="space-y-1 leading-none">
 														<FormLabel className="text-base font-medium">
 															Labels
@@ -1624,9 +1788,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 															Configure labels for the service
 														</FormDescription>
 													</div>
-								</FormItem>
-							)}
-						/>
+												</FormItem>
+											)}
+										/>
 									</div>
 
 									{form.watch("labels.enabled") && (
