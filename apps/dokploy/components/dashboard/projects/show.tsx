@@ -96,22 +96,8 @@ export const ShowProjects = () => {
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
 				case "services": {
-					const aTotalServices =
-						a.mariadb.length +
-						a.mongo.length +
-						a.mysql.length +
-						a.postgres.length +
-						a.redis.length +
-						a.applications.length +
-						a.compose.length;
-					const bTotalServices =
-						b.mariadb.length +
-						b.mongo.length +
-						b.mysql.length +
-						b.postgres.length +
-						b.redis.length +
-						b.applications.length +
-						b.compose.length;
+					const aTotalServices = a.environments.length;
+					const bTotalServices = b.environments.length;
 					comparison = aTotalServices - bTotalServices;
 					break;
 				}
@@ -201,23 +187,40 @@ export const ShowProjects = () => {
 									)}
 									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
-											const emptyServices =
-												project?.mariadb.length === 0 &&
-												project?.mongo.length === 0 &&
-												project?.mysql.length === 0 &&
-												project?.postgres.length === 0 &&
-												project?.redis.length === 0 &&
-												project?.applications.length === 0 &&
-												project?.compose.length === 0;
+											const emptyServices = project?.environments
+												.map(
+													(env) =>
+														env.applications.length === 0 &&
+														env.mariadb.length === 0 &&
+														env.mongo.length === 0 &&
+														env.mysql.length === 0 &&
+														env.postgres.length === 0 &&
+														env.redis.length === 0 &&
+														env.applications.length === 0 &&
+														env.compose.length === 0,
+												)
+												.every(Boolean);
 
-											const totalServices =
-												project?.mariadb.length +
-												project?.mongo.length +
-												project?.mysql.length +
-												project?.postgres.length +
-												project?.redis.length +
-												project?.applications.length +
-												project?.compose.length;
+											const totalServices = project?.environments
+												.map(
+													(env) =>
+														env.mariadb.length +
+														env.mongo.length +
+														env.mysql.length +
+														env.postgres.length +
+														env.redis.length +
+														env.applications.length +
+														env.compose.length,
+												)
+												.reduce((acc, curr) => acc + curr, 0);
+
+											const haveServicesWithDomains = project?.environments
+												.map(
+													(env) =>
+														env.applications.length > 0 ||
+														env.compose.length > 0,
+												)
+												.some(Boolean);
 
 											return (
 												<div
@@ -225,11 +228,10 @@ export const ShowProjects = () => {
 													className="w-full lg:max-w-md"
 												>
 													<Link
-														href={`/dashboard/project/${project.projectId}`}
+														href={`/dashboard/project/${project.projectId}/environment/${project?.environments?.[0]?.environmentId}`}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
-															{project.applications.length > 0 ||
-															project.compose.length > 0 ? (
+															{haveServicesWithDomains ? (
 																<DropdownMenu>
 																	<DropdownMenuTrigger asChild>
 																		<Button
@@ -244,44 +246,51 @@ export const ShowProjects = () => {
 																		className="w-[200px] space-y-2 overflow-y-auto max-h-[400px]"
 																		onClick={(e) => e.stopPropagation()}
 																	>
-																		{project.applications.length > 0 && (
+																		{project.environments.some(
+																			(env) => env.applications.length > 0,
+																		) && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
 																					Applications
 																				</DropdownMenuLabel>
-																				{project.applications.map((app) => (
-																					<div key={app.applicationId}>
-																						<DropdownMenuSeparator />
-																						<DropdownMenuGroup>
-																							<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																								{app.name}
-																								<StatusTooltip
-																									status={app.applicationStatus}
-																								/>
-																							</DropdownMenuLabel>
+																				{project.environments.map((env) =>
+																					env.applications.map((app) => (
+																						<div key={app.applicationId}>
 																							<DropdownMenuSeparator />
-																							{app.domains.map((domain) => (
-																								<DropdownMenuItem
-																									key={domain.domainId}
-																									asChild
-																								>
-																									<Link
-																										className="space-x-4 text-xs cursor-pointer justify-between"
-																										target="_blank"
-																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																							<DropdownMenuGroup>
+																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
+																									{app.name}
+																									<StatusTooltip
+																										status={
+																											app.applicationStatus
+																										}
+																									/>
+																								</DropdownMenuLabel>
+																								<DropdownMenuSeparator />
+																								{app.domains.map((domain) => (
+																									<DropdownMenuItem
+																										key={domain.domainId}
+																										asChild
 																									>
-																										<span className="truncate">
-																											{domain.host}
-																										</span>
-																										<ExternalLinkIcon className="size-4 shrink-0" />
-																									</Link>
-																								</DropdownMenuItem>
-																							))}
-																						</DropdownMenuGroup>
-																					</div>
-																				))}
+																										<Link
+																											className="space-x-4 text-xs cursor-pointer justify-between"
+																											target="_blank"
+																											href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																										>
+																											<span className="truncate">
+																												{domain.host}
+																											</span>
+																											<ExternalLinkIcon className="size-4 shrink-0" />
+																										</Link>
+																									</DropdownMenuItem>
+																								))}
+																							</DropdownMenuGroup>
+																						</div>
+																					)),
+																				)}
 																			</DropdownMenuGroup>
 																		)}
+																		{/* 
 																		{project.compose.length > 0 && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
@@ -319,7 +328,7 @@ export const ShowProjects = () => {
 																					</div>
 																				))}
 																			</DropdownMenuGroup>
-																		)}
+																		)} */}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															) : null}

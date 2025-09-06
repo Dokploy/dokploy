@@ -8,6 +8,7 @@ export * from "./compose";
 export * from "./deployment";
 export * from "./destination";
 export * from "./domain";
+export * from "./environment";
 export * from "./git-provider";
 export * from "./gitea";
 export * from "./github";

@@ -105,7 +105,11 @@ export const findApplicationById = async (applicationId: string) => {
 	const application = await db.query.applications.findFirst({
 		where: eq(applications.applicationId, applicationId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			domains: true,
 			deployments: true,
 			mounts: true,
@@ -180,7 +184,7 @@ export const deployApplication = async ({
 }) => {
 	const application = await findApplicationById(applicationId);
 
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -227,11 +231,11 @@ export const deployApplication = async ({
 		}
 
 		await sendBuildSuccessNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
 		});
 	} catch (error) {
@@ -239,13 +243,13 @@ export const deployApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 
 		await sendBuildErrorNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 		});
 
 		throw error;
@@ -307,7 +311,7 @@ export const deployRemoteApplication = async ({
 }) => {
 	const application = await findApplicationById(applicationId);
 
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.projectId}/services/application/${application.applicationId}?tab=deployments`;
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
 		applicationId: applicationId,
 		title: titleLog,
@@ -363,11 +367,11 @@ export const deployRemoteApplication = async ({
 		}
 
 		await sendBuildSuccessNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
 		});
 	} catch (error) {
@@ -387,12 +391,12 @@ export const deployRemoteApplication = async ({
 		await updateApplicationStatus(applicationId, "error");
 
 		await sendBuildErrorNotifications({
-			projectName: application.project.name,
+			projectName: application.environment.project.name,
 			applicationName: application.name,
 			applicationType: "application",
 			errorMessage: `Please check the logs for details: ${errorMessage}`,
 			buildLink,
-			organizationId: application.project.organizationId,
+			organizationId: application.environment.project.organizationId,
 		});
 
 		throw error;
