@@ -44,7 +44,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import {
 	Select,
 	SelectContent,
@@ -144,12 +144,13 @@ export const ShowProjects = () => {
 								<>
 									<div className="flex max-sm:flex-col gap-4 items-center w-full">
 										<div className="flex-1 relative max-sm:w-full">
-											<Input
+											<FocusShortcutInput
 												placeholder="Filter projects..."
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
 												className="pr-10"
 											/>
+
 											<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 										</div>
 										<div className="flex items-center gap-2 min-w-48 max-sm:w-full">

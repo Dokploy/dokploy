@@ -80,7 +80,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
@@ -96,6 +95,7 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 
 export type Services = {
 	appName: string;
@@ -1197,7 +1197,7 @@ const EnvironmentPage = (
 
 									<div className="flex flex-col gap-2 lg:flex-row lg:gap-4 lg:items-center">
 										<div className="w-full relative">
-											<Input
+											<FocusShortcutInput
 												placeholder="Filter services..."
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
