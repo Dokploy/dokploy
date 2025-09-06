@@ -80,7 +80,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write("Zipped database and filesystem\n");
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
-			writeStream.write(`Running command: ${uploadCommand}\n`);
+			writeStream.write("Running command to upload backup to S3\n");
 			await execAsync(uploadCommand);
 			writeStream.write("Uploaded backup to S3 ✅\n");
 			writeStream.end();

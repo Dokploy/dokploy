@@ -14,14 +14,14 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
+import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
+import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
+import { UpdateMariadb } from "@/components/dashboard/mariadb/update-mariadb";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
-import { ShowExternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-external-postgres-credentials";
-import { ShowGeneralPostgres } from "@/components/dashboard/postgres/general/show-general-postgres";
-import { ShowInternalPostgresCredentials } from "@/components/dashboard/postgres/general/show-internal-postgres-credentials";
-import { UpdatePostgres } from "@/components/dashboard/postgres/update-postgres";
 import { ShowDatabaseAdvancedSettings } from "@/components/dashboard/shared/show-database-advanced-settings";
-import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
+import { MariadbIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -48,41 +48,45 @@ import { api } from "@/utils/api";
 
 type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
 
-const Postgresql = (
+const Mariadb = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
 ) => {
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
-	const { postgresId, activeTab } = props;
+
+	const { mariadbId, activeTab } = props;
 	const router = useRouter();
-	const { projectId } = router.query;
+	const { projectId, environmentId } = router.query;
 	const [tab, setSab] = useState<TabState>(activeTab);
-	const { data } = api.postgres.one.useQuery({ postgresId });
+	const { data } = api.mariadb.one.useQuery({ mariadbId });
 	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	return (
 		<div className="pb-10">
-			<UseKeyboardNav forPage="postgres" />
+			<UseKeyboardNav forPage="mariadb" />
 			<BreadcrumbSidebar
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.project?.name || "",
-						href: `/dashboard/project/${projectId}`,
+						name: data?.environment?.project?.name || "",
+					},
+					{
+						name: data?.environment?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.name || "",
-						href: `/dashboard/project/${projectId}/services/postgres/${postgresId}`,
 					},
 				]}
 			/>
-			<Head>
-				<title>
-					Database: {data?.name} - {data?.project.name} | Dokploy
-				</title>
-			</Head>
-			<div className="w-full">
+			<div className="flex flex-col gap-4">
+				<Head>
+					<title>
+						Database: {data?.name} - {data?.environment?.project?.name} |
+						Dokploy
+					</title>
+				</Head>
 				<Card className="h-full bg-sidebar  p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<CardHeader className="flex flex-row justify-between items-center">
@@ -93,7 +97,7 @@ const Postgresql = (
 											<StatusTooltip status={data?.applicationStatus} />
 										</div>
 
-										<PostgresqlIcon className="h-6 w-6 text-muted-foreground" />
+										<MariadbIcon className="h-6 w-6 text-muted-foreground" />
 									</div>
 									{data?.name}
 								</CardTitle>
@@ -141,11 +145,10 @@ const Postgresql = (
 										</TooltipProvider>
 									)}
 								</div>
-
 								<div className="flex flex-row gap-2 justify-end">
-									<UpdatePostgres postgresId={postgresId} />
+									<UpdateMariadb mariadbId={mariadbId} />
 									{(auth?.role === "owner" || auth?.canDeleteServices) && (
-										<DeleteService id={postgresId} type="postgres" />
+										<DeleteService id={mariadbId} type="mariadb" />
 									)}
 								</div>
 							</div>
@@ -179,7 +182,7 @@ const Postgresql = (
 									className="w-full"
 									onValueChange={(e) => {
 										setSab(e as TabState);
-										const newPath = `/dashboard/project/${projectId}/services/postgres/${postgresId}?tab=${e}`;
+										const newPath = `/dashboard/project/${projectId}/environment/${environmentId}/services/mariadb/${mariadbId}?tab=${e}`;
 
 										router.push(newPath, undefined, { shallow: true });
 									}}
@@ -208,18 +211,14 @@ const Postgresql = (
 
 									<TabsContent value="general">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowGeneralPostgres postgresId={postgresId} />
-											<ShowInternalPostgresCredentials
-												postgresId={postgresId}
-											/>
-											<ShowExternalPostgresCredentials
-												postgresId={postgresId}
-											/>
+											<ShowGeneralMariadb mariadbId={mariadbId} />
+											<ShowInternalMariadbCredentials mariadbId={mariadbId} />
+											<ShowExternalMariadbCredentials mariadbId={mariadbId} />
 										</div>
 									</TabsContent>
 									<TabsContent value="environment">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment id={postgresId} type="postgres" />
+											<ShowEnvironment id={mariadbId} type="mariadb" />
 										</div>
 									</TabsContent>
 									<TabsContent value="monitoring">
@@ -235,9 +234,33 @@ const Postgresql = (
 													/>
 												) : (
 													<>
+														{/* {monitoring?.enabledFeatures && (
+															<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																<Label className="text-muted-foreground">
+																	Change Monitoring
+																</Label>
+																<Switch
+																	checked={toggleMonitoring}
+																	onCheckedChange={setToggleMonitoring}
+																/>
+															</div>
+														)}
+
+														{toggleMonitoring ? (
+															<ContainerPaidMonitoring
+																appName={data?.appName || ""}
+																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																token={
+																	monitoring?.metricsConfig?.server?.token || ""
+																}
+															/>
+														) : (
+															<div> */}
 														<ContainerFreeMonitoring
 															appName={data?.appName || ""}
 														/>
+														{/* </div> */}
+														{/* )} */}
 													</>
 												)}
 											</div>
@@ -253,18 +276,14 @@ const Postgresql = (
 									</TabsContent>
 									<TabsContent value="backups">
 										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups
-												id={postgresId}
-												databaseType="postgres"
-												backupType="database"
-											/>
+											<ShowBackups id={mariadbId} databaseType="mariadb" />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowDatabaseAdvancedSettings
-												id={postgresId}
-												type="postgres"
+												id={mariadbId}
+												type="mariadb"
 											/>
 										</div>
 									</TabsContent>
@@ -278,16 +297,21 @@ const Postgresql = (
 	);
 };
 
-export default Postgresql;
-Postgresql.getLayout = (page: ReactElement) => {
+export default Mariadb;
+Mariadb.getLayout = (page: ReactElement) => {
 	return <DashboardLayout>{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ postgresId: string; activeTab: TabState }>,
+	ctx: GetServerSidePropsContext<{
+		mariadbId: string;
+		activeTab: TabState;
+		environmentId: string;
+	}>,
 ) {
 	const { query, params, req, res } = ctx;
 	const activeTab = query.tab;
+
 	const { user, session } = await validateRequest(req);
 	if (!user) {
 		return {
@@ -310,17 +334,18 @@ export async function getServerSideProps(
 		transformer: superjson,
 	});
 
-	if (typeof params?.postgresId === "string") {
+	if (typeof params?.mariadbId === "string") {
 		try {
-			await helpers.postgres.one.fetch({
-				postgresId: params?.postgresId,
+			await helpers.mariadb.one.fetch({
+				mariadbId: params?.mariadbId,
 			});
 			await helpers.settings.isCloud.prefetch();
 			return {
 				props: {
 					trpcState: helpers.dehydrate(),
-					postgresId: params?.postgresId,
+					mariadbId: params?.mariadbId,
 					activeTab: (activeTab || "general") as TabState,
+					environmentId: params?.environmentId,
 				},
 			};
 		} catch {

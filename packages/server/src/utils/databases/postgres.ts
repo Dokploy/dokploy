@@ -12,7 +12,7 @@ import { getRemoteDocker } from "../servers/remote-docker";
 
 export type PostgresNested = InferResultType<
 	"postgres",
-	{ mounts: true; project: true }
+	{ mounts: true; environment: { with: { project: true } } }
 >;
 export const buildPostgres = async (postgres: PostgresNested) => {
 	const {
@@ -53,7 +53,8 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultPostgresEnv,
-		postgres.project.env,
+		postgres.environment.project.env,
+		postgres.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);

@@ -13,6 +13,7 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { environments } from "./environment";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
@@ -179,9 +180,9 @@ export const applications = pgTable("application", {
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
-	projectId: text("projectId")
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -202,9 +203,9 @@ export const applications = pgTable("application", {
 export const applicationsRelations = relations(
 	applications,
 	({ one, many }) => ({
-		project: one(projects, {
-			fields: [applications.projectId],
-			references: [projects.projectId],
+		environment: one(environments, {
+			fields: [applications.environmentId],
+			references: [environments.environmentId],
 		}),
 		deployments: many(deployments),
 		customGitSSHKey: one(sshKeys, {
@@ -273,7 +274,7 @@ const createSchema = createInsertSchema(applications, {
 	customGitBuildPath: z.string().optional(),
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
@@ -317,7 +318,7 @@ export const apiCreateApplication = createSchema.pick({
 	name: true,
 	appName: true,
 	description: true,
-	projectId: true,
+	environmentId: true,
 	serverId: true,
 });
 
@@ -326,6 +327,26 @@ export const apiFindOneApplication = createSchema
 		applicationId: true,
 	})
 	.required();
+
+export const apiDeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
+
+export const apiRedeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
 
 export const apiReloadApplication = createSchema
 	.pick({

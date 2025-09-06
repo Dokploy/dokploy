@@ -11,7 +11,24 @@
 </div>
 <br />
 
+
+
+<div align="center" markdown="1">
+   <sup>Special thanks to:</sup>
+   <br>
+   <br>
+   <a href="https://tuple.app/dokploy">
+     <img src=".github/sponsors/tuple.png" alt="Tuple's sponsorship image" width="400"/>
+   </a>
+
+### [Tuple, the premier screen sharing app for developers](https://tuple.app/dokploy)
+[Available for MacOS & Windows](https://tuple.app/dokploy)<br>
+
+</div>
+
+
 Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
+
 
 ## ✨ Features
 
