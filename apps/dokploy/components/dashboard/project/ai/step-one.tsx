@@ -59,7 +59,10 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 								Select the server where you want to deploy (optional)
 							</Label>
 							<Select
-								value={templateInfo.server?.serverId || (!isCloud ? "dokploy" : undefined)}
+								value={
+									templateInfo.server?.serverId ||
+									(!isCloud ? "dokploy" : undefined)
+								}
 								onValueChange={(value) => {
 									if (value === "dokploy") {
 										setTemplateInfo({
@@ -78,7 +81,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 								}}
 							>
 								<SelectTrigger className="w-full">
-									<SelectValue placeholder={!isCloud ? "Dokploy" : "Select a Server"} />
+									<SelectValue
+										placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectGroup>
@@ -97,7 +102,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 												{server.name}
 											</SelectItem>
 										))}
-										<SelectLabel>Servers ({servers?.length + (!isCloud ? 1 : 0)})</SelectLabel>
+										<SelectLabel>
+											Servers ({servers?.length + (!isCloud ? 1 : 0)})
+										</SelectLabel>
 									</SelectGroup>
 								</SelectContent>
 							</Select>

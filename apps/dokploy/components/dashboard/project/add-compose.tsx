@@ -202,10 +202,14 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 
 										<Select
 											onValueChange={field.onChange}
-											defaultValue={field.value || (!isCloud ? "dokploy" : undefined)}
+											defaultValue={
+												field.value || (!isCloud ? "dokploy" : undefined)
+											}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder={!isCloud ? "Dokploy" : "Select a Server"} />
+												<SelectValue
+													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
