@@ -41,16 +41,3 @@ yarn-error.log*
 *.pem
 
 
-.db
-cleanup.sh
-install.sh
-.claude
-.claude-flow
-.hive-mind
-.qodo
-commit-analyse-feature-deployment-webhooks.md
-
-# Webhook documentation files (feature branch specific)
-apps/dokploy/components/dashboard/application/webhooks/webhook-templates/README.md
-docs/webhooks-implementation.md
-docs/webhooks-user-guide.md
