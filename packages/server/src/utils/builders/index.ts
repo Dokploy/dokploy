@@ -1,6 +1,6 @@
 import { createWriteStream } from "node:fs";
 import type { InferResultType } from "@dokploy/server/types/with";
-import type { CreateServiceOptions } from "dockerode";
+import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
 import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
@@ -11,7 +11,7 @@ import {
 	prepareEnvironmentVariables,
 	encodeBase64,
 } from "../docker/utils";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
+
 import { getRemoteDocker } from "../servers/remote-docker";
 import { buildCustomDocker, getDockerCommand } from "./docker-file";
 import { buildHeroku, getHerokuCommand } from "./heroku";
@@ -139,27 +139,20 @@ export const runDeployHook = async (
 		application.environment.project.env,
 		application.environment.env,
 	);
-	const envArgs = envVariables.map((v) => `-e ${v}`).join(" ");
 
-	const { mounts, cpuLimit, memoryLimit, memoryReservation } = application;
+	const { mounts, cpuLimit, memoryLimit, memoryReservation, cpuReservation } =
+		application;
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(application.appName, application);
 	const allMounts = [...volumesMount, ...bindsMount, ...filesMount];
-	const mountArgs = allMounts
-		.map((m) => `-v "${m.Source}:${m.Target}"`)
-		.join(" ");
 
-	const cpuLimitNum = cpuLimit ? Number.parseInt(cpuLimit) : undefined;
-	let cpusArg = "";
-	if (cpuLimitNum && cpuLimitNum > 0) {
-		const cpus = cpuLimitNum >= 1000 ? cpuLimitNum / 1e9 : cpuLimitNum;
-		cpusArg = `--cpus ${cpus}`;
-	}
-	const memArg = memoryLimit ? `--memory ${memoryLimit}` : "";
-	const memResArg = memoryReservation
-		? `--memory-reservation ${memoryReservation}`
-		: "";
+	const resources = calculateResources({
+		memoryLimit,
+		memoryReservation,
+		cpuLimit,
+		cpuReservation,
+	});
 
 	const { Networks } = generateConfigContainer(application);
 	const networkName =
@@ -167,16 +160,32 @@ export const runDeployHook = async (
 			? (Networks[0] as any).Target
 			: "dokploy-network";
 
+	const docker = await getRemoteDocker(application.serverId);
+
 	const cmdEncoded = encodeBase64(hook);
-	const dockerCmd = `docker run --rm --network ${networkName} ${cpusArg} ${memArg} ${memResArg} ${mountArgs} ${envArgs} ${image} sh -lc "echo ${cmdEncoded} | base64 -d | sh"`;
-	if (application.serverId) {
-		try {
-			await execAsyncRemote(application.serverId, dockerCmd);
-		} catch (_) {}
-	} else {
-		try {
-			await execAsync(dockerCmd);
-		} catch (_) {}
+	const createOptions: ContainerCreateOptions = {
+		Image: image,
+		Env: envVariables,
+		Entrypoint: ["/bin/sh"],
+		NetworkingConfig: {
+			EndpointsConfig: {
+				[networkName]: {},
+			},
+		},
+		HostConfig: {
+			Mounts: allMounts,
+			...resources.Limits,
+			...resources.Reservations,
+			AutoRemove: true,
+		},
+	};
+
+	const cmd = ["-lc", `echo ${cmdEncoded} | base64 -d | sh`];
+
+	try {
+		await docker.run(image, cmd, undefined as any, createOptions);
+	} catch (_) {
+		// Intentionally ignore hook failures
 	}
 };
 
