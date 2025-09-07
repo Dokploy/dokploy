@@ -24,6 +24,7 @@ import {
 	unzipDrop,
 	updateApplication,
 	updateApplicationStatus,
+	updateDeploymentStatus,
 	writeConfig,
 	writeConfigRemote,
 	// uploadFileSchema
@@ -58,7 +59,7 @@ import {
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
+import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
 export const applicationRouter = createTRPCRouter({
@@ -895,5 +896,56 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			return updatedApplication;
+		}),
+
+	cancelDeployment: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to cancel this deployment",
+				});
+			}
+
+			if (IS_CLOUD && application.serverId) {
+				try {
+					await updateApplicationStatus(input.applicationId, "idle");
+
+					if (application.deployments[0]) {
+						await updateDeploymentStatus(
+							application.deployments[0].deploymentId,
+							"done",
+						);
+					}
+
+					await cancelDeployment({
+						applicationId: input.applicationId,
+						applicationType: "application",
+					});
+
+					return {
+						success: true,
+						message: "Deployment cancellation requested",
+					};
+				} catch (error) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message:
+							error instanceof Error
+								? error.message
+								: "Failed to cancel deployment",
+					});
+				}
+			}
+
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Deployment cancellation only available in cloud version",
+			});
 		}),
 });
