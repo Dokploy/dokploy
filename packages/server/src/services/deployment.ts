@@ -899,7 +899,8 @@ export const updateDeploymentStatus = async (
 					fullDeployment.application?.environment?.projectId ||
 					fullDeployment.compose?.environment?.projectId ||
 					"",
-				name: fullDeployment.application?.environment?.project?.name ||
+				name:
+					fullDeployment.application?.environment?.project?.name ||
 					fullDeployment.compose?.environment?.project?.name ||
 					"Default",
 			},
