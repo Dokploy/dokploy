@@ -29,6 +29,7 @@ import {
 	startCompose,
 	stopCompose,
 	updateCompose,
+	updateDeploymentStatus,
 } from "@dokploy/server";
 import {
 	type CompleteTemplate,
@@ -953,6 +954,14 @@ export const composeRouter = createTRPCRouter({
 					await updateCompose(input.composeId, {
 						composeStatus: "idle",
 					});
+
+					if (compose.deployments[0]) {
+						await updateDeploymentStatus(
+							compose.deployments[0].deploymentId,
+							"done",
+						);
+					}
+
 					await cancelDeployment({
 						composeId: input.composeId,
 						applicationType: "compose",

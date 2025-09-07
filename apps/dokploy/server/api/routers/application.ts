@@ -24,6 +24,7 @@ import {
 	unzipDrop,
 	updateApplication,
 	updateApplicationStatus,
+	updateDeploymentStatus,
 	writeConfig,
 	writeConfigRemote,
 	// uploadFileSchema
@@ -919,6 +920,14 @@ export const applicationRouter = createTRPCRouter({
 			if (IS_CLOUD && application.serverId) {
 				try {
 					await updateApplicationStatus(input.applicationId, "idle");
+
+					if (application.deployments[0]) {
+						await updateDeploymentStatus(
+							application.deployments[0].deploymentId,
+							"done",
+						);
+					}
+
 					await cancelDeployment({
 						applicationId: input.applicationId,
 						applicationType: "application",

@@ -81,22 +81,28 @@ export const ShowDeployments = ({
 
 	const [url, setUrl] = React.useState("");
 
-	// Check for stuck deployments (more than 9 minutes)
+	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
 	const stuckDeployment = useMemo(() => {
 		if (!isCloud || !deployments || deployments.length === 0) return null;
 
 		const now = Date.now();
-		const NINE_MINUTES = 8 * 60 * 1000; // 9 minutes in milliseconds
+		const NINE_MINUTES = 10 * 60 * 1000; // 9 minutes in milliseconds
 
-		return deployments.find((deployment) => {
-			if (deployment.status !== "running" || !deployment.startedAt)
-				return false;
+		// Get the most recent deployment (first in the list since they're sorted by date)
+		const mostRecentDeployment = deployments[0];
 
-			const startTime = new Date(deployment.startedAt).getTime();
-			const elapsed = now - startTime;
+		if (
+			!mostRecentDeployment ||
+			mostRecentDeployment.status !== "running" ||
+			!mostRecentDeployment.startedAt
+		) {
+			return null;
+		}
 
-			return elapsed > NINE_MINUTES;
-		});
+		const startTime = new Date(mostRecentDeployment.startedAt).getTime();
+		const elapsed = now - startTime;
+
+		return elapsed > NINE_MINUTES ? mostRecentDeployment : null;
 	}, [isCloud, deployments]);
 	useEffect(() => {
 		setUrl(document.location.origin);
