@@ -88,15 +88,26 @@ export const initializeStandaloneTraefik = async ({
 
 	const docker = await getRemoteDocker(serverId);
 	try {
+		await docker.pull(imageName);
+		await new Promise((resolve) => setTimeout(resolve, 3000));
+		console.log("Traefik Image Pulled ✅");
+	} catch (error) {
+		console.log("Traefik Image Not Found: Pulling ", error);
+	}
+	try {
 		const container = docker.getContainer(containerName);
 		await container.remove({ force: true });
 		await new Promise((resolve) => setTimeout(resolve, 5000));
 	} catch {}
 
-	await docker.createContainer(settings);
-	const newContainer = docker.getContainer(containerName);
-	await newContainer.start();
-	console.log("Traefik Started ✅");
+	try {
+		await docker.createContainer(settings);
+		const newContainer = docker.getContainer(containerName);
+		await newContainer.start();
+		console.log("Traefik Started ✅");
+	} catch (error) {
+		console.log("Traefik Not Found: Starting ", error);
+	}
 };
 
 export const initializeTraefikService = async ({
