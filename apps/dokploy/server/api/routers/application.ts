@@ -62,11 +62,6 @@ import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
-// Schema for canceling deployment
-const apiCancelDeployment = z.object({
-	applicationId: z.string().min(1),
-});
-
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateApplication)
@@ -904,7 +899,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	cancelDeployment: protectedProcedure
-		.input(apiCancelDeployment)
+		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (

@@ -63,11 +63,6 @@ import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
-// Schema for canceling deployment
-const apiCancelDeployment = z.object({
-	composeId: z.string().min(1),
-});
-
 export const composeRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateCompose)
@@ -936,7 +931,7 @@ export const composeRouter = createTRPCRouter({
 		}),
 
 	cancelDeployment: protectedProcedure
-		.input(apiCancelDeployment)
+		.input(apiFindCompose)
 		.mutation(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
 			if (
