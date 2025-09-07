@@ -17,6 +17,7 @@ import {
 	findAllWebhooksByCompose,
 	testWebhook,
 	getWebhookDeliveries,
+	clearWebhookDeliveries,
 } from "@dokploy/server/services/webhook";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -217,7 +218,7 @@ export const webhookRouter = createTRPCRouter({
 							parseInt(d.statusCode) < 300,
 					).length,
 					failed: deliveries.filter(
-						(d) => !d.statusCode || parseInt(d.statusCode) >= 400,
+						(d) => !d.statusCode || d.statusCode === "0" || parseInt(d.statusCode) >= 400,
 					).length,
 					avgResponseTime:
 						deliveries.length > 0
@@ -234,6 +235,26 @@ export const webhookRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error fetching webhook statistics",
+					cause: error,
+				});
+			}
+		}),
+
+	// Clear webhook deliveries
+	clearDeliveries: protectedProcedure
+		.input(
+			z.object({
+				webhookId: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				await clearWebhookDeliveries(input.webhookId);
+				return { success: true };
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error clearing webhook deliveries",
 					cause: error,
 				});
 			}

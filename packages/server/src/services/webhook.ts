@@ -488,3 +488,10 @@ export const getWebhookDeliveries = async (webhookId: string, limit = 20) => {
 		.orderBy(desc(webhookDeliveries.deliveredAt))
 		.limit(limit);
 };
+
+// Clear webhook deliveries
+export const clearWebhookDeliveries = async (webhookId: string) => {
+	return await db
+		.delete(webhookDeliveries)
+		.where(eq(webhookDeliveries.webhookId, webhookId));
+};

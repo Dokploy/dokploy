@@ -1,10 +1,10 @@
 import {
-	WebhookDialog as Dialog,
-	WebhookDialogContent as DialogContent,
-	WebhookDialogDescription as DialogDescription,
-	WebhookDialogHeader as DialogHeader,
-	WebhookDialogTitle as DialogTitle,
-} from "./webhook-dialog";
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	Table,
 	TableBody,
@@ -26,10 +26,22 @@ import {
 	Code,
 	Loader2,
 	RefreshCw,
+	Trash2,
 	XCircle,
 } from "lucide-react";
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface WebhookHistoryModalProps {
 	webhookId: string;
@@ -43,6 +55,7 @@ export const WebhookHistoryModal = ({
 	onOpenChange,
 }: WebhookHistoryModalProps) => {
 	const [expandedDelivery, setExpandedDelivery] = useState<string | null>(null);
+	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
 	const {
 		data: deliveries,
@@ -53,10 +66,26 @@ export const WebhookHistoryModal = ({
 		{ enabled: open && !!webhookId && webhookId !== "" },
 	);
 
-	const { data: stats } = api.webhook.getStats.useQuery(
+	const { data: stats, refetch: refetchStats } = api.webhook.getStats.useQuery(
 		{ webhookId },
 		{ enabled: open && !!webhookId && webhookId !== "" },
 	);
+
+	const clearDeliveries = api.webhook.clearDeliveries.useMutation({
+		onSuccess: () => {
+			toast.success("Webhook history cleared successfully");
+			refetch();
+			refetchStats();
+			setShowDeleteDialog(false);
+		},
+		onError: () => {
+			toast.error("Failed to clear webhook history");
+		},
+	});
+
+	const handleClearHistory = () => {
+		clearDeliveries.mutate({ webhookId });
+	};
 
 	const getStatusIcon = (statusCode?: string | null) => {
 		if (!statusCode || statusCode === "0") {
@@ -110,49 +139,50 @@ export const WebhookHistoryModal = ({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
-				<DialogHeader>
-					<DialogTitle>Webhook Delivery History</DialogTitle>
-					<DialogDescription>
-						Recent webhook delivery attempts and their status
-					</DialogDescription>
-				</DialogHeader>
+		<>
+			<Dialog open={open} onOpenChange={onOpenChange}>
+				<DialogContent className="max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+					<DialogHeader className="flex-shrink-0">
+						<DialogTitle>Webhook Delivery History</DialogTitle>
+						<DialogDescription>
+							Recent webhook delivery attempts and their status
+						</DialogDescription>
+					</DialogHeader>
 
-				{stats && (
-					<div className="grid grid-cols-4 gap-4 py-4">
-						<div className="space-y-1">
-							<p className="text-sm text-muted-foreground">Total Deliveries</p>
-							<p className="text-2xl font-bold">{stats.total}</p>
+					{stats && (
+						<div className="grid grid-cols-4 gap-4 py-4 flex-shrink-0">
+							<div className="space-y-1">
+								<p className="text-sm text-muted-foreground">Total Deliveries</p>
+								<p className="text-2xl font-bold">{stats.total}</p>
+							</div>
+							<div className="space-y-1">
+								<p className="text-sm text-muted-foreground">Successful</p>
+								<p className="text-2xl font-bold text-green-500">
+									{stats.successful}
+								</p>
+							</div>
+							<div className="space-y-1">
+								<p className="text-sm text-muted-foreground">Failed</p>
+								<p className="text-2xl font-bold text-destructive">
+									{stats.failed}
+								</p>
+							</div>
+							<div className="space-y-1">
+								<p className="text-sm text-muted-foreground">Avg Response Time</p>
+								<p className="text-2xl font-bold">
+									{formatResponseTime(stats.avgResponseTime?.toString())}
+								</p>
+							</div>
 						</div>
-						<div className="space-y-1">
-							<p className="text-sm text-muted-foreground">Successful</p>
-							<p className="text-2xl font-bold text-green-500">
-								{stats.successful}
-							</p>
-						</div>
-						<div className="space-y-1">
-							<p className="text-sm text-muted-foreground">Failed</p>
-							<p className="text-2xl font-bold text-destructive">
-								{stats.failed}
-							</p>
-						</div>
-						<div className="space-y-1">
-							<p className="text-sm text-muted-foreground">Avg Response Time</p>
-							<p className="text-2xl font-bold">
-								{formatResponseTime(stats.avgResponseTime?.toString())}
-							</p>
-						</div>
-					</div>
-				)}
+					)}
 
-				<div className="border rounded-lg flex-1 overflow-hidden">
+				<div className="flex-1 min-h-0 overflow-hidden border rounded-lg">
 					{isLoading ? (
 						<div className="flex items-center justify-center py-8">
 							<Loader2 className="size-6 animate-spin text-muted-foreground" />
 						</div>
 					) : deliveries && deliveries.length > 0 ? (
-						<ScrollArea className="h-full max-h-[400px]">
+						<ScrollArea className="h-full w-full">
 							<Table>
 								<TableHeader>
 									<TableRow>
@@ -255,16 +285,55 @@ export const WebhookHistoryModal = ({
 					)}
 				</div>
 
-				<div className="flex justify-end gap-2">
-					<Button variant="outline" onClick={() => refetch()}>
-						<RefreshCw className="size-4 mr-2" />
-						Refresh
+				<div className="flex justify-between gap-2 flex-shrink-0 pt-4">
+					<Button
+						variant="outline"
+						onClick={() => setShowDeleteDialog(true)}
+						disabled={!deliveries || deliveries.length === 0}
+					>
+						<Trash2 className="size-4 mr-2" />
+						Clear History
 					</Button>
-					<Button variant="secondary" onClick={() => onOpenChange(false)}>
-						Close
-					</Button>
+					<div className="flex gap-2">
+						<Button variant="outline" onClick={() => refetch()}>
+							<RefreshCw className="size-4 mr-2" />
+							Refresh
+						</Button>
+						<Button variant="secondary" onClick={() => onOpenChange(false)}>
+							Close
+						</Button>
+					</div>
 				</div>
 			</DialogContent>
 		</Dialog>
+
+		<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>Clear Webhook History</AlertDialogTitle>
+					<AlertDialogDescription>
+						Are you sure you want to clear all delivery history for this webhook?
+						This action cannot be undone.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<AlertDialogFooter>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogAction
+						onClick={handleClearHistory}
+						disabled={clearDeliveries.isPending}
+					>
+						{clearDeliveries.isPending ? (
+							<>
+								<Loader2 className="size-4 mr-2 animate-spin" />
+								Clearing...
+							</>
+						) : (
+							"Clear History"
+						)}
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+		</>
 	);
 };
