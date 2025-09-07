@@ -1,6 +1,7 @@
 import { Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -61,12 +62,42 @@ export const ShowDeployments = ({
 			},
 		);
 
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+
 	const { mutateAsync: rollback, isLoading: isRollingBack } =
 		api.rollback.rollback.useMutation();
 	const { mutateAsync: killProcess, isLoading: isKillingProcess } =
 		api.deployment.killProcess.useMutation();
 
+	// Cancel deployment mutations
+	const {
+		mutateAsync: cancelApplicationDeployment,
+		isLoading: isCancellingApp,
+	} = api.application.cancelDeployment.useMutation();
+	const {
+		mutateAsync: cancelComposeDeployment,
+		isLoading: isCancellingCompose,
+	} = api.compose.cancelDeployment.useMutation();
+
 	const [url, setUrl] = React.useState("");
+
+	// Check for stuck deployments (more than 9 minutes)
+	const stuckDeployment = useMemo(() => {
+		if (!isCloud || !deployments || deployments.length === 0) return null;
+
+		const now = Date.now();
+		const NINE_MINUTES = 8 * 60 * 1000; // 9 minutes in milliseconds
+
+		return deployments.find((deployment) => {
+			if (deployment.status !== "running" || !deployment.startedAt)
+				return false;
+
+			const startTime = new Date(deployment.startedAt).getTime();
+			const elapsed = now - startTime;
+
+			return elapsed > NINE_MINUTES;
+		});
+	}, [isCloud, deployments]);
 	useEffect(() => {
 		setUrl(document.location.origin);
 	}, []);
@@ -94,6 +125,54 @@ export const ShowDeployments = ({
 				</div>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
+				{stuckDeployment && (type === "application" || type === "compose") && (
+					<AlertBlock
+						type="warning"
+						className="flex-col items-start w-full p-4"
+					>
+						<div className="flex flex-col gap-3">
+							<div>
+								<div className="font-medium text-sm mb-1">
+									Build appears to be stuck
+								</div>
+								<p className="text-sm">
+									Hey! Looks like the build has been running for more than 9
+									minutes. Would you like to cancel this deployment?
+								</p>
+							</div>
+							<Button
+								variant="destructive"
+								size="sm"
+								className="w-fit"
+								isLoading={
+									type === "application" ? isCancellingApp : isCancellingCompose
+								}
+								onClick={async () => {
+									try {
+										if (type === "application") {
+											await cancelApplicationDeployment({
+												applicationId: id,
+											});
+										} else if (type === "compose") {
+											await cancelComposeDeployment({
+												composeId: id,
+											});
+										}
+										toast.success("Deployment cancellation requested");
+									} catch (error) {
+										toast.error(
+											error instanceof Error
+												? error.message
+												: "Failed to cancel deployment",
+										);
+									}
+								}}
+							>
+								Cancel Deployment
+							</Button>
+						</div>
+					</AlertBlock>
+				)}
 				{refreshToken && (
 					<div className="flex flex-col gap-2 text-sm">
 						<span>
