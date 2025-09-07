@@ -142,7 +142,7 @@ export const ShowDeployments = ({
 									Build appears to be stuck
 								</div>
 								<p className="text-sm">
-									Hey! Looks like the build has been running for more than 9
+									Hey! Looks like the build has been running for more than 10
 									minutes. Would you like to cancel this deployment?
 								</p>
 							</div>
