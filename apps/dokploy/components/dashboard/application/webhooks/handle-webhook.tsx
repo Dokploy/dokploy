@@ -1,12 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	Copy,
-	Loader2,
-	Plus,
-	RefreshCw,
-	Trash2,
-	Webhook,
-} from "lucide-react";
+import { Copy, Loader2, Plus, RefreshCw, Trash2, Webhook } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -568,9 +561,8 @@ export const HandleWebhook = ({
 																/>
 															</FormControl>
 															<FormDescription>
-																Use variables like ${"{applicationName}"}, ${
-																	"{status}"
-																}, ${"{branch}"}
+																Use variables like ${"{applicationName}"}, $
+																{"{status}"}, ${"{branch}"}
 															</FormDescription>
 															<FormMessage />
 														</FormItem>

@@ -218,7 +218,10 @@ export const webhookRouter = createTRPCRouter({
 							parseInt(d.statusCode) < 300,
 					).length,
 					failed: deliveries.filter(
-						(d) => !d.statusCode || d.statusCode === "0" || parseInt(d.statusCode) >= 400,
+						(d) =>
+							!d.statusCode ||
+							d.statusCode === "0" ||
+							parseInt(d.statusCode) >= 400,
 					).length,
 					avgResponseTime:
 						deliveries.length > 0

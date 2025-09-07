@@ -152,7 +152,9 @@ export const WebhookHistoryModal = ({
 					{stats && (
 						<div className="grid grid-cols-4 gap-4 py-4 flex-shrink-0">
 							<div className="space-y-1">
-								<p className="text-sm text-muted-foreground">Total Deliveries</p>
+								<p className="text-sm text-muted-foreground">
+									Total Deliveries
+								</p>
 								<p className="text-2xl font-bold">{stats.total}</p>
 							</div>
 							<div className="space-y-1">
@@ -168,7 +170,9 @@ export const WebhookHistoryModal = ({
 								</p>
 							</div>
 							<div className="space-y-1">
-								<p className="text-sm text-muted-foreground">Avg Response Time</p>
+								<p className="text-sm text-muted-foreground">
+									Avg Response Time
+								</p>
 								<p className="text-2xl font-bold">
 									{formatResponseTime(stats.avgResponseTime?.toString())}
 								</p>
@@ -176,164 +180,173 @@ export const WebhookHistoryModal = ({
 						</div>
 					)}
 
-				<div className="flex-1 min-h-0 overflow-hidden border rounded-lg">
-					{isLoading ? (
-						<div className="flex items-center justify-center py-8">
-							<Loader2 className="size-6 animate-spin text-muted-foreground" />
-						</div>
-					) : deliveries && deliveries.length > 0 ? (
-						<ScrollArea className="h-full w-full">
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead className="w-[40px]" />
-										<TableHead>Event</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead>Response Time</TableHead>
-										<TableHead>Attempts</TableHead>
-										<TableHead>Delivered At</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{deliveries.map((delivery) => (
-										<React.Fragment key={delivery.deliveryId}>
-											<TableRow
-												className="cursor-pointer hover:bg-muted/50"
-												onClick={() =>
-													setExpandedDelivery(
-														expandedDelivery === delivery.deliveryId
-															? null
-															: delivery.deliveryId,
-													)
-												}
-											>
-												<TableCell>
-													<ChevronDown
-														className={cn(
-															"size-4 transition-transform",
-															expandedDelivery === delivery.deliveryId &&
-																"rotate-180",
-														)}
-													/>
-												</TableCell>
-												<TableCell className="font-medium">
-													<div className="flex items-center gap-2">
-														{getStatusIcon(delivery.statusCode)}
-														<span className="text-sm">{delivery.event}</span>
-													</div>
-												</TableCell>
-												<TableCell>
-													{getStatusBadge(delivery.statusCode)}
-												</TableCell>
-												<TableCell>
-													{formatResponseTime(delivery.responseTime)}
-												</TableCell>
-												<TableCell>
-													<Badge variant="outline" className="text-xs">
-														{delivery.attempts}
-													</Badge>
-												</TableCell>
-												<TableCell className="text-muted-foreground text-sm">
-													{formatDistanceToNow(new Date(delivery.deliveredAt), {
-														addSuffix: true,
-													})}
-												</TableCell>
-											</TableRow>
-											{expandedDelivery === delivery.deliveryId && (
-												<TableRow>
-													<TableCell colSpan={6} className="bg-muted/30">
-														<div className="p-4 space-y-4">
-															{delivery.error && (
-																<div className="space-y-2">
-																	<p className="text-sm font-medium flex items-center gap-2">
-																		<AlertCircle className="size-4 text-destructive" />
-																		Error
-																	</p>
-																	<div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm font-mono">
-																		{delivery.error}
-																	</div>
-																</div>
+					<div className="flex-1 min-h-0 overflow-hidden border rounded-lg">
+						{isLoading ? (
+							<div className="flex items-center justify-center py-8">
+								<Loader2 className="size-6 animate-spin text-muted-foreground" />
+							</div>
+						) : deliveries && deliveries.length > 0 ? (
+							<ScrollArea className="h-full w-full">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead className="w-[40px]" />
+											<TableHead>Event</TableHead>
+											<TableHead>Status</TableHead>
+											<TableHead>Response Time</TableHead>
+											<TableHead>Attempts</TableHead>
+											<TableHead>Delivered At</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{deliveries.map((delivery) => (
+											<React.Fragment key={delivery.deliveryId}>
+												<TableRow
+													className="cursor-pointer hover:bg-muted/50"
+													onClick={() =>
+														setExpandedDelivery(
+															expandedDelivery === delivery.deliveryId
+																? null
+																: delivery.deliveryId,
+														)
+													}
+												>
+													<TableCell>
+														<ChevronDown
+															className={cn(
+																"size-4 transition-transform",
+																expandedDelivery === delivery.deliveryId &&
+																	"rotate-180",
 															)}
-															<div className="space-y-2">
-																<p className="text-sm font-medium flex items-center gap-2">
-																	<Code className="size-4" />
-																	Payload
-																</p>
-																<div className="bg-muted rounded-md p-3">
-																	<pre className="text-xs overflow-x-auto">
-																		{JSON.stringify(delivery.payload, null, 2)}
-																	</pre>
-																</div>
-															</div>
+														/>
+													</TableCell>
+													<TableCell className="font-medium">
+														<div className="flex items-center gap-2">
+															{getStatusIcon(delivery.statusCode)}
+															<span className="text-sm">{delivery.event}</span>
 														</div>
 													</TableCell>
+													<TableCell>
+														{getStatusBadge(delivery.statusCode)}
+													</TableCell>
+													<TableCell>
+														{formatResponseTime(delivery.responseTime)}
+													</TableCell>
+													<TableCell>
+														<Badge variant="outline" className="text-xs">
+															{delivery.attempts}
+														</Badge>
+													</TableCell>
+													<TableCell className="text-muted-foreground text-sm">
+														{formatDistanceToNow(
+															new Date(delivery.deliveredAt),
+															{
+																addSuffix: true,
+															},
+														)}
+													</TableCell>
 												</TableRow>
-											)}
-										</React.Fragment>
-									))}
-								</TableBody>
-							</Table>
-						</ScrollArea>
-					) : (
-						<div className="flex flex-col items-center justify-center py-8 text-center">
-							<RefreshCw className="size-8 text-muted-foreground/50 mb-2" />
-							<p className="text-sm text-muted-foreground">No deliveries yet</p>
-							<p className="text-xs text-muted-foreground/70 mt-1">
-								Webhook deliveries will appear here once triggered
-							</p>
-						</div>
-					)}
-				</div>
-
-				<div className="flex justify-between gap-2 flex-shrink-0 pt-4">
-					<Button
-						variant="outline"
-						onClick={() => setShowDeleteDialog(true)}
-						disabled={!deliveries || deliveries.length === 0}
-					>
-						<Trash2 className="size-4 mr-2" />
-						Clear History
-					</Button>
-					<div className="flex gap-2">
-						<Button variant="outline" onClick={() => refetch()}>
-							<RefreshCw className="size-4 mr-2" />
-							Refresh
-						</Button>
-						<Button variant="secondary" onClick={() => onOpenChange(false)}>
-							Close
-						</Button>
-					</div>
-				</div>
-			</DialogContent>
-		</Dialog>
-
-		<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>Clear Webhook History</AlertDialogTitle>
-					<AlertDialogDescription>
-						Are you sure you want to clear all delivery history for this webhook?
-						This action cannot be undone.
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={handleClearHistory}
-						disabled={clearDeliveries.isPending}
-					>
-						{clearDeliveries.isPending ? (
-							<>
-								<Loader2 className="size-4 mr-2 animate-spin" />
-								Clearing...
-							</>
+												{expandedDelivery === delivery.deliveryId && (
+													<TableRow>
+														<TableCell colSpan={6} className="bg-muted/30">
+															<div className="p-4 space-y-4">
+																{delivery.error && (
+																	<div className="space-y-2">
+																		<p className="text-sm font-medium flex items-center gap-2">
+																			<AlertCircle className="size-4 text-destructive" />
+																			Error
+																		</p>
+																		<div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm font-mono">
+																			{delivery.error}
+																		</div>
+																	</div>
+																)}
+																<div className="space-y-2">
+																	<p className="text-sm font-medium flex items-center gap-2">
+																		<Code className="size-4" />
+																		Payload
+																	</p>
+																	<div className="bg-muted rounded-md p-3">
+																		<pre className="text-xs overflow-x-auto">
+																			{JSON.stringify(
+																				delivery.payload,
+																				null,
+																				2,
+																			)}
+																		</pre>
+																	</div>
+																</div>
+															</div>
+														</TableCell>
+													</TableRow>
+												)}
+											</React.Fragment>
+										))}
+									</TableBody>
+								</Table>
+							</ScrollArea>
 						) : (
-							"Clear History"
+							<div className="flex flex-col items-center justify-center py-8 text-center">
+								<RefreshCw className="size-8 text-muted-foreground/50 mb-2" />
+								<p className="text-sm text-muted-foreground">
+									No deliveries yet
+								</p>
+								<p className="text-xs text-muted-foreground/70 mt-1">
+									Webhook deliveries will appear here once triggered
+								</p>
+							</div>
 						)}
-					</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+					</div>
+
+					<div className="flex justify-between gap-2 flex-shrink-0 pt-4">
+						<Button
+							variant="outline"
+							onClick={() => setShowDeleteDialog(true)}
+							disabled={!deliveries || deliveries.length === 0}
+						>
+							<Trash2 className="size-4 mr-2" />
+							Clear History
+						</Button>
+						<div className="flex gap-2">
+							<Button variant="outline" onClick={() => refetch()}>
+								<RefreshCw className="size-4 mr-2" />
+								Refresh
+							</Button>
+							<Button variant="secondary" onClick={() => onOpenChange(false)}>
+								Close
+							</Button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			<AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Clear Webhook History</AlertDialogTitle>
+						<AlertDialogDescription>
+							Are you sure you want to clear all delivery history for this
+							webhook? This action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleClearHistory}
+							disabled={clearDeliveries.isPending}
+						>
+							{clearDeliveries.isPending ? (
+								<>
+									<Loader2 className="size-4 mr-2 animate-spin" />
+									Clearing...
+								</>
+							) : (
+								"Clear History"
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</>
 	);
 };
