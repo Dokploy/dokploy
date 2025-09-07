@@ -11,11 +11,20 @@ interface Props {
 export const DashboardLayout = ({ children }: Props) => {
 	const { data: haveRootAccess } = api.user.haveRootAccess.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: isUserSubscribed } = api.settings.isUserSubscribed.useQuery(
+		undefined,
+		{
+			enabled: isCloud === true,
+			refetchOnWindowFocus: false,
+			refetchOnMount: false,
+			refetchOnReconnect: false,
+		},
+	);
 
 	return (
 		<>
 			<Page>{children}</Page>
-			{isCloud === true && (
+			{isCloud === true && isUserSubscribed === true && (
 				<ChatwootWidget websiteToken="USCpQRKzHvFMssf3p6Eacae5" />
 			)}
 

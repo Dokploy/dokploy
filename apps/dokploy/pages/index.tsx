@@ -329,6 +329,7 @@ export default function Home({ IS_CLOUD }: Props) {
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
 									autoComplete="off"
+									autoFocus
 								>
 									<InputOTPGroup>
 										<InputOTPSlot index={0} className="border-border" />

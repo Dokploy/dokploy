@@ -5,6 +5,7 @@ import {
 	createPostgres,
 	deployPostgres,
 	findBackupsByDbId,
+	findEnvironmentById,
 	findPostgresById,
 	findProjectById,
 	IS_CLOUD,
@@ -41,10 +42,14 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiCreatePostgres)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				// Get project from environment
+				const environment = await findEnvironmentById(input.environmentId);
+				const project = await findProjectById(environment.projectId);
+
 				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
-						input.projectId,
+						project.projectId,
 						ctx.session.activeOrganizationId,
 						"create",
 					);
@@ -57,14 +62,15 @@ export const postgresRouter = createTRPCRouter({
 					});
 				}
 
-				const project = await findProjectById(input.projectId);
 				if (project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
 				}
-				const newPostgres = await createPostgres(input);
+				const newPostgres = await createPostgres({
+					...input,
+				});
 				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
@@ -107,7 +113,8 @@ export const postgresRouter = createTRPCRouter({
 
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -122,7 +129,10 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const service = await findPostgresById(input.postgresId);
 
-			if (service.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				service.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to start this Postgres",
@@ -145,7 +155,8 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -169,7 +180,8 @@ export const postgresRouter = createTRPCRouter({
 			const postgres = await findPostgresById(input.postgresId);
 
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -187,7 +199,8 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -210,7 +223,8 @@ export const postgresRouter = createTRPCRouter({
 		.subscription(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -229,7 +243,8 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -255,7 +270,8 @@ export const postgresRouter = createTRPCRouter({
 			const postgres = await findPostgresById(input.postgresId);
 
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -280,7 +296,8 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -305,7 +322,8 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -337,7 +355,8 @@ export const postgresRouter = createTRPCRouter({
 			const { postgresId, ...rest } = input;
 			const postgres = await findPostgresById(postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -361,13 +380,14 @@ export const postgresRouter = createTRPCRouter({
 		.input(
 			z.object({
 				postgresId: z.string(),
-				targetProjectId: z.string(),
+				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -375,11 +395,16 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 
-			const targetProject = await findProjectById(input.targetProjectId);
-			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+			const targetEnvironment = await findEnvironmentById(
+				input.targetEnvironmentId,
+			);
+			if (
+				targetEnvironment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this project",
+					message: "You are not authorized to move to this environment",
 				});
 			}
 
@@ -387,7 +412,7 @@ export const postgresRouter = createTRPCRouter({
 			const updatedPostgres = await db
 				.update(postgresTable)
 				.set({
-					projectId: input.targetProjectId,
+					environmentId: input.targetEnvironmentId,
 				})
 				.where(eq(postgresTable.postgresId, input.postgresId))
 				.returning()
@@ -407,7 +432,8 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
-				postgres.project.organizationId !== ctx.session.activeOrganizationId
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
