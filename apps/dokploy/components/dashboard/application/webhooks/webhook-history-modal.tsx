@@ -333,9 +333,9 @@ export const WebhookHistoryModal = ({
 						<AlertDialogCancel>Cancel</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={handleClearHistory}
-							disabled={clearDeliveries.isPending}
+							disabled={clearDeliveries.isLoading}
 						>
-							{clearDeliveries.isPending ? (
+							{clearDeliveries.isLoading ? (
 								<>
 									<Loader2 className="size-4 mr-2 animate-spin" />
 									Clearing...
