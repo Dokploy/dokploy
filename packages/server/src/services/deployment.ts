@@ -41,7 +41,24 @@ export const findDeploymentById = async (deploymentId: string) => {
 	const deployment = await db.query.deployments.findFirst({
 		where: eq(deployments.deploymentId, deploymentId),
 		with: {
-			application: true,
+			application: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
 			schedule: true,
 		},
 	});
@@ -140,8 +157,8 @@ export const createDeployment = async (
 				domains: application.domains?.map((d) => d.host) || [],
 			},
 			project: {
-				id: application.projectId,
-				name: application.project?.name || "Default",
+				id: application.environment?.projectId || "",
+				name: application.environment?.project?.name || "Default",
 			},
 			source: {
 				type: application.sourceType,
@@ -342,8 +359,8 @@ echo "Initializing deployment" >> ${logFilePath};
 					: undefined,
 			},
 			project: {
-				id: compose.projectId,
-				name: compose.project?.name || "Default",
+				id: compose.environment?.projectId || "",
+				name: compose.environment?.project?.name || "Default",
 			},
 			source: {
 				type: compose.sourceType,
@@ -879,10 +896,12 @@ export const updateDeploymentStatus = async (
 			},
 			project: {
 				id:
-					fullDeployment.application?.projectId ||
-					fullDeployment.composeId ||
+					fullDeployment.application?.environment?.projectId ||
+					fullDeployment.compose?.environment?.projectId ||
 					"",
-				name: fullDeployment.application?.name || "Default",
+				name: fullDeployment.application?.environment?.project?.name ||
+					fullDeployment.compose?.environment?.project?.name ||
+					"Default",
 			},
 			trigger: {
 				type: updatedDeployment.description?.includes("webhook")
