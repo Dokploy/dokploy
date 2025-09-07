@@ -1,11 +1,11 @@
-import { apiUpdateWebServerMonitoring } from "@/server/db/schema";
 import {
-	IS_CLOUD,
 	findUserById,
+	IS_CLOUD,
 	setupWebMonitoring,
 	updateUser,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { apiUpdateWebServerMonitoring } from "@/server/db/schema";
 import { adminProcedure, createTRPCRouter } from "../trpc";
 
 export const adminRouter = createTRPCRouter({

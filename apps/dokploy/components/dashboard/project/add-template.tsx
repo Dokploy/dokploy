@@ -73,11 +73,11 @@ import { api } from "@/utils/api";
 const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	baseUrl?: string;
 }
 
-export const AddTemplate = ({ projectId, baseUrl }: Props) => {
+export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
@@ -90,6 +90,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 		}
 		return undefined;
 	});
+
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	// Save to localStorage when customBaseUrl changes
 	useEffect(() => {
@@ -138,6 +141,10 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 		}) || [];
 
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -307,9 +314,9 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 										: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6",
 								)}
 							>
-								{templates?.map((template) => (
+								{templates?.map((template, idx) => (
 									<div
-										key={template?.id}
+										key={`${template.id}-${template.version || "default"}-${idx}`}
 										className={cn(
 											"flex flex-col border rounded-lg overflow-hidden relative",
 											viewMode === "icon" && "h-[200px]",
@@ -427,7 +434,7 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															project.
 														</AlertDialogDescription>
 
-														{hasServers && (
+														{shouldShowServerDropdown && (
 															<div>
 																<TooltipProvider delayDuration={0}>
 																	<Tooltip>
@@ -456,12 +463,29 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																	onValueChange={(e) => {
 																		setServerId(e);
 																	}}
+																	defaultValue={
+																		!isCloud ? "dokploy" : undefined
+																	}
 																>
 																	<SelectTrigger>
-																		<SelectValue placeholder="Select a Server" />
+																		<SelectValue
+																			placeholder={
+																				!isCloud ? "Dokploy" : "Select a Server"
+																			}
+																		/>
 																	</SelectTrigger>
 																	<SelectContent>
 																		<SelectGroup>
+																			{!isCloud && (
+																				<SelectItem value="dokploy">
+																					<span className="flex items-center gap-2 justify-between w-full">
+																						<span>Dokploy</span>
+																						<span className="text-muted-foreground text-xs self-center">
+																							Default
+																						</span>
+																					</span>
+																				</SelectItem>
+																			)}
 																			{servers?.map((server) => (
 																				<SelectItem
 																					key={server.serverId}
@@ -476,7 +500,8 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 																				</SelectItem>
 																			))}
 																			<SelectLabel>
-																				Servers ({servers?.length})
+																				Servers (
+																				{servers?.length + (!isCloud ? 1 : 0)})
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>
@@ -490,16 +515,20 @@ export const AddTemplate = ({ projectId, baseUrl }: Props) => {
 															disabled={isLoading}
 															onClick={async () => {
 																const promise = mutateAsync({
-																	projectId,
-																	serverId: serverId || undefined,
+																	serverId:
+																		serverId === "dokploy"
+																			? undefined
+																			: serverId,
+																	environmentId,
 																	id: template.id,
 																	baseUrl: customBaseUrl,
 																});
 																toast.promise(promise, {
 																	loading: "Setting up...",
 																	success: () => {
-																		utils.project.one.invalidate({
-																			projectId,
+																		// Invalidate the project query to refresh the environment data
+																		utils.environment.one.invalidate({
+																			environmentId,
 																		});
 																		setOpen(false);
 																		return `${template.name} template created successfully`;

@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://dokploy.com">
-    <img src=".github/sponsors/logo.png" alt="Dokploy - Open Source Alternative to Vercel, Heroku and Netlify." align="center" width="100%"  />
+    <img src=".github/sponsors/logo.png" alt="Dokploy - Open Source Alternative to Vercel, Heroku and Netlify." width="100%"  />
   </a>
   </br>
   </br>
@@ -11,9 +11,26 @@
 </div>
 <br />
 
+
+
+<div align="center" markdown="1">
+   <sup>Special thanks to:</sup>
+   <br>
+   <br>
+   <a href="https://tuple.app/dokploy">
+     <img src=".github/sponsors/tuple.png" alt="Tuple's sponsorship image" width="400"/>
+   </a>
+
+### [Tuple, the premier screen sharing app for developers](https://tuple.app/dokploy)
+[Available for MacOS & Windows](https://tuple.app/dokploy)<br>
+
+</div>
+
+
 Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
 
-### Features
+
+## ✨ Features
 
 Dokploy includes multiple features to make your life easier.
 
@@ -43,7 +60,7 @@ curl -sSL https://dokploy.com/install.sh | sh
 
 For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
-## Sponsors
+## ♥️ Sponsors
 
 🙏 We're deeply grateful to all our sponsors who make Dokploy possible! Your support helps cover the costs of hosting, testing, and developing new features.
 
@@ -95,7 +112,6 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ### Community Backers 🤝
 
-
 #### Organizations:
 
 [Sponsors on Open Collective](https://opencollective.com/dokploy)
@@ -107,15 +123,15 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 ### Contributors 🤝
 
 <a href="https://github.com/dokploy/dokploy/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=dokploy/dokploy" />
+  <img src="https://contrib.rocks/image?repo=dokploy/dokploy" alt="Contributors" />
 </a>
 
-## Video Tutorial
+## 📺 Video Tutorial
 
 <a href="https://youtu.be/mznYKPvhcfw">
   <img src="https://dokploy.com/banner.png" alt="Watch the video" width="400"/>
 </a>
 
-## Contributing
+## 🤝 Contributing
 
 Check out the [Contributing Guide](CONTRIBUTING.md) for more information.

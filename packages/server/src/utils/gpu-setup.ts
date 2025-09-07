@@ -1,6 +1,5 @@
 import * as fs from "node:fs/promises";
-import { execAsync, sleep } from "../utils/process/execAsync";
-import { execAsyncRemote } from "../utils/process/execAsync";
+import { execAsync, execAsyncRemote, sleep } from "../utils/process/execAsync";
 
 interface GPUInfo {
 	driverInstalled: boolean;
@@ -186,7 +185,7 @@ const checkCudaSupport = async (serverId?: string) => {
 			? await execAsyncRemote(serverId, cudaCommand)
 			: await execAsync(cudaCommand);
 
-		const cudaMatch = cudaInfo.match(/CUDA Version\s*:\s*([\d\.]+)/);
+		const cudaMatch = cudaInfo.match(/CUDA Version\s*:\s*([\d.]+)/);
 		cudaVersion = cudaMatch ? cudaMatch[1] : undefined;
 		cudaSupport = !!cudaVersion;
 	} catch (error) {

@@ -1,12 +1,12 @@
-import { AiForm } from "@/components/dashboard/settings/ai-form";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { appRouter } from "@/server/api/root";
-import { getLocale, serverSideTranslations } from "@/utils/i18n";
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { AiForm } from "@/components/dashboard/settings/ai-form";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
 	return (

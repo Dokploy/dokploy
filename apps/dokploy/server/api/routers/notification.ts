@@ -1,4 +1,31 @@
 import {
+	createDiscordNotification,
+	createEmailNotification,
+	createGotifyNotification,
+	createNtfyNotification,
+	createSlackNotification,
+	createTelegramNotification,
+	findNotificationById,
+	IS_CLOUD,
+	removeNotificationById,
+	sendDiscordNotification,
+	sendEmailNotification,
+	sendGotifyNotification,
+	sendNtfyNotification,
+	sendServerThresholdNotifications,
+	sendSlackNotification,
+	sendTelegramNotification,
+	updateDiscordNotification,
+	updateEmailNotification,
+	updateGotifyNotification,
+	updateNtfyNotification,
+	updateSlackNotification,
+	updateTelegramNotification,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
+import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
@@ -9,47 +36,26 @@ import {
 	apiCreateDiscord,
 	apiCreateEmail,
 	apiCreateGotify,
+	apiCreateNtfy,
 	apiCreateSlack,
 	apiCreateTelegram,
 	apiFindOneNotification,
 	apiTestDiscordConnection,
 	apiTestEmailConnection,
 	apiTestGotifyConnection,
+	apiTestNtfyConnection,
 	apiTestSlackConnection,
 	apiTestTelegramConnection,
 	apiUpdateDiscord,
 	apiUpdateEmail,
 	apiUpdateGotify,
+	apiUpdateNtfy,
 	apiUpdateSlack,
 	apiUpdateTelegram,
 	notifications,
 	server,
 	users_temp,
 } from "@/server/db/schema";
-import {
-	IS_CLOUD,
-	createDiscordNotification,
-	createEmailNotification,
-	createGotifyNotification,
-	createSlackNotification,
-	createTelegramNotification,
-	findNotificationById,
-	removeNotificationById,
-	sendDiscordNotification,
-	sendEmailNotification,
-	sendGotifyNotification,
-	sendServerThresholdNotifications,
-	sendSlackNotification,
-	sendTelegramNotification,
-	updateDiscordNotification,
-	updateEmailNotification,
-	updateGotifyNotification,
-	updateSlackNotification,
-	updateTelegramNotification,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { desc, eq, sql } from "drizzle-orm";
-import { z } from "zod";
 
 export const notificationRouter = createTRPCRouter({
 	createSlack: adminProcedure
@@ -321,6 +327,7 @@ export const notificationRouter = createTRPCRouter({
 				discord: true,
 				email: true,
 				gotify: true,
+				ntfy: true,
 			},
 			orderBy: desc(notifications.createdAt),
 			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
@@ -435,6 +442,64 @@ export const notificationRouter = createTRPCRouter({
 				await sendGotifyNotification(
 					input,
 					"Test Notification",
+					"Hi, From Dokploy 👋",
+				);
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error testing the notification",
+					cause: error,
+				});
+			}
+		}),
+	createNtfy: adminProcedure
+		.input(apiCreateNtfy)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				return await createNtfyNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updateNtfy: adminProcedure
+		.input(apiUpdateNtfy)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (
+					IS_CLOUD &&
+					notification.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				return await updateNtfyNotification({
+					...input,
+					organizationId: ctx.session.activeOrganizationId,
+				});
+			} catch (error) {
+				throw error;
+			}
+		}),
+	testNtfyConnection: adminProcedure
+		.input(apiTestNtfyConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendNtfyNotification(
+					input,
+					"Test Notification",
+					"",
+					"view, visit Dokploy on Github, https://github.com/dokploy/dokploy, clear=true;",
 					"Hi, From Dokploy 👋",
 				);
 				return true;

@@ -1,8 +1,12 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
-import { type apiCreateCompose, compose } from "@dokploy/server/db/schema";
-import { buildAppName, cleanAppName } from "@dokploy/server/db/schema";
+import {
+	type apiCreateCompose,
+	buildAppName,
+	cleanAppName,
+	compose,
+} from "@dokploy/server/db/schema";
 import {
 	buildCompose,
 	getBuildComposeCommand,
@@ -122,7 +126,11 @@ export const findComposeById = async (composeId: string) => {
 	const result = await db.query.compose.findFirst({
 		where: eq(compose.composeId, composeId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			deployments: true,
 			mounts: true,
 			domains: true,
@@ -218,7 +226,7 @@ export const deployCompose = async ({
 	const compose = await findComposeById(composeId);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
-		compose.projectId
+		compose.environment.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
@@ -251,11 +259,11 @@ export const deployCompose = async ({
 		});
 
 		await sendBuildSuccessNotifications({
-			projectName: compose.project.name,
+			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			organizationId: compose.project.organizationId,
+			organizationId: compose.environment.project.organizationId,
 			domains: compose.domains,
 		});
 	} catch (error) {
@@ -264,13 +272,13 @@ export const deployCompose = async ({
 			composeStatus: "error",
 		});
 		await sendBuildErrorNotifications({
-			projectName: compose.project.name,
+			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			organizationId: compose.project.organizationId,
+			organizationId: compose.environment.project.organizationId,
 		});
 		throw error;
 	}
@@ -326,7 +334,7 @@ export const deployRemoteCompose = async ({
 	const compose = await findComposeById(composeId);
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
-		compose.projectId
+		compose.environment.projectId
 	}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
@@ -383,11 +391,11 @@ export const deployRemoteCompose = async ({
 		});
 
 		await sendBuildSuccessNotifications({
-			projectName: compose.project.name,
+			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
 			buildLink,
-			organizationId: compose.project.organizationId,
+			organizationId: compose.environment.project.organizationId,
 			domains: compose.domains,
 		});
 	} catch (error) {
@@ -406,13 +414,13 @@ export const deployRemoteCompose = async ({
 			composeStatus: "error",
 		});
 		await sendBuildErrorNotifications({
-			projectName: compose.project.name,
+			projectName: compose.environment.project.name,
 			applicationName: compose.name,
 			applicationType: "compose",
 			// @ts-ignore
 			errorMessage: error?.message || "Error building",
 			buildLink,
-			organizationId: compose.project.organizationId,
+			organizationId: compose.environment.project.organizationId,
 		});
 		throw error;
 	}
@@ -516,19 +524,20 @@ export const startCompose = async (composeId: string) => {
 	const compose = await findComposeById(composeId);
 	try {
 		const { COMPOSE_PATH } = paths(!!compose.serverId);
+
+		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
+		const path =
+			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+		const baseCommand = `docker compose -p ${compose.appName} -f ${path} up -d`;
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(
-						COMPOSE_PATH,
-						compose.appName,
-						"code",
-					)} && docker compose -p ${compose.appName} up -d`,
+					`cd ${projectPath} && ${baseCommand}`,
 				);
 			} else {
-				await execAsync(`docker compose -p ${compose.appName} up -d`, {
-					cwd: join(COMPOSE_PATH, compose.appName, "code"),
+				await execAsync(baseCommand, {
+					cwd: projectPath,
 				});
 			}
 		}

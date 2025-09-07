@@ -3,6 +3,7 @@ import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
+	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -11,7 +12,7 @@ import { getRemoteDocker } from "../servers/remote-docker";
 
 export type MongoNested = InferResultType<
 	"mongo",
-	{ mounts: true; project: true }
+	{ mounts: true; environment: { with: { project: true } } }
 >;
 
 export const buildMongo = async (mongo: MongoNested) => {
@@ -81,6 +82,17 @@ ${command ?? "wait $MONGOD_PID"}`;
 		env ? `\n${env}` : ""
 	}`;
 
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+	} = generateConfigContainer(mongo);
+
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -90,7 +102,8 @@ ${command ?? "wait $MONGOD_PID"}`;
 
 	const envVariables = prepareEnvironmentVariables(
 		defaultMongoEnv,
-		mongo.project.env,
+		mongo.environment.project.env,
+		mongo.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
@@ -102,6 +115,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
@@ -116,20 +130,17 @@ ${command ?? "wait $MONGOD_PID"}`;
 								Args: ["-c", command],
 							}),
 						}),
+				Labels,
 			},
-			Networks: [{ Target: "dokploy-network" }],
+			Networks,
+			RestartPolicy,
+			Placement,
 			Resources: {
 				...resources,
 			},
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
 		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
+		Mode,
+		RollbackConfig,
 		EndpointSpec: {
 			Mode: "dnsrr",
 			Ports: externalPort
@@ -143,6 +154,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 					]
 				: [],
 		},
+		UpdateConfig,
 	};
 
 	try {
@@ -151,6 +163,10 @@ ${command ?? "wait $MONGOD_PID"}`;
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			TaskTemplate: {
+				...settings.TaskTemplate,
+				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+			},
 		});
 	} catch {
 		await docker.createService(settings);

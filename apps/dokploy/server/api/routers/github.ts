@@ -1,10 +1,3 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { db } from "@/server/db";
-import {
-	apiFindGithubBranches,
-	apiFindOneGithub,
-	apiUpdateGithub,
-} from "@/server/db/schema";
 import {
 	findGithubById,
 	getGithubBranches,
@@ -13,6 +6,13 @@ import {
 	updateGitProvider,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
+import {
+	apiFindGithubBranches,
+	apiFindOneGithub,
+	apiUpdateGithub,
+} from "@/server/db/schema";
 
 export const githubRouter = createTRPCRouter({
 	one: protectedProcedure

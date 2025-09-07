@@ -1,9 +1,8 @@
 import { Slot, Slottable } from "@radix-ui/react-slot";
-import { type VariantProps, cva } from "class-variance-authority";
-import * as React from "react";
-
-import { cn } from "@/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
 	"inline-flex items-center justify-center whitespace-nowrap select-none rounded-lg transition-all will-change-transform active:hover:scale-[0.98] active:hover:transform text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",

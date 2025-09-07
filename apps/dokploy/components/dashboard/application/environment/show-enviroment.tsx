@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { type CSSProperties, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,12 +22,6 @@ import {
 } from "@/components/ui/form";
 import { Toggle } from "@/components/ui/toggle";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { type CSSProperties, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import type { ServiceType } from "../advanced/show-resources";
 
 const addEnvironmentSchema = z.object({

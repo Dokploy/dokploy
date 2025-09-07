@@ -1,8 +1,8 @@
 import type { WriteStream } from "node:fs";
-import type { ApplicationNested } from ".";
 import { prepareEnvironmentVariables } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import { spawnAsync } from "../process/spawnAsync";
+import type { ApplicationNested } from ".";
 
 export const buildPaketo = async (
 	application: ApplicationNested,
@@ -12,7 +12,8 @@ export const buildPaketo = async (
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		application.project.env,
+		application.environment.project.env,
+		application.environment.env,
 	);
 	try {
 		const args = [
@@ -52,7 +53,8 @@ export const getPaketoCommand = (
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
 		env,
-		application.project.env,
+		application.environment.project.env,
+		application.environment.env,
 	);
 
 	const args = [

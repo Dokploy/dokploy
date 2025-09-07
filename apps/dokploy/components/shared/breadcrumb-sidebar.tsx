@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Fragment } from "react";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -7,13 +9,11 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import Link from "next/link";
-import { Fragment } from "react";
 
 interface Props {
 	list: {
 		name: string;
-		href: string;
+		href?: string;
 	}[];
 }
 
@@ -26,18 +26,18 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 					<Separator orientation="vertical" className="mr-2 h-4" />
 					<Breadcrumb>
 						<BreadcrumbList>
-							{list.map((item, _index) => (
+							{list.map((item, index) => (
 								<Fragment key={item.name}>
 									<BreadcrumbItem className="block">
-										<BreadcrumbLink href={item.href} asChild={!!item.href}>
+										<BreadcrumbLink href={item?.href} asChild={!!item?.href}>
 											{item.href ? (
-												<Link href={item.href}>{item.name}</Link>
+												<Link href={item?.href}>{item?.name}</Link>
 											) : (
-												item.name
+												item?.name
 											)}
 										</BreadcrumbLink>
 									</BreadcrumbItem>
-									{_index + 1 < list.length && (
+									{index + 1 < list.length && (
 										<BreadcrumbSeparator className="block" />
 									)}
 								</Fragment>

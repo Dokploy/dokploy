@@ -1,12 +1,29 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { environments } from "./environment";
 import { mounts } from "./mount";
 import { projects } from "./project";
 import { server } from "./server";
-import { applicationStatus } from "./shared";
+import {
+	applicationStatus,
+	type HealthCheckSwarm,
+	HealthCheckSwarmSchema,
+	type LabelsSwarm,
+	LabelsSwarmSchema,
+	type NetworkSwarm,
+	NetworkSwarmSchema,
+	type PlacementSwarm,
+	PlacementSwarmSchema,
+	type RestartPolicySwarm,
+	RestartPolicySwarmSchema,
+	type ServiceModeSwarm,
+	ServiceModeSwarmSchema,
+	type UpdateConfigSwarm,
+	UpdateConfigSwarmSchema,
+} from "./shared";
 import { generateAppName } from "./utils";
 
 export const redis = pgTable("redis", {
@@ -35,18 +52,28 @@ export const redis = pgTable("redis", {
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
-	projectId: text("projectId")
+	healthCheckSwarm: json("healthCheckSwarm").$type<HealthCheckSwarm>(),
+	restartPolicySwarm: json("restartPolicySwarm").$type<RestartPolicySwarm>(),
+	placementSwarm: json("placementSwarm").$type<PlacementSwarm>(),
+	updateConfigSwarm: json("updateConfigSwarm").$type<UpdateConfigSwarm>(),
+	rollbackConfigSwarm: json("rollbackConfigSwarm").$type<UpdateConfigSwarm>(),
+	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
+	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
+	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	replicas: integer("replicas").default(1).notNull(),
+
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
 });
 
 export const redisRelations = relations(redis, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [redis.projectId],
-		references: [projects.projectId],
+	environment: one(environments, {
+		fields: [redis.environmentId],
+		references: [environments.environmentId],
 	}),
 	mounts: many(mounts),
 	server: one(server, {
@@ -68,11 +95,19 @@ const createSchema = createInsertSchema(redis, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
+	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
+	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
+	placementSwarm: PlacementSwarmSchema.nullable(),
+	updateConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	rollbackConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	modeSwarm: ServiceModeSwarmSchema.nullable(),
+	labelsSwarm: LabelsSwarmSchema.nullable(),
+	networkSwarm: NetworkSwarmSchema.nullable(),
 });
 
 export const apiCreateRedis = createSchema
@@ -81,7 +116,7 @@ export const apiCreateRedis = createSchema
 		appName: true,
 		databasePassword: true,
 		dockerImage: true,
-		projectId: true,
+		environmentId: true,
 		description: true,
 		serverId: true,
 	})

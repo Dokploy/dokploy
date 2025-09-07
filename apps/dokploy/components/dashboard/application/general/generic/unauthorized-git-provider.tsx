@@ -1,8 +1,9 @@
+import { AlertCircle, GitBranch, Unlink } from "lucide-react";
 import {
 	BitbucketIcon,
-	GitIcon,
 	GiteaIcon,
 	GithubIcon,
+	GitIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -10,7 +11,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RouterOutputs } from "@/utils/api";
-import { AlertCircle, GitBranch, Unlink } from "lucide-react";
 
 interface Props {
 	service:

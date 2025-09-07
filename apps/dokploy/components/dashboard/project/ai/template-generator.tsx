@@ -1,3 +1,8 @@
+import { defineStepper } from "@stepperize/react";
+import { Bot } from "lucide-react";
+import Link from "next/link";
+import React, { useState } from "react";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,11 +24,6 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/utils/api";
-import { defineStepper } from "@stepperize/react";
-import { Bot } from "lucide-react";
-import Link from "next/link";
-import React, { useState } from "react";
-import { toast } from "sonner";
 import { StepOne } from "./step-one";
 import { StepThree } from "./step-three";
 import { StepTwo } from "./step-two";
@@ -90,11 +90,11 @@ export const { useStepper, steps, Scoped } = defineStepper(
 );
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const TemplateGenerator = ({ projectId }: Props) => {
+export const TemplateGenerator = ({ environmentId }: Props) => {
 	const [open, setOpen] = useState(false);
 	const stepper = useStepper();
 	const { data: aiSettings } = api.ai.getAll.useQuery();
@@ -121,7 +121,7 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 
 	const onSubmit = async () => {
 		await mutateAsync({
-			projectId,
+			environmentId: environmentId,
 			id: templateInfo.details?.id || "",
 			name: templateInfo?.details?.name || "",
 			description: templateInfo?.details?.shortDescription || "",
@@ -138,8 +138,9 @@ export const TemplateGenerator = ({ projectId }: Props) => {
 			.then(async () => {
 				toast.success("Compose Created");
 				setOpen(false);
-				await utils.project.one.invalidate({
-					projectId,
+				// Invalidate the project query to refresh the environment data
+				await utils.environment.one.invalidate({
+					environmentId,
 				});
 			})
 			.catch(() => {

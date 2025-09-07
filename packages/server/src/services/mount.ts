@@ -2,18 +2,22 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
-	type ServiceType,
 	type apiCreateMount,
 	mounts,
+	type ServiceType,
 } from "@dokploy/server/db/schema";
 import {
 	createFile,
+	encodeBase64,
 	getCreateFileCommand,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
-import { type SQL, eq, sql } from "drizzle-orm";
+import { eq, type SQL, sql } from "drizzle-orm";
 
 export type Mount = typeof mounts.$inferSelect;
 
@@ -101,13 +105,69 @@ export const findMountById = async (mountId: string) => {
 	const mount = await db.query.mounts.findFirst({
 		where: eq(mounts.mountId, mountId),
 		with: {
-			application: true,
-			postgres: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			redis: true,
-			compose: true,
+			application: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			postgres: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mariadb: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mongo: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mysql: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			redis: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
 		},
 	});
 	if (!mount) {
@@ -119,11 +179,39 @@ export const findMountById = async (mountId: string) => {
 	return mount;
 };
 
+export const findMountOrganizationId = async (mountId: string) => {
+	const mount = await findMountById(mountId);
+
+	if (mount.application) {
+		return mount.application.environment.project.organizationId;
+	}
+	if (mount.postgres) {
+		return mount.postgres.environment.project.organizationId;
+	}
+	if (mount.mariadb) {
+		return mount.mariadb.environment.project.organizationId;
+	}
+	if (mount.mongo) {
+		return mount.mongo.environment.project.organizationId;
+	}
+	if (mount.mysql) {
+		return mount.mysql.environment.project.organizationId;
+	}
+	if (mount.redis) {
+		return mount.redis.environment.project.organizationId;
+	}
+
+	if (mount.compose) {
+		return mount.compose.environment.project.organizationId;
+	}
+	return null;
+};
+
 export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
-	return await db.transaction(async (tx) => {
+	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
 			.set({
@@ -140,13 +228,13 @@ export const updateMount = async (
 			});
 		}
 
-		if (mount.type === "file") {
-			await deleteFileMount(mountId);
-			await createFileMount(mountId);
-		}
-
 		return await findMountById(mountId);
 	});
+
+	if (mount.type === "file") {
+		await updateFileMount(mountId);
+	}
+	return mount;
 };
 
 export const findMountsByApplicationId = async (
@@ -196,6 +284,26 @@ export const deleteMount = async (mountId: string) => {
 		.where(eq(mounts.mountId, mountId))
 		.returning();
 	return deletedMount[0];
+};
+
+export const updateFileMount = async (mountId: string) => {
+	const mount = await findMountById(mountId);
+	if (!mount || !mount.filePath) return;
+	const basePath = await getBaseFilesPath(mountId);
+	const fullPath = path.join(basePath, mount.filePath);
+
+	try {
+		const serverId = await getServerId(mount);
+		const encodedContent = encodeBase64(mount.content || "");
+		const command = `echo "${encodedContent}" | base64 -d > ${fullPath}`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
+	} catch {
+		console.log("Error updating file mount");
+	}
 };
 
 export const deleteFileMount = async (mountId: string) => {

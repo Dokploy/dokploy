@@ -1,12 +1,12 @@
-import type { Domain } from "@dokploy/server";
-import type { Redirect } from "@dokploy/server";
-import type { ApplicationNested } from "@dokploy/server";
+import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
 import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	railpackVersion: "0.2.2",
 	rollbackActive: false,
 	applicationId: "",
+	previewLabels: [],
 	herokuVersion: "",
 	giteaRepository: "",
 	giteaOwner: "",
@@ -36,13 +36,22 @@ const baseApp: ApplicationNested = {
 	previewLimit: 0,
 	previewCustomCertResolver: null,
 	previewWildcard: "",
-	project: {
+	environmentId: "",
+	environment: {
 		env: "",
-		organizationId: "",
+		environmentId: "",
 		name: "",
-		description: "",
 		createdAt: "",
+		description: "",
 		projectId: "",
+		project: {
+			env: "",
+			organizationId: "",
+			name: "",
+			description: "",
+			createdAt: "",
+			projectId: "",
+		},
 	},
 	buildPath: "/",
 	gitlabPathNamespace: "",
@@ -85,7 +94,6 @@ const baseApp: ApplicationNested = {
 	password: null,
 	placementSwarm: null,
 	ports: [],
-	projectId: "",
 	publishDirectory: null,
 	isStaticSpa: null,
 	redirects: [],

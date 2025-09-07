@@ -254,6 +254,9 @@ export const addDomainToCompose = async (
 				if (!labels.includes("traefik.docker.network=dokploy-network")) {
 					labels.unshift("traefik.docker.network=dokploy-network");
 				}
+				if (!labels.includes("traefik.swarm.network=dokploy-network")) {
+					labels.unshift("traefik.swarm.network=dokploy-network");
+				}
 			}
 		}
 
@@ -313,40 +316,46 @@ export const createDomainLabels = (
 		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
 
-	// Validate stripPath - it should only be used when path is defined and not "/"
-	if (stripPath) {
-		if (!path || path === "/") {
-			console.warn(
-				`stripPath is enabled but path is not defined or is "/" for domain ${host}`,
-			);
-		} else {
-			const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+	// Collect middlewares for this router
+	const middlewares: string[] = [];
+
+	// Add HTTPS redirect for web entrypoint (must be first)
+	if (entrypoint === "web" && https) {
+		middlewares.push("redirect-to-https@file");
+	}
+
+	// Add stripPath middleware if needed
+	if (stripPath && path && path !== "/") {
+		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+		// Only define middleware once (on web entrypoint)
+		if (entrypoint === "web") {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
 			);
 		}
+		middlewares.push(middlewareName);
 	}
 
-	// Validate internalPath - ensure it's a valid path format
-	if (internalPath && internalPath !== "/") {
-		if (!internalPath.startsWith("/")) {
-			console.warn(
-				`internalPath "${internalPath}" should start with "/" and not be empty for domain ${host}`,
-			);
-		} else {
-			const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+	// Add internalPath middleware if needed
+	if (internalPath && internalPath !== "/" && internalPath.startsWith("/")) {
+		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+		// Only define middleware once (on web entrypoint)
+		if (entrypoint === "web") {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
 			);
 		}
+		middlewares.push(middlewareName);
 	}
 
-	if (entrypoint === "web" && https) {
+	// Apply middlewares to router if any exist
+	if (middlewares.length > 0) {
 		labels.push(
-			`traefik.http.routers.${routerName}.middlewares=redirect-to-https@file`,
+			`traefik.http.routers.${routerName}.middlewares=${middlewares.join(",")}`,
 		);
 	}
 
+	// Add TLS configuration for websecure
 	if (entrypoint === "websecure") {
 		if (certificateType === "letsencrypt") {
 			labels.push(

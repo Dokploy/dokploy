@@ -175,6 +175,7 @@ export const apiAssignPermissions = createSchema
 	})
 	.extend({
 		accessedProjects: z.array(z.string()).optional(),
+		accessedEnvironments: z.array(z.string()).optional(),
 		accessedServices: z.array(z.string()).optional(),
 		canCreateProjects: z.boolean().optional(),
 		canCreateServices: z.boolean().optional(),

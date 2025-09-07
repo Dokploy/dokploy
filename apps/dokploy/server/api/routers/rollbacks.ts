@@ -1,7 +1,11 @@
+import {
+	findRollbackById,
+	removeRollbackById,
+	rollback,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { apiFindOneRollback } from "@/server/db/schema";
-import { removeRollbackById, rollback } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
 
 export const rollbackRouter = createTRPCRouter({
 	delete: protectedProcedure
@@ -22,8 +26,18 @@ export const rollbackRouter = createTRPCRouter({
 		}),
 	rollback: protectedProcedure
 		.input(apiFindOneRollback)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				const currentRollback = await findRollbackById(input.rollbackId);
+				if (
+					currentRollback?.deployment?.application?.environment?.project
+						.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to rollback this deployment",
+					});
+				}
 				return await rollback(input.rollbackId);
 			} catch (error) {
 				console.error(error);

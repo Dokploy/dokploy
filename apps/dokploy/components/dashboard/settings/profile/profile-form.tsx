@@ -1,4 +1,12 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, User } from "lucide-react";
+import { useTranslation } from "next-i18next";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -19,15 +27,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { generateSHA256Hash } from "@/lib/utils";
+import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, User } from "lucide-react";
-import { useTranslation } from "next-i18next";
-import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { Disable2FA } from "./disable-2fa";
 import { Enable2FA } from "./enable-2fa";
 
@@ -257,6 +258,24 @@ export const ProfileForm = () => {
 																value={field.value}
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
+																<FormItem key="no-avatar">
+																	<FormLabel className="[&:has([data-state=checked])>.default-avatar]:border-primary [&:has([data-state=checked])>.default-avatar]:border-1 [&:has([data-state=checked])>.default-avatar]:p-px cursor-pointer">
+																		<FormControl>
+																			<RadioGroupItem
+																				value=""
+																				className="sr-only"
+																			/>
+																		</FormControl>
+
+																		<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
+																			<AvatarFallback className="rounded-lg">
+																				{getFallbackAvatarInitials(
+																					data?.user?.name,
+																				)}
+																			</AvatarFallback>
+																		</Avatar>
+																	</FormLabel>
+																</FormItem>
 																{availableAvatars.map((image) => (
 																	<FormItem key={image}>
 																		<FormLabel className="[&:has([data-state=checked])>img]:border-primary [&:has([data-state=checked])>img]:border-1 [&:has([data-state=checked])>img]:p-px cursor-pointer">

@@ -2,18 +2,17 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateMongo,
 	backups,
+	buildAppName,
 	compose,
 	mongo,
 } from "@dokploy/server/db/schema";
-import { buildAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildMongo } from "@dokploy/server/utils/databases/mongo";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
-
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 
 export type Mongo = typeof mongo.$inferSelect;
 
@@ -54,7 +53,11 @@ export const findMongoById = async (mongoId: string) => {
 	const result = await db.query.mongo.findFirst({
 		where: eq(mongo.mongoId, mongoId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			mounts: true,
 			server: true,
 			backups: {

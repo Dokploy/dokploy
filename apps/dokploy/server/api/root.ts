@@ -11,10 +11,13 @@ import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
 import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
+import { environmentRouter } from "./routers/environment";
 import { gitProviderRouter } from "./routers/git-provider";
 import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
 import { gitlabRouter } from "./routers/gitlab";
+import { hetznerRouter } from "./routers/hetzner";
+import { hostingerRouter } from "./routers/hostinger";
 import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
@@ -38,8 +41,6 @@ import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
 import { volumeBackupsRouter } from "./routers/volume-backups";
-import { hetznerRouter } from "./routers/hetzner";
-import { hostingerRouter } from "./routers/hostinger";
 /**
  * This is the primary router for your server.
  *
@@ -88,6 +89,7 @@ export const appRouter = createTRPCRouter({
 	volumeBackups: volumeBackupsRouter,
 	hetzner: hetznerRouter,
 	hostinger: hostingerRouter,
+	environment: environmentRouter,
 });
 
 // export type definition of API

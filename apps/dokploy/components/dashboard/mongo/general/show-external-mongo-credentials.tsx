@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Button } from "@/components/ui/button";
@@ -19,12 +25,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const DockerProviderSchema = z.object({
 	externalPort: z.preprocess((a) => {
@@ -102,9 +102,9 @@ export const ShowExternalMongoCredentials = ({ mongoId }: Props) => {
 					<CardHeader>
 						<CardTitle className="text-xl">External Credentials</CardTitle>
 						<CardDescription>
-							In order to make the database reachable trought internet is
-							required to set a port, make sure the port is not used by another
-							application or database
+							In order to make the database reachable through the internet, you
+							must set a port and ensure that the port is not being used by
+							another application or database
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">

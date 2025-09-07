@@ -1,15 +1,15 @@
+import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import { eq } from "drizzle-orm";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
-import { eq } from "drizzle-orm";
-import type { NextApiRequest, NextApiResponse } from "next";
 import {
 	extractBranchName,
-	extractCommitMessage,
 	extractCommitedPaths,
+	extractCommitMessage,
 	extractHash,
 	getProviderByHeader,
 } from "../[refreshToken]";
@@ -27,7 +27,11 @@ export default async function handler(
 		const composeResult = await db.query.compose.findFirst({
 			where: eq(compose.refreshToken, refreshToken as string),
 			with: {
-				project: true,
+				environment: {
+					with: {
+						project: true,
+					},
+				},
 				bitbucket: true,
 			},
 		});

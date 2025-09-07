@@ -3,6 +3,7 @@ import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
+	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -11,7 +12,7 @@ import { getRemoteDocker } from "../servers/remote-docker";
 
 export type PostgresNested = InferResultType<
 	"postgres",
-	{ mounts: true; project: true }
+	{ mounts: true; environment: { with: { project: true } } }
 >;
 export const buildPostgres = async (postgres: PostgresNested) => {
 	const {
@@ -33,6 +34,17 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 	const defaultPostgresEnv = `POSTGRES_DB="${databaseName}"\nPOSTGRES_USER="${databaseUser}"\nPOSTGRES_PASSWORD="${databasePassword}"${
 		env ? `\n${env}` : ""
 	}`;
+
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+	} = generateConfigContainer(postgres);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -41,7 +53,8 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultPostgresEnv,
-		postgres.project.env,
+		postgres.environment.project.env,
+		postgres.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
@@ -53,6 +66,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
@@ -62,20 +76,17 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 							Args: ["-c", command],
 						}
 					: {}),
+				Labels,
 			},
-			Networks: [{ Target: "dokploy-network" }],
+			Networks,
+			RestartPolicy,
+			Placement,
 			Resources: {
 				...resources,
 			},
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
 		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
+		Mode,
+		RollbackConfig,
 		EndpointSpec: {
 			Mode: "dnsrr",
 			Ports: externalPort
@@ -89,6 +100,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 					]
 				: [],
 		},
+		UpdateConfig,
 	};
 	try {
 		const service = docker.getService(appName);
@@ -96,6 +108,10 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			TaskTemplate: {
+				...settings.TaskTemplate,
+				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+			},
 		});
 	} catch (error) {
 		console.log("error", error);

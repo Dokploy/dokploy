@@ -2,8 +2,7 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { normalizeS3Path } from "../backups/utils";
-import { getS3Credentials } from "../backups/utils";
+import { getS3Credentials, normalizeS3Path } from "../backups/utils";
 
 export const backupVolume = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -37,6 +36,9 @@ export const backupVolume = async (
   echo "Starting upload to S3..."
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
+  echo "Cleaning up local backup file..."
+  rm "${volumeBackupPath}/${backupFileName}"
+  echo "Local backup file cleaned up ✅"
   `;
 
 	if (!turnOff) {
