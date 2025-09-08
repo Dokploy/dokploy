@@ -251,11 +251,15 @@ export const addDomainToCompose = async (
 			}
 			labels.unshift(...httpLabels);
 			if (!compose.isolatedDeployment) {
-				if (!labels.includes("traefik.docker.network=dokploy-network")) {
-					labels.unshift("traefik.docker.network=dokploy-network");
-				}
-				if (!labels.includes("traefik.swarm.network=dokploy-network")) {
-					labels.unshift("traefik.swarm.network=dokploy-network");
+				if (compose.composeType === "docker-compose") {
+					if (!labels.includes("traefik.docker.network=dokploy-network")) {
+						labels.unshift("traefik.docker.network=dokploy-network");
+					}
+				} else {
+					// Stack Case
+					if (!labels.includes("traefik.swarm.network=dokploy-network")) {
+						labels.unshift("traefik.swarm.network=dokploy-network");
+					}
 				}
 			}
 		}
