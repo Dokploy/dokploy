@@ -201,7 +201,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			await updateUser(ctx.user.id, {
+			await updateUser(ctx.user.ownerId, {
 				sshPrivateKey: input.sshPrivateKey,
 			});
 
@@ -213,7 +213,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			const user = await updateUser(ctx.user.id, {
+			const user = await updateUser(ctx.user.ownerId, {
 				host: input.host,
 				...(input.letsEncryptEmail && {
 					letsEncryptEmail: input.letsEncryptEmail,
@@ -240,7 +240,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		await updateUser(ctx.user.id, {
+		await updateUser(ctx.user.ownerId, {
 			sshPrivateKey: null,
 		});
 		return true;
@@ -300,7 +300,7 @@ export const settingsRouter = createTRPCRouter({
 					}
 				}
 			} else if (!IS_CLOUD) {
-				const userUpdated = await updateUser(ctx.user.id, {
+				const userUpdated = await updateUser(ctx.user.ownerId, {
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
 
