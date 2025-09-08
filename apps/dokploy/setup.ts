@@ -13,19 +13,30 @@ import {
 	initializeStandaloneTraefik,
 } from "@dokploy/server/setup/traefik-setup";
 
-(async () => {
+async function step(actionLabel: string, fn: () => Promise<unknown> | unknown) {
 	try {
-		setupDirectories();
-		createDefaultMiddlewares();
-		await initializeSwarm();
-		await initializeNetwork();
-		createDefaultTraefikConfig();
-		createDefaultServerTraefikConfig();
-		await execAsync("docker pull traefik:v3.5.0");
-		await initializeStandaloneTraefik();
-		await initializeRedis();
-		await initializePostgres();
+		await fn();
 	} catch (e) {
-		console.error("Error in dokploy setup", e);
+		console.error(`Error with ${actionLabel}:`, e);
 	}
-})();
+}
+
+async function setup() {
+	await step("setting up directories", setupDirectories);
+	await step("creating default middlewares", createDefaultMiddlewares);
+	await step("initializing swarm", initializeSwarm);
+	await step("initializing network", initializeNetwork);
+	await step("creating default traefik config", createDefaultTraefikConfig);
+	await step(
+		"creating default server traefik config",
+		createDefaultServerTraefikConfig,
+	);
+	await step("pulling traefik image v3.5.0", () =>
+		execAsync("docker pull traefik:v3.5.0"),
+	);
+	await step("initializing traefik container", initializeStandaloneTraefik);
+	await step("initializing redis container", initializeRedis);
+	await step("initializing postgres container", initializePostgres);
+}
+
+setup();
