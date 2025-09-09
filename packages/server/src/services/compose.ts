@@ -54,95 +54,106 @@ import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
 import { paths } from "@dokploy/server/constants";
 import { join } from "node:path";
-import { execAsync, execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { getDokployUrl } from "./admin";
-import { createDeploymentCompose, updateDeployment, updateDeploymentStatus } from "./deployment";
+import {
+	createDeploymentCompose,
+	updateDeployment,
+	updateDeploymentStatus,
+} from "./deployment";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
 
 const tryUpdateWithGitInfoLocal = async (
-    composeEntity: Compose & { appName: string; env: string | null },
-    deploymentId: string,
-    defaultTitle: string,
-    defaultDescription: string,
+	composeEntity: Compose & { appName: string; env: string | null },
+	deploymentId: string,
+	defaultTitle: string,
+	defaultDescription: string,
 ) => {
-    try {
-        const { COMPOSE_PATH } = paths();
-        const codePath = join(COMPOSE_PATH, composeEntity.appName, "code");
-        const { stdout: hashStdout } = await execAsync(
-            `git -C ${codePath} rev-parse HEAD`,
-        );
-        const gitHash = hashStdout.trim();
-        const { stdout: msgStdout } = await execAsync(
-            `git -C ${codePath} log -1 --pretty=%B`,
-        );
-        const gitMessage = msgStdout.trim();
-        
-        if (gitHash) {
-            const current = composeEntity.env || "";
-            const withoutOld = current
-                .split("\n")
-                .filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
-                .join("\n");
-            const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
-            
-            // Update the database immediately
-            await updateCompose(composeEntity.composeId as string, { env: newEnv });
-            
-            // Update the local entity for consistency
-            composeEntity.env = newEnv;
-        }
-        await updateDeployment(deploymentId, {
-            title: gitMessage || defaultTitle,
-            description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
-        });
-    } catch (error) {
-        // ignore if git data can't be fetched
-    }
+	try {
+		const { COMPOSE_PATH } = paths();
+		const codePath = join(COMPOSE_PATH, composeEntity.appName, "code");
+		const { stdout: hashStdout } = await execAsync(
+			`git -C ${codePath} rev-parse HEAD`,
+		);
+		const gitHash = hashStdout.trim();
+		const { stdout: msgStdout } = await execAsync(
+			`git -C ${codePath} log -1 --pretty=%B`,
+		);
+		const gitMessage = msgStdout.trim();
+
+		if (gitHash) {
+			const current = composeEntity.env || "";
+			const withoutOld = current
+				.split("\n")
+				.filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
+				.join("\n");
+			const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
+
+			// Update the database immediately
+			await updateCompose(composeEntity.composeId as string, { env: newEnv });
+
+			// Update the local entity for consistency
+			composeEntity.env = newEnv;
+		}
+		await updateDeployment(deploymentId, {
+			title: gitMessage || defaultTitle,
+			description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
+		});
+	} catch (error) {
+		// ignore if git data can't be fetched
+	}
 };
 
 const tryUpdateWithGitInfoRemote = async (
-    composeEntity: Compose & { appName: string; env: string | null; serverId: string },
-    deploymentId: string,
-    defaultTitle: string,
-    defaultDescription: string,
+	composeEntity: Compose & {
+		appName: string;
+		env: string | null;
+		serverId: string;
+	},
+	deploymentId: string,
+	defaultTitle: string,
+	defaultDescription: string,
 ) => {
-    try {
-        const { COMPOSE_PATH } = paths(true);
-        const codePath = join(COMPOSE_PATH, composeEntity.appName, "code");
-        const { stdout: hashStdout } = await execAsyncRemote(
-            composeEntity.serverId,
-            `git -C ${codePath} rev-parse HEAD | tr -d '\n'`,
-        );
-        const gitHash = (hashStdout || "").trim();
-        const { stdout: msgStdout } = await execAsyncRemote(
-            composeEntity.serverId,
-            `git -C ${codePath} log -1 --pretty=%B`,
-        );
-        const gitMessage = (msgStdout || "").trim();
-        
-        if (gitHash) {
-            const current = composeEntity.env || "";
-            const withoutOld = current
-                .split("\n")
-                .filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
-                .join("\n");
-            const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
-            
-            // Update the database
-            await updateCompose(composeEntity.composeId as string, { env: newEnv });
-            
-            // Update the local entity for consistency
-            composeEntity.env = newEnv;
-        }
-        await updateDeployment(deploymentId, {
-            title: gitMessage || defaultTitle,
-            description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
-        });
-    } catch (error) {
-        // ignore if git data can't be fetched
-    }
+	try {
+		const { COMPOSE_PATH } = paths(true);
+		const codePath = join(COMPOSE_PATH, composeEntity.appName, "code");
+		const { stdout: hashStdout } = await execAsyncRemote(
+			composeEntity.serverId,
+			`git -C ${codePath} rev-parse HEAD | tr -d '\n'`,
+		);
+		const gitHash = (hashStdout || "").trim();
+		const { stdout: msgStdout } = await execAsyncRemote(
+			composeEntity.serverId,
+			`git -C ${codePath} log -1 --pretty=%B`,
+		);
+		const gitMessage = (msgStdout || "").trim();
+
+		if (gitHash) {
+			const current = composeEntity.env || "";
+			const withoutOld = current
+				.split("\n")
+				.filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
+				.join("\n");
+			const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
+
+			// Update the database
+			await updateCompose(composeEntity.composeId as string, { env: newEnv });
+
+			// Update the local entity for consistency
+			composeEntity.env = newEnv;
+		}
+		await updateDeployment(deploymentId, {
+			title: gitMessage || defaultTitle,
+			description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
+		});
+	} catch (error) {
+		// ignore if git data can't be fetched
+	}
 };
 
 export const createCompose = async (input: typeof apiCreateCompose._type) => {
@@ -370,14 +381,14 @@ export const deployCompose = async ({
 		} else if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
 		}
-		
+
 		// Refresh compose object from database to get updated environment variables
 		const updatedCompose = await findComposeById(composeId);
 		await buildCompose(updatedCompose, deployment.logPath);
-		
+
 		// Ensure environment update is completed before marking deployment as done
-		await new Promise(resolve => setTimeout(resolve, 100));
-		
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
@@ -438,7 +449,7 @@ export const rebuildCompose = async ({
 				descriptionLog,
 			);
 		}
-		
+
 		// Refresh compose object from database to get updated environment variables
 		const updatedCompose = await findComposeById(composeId);
 		await buildCompose(updatedCompose, deployment.logPath);
@@ -518,7 +529,7 @@ export const deployRemoteCompose = async ({
 			}
 
 			await execAsyncRemote(compose.serverId, command);
-			
+
 			// Update with git info for git-based source types
 			if (compose.sourceType !== "raw") {
 				await tryUpdateWithGitInfoRemote(
@@ -528,7 +539,7 @@ export const deployRemoteCompose = async ({
 					descriptionLog,
 				);
 			}
-			
+
 			// Refresh compose object from database to get updated environment variables
 			const updatedCompose = await findComposeById(composeId);
 			await getBuildComposeCommand(updatedCompose, deployment.logPath);

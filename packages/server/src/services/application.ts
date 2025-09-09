@@ -13,7 +13,10 @@ import {
 } from "@dokploy/server/utils/builders";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
-import { execAsync, execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import {
 	cloneBitbucketRepository,
 	getBitbucketCloneCommand,
@@ -102,7 +105,11 @@ const tryUpdateWithGitInfoLocal = async (
 };
 
 const tryUpdateWithGitInfoRemote = async (
-	application: Application & { appName: string; env: string | null; serverId: string },
+	application: Application & {
+		appName: string;
+		env: string | null;
+		serverId: string;
+	},
 	deploymentId: string,
 	defaultTitle: string,
 	defaultDescription: string,
