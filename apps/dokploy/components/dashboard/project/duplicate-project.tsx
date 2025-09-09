@@ -80,6 +80,19 @@ export const DuplicateProject = ({
 		api.project.duplicate.useMutation({
 			onSuccess: async (newProject) => {
 				await utils.project.all.invalidate();
+				
+				// If duplicating to the same environment, invalidate the environment data to refresh the services list
+				if (duplicateType === "existing-environment") {
+					// Invalidate the target environment data to refresh the services list
+					await utils.environment.one.invalidate({ environmentId: selectedTargetEnvironment });
+					await utils.environment.byProjectId.invalidate({ projectId: selectedTargetProject });
+					
+					// Also invalidate the current environment if it's the same as the target
+					if (selectedTargetEnvironment === environmentId) {
+						await utils.environment.one.invalidate({ environmentId });
+					}
+				}
+				
 				toast.success(
 					duplicateType === "new-project"
 						? "Project duplicated successfully"
