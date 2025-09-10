@@ -352,9 +352,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
-	"Interval" : 10000,
-	"Timeout" : 10000,
-	"StartPeriod" : 10000,
+	"Interval" : 10000000000,
+	"Timeout" : 10000000000,
+	"StartPeriod" : 10000000000,
 	"Retries" : 10
 }`}
 											className="h-[12rem] font-mono"
@@ -407,9 +407,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Condition" : "on-failure",
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"MaxAttempts" : 10,
-	"Window" : 10000
+	"Window" : 10000000000
 }                                                  `}
 											className="h-[12rem] font-mono"
 											{...field}
@@ -529,9 +529,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"FailureAction" : "continue",
-	"Monitor" : 10000,
+	"Monitor" : 10000000000,
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
@@ -587,9 +587,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"FailureAction" : "continue",
-	"Monitor" : 10000,
+	"Monitor" : 10000000000,
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
