@@ -279,35 +279,48 @@ export const getBitbucketBranches = async (
 	}
 	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 	const { owner, repo } = input;
-	const url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches?pagelen=100`;
+
+	const allBranches = [];
+	let url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches?pagelen=100`;
 
 	try {
-		const response = await fetch(url, {
-			method: "GET",
-			headers: {
-				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-			},
-		});
-
-		if (!response.ok) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `HTTP error! status: ${response.status}`,
+		while (url) {
+			const response = await fetch(url, {
+				method: "GET",
+				headers: {
+					Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+				},
 			});
+
+			if (!response.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `HTTP error! status: ${response.status}`,
+				});
+			}
+
+			const data = await response.json();
+
+			if (!data.values || data.values.length === 0) {
+				break;
+			}
+
+			const mappedData = data.values.map((branch: any) => {
+				return {
+					name: branch.name,
+					commit: {
+						sha: branch.target.hash,
+					},
+				};
+			});
+
+			allBranches.push(...mappedData);
+
+			// Check if there's a next page
+			url = data.next || null;
 		}
 
-		const data = await response.json();
-
-		const mappedData = data.values.map((branch: any) => {
-			return {
-				name: branch.name,
-				commit: {
-					sha: branch.target.hash,
-				},
-			};
-		});
-
-		return mappedData as {
+		return allBranches as {
 			name: string;
 			commit: {
 				sha: string;
