@@ -482,35 +482,57 @@ export const getGiteaBranches = async (input: {
 	const giteaProvider = await findGiteaById(input.giteaId);
 
 	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
-	const url = `${baseUrl}/api/v1/repos/${input.owner}/${input.repo}/branches`;
+	const allBranches = [];
+	let page = 1;
+	const limit = 50; // Gitea's default limit per page
 
-	const response = await fetch(url, {
-		headers: {
-			Accept: "application/json",
-			Authorization: `token ${giteaProvider.accessToken}`,
-		},
-	});
+	try {
+		while (true) {
+			const url = `${baseUrl}/api/v1/repos/${input.owner}/${input.repo}/branches?page=${page}&limit=${limit}`;
 
-	if (!response.ok) {
-		throw new Error(`Failed to fetch branches: ${response.statusText}`);
-	}
+			const response = await fetch(url, {
+				headers: {
+					Accept: "application/json",
+					Authorization: `token ${giteaProvider.accessToken}`,
+				},
+			});
 
-	const branches = await response.json();
+			if (!response.ok) {
+				throw new Error(`Failed to fetch branches: ${response.statusText}`);
+			}
 
-	if (!branches) {
-		return [];
-	}
-	return branches?.map((branch: any) => ({
-		id: branch.name,
-		name: branch.name,
-		commit: {
-			id: branch.commit.id,
-		},
-	})) as {
-		id: string;
-		name: string;
-		commit: {
+			const branches = await response.json();
+
+			if (!branches || branches.length === 0) {
+				break;
+			}
+
+			const mappedBranches = branches.map((branch: any) => ({
+				id: branch.name,
+				name: branch.name,
+				commit: {
+					id: branch.commit.id,
+				},
+			}));
+
+			allBranches.push(...mappedBranches);
+
+			// If we got fewer branches than the limit, we've reached the end
+			if (branches.length < limit) {
+				break;
+			}
+
+			page++;
+		}
+
+		return allBranches as {
 			id: string;
-		};
-	}[];
+			name: string;
+			commit: {
+				id: string;
+			};
+		}[];
+	} catch (error) {
+		throw error;
+	}
 };
