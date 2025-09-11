@@ -65,25 +65,35 @@ export const removeRegistry = async (registryId: string) => {
 
 		if (!IS_CLOUD) {
 			await execAsync(`docker logout ${response.registryUrl}`);
-			
+
 			// If it's a self-hosted registry, also remove the Docker service and volumes
 			if (response.registryType === "selfHosted") {
 				try {
 					await execAsync(`docker service rm dokploy-registry`);
 					console.log("Self-hosted registry Docker service removed ✅");
-					
+
 					// Also remove the associated volumes
-					const volumes = ["dokploy-registry-data", "dokploy-registry-auth", "dokploy-registry-certs"];
+					const volumes = [
+						"dokploy-registry-data",
+						"dokploy-registry-auth",
+						"dokploy-registry-certs",
+					];
 					for (const volume of volumes) {
 						try {
 							await execAsync(`docker volume rm ${volume}`);
 							console.log(`Volume ${volume} removed ✅`);
 						} catch (volumeError) {
-							console.warn(`Failed to remove volume ${volume} (may not exist):`, volumeError);
+							console.warn(
+								`Failed to remove volume ${volume} (may not exist):`,
+								volumeError,
+							);
 						}
 					}
 				} catch (serviceError) {
-					console.warn("Failed to remove Docker service (may not exist):", serviceError);
+					console.warn(
+						"Failed to remove Docker service (may not exist):",
+						serviceError,
+					);
 				}
 			}
 		}
@@ -169,11 +179,16 @@ export const findAllRegistryByOrganizationId = async (
 
 export const createDefaultRegistry = async (organizationId: string) => {
 	// Check if a self-hosted registry already exists
-	const existingRegistries = await findAllRegistryByOrganizationId(organizationId);
-	const hasSelfHostedRegistry = existingRegistries.some(r => r.registryType === "selfHosted");
-	
+	const existingRegistries =
+		await findAllRegistryByOrganizationId(organizationId);
+	const hasSelfHostedRegistry = existingRegistries.some(
+		(r) => r.registryType === "selfHosted",
+	);
+
 	if (hasSelfHostedRegistry) {
-		console.log("Self-hosted registry already exists, skipping default creation");
+		console.log(
+			"Self-hosted registry already exists, skipping default creation",
+		);
 		return null;
 	}
 
@@ -194,17 +209,20 @@ export const createDefaultRegistry = async (organizationId: string) => {
 export const ensureDefaultRegistryExists = async (organizationId: string) => {
 	try {
 		// Check if any registry exists for this organization
-		const existingRegistries = await findAllRegistryByOrganizationId(organizationId);
-		
+		const existingRegistries =
+			await findAllRegistryByOrganizationId(organizationId);
+
 		// Only create default registry if no registries exist AND this is a fresh installation
 		// This prevents recreation after user deletion
 		if (existingRegistries.length === 0) {
 			// Check if this is a fresh installation by looking for any other data
 			// For now, we'll be conservative and not auto-create here
-			console.log("No registries found, but not auto-creating to prevent recreation after deletion");
+			console.log(
+				"No registries found, but not auto-creating to prevent recreation after deletion",
+			);
 			return null;
 		}
-		
+
 		return null;
 	} catch (error) {
 		console.error("Error ensuring default registry exists:", error);

@@ -4,7 +4,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { api } from "@/utils/api";
 
 interface SelfHostedRegistryProps {}
@@ -17,23 +25,26 @@ export const SelfHostedRegistry = ({}: SelfHostedRegistryProps) => {
 		username: "registry",
 		password: "registry123",
 		domain: "registry.localhost",
-		registryName: "Default Self Hosted Registry"
+		registryName: "Default Self Hosted Registry",
 	});
 
-	const { mutateAsync: createSimpleRegistry, error: simpleError, isError: isSimpleError } = 
-		api.registry.createSimpleRegistry.useMutation();
+	const {
+		mutateAsync: createSimpleRegistry,
+		error: simpleError,
+		isError: isSimpleError,
+	} = api.registry.createSimpleRegistry.useMutation();
 
 	const handleInputChange = (field: string, value: string) => {
-		setFormData(prev => ({
+		setFormData((prev) => ({
 			...prev,
-			[field]: value
+			[field]: value,
 		}));
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
-		
+
 		try {
 			await createSimpleRegistry({
 				username: formData.username,
@@ -41,7 +52,7 @@ export const SelfHostedRegistry = ({}: SelfHostedRegistryProps) => {
 				domain: formData.domain,
 				registryName: formData.registryName,
 			});
-			
+
 			await utils.registry.all.invalidate();
 			toast.success("Self-hosted registry setup completed successfully!");
 			setIsOpen(false);
@@ -66,7 +77,7 @@ export const SelfHostedRegistry = ({}: SelfHostedRegistryProps) => {
 					</span>
 				</div>
 			)}
-			
+
 			{/* Self Hosted Registry Button */}
 			<div className="flex gap-2">
 				<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -89,7 +100,9 @@ export const SelfHostedRegistry = ({}: SelfHostedRegistryProps) => {
 								<Input
 									id="registryName"
 									value={formData.registryName}
-									onChange={(e) => handleInputChange("registryName", e.target.value)}
+									onChange={(e) =>
+										handleInputChange("registryName", e.target.value)
+									}
 									placeholder="Default Self Hosted Registry"
 									required
 								/>
@@ -99,7 +112,9 @@ export const SelfHostedRegistry = ({}: SelfHostedRegistryProps) => {
 								<Input
 									id="username"
 									value={formData.username}
-									onChange={(e) => handleInputChange("username", e.target.value)}
+									onChange={(e) =>
+										handleInputChange("username", e.target.value)
+									}
 									placeholder="registry"
 									required
 								/>
@@ -110,7 +125,9 @@ export const SelfHostedRegistry = ({}: SelfHostedRegistryProps) => {
 									id="password"
 									type="password"
 									value={formData.password}
-									onChange={(e) => handleInputChange("password", e.target.value)}
+									onChange={(e) =>
+										handleInputChange("password", e.target.value)
+									}
 									placeholder="registry123"
 									required
 									minLength={6}
@@ -126,11 +143,16 @@ export const SelfHostedRegistry = ({}: SelfHostedRegistryProps) => {
 									required
 								/>
 								<p className="text-xs text-muted-foreground">
-									Use localhost domains for local testing (e.g., registry.localhost)
+									Use localhost domains for local testing (e.g.,
+									registry.localhost)
 								</p>
 							</div>
 							<DialogFooter>
-								<Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => setIsOpen(false)}
+								>
 									Cancel
 								</Button>
 								<Button type="submit" isLoading={isLoading}>

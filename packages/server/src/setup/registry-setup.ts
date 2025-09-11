@@ -10,18 +10,22 @@ export interface SelfHostedRegistryConfig {
 	registryName?: string;
 }
 
-export const initializeSelfHostedRegistry = async (config: SelfHostedRegistryConfig) => {
+export const initializeSelfHostedRegistry = async (
+	config: SelfHostedRegistryConfig,
+) => {
 	const imageName = "registry:2.8";
 	const containerName = "dokploy-registry";
 	const registryPort = 5000;
-	
+
 	// Handle localhost domains
-	const isLocalhost = config.domain.includes('localhost');
-	const registryHost = isLocalhost ? 'localhost' : config.domain;
-	
+	const isLocalhost = config.domain.includes("localhost");
+	const registryHost = isLocalhost ? "localhost" : config.domain;
+
 	// Generate basic auth credentials
-	const authString = Buffer.from(`${config.username}:${config.password}`).toString('base64');
-	
+	const authString = Buffer.from(
+		`${config.username}:${config.password}`,
+	).toString("base64");
+
 	const settings: CreateServiceOptions = {
 		Name: containerName,
 		TaskTemplate: {
@@ -32,11 +36,13 @@ export const initializeSelfHostedRegistry = async (config: SelfHostedRegistryCon
 					`REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm`,
 					`REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd`,
 					"REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/var/lib/registry",
-					...(isLocalhost ? [] : [
-						"REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-						"REGISTRY_HTTP_TLS_KEY=/certs/domain.key",
-						"REGISTRY_HTTP_HOST=https://" + config.domain,
-					]),
+					...(isLocalhost
+						? []
+						: [
+								"REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
+								"REGISTRY_HTTP_TLS_KEY=/certs/domain.key",
+								"REGISTRY_HTTP_HOST=https://" + config.domain,
+							]),
 					"REGISTRY_HTTP_ADDR=0.0.0.0:5000",
 				],
 				Mounts: [
@@ -50,15 +56,20 @@ export const initializeSelfHostedRegistry = async (config: SelfHostedRegistryCon
 						Source: "dokploy-registry-auth",
 						Target: "/auth",
 					},
-					...(isLocalhost ? [] : [{
-						Type: "volume",
-						Source: "dokploy-registry-certs",
-						Target: "/certs",
-					}]),
+					...(isLocalhost
+						? []
+						: [
+								{
+									Type: "volume",
+									Source: "dokploy-registry-certs",
+									Target: "/certs",
+								},
+							]),
 				],
 				Command: [
-					"sh", "-c", 
-					`echo '${config.username}:${await generateHtpasswd(config.password)}' > /auth/htpasswd && registry serve /etc/docker/registry/config.yml`
+					"sh",
+					"-c",
+					`echo '${config.username}:${await generateHtpasswd(config.password)}' > /auth/htpasswd && registry serve /etc/docker/registry/config.yml`,
 				],
 			},
 			Networks: [{ Target: "dokploy-network" }],
@@ -86,19 +97,22 @@ export const initializeSelfHostedRegistry = async (config: SelfHostedRegistryCon
 	try {
 		// Create necessary volumes
 		await createRegistryVolumes(isLocalhost);
-		
+
 		// Generate SSL certificates for the domain (skip for localhost)
 		if (!isLocalhost) {
 			await generateSSLCertificates(config.domain);
 		}
-		
+
 		// Try to pull registry image, but don't fail if it's not available
 		// The Docker service will pull it automatically when needed
 		try {
 			await pullImage(imageName);
 			console.log(`Successfully pulled ${imageName}`);
 		} catch (error) {
-			console.warn(`Could not pull ${imageName}, Docker will pull it when the service starts:`, error);
+			console.warn(
+				`Could not pull ${imageName}, Docker will pull it when the service starts:`,
+				error,
+			);
 			// Don't throw error, let Docker handle the image pull
 		}
 
@@ -123,7 +137,9 @@ export const initializeSelfHostedRegistry = async (config: SelfHostedRegistryCon
 		}
 
 		return {
-			registryUrl: isLocalhost ? `http://localhost:${registryPort}` : `https://${config.domain}`,
+			registryUrl: isLocalhost
+				? `http://localhost:${registryPort}`
+				: `https://${config.domain}`,
 			username: config.username,
 			password: config.password,
 			registryName: config.registryName || "Self-Hosted Registry",
@@ -135,10 +151,7 @@ export const initializeSelfHostedRegistry = async (config: SelfHostedRegistryCon
 };
 
 const createRegistryVolumes = async (isLocalhost = false) => {
-	const volumes = [
-		"dokploy-registry-data",
-		"dokploy-registry-auth"
-	];
+	const volumes = ["dokploy-registry-data", "dokploy-registry-auth"];
 
 	// Only add certs volume for non-localhost setups
 	if (!isLocalhost) {
@@ -172,12 +185,16 @@ const generateSSLCertificates = async (domain: string) => {
 		// Create self-signed certificate for the registry
 		const certPath = "/etc/dokploy/registry/certs";
 		await execAsync(`mkdir -p ${certPath}`);
-		
-		await execAsync(`openssl req -newkey rsa:4096 -nodes -keyout ${certPath}/domain.key -x509 -days 365 -out ${certPath}/domain.crt -subj "/C=US/ST=State/L=City/O=Organization/CN=${domain}"`);
-		
+
+		await execAsync(
+			`openssl req -newkey rsa:4096 -nodes -keyout ${certPath}/domain.key -x509 -days 365 -out ${certPath}/domain.crt -subj "/C=US/ST=State/L=City/O=Organization/CN=${domain}"`,
+		);
+
 		// Copy certificates to Docker volume
-		await execAsync(`docker run --rm -v dokploy-registry-certs:/certs -v ${certPath}:/source alpine sh -c "cp /source/* /certs/"`);
-		
+		await execAsync(
+			`docker run --rm -v dokploy-registry-certs:/certs -v ${certPath}:/source alpine sh -c "cp /source/* /certs/"`,
+		);
+
 		console.log("SSL certificates generated for registry");
 	} catch (error) {
 		console.error("Error generating SSL certificates:", error);
@@ -206,8 +223,10 @@ const configureTraefikForRegistry = async (domain: string, port: number) => {
 `;
 
 		await execAsync(`mkdir -p /etc/dokploy/traefik/dynamic`);
-		await execAsync(`echo '${traefikConfig}' > /etc/dokploy/traefik/dynamic/registry.yml`);
-		
+		await execAsync(
+			`echo '${traefikConfig}' > /etc/dokploy/traefik/dynamic/registry.yml`,
+		);
+
 		console.log("Traefik configured for registry");
 	} catch (error) {
 		console.error("Error configuring Traefik for registry:", error);
@@ -220,13 +239,15 @@ export const removeSelfHostedRegistry = async () => {
 		const containerName = "dokploy-registry";
 		const service = docker.getService(containerName);
 		await service.remove();
-		
+
 		// Remove volumes
-		await execAsync(`docker volume rm dokploy-registry-data dokploy-registry-certs dokploy-registry-auth`);
-		
+		await execAsync(
+			`docker volume rm dokploy-registry-data dokploy-registry-certs dokploy-registry-auth`,
+		);
+
 		// Remove Traefik configuration
 		await execAsync(`rm -f /etc/dokploy/traefik/dynamic/registry.yml`);
-		
+
 		console.log("Self-hosted Registry Removed ✅");
 	} catch (error) {
 		console.error("Error removing self-hosted registry:", error);

@@ -15,51 +15,57 @@ export const initializeDefaultRegistry = async () => {
 		username: "registry",
 		password: "registry123",
 		domain: "registry.localhost",
-		registryName: "Default Self Hosted Registry"
+		registryName: "Default Self Hosted Registry",
 	};
-	
+
 	return await initializeSimpleRegistry(defaultConfig);
 };
 
-export const initializeDefaultRegistryWithDatabase = async (organizationId: string) => {
+export const initializeDefaultRegistryWithDatabase = async (
+	organizationId: string,
+) => {
 	// First initialize the Docker service
 	await initializeDefaultRegistry();
-	
+
 	// Then create the database entry
 	const { createDefaultRegistry } = await import("../services/registry");
 	return await createDefaultRegistry(organizationId);
 };
 
-export const initializeSimpleRegistry = async (config: SimpleRegistryConfig) => {
+export const initializeSimpleRegistry = async (
+	config: SimpleRegistryConfig,
+) => {
 	const containerName = "dokploy-registry";
 	const registryPort = 5001; // Changed from 5000 to avoid macOS AirPlay conflict
-	
+
 	// Handle localhost domains
-	const isLocalhost = config.domain.includes('localhost');
-	
+	const isLocalhost = config.domain.includes("localhost");
+
 	// Create a simple registry configuration
 	const registryConfig = {
 		version: "0.1",
 		storage: {
 			filesystem: {
-				rootdirectory: "/var/lib/registry"
-			}
+				rootdirectory: "/var/lib/registry",
+			},
 		},
 		http: {
 			addr: ":5001",
-			...(isLocalhost ? {} : {
-				tls: {
-					certificate: "/certs/domain.crt",
-					key: "/certs/domain.key"
-				}
-			})
+			...(isLocalhost
+				? {}
+				: {
+						tls: {
+							certificate: "/certs/domain.crt",
+							key: "/certs/domain.key",
+						},
+					}),
 		},
 		auth: {
 			htpasswd: {
 				realm: "Registry Realm",
-				path: "/auth/htpasswd"
-			}
-		}
+				path: "/auth/htpasswd",
+			},
+		},
 	};
 
 	const settings: CreateServiceOptions = {
@@ -73,10 +79,12 @@ export const initializeSimpleRegistry = async (config: SimpleRegistryConfig) => 
 					"REGISTRY_AUTH=htpasswd",
 					"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm",
 					"REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
-					...(isLocalhost ? [] : [
-						"REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
-						"REGISTRY_HTTP_TLS_KEY=/certs/domain.key",
-					]),
+					...(isLocalhost
+						? []
+						: [
+								"REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
+								"REGISTRY_HTTP_TLS_KEY=/certs/domain.key",
+							]),
 				],
 				Mounts: [
 					{
@@ -89,15 +97,20 @@ export const initializeSimpleRegistry = async (config: SimpleRegistryConfig) => 
 						Source: "dokploy-registry-auth",
 						Target: "/auth",
 					},
-					...(isLocalhost ? [] : [{
-						Type: "volume" as const,
-						Source: "dokploy-registry-certs",
-						Target: "/certs",
-					}]),
+					...(isLocalhost
+						? []
+						: [
+								{
+									Type: "volume" as const,
+									Source: "dokploy-registry-certs",
+									Target: "/certs",
+								},
+							]),
 				],
 				Command: [
-					"sh", "-c", 
-					`echo '${config.username}:${await generateSimpleHtpasswd(config.password)}' > /auth/htpasswd && registry serve /etc/docker/registry/config.yml`
+					"sh",
+					"-c",
+					`echo '${config.username}:${await generateSimpleHtpasswd(config.password)}' > /auth/htpasswd && registry serve /etc/docker/registry/config.yml`,
 				],
 			},
 			Networks: [{ Target: "dokploy-network" }],
@@ -125,7 +138,7 @@ export const initializeSimpleRegistry = async (config: SimpleRegistryConfig) => 
 	try {
 		// Create necessary volumes
 		await createSimpleVolumes(isLocalhost);
-		
+
 		// Generate SSL certificates for the domain (skip for localhost)
 		if (!isLocalhost) {
 			await generateSSLCertificates(config.domain);
@@ -152,7 +165,9 @@ export const initializeSimpleRegistry = async (config: SimpleRegistryConfig) => 
 		}
 
 		return {
-			registryUrl: isLocalhost ? `http://localhost:${registryPort}` : `https://${config.domain}`,
+			registryUrl: isLocalhost
+				? `http://localhost:${registryPort}`
+				: `https://${config.domain}`,
 			username: config.username,
 			password: config.password,
 			registryName: config.registryName || "Self Hosted Registry",
@@ -164,10 +179,7 @@ export const initializeSimpleRegistry = async (config: SimpleRegistryConfig) => 
 };
 
 const createSimpleVolumes = async (isLocalhost = false) => {
-	const volumes = [
-		"dokploy-registry-data",
-		"dokploy-registry-auth"
-	];
+	const volumes = ["dokploy-registry-data", "dokploy-registry-auth"];
 
 	// Only add certs volume for non-localhost setups
 	if (!isLocalhost) {
@@ -195,11 +207,15 @@ const generateSimpleHtpasswd = async (password: string): Promise<string> => {
 		try {
 			// Generate a simple bcrypt hash using openssl
 			const salt = await execAsync(`openssl rand -base64 16 | tr -d '\n'`);
-			const hash = await execAsync(`openssl passwd -6 -salt ${salt.stdout.trim()} ${password}`);
+			const hash = await execAsync(
+				`openssl passwd -6 -salt ${salt.stdout.trim()} ${password}`,
+			);
 			return hash.stdout.trim();
 		} catch (fallbackError) {
 			// Last resort: use plain text (not recommended for production)
-			console.warn("Using plain text password - not recommended for production");
+			console.warn(
+				"Using plain text password - not recommended for production",
+			);
 			return password;
 		}
 	}
@@ -210,12 +226,16 @@ const generateSSLCertificates = async (domain: string) => {
 		// Create self-signed certificate for the registry
 		const certPath = "/etc/dokploy/registry/certs";
 		await execAsync(`mkdir -p ${certPath}`);
-		
-		await execAsync(`openssl req -newkey rsa:4096 -nodes -keyout ${certPath}/domain.key -x509 -days 365 -out ${certPath}/domain.crt -subj "/C=US/ST=State/L=City/O=Organization/CN=${domain}"`);
-		
+
+		await execAsync(
+			`openssl req -newkey rsa:4096 -nodes -keyout ${certPath}/domain.key -x509 -days 365 -out ${certPath}/domain.crt -subj "/C=US/ST=State/L=City/O=Organization/CN=${domain}"`,
+		);
+
 		// Copy certificates to Docker volume
-		await execAsync(`docker run --rm -v dokploy-registry-certs:/certs -v ${certPath}:/source alpine sh -c "cp /source/* /certs/"`);
-		
+		await execAsync(
+			`docker run --rm -v dokploy-registry-certs:/certs -v ${certPath}:/source alpine sh -c "cp /source/* /certs/"`,
+		);
+
 		console.log("SSL certificates generated for registry");
 	} catch (error) {
 		console.error("Error generating SSL certificates:", error);
@@ -244,8 +264,10 @@ const configureTraefikForRegistry = async (domain: string, port: number) => {
 `;
 
 		await execAsync(`mkdir -p /etc/dokploy/traefik/dynamic`);
-		await execAsync(`echo '${traefikConfig}' > /etc/dokploy/traefik/dynamic/registry.yml`);
-		
+		await execAsync(
+			`echo '${traefikConfig}' > /etc/dokploy/traefik/dynamic/registry.yml`,
+		);
+
 		console.log("Traefik configured for registry");
 	} catch (error) {
 		console.error("Error configuring Traefik for registry:", error);

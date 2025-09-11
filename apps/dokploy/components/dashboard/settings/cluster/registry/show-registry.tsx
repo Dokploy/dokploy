@@ -18,7 +18,7 @@ export const ShowRegistry = () => {
 	const { mutateAsync, isLoading: isRemoving } =
 		api.registry.remove.useMutation();
 	const { data, isLoading, refetch } = api.registry.all.useQuery();
-	
+
 	// Note: Default registry creation is handled during user registration, not here
 
 	return (
@@ -31,7 +31,8 @@ export const ShowRegistry = () => {
 							Docker Registry
 						</CardTitle>
 						<CardDescription>
-							Manage your Docker Registry configurations. Choose between external registries or set up a self-hosted registry.
+							Manage your Docker Registry configurations. Choose between
+							external registries or set up a self-hosted registry.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">

@@ -36,19 +36,27 @@ const EditSelfHostedRegistrySchema = z.object({
 	password: z.string().min(6, {
 		message: "Password must be at least 6 characters",
 	}),
-	domain: z.string().min(1, {
-		message: "Domain is required",
-	}).refine((domain) => {
-		// Allow localhost for testing and valid domains
-		if (domain === "localhost" || domain.includes("localhost")) {
-			return true;
-		}
-		// Basic domain validation
-		const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
-		return domainRegex.test(domain);
-	}, {
-		message: "Please enter a valid domain (e.g., registry.yourdomain.com or registry.localhost)",
-	}),
+	domain: z
+		.string()
+		.min(1, {
+			message: "Domain is required",
+		})
+		.refine(
+			(domain) => {
+				// Allow localhost for testing and valid domains
+				if (domain === "localhost" || domain.includes("localhost")) {
+					return true;
+				}
+				// Basic domain validation
+				const domainRegex =
+					/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+				return domainRegex.test(domain);
+			},
+			{
+				message:
+					"Please enter a valid domain (e.g., registry.yourdomain.com or registry.localhost)",
+			},
+		),
 });
 
 type EditSelfHostedRegistryForm = z.infer<typeof EditSelfHostedRegistrySchema>;
@@ -63,19 +71,27 @@ interface EditSelfHostedRegistryProps {
 	};
 }
 
-export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedRegistryProps) => {
+export const EditSelfHostedRegistry = ({
+	registryId,
+	registry,
+}: EditSelfHostedRegistryProps) => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { mutateAsync: updateRegistry, isLoading, error, isError } = 
-		api.registry.update.useMutation();
+	const {
+		mutateAsync: updateRegistry,
+		isLoading,
+		error,
+		isError,
+	} = api.registry.update.useMutation();
 
 	const form = useForm<EditSelfHostedRegistryForm>({
 		defaultValues: {
 			registryName: registry.registryName,
 			username: registry.username,
 			password: "", // Don't pre-fill password for security
-			domain: registry.imagePrefix || extractDomainFromUrl(registry.registryUrl),
+			domain:
+				registry.imagePrefix || extractDomainFromUrl(registry.registryUrl),
 		},
 		resolver: zodResolver(EditSelfHostedRegistrySchema),
 	});
@@ -87,7 +103,7 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 			return urlObj.hostname;
 		} catch {
 			// If it's not a valid URL, return as is (might be localhost:5000)
-			return url.replace(/^https?:\/\//, '').split(':')[0];
+			return url.replace(/^https?:\/\//, "").split(":")[0];
 		}
 	}
 
@@ -99,17 +115,19 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 			registryName: data.registryName,
 			username: data.username,
 			password: data.password,
-			registryUrl: data.domain.includes('localhost') ? `http://${data.domain}:5000` : `https://${data.domain}`,
+			registryUrl: data.domain.includes("localhost")
+				? `http://${data.domain}:5000`
+				: `https://${data.domain}`,
 			imagePrefix: data.domain,
 		})
-		.then(async () => {
-			await utils.registry.all.invalidate();
-			toast.success("Self-hosted registry updated successfully!");
-			setIsOpen(false);
-		})
-		.catch(() => {
-			toast.error("Failed to update self-hosted registry");
-		});
+			.then(async () => {
+				await utils.registry.all.invalidate();
+				toast.success("Self-hosted registry updated successfully!");
+				setIsOpen(false);
+			})
+			.catch(() => {
+				toast.error("Failed to update self-hosted registry");
+			});
 	};
 
 	return (
@@ -130,10 +148,11 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 						Edit Self-Hosted Registry
 					</DialogTitle>
 					<DialogDescription>
-						Update your self-hosted registry configuration. Changes will be applied to the running registry.
+						Update your self-hosted registry configuration. Changes will be
+						applied to the running registry.
 					</DialogDescription>
 				</DialogHeader>
-				
+
 				{isError && (
 					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 						<AlertTriangle className="text-red-600 dark:text-red-400" />
@@ -156,10 +175,7 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 									<FormItem>
 										<FormLabel>Registry Name</FormLabel>
 										<FormControl>
-											<Input 
-												placeholder="Self-Hosted Registry" 
-												{...field} 
-											/>
+											<Input placeholder="Self-Hosted Registry" {...field} />
 										</FormControl>
 										<FormDescription>
 											A friendly name for your registry
@@ -178,10 +194,7 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 									<FormItem>
 										<FormLabel>Username</FormLabel>
 										<FormControl>
-											<Input 
-												placeholder="registry" 
-												{...field} 
-											/>
+											<Input placeholder="registry" {...field} />
 										</FormControl>
 										<FormDescription>
 											Username for registry authentication
@@ -200,14 +213,15 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 									<FormItem>
 										<FormLabel>Password</FormLabel>
 										<FormControl>
-											<Input 
-												placeholder="Enter new password" 
+											<Input
+												placeholder="Enter new password"
 												type="password"
-												{...field} 
+												{...field}
 											/>
 										</FormControl>
 										<FormDescription>
-											New password for registry authentication (min 6 characters)
+											New password for registry authentication (min 6
+											characters)
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -223,13 +237,11 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 									<FormItem>
 										<FormLabel>Domain</FormLabel>
 										<FormControl>
-											<Input 
-												placeholder="registry.localhost" 
-												{...field} 
-											/>
+											<Input placeholder="registry.localhost" {...field} />
 										</FormControl>
 										<FormDescription>
-											Domain for the registry (e.g., registry.localhost or registry.yourdomain.com)
+											Domain for the registry (e.g., registry.localhost or
+											registry.yourdomain.com)
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -247,8 +259,13 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 									<ul className="text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
 										<li>Changing the domain will update the registry URL</li>
 										<li>Password changes will update authentication</li>
-										<li>The registry service will be restarted with new settings</li>
-										<li>For production domains, ensure SSL certificates are properly configured</li>
+										<li>
+											The registry service will be restarted with new settings
+										</li>
+										<li>
+											For production domains, ensure SSL certificates are
+											properly configured
+										</li>
 									</ul>
 								</div>
 							</div>
@@ -263,8 +280,8 @@ export const EditSelfHostedRegistry = ({ registryId, registry }: EditSelfHostedR
 								>
 									Cancel
 								</Button>
-								<Button 
-									type="submit" 
+								<Button
+									type="submit"
 									isLoading={isLoading}
 									className="bg-green-600 hover:bg-green-700"
 								>

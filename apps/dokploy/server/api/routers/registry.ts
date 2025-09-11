@@ -148,23 +148,30 @@ export const registryRouter = createTRPCRouter({
 						registryType: "selfHosted",
 						imagePrefix: input.domain,
 					},
-					ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId,
 				);
 
 				return newRegistry;
 			} catch (error) {
 				console.error("Self-hosted registry creation error:", error);
-				const errorMessage = error instanceof Error ? error.message : "Failed to create self-hosted registry";
-				
+				const errorMessage =
+					error instanceof Error
+						? error.message
+						: "Failed to create self-hosted registry";
+
 				// Provide more user-friendly error messages
-				if (errorMessage.includes("no such host") || errorMessage.includes("dial tcp")) {
+				if (
+					errorMessage.includes("no such host") ||
+					errorMessage.includes("dial tcp")
+				) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Network error: Unable to pull Docker registry image. Please check your internet connection and try again.",
+						message:
+							"Network error: Unable to pull Docker registry image. Please check your internet connection and try again.",
 						cause: error,
 					});
 				}
-				
+
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: errorMessage,
@@ -201,7 +208,10 @@ export const registryRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: error instanceof Error ? error.message : "Failed to remove self-hosted registry",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to remove self-hosted registry",
 					cause: error,
 				});
 			}
@@ -228,14 +238,17 @@ export const registryRouter = createTRPCRouter({
 						registryType: "selfHosted",
 						imagePrefix: input.domain,
 					},
-					ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId,
 				);
 
 				return newRegistry;
 			} catch (error) {
 				console.error("Simple registry creation error:", error);
-				const errorMessage = error instanceof Error ? error.message : "Failed to create simple registry";
-				
+				const errorMessage =
+					error instanceof Error
+						? error.message
+						: "Failed to create simple registry";
+
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: errorMessage,
@@ -244,25 +257,26 @@ export const registryRouter = createTRPCRouter({
 			}
 		}),
 
-	ensureDefault: adminProcedure
-		.mutation(async ({ ctx }) => {
-			try {
-				const { ensureDefaultRegistryExists } = await import("@dokploy/server");
-				const result = await ensureDefaultRegistryExists(ctx.session.activeOrganizationId);
-				
-				if (result) {
-					await utils.registry.all.invalidate();
-					return { success: true, message: "Default registry created" };
-				}
-				
-				return { success: true, message: "Registry already exists" };
-			} catch (error) {
-				console.error("Error ensuring default registry:", error);
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Failed to ensure default registry exists",
-					cause: error,
-				});
+	ensureDefault: adminProcedure.mutation(async ({ ctx }) => {
+		try {
+			const { ensureDefaultRegistryExists } = await import("@dokploy/server");
+			const result = await ensureDefaultRegistryExists(
+				ctx.session.activeOrganizationId,
+			);
+
+			if (result) {
+				await utils.registry.all.invalidate();
+				return { success: true, message: "Default registry created" };
 			}
-		}),
+
+			return { success: true, message: "Registry already exists" };
+		} catch (error) {
+			console.error("Error ensuring default registry:", error);
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Failed to ensure default registry exists",
+				cause: error,
+			});
+		}
+	}),
 });

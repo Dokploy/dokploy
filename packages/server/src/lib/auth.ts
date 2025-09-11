@@ -146,15 +146,17 @@ const { handler, api } = betterAuth({
 								role: "owner",
 								createdAt: new Date(),
 							});
-							
+
 							organizationId = organization?.id || "";
 						});
-						
+
 						// Create default self-hosted registry for the organization
 						if (organizationId && !IS_CLOUD) {
 							try {
 								await initializeDefaultRegistryWithDatabase(organizationId);
-								console.log("Default self-hosted registry created for organization ✅");
+								console.log(
+									"Default self-hosted registry created for organization ✅",
+								);
 							} catch (error) {
 								console.warn("Failed to create default registry:", error);
 							}
