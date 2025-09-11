@@ -29,6 +29,12 @@ import {
 	writeConfigRemote,
 	// uploadFileSchema
 } from "@dokploy/server";
+import {
+	apiCreateApplicationOutput,
+	apiFindMonitoringStatsOutput,
+	apiFindOneApplicationOutput,
+	apiMoveApplicationOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -65,6 +71,7 @@ import { uploadFileSchema } from "@/utils/schema";
 export const applicationRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateApplication)
+		.output(apiCreateApplicationOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get project from environment
@@ -118,6 +125,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneApplication)
+		.output(apiFindOneApplicationOutput)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -139,7 +147,12 @@ export const applicationRouter = createTRPCRouter({
 			}
 
 			let hasGitProviderAccess = true;
-			let unauthorizedProvider: string | null = null;
+			let unauthorizedProvider:
+				| "github"
+				| "gitlab"
+				| "bitbucket"
+				| "gitea"
+				| null = null;
 
 			const getGitProviderId = () => {
 				switch (application.sourceType) {
@@ -163,11 +176,19 @@ export const applicationRouter = createTRPCRouter({
 					const gitProvider = await findGitProviderById(gitProviderId);
 					if (gitProvider.userId !== ctx.session.userId) {
 						hasGitProviderAccess = false;
-						unauthorizedProvider = application.sourceType;
+						unauthorizedProvider = application.sourceType as
+							| "github"
+							| "gitlab"
+							| "bitbucket"
+							| "gitea";
 					}
 				} catch {
 					hasGitProviderAccess = false;
-					unauthorizedProvider = application.sourceType;
+					unauthorizedProvider = application.sourceType as
+						| "github"
+						| "gitlab"
+						| "bitbucket"
+						| "gitea";
 				}
 			}
 
@@ -180,6 +201,7 @@ export const applicationRouter = createTRPCRouter({
 
 	reload: protectedProcedure
 		.input(apiReloadApplication)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 
@@ -346,6 +368,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -365,6 +388,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveBuildType: protectedProcedure
 		.input(apiSaveBuildType)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -391,6 +415,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveGithubProvider: protectedProcedure
 		.input(apiSaveGithubProvider)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -419,6 +444,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveGitlabProvider: protectedProcedure
 		.input(apiSaveGitlabProvider)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -448,6 +474,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveBitbucketProvider: protectedProcedure
 		.input(apiSaveBitbucketProvider)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -475,6 +502,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveGiteaProvider: protectedProcedure
 		.input(apiSaveGiteaProvider)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -502,6 +530,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveDockerProvider: protectedProcedure
 		.input(apiSaveDockerProvider)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -526,6 +555,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	saveGitProdiver: protectedProcedure
 		.input(apiSaveGitProvider)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -552,6 +582,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	disconnectGitProvider: protectedProcedure
 		.input(apiFindOneApplication)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -629,6 +660,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateApplication)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -835,6 +867,7 @@ export const applicationRouter = createTRPCRouter({
 		}),
 	readAppMonitoring: protectedProcedure
 		.input(apiFindMonitoringStats)
+		.output(apiFindMonitoringStatsOutput)
 		.query(async ({ input }) => {
 			if (IS_CLOUD) {
 				throw new TRPCError({
@@ -844,7 +877,13 @@ export const applicationRouter = createTRPCRouter({
 			}
 			const stats = await getApplicationStats(input.appName);
 
-			return stats;
+			return (stats ?? {
+				cpu: [],
+				memory: [],
+				disk: [],
+				network: [],
+				block: [],
+			}) as z.infer<typeof apiFindMonitoringStatsOutput>;
 		}),
 	move: protectedProcedure
 		.input(
@@ -853,6 +892,7 @@ export const applicationRouter = createTRPCRouter({
 				targetEnvironmentId: z.string(),
 			}),
 		)
+		.output(apiMoveApplicationOutput)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
