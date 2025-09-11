@@ -157,15 +157,15 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add Registry
+						Add External Registry
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add a external registry</DialogTitle>
+					<DialogTitle>Add External Registry</DialogTitle>
 					<DialogDescription>
-						Fill the next fields to add a external registry.
+						Fill the following fields to add an external registry.
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || testRegistryIsError) && (

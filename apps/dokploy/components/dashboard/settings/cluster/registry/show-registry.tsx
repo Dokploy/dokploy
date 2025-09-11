@@ -1,4 +1,4 @@
-import { Loader2, Package, Trash2 } from "lucide-react";
+import { Loader2, Package, Trash2, Server } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,15 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { HandleRegistry } from "./handle-registry";
+import { SelfHostedRegistry } from "./self-hosted-registry";
+import { EditSelfHostedRegistry } from "./edit-self-hosted-registry";
 
 export const ShowRegistry = () => {
 	const { mutateAsync, isLoading: isRemoving } =
 		api.registry.remove.useMutation();
 	const { data, isLoading, refetch } = api.registry.all.useQuery();
+	
+	// Note: Default registry creation is handled during user registration, not here
 
 	return (
 		<div className="w-full">
@@ -27,7 +31,7 @@ export const ShowRegistry = () => {
 							Docker Registry
 						</CardTitle>
 						<CardDescription>
-							Manage your Docker Registry configurations
+							Manage your Docker Registry configurations. Choose between external registries or set up a self-hosted registry.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -39,12 +43,15 @@ export const ShowRegistry = () => {
 						) : (
 							<>
 								{data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
+									<div className="flex flex-col items-center gap-4  min-h-[25vh] justify-center">
 										<Package className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
 											You don't have any registry configurations
 										</span>
-										<HandleRegistry />
+										<div className="flex flex-col sm:flex-row gap-3">
+											<SelfHostedRegistry />
+											<HandleRegistry />
+										</div>
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -57,9 +64,17 @@ export const ShowRegistry = () => {
 													<div className="flex items-center justify-between p-3.5 rounded-lg bg-background border  w-full">
 														<div className="flex items-center justify-between">
 															<div className="flex gap-2 flex-col">
-																<span className="text-sm font-medium">
-																	{index + 1}. {registry.registryName}
-																</span>
+																<div className="flex items-center gap-2">
+																	<span className="text-sm font-medium">
+																		{index + 1}. {registry.registryName}
+																	</span>
+																	{registry.registryType === "selfHosted" && (
+																		<span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+																			<Server className="h-3 w-3" />
+																			Self-Hosted
+																		</span>
+																	)}
+																</div>
 																{registry.registryUrl && (
 																	<div className="text-xs text-muted-foreground">
 																		{registry.registryUrl}
@@ -69,9 +84,21 @@ export const ShowRegistry = () => {
 														</div>
 
 														<div className="flex flex-row gap-1">
-															<HandleRegistry
-																registryId={registry.registryId}
-															/>
+															{registry.registryType === "selfHosted" ? (
+																<EditSelfHostedRegistry
+																	registryId={registry.registryId}
+																	registry={{
+																		registryName: registry.registryName,
+																		username: registry.username,
+																		registryUrl: registry.registryUrl,
+																		imagePrefix: registry.imagePrefix || "",
+																	}}
+																/>
+															) : (
+																<HandleRegistry
+																	registryId={registry.registryId}
+																/>
+															)}
 
 															<DialogAction
 																title="Delete Registry"
@@ -110,6 +137,7 @@ export const ShowRegistry = () => {
 										</div>
 
 										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
+											<SelfHostedRegistry />
 											<HandleRegistry />
 										</div>
 									</div>

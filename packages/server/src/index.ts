@@ -50,6 +50,9 @@ export * from "./setup/server-setup";
 export * from "./setup/server-validate";
 export * from "./setup/setup";
 export * from "./setup/traefik-setup";
+export * from "./setup/registry-setup";
+export * from "./setup/simple-registry-setup";
+export { initializeDefaultRegistry, initializeDefaultRegistryWithDatabase } from "./setup/simple-registry-setup";
 export * from "./templates/processors";
 export * from "./utils/access-log/handler";
 export {

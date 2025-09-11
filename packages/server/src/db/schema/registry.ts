@@ -96,3 +96,10 @@ export const apiEnableSelfHostedRegistry = createSchema
 		password: true,
 	})
 	.required();
+
+export const apiCreateSelfHostedRegistry = z.object({
+	username: z.string().min(1, "Username is required"),
+	password: z.string().min(6, "Password must be at least 6 characters"),
+	domain: z.string().min(1, "Domain is required"),
+	registryName: z.string().optional(),
+});

@@ -10,6 +10,7 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
 import { updateUser } from "../services/user";
+import { initializeDefaultRegistryWithDatabase } from "../setup/simple-registry-setup";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
@@ -127,6 +128,7 @@ const { handler, api } = betterAuth({
 					}
 
 					if (IS_CLOUD || !isAdminPresent) {
+						let organizationId: string;
 						await db.transaction(async (tx) => {
 							const organization = await tx
 								.insert(schema.organization)
@@ -144,7 +146,19 @@ const { handler, api } = betterAuth({
 								role: "owner",
 								createdAt: new Date(),
 							});
+							
+							organizationId = organization?.id || "";
 						});
+						
+						// Create default self-hosted registry for the organization
+						if (organizationId && !IS_CLOUD) {
+							try {
+								await initializeDefaultRegistryWithDatabase(organizationId);
+								console.log("Default self-hosted registry created for organization ✅");
+							} catch (error) {
+								console.warn("Failed to create default registry:", error);
+							}
+						}
 					}
 				},
 			},

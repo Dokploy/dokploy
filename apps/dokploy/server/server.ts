@@ -10,6 +10,7 @@ import {
 	initVolumeBackupsCronJobs,
 	sendDokployRestartNotifications,
 	setupDirectories,
+	initializeDefaultRegistry,
 } from "@dokploy/server";
 import { config } from "dotenv";
 import next from "next";
@@ -50,6 +51,15 @@ void app.prepare().then(async () => {
 			createDefaultTraefikConfig();
 			createDefaultServerTraefikConfig();
 			await migration();
+			
+			// Initialize default self-hosted registry Docker service
+			try {
+				await initializeDefaultRegistry();
+				console.log("Default self-hosted registry Docker service initialized ✅");
+			} catch (error) {
+				console.warn("Failed to initialize default registry Docker service:", error);
+			}
+			
 			await initCronJobs();
 			await initSchedules();
 			await initVolumeBackupsCronJobs();
