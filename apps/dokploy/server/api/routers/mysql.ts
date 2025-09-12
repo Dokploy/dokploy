@@ -18,6 +18,16 @@ import {
 	stopServiceRemote,
 	updateMySqlById,
 } from "@dokploy/server";
+import {
+	apiChangeMySqlStatusOutput,
+	apiDeployMySqlOutput,
+	apiFindOneMySqlOutput,
+	apiMoveMySqlOutput,
+	apiRemoveMySqlOutput,
+	apiSaveExternalPortMySqlOutput,
+	apiStartMySqlOutput,
+	apiStopMySqlOutput,
+} from "@dokploy/server/api/schemas/mysql";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -41,6 +51,7 @@ import { cancelJobs } from "@/server/utils/backup";
 export const mysqlRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMySql)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get project from environment
@@ -103,6 +114,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneMySql)
+		.output(apiFindOneMySqlOutput)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -127,6 +139,7 @@ export const mysqlRouter = createTRPCRouter({
 
 	start: protectedProcedure
 		.input(apiFindOneMySql)
+		.output(apiStartMySqlOutput)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findMySqlById(input.mysqlId);
 			if (
@@ -152,6 +165,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMySql)
+		.output(apiStopMySqlOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMySqlById(input.mysqlId);
 			if (
@@ -176,6 +190,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)
+		.output(apiSaveExternalPortMySqlOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMySqlById(input.mysqlId);
 			if (
@@ -195,6 +210,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMySql)
+		.output(apiDeployMySqlOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mysql = await findMySqlById(input.mysqlId);
 			if (
@@ -238,6 +254,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeMySqlStatus)
+		.output(apiChangeMySqlStatusOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMySqlById(input.mysqlId);
 			if (
@@ -256,6 +273,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	reload: protectedProcedure
 		.input(apiResetMysql)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mysql = await findMySqlById(input.mysqlId);
 			if (
@@ -287,6 +305,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneMySql)
+		.output(apiRemoveMySqlOutput)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -324,6 +343,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMySql)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mysql = await findMySqlById(input.mysqlId);
 			if (
@@ -350,6 +370,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMySql)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const { mysqlId, ...rest } = input;
 			const mysql = await findMySqlById(mysqlId);
@@ -382,6 +403,7 @@ export const mysqlRouter = createTRPCRouter({
 				targetEnvironmentId: z.string(),
 			}),
 		)
+		.output(apiMoveMySqlOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mysql = await findMySqlById(input.mysqlId);
 			if (
@@ -428,6 +450,7 @@ export const mysqlRouter = createTRPCRouter({
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMysql)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mysql = await findMySqlById(input.mysqlId);
 			if (
