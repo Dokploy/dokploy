@@ -8,6 +8,16 @@ import {
 	updateGitea,
 	updateGitProvider,
 } from "@dokploy/server";
+import {
+	apiCreateGiteaOutput,
+	apiFindOneGiteaOutput,
+	apiGetGiteaBranchesOutput,
+	apiGetGiteaRepositoriesOutput,
+	apiGetGiteaUrlOutput,
+	apiGiteaProvidersOutput,
+	apiTestConnectionGiteaOutput,
+	apiUpdateGiteaOutput,
+} from "@dokploy/server/api/schemas/gitea";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
@@ -22,6 +32,7 @@ import {
 export const giteaRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateGitea)
+		.output(apiCreateGiteaOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				return await createGitea(
@@ -40,6 +51,7 @@ export const giteaRouter = createTRPCRouter({
 
 	one: protectedProcedure
 		.input(apiFindOneGitea)
+		.output(apiFindOneGiteaOutput)
 		.query(async ({ input, ctx }) => {
 			const giteaProvider = await findGiteaById(input.giteaId);
 			if (
@@ -55,36 +67,39 @@ export const giteaRouter = createTRPCRouter({
 			return giteaProvider;
 		}),
 
-	giteaProviders: protectedProcedure.query(async ({ ctx }: { ctx: any }) => {
-		let result = await db.query.gitea.findMany({
-			with: {
-				gitProvider: true,
-			},
-		});
-
-		result = result.filter(
-			(provider) =>
-				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
-		);
-
-		const filtered = result
-			.filter((provider) => haveGiteaRequirements(provider))
-			.map((provider) => {
-				return {
-					giteaId: provider.giteaId,
-					gitProvider: {
-						...provider.gitProvider,
-					},
-				};
+	giteaProviders: protectedProcedure
+		.output(apiGiteaProvidersOutput)
+		.query(async ({ ctx }: { ctx: any }) => {
+			let result = await db.query.gitea.findMany({
+				with: {
+					gitProvider: true,
+				},
 			});
 
-		return filtered;
-	}),
+			result = result.filter(
+				(provider) =>
+					provider.gitProvider.organizationId ===
+						ctx.session.activeOrganizationId &&
+					provider.gitProvider.userId === ctx.session.userId,
+			);
+
+			const filtered = result
+				.filter((provider) => haveGiteaRequirements(provider))
+				.map((provider) => {
+					return {
+						giteaId: provider.giteaId,
+						gitProvider: {
+							...provider.gitProvider,
+						},
+					};
+				});
+
+			return filtered;
+		}),
 
 	getGiteaRepositories: protectedProcedure
 		.input(apiFindOneGitea)
+		.output(apiGetGiteaRepositoriesOutput)
 		.query(async ({ input, ctx }) => {
 			const { giteaId } = input;
 
@@ -121,6 +136,7 @@ export const giteaRouter = createTRPCRouter({
 
 	getGiteaBranches: protectedProcedure
 		.input(apiFindGiteaBranches)
+		.output(apiGetGiteaBranchesOutput)
 		.query(async ({ input, ctx }) => {
 			const { giteaId, owner, repositoryName } = input;
 
@@ -161,6 +177,7 @@ export const giteaRouter = createTRPCRouter({
 
 	testConnection: protectedProcedure
 		.input(apiGiteaTestConnection)
+		.output(apiTestConnectionGiteaOutput)
 		.mutation(async ({ input, ctx }) => {
 			const giteaId = input.giteaId ?? "";
 
@@ -193,6 +210,7 @@ export const giteaRouter = createTRPCRouter({
 
 	update: protectedProcedure
 		.input(apiUpdateGitea)
+		.output(apiUpdateGiteaOutput)
 		.mutation(async ({ input, ctx }) => {
 			const giteaProvider = await findGiteaById(input.giteaId);
 			if (
@@ -226,6 +244,7 @@ export const giteaRouter = createTRPCRouter({
 
 	getGiteaUrl: protectedProcedure
 		.input(apiFindOneGitea)
+		.output(apiGetGiteaUrlOutput)
 		.query(async ({ input, ctx }) => {
 			const { giteaId } = input;
 
