@@ -71,6 +71,14 @@ export const AdvancedEnvironmentSelector = ({
 		},
 	);
 
+	// Get current user's permissions
+	const { data: currentUser } = api.user.get.useQuery();
+
+	// Check if user can create environments
+	const canCreateEnvironments = currentUser?.role === "owner" || 
+		currentUser?.role === "admin" || 
+		currentUser?.canCreateEnvironments === true;
+
 	const haveServices =
 		selectedEnvironment &&
 		((selectedEnvironment?.mariadb?.length || 0) > 0 ||
@@ -285,13 +293,15 @@ export const AdvancedEnvironmentSelector = ({
 					})}
 
 					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => setIsCreateDialogOpen(true)}
-					>
-						<PlusIcon className="h-4 w-4 mr-2" />
-						Create Environment
-					</DropdownMenuItem>
+					{canCreateEnvironments && (
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onClick={() => setIsCreateDialogOpen(true)}
+						>
+							<PlusIcon className="h-4 w-4 mr-2" />
+							Create Environment
+						</DropdownMenuItem>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 

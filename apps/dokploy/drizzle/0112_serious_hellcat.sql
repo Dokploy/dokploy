@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "canCreateEnvironmentsInProjects" text[] DEFAULT ARRAY[]::text[] NOT NULL;

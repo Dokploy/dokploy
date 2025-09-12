@@ -272,6 +272,46 @@ export const checkProjectAccess = async (
 	}
 };
 
+export const checkEnvironmentCreationPermission = async (
+	userId: string,
+	projectId: string,
+	organizationId: string,
+) => {
+	// Get user's member record
+	const member = await findMemberById(userId, organizationId);
+	
+	if (!member) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "User not found in organization",
+		});
+	}
+
+	// Owners and admins can always create environments
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	// Check if user has canCreateEnvironments permission
+	if (!member.canCreateEnvironments) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have permission to create environments",
+		});
+	}
+
+	// Check if user has access to the project
+	const hasProjectAccess = member.accessedProjects.includes(projectId);
+	if (!hasProjectAccess) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this project",
+		});
+	}
+
+	return true;
+};
+
 export const findMemberById = async (
 	userId: string,
 	organizationId: string,
