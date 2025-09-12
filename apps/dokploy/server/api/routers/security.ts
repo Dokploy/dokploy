@@ -5,6 +5,12 @@ import {
 	findSecurityById,
 	updateSecurityById,
 } from "@dokploy/server";
+import {
+	apiCreateSecurityOutput,
+	apiDeleteSecurityOutput,
+	apiFindOneSecurityOutput,
+	apiUpdateSecurityOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import {
 	apiCreateSecurity,
@@ -16,6 +22,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const securityRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateSecurity)
+		.output(apiCreateSecurityOutput)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -31,6 +38,7 @@ export const securityRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneSecurity)
+		.output(apiFindOneSecurityOutput)
 		.query(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
@@ -47,6 +55,7 @@ export const securityRouter = createTRPCRouter({
 		}),
 	delete: protectedProcedure
 		.input(apiFindOneSecurity)
+		.output(apiDeleteSecurityOutput)
 		.mutation(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);
@@ -63,6 +72,7 @@ export const securityRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateSecurity)
+		.output(apiUpdateSecurityOutput)
 		.mutation(async ({ input, ctx }) => {
 			const security = await findSecurityById(input.securityId);
 			const application = await findApplicationById(security.applicationId);

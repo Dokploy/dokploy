@@ -4,6 +4,12 @@ import {
 	removePortById,
 	updatePortById,
 } from "@dokploy/server";
+import {
+	apiCreatePortOutput,
+	apiDeletePortOutput,
+	apiFindOnePortOutput,
+	apiUpdatePortOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
@@ -15,10 +21,10 @@ import {
 export const portRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreatePort)
+		.output(apiCreatePortOutput)
 		.mutation(async ({ input }) => {
 			try {
-				await createPort(input);
-				return true;
+				return await createPort(input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
@@ -29,6 +35,7 @@ export const portRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOnePort)
+		.output(apiFindOnePortOutput)
 		.query(async ({ input, ctx }) => {
 			try {
 				const port = await finPortById(input.portId);
@@ -52,6 +59,7 @@ export const portRouter = createTRPCRouter({
 		}),
 	delete: protectedProcedure
 		.input(apiFindOnePort)
+		.output(apiDeletePortOutput)
 		.mutation(async ({ input, ctx }) => {
 			const port = await finPortById(input.portId);
 			if (
@@ -76,6 +84,7 @@ export const portRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdatePort)
+		.output(apiUpdatePortOutput)
 		.mutation(async ({ input, ctx }) => {
 			const port = await finPortById(input.portId);
 			if (

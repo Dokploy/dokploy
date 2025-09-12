@@ -15,6 +15,13 @@ import {
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
+import {
+	apiCreateDomainOutput,
+	apiDeleteDomainOutput,
+	apiFindDomainsOutput,
+	apiFindOneDomainOutput,
+	apiUpdateDomainOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -29,6 +36,7 @@ import {
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateDomain)
+		.output(apiCreateDomainOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (input.domainType === "compose" && input.composeId) {
@@ -68,6 +76,7 @@ export const domainRouter = createTRPCRouter({
 		}),
 	byApplicationId: protectedProcedure
 		.input(apiFindOneApplication)
+		.output(apiFindDomainsOutput)
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -83,6 +92,7 @@ export const domainRouter = createTRPCRouter({
 		}),
 	byComposeId: protectedProcedure
 		.input(apiFindCompose)
+		.output(apiFindDomainsOutput)
 		.query(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
 			if (
@@ -121,6 +131,7 @@ export const domainRouter = createTRPCRouter({
 
 	update: protectedProcedure
 		.input(apiUpdateDomain)
+		.output(apiUpdateDomainOutput)
 		.mutation(async ({ input, ctx }) => {
 			const currentDomain = await findDomainById(input.domainId);
 
@@ -177,7 +188,10 @@ export const domainRouter = createTRPCRouter({
 			}
 			return result;
 		}),
-	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
+	one: protectedProcedure
+		.input(apiFindDomain)
+		.output(apiFindOneDomainOutput)
+		.query(async ({ input, ctx }) => {
 		const domain = await findDomainById(input.domainId);
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
@@ -206,6 +220,7 @@ export const domainRouter = createTRPCRouter({
 	}),
 	delete: protectedProcedure
 		.input(apiFindDomain)
+		.output(apiDeleteDomainOutput)
 		.mutation(async ({ input, ctx }) => {
 			const domain = await findDomainById(input.domainId);
 			if (domain.applicationId) {

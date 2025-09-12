@@ -4,6 +4,11 @@ import {
 	findPreviewDeploymentsByApplicationId,
 	removePreviewDeployment,
 } from "@dokploy/server";
+import {
+	apiDeletePreviewDeploymentOutput,
+	apiFindAllPreviewDeploymentsOutput,
+	apiFindOnePreviewDeploymentOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { apiFindAllByApplication } from "@/server/db/schema";
@@ -12,6 +17,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const previewDeploymentRouter = createTRPCRouter({
 	all: protectedProcedure
 		.input(apiFindAllByApplication)
+		.output(apiFindAllPreviewDeploymentsOutput)
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -27,6 +33,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 		}),
 	delete: protectedProcedure
 		.input(z.object({ previewDeploymentId: z.string() }))
+		.output(apiDeletePreviewDeploymentOutput)
 		.mutation(async ({ input, ctx }) => {
 			const previewDeployment = await findPreviewDeploymentById(
 				input.previewDeploymentId,
@@ -45,6 +52,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(z.object({ previewDeploymentId: z.string() }))
+		.output(apiFindOnePreviewDeploymentOutput)
 		.query(async ({ input, ctx }) => {
 			const previewDeployment = await findPreviewDeploymentById(
 				input.previewDeploymentId,

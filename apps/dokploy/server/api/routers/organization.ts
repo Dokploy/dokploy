@@ -1,3 +1,10 @@
+import {
+	apiCreateOrganizationOutput,
+	apiDeleteOrganizationOutput,
+	apiFindAllOrganizationsOutput,
+	apiFindOneOrganizationOutput,
+	apiUpdateOrganizationOutput,
+} from "@dokploy/server/api";
 import { IS_CLOUD } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, exists } from "drizzle-orm";
@@ -14,6 +21,7 @@ export const organizationRouter = createTRPCRouter({
 				logo: z.string().optional(),
 			}),
 		)
+		.output(apiCreateOrganizationOutput)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.role !== "owner" && !IS_CLOUD) {
 				throw new TRPCError({
@@ -49,7 +57,7 @@ export const organizationRouter = createTRPCRouter({
 			});
 			return result;
 		}),
-	all: protectedProcedure.query(async ({ ctx }) => {
+	all: protectedProcedure.output(apiFindAllOrganizationsOutput).query(async ({ ctx }) => {
 		const memberResult = await db.query.organization.findMany({
 			where: (organization) =>
 				exists(
@@ -72,10 +80,20 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 			}),
 		)
+		.output(apiFindOneOrganizationOutput)
 		.query(async ({ input }) => {
-			return await db.query.organization.findFirst({
+			const org = await db.query.organization.findFirst({
 				where: eq(organization.id, input.organizationId),
 			});
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			return org;
 		}),
 	update: protectedProcedure
 		.input(
@@ -85,6 +103,7 @@ export const organizationRouter = createTRPCRouter({
 				logo: z.string().optional(),
 			}),
 		)
+		.output(apiUpdateOrganizationOutput)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.role !== "owner" && !IS_CLOUD) {
 				throw new TRPCError({
@@ -100,6 +119,14 @@ export const organizationRouter = createTRPCRouter({
 				})
 				.where(eq(organization.id, input.organizationId))
 				.returning();
+
+			if (!result[0]) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
 			return result[0];
 		}),
 	delete: protectedProcedure
@@ -108,6 +135,7 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 			}),
 		)
+		.output(apiDeleteOrganizationOutput)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.user.role !== "owner" && !IS_CLOUD) {
 				throw new TRPCError({
@@ -147,9 +175,17 @@ export const organizationRouter = createTRPCRouter({
 
 			const result = await db
 				.delete(organization)
-				.where(eq(organization.id, input.organizationId));
+				.where(eq(organization.id, input.organizationId))
+				.returning();
 
-			return result;
+			if (!result[0]) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			return result[0];
 		}),
 	allInvitations: adminProcedure.query(async ({ ctx }) => {
 		return await db.query.invitation.findMany({

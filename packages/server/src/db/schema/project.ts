@@ -31,7 +31,7 @@ export const projectRelations = relations(projects, ({ many, one }) => ({
 	}),
 }));
 
-const createSchema = createInsertSchema(projects, {
+export const createSchema = createInsertSchema(projects, {
 	projectId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),

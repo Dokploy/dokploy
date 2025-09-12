@@ -54,6 +54,13 @@ export const removePortById = async (portId: string) => {
 		.where(eq(ports.portId, portId))
 		.returning();
 
+	if (!result[0]) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Port not found",
+		});
+	}
+
 	return result[0];
 };
 
@@ -68,6 +75,13 @@ export const updatePortById = async (
 		})
 		.where(eq(ports.portId, portId))
 		.returning();
+
+	if (!result[0]) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Port not found",
+		});
+	}
 
 	return result[0];
 };

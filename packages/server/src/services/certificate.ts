@@ -73,14 +73,14 @@ export const removeCertificateById = async (certificateId: string) => {
 		.where(eq(certificates.certificateId, certificateId))
 		.returning();
 
-	if (!result) {
+	if (!result[0]) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Failed to delete the certificate",
 		});
 	}
 
-	return result;
+	return result[0];
 };
 
 const createCertificateFiles = async (certificate: Certificate) => {

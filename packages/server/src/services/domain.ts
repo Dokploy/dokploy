@@ -124,6 +124,13 @@ export const updateDomainById = async (
 		.where(eq(domains.domainId, domainId))
 		.returning();
 
+	if (!domain[0]) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Domain not found",
+		});
+	}
+
 	return domain[0];
 };
 
@@ -133,6 +140,13 @@ export const removeDomainById = async (domainId: string) => {
 		.delete(domains)
 		.where(eq(domains.domainId, domainId))
 		.returning();
+
+	if (!result[0]) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Domain not found",
+		});
+	}
 
 	return result[0];
 };

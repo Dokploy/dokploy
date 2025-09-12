@@ -31,9 +31,12 @@ import {
 } from "@dokploy/server";
 import {
 	apiCreateApplicationOutput,
+	apiDeleteApplicationOutput,
 	apiFindMonitoringStatsOutput,
 	apiFindOneApplicationOutput,
 	apiMoveApplicationOutput,
+	apiStartApplicationOutput,
+	apiStopApplicationOutput,
 } from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -232,6 +235,7 @@ export const applicationRouter = createTRPCRouter({
 
 	delete: protectedProcedure
 		.input(apiFindOneApplication)
+		.output(apiDeleteApplicationOutput)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -285,6 +289,7 @@ export const applicationRouter = createTRPCRouter({
 
 	stop: protectedProcedure
 		.input(apiFindOneApplication)
+		.output(apiStopApplicationOutput)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
 			if (
@@ -307,7 +312,8 @@ export const applicationRouter = createTRPCRouter({
 		}),
 
 	start: protectedProcedure
-		.input(apiFindOneApplication)
+		.input(apiFindOneApplication)	
+		.output(apiStartApplicationOutput)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
 			if (

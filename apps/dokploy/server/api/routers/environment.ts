@@ -9,6 +9,14 @@ import {
 	findMemberById,
 	updateEnvironmentById,
 } from "@dokploy/server";
+import {
+	apiCreateEnvironmentOutput,
+	apiDeleteEnvironmentOutput,
+	apiDuplicateEnvironmentOutput,
+	apiFindAllEnvironmentsOutput,
+	apiFindOneEnvironmentOutput,
+	apiUpdateEnvironmentOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -52,6 +60,7 @@ const filterEnvironmentServices = (
 export const environmentRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateEnvironment)
+		.output(apiCreateEnvironmentOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Check if user has access to the project
@@ -86,6 +95,7 @@ export const environmentRouter = createTRPCRouter({
 
 	one: protectedProcedure
 		.input(apiFindOneEnvironment)
+		.output(apiFindOneEnvironmentOutput)
 		.query(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.role === "member") {
@@ -139,6 +149,7 @@ export const environmentRouter = createTRPCRouter({
 
 	byProjectId: protectedProcedure
 		.input(z.object({ projectId: z.string() }))
+		.output(apiFindAllEnvironmentsOutput)
 		.query(async ({ input, ctx }) => {
 			try {
 				const environments = await findEnvironmentsByProjectId(input.projectId);
@@ -185,6 +196,7 @@ export const environmentRouter = createTRPCRouter({
 
 	remove: protectedProcedure
 		.input(apiRemoveEnvironment)
+		.output(apiDeleteEnvironmentOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.role === "member") {
@@ -233,6 +245,7 @@ export const environmentRouter = createTRPCRouter({
 
 	update: protectedProcedure
 		.input(apiUpdateEnvironment)
+		.output(apiUpdateEnvironmentOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const { environmentId, ...updateData } = input;
@@ -295,6 +308,7 @@ export const environmentRouter = createTRPCRouter({
 
 	duplicate: protectedProcedure
 		.input(apiDuplicateEnvironment)
+		.output(apiDuplicateEnvironmentOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.role === "member") {

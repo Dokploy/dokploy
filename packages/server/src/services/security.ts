@@ -27,7 +27,7 @@ export const createSecurity = async (
 	data: z.infer<typeof apiCreateSecurity>,
 ) => {
 	try {
-		await db.transaction(async (tx) => {
+		return await db.transaction(async (tx) => {
 			const application = await findApplicationById(data.applicationId);
 
 			const securityResponse = await tx
@@ -45,7 +45,7 @@ export const createSecurity = async (
 				});
 			}
 			await createSecurityMiddleware(application, securityResponse);
-			return true;
+			return securityResponse;
 		});
 	} catch (error) {
 		throw new TRPCError({
@@ -97,6 +97,13 @@ export const updateSecurityById = async (
 			})
 			.where(eq(security.securityId, securityId))
 			.returning();
+
+		if (!response[0]) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Security not found",
+			});
+		}
 
 		return response[0];
 	} catch (error) {
