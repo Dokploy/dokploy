@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "canDeleteEnvironments" boolean DEFAULT false NOT NULL;

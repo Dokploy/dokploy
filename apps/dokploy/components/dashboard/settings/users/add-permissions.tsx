@@ -161,6 +161,7 @@ const addPermissions = z.object({
 	canCreateServices: z.boolean().optional().default(false),
 	canDeleteProjects: z.boolean().optional().default(false),
 	canDeleteServices: z.boolean().optional().default(false),
+	canDeleteEnvironments: z.boolean().optional().default(false),
 	canAccessToTraefikFiles: z.boolean().optional().default(false),
 	canAccessToDocker: z.boolean().optional().default(false),
 	canAccessToAPI: z.boolean().optional().default(false),
@@ -193,6 +194,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 		defaultValues: {
 			accessedProjects: [],
 			accessedServices: [],
+			canDeleteEnvironments: false,
 		},
 		resolver: zodResolver(addPermissions),
 	});
@@ -207,6 +209,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canCreateServices: data.canCreateServices,
 				canDeleteProjects: data.canDeleteProjects,
 				canDeleteServices: data.canDeleteServices,
+				canDeleteEnvironments: data.canDeleteEnvironments || false,
 				canAccessToTraefikFiles: data.canAccessToTraefikFiles,
 				canAccessToDocker: data.canAccessToDocker,
 				canAccessToAPI: data.canAccessToAPI,
@@ -223,6 +226,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			canCreateProjects: data.canCreateProjects,
 			canDeleteServices: data.canDeleteServices,
 			canDeleteProjects: data.canDeleteProjects,
+			canDeleteEnvironments: data.canDeleteEnvironments,
 			canAccessToTraefikFiles: data.canAccessToTraefikFiles,
 			accessedProjects: data.accessedProjects || [],
 			accessedEnvironments: data.accessedEnvironments || [],
@@ -332,6 +336,26 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										<FormLabel>Delete Services</FormLabel>
 										<FormDescription>
 											Allow the user to delete services
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canDeleteEnvironments"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Delete Environments</FormLabel>
+										<FormDescription>
+											Allow the user to delete environments
 										</FormDescription>
 									</div>
 									<FormControl>
