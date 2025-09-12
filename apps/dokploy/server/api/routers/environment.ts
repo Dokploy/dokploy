@@ -1,6 +1,7 @@
 import {
 	addNewEnvironment,
 	checkEnvironmentAccess,
+	checkEnvironmentCreationPermission,
 	createEnvironment,
 	deleteEnvironment,
 	duplicateEnvironment,
@@ -54,9 +55,12 @@ export const environmentRouter = createTRPCRouter({
 		.input(apiCreateEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				// Check if user has access to the project
-				// This would typically involve checking project ownership/membership
-				// For now, we'll use a basic organization check
+				// Check if user has permission to create environments
+				await checkEnvironmentCreationPermission(
+					ctx.user.id,
+					input.projectId,
+					ctx.session.activeOrganizationId,
+				);
 
 				if (input.name === "production") {
 					throw new TRPCError({
@@ -76,6 +80,9 @@ export const environmentRouter = createTRPCRouter({
 				}
 				return environment;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error creating the environment: ${error instanceof Error ? error.message : error}`,
