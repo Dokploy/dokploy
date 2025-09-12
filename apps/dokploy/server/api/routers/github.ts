@@ -7,8 +7,6 @@ import {
 } from "@dokploy/server";
 import {
 	apiFindOneGithubOutput,
-	apiGetGithubBranchesOutput,
-	apiGetGithubRepositoriesOutput,
 	apiGithubProvidersOutput,
 	apiTestConnectionGithubOutput,
 	apiUpdateGithubOutput,
@@ -42,7 +40,6 @@ export const githubRouter = createTRPCRouter({
 		}),
 	getGithubRepositories: protectedProcedure
 		.input(apiFindOneGithub)
-		.output(apiGetGithubRepositoriesOutput)
 		.query(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
 			if (
@@ -59,7 +56,6 @@ export const githubRouter = createTRPCRouter({
 		}),
 	getGithubBranches: protectedProcedure
 		.input(apiFindGithubBranches)
-		.output(apiGetGithubBranchesOutput)
 		.query(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId || "");
 			if (

@@ -9,8 +9,6 @@ import {
 import {
 	apiBitbucketProvidersOutput,
 	apiFindOneBitbucketOutput,
-	apiGetBitbucketBranchesOutput,
-	apiGetBitbucketRepositoriesOutput,
 	apiTestConnectionBitbucketOutput,
 	apiUpdateBitbucketOutput,
 } from "@dokploy/server/api/schemas/bitbucket";
@@ -84,7 +82,6 @@ export const bitbucketRouter = createTRPCRouter({
 
 	getBitbucketRepositories: protectedProcedure
 		.input(apiFindOneBitbucket)
-		.output(apiGetBitbucketRepositoriesOutput)
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
@@ -101,7 +98,6 @@ export const bitbucketRouter = createTRPCRouter({
 		}),
 	getBitbucketBranches: protectedProcedure
 		.input(apiFindBitbucketBranches)
-		.output(apiGetBitbucketBranchesOutput)
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(
 				input.bitbucketId || "",

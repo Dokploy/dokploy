@@ -10,8 +10,6 @@ import {
 } from "@dokploy/server";
 import {
 	apiFindOneGitlabOutput,
-	apiGetGitlabBranchesOutput,
-	apiGetGitlabRepositoriesOutput,
 	apiGitlabProvidersOutput,
 	apiTestConnectionGitlabOutput,
 	apiUpdateGitlabOutput,
@@ -94,7 +92,6 @@ export const gitlabRouter = createTRPCRouter({
 		}),
 	getGitlabRepositories: protectedProcedure
 		.input(apiFindOneGitlab)
-		.output(apiGetGitlabRepositoriesOutput)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (
@@ -112,7 +109,6 @@ export const gitlabRouter = createTRPCRouter({
 
 	getGitlabBranches: protectedProcedure
 		.input(apiFindGitlabBranches)
-		.output(apiGetGitlabBranchesOutput)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId || "");
 			if (

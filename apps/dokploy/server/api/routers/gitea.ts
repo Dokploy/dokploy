@@ -11,8 +11,6 @@ import {
 import {
 	apiCreateGiteaOutput,
 	apiFindOneGiteaOutput,
-	apiGetGiteaBranchesOutput,
-	apiGetGiteaRepositoriesOutput,
 	apiGetGiteaUrlOutput,
 	apiGiteaProvidersOutput,
 	apiTestConnectionGiteaOutput,
@@ -99,7 +97,6 @@ export const giteaRouter = createTRPCRouter({
 
 	getGiteaRepositories: protectedProcedure
 		.input(apiFindOneGitea)
-		.output(apiGetGiteaRepositoriesOutput)
 		.query(async ({ input, ctx }) => {
 			const { giteaId } = input;
 
@@ -136,7 +133,6 @@ export const giteaRouter = createTRPCRouter({
 
 	getGiteaBranches: protectedProcedure
 		.input(apiFindGiteaBranches)
-		.output(apiGetGiteaBranchesOutput)
 		.query(async ({ input, ctx }) => {
 			const { giteaId, owner, repositoryName } = input;
 
