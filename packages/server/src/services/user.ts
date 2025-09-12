@@ -279,7 +279,7 @@ export const checkEnvironmentCreationPermission = async (
 ) => {
 	// Get user's member record
 	const member = await findMemberById(userId, organizationId);
-	
+
 	if (!member) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",

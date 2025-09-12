@@ -75,8 +75,9 @@ export const AdvancedEnvironmentSelector = ({
 	const { data: currentUser } = api.user.get.useQuery();
 
 	// Check if user can create environments
-	const canCreateEnvironments = currentUser?.role === "owner" || 
-		currentUser?.role === "admin" || 
+	const canCreateEnvironments =
+		currentUser?.role === "owner" ||
+		currentUser?.role === "admin" ||
 		currentUser?.canCreateEnvironments === true;
 
 	const haveServices =
