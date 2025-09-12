@@ -4,6 +4,7 @@ import {
 	getGithubRepositories,
 	haveGithubRequirements,
 	updateGitProvider,
+	updateGithub,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -130,9 +131,18 @@ export const githubRouter = createTRPCRouter({
 					message: "You are not allowed to access this github provider",
 				});
 			}
+			
+			// Update the git provider name
 			await updateGitProvider(input.gitProviderId, {
 				name: input.name,
 				organizationId: ctx.session.activeOrganizationId,
+			});
+			
+			// Update the GitHub app URL to match the new name
+			// The GitHub app URL follows the pattern: https://github.com/apps/{app-name}
+			const newGithubAppUrl = `https://github.com/apps/${input.name}`;
+			await updateGithub(input.githubId, {
+				githubAppName: newGithubAppUrl,
 			});
 		}),
 });
