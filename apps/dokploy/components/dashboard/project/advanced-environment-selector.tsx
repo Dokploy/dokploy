@@ -62,8 +62,9 @@ export const AdvancedEnvironmentSelector = ({
 	const { data: currentUser } = api.user.get.useQuery();
 
 	// Check if user can delete environments
-	const canDeleteEnvironments = currentUser?.role === "owner" || 
-		currentUser?.role === "admin" || 
+	const canDeleteEnvironments =
+		currentUser?.role === "owner" ||
+		currentUser?.role === "admin" ||
 		currentUser?.canDeleteEnvironments === true;
 
 	// Form states
