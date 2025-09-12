@@ -171,7 +171,7 @@ export const cloneGithubRepository = async ({
 	const cloneUrl = `https://oauth2:${token}@${repoclone}`;
 
 	try {
-		writeStream.write(`\nClonning Repo ${repoclone} to ${outputPath}: ✅\n`);
+		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
 		const cloneArgs = [
 			"clone",
 			"--branch",
