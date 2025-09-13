@@ -31,8 +31,11 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 				...(input.serviceType === "application" && {
 					applicationId: serviceId,
 				}),
-				...(input.serviceType === "postgres" && {
-					postgresId: serviceId,
+				...(input.serviceType === "compose" && {
+					composeId: serviceId,
+				}),
+				...(input.serviceType === "libsql" && {
+					libsqlId: serviceId,
 				}),
 				...(input.serviceType === "mariadb" && {
 					mariadbId: serviceId,
@@ -43,11 +46,11 @@ export const createMount = async (input: typeof apiCreateMount._type) => {
 				...(input.serviceType === "mysql" && {
 					mysqlId: serviceId,
 				}),
+				...(input.serviceType === "postgres" && {
+					postgresId: serviceId,
+				}),
 				...(input.serviceType === "redis" && {
 					redisId: serviceId,
-				}),
-				...(input.serviceType === "compose" && {
-					composeId: serviceId,
 				}),
 			})
 			.returning()
@@ -114,7 +117,16 @@ export const findMountById = async (mountId: string) => {
 					},
 				},
 			},
-			postgres: {
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			libsql: {
 				with: {
 					environment: {
 						with: {
@@ -150,7 +162,7 @@ export const findMountById = async (mountId: string) => {
 					},
 				},
 			},
-			redis: {
+			postgres: {
 				with: {
 					environment: {
 						with: {
@@ -159,7 +171,7 @@ export const findMountById = async (mountId: string) => {
 					},
 				},
 			},
-			compose: {
+			redis: {
 				with: {
 					environment: {
 						with: {
@@ -185,8 +197,11 @@ export const findMountOrganizationId = async (mountId: string) => {
 	if (mount.application) {
 		return mount.application.environment.project.organizationId;
 	}
-	if (mount.postgres) {
-		return mount.postgres.environment.project.organizationId;
+	if (mount.compose) {
+		return mount.compose.environment.project.organizationId;
+	}
+	if (mount.libsql) {
+		return mount.libsql.environment.project.organizationId;
 	}
 	if (mount.mariadb) {
 		return mount.mariadb.environment.project.organizationId;
@@ -197,13 +212,13 @@ export const findMountOrganizationId = async (mountId: string) => {
 	if (mount.mysql) {
 		return mount.mysql.environment.project.organizationId;
 	}
+	if (mount.postgres) {
+		return mount.postgres.environment.project.organizationId;
+	}
 	if (mount.redis) {
 		return mount.redis.environment.project.organizationId;
 	}
 
-	if (mount.compose) {
-		return mount.compose.environment.project.organizationId;
-	}
 	return null;
 };
 
@@ -247,8 +262,8 @@ export const findMountsByApplicationId = async (
 		case "application":
 			sqlChunks.push(eq(mounts.applicationId, serviceId));
 			break;
-		case "postgres":
-			sqlChunks.push(eq(mounts.postgresId, serviceId));
+		case "libsql":
+			sqlChunks.push(eq(mounts.libsqlId, serviceId));
 			break;
 		case "mariadb":
 			sqlChunks.push(eq(mounts.mariadbId, serviceId));
@@ -258,6 +273,9 @@ export const findMountsByApplicationId = async (
 			break;
 		case "mysql":
 			sqlChunks.push(eq(mounts.mysqlId, serviceId));
+			break;
+		case "postgres":
+			sqlChunks.push(eq(mounts.postgresId, serviceId));
 			break;
 		case "redis":
 			sqlChunks.push(eq(mounts.redisId, serviceId));
@@ -334,10 +352,14 @@ export const getBaseFilesPath = async (mountId: string) => {
 		const { APPLICATIONS_PATH } = paths(!!mount.application.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.application.appName;
-	} else if (mount.serviceType === "postgres" && mount.postgres) {
-		const { APPLICATIONS_PATH } = paths(!!mount.postgres.serverId);
+	} else if (mount.serviceType === "compose" && mount.compose) {
+		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
+		appName = mount.compose.appName;
+		absoluteBasePath = path.resolve(COMPOSE_PATH);
+	} else if (mount.serviceType === "libsql" && mount.libsql) {
+		const { APPLICATIONS_PATH } = paths(!!mount.libsql.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
-		appName = mount.postgres.appName;
+		appName = mount.libsql.appName;
 	} else if (mount.serviceType === "mariadb" && mount.mariadb) {
 		const { APPLICATIONS_PATH } = paths(!!mount.mariadb.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
@@ -350,14 +372,14 @@ export const getBaseFilesPath = async (mountId: string) => {
 		const { APPLICATIONS_PATH } = paths(!!mount.mysql.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.mysql.appName;
+	} else if (mount.serviceType === "postgres" && mount.postgres) {
+		const { APPLICATIONS_PATH } = paths(!!mount.postgres.serverId);
+		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
+		appName = mount.postgres.appName;
 	} else if (mount.serviceType === "redis" && mount.redis) {
 		const { APPLICATIONS_PATH } = paths(!!mount.redis.serverId);
 		absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 		appName = mount.redis.appName;
-	} else if (mount.serviceType === "compose" && mount.compose) {
-		const { COMPOSE_PATH } = paths(!!mount.compose.serverId);
-		appName = mount.compose.appName;
-		absoluteBasePath = path.resolve(COMPOSE_PATH);
 	}
 	directoryPath = path.join(absoluteBasePath, appName, "files");
 
@@ -369,8 +391,11 @@ export const getServerId = async (mount: MountNested) => {
 	if (mount.serviceType === "application" && mount?.application?.serverId) {
 		return mount.application.serverId;
 	}
-	if (mount.serviceType === "postgres" && mount?.postgres?.serverId) {
-		return mount.postgres.serverId;
+	if (mount.serviceType === "compose" && mount?.compose?.serverId) {
+		return mount.compose.serverId;
+	}
+	if (mount.serviceType === "libsql" && mount?.libsql?.serverId) {
+		return mount.libsql.serverId;
 	}
 	if (mount.serviceType === "mariadb" && mount?.mariadb?.serverId) {
 		return mount.mariadb.serverId;
@@ -381,11 +406,11 @@ export const getServerId = async (mount: MountNested) => {
 	if (mount.serviceType === "mysql" && mount?.mysql?.serverId) {
 		return mount.mysql.serverId;
 	}
+	if (mount.serviceType === "postgres" && mount?.postgres?.serverId) {
+		return mount.postgres.serverId;
+	}
 	if (mount.serviceType === "redis" && mount?.redis?.serverId) {
 		return mount.redis.serverId;
-	}
-	if (mount.serviceType === "compose" && mount?.compose?.serverId) {
-		return mount.compose.serverId;
 	}
 
 	return null;

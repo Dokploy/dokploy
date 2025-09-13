@@ -182,32 +182,41 @@ type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
 
 interface Props {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type:
+		| "application"
+		| "libsql"
+		| "mariadb"
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {
 	const queryMap = {
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-		mariadb: () =>
-			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-		application: () =>
-			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
-		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
 	const mutationMap = {
+		application: () => api.application.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
 		postgres: () => api.postgres.update.useMutation(),
 		redis: () => api.redis.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		application: () => api.application.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
 	};
 
 	const { mutateAsync, isError, error, isLoading } = mutationMap[type]
@@ -262,11 +271,12 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	const onSubmit = async (data: AddSwarmSettings) => {
 		await mutateAsync({
 			applicationId: id || "",
-			postgresId: id || "",
-			redisId: id || "",
-			mysqlId: id || "",
+			libsqlId: id || "",
 			mariadbId: id || "",
 			mongoId: id || "",
+			mysqlId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
 			healthCheckSwarm: data.healthCheckSwarm,
 			restartPolicySwarm: data.restartPolicySwarm,
 			placementSwarm: data.placementSwarm,
