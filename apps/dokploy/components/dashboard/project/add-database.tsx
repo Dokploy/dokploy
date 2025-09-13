@@ -13,7 +13,6 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -643,15 +642,15 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 																field.onChange(Boolean(value))
 															}
 															defaultValue={
-																field.value ? String(field.value) : "False"
+																field.value ? String(field.value) : "false"
 															}
 														>
 															<SelectTrigger>
-																<SelectValue placeholder={"False"} />
+																<SelectValue placeholder={"false"} />
 															</SelectTrigger>
 															<SelectContent>
 																<SelectGroup>
-																	{["False", "True"].map((node) => (
+																	{["false", "true"].map((node) => (
 																		<SelectItem key={node} value={node}>
 																			{node.charAt(0).toUpperCase() +
 																				node.slice(1)}

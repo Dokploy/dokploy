@@ -1,7 +1,6 @@
 import { SelectGroup } from "@radix-ui/react-select";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -81,15 +80,15 @@ export const ShowInternalLibsqlCredentials = ({ libsqlId }: Props) => {
 									defaultValue={
 										data?.enableNamespaces
 											? String(data?.enableNamespaces)
-											: "False"
+											: "false"
 									}
 								>
 									<SelectTrigger>
-										<SelectValue placeholder={"False"} />
+										<SelectValue placeholder={"false"} />
 									</SelectTrigger>
 									<SelectContent>
 										<SelectGroup>
-											{["False", "True"].map((node) => (
+											{["false", "true"].map((node) => (
 												<SelectItem key={node} value={node}>
 													{node.charAt(0).toUpperCase() + node.slice(1)}
 												</SelectItem>
