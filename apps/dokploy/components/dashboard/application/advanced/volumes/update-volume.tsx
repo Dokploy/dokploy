@@ -61,13 +61,13 @@ interface Props {
 	refetch: () => void;
 	serviceType:
 		| "application"
-		| "postgres"
-		| "redis"
-		| "mongo"
-		| "redis"
-		| "mysql"
+		| "compose"
+		| "libsql"
 		| "mariadb"
-		| "compose";
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 }
 
 export const UpdateVolume = ({
@@ -247,7 +247,7 @@ export const UpdateVolume = ({
 										control={form.control}
 										name="content"
 										render={({ field }) => (
-											<FormItem className="max-w-full max-w-[45rem]">
+											<FormItem className="w-full max-w-[45rem]">
 												<FormLabel>Content</FormLabel>
 												<FormControl>
 													<FormControl>

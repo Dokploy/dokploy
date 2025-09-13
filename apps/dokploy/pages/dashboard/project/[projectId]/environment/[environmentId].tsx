@@ -35,6 +35,7 @@ import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/adva
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
+	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
@@ -46,6 +47,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,20 +97,20 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 
 export type Services = {
 	appName: string;
 	serverId?: string | null;
 	name: string;
 	type:
-		| "mariadb"
 		| "application"
-		| "postgres"
-		| "mysql"
+		| "compose"
+		| "libsql"
+		| "mariadb"
 		| "mongo"
-		| "redis"
-		| "compose";
+		| "mysql"
+		| "postgres"
+		| "redis";
 	description?: string | null;
 	id: string;
 	createdAt: string;
@@ -137,24 +139,36 @@ export const extractServicesFromEnvironment = (
 			serverId: item.serverId,
 		})) || [];
 
-	const mariadb: Services[] =
-		environment.mariadb?.map((item) => ({
+	const compose: Services[] =
+		environment.compose?.map((item) => ({
 			appName: item.appName,
 			name: item.name,
-			type: "mariadb",
-			id: item.mariadbId,
+			type: "compose",
+			id: item.composeId,
+			createdAt: item.createdAt,
+			status: item.composeStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const libsql: Services[] =
+		environment.libsql?.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "libsql",
+			id: item.libsqlId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
 		})) || [];
 
-	const postgres: Services[] =
-		environment.postgres?.map((item) => ({
+	const mariadb: Services[] =
+		environment.mariadb?.map((item) => ({
 			appName: item.appName,
 			name: item.name,
-			type: "postgres",
-			id: item.postgresId,
+			type: "mariadb",
+			id: item.mariadbId,
 			createdAt: item.createdAt,
 			status: item.applicationStatus,
 			description: item.description,
@@ -173,18 +187,6 @@ export const extractServicesFromEnvironment = (
 			serverId: item.serverId,
 		})) || [];
 
-	const redis: Services[] =
-		environment.redis?.map((item) => ({
-			appName: item.appName,
-			name: item.name,
-			type: "redis",
-			id: item.redisId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-		})) || [];
-
 	const mysql: Services[] =
 		environment.mysql?.map((item) => ({
 			appName: item.appName,
@@ -197,26 +199,39 @@ export const extractServicesFromEnvironment = (
 			serverId: item.serverId,
 		})) || [];
 
-	const compose: Services[] =
-		environment.compose?.map((item) => ({
+	const postgres: Services[] =
+		environment.postgres?.map((item) => ({
 			appName: item.appName,
 			name: item.name,
-			type: "compose",
-			id: item.composeId,
+			type: "postgres",
+			id: item.postgresId,
 			createdAt: item.createdAt,
-			status: item.composeStatus,
+			status: item.applicationStatus,
+			description: item.description,
+			serverId: item.serverId,
+		})) || [];
+
+	const redis: Services[] =
+		environment.redis?.map((item) => ({
+			appName: item.appName,
+			name: item.name,
+			type: "redis",
+			id: item.redisId,
+			createdAt: item.createdAt,
+			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
 		})) || [];
 
 	allServices.push(
 		...applications,
-		...mysql,
-		...redis,
-		...mongo,
-		...postgres,
-		...mariadb,
 		...compose,
+		...libsql,
+		...mariadb,
+		...mongo,
+		...mysql,
+		...postgres,
+		...redis,
 	);
 
 	allServices.sort((a, b) => {
@@ -291,25 +306,27 @@ const EnvironmentPage = (
 
 	const emptyServices =
 		!currentEnvironment ||
-		((currentEnvironment.mariadb?.length || 0) === 0 &&
+		((currentEnvironment.applications?.length || 0) === 0 &&
+			(currentEnvironment.compose?.length || 0) === 0 &&
+			(currentEnvironment.libsql?.length || 0) === 0 &&
+			(currentEnvironment.mariadb?.length || 0) === 0 &&
 			(currentEnvironment.mongo?.length || 0) === 0 &&
 			(currentEnvironment.mysql?.length || 0) === 0 &&
 			(currentEnvironment.postgres?.length || 0) === 0 &&
-			(currentEnvironment.redis?.length || 0) === 0 &&
-			(currentEnvironment.applications?.length || 0) === 0 &&
-			(currentEnvironment.compose?.length || 0) === 0);
+			(currentEnvironment.redis?.length || 0) === 0);
 
 	const applications = extractServicesFromEnvironment(currentEnvironment);
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const serviceTypes = [
 		{ value: "application", label: "Application", icon: GlobeIcon },
-		{ value: "postgres", label: "PostgreSQL", icon: PostgresqlIcon },
+		{ value: "compose", label: "Compose", icon: CircuitBoard },
+		{ value: "libsql", label: "Libsql", icon: LibsqlIcon },
 		{ value: "mariadb", label: "MariaDB", icon: MariadbIcon },
 		{ value: "mongo", label: "MongoDB", icon: MongodbIcon },
 		{ value: "mysql", label: "MySQL", icon: MysqlIcon },
+		{ value: "postgres", label: "PostgreSQL", icon: PostgresqlIcon },
 		{ value: "redis", label: "Redis", icon: RedisIcon },
-		{ value: "compose", label: "Compose", icon: CircuitBoard },
 	];
 
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -336,14 +353,6 @@ const EnvironmentPage = (
 		);
 	};
 
-	const composeActions = {
-		start: api.compose.start.useMutation(),
-		stop: api.compose.stop.useMutation(),
-		move: api.compose.move.useMutation(),
-		delete: api.compose.delete.useMutation(),
-		deploy: api.compose.deploy.useMutation(),
-	};
-
 	const applicationActions = {
 		start: api.application.start.useMutation(),
 		stop: api.application.stop.useMutation(),
@@ -352,20 +361,20 @@ const EnvironmentPage = (
 		deploy: api.application.deploy.useMutation(),
 	};
 
-	const postgresActions = {
-		start: api.postgres.start.useMutation(),
-		stop: api.postgres.stop.useMutation(),
-		move: api.postgres.move.useMutation(),
-		delete: api.postgres.remove.useMutation(),
-		deploy: api.postgres.deploy.useMutation(),
+	const composeActions = {
+		start: api.compose.start.useMutation(),
+		stop: api.compose.stop.useMutation(),
+		move: api.compose.move.useMutation(),
+		delete: api.compose.delete.useMutation(),
+		deploy: api.compose.deploy.useMutation(),
 	};
 
-	const mysqlActions = {
-		start: api.mysql.start.useMutation(),
-		stop: api.mysql.stop.useMutation(),
-		move: api.mysql.move.useMutation(),
-		delete: api.mysql.remove.useMutation(),
-		deploy: api.mysql.deploy.useMutation(),
+	const libsqlActions = {
+		start: api.libsql.start.useMutation(),
+		stop: api.libsql.stop.useMutation(),
+		move: api.libsql.move.useMutation(),
+		delete: api.libsql.remove.useMutation(),
+		deploy: api.libsql.deploy.useMutation(),
 	};
 
 	const mariadbActions = {
@@ -376,20 +385,36 @@ const EnvironmentPage = (
 		deploy: api.mariadb.deploy.useMutation(),
 	};
 
-	const redisActions = {
-		start: api.redis.start.useMutation(),
-		stop: api.redis.stop.useMutation(),
-		move: api.redis.move.useMutation(),
-		delete: api.redis.remove.useMutation(),
-		deploy: api.redis.deploy.useMutation(),
-	};
-
 	const mongoActions = {
 		start: api.mongo.start.useMutation(),
 		stop: api.mongo.stop.useMutation(),
 		move: api.mongo.move.useMutation(),
 		delete: api.mongo.remove.useMutation(),
 		deploy: api.mongo.deploy.useMutation(),
+	};
+
+	const mysqlActions = {
+		start: api.mysql.start.useMutation(),
+		stop: api.mysql.stop.useMutation(),
+		move: api.mysql.move.useMutation(),
+		delete: api.mysql.remove.useMutation(),
+		deploy: api.mysql.deploy.useMutation(),
+	};
+
+	const postgresActions = {
+		start: api.postgres.start.useMutation(),
+		stop: api.postgres.stop.useMutation(),
+		move: api.postgres.move.useMutation(),
+		delete: api.postgres.remove.useMutation(),
+		deploy: api.postgres.deploy.useMutation(),
+	};
+
+	const redisActions = {
+		start: api.redis.start.useMutation(),
+		stop: api.redis.stop.useMutation(),
+		move: api.redis.move.useMutation(),
+		delete: api.redis.remove.useMutation(),
+		deploy: api.redis.deploy.useMutation(),
 	};
 
 	const handleBulkStart = async () => {
@@ -409,20 +434,23 @@ const EnvironmentPage = (
 					case "compose":
 						await composeActions.start.mutateAsync({ composeId: serviceId });
 						break;
-					case "postgres":
-						await postgresActions.start.mutateAsync({ postgresId: serviceId });
-						break;
-					case "mysql":
-						await mysqlActions.start.mutateAsync({ mysqlId: serviceId });
+					case "libsql":
+						await libsqlActions.start.mutateAsync({ libsqlId: serviceId });
 						break;
 					case "mariadb":
 						await mariadbActions.start.mutateAsync({ mariadbId: serviceId });
 						break;
+					case "mongo":
+						await mongoActions.start.mutateAsync({ mongoId: serviceId });
+						break;
+					case "mysql":
+						await mysqlActions.start.mutateAsync({ mysqlId: serviceId });
+						break;
 					case "redis":
 						await redisActions.start.mutateAsync({ redisId: serviceId });
 						break;
-					case "mongo":
-						await mongoActions.start.mutateAsync({ mongoId: serviceId });
+					case "postgres":
+						await postgresActions.start.mutateAsync({ postgresId: serviceId });
 						break;
 				}
 				success++;
@@ -456,20 +484,23 @@ const EnvironmentPage = (
 					case "compose":
 						await composeActions.stop.mutateAsync({ composeId: serviceId });
 						break;
-					case "postgres":
-						await postgresActions.stop.mutateAsync({ postgresId: serviceId });
-						break;
-					case "mysql":
-						await mysqlActions.stop.mutateAsync({ mysqlId: serviceId });
+					case "libsql":
+						await libsqlActions.stop.mutateAsync({ libsqlId: serviceId });
 						break;
 					case "mariadb":
 						await mariadbActions.stop.mutateAsync({ mariadbId: serviceId });
 						break;
-					case "redis":
-						await redisActions.stop.mutateAsync({ redisId: serviceId });
-						break;
 					case "mongo":
 						await mongoActions.stop.mutateAsync({ mongoId: serviceId });
+						break;
+					case "mysql":
+						await mysqlActions.stop.mutateAsync({ mysqlId: serviceId });
+						break;
+					case "postgres":
+						await postgresActions.stop.mutateAsync({ postgresId: serviceId });
+						break;
+					case "redis":
+						await redisActions.stop.mutateAsync({ redisId: serviceId });
 						break;
 				}
 				success++;
@@ -517,15 +548,9 @@ const EnvironmentPage = (
 							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
-					case "postgres":
-						await postgresActions.move.mutateAsync({
-							postgresId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.move.mutateAsync({
-							mysqlId: serviceId,
+					case "libsql":
+						await libsqlActions.move.mutateAsync({
+							libsqlId: serviceId,
 							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
@@ -535,15 +560,27 @@ const EnvironmentPage = (
 							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
-					case "redis":
-						await redisActions.move.mutateAsync({
-							redisId: serviceId,
-							targetEnvironmentId: selectedTargetEnvironment,
-						});
-						break;
 					case "mongo":
 						await mongoActions.move.mutateAsync({
 							mongoId: serviceId,
+							targetEnvironmentId: selectedTargetEnvironment,
+						});
+						break;
+					case "mysql":
+						await mysqlActions.move.mutateAsync({
+							mysqlId: serviceId,
+							targetEnvironmentId: selectedTargetEnvironment,
+						});
+						break;
+					case "postgres":
+						await postgresActions.move.mutateAsync({
+							postgresId: serviceId,
+							targetEnvironmentId: selectedTargetEnvironment,
+						});
+						break;
+					case "redis":
+						await redisActions.move.mutateAsync({
+							redisId: serviceId,
 							targetEnvironmentId: selectedTargetEnvironment,
 						});
 						break;
@@ -591,14 +628,9 @@ const EnvironmentPage = (
 							deleteVolumes,
 						});
 						break;
-					case "postgres":
-						await postgresActions.delete.mutateAsync({
-							postgresId: serviceId,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.delete.mutateAsync({
-							mysqlId: serviceId,
+					case "libsql":
+						await libsqlActions.delete.mutateAsync({
+							libsqlId: serviceId,
 						});
 						break;
 					case "mariadb":
@@ -606,14 +638,24 @@ const EnvironmentPage = (
 							mariadbId: serviceId,
 						});
 						break;
-					case "redis":
-						await redisActions.delete.mutateAsync({
-							redisId: serviceId,
-						});
-						break;
 					case "mongo":
 						await mongoActions.delete.mutateAsync({
 							mongoId: serviceId,
+						});
+						break;
+					case "mysql":
+						await mysqlActions.delete.mutateAsync({
+							mysqlId: serviceId,
+						});
+						break;
+					case "postgres":
+						await postgresActions.delete.mutateAsync({
+							postgresId: serviceId,
+						});
+						break;
+					case "redis":
+						await redisActions.delete.mutateAsync({
+							redisId: serviceId,
 						});
 						break;
 				}
@@ -657,14 +699,9 @@ const EnvironmentPage = (
 							composeId: serviceId,
 						});
 						break;
-					case "postgres":
-						await postgresActions.deploy.mutateAsync({
-							postgresId: serviceId,
-						});
-						break;
-					case "mysql":
-						await mysqlActions.deploy.mutateAsync({
-							mysqlId: serviceId,
+					case "libsql":
+						await libsqlActions.deploy.mutateAsync({
+							libsqlId: serviceId,
 						});
 						break;
 					case "mariadb":
@@ -672,14 +709,24 @@ const EnvironmentPage = (
 							mariadbId: serviceId,
 						});
 						break;
-					case "redis":
-						await redisActions.deploy.mutateAsync({
-							redisId: serviceId,
-						});
-						break;
 					case "mongo":
 						await mongoActions.deploy.mutateAsync({
 							mongoId: serviceId,
+						});
+						break;
+					case "mysql":
+						await mysqlActions.deploy.mutateAsync({
+							mysqlId: serviceId,
+						});
+						break;
+					case "postgres":
+						await postgresActions.deploy.mutateAsync({
+							postgresId: serviceId,
+						});
+						break;
+					case "redis":
+						await redisActions.deploy.mutateAsync({
+							redisId: serviceId,
 						});
 						break;
 				}
@@ -1363,11 +1410,14 @@ const EnvironmentPage = (
 																	</div>
 
 																	<span className="text-sm font-medium text-muted-foreground self-start">
-																		{service.type === "postgres" && (
-																			<PostgresqlIcon className="h-7 w-7" />
+																		{service.type === "application" && (
+																			<GlobeIcon className="h-6 w-6" />
 																		)}
-																		{service.type === "redis" && (
-																			<RedisIcon className="h-7 w-7" />
+																		{service.type === "compose" && (
+																			<CircuitBoard className="h-6 w-6" />
+																		)}
+																		{service.type === "libsql" && (
+																			<LibsqlIcon className="h-7 w-7" />
 																		)}
 																		{service.type === "mariadb" && (
 																			<MariadbIcon className="h-7 w-7" />
@@ -1378,11 +1428,11 @@ const EnvironmentPage = (
 																		{service.type === "mysql" && (
 																			<MysqlIcon className="h-7 w-7" />
 																		)}
-																		{service.type === "application" && (
-																			<GlobeIcon className="h-6 w-6" />
+																		{service.type === "postgres" && (
+																			<PostgresqlIcon className="h-7 w-7" />
 																		)}
-																		{service.type === "compose" && (
-																			<CircuitBoard className="h-6 w-6" />
+																		{service.type === "redis" && (
+																			<RedisIcon className="h-7 w-7" />
 																		)}
 																	</span>
 																</div>

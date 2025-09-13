@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -13,12 +14,13 @@ import { redis } from "./redis";
 
 export const serviceType = pgEnum("serviceType", [
 	"application",
-	"postgres",
-	"mysql",
+	"compose",
+	"libsql",
 	"mariadb",
 	"mongo",
+	"mysql",
+	"postgres",
 	"redis",
-	"compose",
 ]);
 
 export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
@@ -39,7 +41,10 @@ export const mounts = pgTable("mount", {
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
 	),
-	postgresId: text("postgresId").references(() => postgres.postgresId, {
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
+	libsqlId: text("libsqlId").references(() => libsql.libsqlId, {
 		onDelete: "cascade",
 	}),
 	mariadbId: text("mariadbId").references(() => mariadb.mariadbId, {
@@ -51,10 +56,10 @@ export const mounts = pgTable("mount", {
 	mysqlId: text("mysqlId").references(() => mysql.mysqlId, {
 		onDelete: "cascade",
 	}),
-	redisId: text("redisId").references(() => redis.redisId, {
+	postgresId: text("postgresId").references(() => postgres.postgresId, {
 		onDelete: "cascade",
 	}),
-	composeId: text("composeId").references(() => compose.composeId, {
+	redisId: text("redisId").references(() => redis.redisId, {
 		onDelete: "cascade",
 	}),
 });
@@ -64,9 +69,13 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.applicationId],
 		references: [applications.applicationId],
 	}),
-	postgres: one(postgres, {
-		fields: [mounts.postgresId],
-		references: [postgres.postgresId],
+	compose: one(compose, {
+		fields: [mounts.composeId],
+		references: [compose.composeId],
+	}),
+	libsql: one(libsql, {
+		fields: [mounts.libsqlId],
+		references: [libsql.libsqlId],
 	}),
 	mariadb: one(mariadb, {
 		fields: [mounts.mariadbId],
@@ -80,13 +89,13 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.mysqlId],
 		references: [mysql.mysqlId],
 	}),
+	postgres: one(postgres, {
+		fields: [mounts.postgresId],
+		references: [postgres.postgresId],
+	}),
 	redis: one(redis, {
 		fields: [mounts.redisId],
 		references: [redis.redisId],
-	}),
-	compose: one(compose, {
-		fields: [mounts.composeId],
-		references: [compose.composeId],
 	}),
 }));
 
@@ -102,12 +111,13 @@ const createSchema = createInsertSchema(mounts, {
 	serviceType: z
 		.enum([
 			"application",
-			"postgres",
-			"mysql",
+			"compose",
+			"libsql",
 			"mariadb",
 			"mongo",
+			"mysql",
+			"postgres",
 			"redis",
-			"compose",
 		])
 		.default("application"),
 });

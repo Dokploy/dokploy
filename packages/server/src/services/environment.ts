@@ -35,13 +35,14 @@ export const findEnvironmentById = async (environmentId: string) => {
 		where: eq(environments.environmentId, environmentId),
 		with: {
 			applications: true,
+			compose: true,
+			libsql: true,
 			mariadb: true,
 			mongo: true,
 			mysql: true,
 			postgres: true,
-			redis: true,
-			compose: true,
 			project: true,
+			redis: true,
 		},
 	});
 	if (!environment) {
@@ -59,13 +60,14 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 		orderBy: asc(environments.createdAt),
 		with: {
 			applications: true,
+			compose: true,
+			libsql: true,
 			mariadb: true,
 			mongo: true,
 			mysql: true,
 			postgres: true,
-			redis: true,
-			compose: true,
 			project: true,
+			redis: true,
 		},
 	});
 	return projectEnvironments;

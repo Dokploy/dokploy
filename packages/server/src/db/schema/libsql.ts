@@ -20,34 +20,38 @@ import {
 	RestartPolicySwarmSchema,
 	type ServiceModeSwarm,
 	ServiceModeSwarmSchema,
+	sqldNode,
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
 import { generateAppName } from "./utils";
 
-export const redis = pgTable("redis", {
-	redisId: text("redisId")
+export const libsql = pgTable("libsql", {
+	libsqlId: text("libsqlId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	name: text("name").notNull(),
 	appName: text("appName")
 		.notNull()
-		.$defaultFn(() => generateAppName("redis"))
+		.$defaultFn(() => generateAppName("libsql"))
 		.unique(),
 	description: text("description"),
-	databasePassword: text("password").notNull(),
+	databaseUser: text("databaseUser").notNull(),
+	databasePassword: text("databasePassword").notNull(),
+	sqldNode: sqldNode("sqldNode").notNull().default("primary"),
+	sqldPrimaryUrl: text("sqldPrimaryUrl"),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	env: text("env"),
+	// RESOURCES
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
+	//
 	externalPort: integer("externalPort"),
-	createdAt: text("createdAt")
-		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
+	externalGRPCPort: integer("externalGRPCPort"),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
@@ -60,6 +64,9 @@ export const redis = pgTable("redis", {
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	replicas: integer("replicas").default(1).notNull(),
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
 
 	environmentId: text("environmentId")
 		.notNull()
@@ -69,25 +76,34 @@ export const redis = pgTable("redis", {
 	}),
 });
 
-export const redisRelations = relations(redis, ({ one, many }) => ({
+export const libsqlRelations = relations(libsql, ({ one, many }) => ({
 	environment: one(environments, {
-		fields: [redis.environmentId],
+		fields: [libsql.environmentId],
 		references: [environments.environmentId],
 	}),
+	//backups: many(backups),
 	mounts: many(mounts),
 	server: one(server, {
-		fields: [redis.serverId],
+		fields: [libsql.serverId],
 		references: [server.serverId],
 	}),
 }));
 
-const createSchema = createInsertSchema(redis, {
-	redisId: z.string(),
+const createSchema = createInsertSchema(libsql, {
+	libsqlId: z.string(),
+	name: z.string().min(1),
 	appName: z.string().min(1),
 	createdAt: z.string(),
-	name: z.string().min(1),
-	databasePassword: z.string(),
-	dockerImage: z.string().default("redis:8"),
+	databaseUser: z.string().min(1),
+	databasePassword: z
+		.string()
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		}),
+	sqldNode: z.enum(sqldNode.enumValues),
+	sqldPrimaryUrl: z.string().optional(),
+	dockerImage: z.string().default("ghcr.io/tursodatabase/libsql-server:latest"),
 	command: z.string().optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),
@@ -97,6 +113,7 @@ const createSchema = createInsertSchema(redis, {
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
+	externalGRPCPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
@@ -109,67 +126,97 @@ const createSchema = createInsertSchema(redis, {
 	networkSwarm: NetworkSwarmSchema.nullable(),
 });
 
-export const apiCreateRedis = createSchema
+export const apiCreateLibsql = createSchema
 	.pick({
 		name: true,
 		appName: true,
-		databasePassword: true,
 		dockerImage: true,
 		environmentId: true,
 		description: true,
+		databaseUser: true,
+		databasePassword: true,
+		sqldNode: true,
+		sqldPrimaryUrl: true,
 		serverId: true,
 	})
-	.required();
+	.required()
+	.superRefine((data, ctx) => {
+		if (data.sqldNode === "replica" && !data.sqldPrimaryUrl) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["sqldPrimaryUrl"],
+				message: "sqldPrimaryUrl is required when sqldNode is 'replica'.",
+			});
+		}
+		if (data.sqldNode !== "replica" && data.sqldPrimaryUrl) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["sqldPrimaryUrl"],
+				message:
+					"sqldPrimaryUrl should not be provided when sqldNode is not 'replica'.",
+			});
+		}
+	});
 
-export const apiFindOneRedis = createSchema
+export const apiFindOneLibsql = createSchema
 	.pick({
-		redisId: true,
+		libsqlId: true,
 	})
 	.required();
 
-export const apiChangeRedisStatus = createSchema
+export const apiChangeLibsqlStatus = createSchema
 	.pick({
-		redisId: true,
+		libsqlId: true,
 		applicationStatus: true,
 	})
 	.required();
 
-export const apiSaveEnvironmentVariablesRedis = createSchema
+export const apiSaveEnvironmentVariablesLibsql = createSchema
 	.pick({
-		redisId: true,
+		libsqlId: true,
 		env: true,
 	})
 	.required();
 
-export const apiSaveExternalPortRedis = createSchema
+export const apiSaveExternalPortsLibsql = createSchema
 	.pick({
-		redisId: true,
+		libsqlId: true,
 		externalPort: true,
+		externalGRPCPort: true,
+	})
+	.required({ libsqlId: true })
+	.superRefine((data, ctx) => {
+		if (data.externalPort === null && data.externalGRPCPort === null) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "Either externalPort or externalGRPCPort must be provided.",
+				path: ["externalPort", "externalGRPCPort"],
+			});
+		}
+	});
+
+export const apiDeployLibsql = createSchema
+	.pick({
+		libsqlId: true,
 	})
 	.required();
 
-export const apiDeployRedis = createSchema
+export const apiResetLibsql = createSchema
 	.pick({
-		redisId: true,
-	})
-	.required();
-
-export const apiResetRedis = createSchema
-	.pick({
-		redisId: true,
+		libsqlId: true,
 		appName: true,
 	})
 	.required();
 
-export const apiUpdateRedis = createSchema
+export const apiUpdateLibsql = createSchema
 	.partial()
 	.extend({
-		redisId: z.string().min(1),
+		libsqlId: z.string().min(1),
 	})
 	.omit({ serverId: true });
 
-export const apiRebuildRedis = createSchema
+export const apiRebuildLibsql = createSchema
 	.pick({
-		redisId: true,
+		libsqlId: true,
 	})
 	.required();

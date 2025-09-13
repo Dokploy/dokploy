@@ -1,22 +1,21 @@
 import {
 	addNewService,
 	checkServiceAccess,
-	createMariadb,
+	createLibsql,
 	createMount,
-	deployMariadb,
-	findBackupsByDbId,
+	deployLibsql,
 	findEnvironmentById,
-	findMariadbById,
+	findLibsqlById,
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
-	removeMariadbById,
+	removeLibsqlById,
 	removeService,
 	startService,
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-	updateMariadbById,
+	updateLibsqlById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
@@ -25,21 +24,20 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
-	apiChangeMariaDBStatus,
-	apiCreateMariaDB,
-	apiDeployMariaDB,
-	apiFindOneMariaDB,
-	apiRebuildMariadb,
-	apiResetMariadb,
-	apiSaveEnvironmentVariablesMariaDB,
-	apiSaveExternalPortMariaDB,
-	apiUpdateMariaDB,
-	mariadb as mariadbTable,
+	apiChangeLibsqlStatus,
+	apiCreateLibsql,
+	apiDeployLibsql,
+	apiFindOneLibsql,
+	apiRebuildLibsql,
+	apiResetLibsql,
+	apiSaveEnvironmentVariablesLibsql,
+	apiSaveExternalPortsLibsql,
+	apiUpdateLibsql,
+	libsql as libsqlTable,
 } from "@/server/db/schema";
-import { cancelJobs } from "@/server/utils/backup";
-export const mariadbRouter = createTRPCRouter({
+export const libsqlRouter = createTRPCRouter({
 	create: protectedProcedure
-		.input(apiCreateMariaDB)
+		.input(apiCreateLibsql)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get project from environment
@@ -58,7 +56,7 @@ export const mariadbRouter = createTRPCRouter({
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
-						message: "You need to use a server to create a Mariadb",
+						message: "You need to use a server to create a Libsql",
 					});
 				}
 
@@ -68,22 +66,22 @@ export const mariadbRouter = createTRPCRouter({
 						message: "You are not authorized to access this project",
 					});
 				}
-				const newMariadb = await createMariadb({
+				const newLibsql = await createLibsql({
 					...input,
 				});
 				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
-						newMariadb.mariadbId,
+						newLibsql.libsqlId,
 						project.organizationId,
 					);
 				}
 
 				await createMount({
-					serviceId: newMariadb.mariadbId,
-					serviceType: "mariadb",
-					volumeName: `${newMariadb.appName}-data`,
-					mountPath: "/var/lib/mysql",
+					serviceId: newLibsql.libsqlId,
+					serviceType: "libsql",
+					volumeName: `${newLibsql.appName}-data`,
+					mountPath: "/var/lib/sqld",
 					type: "volume",
 				});
 
@@ -96,40 +94,40 @@ export const mariadbRouter = createTRPCRouter({
 			}
 		}),
 	one: protectedProcedure
-		.input(apiFindOneMariaDB)
+		.input(apiFindOneLibsql)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
-					input.mariadbId,
+					input.libsqlId,
 					ctx.session.activeOrganizationId,
 					"access",
 				);
 			}
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this Mariadb",
+					message: "You are not authorized to access this Libsql",
 				});
 			}
-			return mariadb;
+			return libsql;
 		}),
 
 	start: protectedProcedure
-		.input(apiFindOneMariaDB)
+		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const service = await findMariadbById(input.mariadbId);
+			const service = await findLibsqlById(input.libsqlId);
 			if (
 				service.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to start this Mariadb",
+					message: "You are not authorized to start this Libsql",
 				});
 			}
 			if (service.serverId) {
@@ -137,34 +135,34 @@ export const mariadbRouter = createTRPCRouter({
 			} else {
 				await startService(service.appName);
 			}
-			await updateMariadbById(input.mariadbId, {
+			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "done",
 			});
 
 			return service;
 		}),
 	stop: protectedProcedure
-		.input(apiFindOneMariaDB)
+		.input(apiFindOneLibsql)
 		.mutation(async ({ input }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 
-			if (mariadb.serverId) {
-				await stopServiceRemote(mariadb.serverId, mariadb.appName);
+			if (libsql.serverId) {
+				await stopServiceRemote(libsql.serverId, libsql.appName);
 			} else {
-				await stopService(mariadb.appName);
+				await stopService(libsql.appName);
 			}
-			await updateMariadbById(input.mariadbId, {
+			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "idle",
 			});
 
-			return mariadb;
+			return libsql;
 		}),
-	saveExternalPort: protectedProcedure
-		.input(apiSaveExternalPortMariaDB)
+	saveExternalPorts: protectedProcedure
+		.input(apiSaveExternalPortsLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -172,102 +170,107 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
-			await updateMariadbById(input.mariadbId, {
+			if (libsql.sqldNode === "replica" && input.externalGRPCPort !== null) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "externalGRPCPort cannot be set when sqldNode is 'replica'",
+				});
+			}
+			await updateLibsqlById(input.libsqlId, {
 				externalPort: input.externalPort,
+				externalGRPCPort: input.externalGRPCPort,
 			});
-			await deployMariadb(input.mariadbId);
-			return mongo;
+			await deployLibsql(input.libsqlId);
+			return libsql;
 		}),
 	deploy: protectedProcedure
-		.input(apiDeployMariaDB)
+		.input(apiDeployLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this Mariadb",
+					message: "You are not authorized to deploy this Libsql",
 				});
 			}
 
-			return deployMariadb(input.mariadbId);
+			return deployLibsql(input.libsqlId);
 		}),
 	deployWithLogs: protectedProcedure
 		.meta({
 			openapi: {
-				path: "/deploy/mariadb-with-logs",
+				path: "/deploy/libsql-with-logs",
 				method: "POST",
 				override: true,
 				enabled: false,
 			},
 		})
-		.input(apiDeployMariaDB)
+		.input(apiDeployLibsql)
 		.subscription(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to deploy this Mariadb",
+					message: "You are not authorized to deploy this Libsql",
 				});
 			}
 
 			return observable<string>((emit) => {
-				deployMariadb(input.mariadbId, (log) => {
+				deployLibsql(input.libsqlId, (log) => {
 					emit.next(log);
 				});
 			});
 		}),
 	changeStatus: protectedProcedure
-		.input(apiChangeMariaDBStatus)
+		.input(apiChangeLibsqlStatus)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to change this Mariadb status",
+					message: "You are not authorized to change this Libsql status",
 				});
 			}
-			await updateMariadbById(input.mariadbId, {
+			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: input.applicationStatus,
 			});
-			return mongo;
+			return libsql;
 		}),
 	remove: protectedProcedure
-		.input(apiFindOneMariaDB)
+		.input(apiFindOneLibsql)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
-					input.mariadbId,
+					input.libsqlId,
 					ctx.session.activeOrganizationId,
 					"delete",
 				);
 			}
 
-			const mongo = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to delete this Mariadb",
+					message: "You are not authorized to delete this Libsql",
 				});
 			}
 
-			const backups = await findBackupsByDbId(input.mariadbId, "mariadb");
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName, mongo.serverId),
-				async () => await cancelJobs(backups),
-				async () => await removeMariadbById(input.mariadbId),
+				async () => await removeService(libsql?.appName, libsql.serverId),
+				async () => await removeLibsqlById(input.libsqlId),
 			];
 
 			for (const operation of cleanupOperations) {
@@ -276,14 +279,14 @@ export const mariadbRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return mongo;
+			return libsql;
 		}),
 	saveEnvironment: protectedProcedure
-		.input(apiSaveEnvironmentVariablesMariaDB)
+		.input(apiSaveEnvironmentVariablesLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -291,7 +294,7 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to save this environment",
 				});
 			}
-			const service = await updateMariadbById(input.mariadbId, {
+			const service = await updateLibsqlById(input.libsqlId, {
 				env: input.env,
 			});
 
@@ -305,59 +308,59 @@ export const mariadbRouter = createTRPCRouter({
 			return true;
 		}),
 	reload: protectedProcedure
-		.input(apiResetMariadb)
+		.input(apiResetLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to reload this Mariadb",
+					message: "You are not authorized to reload this Libsql",
 				});
 			}
-			if (mariadb.serverId) {
-				await stopServiceRemote(mariadb.serverId, mariadb.appName);
+			if (libsql.serverId) {
+				await stopServiceRemote(libsql.serverId, libsql.appName);
 			} else {
-				await stopService(mariadb.appName);
+				await stopService(libsql.appName);
 			}
-			await updateMariadbById(input.mariadbId, {
+			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "idle",
 			});
 
-			if (mariadb.serverId) {
-				await startServiceRemote(mariadb.serverId, mariadb.appName);
+			if (libsql.serverId) {
+				await startServiceRemote(libsql.serverId, libsql.appName);
 			} else {
-				await startService(mariadb.appName);
+				await startService(libsql.appName);
 			}
-			await updateMariadbById(input.mariadbId, {
+			await updateLibsqlById(input.libsqlId, {
 				applicationStatus: "done",
 			});
 			return true;
 		}),
 	update: protectedProcedure
-		.input(apiUpdateMariaDB)
+		.input(apiUpdateLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const { mariadbId, ...rest } = input;
-			const mariadb = await findMariadbById(mariadbId);
+			const { libsqlId, ...rest } = input;
+			const libsql = await findLibsqlById(libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to update this Mariadb",
+					message: "You are not authorized to update this Libsql",
 				});
 			}
-			const service = await updateMariadbById(mariadbId, {
+			const service = await updateLibsqlById(libsqlId, {
 				...rest,
 			});
 
 			if (!service) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Update: Error updating Mariadb",
+					message: "Update: Error updating Libsql",
 				});
 			}
 
@@ -366,19 +369,19 @@ export const mariadbRouter = createTRPCRouter({
 	move: protectedProcedure
 		.input(
 			z.object({
-				mariadbId: z.string(),
+				libsqlId: z.string(),
 				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move this mariadb",
+					message: "You are not authorized to move this libsql",
 				});
 			}
 
@@ -395,31 +398,31 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
-			// Update the mariadb's projectId
-			const updatedMariadb = await db
-				.update(mariadbTable)
+			// Update the libsql's projectId
+			const updatedLibsql = await db
+				.update(libsqlTable)
 				.set({
 					environmentId: input.targetEnvironmentId,
 				})
-				.where(eq(mariadbTable.mariadbId, input.mariadbId))
+				.where(eq(libsqlTable.libsqlId, input.libsqlId))
 				.returning()
 				.then((res) => res[0]);
 
-			if (!updatedMariadb) {
+			if (!updatedLibsql) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to move mariadb",
+					message: "Failed to move libsql",
 				});
 			}
 
-			return updatedMariadb;
+			return updatedLibsql;
 		}),
 	rebuild: protectedProcedure
-		.input(apiRebuildMariadb)
+		.input(apiRebuildLibsql)
 		.mutation(async ({ input, ctx }) => {
-			const mariadb = await findMariadbById(input.mariadbId);
+			const libsql = await findLibsqlById(input.libsqlId);
 			if (
-				mariadb.environment.project.organizationId !==
+				libsql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -428,7 +431,7 @@ export const mariadbRouter = createTRPCRouter({
 				});
 			}
 
-			await rebuildDatabase(mariadb.mariadbId, "mariadb");
+			await rebuildDatabase(libsql.libsqlId, "libsql");
 			return true;
 		}),
 });

@@ -2,6 +2,7 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateProject,
 	applications,
+	libsql,
 	mariadb,
 	mongo,
 	mysql,
@@ -52,12 +53,13 @@ export const findProjectById = async (projectId: string) => {
 			environments: {
 				with: {
 					applications: true,
+					compose: true,
+					libsql: true,
 					mariadb: true,
 					mongo: true,
 					mysql: true,
 					postgres: true,
 					redis: true,
-					compose: true,
 				},
 			},
 		},
@@ -103,6 +105,9 @@ export const validUniqueServerAppName = async (appName: string) => {
 			applications: {
 				where: eq(applications.appName, appName),
 			},
+			libsql: {
+				where: eq(libsql.appName, appName),
+			},
 			mariadb: {
 				where: eq(mariadb.appName, appName),
 			},
@@ -125,6 +130,7 @@ export const validUniqueServerAppName = async (appName: string) => {
 	const nonEmptyProjects = query.filter(
 		(project) =>
 			project.applications.length > 0 ||
+			project.libsql.length > 0 ||
 			project.mariadb.length > 0 ||
 			project.mongo.length > 0 ||
 			project.mysql.length > 0 ||

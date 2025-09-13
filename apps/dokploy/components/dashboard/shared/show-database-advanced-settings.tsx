@@ -6,7 +6,7 @@ import { RebuildDatabase } from "./rebuild-database";
 
 interface Props {
 	id: string;
-	type: "postgres" | "mysql" | "mariadb" | "mongo" | "redis";
+	type: "libsql" | "mariadb" | "mongo" | "mysql" | "postgres" | "redis";
 }
 
 export const ShowDatabaseAdvancedSettings = ({ id, type }: Props) => {

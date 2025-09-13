@@ -55,6 +55,7 @@ export const DeleteService = ({ id, type }: Props) => {
 		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 		mariadb: () =>
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
@@ -70,6 +71,7 @@ export const DeleteService = ({ id, type }: Props) => {
 		redis: () => api.redis.remove.useMutation(),
 		mysql: () => api.mysql.remove.useMutation(),
 		mariadb: () => api.mariadb.remove.useMutation(),
+		libsql: () => api.libsql.remove.useMutation(),
 		application: () => api.application.delete.useMutation(),
 		mongo: () => api.mongo.remove.useMutation(),
 		compose: () => api.compose.delete.useMutation(),
@@ -96,6 +98,7 @@ export const DeleteService = ({ id, type }: Props) => {
 				redisId: id || "",
 				mysqlId: id || "",
 				mariadbId: id || "",
+				libsqlId: id || "",
 				applicationId: id || "",
 				composeId: id || "",
 				deleteVolumes,

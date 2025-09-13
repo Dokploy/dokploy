@@ -20,7 +20,6 @@ import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
-import { projects } from "./project";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";

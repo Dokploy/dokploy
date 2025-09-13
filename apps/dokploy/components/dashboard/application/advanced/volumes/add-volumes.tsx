@@ -34,13 +34,13 @@ interface Props {
 	serviceId: string;
 	serviceType:
 		| "application"
-		| "postgres"
-		| "redis"
-		| "mongo"
-		| "redis"
-		| "mysql"
+		| "compose"
+		| "libsql"
 		| "mariadb"
-		| "compose";
+		| "mongo"
+		| "mysql"
+		| "postgres"
+		| "redis";
 	refetch: () => void;
 	children?: React.ReactNode;
 }
