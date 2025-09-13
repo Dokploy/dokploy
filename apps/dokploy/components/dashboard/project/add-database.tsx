@@ -13,6 +13,7 @@ import {
 	RedisIcon,
 } from "@/components/icons/data-tools-icons";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -97,73 +98,88 @@ const baseDatabaseSchema = z.object({
 	serverId: z.string().nullable(),
 });
 
-const mySchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("libsql"),
-			dockerImage: z
-				.string()
-				.default("ghcr.io/tursodatabase/libsql-server:latest"),
-			databasePassword: z
-				.string()
-				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+const mySchema = z
+	.discriminatedUnion("type", [
+		z
+			.object({
+				type: z.literal("libsql"),
+				dockerImage: z
+					.string()
+					.default("ghcr.io/tursodatabase/libsql-server:latest"),
+				databaseUser: z.string().default("libsql"),
+				sqldNode: z.enum(["primary", "replica"]).default("primary"),
+				sqldPrimaryUrl: z.string().optional(),
+				enableNamespaces: z.boolean().default(false),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mariadb"),
+				dockerImage: z.string().default("mariadb:4"),
+				databaseRootPassword: z
+					.string()
+					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+						message:
+							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+					})
+					.optional(),
+				databaseUser: z.string().default("mariadb"),
+				databaseName: z.string().default("mariadb"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mongo"),
+				databaseUser: z.string().default("mongo"),
+				replicaSets: z.boolean().default(false),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mysql"),
+				databaseRootPassword: z
+					.string()
+					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+						message:
+							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+					})
+					.optional(),
+				databaseUser: z.string().default("mysql"),
+				databaseName: z.string().default("mysql"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("postgres"),
+				databaseName: z.string().default("postgres"),
+				databaseUser: z.string().default("postgres"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("redis"),
+			})
+			.merge(baseDatabaseSchema),
+	])
+	.superRefine((data, ctx) => {
+		if (data.type === "libsql") {
+			if (data.sqldNode === "replica" && !data.sqldPrimaryUrl) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["sqldPrimaryUrl"],
+					message: "sqldPrimaryUrl is required when sqldNode is 'replica'.",
+				});
+			}
+			if (data.sqldNode !== "replica" && data.sqldPrimaryUrl) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["sqldPrimaryUrl"],
 					message:
-						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				}),
-			databaseUser: z.string().default("libsql"),
-			sqldNode: z.enum(["primary", "replica"]).default("primary"),
-			sqldPrimaryUrl: z.string().optional(),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mariadb"),
-			dockerImage: z.string().default("mariadb:4"),
-			databaseRootPassword: z
-				.string()
-				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-					message:
-						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				})
-				.optional(),
-			databaseUser: z.string().default("mariadb"),
-			databaseName: z.string().default("mariadb"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mongo"),
-			databaseUser: z.string().default("mongo"),
-			replicaSets: z.boolean().default(false),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mysql"),
-			databaseRootPassword: z
-				.string()
-				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-					message:
-						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				})
-				.optional(),
-			databaseUser: z.string().default("mysql"),
-			databaseName: z.string().default("mysql"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("postgres"),
-			databaseName: z.string().default("postgres"),
-			databaseUser: z.string().default("postgres"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("redis"),
-		})
-		.merge(baseDatabaseSchema),
-]);
+						"sqldPrimaryUrl should not be provided when sqldNode is not 'replica'.",
+				});
+			}
+		}
+	});
 
 const databasesMap = {
 	postgres: {
@@ -264,7 +280,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 			promise = libsqlMutation.mutateAsync({
 				...commonParams,
 				sqldNode: data.sqldNode,
-				sqldPrimaryUrl: data.sqldPrimaryUrl,
+				sqldPrimaryUrl: data.sqldPrimaryUrl ?? null,
+				enableNamespaces: data.enableNamespaces,
 				databasePassword: data.databasePassword,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
@@ -574,11 +591,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													defaultValue={field.value || "primary"}
 												>
 													<SelectTrigger>
-														<SelectValue
-															placeholder={
-																!isCloud ? "Dokploy" : "Select a Server"
-															}
-														/>
+														<SelectValue placeholder={"primary"} />
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
@@ -615,7 +628,46 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										)}
 									/>
 								)}
+								{type === "libsql" && (
+									<FormField
+										control={form.control}
+										name="enableNamespaces"
+										render={({ field }) => {
+											console.log(field.value);
+											return (
+												<FormItem>
+													<FormLabel>Enable Namespaces</FormLabel>
+													<FormControl>
+														<Select
+															onValueChange={(value) =>
+																field.onChange(Boolean(value))
+															}
+															defaultValue={
+																field.value ? String(field.value) : "False"
+															}
+														>
+															<SelectTrigger>
+																<SelectValue placeholder={"False"} />
+															</SelectTrigger>
+															<SelectContent>
+																<SelectGroup>
+																	{["False", "True"].map((node) => (
+																		<SelectItem key={node} value={node}>
+																			{node.charAt(0).toUpperCase() +
+																				node.slice(1)}
+																		</SelectItem>
+																	))}
+																</SelectGroup>
+															</SelectContent>
+														</Select>
+													</FormControl>
 
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								)}
 								{(type === "libsql" ||
 									type === "mariadb" ||
 									type === "mongo" ||

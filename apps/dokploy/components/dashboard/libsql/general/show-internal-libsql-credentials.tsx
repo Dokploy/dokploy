@@ -1,5 +1,7 @@
+import { SelectGroup } from "@radix-ui/react-select";
 import { ToggleVisibilityInput } from "@/components/shared/toggle-visibility-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -63,10 +65,38 @@ export const ShowInternalLibsqlCredentials = ({ libsqlId }: Props) => {
 									<Label>Internal GRPC Port (Container)</Label>
 									<Input disabled value="5001" />
 								</div>
+								<div className="w-full flex flex-col gap-2">
+									<Label>Internal Admin Port (Container)</Label>
+									<Input disabled value="5000" />
+								</div>
 							</div>
 							<div className="flex flex-col gap-2">
 								<Label>Internal Host</Label>
 								<Input disabled value={data?.appName} />
+							</div>
+							<div className="flex flex-col gap-2">
+								<Label>Enable Namespaces</Label>
+								<Select
+									disabled
+									defaultValue={
+										data?.enableNamespaces
+											? String(data?.enableNamespaces)
+											: "False"
+									}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder={"False"} />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectGroup>
+											{["False", "True"].map((node) => (
+												<SelectItem key={node} value={node}>
+													{node.charAt(0).toUpperCase() + node.slice(1)}
+												</SelectItem>
+											))}
+										</SelectGroup>
+									</SelectContent>
+								</Select>
 							</div>
 
 							<div className="flex flex-col gap-2 md:col-span-2">

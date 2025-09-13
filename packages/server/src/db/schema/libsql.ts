@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, json, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -41,6 +41,7 @@ export const libsql = pgTable("libsql", {
 	databasePassword: text("databasePassword").notNull(),
 	sqldNode: sqldNode("sqldNode").notNull().default("primary"),
 	sqldPrimaryUrl: text("sqldPrimaryUrl"),
+	enableNamespaces: boolean("enableNamespaces").notNull().default(false),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	env: text("env"),
@@ -52,6 +53,7 @@ export const libsql = pgTable("libsql", {
 	//
 	externalPort: integer("externalPort"),
 	externalGRPCPort: integer("externalGRPCPort"),
+	externalAdminPort: integer("externalAdminPort"),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
@@ -102,7 +104,8 @@ const createSchema = createInsertSchema(libsql, {
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
 		}),
 	sqldNode: z.enum(sqldNode.enumValues),
-	sqldPrimaryUrl: z.string().optional(),
+	sqldPrimaryUrl: z.string().nullable(),
+	enableNamespaces: z.boolean().default(false),
 	dockerImage: z.string().default("ghcr.io/tursodatabase/libsql-server:latest"),
 	command: z.string().optional(),
 	env: z.string().optional(),
@@ -114,6 +117,7 @@ const createSchema = createInsertSchema(libsql, {
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	externalGRPCPort: z.number(),
+	externalAdminPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
@@ -137,6 +141,7 @@ export const apiCreateLibsql = createSchema
 		databasePassword: true,
 		sqldNode: true,
 		sqldPrimaryUrl: true,
+		enableNamespaces: true,
 		serverId: true,
 	})
 	.required()
@@ -183,14 +188,20 @@ export const apiSaveExternalPortsLibsql = createSchema
 		libsqlId: true,
 		externalPort: true,
 		externalGRPCPort: true,
+		externalAdminPort: true,
 	})
 	.required({ libsqlId: true })
 	.superRefine((data, ctx) => {
-		if (data.externalPort === null && data.externalGRPCPort === null) {
+		if (
+			data.externalPort === null &&
+			data.externalGRPCPort === null &&
+			data.externalAdminPort === null
+		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: "Either externalPort or externalGRPCPort must be provided.",
-				path: ["externalPort", "externalGRPCPort"],
+				message:
+					"Either externalPort, externalGRPCPort or externalAdminPort must be provided.",
+				path: ["externalPort", "externalGRPCPort", "externalAdminPort"],
 			});
 		}
 	});

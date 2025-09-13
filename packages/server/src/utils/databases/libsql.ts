@@ -8,7 +8,26 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
+
+const getServerArchitecture = async (
+	serverId?: string | null,
+): Promise<string> => {
+	if (!serverId) {
+		const { stdout } = await execAsync("uname -m");
+		return stdout.trim();
+	}
+	const { stdout } = await execAsyncRemote(serverId, "uname -m");
+	return stdout.trim();
+};
+
+const getLibsqlImage = (arch: string): string => {
+	if (arch === "aarch64" || arch === "arm64") {
+		return "ghcr.io/tursodatabase/libsql-server:latest-arm";
+	}
+	return "ghcr.io/tursodatabase/libsql-server:latest";
+};
 
 export type LibsqlNested = InferResultType<
 	"libsql",
@@ -20,6 +39,7 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		env,
 		externalPort,
 		externalGRPCPort,
+		externalAdminPort,
 		dockerImage,
 		memoryLimit,
 		memoryReservation,
@@ -31,7 +51,15 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		cpuReservation,
 		command,
 		mounts,
+		serverId,
+		enableNamespaces,
 	} = libsql;
+
+	let finalDockerImage = dockerImage;
+	if (dockerImage === "ghcr.io/tursodatabase/libsql-server:latest") {
+		const arch = await getServerArchitecture(serverId);
+		finalDockerImage = getLibsqlImage(arch);
+	}
 
 	const basicAuth = Buffer.from(
 		`${databaseUser}:${databasePassword}`,
@@ -69,18 +97,25 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 
 	const docker = await getRemoteDocker(libsql.serverId);
 
+	let finalCommand =
+		command ??
+		"sqld --db-path iku.db --http-listen-addr 0.0.0.0:8080 --grpc-listen-addr 0.0.0.0:5001 --admin-listen-addr 0.0.0.0:5000";
+	if (enableNamespaces) {
+		finalCommand += " --enable-namespaces";
+	}
+
 	const settings: CreateServiceOptions = {
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
-				Image: dockerImage,
+				Image: finalDockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
+				...(finalCommand
 					? {
 							Command: ["/bin/sh"],
-							Args: ["-c", command],
+							Args: ["-c", finalCommand],
 						}
 					: {}),
 				Labels,
@@ -113,6 +148,16 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 								Protocol: "tcp",
 								TargetPort: 5001,
 								PublishedPort: externalGRPCPort,
+								PublishMode: "host",
+							} as PortConfig,
+						]
+					: []),
+				...(externalAdminPort
+					? [
+							{
+								Protocol: "tcp",
+								TargetPort: 5000,
+								PublishedPort: externalAdminPort,
 								PublishMode: "host",
 							} as PortConfig,
 						]

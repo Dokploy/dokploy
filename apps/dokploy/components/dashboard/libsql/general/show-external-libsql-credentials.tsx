@@ -51,13 +51,29 @@ const createDockerProviderSchema = (sqldNode?: string) =>
 				.gte(0, "Range must be 0 - 65535")
 				.lte(65535, "Range must be 0 - 65535")
 				.nullable()),
+			externalAdminPort: z.preprocess((a) => {
+				if (a !== null) {
+					const parsed = Number.parseInt(z.string().parse(a), 10);
+					return Number.isNaN(parsed) ? null : parsed;
+				}
+				return null;
+			}, z
+				.number()
+				.gte(0, "Range must be 0 - 65535")
+				.lte(65535, "Range must be 0 - 65535")
+				.nullable()),
 		})
 		.superRefine((data, ctx) => {
-			if (data.externalPort === null && data.externalGRPCPort === null) {
+			if (
+				data.externalPort === null &&
+				data.externalGRPCPort === null &&
+				data.externalAdminPort === null
+			) {
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
-					message: "Either externalPort or externalGRPCPort must be provided.",
-					path: ["externalPort", "externalGRPCPort"],
+					message:
+						"Either externalPort, externalGRPCPort or externalAdminPort must be provided.",
+					path: ["externalPort", "externalGRPCPort", "externalAdminPort"],
 				});
 			}
 			if (sqldNode === "replica" && data.externalGRPCPort !== null) {
@@ -91,12 +107,16 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 	useEffect(() => {
 		const fieldsToUpdate: Partial<DockerProvider> = {};
 
+		if (data?.externalPort !== undefined) {
+			fieldsToUpdate.externalPort = data.externalPort;
+		}
+
 		if (data?.externalGRPCPort !== undefined) {
 			fieldsToUpdate.externalGRPCPort = data.externalGRPCPort;
 		}
 
-		if (data?.externalPort !== undefined) {
-			fieldsToUpdate.externalPort = data.externalPort;
+		if (data?.externalAdminPort !== undefined) {
+			fieldsToUpdate.externalAdminPort = data.externalAdminPort;
 		}
 
 		if (Object.keys(fieldsToUpdate).length > 0) {
@@ -108,6 +128,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 		await mutateAsync({
 			externalPort: values.externalPort,
 			externalGRPCPort: values.externalGRPCPort,
+			externalAdminPort: values.externalAdminPort,
 			libsqlId,
 		})
 			.then(async () => {
@@ -205,6 +226,29 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 											<ToggleVisibilityInput value={connectionUrl} disabled />
 										</div>
 									)}
+									<div className="md:col-span-2 space-y-4">
+										<FormField
+											control={form.control}
+											name="externalAdminPort"
+											render={({ field }) => {
+												return (
+													<FormItem>
+														<FormLabel>
+															External Admin Port (Internet)
+														</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="5000"
+																{...field}
+																value={field.value || ""}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												);
+											}}
+										/>
+									</div>
 									{data?.sqldNode !== "replica" && (
 										<>
 											<div className="md:col-span-2 space-y-4">

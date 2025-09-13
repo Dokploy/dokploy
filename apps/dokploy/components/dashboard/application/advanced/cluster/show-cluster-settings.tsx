@@ -37,14 +37,7 @@ import { AddSwarmSettings } from "./modify-swarm-settings";
 
 interface Props {
 	id: string;
-	type:
-		| "application"
-		| "libsql"
-		| "mariadb"
-		| "mongo"
-		| "mysql"
-		| "postgres"
-		| "redis";
+	type: "application" | "mariadb" | "mongo" | "mysql" | "postgres" | "redis";
 }
 
 const AddRedirectchema = z.object({
@@ -58,7 +51,6 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 	const queryMap = {
 		application: () =>
 			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
-		libsql: () => api.libsql.one.useQuery({ libsqlId: id }, { enabled: !!id }),
 		mariadb: () =>
 			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
@@ -114,7 +106,6 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
 			applicationId: id || "",
-			libsqlId: id || "",
 			mariadbId: id || "",
 			mongoId: id || "",
 			mysqlId: id || "",

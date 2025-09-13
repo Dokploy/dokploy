@@ -179,6 +179,7 @@ export const libsqlRouter = createTRPCRouter({
 			await updateLibsqlById(input.libsqlId, {
 				externalPort: input.externalPort,
 				externalGRPCPort: input.externalGRPCPort,
+				externalAdminPort: input.externalAdminPort,
 			});
 			await deployLibsql(input.libsqlId);
 			return libsql;
