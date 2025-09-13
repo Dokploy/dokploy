@@ -204,7 +204,7 @@ const databasesMap = {
 	},
 	libsql: {
 		icon: <LibsqlIcon />,
-		label: "Libsql",
+		label: "libSQL",
 	},
 };
 
