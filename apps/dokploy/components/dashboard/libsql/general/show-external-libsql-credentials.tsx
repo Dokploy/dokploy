@@ -144,7 +144,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 		const buildConnectionUrl = () => {
 			const port = form.watch("externalPort") || data?.externalPort;
 
-			return `https://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
+			return `http://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
 		};
 
 		setConnectionUrl(buildConnectionUrl());
@@ -153,7 +153,7 @@ export const ShowExternalLibsqlCredentials = ({ libsqlId }: Props) => {
 			if (data?.sqldNode === "replica") return "";
 			const port = form.watch("externalGRPCPort") || data?.externalGRPCPort;
 
-			return `https://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
+			return `http://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}`;
 		};
 
 		setGRPCConnectionUrl(buildGRPCConnectionUrl());

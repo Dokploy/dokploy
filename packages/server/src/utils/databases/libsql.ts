@@ -31,7 +31,11 @@ const getLibsqlImage = (arch: string): string => {
 
 export type LibsqlNested = InferResultType<
 	"libsql",
-	{ mounts: true; environment: { with: { project: true } } }
+	{
+		mounts: true;
+		environment: { with: { project: true } };
+		bottomlessReplicationDestination: true;
+	}
 >;
 export const buildLibsql = async (libsql: LibsqlNested) => {
 	const {
@@ -53,6 +57,8 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		mounts,
 		serverId,
 		enableNamespaces,
+		enableBottomlessReplication,
+		bottomlessReplicationDestination,
 	} = libsql;
 
 	let finalDockerImage = dockerImage;
@@ -66,9 +72,19 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		"utf-8",
 	).toString("base64");
 
-	const defaultLibsqlEnv = `SQLD_NODE="${sqldNode}"\nSQLD_HTTP_AUTH="basic:${basicAuth}"${
+	let defaultLibsqlEnv = `SQLD_NODE="${sqldNode}"\nSQLD_HTTP_AUTH="basic:${basicAuth}"${
 		env ? `\n${env}` : ""
 	}${sqldNode === "replica" ? `\nSQLD_PRIMARY_URL="${sqldPrimaryUrl}"` : ""}`;
+
+	// Add bottomless replication environment variables if destination is configured
+	if (enableBottomlessReplication && bottomlessReplicationDestination) {
+		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_DATABASE_ID="${appName}"`;
+		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_BUCKET="${bottomlessReplicationDestination.bucket}"`;
+		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_ENDPOINT="${bottomlessReplicationDestination.endpoint}"`;
+		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_AWS_SECRET_ACCESS_KEY="${bottomlessReplicationDestination.secretAccessKey}"`;
+		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_AWS_ACCESS_KEY_ID="${bottomlessReplicationDestination.accessKey}"`;
+		defaultLibsqlEnv += `\nLIBSQL_BOTTOMLESS_AWS_DEFAULT_REGION="${bottomlessReplicationDestination.region}"`;
+	}
 
 	const {
 		HealthCheck,
@@ -102,6 +118,9 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		"sqld --db-path iku.db --http-listen-addr 0.0.0.0:8080 --grpc-listen-addr 0.0.0.0:5001 --admin-listen-addr 0.0.0.0:5000";
 	if (enableNamespaces) {
 		finalCommand += " --enable-namespaces";
+	}
+	if (enableBottomlessReplication) {
+		finalCommand += " --enable-bottomless-replication";
 	}
 
 	const settings: CreateServiceOptions = {

@@ -3,6 +3,8 @@ import { boolean, integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { backups } from "./backups";
+import { destinations } from "./destination";
 import { environments } from "./environment";
 import { mounts } from "./mount";
 import { server } from "./server";
@@ -42,6 +44,14 @@ export const libsql = pgTable("libsql", {
 	sqldNode: sqldNode("sqldNode").notNull().default("primary"),
 	sqldPrimaryUrl: text("sqldPrimaryUrl"),
 	enableNamespaces: boolean("enableNamespaces").notNull().default(false),
+	enableBottomlessReplication: boolean("enableBottomlessReplication")
+		.notNull()
+		.default(false),
+	bottomlessReplicationDestinationId: text(
+		"bottomlessReplicationDestinationId",
+	).references(() => destinations.destinationId, {
+		onDelete: "set null",
+	}),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	env: text("env"),
@@ -89,6 +99,10 @@ export const libsqlRelations = relations(libsql, ({ one, many }) => ({
 		fields: [libsql.serverId],
 		references: [server.serverId],
 	}),
+	bottomlessReplicationDestination: one(destinations, {
+		fields: [libsql.bottomlessReplicationDestinationId],
+		references: [destinations.destinationId],
+	}),
 }));
 
 const createSchema = createInsertSchema(libsql, {
@@ -106,6 +120,8 @@ const createSchema = createInsertSchema(libsql, {
 	sqldNode: z.enum(sqldNode.enumValues),
 	sqldPrimaryUrl: z.string().nullable(),
 	enableNamespaces: z.boolean().default(false),
+	enableBottomlessReplication: z.boolean().default(false),
+	bottomlessReplicationDestinationId: z.string().nullable(),
 	dockerImage: z.string().default("ghcr.io/tursodatabase/libsql-server:latest"),
 	command: z.string().optional(),
 	env: z.string().optional(),

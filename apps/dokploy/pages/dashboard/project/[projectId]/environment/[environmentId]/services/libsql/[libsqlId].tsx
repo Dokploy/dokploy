@@ -13,6 +13,7 @@ import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ShowBottomlessReplication } from "@/components/dashboard/libsql/general/show-bottomless-replication";
 import { ShowExternalLibsqlCredentials } from "@/components/dashboard/libsql/general/show-external-libsql-credentials";
 import { ShowGeneralLibsql } from "@/components/dashboard/libsql/general/show-general-libsql";
 import { ShowInternalLibsqlCredentials } from "@/components/dashboard/libsql/general/show-internal-libsql-credentials";
@@ -270,6 +271,19 @@ const Libsql = (
 											<ShowDockerLogs
 												serverId={data?.serverId || ""}
 												appName={data?.appName || ""}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="backups">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowBottomlessReplication
+												libsqlId={libsqlId}
+												enableBottomlessReplication={
+													data?.enableBottomlessReplication || false
+												}
+												bottomlessReplicationDestinationId={
+													data?.bottomlessReplicationDestinationId
+												}
 											/>
 										</div>
 									</TabsContent>

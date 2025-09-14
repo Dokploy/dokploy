@@ -59,6 +59,7 @@ export const findLibsqlById = async (libsqlId: string) => {
 			},
 			mounts: true,
 			server: true,
+			bottomlessReplicationDestination: true,
 			// backups: {
 			// 	with: {
 			// 		destination: true,
