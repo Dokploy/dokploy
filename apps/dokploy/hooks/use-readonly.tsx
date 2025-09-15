@@ -7,24 +7,25 @@ interface UseReadOnlyOptions {
 
 export const useReadOnly = ({ serviceId, serviceType }: UseReadOnlyOptions) => {
 	const { data: currentUser } = api.user.get.useQuery();
-	
+
 	// Check if user has read-only access to this service
-	const isReadOnly = currentUser?.role === "member" && 
-		currentUser?.canReadOnlyServices === true && 
+	const isReadOnly =
+		currentUser?.role === "member" &&
+		currentUser?.canReadOnlyServices === true &&
 		currentUser?.accessedServices?.includes(serviceId);
-	
+
 	// Debug logging (remove in production)
-	if (process.env.NODE_ENV === 'development') {
-		console.log('useReadOnly Debug:', {
+	if (process.env.NODE_ENV === "development") {
+		console.log("useReadOnly Debug:", {
 			serviceId,
 			serviceType,
 			userRole: currentUser?.role,
 			canReadOnlyServices: currentUser?.canReadOnlyServices,
 			accessedServices: currentUser?.accessedServices,
-			isReadOnly
+			isReadOnly,
 		});
 	}
-	
+
 	return {
 		isReadOnly: !!isReadOnly,
 		userRole: currentUser?.role,
@@ -36,23 +37,27 @@ export const useReadOnly = ({ serviceId, serviceType }: UseReadOnlyOptions) => {
 // Hook to disable specific actions in read-only mode
 export const useReadOnlyAction = (serviceId: string, action: string) => {
 	const { isReadOnly } = useReadOnly({ serviceId });
-	
+
 	const executeAction = (callback: () => void) => {
 		if (isReadOnly) {
-			console.warn(`Action "${action}" is disabled in read-only mode for service ${serviceId}`);
+			console.warn(
+				`Action "${action}" is disabled in read-only mode for service ${serviceId}`,
+			);
 			return;
 		}
 		callback();
 	};
-	
+
 	const executeAsyncAction = async (callback: () => Promise<void>) => {
 		if (isReadOnly) {
-			console.warn(`Async action "${action}" is disabled in read-only mode for service ${serviceId}`);
+			console.warn(
+				`Async action "${action}" is disabled in read-only mode for service ${serviceId}`,
+			);
 			return;
 		}
 		await callback();
 	};
-	
+
 	return {
 		isReadOnly,
 		executeAction,
@@ -66,7 +71,7 @@ export const getReadOnlyProps = (isReadOnly: boolean) => {
 	if (!isReadOnly) {
 		return {};
 	}
-	
+
 	return {
 		disabled: true,
 		readOnly: true,
@@ -134,7 +139,7 @@ export const getReadOnlyButtonProps = (isReadOnly: boolean) => {
 	if (!isReadOnly) {
 		return {};
 	}
-	
+
 	return {
 		disabled: true,
 		className: "opacity-50 pointer-events-none cursor-not-allowed",

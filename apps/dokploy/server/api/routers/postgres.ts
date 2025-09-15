@@ -170,7 +170,7 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
-			
+
 			// Check read-only permission for members
 			if (ctx.user.role === "member") {
 				const isReadOnly = await checkServiceReadOnlyPermission(

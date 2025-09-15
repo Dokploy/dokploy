@@ -180,7 +180,7 @@ export const checkServiceReadOnlyPermission = async (
 	organizationId: string,
 ) => {
 	const member = await findMemberById(userId, organizationId);
-	
+
 	if (!member) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",

@@ -4,7 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { ReadOnlyFormWrapper } from "./readonly-wrapper";
 import { useReadOnlyAction } from "@/hooks/use-readonly";
 
@@ -18,57 +24,60 @@ export const ReadOnlyTest = ({ serviceId }: ReadOnlyTestProps) => {
 	const [switchValue, setSwitchValue] = useState(false);
 	const [checkboxValue, setCheckboxValue] = useState(false);
 	const [selectValue, setSelectValue] = useState("");
-	
-	const { executeAction, executeAsyncAction, isReadOnly } = useReadOnlyAction(serviceId, "test-action");
-	
+
+	const { executeAction, executeAsyncAction, isReadOnly } = useReadOnlyAction(
+		serviceId,
+		"test-action",
+	);
+
 	const handleButtonClick = () => {
 		executeAction(() => {
 			alert("Button clicked! This should not work in read-only mode.");
 		});
 	};
-	
+
 	const handleAsyncButtonClick = async () => {
 		await executeAsyncAction(async () => {
 			alert("Async button clicked! This should not work in read-only mode.");
 		});
 	};
-	
+
 	const handleFormSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		executeAction(() => {
 			alert("Form submitted! This should not work in read-only mode.");
 		});
 	};
-	
+
 	return (
 		<div className="p-4 border rounded-lg">
 			<h3 className="text-lg font-semibold mb-4">Read-Only Test Component</h3>
 			<p className="text-sm text-muted-foreground mb-4">
 				Service ID: {serviceId} | Read-Only: {isReadOnly ? "Yes" : "No"}
 			</p>
-			
+
 			<ReadOnlyFormWrapper serviceId={serviceId}>
 				<div className="space-y-4">
 					{/* Buttons */}
 					<div className="space-y-2">
 						<h4 className="font-medium">Buttons</h4>
 						<div className="flex gap-2">
-							<Button onClick={handleButtonClick}>
-								Regular Button
-							</Button>
-							<Button onClick={handleAsyncButtonClick}>
-								Async Button
-							</Button>
+							<Button onClick={handleButtonClick}>Regular Button</Button>
+							<Button onClick={handleAsyncButtonClick}>Async Button</Button>
 							<Button type="submit" form="test-form">
 								Submit Button
 							</Button>
 						</div>
 					</div>
-					
+
 					{/* Form */}
-					<form id="test-form" onSubmit={handleFormSubmit} className="space-y-4">
+					<form
+						id="test-form"
+						onSubmit={handleFormSubmit}
+						className="space-y-4"
+					>
 						<h4 className="font-medium">Form Elements</h4>
-						
+
 						<div className="space-y-2">
 							<label className="text-sm font-medium">Text Input</label>
 							<Input
@@ -77,7 +86,7 @@ export const ReadOnlyTest = ({ serviceId }: ReadOnlyTestProps) => {
 								placeholder="Type something..."
 							/>
 						</div>
-						
+
 						<div className="space-y-2">
 							<label className="text-sm font-medium">Textarea</label>
 							<Textarea
@@ -86,7 +95,7 @@ export const ReadOnlyTest = ({ serviceId }: ReadOnlyTestProps) => {
 								placeholder="Type something..."
 							/>
 						</div>
-						
+
 						<div className="space-y-2">
 							<label className="text-sm font-medium">Select</label>
 							<Select value={selectValue} onValueChange={setSelectValue}>
@@ -100,15 +109,12 @@ export const ReadOnlyTest = ({ serviceId }: ReadOnlyTestProps) => {
 								</SelectContent>
 							</Select>
 						</div>
-						
+
 						<div className="flex items-center space-x-2">
-							<Switch
-								checked={switchValue}
-								onCheckedChange={setSwitchValue}
-							/>
+							<Switch checked={switchValue} onCheckedChange={setSwitchValue} />
 							<label className="text-sm font-medium">Switch</label>
 						</div>
-						
+
 						<div className="flex items-center space-x-2">
 							<Checkbox
 								checked={checkboxValue}
@@ -117,7 +123,7 @@ export const ReadOnlyTest = ({ serviceId }: ReadOnlyTestProps) => {
 							<label className="text-sm font-medium">Checkbox</label>
 						</div>
 					</form>
-					
+
 					{/* Current Values */}
 					<div className="space-y-2">
 						<h4 className="font-medium">Current Values</h4>

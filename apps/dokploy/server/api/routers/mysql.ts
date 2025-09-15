@@ -130,7 +130,7 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findMySqlById(input.mysqlId);
-			
+
 			// Check read-only permission for members
 			if (ctx.user.role === "member") {
 				const isReadOnly = await checkServiceReadOnlyPermission(

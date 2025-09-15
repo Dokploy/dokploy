@@ -58,264 +58,265 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					<div className="flex flex-row gap-4 flex-wrap">
-							<TooltipProvider delayDuration={0} disableHoverableContent={false}>
-								<DialogAction
-							title="Deploy Application"
-							description="Are you sure you want to deploy this application?"
-							type="default"
-							onClick={async () => {
-								await deploy({
-									applicationId: applicationId,
-								})
-									.then(() => {
-										toast.success("Application deployed successfully");
-										refetch();
-										router.push(
-											`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
-										);
-									})
-									.catch(() => {
-										toast.error("Error deploying application");
-									});
-							}}
-						>
-							<Button
-								variant="default"
-								isLoading={data?.applicationStatus === "running"}
-								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="flex items-center">
-											<Rocket className="size-4 mr-1" />
-											Deploy
-										</div>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Downloads the source code and performs a complete build
-											</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
-						</DialogAction>
-						<DialogAction
-							title="Reload Application"
-							description="Are you sure you want to reload this application?"
-							type="default"
-							onClick={async () => {
-								await reload({
-									applicationId: applicationId,
-									appName: data?.appName || "",
-								})
-									.then(() => {
-										toast.success("Application reloaded successfully");
-										refetch();
-									})
-									.catch(() => {
-										toast.error("Error reloading application");
-									});
-							}}
-						>
-							<Button
-								variant="secondary"
-								isLoading={isReloading}
-								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="flex items-center">
-											<RefreshCcw className="size-4 mr-1" />
-											Reload
-										</div>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Reload the application without rebuilding it</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
-						</DialogAction>
-						<DialogAction
-							title="Rebuild Application"
-							description="Are you sure you want to rebuild this application?"
-							type="default"
-							onClick={async () => {
-								await redeploy({
-									applicationId: applicationId,
-								})
-									.then(() => {
-										toast.success("Application rebuilt successfully");
-										refetch();
-									})
-									.catch(() => {
-										toast.error("Error rebuilding application");
-									});
-							}}
-						>
-							<Button
-								variant="secondary"
-								isLoading={data?.applicationStatus === "running"}
-								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
-							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="flex items-center">
-											<Hammer className="size-4 mr-1" />
-											Rebuild
-										</div>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>
-												Only rebuilds the application without downloading new
-												code
-											</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
-						</DialogAction>
-
-						{data?.applicationStatus === "idle" ? (
+						<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 							<DialogAction
-								title="Start Application"
-								description="Are you sure you want to start this application?"
+								title="Deploy Application"
+								description="Are you sure you want to deploy this application?"
 								type="default"
 								onClick={async () => {
-									await start({
+									await deploy({
 										applicationId: applicationId,
 									})
 										.then(() => {
-											toast.success("Application started successfully");
+											toast.success("Application deployed successfully");
 											refetch();
+											router.push(
+												`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
+											);
 										})
 										.catch(() => {
-											toast.error("Error starting application");
+											toast.error("Error deploying application");
 										});
 								}}
 							>
 								<Button
-									variant="secondary"
-									isLoading={isStarting}
+									variant="default"
+									isLoading={data?.applicationStatus === "running"}
 									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<CheckCircle2 className="size-4 mr-1" />
-												Start
+												<Rocket className="size-4 mr-1" />
+												Deploy
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
 												<p>
-													Start the application (requires a previous successful
-													build)
+													Downloads the source code and performs a complete
+													build
 												</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
 								</Button>
 							</DialogAction>
-						) : (
 							<DialogAction
-								title="Stop Application"
-								description="Are you sure you want to stop this application?"
+								title="Reload Application"
+								description="Are you sure you want to reload this application?"
+								type="default"
 								onClick={async () => {
-									await stop({
+									await reload({
 										applicationId: applicationId,
+										appName: data?.appName || "",
 									})
 										.then(() => {
-											toast.success("Application stopped successfully");
+											toast.success("Application reloaded successfully");
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error stopping application");
+											toast.error("Error reloading application");
 										});
 								}}
 							>
 								<Button
-									variant="destructive"
-									isLoading={isStopping}
+									variant="secondary"
+									isLoading={isReloading}
 									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<div className="flex items-center">
-												<Ban className="size-4 mr-1" />
-												Stop
+												<RefreshCcw className="size-4 mr-1" />
+												Reload
 											</div>
 										</TooltipTrigger>
 										<TooltipPrimitive.Portal>
 											<TooltipContent sideOffset={5} className="z-[60]">
-												<p>Stop the currently running application</p>
+												<p>Reload the application without rebuilding it</p>
 											</TooltipContent>
 										</TooltipPrimitive.Portal>
 									</Tooltip>
 								</Button>
 							</DialogAction>
-						)}
-							</TooltipProvider>
-							<DockerTerminalModal
-								appName={data?.appName || ""}
-								serverId={data?.serverId || ""}
+							<DialogAction
+								title="Rebuild Application"
+								description="Are you sure you want to rebuild this application?"
+								type="default"
+								onClick={async () => {
+									await redeploy({
+										applicationId: applicationId,
+									})
+										.then(() => {
+											toast.success("Application rebuilt successfully");
+											refetch();
+										})
+										.catch(() => {
+											toast.error("Error rebuilding application");
+										});
+								}}
 							>
 								<Button
-									variant="outline"
-									className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+									variant="secondary"
+									isLoading={data?.applicationStatus === "running"}
+									className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 								>
-									<Terminal className="size-4 mr-1" />
-									Open Terminal
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="flex items-center">
+												<Hammer className="size-4 mr-1" />
+												Rebuild
+											</div>
+										</TooltipTrigger>
+										<TooltipPrimitive.Portal>
+											<TooltipContent sideOffset={5} className="z-[60]">
+												<p>
+													Only rebuilds the application without downloading new
+													code
+												</p>
+											</TooltipContent>
+										</TooltipPrimitive.Portal>
+									</Tooltip>
 								</Button>
-							</DockerTerminalModal>
-							<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-								<span className="text-sm font-medium">Autodeploy</span>
-								<Switch
-									aria-label="Toggle autodeploy"
-									checked={data?.autoDeploy || false}
-									onCheckedChange={async (enabled) => {
-										await update({
-											applicationId,
-											autoDeploy: enabled,
-										})
-											.then(async () => {
-												toast.success("Auto Deploy Updated");
-												await refetch();
-											})
-											.catch(() => {
-												toast.error("Error updating Auto Deploy");
-											});
-									}}
-									className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
-								/>
-							</div>
+							</DialogAction>
 
-							<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-								<span className="text-sm font-medium">Clean Cache</span>
-								<Switch
-									aria-label="Toggle clean cache"
-									checked={data?.cleanCache || false}
-									onCheckedChange={async (enabled) => {
-										await update({
-											applicationId,
-											cleanCache: enabled,
+							{data?.applicationStatus === "idle" ? (
+								<DialogAction
+									title="Start Application"
+									description="Are you sure you want to start this application?"
+									type="default"
+									onClick={async () => {
+										await start({
+											applicationId: applicationId,
 										})
-											.then(async () => {
-												toast.success("Clean Cache Updated");
-												await refetch();
+											.then(() => {
+												toast.success("Application started successfully");
+												refetch();
 											})
 											.catch(() => {
-												toast.error("Error updating Clean Cache");
+												toast.error("Error starting application");
 											});
 									}}
-									className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
-								/>
-							</div>
+								>
+									<Button
+										variant="secondary"
+										isLoading={isStarting}
+										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div className="flex items-center">
+													<CheckCircle2 className="size-4 mr-1" />
+													Start
+												</div>
+											</TooltipTrigger>
+											<TooltipPrimitive.Portal>
+												<TooltipContent sideOffset={5} className="z-[60]">
+													<p>
+														Start the application (requires a previous
+														successful build)
+													</p>
+												</TooltipContent>
+											</TooltipPrimitive.Portal>
+										</Tooltip>
+									</Button>
+								</DialogAction>
+							) : (
+								<DialogAction
+									title="Stop Application"
+									description="Are you sure you want to stop this application?"
+									onClick={async () => {
+										await stop({
+											applicationId: applicationId,
+										})
+											.then(() => {
+												toast.success("Application stopped successfully");
+												refetch();
+											})
+											.catch(() => {
+												toast.error("Error stopping application");
+											});
+									}}
+								>
+									<Button
+										variant="destructive"
+										isLoading={isStopping}
+										className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div className="flex items-center">
+													<Ban className="size-4 mr-1" />
+													Stop
+												</div>
+											</TooltipTrigger>
+											<TooltipPrimitive.Portal>
+												<TooltipContent sideOffset={5} className="z-[60]">
+													<p>Stop the currently running application</p>
+												</TooltipContent>
+											</TooltipPrimitive.Portal>
+										</Tooltip>
+									</Button>
+								</DialogAction>
+							)}
+						</TooltipProvider>
+						<DockerTerminalModal
+							appName={data?.appName || ""}
+							serverId={data?.serverId || ""}
+						>
+							<Button
+								variant="outline"
+								className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+							>
+								<Terminal className="size-4 mr-1" />
+								Open Terminal
+							</Button>
+						</DockerTerminalModal>
+						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+							<span className="text-sm font-medium">Autodeploy</span>
+							<Switch
+								aria-label="Toggle autodeploy"
+								checked={data?.autoDeploy || false}
+								onCheckedChange={async (enabled) => {
+									await update({
+										applicationId,
+										autoDeploy: enabled,
+									})
+										.then(async () => {
+											toast.success("Auto Deploy Updated");
+											await refetch();
+										})
+										.catch(() => {
+											toast.error("Error updating Auto Deploy");
+										});
+								}}
+								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
+							/>
 						</div>
+
+						<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+							<span className="text-sm font-medium">Clean Cache</span>
+							<Switch
+								aria-label="Toggle clean cache"
+								checked={data?.cleanCache || false}
+								onCheckedChange={async (enabled) => {
+									await update({
+										applicationId,
+										cleanCache: enabled,
+									})
+										.then(async () => {
+											toast.success("Clean Cache Updated");
+											await refetch();
+										})
+										.catch(() => {
+											toast.error("Error updating Clean Cache");
+										});
+								}}
+								className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
+							/>
+						</div>
+					</div>
 				</CardContent>
 			</Card>
 			<ShowProviderForm applicationId={applicationId} />

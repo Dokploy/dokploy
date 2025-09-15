@@ -279,19 +279,19 @@ const Service = (
 										<ReadOnlyFormWrapper serviceId={composeId}>
 											<div className="pt-2.5">
 												<div className="flex flex-col border rounded-lg ">
-												{data?.serverId && isCloud ? (
-													<ComposePaidMonitoring
-														serverId={data?.serverId || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-														appName={data?.appName || ""}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
-														appType={data?.composeType || "docker-compose"}
-													/>
-												) : (
-													<>
-														{/* {monitoring?.enabledFeatures &&
+													{data?.serverId && isCloud ? (
+														<ComposePaidMonitoring
+															serverId={data?.serverId || ""}
+															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+															appName={data?.appName || ""}
+															token={
+																data?.server?.metricsConfig?.server?.token || ""
+															}
+															appType={data?.composeType || "docker-compose"}
+														/>
+													) : (
+														<>
+															{/* {monitoring?.enabledFeatures &&
 															isCloud &&
 															data?.serverId && (
 																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2 m-4">
@@ -315,18 +315,18 @@ const Service = (
 																appType={data?.composeType || "docker-compose"}
 															/>
 														) : ( */}
-														{/* <div> */}
-														<ComposeFreeMonitoring
-															serverId={data?.serverId || ""}
-															appName={data?.appName || ""}
-															appType={data?.composeType || "docker-compose"}
-														/>
-														{/* </div> */}
-														{/* )} */}
-													</>
-												)}
+															{/* <div> */}
+															<ComposeFreeMonitoring
+																serverId={data?.serverId || ""}
+																appName={data?.appName || ""}
+																appType={data?.composeType || "docker-compose"}
+															/>
+															{/* </div> */}
+															{/* )} */}
+														</>
+													)}
+												</div>
 											</div>
-										</div>
 										</ReadOnlyFormWrapper>
 									</TabsContent>
 
@@ -348,7 +348,10 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<ReadOnlyViewWrapper serviceId={composeId} allowedActions={["view", "view-button", "logs"]}>
+										<ReadOnlyViewWrapper
+											serviceId={composeId}
+											allowedActions={["view", "view-button", "logs"]}
+										>
 											<div className="flex flex-col gap-4 border rounded-lg">
 												<ShowDeployments
 													id={composeId}

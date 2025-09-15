@@ -328,7 +328,10 @@ const Service = (
 										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<ReadOnlyViewWrapper serviceId={applicationId} allowedActions={["view", "view-button", "logs"]}>
+										<ReadOnlyViewWrapper
+											serviceId={applicationId}
+											allowedActions={["view", "view-button", "logs"]}
+										>
 											<div className="flex flex-col gap-4 border rounded-lg">
 												<ShowDeployments
 													id={applicationId}

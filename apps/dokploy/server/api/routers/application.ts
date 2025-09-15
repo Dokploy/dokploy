@@ -281,7 +281,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
-			
+
 			// Check read-only permission for members
 			if (ctx.user.role === "member") {
 				const isReadOnly = await checkServiceReadOnlyPermission(
@@ -320,7 +320,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
-			
+
 			// Check read-only permission for members
 			if (ctx.user.role === "member") {
 				const isReadOnly = await checkServiceReadOnlyPermission(
@@ -360,7 +360,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiRedeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			
+
 			// Check read-only permission for members
 			if (ctx.user.role === "member") {
 				const isReadOnly = await checkServiceReadOnlyPermission(
@@ -740,7 +740,7 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiDeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
-			
+
 			// Check read-only permission for members
 			if (ctx.user.role === "member") {
 				const isReadOnly = await checkServiceReadOnlyPermission(
