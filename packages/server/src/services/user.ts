@@ -174,11 +174,37 @@ export const canAccessToTraefikFiles = async (
 	return canAccessToTraefikFiles;
 };
 
+export const checkServiceReadOnlyPermission = async (
+	userId: string,
+	serviceId: string,
+	organizationId: string,
+) => {
+	const member = await findMemberById(userId, organizationId);
+	
+	if (!member) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "User not found in organization",
+		});
+	}
+
+	// Owners and admins always have full access
+	if (member.role === "owner" || member.role === "admin") {
+		return false; // Not read-only
+	}
+
+	// Check if user has read-only access to this specific service
+	const hasServiceAccess = member.accessedServices.includes(serviceId);
+	const isReadOnly = member.canReadOnlyServices && hasServiceAccess;
+
+	return isReadOnly;
+};
+
 export const checkServiceAccess = async (
 	userId: string,
 	serviceId: string,
 	organizationId: string,
-	action = "access" as "access" | "create" | "delete",
+	action = "access" as "access" | "create" | "delete" | "readonly",
 ) => {
 	let hasPermission = false;
 	switch (action) {
@@ -198,6 +224,13 @@ export const checkServiceAccess = async (
 			break;
 		case "delete":
 			hasPermission = await canPeformDeleteService(
+				userId,
+				serviceId,
+				organizationId,
+			);
+			break;
+		case "readonly":
+			hasPermission = await checkServiceReadOnlyPermission(
 				userId,
 				serviceId,
 				organizationId,

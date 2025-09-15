@@ -33,9 +33,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 	const { mutateAsync: stop, isLoading: isStopping } =
 		api.compose.stop.useMutation();
 	return (
-		<div className="flex flex-row gap-4 w-full flex-wrap ">
-			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
-				<DialogAction
+		<div className="flex flex-col gap-4 w-full">
+			<div className="flex flex-row gap-4 w-full flex-wrap">
+					<TooltipProvider delayDuration={0} disableHoverableContent={false}>
+						<DialogAction
 					title="Deploy Compose"
 					description="Are you sure you want to deploy this compose?"
 					type="default"
@@ -191,40 +192,41 @@ export const ComposeActions = ({ composeId }: Props) => {
 						</Button>
 					</DialogAction>
 				)}
-			</TooltipProvider>
-			<DockerTerminalModal
-				appName={data?.appName || ""}
-				serverId={data?.serverId || ""}
-			>
-				<Button
-					variant="outline"
-					className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-				>
-					<Terminal className="size-4 mr-1" />
-					Open Terminal
-				</Button>
-			</DockerTerminalModal>
-			<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-				<span className="text-sm font-medium">Autodeploy</span>
-				<Switch
-					aria-label="Toggle autodeploy"
-					checked={data?.autoDeploy || false}
-					onCheckedChange={async (enabled) => {
-						await update({
-							composeId,
-							autoDeploy: enabled,
-						})
-							.then(async () => {
-								toast.success("Auto Deploy Updated");
-								await refetch();
-							})
-							.catch(() => {
-								toast.error("Error updating Auto Deploy");
-							});
-					}}
-					className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
-				/>
-			</div>
+					</TooltipProvider>
+					<DockerTerminalModal
+						appName={data?.appName || ""}
+						serverId={data?.serverId || ""}
+					>
+						<Button
+							variant="outline"
+							className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+						>
+							<Terminal className="size-4 mr-1" />
+							Open Terminal
+						</Button>
+					</DockerTerminalModal>
+					<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
+						<span className="text-sm font-medium">Autodeploy</span>
+						<Switch
+							aria-label="Toggle autodeploy"
+							checked={data?.autoDeploy || false}
+							onCheckedChange={async (enabled) => {
+								await update({
+									composeId,
+									autoDeploy: enabled,
+								})
+									.then(async () => {
+										toast.success("Auto Deploy Updated");
+										await refetch();
+									})
+									.catch(() => {
+										toast.error("Error updating Auto Deploy");
+									});
+							}}
+							className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
+						/>
+					</div>
+				</div>
 		</div>
 	);
 };

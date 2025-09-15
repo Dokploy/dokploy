@@ -32,6 +32,8 @@ import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/co
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { ReadOnlyFormWrapper } from "@/components/shared/readonly-wrapper";
+import { ReadOnlyViewWrapper } from "@/components/shared/readonly-view-wrapper";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -234,38 +236,49 @@ const Service = (
 									</div>
 
 									<TabsContent value="general">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowGeneralCompose composeId={composeId} />
-										</div>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowGeneralCompose composeId={composeId} />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="environment">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment id={composeId} type="compose" />
-										</div>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowEnvironment id={composeId} type="compose" />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="backups">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups id={composeId} backupType="compose" />
-										</div>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowBackups id={composeId} backupType="compose" />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 
 									<TabsContent value="schedules">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowSchedules id={composeId} scheduleType="compose" />
-										</div>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowSchedules id={composeId} scheduleType="compose" />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="volumeBackups">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowVolumeBackups
-												id={composeId}
-												type="compose"
-												serverId={data?.serverId || ""}
-											/>
-										</div>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowVolumeBackups
+													id={composeId}
+													type="compose"
+													serverId={data?.serverId || ""}
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="monitoring">
-										<div className="pt-2.5">
-											<div className="flex flex-col border rounded-lg ">
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="pt-2.5">
+												<div className="flex flex-col border rounded-lg ">
 												{data?.serverId && isCloud ? (
 													<ComposePaidMonitoring
 														serverId={data?.serverId || ""}
@@ -314,6 +327,7 @@ const Service = (
 												)}
 											</div>
 										</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 
 									<TabsContent value="logs">
@@ -334,29 +348,35 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4 border rounded-lg">
-											<ShowDeployments
-												id={composeId}
-												type="compose"
-												serverId={data?.serverId || ""}
-												refreshToken={data?.refreshToken || ""}
-											/>
-										</div>
+										<ReadOnlyViewWrapper serviceId={composeId} allowedActions={["view", "view-button", "logs"]}>
+											<div className="flex flex-col gap-4 border rounded-lg">
+												<ShowDeployments
+													id={composeId}
+													type="compose"
+													serverId={data?.serverId || ""}
+													refreshToken={data?.refreshToken || ""}
+												/>
+											</div>
+										</ReadOnlyViewWrapper>
 									</TabsContent>
 
 									<TabsContent value="domains">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains id={composeId} type="compose" />
-										</div>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowDomains id={composeId} type="compose" />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 
 									<TabsContent value="advanced">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<AddCommandCompose composeId={composeId} />
-											<ShowVolumes id={composeId} type="compose" />
-											<ShowImport composeId={composeId} />
-											<IsolatedDeploymentTab composeId={composeId} />
-										</div>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<AddCommandCompose composeId={composeId} />
+												<ShowVolumes id={composeId} type="compose" />
+												<ShowImport composeId={composeId} />
+												<IsolatedDeploymentTab composeId={composeId} />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 								</Tabs>
 							)}

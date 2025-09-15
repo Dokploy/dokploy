@@ -25,6 +25,8 @@ import { PostgresqlIcon } from "@/components/icons/data-tools-icons";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { ReadOnlyFormWrapper } from "@/components/shared/readonly-wrapper";
+import { ReadOnlyViewWrapper } from "@/components/shared/readonly-view-wrapper";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -211,45 +213,51 @@ const Postgresql = (
 									</div>
 
 									<TabsContent value="general">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowGeneralPostgres postgresId={postgresId} />
-											<ShowInternalPostgresCredentials
-												postgresId={postgresId}
-											/>
-											<ShowExternalPostgresCredentials
-												postgresId={postgresId}
-											/>
-										</div>
+										<ReadOnlyFormWrapper serviceId={postgresId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowGeneralPostgres postgresId={postgresId} />
+												<ShowInternalPostgresCredentials
+													postgresId={postgresId}
+												/>
+												<ShowExternalPostgresCredentials
+													postgresId={postgresId}
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="environment">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment id={postgresId} type="postgres" />
-										</div>
+										<ReadOnlyFormWrapper serviceId={postgresId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowEnvironment id={postgresId} type="postgres" />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="monitoring">
-										<div className="pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg p-6">
-												{data?.serverId && isCloud ? (
-													<ContainerPaidMonitoring
-														appName={data?.appName || ""}
-														baseUrl={`${
-															data?.serverId
-																? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}`
-																: "http://localhost:4500"
-														}`}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
-													/>
-												) : (
-													<>
-														<ContainerFreeMonitoring
+										<ReadOnlyFormWrapper serviceId={postgresId}>
+											<div className="pt-2.5">
+												<div className="flex flex-col gap-4 border rounded-lg p-6">
+													{data?.serverId && isCloud ? (
+														<ContainerPaidMonitoring
 															appName={data?.appName || ""}
+															baseUrl={`${
+																data?.serverId
+																	? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}`
+																	: "http://localhost:4500"
+															}`}
+															token={
+																data?.server?.metricsConfig?.server?.token || ""
+															}
 														/>
-													</>
-												)}
+													) : (
+														<>
+															<ContainerFreeMonitoring
+																appName={data?.appName || ""}
+															/>
+														</>
+													)}
+												</div>
 											</div>
-										</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="logs">
 										<div className="flex flex-col gap-4  pt-2.5">
@@ -260,21 +268,25 @@ const Postgresql = (
 										</div>
 									</TabsContent>
 									<TabsContent value="backups">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowBackups
-												id={postgresId}
-												databaseType="postgres"
-												backupType="database"
-											/>
-										</div>
+										<ReadOnlyFormWrapper serviceId={postgresId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowBackups
+													id={postgresId}
+													databaseType="postgres"
+													backupType="database"
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="advanced">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDatabaseAdvancedSettings
-												id={postgresId}
-												type="postgres"
-											/>
-										</div>
+										<ReadOnlyFormWrapper serviceId={postgresId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowDatabaseAdvancedSettings
+													id={postgresId}
+													type="postgres"
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 								</Tabs>
 							)}

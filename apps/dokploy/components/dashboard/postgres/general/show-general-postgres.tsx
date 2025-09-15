@@ -71,9 +71,10 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 					<CardHeader>
 						<CardTitle className="text-xl">Deploy Settings</CardTitle>
 					</CardHeader>
-					<CardContent className="flex flex-row gap-4 flex-wrap">
-						<TooltipProvider disableHoverableContent={false}>
-							<DialogAction
+					<CardContent className="flex flex-col gap-4">
+						<div className="flex flex-row gap-4 flex-wrap">
+								<TooltipProvider disableHoverableContent={false}>
+									<DialogAction
 								title="Deploy PostgreSQL"
 								description="Are you sure you want to deploy this postgres?"
 								type="default"
@@ -220,30 +221,31 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 									</Button>
 								</DialogAction>
 							)}
-						</TooltipProvider>
-						<DockerTerminalModal
-							appName={data?.appName || ""}
-							serverId={data?.serverId || ""}
-						>
-							<Button
-								variant="outline"
-								className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
-							>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="flex items-center">
-											<Terminal className="size-4 mr-1" />
-											Open Terminal
-										</div>
-									</TooltipTrigger>
-									<TooltipPrimitive.Portal>
-										<TooltipContent sideOffset={5} className="z-[60]">
-											<p>Open a terminal to the PostgreSQL container</p>
-										</TooltipContent>
-									</TooltipPrimitive.Portal>
-								</Tooltip>
-							</Button>
-						</DockerTerminalModal>
+								</TooltipProvider>
+								<DockerTerminalModal
+									appName={data?.appName || ""}
+									serverId={data?.serverId || ""}
+								>
+									<Button
+										variant="outline"
+										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
+									>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div className="flex items-center">
+													<Terminal className="size-4 mr-1" />
+													Open Terminal
+												</div>
+											</TooltipTrigger>
+											<TooltipPrimitive.Portal>
+												<TooltipContent sideOffset={5} className="z-[60]">
+													<p>Open a terminal to the PostgreSQL container</p>
+												</TooltipContent>
+											</TooltipPrimitive.Portal>
+										</Tooltip>
+									</Button>
+								</DockerTerminalModal>
+							</div>
 					</CardContent>
 				</Card>
 				<DrawerLogs
