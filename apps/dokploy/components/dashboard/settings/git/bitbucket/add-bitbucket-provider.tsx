@@ -114,7 +114,7 @@ export const AddBitbucketProvider = () => {
 								<div className="mt-1 text-sm">
 									Manage tokens in
 									<Link
-										href="https://bitbucket.org/account/settings/"
+										href="https://id.atlassian.com/manage-profile/security/api-tokens"
 										target="_blank"
 										className="inline-flex items-center gap-1 ml-1"
 									>
