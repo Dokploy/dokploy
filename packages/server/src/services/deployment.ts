@@ -33,6 +33,7 @@ import { removeRollbackById } from "./rollbacks";
 import { findScheduleById } from "./schedule";
 import { findServerById, type Server } from "./server";
 import { findVolumeBackupById } from "./volume-backups";
+import { triggerWebhooks, type WebhookEvent } from "./webhook";
 
 export type Deployment = typeof deployments.$inferSelect;
 
@@ -40,7 +41,24 @@ export const findDeploymentById = async (deploymentId: string) => {
 	const deployment = await db.query.deployments.findFirst({
 		where: eq(deployments.deploymentId, deploymentId),
 		with: {
-			application: true,
+			application: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
 			schedule: true,
 		},
 	});
@@ -119,6 +137,51 @@ export const createDeployment = async (
 				message: "Error creating the deployment",
 			});
 		}
+
+		// Trigger deployment.started webhook
+		const webhookEvent: WebhookEvent = {
+			event: "deployment.started",
+			timestamp: new Date().toISOString(),
+			deployment: {
+				id: deploymentCreate[0].deploymentId,
+				status: "running",
+				startedAt: deploymentCreate[0].startedAt || new Date().toISOString(),
+			},
+			application: {
+				id: application.applicationId,
+				name: application.name,
+				type: "application",
+				url: application.domains?.[0]?.host
+					? `https://${application.domains[0].host}`
+					: undefined,
+				domains: application.domains?.map((d) => d.host) || [],
+			},
+			project: {
+				id: application.environment?.projectId || "",
+				name: application.environment?.project?.name || "Default",
+			},
+			source: {
+				type: application.sourceType,
+				branch: application.branch || undefined,
+				repository: application.repository || undefined,
+			},
+			trigger: {
+				type: deployment.description?.includes("webhook")
+					? "webhook"
+					: "manual",
+				triggeredBy: deployment.title || "system",
+			},
+		};
+
+		// Fire webhook asynchronously
+		triggerWebhooks(
+			application.applicationId,
+			"application",
+			webhookEvent,
+		).catch((error) => {
+			console.error("Failed to trigger deployment webhook:", error);
+		});
+
 		return deploymentCreate[0];
 	} catch (error) {
 		await db
@@ -277,6 +340,48 @@ echo "Initializing deployment" >> ${logFilePath};
 				message: "Error creating the deployment",
 			});
 		}
+
+		// Trigger deployment.started webhook for compose
+		const webhookEvent: WebhookEvent = {
+			event: "deployment.started",
+			timestamp: new Date().toISOString(),
+			deployment: {
+				id: deploymentCreate[0].deploymentId,
+				status: "running",
+				startedAt: deploymentCreate[0].startedAt || new Date().toISOString(),
+			},
+			compose: {
+				id: compose.composeId,
+				name: compose.name,
+				type: "compose",
+				url: compose.domains?.[0]?.host
+					? `https://${compose.domains[0].host}`
+					: undefined,
+			},
+			project: {
+				id: compose.environment?.projectId || "",
+				name: compose.environment?.project?.name || "Default",
+			},
+			source: {
+				type: compose.sourceType,
+				branch: compose.branch || undefined,
+				repository: compose.repository || undefined,
+			},
+			trigger: {
+				type: deployment.description?.includes("webhook")
+					? "webhook"
+					: "manual",
+				triggeredBy: deployment.title || "system",
+			},
+		};
+
+		// Fire webhook asynchronously
+		triggerWebhooks(compose.composeId, "compose", webhookEvent).catch(
+			(error) => {
+				console.error("Failed to trigger deployment webhook:", error);
+			},
+		);
+
 		return deploymentCreate[0];
 	} catch (error) {
 		await db
@@ -730,20 +835,140 @@ export const updateDeployment = async (
 export const updateDeploymentStatus = async (
 	deploymentId: string,
 	deploymentStatus: Deployment["status"],
+	errorMessage?: string,
 ) => {
-	const application = await db
+	const finishedAt =
+		deploymentStatus === "done" || deploymentStatus === "error"
+			? new Date().toISOString()
+			: null;
+
+	const deployment = await db
 		.update(deployments)
 		.set({
 			status: deploymentStatus,
-			finishedAt:
-				deploymentStatus === "done" || deploymentStatus === "error"
-					? new Date().toISOString()
-					: null,
+			finishedAt,
+			...(errorMessage && { errorMessage }),
 		})
 		.where(eq(deployments.deploymentId, deploymentId))
 		.returning();
 
-	return application;
+	if (deployment.length === 0 || !deployment[0]) {
+		return deployment;
+	}
+
+	// Trigger webhook based on status
+	const updatedDeployment = deployment[0];
+
+	// Get full deployment info with relations
+	const fullDeployment = await findDeploymentById(deploymentId);
+
+	// Only trigger webhooks for final states
+	if (deploymentStatus === "done" || deploymentStatus === "error") {
+		let webhookEventType:
+			| "deployment.success"
+			| "deployment.failed"
+			| "deployment.cancelled";
+
+		if (deploymentStatus === "done") {
+			webhookEventType = "deployment.success";
+		} else if (deploymentStatus === "error") {
+			// Check if it was cancelled (you might want to add a cancelled status)
+			webhookEventType = errorMessage?.includes("cancelled")
+				? "deployment.cancelled"
+				: "deployment.failed";
+		} else {
+			return deployment; // Should not reach here
+		}
+
+		const startTime = new Date(updatedDeployment.startedAt || "").getTime();
+		const endTime = finishedAt ? new Date(finishedAt).getTime() : Date.now();
+		const duration = endTime - startTime;
+
+		const webhookEvent: WebhookEvent = {
+			event: webhookEventType,
+			timestamp: new Date().toISOString(),
+			deployment: {
+				id: updatedDeployment.deploymentId,
+				status: deploymentStatus,
+				startedAt: updatedDeployment.startedAt || new Date().toISOString(),
+				finishedAt: finishedAt || undefined,
+				duration: duration > 0 ? duration : undefined,
+			},
+			project: {
+				id:
+					fullDeployment.application?.environment?.projectId ||
+					fullDeployment.compose?.environment?.projectId ||
+					"",
+				name:
+					fullDeployment.application?.environment?.project?.name ||
+					fullDeployment.compose?.environment?.project?.name ||
+					"Default",
+			},
+			trigger: {
+				type: updatedDeployment.description?.includes("webhook")
+					? "webhook"
+					: updatedDeployment.description?.includes("schedule")
+						? "schedule"
+						: "manual",
+				triggeredBy: updatedDeployment.title || "system",
+			},
+			...(deploymentStatus === "error" &&
+				errorMessage && {
+					error: {
+						message: errorMessage,
+						stage: "deployment",
+						logs: updatedDeployment.logPath || undefined,
+					},
+				}),
+		};
+
+		// Add application or compose specific info
+		if (fullDeployment.application) {
+			const app = fullDeployment.application;
+			webhookEvent.application = {
+				id: app.applicationId,
+				name: app.name,
+				type: "application",
+				url: undefined, // TODO: Add domains relation
+				domains: [],
+			};
+			webhookEvent.source = {
+				type: app.sourceType,
+				branch: app.branch || undefined,
+				repository: app.repository || undefined,
+			};
+
+			// Fire webhook asynchronously
+			triggerWebhooks(app.applicationId, "application", webhookEvent).catch(
+				(error) => {
+					console.error("Failed to trigger deployment webhook:", error);
+				},
+			);
+		} else if (fullDeployment.composeId) {
+			// TODO: Load compose data if needed
+			const compose = { composeId: fullDeployment.composeId, name: "Compose" };
+			webhookEvent.compose = {
+				id: compose.composeId,
+				name: compose.name,
+				type: "compose",
+				url: undefined,
+			};
+			webhookEvent.source = {
+				type: "github",
+				branch: undefined,
+				repository: undefined,
+			};
+
+			// Fire webhook asynchronously
+			triggerWebhooks(compose.composeId, "compose", webhookEvent).catch(
+				(error) => {
+					console.error("Failed to trigger deployment webhook:", error);
+				},
+			);
+		}
+	}
+
+	return deployment;
 };
 
 export const createServerDeployment = async (
