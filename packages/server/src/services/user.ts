@@ -301,7 +301,7 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 		if (!userData.email || userData.email.trim() === "") {
 			throw new Error("Email is required and cannot be empty");
 		}
-		
+
 		// Basic email format validation
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		if (!emailRegex.test(userData.email)) {

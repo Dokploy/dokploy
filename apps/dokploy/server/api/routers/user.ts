@@ -192,13 +192,14 @@ export const userRouter = createTRPCRouter({
 					})
 					.where(eq(account.userId, ctx.user.id));
 			}
-			
+
 			try {
 				return await updateUser(ctx.user.id, input);
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: error instanceof Error ? error.message : "Failed to update user",
+					message:
+						error instanceof Error ? error.message : "Failed to update user",
 				});
 			}
 		}),
