@@ -778,6 +778,20 @@
       "when": 1757189541734,
       "tag": "0110_red_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1757672897316,
+      "tag": "0111_magical_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1757673510039,
+      "tag": "0112_serious_hellcat",
+      "breakpoints": true
     }
   ]
 }
