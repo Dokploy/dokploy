@@ -771,13 +771,6 @@
       "when": 1757052053574,
       "tag": "0109_remarkable_sauron",
       "breakpoints": true
-    },
-    {
-      "idx": 110,
-      "version": "7",
-      "when": 1757084929304,
-      "tag": "0110_dry_golden_guardian",
-      "breakpoints": true
     }
   ]
 }
