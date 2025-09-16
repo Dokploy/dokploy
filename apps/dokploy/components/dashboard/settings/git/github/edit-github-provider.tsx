@@ -152,10 +152,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 										<FormItem>
 											<FormLabel>Name</FormLabel>
 											<FormControl>
-												<Input
-													placeholder="e.g., my-github-app"
-													{...field}
-												/>
+												<Input placeholder="e.g., my-github-app" {...field} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -200,10 +197,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 										<FormItem>
 											<FormLabel>Client ID</FormLabel>
 											<FormControl>
-												<Input
-													placeholder="Iv1.a1b2c3d4e5f6g7h8"
-													{...field}
-												/>
+												<Input placeholder="Iv1.a1b2c3d4e5f6g7h8" {...field} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>

@@ -160,10 +160,14 @@ export const githubRouter = createTRPCRouter({
 			const updateData: any = {};
 			if (input.githubAppName) updateData.githubAppName = input.githubAppName;
 			if (input.githubAppId) updateData.githubAppId = input.githubAppId;
-			if (input.githubClientId) updateData.githubClientId = input.githubClientId;
-			if (input.githubClientSecret) updateData.githubClientSecret = input.githubClientSecret;
-			if (input.githubPrivateKey) updateData.githubPrivateKey = input.githubPrivateKey;
-			if (input.githubWebhookSecret) updateData.githubWebhookSecret = input.githubWebhookSecret;
+			if (input.githubClientId)
+				updateData.githubClientId = input.githubClientId;
+			if (input.githubClientSecret)
+				updateData.githubClientSecret = input.githubClientSecret;
+			if (input.githubPrivateKey)
+				updateData.githubPrivateKey = input.githubPrivateKey;
+			if (input.githubWebhookSecret)
+				updateData.githubWebhookSecret = input.githubWebhookSecret;
 
 			if (Object.keys(updateData).length > 0) {
 				const { updateGithub } = await import("@dokploy/server");
