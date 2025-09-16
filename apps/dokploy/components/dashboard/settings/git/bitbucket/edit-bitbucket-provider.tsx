@@ -121,6 +121,11 @@ export const EditBitbucketProvider = ({ bitbucketId }: Props) => {
 					>
 						<CardContent className="p-0">
 							<div className="flex flex-col gap-4">
+								<p className="text-muted-foreground text-sm">
+									For security, credentials (API Token/App Password) can’t be
+									edited. To change them, create a new Bitbucket provider.
+								</p>
+
 								<FormField
 									control={form.control}
 									name="name"

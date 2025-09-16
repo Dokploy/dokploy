@@ -68,10 +68,17 @@ export const updateBitbucket = async (
 	input: typeof apiUpdateBitbucket._type,
 ) => {
 	return await db.transaction(async (tx) => {
+		// Explicitly omit credentials from updates for safety/back-compat
+		const {
+			apiToken: _ignoredApiToken,
+			appPassword: _ignoredAppPassword,
+			...safeInput
+		} = input as any;
+
 		const result = await tx
 			.update(bitbucket)
 			.set({
-				...input,
+				...safeInput,
 			})
 			.where(eq(bitbucket.bitbucketId, bitbucketId))
 			.returning();
