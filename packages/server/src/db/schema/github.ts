@@ -31,15 +31,16 @@ export const githubProviderRelations = relations(github, ({ one }) => ({
 
 const createSchema = createInsertSchema(github);
 export const apiCreateGithub = createSchema.extend({
-	githubAppName: z.string().optional(),
-	githubAppId: z.number().optional(),
-	githubClientId: z.string().optional(),
-	githubClientSecret: z.string().optional(),
+	githubAppName: z.string().min(1),
+	githubAppId: z.number().min(1),
+	githubClientId: z.string().min(1),
+	githubClientSecret: z.string().min(1),
 	githubInstallationId: z.string().optional(),
-	githubPrivateKey: z.string().optional(),
-	githubWebhookSecret: z.string().nullable(),
+	githubPrivateKey: z.string().min(1),
+	githubWebhookSecret: z.string().min(1),
 	gitProviderId: z.string().optional(),
 	name: z.string().min(1),
+	authId: z.string().min(1),
 });
 
 export const apiFindGithubBranches = z.object({
@@ -58,4 +59,10 @@ export const apiUpdateGithub = createSchema.extend({
 	githubId: z.string().min(1),
 	name: z.string().min(1),
 	gitProviderId: z.string().min(1),
+	githubAppName: z.string().optional(),
+	githubAppId: z.number().optional(),
+	githubClientId: z.string().optional(),
+	githubClientSecret: z.string().optional(),
+	githubPrivateKey: z.string().optional(),
+	githubWebhookSecret: z.string().optional(),
 });

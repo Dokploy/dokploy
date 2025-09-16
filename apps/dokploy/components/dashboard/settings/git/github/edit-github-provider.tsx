@@ -24,11 +24,30 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
 const Schema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
+	}),
+	githubAppName: z.string().min(1, {
+		message: "GitHub App URL is required",
+	}),
+	githubAppId: z.string().min(1, {
+		message: "App ID is required",
+	}),
+	githubClientId: z.string().min(1, {
+		message: "Client ID is required",
+	}),
+	githubClientSecret: z.string().min(1, {
+		message: "Client Secret is required",
+	}),
+	githubPrivateKey: z.string().min(1, {
+		message: "Private Key is required",
+	}),
+	githubWebhookSecret: z.string().min(1, {
+		message: "Webhook Secret is required",
 	}),
 });
 
@@ -55,6 +74,12 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 	const form = useForm<Schema>({
 		defaultValues: {
 			name: "",
+			githubAppName: "",
+			githubAppId: "",
+			githubClientId: "",
+			githubClientSecret: "",
+			githubPrivateKey: "",
+			githubWebhookSecret: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -62,22 +87,34 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 	useEffect(() => {
 		form.reset({
 			name: github?.gitProvider.name || "",
+			githubAppName: github?.githubAppName || "",
+			githubAppId: github?.githubAppId?.toString() || "",
+			githubClientId: github?.githubClientId || "",
+			githubClientSecret: github?.githubClientSecret || "",
+			githubPrivateKey: github?.githubPrivateKey || "",
+			githubWebhookSecret: github?.githubWebhookSecret || "",
 		});
-	}, [form, isOpen]);
+	}, [form, isOpen, github]);
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
 			githubId,
-			name: data.name || "",
+			name: data.name,
 			gitProviderId: github?.gitProviderId || "",
+			githubAppName: data.githubAppName,
+			githubAppId: Number.parseInt(data.githubAppId, 10),
+			githubClientId: data.githubClientId,
+			githubClientSecret: data.githubClientSecret,
+			githubPrivateKey: data.githubPrivateKey,
+			githubWebhookSecret: data.githubWebhookSecret,
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Github updated successfully");
+				toast.success("GitHub provider updated successfully");
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Github");
+				toast.error("Error updating GitHub provider");
 			});
 	};
 
@@ -92,17 +129,17 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl ">
+			<DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update Github <GithubIcon className="size-5" />
+						Update GitHub Provider <GithubIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<Form {...form}>
 					<form
-						id="hook-form-add-github"
+						id="hook-form-edit-github"
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid w-full gap-1"
 					>
@@ -116,7 +153,111 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 											<FormLabel>Name</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder="e.g., my-github-app"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubAppName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>GitHub App URL</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="https://github.com/apps/your-app-name"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubAppId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>App ID</FormLabel>
+											<FormControl>
+												<Input placeholder="123456" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubClientId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Client ID</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Iv1.a1b2c3d4e5f6g7h8"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubClientSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Client Secret</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="********************************"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubWebhookSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Webhook Secret</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="Your webhook secret"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubPrivateKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Private Key (PEM format)</FormLabel>
+											<FormControl>
+												<Textarea
+													placeholder="-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----"
+													className="font-mono text-xs min-h-[150px]"
 													{...field}
 												/>
 											</FormControl>

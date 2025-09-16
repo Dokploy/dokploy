@@ -1,6 +1,12 @@
-import { format } from "date-fns";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import {
@@ -10,49 +16,99 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { authClient } from "@/lib/auth-client";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
+
+const Schema = z.object({
+	name: z.string().min(1, {
+		message: "Name is required",
+	}),
+	githubAppName: z.string().min(1, {
+		message: "GitHub App URL is required",
+	}),
+	githubAppId: z.string().min(1, {
+		message: "App ID is required",
+	}),
+	githubClientId: z.string().min(1, {
+		message: "Client ID is required",
+	}),
+	githubClientSecret: z.string().min(1, {
+		message: "Client Secret is required",
+	}),
+	githubPrivateKey: z.string().min(1, {
+		message: "Private Key is required",
+	}),
+	githubWebhookSecret: z.string().min(1, {
+		message: "Webhook Secret is required",
+	}),
+});
+
+type Schema = z.infer<typeof Schema>;
 
 export const AddGithubProvider = () => {
+	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const { data: activeOrganization } = authClient.useActiveOrganization();
-	const { data: session } = authClient.useSession();
-	const { data } = api.user.get.useQuery();
-	const [manifest, setManifest] = useState("");
-	const [isOrganization, setIsOrganization] = useState(false);
-	const [organizationName, setOrganization] = useState("");
+	const url = useUrl();
+	const { data: auth } = api.user.get.useQuery();
+	const { mutateAsync, error, isError } = api.github.create.useMutation();
+	const webhookUrl = `${url}/api/deploy/github`;
+	const callbackUrl = `${url}/api/providers/github/setup`;
 
-	const randomString = () => Math.random().toString(36).slice(2, 8);
+	const form = useForm<Schema>({
+		defaultValues: {
+			name: "",
+			githubAppName: "",
+			githubAppId: "",
+			githubClientId: "",
+			githubClientSecret: "",
+			githubPrivateKey: "",
+			githubWebhookSecret: "",
+		},
+		resolver: zodResolver(Schema),
+	});
 
 	useEffect(() => {
-		const url = document.location.origin;
-		const manifest = JSON.stringify(
-			{
-				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id}&userId=${session?.user?.id}`,
-				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}-${randomString()}`,
-				url: origin,
-				hook_attributes: {
-					url: `${url}/api/deploy/github`,
-				},
-				callback_urls: [`${origin}/api/providers/github/setup`],
-				public: false,
-				request_oauth_on_install: true,
-				default_permissions: {
-					contents: "read",
-					metadata: "read",
-					emails: "read",
-					pull_requests: "write",
-				},
-				default_events: ["pull_request", "push"],
-			},
-			null,
-			4,
-		);
+		form.reset({
+			name: "",
+			githubAppName: "",
+			githubAppId: "",
+			githubClientId: "",
+			githubClientSecret: "",
+			githubPrivateKey: "",
+			githubWebhookSecret: "",
+		});
+	}, [form, isOpen]);
 
-		setManifest(manifest);
-	}, [data?.id]);
+	const onSubmit = async (data: Schema) => {
+		await mutateAsync({
+			name: data.name,
+			githubAppName: data.githubAppName,
+			githubAppId: Number.parseInt(data.githubAppId, 10),
+			githubClientId: data.githubClientId,
+			githubClientSecret: data.githubClientSecret,
+			githubPrivateKey: data.githubPrivateKey,
+			githubWebhookSecret: data.githubWebhookSecret,
+			authId: auth?.id || "",
+		})
+			.then(async () => {
+				await utils.gitProvider.getAll.invalidate();
+				toast.success("GitHub provider created successfully");
+				setIsOpen(false);
+			})
+			.catch(() => {
+				toast.error("Error creating GitHub provider");
+			});
+	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -62,86 +118,217 @@ export const AddGithubProvider = () => {
 					<span>Github</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl ">
+			<DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Github Provider <GithubIcon className="size-5" />
+						GitHub Provider <GithubIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
-				<div id="hook-form-add-project" className="grid w-full gap-1">
-					<CardContent className="p-0">
-						<div className="flex flex-col ">
-							<p className="text-muted-foreground text-sm">
-								To integrate your GitHub account with our services, you'll need
-								to create and install a GitHub app. This process is
-								straightforward and only takes a few minutes. Click the button
-								below to get started.
-							</p>
-							<div className="mt-4 flex flex-col gap-4">
-								<div className="flex flex-row gap-4">
-									<span>Organization?</span>
-									<Switch
-										checked={isOrganization}
-										onCheckedChange={(checked) => setIsOrganization(checked)}
-									/>
-								</div>
+				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				<Form {...form}>
+					<form
+						id="hook-form-add-github"
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="grid w-full gap-1"
+					>
+						<CardContent className="p-0">
+							<div className="flex flex-col gap-4">
+								<p className="text-muted-foreground text-sm">
+									To integrate your GitHub account, you need to create a GitHub
+									App. Follow these steps:
+								</p>
+								<ol className="list-decimal list-inside text-sm text-muted-foreground">
+									<li className="flex flex-row gap-2 items-center">
+										Go to GitHub Apps settings{" "}
+										<Link
+											href="https://github.com/settings/apps/new"
+											target="_blank"
+										>
+											<ExternalLink className="w-fit text-primary size-4" />
+										</Link>
+									</li>
+									<li>
+										Configure your GitHub App with:
+										<ul className="list-disc list-inside ml-4 mt-1">
+											<li>
+												<strong>Webhook URL:</strong>{" "}
+												<span className="text-primary font-mono text-xs">
+													{webhookUrl}
+												</span>
+											</li>
+											<li>
+												<strong>Callback URL:</strong>{" "}
+												<span className="text-primary font-mono text-xs">
+													{callbackUrl}
+												</span>
+											</li>
+											<li>
+												<strong>Request user authorization (OAuth) during installation:</strong>{" "}
+												Yes
+											</li>
+											<li>
+												<strong>Expire user authorization tokens:</strong> No
+											</li>
+										</ul>
+									</li>
+									<li>
+										Set the following permissions:
+										<ul className="list-disc list-inside ml-4 mt-1">
+											<li>Contents: Read</li>
+											<li>Metadata: Read</li>
+											<li>Emails: Read</li>
+											<li>Pull requests: Write</li>
+										</ul>
+									</li>
+									<li>
+										Subscribe to these events:
+										<ul className="list-disc list-inside ml-4 mt-1">
+											<li>Push</li>
+											<li>Pull request</li>
+										</ul>
+									</li>
+									<li>
+										After creating the app, copy the following values and paste
+										them below:
+										<ul className="list-disc list-inside ml-4 mt-1">
+											<li>App ID</li>
+											<li>Client ID</li>
+											<li>Client Secret (generate one if needed)</li>
+											<li>Private Key (generate and download)</li>
+											<li>Webhook Secret (optional but recommended)</li>
+										</ul>
+									</li>
+								</ol>
 
-								{isOrganization && (
-									<Input
-										required
-										placeholder="Organization name"
-										onChange={(e) => setOrganization(e.target.value)}
-									/>
-								)}
-							</div>
-							<form
-								action={
-									isOrganization
-										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=gh_init:${activeOrganization?.id}`
-										: `https://github.com/settings/apps/new?state=gh_init:${activeOrganization?.id}`
-								}
-								method="post"
-							>
-								<input
-									type="text"
-									name="manifest"
-									id="manifest"
-									defaultValue={manifest}
-									className="invisible"
+								<FormField
+									control={form.control}
+									name="name"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Name</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="e.g., my-github-app"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
 								/>
-								<br />
 
-								<div className="flex w-full items-center justify-between">
-									<a
-										href={
-											isOrganization && organizationName
-												? `https://github.com/organizations/${organizationName}/settings/installations`
-												: "https://github.com/settings/installations"
-										}
-										className={`text-muted-foreground text-sm hover:underline duration-300
-											 ${
-													isOrganization && !organizationName
-														? "pointer-events-none opacity-50"
-														: ""
-												}`}
-										target="_blank"
-										rel="noopener noreferrer"
-									>
-										Unsure if you already have an app?
-									</a>
-									<Button
-										disabled={isOrganization && organizationName.length < 1}
-										type="submit"
-										className="self-end"
-									>
-										Create GitHub App
-									</Button>
-								</div>
-							</form>
-						</div>
-					</CardContent>
-				</div>
+								<FormField
+									control={form.control}
+									name="githubAppName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>GitHub App URL</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="https://github.com/apps/your-app-name"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubAppId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>App ID</FormLabel>
+											<FormControl>
+												<Input placeholder="123456" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubClientId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Client ID</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Iv1.a1b2c3d4e5f6g7h8"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubClientSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Client Secret</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="********************************"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubWebhookSecret"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Webhook Secret</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="Your webhook secret"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="githubPrivateKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Private Key (PEM format)</FormLabel>
+											<FormControl>
+												<Textarea
+													placeholder="-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----"
+													className="font-mono text-xs min-h-[150px]"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<Button isLoading={form.formState.isSubmitting}>
+									Create GitHub Provider
+								</Button>
+							</div>
+						</CardContent>
+					</form>
+				</Form>
 			</DialogContent>
 		</Dialog>
 	);
