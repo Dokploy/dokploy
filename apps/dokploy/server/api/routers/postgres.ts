@@ -1,6 +1,7 @@
 import {
 	addNewService,
 	checkServiceAccess,
+	checkServiceReadOnlyPermission,
 	createMount,
 	createPostgres,
 	deployPostgres,
@@ -129,6 +130,21 @@ export const postgresRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const service = await findPostgresById(input.postgresId);
 
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.postgresId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			if (
 				service.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
@@ -154,6 +170,22 @@ export const postgresRouter = createTRPCRouter({
 		.input(apiFindOnePostgres)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
+
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.postgresId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			if (
 				postgres.environment.project.organizationId !==
 				ctx.session.activeOrganizationId

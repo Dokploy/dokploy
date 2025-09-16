@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "canReadOnlyServices" boolean DEFAULT false NOT NULL;

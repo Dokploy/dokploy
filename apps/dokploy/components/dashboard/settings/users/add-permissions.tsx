@@ -166,6 +166,7 @@ const addPermissions = z.object({
 	canAccessToAPI: z.boolean().optional().default(false),
 	canAccessToSSHKeys: z.boolean().optional().default(false),
 	canAccessToGitProviders: z.boolean().optional().default(false),
+	canReadOnlyServices: z.boolean().optional().default(false),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -212,6 +213,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canAccessToAPI: data.canAccessToAPI,
 				canAccessToSSHKeys: data.canAccessToSSHKeys,
 				canAccessToGitProviders: data.canAccessToGitProviders,
+				canReadOnlyServices: data.canReadOnlyServices,
 			});
 		}
 	}, [form, form.formState.isSubmitSuccessful, form.reset, data]);
@@ -231,6 +233,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			canAccessToAPI: data.canAccessToAPI,
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
 			canAccessToGitProviders: data.canAccessToGitProviders,
+			canReadOnlyServices: data.canReadOnlyServices,
 		})
 			.then(async () => {
 				toast.success("Permissions updated");
@@ -432,6 +435,26 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										<FormLabel>Access to Git Providers</FormLabel>
 										<FormDescription>
 											Allow to users to access to the Git Providers section
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canReadOnlyServices"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Read-Only Services</FormLabel>
+										<FormDescription>
+											Allow users to view services but not modify them
 										</FormDescription>
 									</div>
 									<FormControl>
