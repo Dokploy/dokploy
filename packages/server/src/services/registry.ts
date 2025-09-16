@@ -10,6 +10,22 @@ import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
 
+function shEscape(s: string | undefined): string {
+	if (!s) return "''";
+	return `'${s.replace(/'/g, `'\\''`)}'`;
+}
+
+function safeDockerLoginCommand(
+	registry: string | undefined,
+	user: string | undefined,
+	pass: string | undefined,
+) {
+	const escapedRegistry = shEscape(registry);
+	const escapedUser = shEscape(user);
+	const escapedPassword = shEscape(pass);
+	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
+}
+
 export const createRegistry = async (
 	input: typeof apiCreateRegistry._type,
 	organizationId: string,
@@ -37,7 +53,11 @@ export const createRegistry = async (
 				message: "Select a server to add the registry",
 			});
 		}
-		const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+		const loginCommand = safeDockerLoginCommand(
+			input.registryUrl,
+			input.username,
+			input.password,
+		);
 		if (input.serverId && input.serverId !== "none") {
 			await execAsyncRemote(input.serverId, loginCommand);
 		} else if (newRegistry.registryType === "cloud") {
@@ -91,7 +111,11 @@ export const updateRegistry = async (
 			.returning()
 			.then((res) => res[0]);
 
-		const loginCommand = `echo ${response?.password} | docker login ${response?.registryUrl} --username ${response?.username} --password-stdin`;
+		const loginCommand = safeDockerLoginCommand(
+			response?.registryUrl,
+			response?.username,
+			response?.password,
+		);
 
 		if (
 			IS_CLOUD &&
