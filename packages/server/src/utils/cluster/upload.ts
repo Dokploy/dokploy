@@ -1,6 +1,7 @@
 import type { WriteStream } from "node:fs";
 import type { ApplicationNested } from "../builders";
 import { spawnAsync } from "../process/spawnAsync";
+import { echoEscape } from "../shell-escape";
 
 export const uploadImage = async (
 	application: ApplicationNested,
@@ -83,7 +84,7 @@ export const uploadImageRemoteCommand = (
 	try {
 		const command = `
 		echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" >> ${logPath};
-		echo "${registry.password}" | docker login ${finalURL} -u ${registry.username} --password-stdin >> ${logPath} 2>> ${logPath} || { 
+		echo ${echoEscape(registry.password)} | docker login ${finalURL} -u ${registry.username} --password-stdin >> ${logPath} 2>> ${logPath} || { 
 			echo "❌ DockerHub Failed" >> ${logPath};
 			exit 1;
 		}
