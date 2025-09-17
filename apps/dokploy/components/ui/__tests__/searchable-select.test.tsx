@@ -15,42 +15,33 @@ const mockOptions = [
 describe("SearchableSelect", () => {
 	it("renders with placeholder", () => {
 		render(
-			<SearchableSelect
-				options={mockOptions}
-				placeholder="Select a model"
-			/>
+			<SearchableSelect options={mockOptions} placeholder="Select a model" />,
 		);
 		expect(screen.getByText("Select a model")).toBeInTheDocument();
 	});
 
 	it("opens dropdown when clicked", () => {
 		render(
-			<SearchableSelect
-				options={mockOptions}
-				placeholder="Select a model"
-			/>
+			<SearchableSelect options={mockOptions} placeholder="Select a model" />,
 		);
-		
+
 		const trigger = screen.getByRole("combobox");
 		fireEvent.click(trigger);
-		
+
 		expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
 	});
 
 	it("filters options when searching", () => {
 		render(
-			<SearchableSelect
-				options={mockOptions}
-				placeholder="Select a model"
-			/>
+			<SearchableSelect options={mockOptions} placeholder="Select a model" />,
 		);
-		
+
 		const trigger = screen.getByRole("combobox");
 		fireEvent.click(trigger);
-		
+
 		const searchInput = screen.getByPlaceholderText("Search...");
 		fireEvent.change(searchInput, { target: { value: "gpt" } });
-		
+
 		expect(screen.getByText("GPT-4")).toBeInTheDocument();
 		expect(screen.getByText("GPT-3.5 Turbo")).toBeInTheDocument();
 		expect(screen.queryByText("Claude 3 Opus")).not.toBeInTheDocument();
@@ -63,15 +54,15 @@ describe("SearchableSelect", () => {
 				options={mockOptions}
 				placeholder="Select a model"
 				onValueChange={mockOnValueChange}
-			/>
+			/>,
 		);
-		
+
 		const trigger = screen.getByRole("combobox");
 		fireEvent.click(trigger);
-		
+
 		const option = screen.getByText("GPT-4");
 		fireEvent.click(option);
-		
+
 		expect(mockOnValueChange).toHaveBeenCalledWith("gpt-4");
 	});
 
@@ -81,9 +72,9 @@ describe("SearchableSelect", () => {
 				options={mockOptions}
 				value="gpt-4"
 				placeholder="Select a model"
-			/>
+			/>,
 		);
-		
+
 		expect(screen.getByText("GPT-4")).toBeInTheDocument();
 	});
 
@@ -93,15 +84,15 @@ describe("SearchableSelect", () => {
 				options={mockOptions}
 				placeholder="Select a model"
 				emptyText="No models found."
-			/>
+			/>,
 		);
-		
+
 		const trigger = screen.getByRole("combobox");
 		fireEvent.click(trigger);
-		
+
 		const searchInput = screen.getByPlaceholderText("Search...");
 		fireEvent.change(searchInput, { target: { value: "nonexistent" } });
-		
+
 		expect(screen.getByText("No models found.")).toBeInTheDocument();
 	});
 });
