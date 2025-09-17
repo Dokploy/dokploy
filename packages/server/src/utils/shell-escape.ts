@@ -5,7 +5,7 @@
 export function shellEscape(input: string): string {
 	// If the string is empty, return empty string
 	if (!input) return input;
-	
+
 	// Escape single quotes by ending the quoted string, adding an escaped quote, and starting a new quoted string
 	// This handles the case where the string contains single quotes
 	return `'${input.replace(/'/g, "'\"'\"'")}'`;
@@ -18,7 +18,7 @@ export function shellEscape(input: string): string {
 export function echoEscape(input: string): string {
 	// If the string is empty, return empty string
 	if (!input) return input;
-	
+
 	// For echo commands, we can use printf with %s format specifier which is safer
 	// But for compatibility, we'll use single quotes which are the safest for shell
 	return `'${input.replace(/'/g, "'\"'\"'")}'`;
