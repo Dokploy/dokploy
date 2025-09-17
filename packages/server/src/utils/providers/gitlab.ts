@@ -401,7 +401,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	const {
 		appName,
 		gitlabPathNamespace,
-		branch,
+		gitlabBranch,
 		gitlabId,
 		serverId,
 		enableSubmodules,
@@ -429,7 +429,7 @@ export const cloneRawGitlabRepositoryRemote = async (compose: Compose) => {
 	try {
 		const command = `
 			rm -rf ${outputPath};
-			git clone --branch ${branch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
+			git clone --branch ${gitlabBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
 		`;
 		await execAsyncRemote(serverId, command);
 	} catch (error) {
