@@ -7,6 +7,7 @@ import {
 	removeRegistry,
 	updateRegistry,
 } from "@dokploy/server";
+import { echoEscape } from "@dokploy/server/utils/shell-escape";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
@@ -101,7 +102,7 @@ export const registryRouter = createTRPCRouter({
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
 						input.serverId,
-						`echo ${input.password} | docker ${args.join(" ")}`,
+						`echo ${echoEscape(input.password)} | docker ${args.join(" ")}`,
 					);
 				} else {
 					await execFileAsync("docker", args, {

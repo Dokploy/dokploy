@@ -7,6 +7,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
+import { echoEscape } from "../utils/shell-escape";
 
 export type Registry = typeof registry.$inferSelect;
 
@@ -37,7 +38,7 @@ export const createRegistry = async (
 				message: "Select a server to add the registry",
 			});
 		}
-		const loginCommand = `echo ${input.password} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
+		const loginCommand = `echo ${echoEscape(input.password)} | docker login ${input.registryUrl} --username ${input.username} --password-stdin`;
 		if (input.serverId && input.serverId !== "none") {
 			await execAsyncRemote(input.serverId, loginCommand);
 		} else if (newRegistry.registryType === "cloud") {
@@ -91,7 +92,7 @@ export const updateRegistry = async (
 			.returning()
 			.then((res) => res[0]);
 
-		const loginCommand = `echo ${response?.password} | docker login ${response?.registryUrl} --username ${response?.username} --password-stdin`;
+		const loginCommand = `echo ${echoEscape(response?.password || "")} | docker login ${response?.registryUrl} --username ${response?.username} --password-stdin`;
 
 		if (
 			IS_CLOUD &&

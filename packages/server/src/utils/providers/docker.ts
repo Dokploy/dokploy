@@ -1,6 +1,7 @@
 import { createWriteStream } from "node:fs";
 import { type ApplicationNested, mechanizeDockerContainer } from "../builders";
 import { pullImage } from "../docker/utils";
+import { echoEscape } from "../shell-escape";
 
 interface RegistryAuth {
 	username: string;
@@ -67,7 +68,7 @@ echo "Pulling ${dockerImage}" >> ${logPath};
 
 		if (username && password) {
 			command += `
-if ! echo "${password}" | docker login --username "${username}" --password-stdin "${registryUrl || ""}" >> ${logPath} 2>&1; then
+if ! echo ${echoEscape(password)} | docker login --username "${username}" --password-stdin "${registryUrl || ""}" >> ${logPath} 2>&1; then
 	echo "❌ Login failed" >> ${logPath};
 	exit 1;
 fi
