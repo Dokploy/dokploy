@@ -109,6 +109,10 @@ export default async function handler(
 				normalizedCommits = req.body?.commits?.flatMap(
 					(commit: any) => commit.modified,
 				);
+			} else if (provider === "soft-serve") {
+				normalizedCommits = req.body?.commits?.flatMap(
+					(commit: any) => commit.modified,
+				);
 			}
 
 			const shouldDeployPaths = shouldDeploy(
@@ -281,6 +285,13 @@ export const extractCommitMessage = (headers: any, body: any) => {
 			: "NEW COMMIT";
 	}
 
+	// Soft Serve
+	if (headers["x-softserve-event"]) {
+		return body.commits && body.commits.length > 0
+			? body.commits[0].message
+			: "NEW COMMIT";
+	}
+
 	if (headers["user-agent"]?.includes("Go-http-client")) {
 		if (body.push_data && body.repository) {
 			return `Docker image pushed: ${body.repository.repo_name}:${body.push_data.tag} by ${body.push_data.pusher}`;
@@ -318,6 +329,11 @@ export const extractHash = (headers: any, body: any) => {
 		return body.after || "NEW COMMIT";
 	}
 
+	// Soft Serve
+	if (headers["x-softserve-event"]) {
+		return body.after || "NEW COMMIT";
+	}
+
 	return "";
 };
 
@@ -332,6 +348,10 @@ export const extractBranchName = (headers: any, body: any) => {
 
 	if (headers["x-event-key"]?.includes("repo:push")) {
 		return body?.push?.changes[0]?.new?.name;
+	}
+
+	if (headers["x-softserve-event"]?.includes("push")) {
+		return body?.ref ? body?.ref.replace("refs/heads/", "") : null;
 	}
 
 	return null;
@@ -352,6 +372,10 @@ export const getProviderByHeader = (headers: any) => {
 
 	if (headers["x-event-key"]?.includes("repo:push")) {
 		return "bitbucket";
+	}
+
+	if (headers["x-softserve-event"]) {
+		return "soft-serve";
 	}
 
 	return null;
