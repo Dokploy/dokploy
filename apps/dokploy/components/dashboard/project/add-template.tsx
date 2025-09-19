@@ -248,7 +248,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									onClick={() =>
 										setViewMode(viewMode === "detailed" ? "icon" : "detailed")
 									}
-									className="h-9 w-9"
+									className="h-9 w-9 flex-shrink-0"
 								>
 									{viewMode === "detailed" ? (
 										<LayoutGrid className="size-4" />
