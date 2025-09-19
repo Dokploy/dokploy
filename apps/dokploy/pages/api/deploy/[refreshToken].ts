@@ -503,16 +503,15 @@ export const extractBranchName = (headers: any, body: any) => {
 		return body?.ref?.replace("refs/heads/", "");
 	}
 
-	if (headers["x-gitlab-event"]) {
+	if (
+		headers["x-gitlab-event"] ||
+		headers["x-softserve-event"]?.includes("push")
+	) {
 		return body?.ref ? body?.ref.replace("refs/heads/", "") : null;
 	}
 
 	if (headers["x-event-key"]?.includes("repo:push")) {
 		return body?.push?.changes[0]?.new?.name;
-	}
-
-	if (headers["x-softserve-event"]?.includes("push")) {
-		return body?.ref ? body?.ref.replace("refs/heads/", "") : null;
 	}
 
 	return null;
