@@ -603,6 +603,21 @@ const BUNNY_CDN_IPS = new Set([
 	"89.187.184.176",
 ]);
 
+// Arvancloud IP ranges
+// https://www.arvancloud.ir/fa/ips.txt
+const ARVANCLOUD_IP_RANGES = [
+	"185.143.232.0/22",
+	"188.229.116.16/29",
+	"94.101.182.0/27",
+	"2.144.3.128/28",
+	"89.45.48.64/28",
+	"37.32.16.0/27",
+	"37.32.17.0/27",
+	"37.32.18.0/27,
+	"37.32.19.0/27",
+	"185.215.232.0/22"
+]
+
 const CDN_PROVIDERS: CDNProvider[] = [
 	{
 		name: "cloudflare",
@@ -626,6 +641,14 @@ const CDN_PROVIDERS: CDNProvider[] = [
 			FASTLY_IP_RANGES.some((range) => isIPInCIDR(ip, range)),
 		warningMessage:
 			"Domain is behind Fastly - actual IP is masked by CDN proxy",
+	},
+	{
+		name: "arvancloud",
+		displayName: "Arvancloud",
+		checkIp: (ip: string) =>
+			ARVANCLOUD_IP_RANGES.some((range) => isIPInCIDR(ip, range)),
+		warningMessage:
+			"Domain is behind Arvancloud - actual IP is masked by CDN proxy",
 	},
 ];
 
