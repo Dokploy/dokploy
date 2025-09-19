@@ -11,8 +11,6 @@
 </div>
 <br />
 
-
-
 <div align="center" markdown="1">
    <sup>Special thanks to:</sup>
    <br>
@@ -22,20 +20,19 @@
    </a>
 
 ### [Tuple, the premier screen sharing app for developers](https://tuple.app/dokploy)
+
 [Available for MacOS & Windows](https://tuple.app/dokploy)<br>
 
 </div>
 
-
 Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
-
 
 ## ✨ Features
 
 Dokploy includes multiple features to make your life easier.
 
 - **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.).
-- **Databases**: Create and manage databases with support for MySQL, PostgreSQL, MongoDB, MariaDB, and Redis.
+- **Databases**: Create and manage databases with support for MySQL, PostgreSQL, MongoDB, MariaDB, libsql, and Redis.
 - **Backups**: Automate backups for databases to an external storage destination.
 - **Docker Compose**: Native support for Docker Compose to manage complex applications.
 - **Multi Node**: Scale applications to multiple nodes using Docker Swarm to manage the cluster.
@@ -105,9 +102,10 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 <div>
 
-  <a href="https://cloudblast.io/?ref=dokploy"><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Cloudblast.io"/></a>
+<a href="https://cloudblast.io/?ref=dokploy"><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Cloudblast.io"/></a>
 
-  <a href="https://synexa.ai/?ref=dokploy"><img src=".github/sponsors/synexa.png" width="65px" alt="Synexa"/></a>
+<a href="https://synexa.ai/?ref=dokploy"><img src=".github/sponsors/synexa.png" width="65px" alt="Synexa"/></a>
+
 </div>
 
 ### Community Backers 🤝

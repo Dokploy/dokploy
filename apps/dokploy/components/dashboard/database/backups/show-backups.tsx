@@ -39,7 +39,9 @@ import { RestoreBackup } from "./restore-backup";
 
 interface Props {
 	id: string;
-	databaseType?: Exclude<ServiceType, "application" | "redis"> | "web-server";
+	databaseType?:
+		| Exclude<ServiceType, "application" | "redis" | "libsql">
+		| "web-server";
 	backupType?: "database" | "compose";
 }
 export const ShowBackups = ({
@@ -53,14 +55,14 @@ export const ShowBackups = ({
 	const queryMap =
 		backupType === "database"
 			? {
-					postgres: () =>
-						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
-					mysql: () =>
-						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 					mariadb: () =>
 						api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
 					mongo: () =>
 						api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+					mysql: () =>
+						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+					postgres: () =>
+						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 					"web-server": () => api.user.getBackups.useQuery(),
 				}
 			: {
@@ -77,10 +79,10 @@ export const ShowBackups = ({
 	const mutationMap =
 		backupType === "database"
 			? {
-					postgres: api.backup.manualBackupPostgres.useMutation(),
-					mysql: api.backup.manualBackupMySql.useMutation(),
 					mariadb: api.backup.manualBackupMariadb.useMutation(),
 					mongo: api.backup.manualBackupMongo.useMutation(),
+					mysql: api.backup.manualBackupMySql.useMutation(),
+					postgres: api.backup.manualBackupPostgres.useMutation(),
 					"web-server": api.backup.manualBackupWebServer.useMutation(),
 				}
 			: {

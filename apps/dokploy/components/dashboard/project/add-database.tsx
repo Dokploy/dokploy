@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
+	LibsqlIcon,
 	MariadbIcon,
 	MongodbIcon,
 	MysqlIcon,
@@ -55,8 +56,9 @@ import { api } from "@/utils/api";
 type DbType = typeof mySchema._type.type;
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
-	mongo: "mongo:6",
+	libsql: "ghcr.io/tursodatabase/libsql-server:latest",
 	mariadb: "mariadb:11",
+	mongo: "mongo:6",
 	mysql: "mysql:8",
 	postgres: "postgres:15",
 	redis: "redis:7",
@@ -66,8 +68,9 @@ const databasesUserDefaultPlaceholder: Record<
 	Exclude<DbType, "redis">,
 	string
 > = {
-	mongo: "mongo",
+	libsql: "libsql",
 	mariadb: "mariadb",
+	mongo: "mongo",
 	mysql: "mysql",
 	postgres: "postgres",
 };
@@ -94,56 +97,88 @@ const baseDatabaseSchema = z.object({
 	serverId: z.string().nullable(),
 });
 
-const mySchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("postgres"),
-			databaseName: z.string().default("postgres"),
-			databaseUser: z.string().default("postgres"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mongo"),
-			databaseUser: z.string().default("mongo"),
-			replicaSets: z.boolean().default(false),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("redis"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mysql"),
-			databaseRootPassword: z
-				.string()
-				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+const mySchema = z
+	.discriminatedUnion("type", [
+		z
+			.object({
+				type: z.literal("libsql"),
+				dockerImage: z
+					.string()
+					.default("ghcr.io/tursodatabase/libsql-server:latest"),
+				databaseUser: z.string().default("libsql"),
+				sqldNode: z.enum(["primary", "replica"]).default("primary"),
+				sqldPrimaryUrl: z.string().optional(),
+				enableNamespaces: z.boolean().default(false),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mariadb"),
+				dockerImage: z.string().default("mariadb:4"),
+				databaseRootPassword: z
+					.string()
+					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+						message:
+							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+					})
+					.optional(),
+				databaseUser: z.string().default("mariadb"),
+				databaseName: z.string().default("mariadb"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mongo"),
+				databaseUser: z.string().default("mongo"),
+				replicaSets: z.boolean().default(false),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("mysql"),
+				databaseRootPassword: z
+					.string()
+					.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+						message:
+							"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+					})
+					.optional(),
+				databaseUser: z.string().default("mysql"),
+				databaseName: z.string().default("mysql"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("postgres"),
+				databaseName: z.string().default("postgres"),
+				databaseUser: z.string().default("postgres"),
+			})
+			.merge(baseDatabaseSchema),
+		z
+			.object({
+				type: z.literal("redis"),
+			})
+			.merge(baseDatabaseSchema),
+	])
+	.superRefine((data, ctx) => {
+		if (data.type === "libsql") {
+			if (data.sqldNode === "replica" && !data.sqldPrimaryUrl) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["sqldPrimaryUrl"],
+					message: "sqldPrimaryUrl is required when sqldNode is 'replica'.",
+				});
+			}
+			if (data.sqldNode !== "replica" && data.sqldPrimaryUrl) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["sqldPrimaryUrl"],
 					message:
-						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				})
-				.optional(),
-			databaseUser: z.string().default("mysql"),
-			databaseName: z.string().default("mysql"),
-		})
-		.merge(baseDatabaseSchema),
-	z
-		.object({
-			type: z.literal("mariadb"),
-			dockerImage: z.string().default("mariadb:4"),
-			databaseRootPassword: z
-				.string()
-				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
-					message:
-						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				})
-				.optional(),
-			databaseUser: z.string().default("mariadb"),
-			databaseName: z.string().default("mariadb"),
-		})
-		.merge(baseDatabaseSchema),
-]);
+						"sqldPrimaryUrl should not be provided when sqldNode is not 'replica'.",
+				});
+			}
+		}
+	});
 
 const databasesMap = {
 	postgres: {
@@ -166,6 +201,10 @@ const databasesMap = {
 		icon: <RedisIcon />,
 		label: "Redis",
 	},
+	libsql: {
+		icon: <LibsqlIcon />,
+		label: "libSQL",
+	},
 };
 
 type AddDatabase = z.infer<typeof mySchema>;
@@ -181,11 +220,12 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
-	const postgresMutation = api.postgres.create.useMutation();
-	const mongoMutation = api.mongo.create.useMutation();
-	const redisMutation = api.redis.create.useMutation();
+	const libsqlMutation = api.libsql.create.useMutation();
 	const mariadbMutation = api.mariadb.create.useMutation();
+	const mongoMutation = api.mongo.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
+	const postgresMutation = api.postgres.create.useMutation();
+	const redisMutation = api.redis.create.useMutation();
 
 	// Get environment data to extract projectId
 	const { data: environment } = api.environment.one.useQuery({ environmentId });
@@ -210,13 +250,15 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 		},
 		resolver: zodResolver(mySchema),
 	});
+	const sqldNode = form.watch("sqldNode");
 	const type = form.watch("type");
 	const activeMutation = {
-		postgres: postgresMutation,
-		mongo: mongoMutation,
-		redis: redisMutation,
+		libsql: libsqlMutation,
 		mariadb: mariadbMutation,
+		mongo: mongoMutation,
 		mysql: mysqlMutation,
+		postgres: postgresMutation,
+		redis: redisMutation,
 	};
 
 	const onSubmit = async (data: AddDatabase) => {
@@ -233,12 +275,23 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 			description: data.description,
 		};
 
-		if (data.type === "postgres") {
-			promise = postgresMutation.mutateAsync({
+		if (data.type === "libsql") {
+			promise = libsqlMutation.mutateAsync({
+				...commonParams,
+				sqldNode: data.sqldNode,
+				sqldPrimaryUrl: data.sqldPrimaryUrl ?? null,
+				enableNamespaces: data.enableNamespaces,
+				databasePassword: data.databasePassword,
+				databaseUser:
+					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
+			});
+		} else if (data.type === "mariadb") {
+			promise = mariadbMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseName: data.databaseName || "postgres",
-
+				databaseRootPassword: data.databaseRootPassword || "",
+				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId === "dokploy" ? null : data.serverId,
@@ -252,22 +305,6 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 				serverId: data.serverId === "dokploy" ? null : data.serverId,
 				replicaSets: data.replicaSets,
 			});
-		} else if (data.type === "redis") {
-			promise = redisMutation.mutateAsync({
-				...commonParams,
-				databasePassword: data.databasePassword,
-				serverId: data.serverId === "dokploy" ? null : data.serverId,
-			});
-		} else if (data.type === "mariadb") {
-			promise = mariadbMutation.mutateAsync({
-				...commonParams,
-				databasePassword: data.databasePassword,
-				databaseRootPassword: data.databaseRootPassword || "",
-				databaseName: data.databaseName || "mariadb",
-				databaseUser:
-					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId === "dokploy" ? null : data.serverId,
-			});
 		} else if (data.type === "mysql") {
 			promise = mysqlMutation.mutateAsync({
 				...commonParams,
@@ -277,6 +314,21 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
 				serverId: data.serverId === "dokploy" ? null : data.serverId,
 				databaseRootPassword: data.databaseRootPassword || "",
+			});
+		} else if (data.type === "postgres") {
+			promise = postgresMutation.mutateAsync({
+				...commonParams,
+				databasePassword: data.databasePassword,
+				databaseName: data.databaseName || "postgres",
+				databaseUser:
+					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
+			});
+		} else if (data.type === "redis") {
+			promise = redisMutation.mutateAsync({
+				...commonParams,
+				databasePassword: data.databasePassword,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		}
 
@@ -305,6 +357,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 				});
 		}
 	};
+
 	return (
 		<Dialog open={visible} onOpenChange={setVisible}>
 			<DialogTrigger className="w-full">
@@ -506,8 +559,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								{(type === "mysql" ||
-									type === "mariadb" ||
+								{(type === "mariadb" ||
+									type === "mysql" ||
 									type === "postgres") && (
 									<FormField
 										control={form.control}
@@ -524,10 +577,101 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										)}
 									/>
 								)}
-								{(type === "mysql" ||
+
+								{type === "libsql" && (
+									<FormField
+										control={form.control}
+										name="sqldNode"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Sqld Node</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													defaultValue={field.value || "primary"}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder={"primary"} />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectGroup>
+															{["primary", "replica"].map((node) => (
+																<SelectItem key={node} value={node}>
+																	{node.charAt(0).toUpperCase() + node.slice(1)}
+																</SelectItem>
+															))}
+														</SelectGroup>
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+								{type === "libsql" && sqldNode === "replica" && (
+									<FormField
+										control={form.control}
+										name="sqldPrimaryUrl"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Sqld Primary URL</FormLabel>
+												<FormControl>
+													<Input
+														placeholder={"https://<host>:<port>"}
+														autoComplete="off"
+														{...field}
+													/>
+												</FormControl>
+
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								)}
+								{type === "libsql" && (
+									<FormField
+										control={form.control}
+										name="enableNamespaces"
+										render={({ field }) => {
+											console.log(field.value);
+											return (
+												<FormItem>
+													<FormLabel>Enable Namespaces</FormLabel>
+													<FormControl>
+														<Select
+															onValueChange={(value) =>
+																field.onChange(Boolean(value))
+															}
+															defaultValue={
+																field.value ? String(field.value) : "false"
+															}
+														>
+															<SelectTrigger>
+																<SelectValue placeholder={"false"} />
+															</SelectTrigger>
+															<SelectContent>
+																<SelectGroup>
+																	{["false", "true"].map((node) => (
+																		<SelectItem key={node} value={node}>
+																			{node.charAt(0).toUpperCase() +
+																				node.slice(1)}
+																		</SelectItem>
+																	))}
+																</SelectGroup>
+															</SelectContent>
+														</Select>
+													</FormControl>
+
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								)}
+								{(type === "libsql" ||
 									type === "mariadb" ||
-									type === "postgres" ||
-									type === "mongo") && (
+									type === "mongo" ||
+									type === "mysql" ||
+									type === "postgres") && (
 									<FormField
 										control={form.control}
 										name="databaseUser"
@@ -567,7 +711,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								{(type === "mysql" || type === "mariadb") && (
+								{(type === "mariadb" || type === "mysql") && (
 									<FormField
 										control={form.control}
 										name="databaseRootPassword"

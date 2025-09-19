@@ -5,6 +5,7 @@ import {
 	createBackup,
 	createCompose,
 	createDomain,
+	createLibsql,
 	createMariadb,
 	createMongo,
 	createMount,
@@ -20,6 +21,7 @@ import {
 	findApplicationById,
 	findComposeById,
 	findEnvironmentById,
+	findLibsqlById,
 	findMariadbById,
 	findMemberById,
 	findMongoById,
@@ -45,6 +47,7 @@ import {
 	applications,
 	compose,
 	environments,
+	libsql,
 	mariadb,
 	mongo,
 	mysql,
@@ -133,6 +136,9 @@ export const projectRouter = createTRPCRouter({
 										accessedServices,
 									),
 								},
+								libsql: {
+									where: buildServiceFilter(libsql.libsqlId, accessedServices),
+								},
 								mariadb: {
 									where: buildServiceFilter(
 										mariadb.mariadbId,
@@ -214,6 +220,13 @@ export const projectRouter = createTRPCRouter({
 								),
 								with: { domains: true },
 							},
+							compose: {
+								where: buildServiceFilter(compose.composeId, accessedServices),
+								with: { domains: true },
+							},
+							libsql: {
+								where: buildServiceFilter(libsql.libsqlId, accessedServices),
+							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
 							},
@@ -232,10 +245,6 @@ export const projectRouter = createTRPCRouter({
 							redis: {
 								where: buildServiceFilter(redis.redisId, accessedServices),
 							},
-							compose: {
-								where: buildServiceFilter(compose.composeId, accessedServices),
-								with: { domains: true },
-							},
 						},
 					},
 				},
@@ -252,16 +261,17 @@ export const projectRouter = createTRPCRouter({
 								domains: true,
 							},
 						},
-						mariadb: true,
-						mongo: true,
-						mysql: true,
-						postgres: true,
-						redis: true,
 						compose: {
 							with: {
 								domains: true,
 							},
 						},
+						libsql: true,
+						mariadb: true,
+						mongo: true,
+						mysql: true,
+						postgres: true,
+						redis: true,
 					},
 				},
 			},
@@ -332,12 +342,13 @@ export const projectRouter = createTRPCRouter({
 							id: z.string(),
 							type: z.enum([
 								"application",
-								"postgres",
+								"compose",
+								"libsql",
 								"mariadb",
 								"mongo",
 								"mysql",
+								"postgres",
 								"redis",
-								"compose",
 							]),
 						}),
 					)
@@ -471,21 +482,27 @@ export const projectRouter = createTRPCRouter({
 
 								break;
 							}
-							case "postgres": {
-								const { postgresId, mounts, backups, appName, ...postgres } =
-									await findPostgresById(id);
+							case "compose": {
+								const {
+									composeId,
+									mounts,
+									domains,
+									appName,
+									refreshToken,
+									...compose
+								} = await findComposeById(id);
 
 								const newAppName = appName.substring(
 									0,
 									appName.lastIndexOf("-"),
 								);
 
-								const newPostgres = await createPostgres({
-									...postgres,
+								const newCompose = await createCompose({
+									...compose,
 									appName: newAppName,
 									name: input.duplicateInSameProject
-										? `${postgres.name} (copy)`
-										: postgres.name,
+										? `${compose.name} (copy)`
+										: compose.name,
 									environmentId: targetProject?.environmentId || "",
 								});
 
@@ -493,18 +510,49 @@ export const projectRouter = createTRPCRouter({
 									const { mountId, ...rest } = mount;
 									await createMount({
 										...rest,
-										serviceId: newPostgres.postgresId,
-										serviceType: "postgres",
+										serviceId: newCompose.composeId,
+										serviceType: "compose",
 									});
 								}
 
-								for (const backup of backups) {
-									const { backupId, ...rest } = backup;
-									await createBackup({
+								for (const domain of domains) {
+									const { domainId, ...rest } = domain;
+									await createDomain({
 										...rest,
-										postgresId: newPostgres.postgresId,
+										composeId: newCompose.composeId,
+										domainType: "compose",
 									});
 								}
+
+								break;
+							}
+							case "libsql": {
+								const { libsqlId, mounts, appName, ...libsql } =
+									await findLibsqlById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
+								const newLibsql = await createLibsql({
+									...libsql,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${libsql.name} (copy)`
+										: libsql.name,
+									environmentId: targetProject?.environmentId || "",
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newLibsql.libsqlId,
+										serviceType: "libsql",
+									});
+								}
+
 								break;
 							}
 							case "mariadb": {
@@ -615,6 +663,42 @@ export const projectRouter = createTRPCRouter({
 								}
 								break;
 							}
+							case "postgres": {
+								const { postgresId, mounts, backups, appName, ...postgres } =
+									await findPostgresById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
+								const newPostgres = await createPostgres({
+									...postgres,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${postgres.name} (copy)`
+										: postgres.name,
+									environmentId: targetProject?.environmentId || "",
+								});
+
+								for (const mount of mounts) {
+									const { mountId, ...rest } = mount;
+									await createMount({
+										...rest,
+										serviceId: newPostgres.postgresId,
+										serviceType: "postgres",
+									});
+								}
+
+								for (const backup of backups) {
+									const { backupId, ...rest } = backup;
+									await createBackup({
+										...rest,
+										postgresId: newPostgres.postgresId,
+									});
+								}
+								break;
+							}
 							case "redis": {
 								const { redisId, mounts, appName, ...redis } =
 									await findRedisById(id);
@@ -639,50 +723,6 @@ export const projectRouter = createTRPCRouter({
 										...rest,
 										serviceId: newRedis.redisId,
 										serviceType: "redis",
-									});
-								}
-
-								break;
-							}
-							case "compose": {
-								const {
-									composeId,
-									mounts,
-									domains,
-									appName,
-									refreshToken,
-									...compose
-								} = await findComposeById(id);
-
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newCompose = await createCompose({
-									...compose,
-									appName: newAppName,
-									name: input.duplicateInSameProject
-										? `${compose.name} (copy)`
-										: compose.name,
-									environmentId: targetProject?.environmentId || "",
-								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newCompose.composeId,
-										serviceType: "compose",
-									});
-								}
-
-								for (const domain of domains) {
-									const { domainId, ...rest } = domain;
-									await createDomain({
-										...rest,
-										composeId: newCompose.composeId,
-										domainType: "compose",
 									});
 								}
 
