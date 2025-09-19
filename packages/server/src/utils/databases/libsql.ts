@@ -8,26 +8,7 @@ import {
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRemoteDocker } from "../servers/remote-docker";
-
-const getServerArchitecture = async (
-	serverId?: string | null,
-): Promise<string> => {
-	if (!serverId) {
-		const { stdout } = await execAsync("uname -m");
-		return stdout.trim();
-	}
-	const { stdout } = await execAsyncRemote(serverId, "uname -m");
-	return stdout.trim();
-};
-
-const getLibsqlImage = (arch: string): string => {
-	if (arch === "aarch64" || arch === "arm64") {
-		return "ghcr.io/tursodatabase/libsql-server:latest-arm";
-	}
-	return "ghcr.io/tursodatabase/libsql-server:latest";
-};
 
 export type LibsqlNested = InferResultType<
 	"libsql",
@@ -44,7 +25,6 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		externalPort,
 		externalGRPCPort,
 		externalAdminPort,
-		dockerImage,
 		memoryLimit,
 		memoryReservation,
 		databaseUser,
@@ -55,17 +35,10 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		cpuReservation,
 		command,
 		mounts,
-		serverId,
 		enableNamespaces,
 		enableBottomlessReplication,
 		bottomlessReplicationDestination,
 	} = libsql;
-
-	let finalDockerImage = dockerImage;
-	if (dockerImage === "ghcr.io/tursodatabase/libsql-server:latest") {
-		const arch = await getServerArchitecture(serverId);
-		finalDockerImage = getLibsqlImage(arch);
-	}
 
 	const basicAuth = Buffer.from(
 		`${databaseUser}:${databasePassword}`,
@@ -128,7 +101,7 @@ export const buildLibsql = async (libsql: LibsqlNested) => {
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
-				Image: finalDockerImage,
+				Image: "ghcr.io/tursodatabase/libsql-server:latest",
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(finalCommand
