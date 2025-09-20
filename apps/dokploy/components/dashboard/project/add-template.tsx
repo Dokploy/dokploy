@@ -171,7 +171,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 								<Input
 									placeholder="Search Template"
 									onChange={(e) => setQuery(e.target.value)}
-									className="w-full sm:w-[200px]"
+									className="w-full"
 									value={query}
 								/>
 								<Input
