@@ -47,7 +47,7 @@ interface Details {
 	envVariables: EnvVariable[];
 	shortDescription: string;
 	domains: Domain[];
-	configFiles: Mount[];
+	configFiles?: Mount[];
 }
 
 interface Mount {
