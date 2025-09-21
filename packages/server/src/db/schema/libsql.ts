@@ -3,7 +3,6 @@ import { boolean, integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { backups } from "./backups";
 import { destinations } from "./destination";
 import { environments } from "./environment";
 import { mounts } from "./mount";

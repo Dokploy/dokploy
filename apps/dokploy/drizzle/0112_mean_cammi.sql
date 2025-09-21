@@ -1,3 +1,0 @@
-ALTER TABLE "libsql" ADD COLUMN "enableBottomlessReplication" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-ALTER TABLE "libsql" ADD COLUMN "bottomlessReplicationDestinationId" text;--> statement-breakpoint
-ALTER TABLE "libsql" ADD CONSTRAINT "libsql_bottomlessReplicationDestinationId_destination_destinationId_fk" FOREIGN KEY ("bottomlessReplicationDestinationId") REFERENCES "public"."destination"("destinationId") ON DELETE set null ON UPDATE no action;
