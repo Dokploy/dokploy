@@ -1,6 +1,6 @@
 import { createWriteStream } from "node:fs";
 import type { InferResultType } from "@dokploy/server/types/with";
-import type { CreateServiceOptions } from "dockerode";
+import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
 import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
@@ -9,7 +9,9 @@ import {
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
+	encodeBase64,
 } from "../docker/utils";
+
 import { getRemoteDocker } from "../servers/remote-docker";
 import { buildCustomDocker, getDockerCommand } from "./docker-file";
 import { buildHeroku, getHerokuCommand } from "./heroku";
@@ -62,8 +64,23 @@ export const buildApplication = async (
 		if (application.registryId) {
 			await uploadImage(application, writeStream);
 		}
+
+		// Pre-deploy hook (runs once per deploy)
+		if (application.preDeployCommand) {
+			writeStream.write("\nRunning pre-deploy hook...\n");
+			await runDeployHook(application, application.preDeployCommand);
+			writeStream.write("\nPre-deploy hook finished (errors ignored).\n");
+		}
+
 		await mechanizeDockerContainer(application);
 		writeStream.write("Docker Deployed: ✅");
+
+		// Post-deploy hook (runs once per deploy)
+		if (application.postDeployCommand) {
+			writeStream.write("\nRunning post-deploy hook...\n");
+			await runDeployHook(application, application.postDeployCommand);
+			writeStream.write("\nPost-deploy hook finished (errors ignored).\n");
+		}
 	} catch (error) {
 		if (error instanceof Error) {
 			writeStream.write(`Error ❌\n${error?.message}`);
@@ -107,6 +124,69 @@ export const getBuildCommand = (
 	}
 
 	return command;
+};
+
+// Runs a hook as a one-off container to ensure single execution
+export const runDeployHook = async (
+	application: ApplicationNested,
+	hook: string,
+) => {
+	if (!hook) return;
+	const image = getImageName(application);
+
+	const envVariables = prepareEnvironmentVariables(
+		application.env,
+		application.environment.project.env,
+		application.environment.env,
+	);
+
+	const { mounts, cpuLimit, memoryLimit, memoryReservation, cpuReservation } =
+		application;
+	const volumesMount = generateVolumeMounts(mounts);
+	const bindsMount = generateBindMounts(mounts);
+	const filesMount = generateFileMounts(application.appName, application);
+	const allMounts = [...volumesMount, ...bindsMount, ...filesMount];
+
+	const resources = calculateResources({
+		memoryLimit,
+		memoryReservation,
+		cpuLimit,
+		cpuReservation,
+	});
+
+	const { Networks } = generateConfigContainer(application);
+	const networkName =
+		Networks && Networks[0] && (Networks[0] as any).Target
+			? (Networks[0] as any).Target
+			: "dokploy-network";
+
+	const docker = await getRemoteDocker(application.serverId);
+
+	const cmdEncoded = encodeBase64(hook);
+	const createOptions: ContainerCreateOptions = {
+		Image: image,
+		Env: envVariables,
+		Entrypoint: ["/bin/sh"],
+		NetworkingConfig: {
+			EndpointsConfig: {
+				[networkName]: {},
+			},
+		},
+		HostConfig: {
+			Mounts: allMounts,
+			...resources.Limits,
+			...resources.Reservations,
+			AutoRemove: true,
+		},
+	};
+
+	const cmd = ["-lc", `echo ${cmdEncoded} | base64 -d | sh`];
+
+	try {
+		await docker.run(image, cmd, undefined as any, createOptions);
+	} catch (_) {
+		// Intentionally ignore hook failures
+	}
 };
 
 export const mechanizeDockerContainer = async (
