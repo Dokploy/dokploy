@@ -12,17 +12,6 @@ import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
 
-export const serviceType = pgEnum("serviceType", [
-	"application",
-	"compose",
-	"libsql",
-	"mariadb",
-	"mongo",
-	"mysql",
-	"postgres",
-	"redis",
-]);
-
 export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
 
 export const mounts = pgTable("mount", {
@@ -35,7 +24,6 @@ export const mounts = pgTable("mount", {
 	volumeName: text("volumeName"),
 	filePath: text("filePath"),
 	content: text("content"),
-	serviceType: serviceType("serviceType").notNull().default("application"),
 	mountPath: text("mountPath").notNull(),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
@@ -108,23 +96,7 @@ const createSchema = createInsertSchema(mounts, {
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	filePath: z.string().optional(),
-	serviceType: z
-		.enum([
-			"application",
-			"compose",
-			"libsql",
-			"mariadb",
-			"mongo",
-			"mysql",
-			"postgres",
-			"redis",
-		])
-		.default("application"),
 });
-
-export type ServiceType = NonNullable<
-	z.infer<typeof createSchema>["serviceType"]
->;
 
 export const apiCreateMount = createSchema
 	.pick({
@@ -133,7 +105,6 @@ export const apiCreateMount = createSchema
 		volumeName: true,
 		content: true,
 		mountPath: true,
-		serviceType: true,
 		filePath: true,
 	})
 	.extend({
@@ -161,7 +132,6 @@ export const apiFindMountByApplicationId = createSchema
 	})
 	.pick({
 		serviceId: true,
-		serviceType: true,
 	})
 	.required();
 

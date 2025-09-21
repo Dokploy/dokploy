@@ -10,7 +10,6 @@ import { destinations } from "./destination";
 import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
-import { serviceType } from "./mount";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
@@ -24,7 +23,6 @@ export const volumeBackups = pgTable("volume_backup", {
 	name: text("name").notNull(),
 	volumeName: text("volumeName").notNull(),
 	prefix: text("prefix").notNull(),
-	serviceType: serviceType("serviceType").notNull().default("application"),
 	appName: text("appName")
 		.notNull()
 		.$defaultFn(() => generateAppName("volumeBackup")),

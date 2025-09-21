@@ -44,9 +44,6 @@ ALTER TABLE "libsql" ADD CONSTRAINT "libsql_environmentId_environment_environmen
 ALTER TABLE "libsql" ADD CONSTRAINT "libsql_serverId_server_serverId_fk" FOREIGN KEY ("serverId") REFERENCES "public"."server"("serverId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "mount" ADD CONSTRAINT "mount_libsqlId_libsql_libsqlId_fk" FOREIGN KEY ("libsqlId") REFERENCES "public"."libsql"("libsqlId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "volume_backup" ADD CONSTRAINT "volume_backup_libsqlId_libsql_libsqlId_fk" FOREIGN KEY ("libsqlId") REFERENCES "public"."libsql"("libsqlId") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "public"."mount" ALTER COLUMN "serviceType" SET DATA TYPE text;--> statement-breakpoint
-ALTER TABLE "public"."volume_backup" ALTER COLUMN "serviceType" SET DATA TYPE text;--> statement-breakpoint
-DROP TYPE "public"."serviceType";--> statement-breakpoint
-CREATE TYPE "public"."serviceType" AS ENUM('application', 'compose', 'libsql', 'mariadb', 'mongo', 'mysql', 'postgres', 'redis');--> statement-breakpoint
-ALTER TABLE "public"."mount" ALTER COLUMN "serviceType" SET DATA TYPE "public"."serviceType" USING "serviceType"::"public"."serviceType";--> statement-breakpoint
-ALTER TABLE "public"."volume_backup" ALTER COLUMN "serviceType" SET DATA TYPE "public"."serviceType" USING "serviceType"::"public"."serviceType";
+ALTER TABLE "mount" DROP COLUMN "serviceType";--> statement-breakpoint
+ALTER TABLE "volume_backup" DROP COLUMN "serviceType";--> statement-breakpoint
+DROP TYPE "public"."serviceType";

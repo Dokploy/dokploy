@@ -1,5 +1,5 @@
 {
-  "id": "8537f903-ea37-4026-954c-b00299c81e55",
+  "id": "2fbaedf4-c48c-44ba-9abd-0f9774e53bfe",
   "prevId": "9f9b4142-e739-4c21-8618-676d62e9b5ae",
   "version": "7",
   "dialect": "postgresql",
@@ -3875,14 +3875,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "serviceType": {
-          "name": "serviceType",
-          "type": "serviceType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'application'"
-        },
         "mountPath": {
           "name": "mountPath",
           "type": "text",
@@ -6418,14 +6410,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "serviceType": {
-          "name": "serviceType",
-          "type": "serviceType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'application'"
-        },
         "appName": {
           "name": "appName",
           "type": "text",
@@ -6751,20 +6735,6 @@
         "bind",
         "volume",
         "file"
-      ]
-    },
-    "public.serviceType": {
-      "name": "serviceType",
-      "schema": "public",
-      "values": [
-        "application",
-        "compose",
-        "libsql",
-        "mariadb",
-        "mongo",
-        "mysql",
-        "postgres",
-        "redis"
       ]
     },
     "public.notificationType": {
