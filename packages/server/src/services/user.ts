@@ -163,6 +163,24 @@ export const canPerformAccessEnvironment = async (
 	return false;
 };
 
+export const canPerformDeleteEnvironment = async (
+	userId: string,
+	projectId: string,
+	organizationId: string,
+) => {
+	const { accessedProjects, canDeleteEnvironments } = await findMemberById(
+		userId,
+		organizationId,
+	);
+	const haveAccessToProject = accessedProjects.includes(projectId);
+
+	if (canDeleteEnvironments && haveAccessToProject) {
+		return true;
+	}
+
+	return false;
+};
+
 export const canAccessToTraefikFiles = async (
 	userId: string,
 	organizationId: string,
@@ -238,6 +256,42 @@ export const checkEnvironmentAccess = async (
 			message: "Permission denied",
 		});
 	}
+};
+
+export const checkEnvironmentDeletionPermission = async (
+	userId: string,
+	projectId: string,
+	organizationId: string,
+) => {
+	const member = await findMemberById(userId, organizationId);
+
+	if (!member) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "User not found in organization",
+		});
+	}
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	if (!member.canDeleteEnvironments) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have permission to delete environments",
+		});
+	}
+
+	const hasProjectAccess = member.accessedProjects.includes(projectId);
+	if (!hasProjectAccess) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this project",
+		});
+	}
+
+	return true;
 };
 
 export const checkProjectAccess = async (
