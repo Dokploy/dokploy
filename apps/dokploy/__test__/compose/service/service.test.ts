@@ -71,7 +71,9 @@ networks:
 `);
 
 test("Add suffix to all service names in compose file", () => {
-	const composeData = load(composeFileCombinedAllCases) as ComposeSpecification;
+	const composeData = parse(
+		composeFileCombinedAllCases,
+	) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -176,7 +178,7 @@ networks:
 `) as ComposeSpecification;
 
 test("Add suffix to all service names in compose file 1", () => {
-	const composeData = load(composeFile1) as ComposeSpecification;
+	const composeData = parse(composeFile1) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);
@@ -271,7 +273,7 @@ networks:
 `) as ComposeSpecification;
 
 test("Add suffix to all service names in compose file 2", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);
@@ -366,7 +368,7 @@ networks:
 `) as ComposeSpecification;
 
 test("Add suffix to all service names in compose file 3", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);

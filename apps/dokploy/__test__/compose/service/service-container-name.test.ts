@@ -27,7 +27,7 @@ test("Generate random hash with 8 characters", () => {
 });
 
 test("Add suffix to service names with container_name in compose file", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 

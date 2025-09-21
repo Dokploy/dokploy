@@ -143,7 +143,7 @@ test("Generate random hash with 8 characters", () => {
 // Docker compose needs unique names for services, volumes, networks and containers
 // So base on a input which is a dockercompose file, it should replace the name with a hash and return a new dockercompose file
 test("Add suffix to volumes root property", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -165,7 +165,7 @@ test("Add suffix to volumes root property", () => {
 });
 
 test("Expect to change the suffix in all the possible places", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -218,7 +218,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Expect to change the suffix in all the possible places (2 Try)", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -271,7 +271,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Expect to change the suffix in all the possible places (3 Try)", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -1012,7 +1012,7 @@ volumes:
 `);
 
 test("Expect to change the suffix in all the possible places (4 Try)", () => {
-	const composeData = load(composeFileComplex) as ComposeSpecification;
+	const composeData = parse(composeFileComplex) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -1111,7 +1111,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Expect to change the suffix in all the possible places (5 Try)", () => {
-	const composeData = load(composeFileExample1) as ComposeSpecification;
+	const composeData = parse(composeFileExample1) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -1168,7 +1168,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Should handle volume paths with subdirectories correctly", () => {
-	const composeData = load(composeFileBackrest) as ComposeSpecification;
+	const composeData = parse(composeFileBackrest) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);

@@ -35,7 +35,7 @@ networks:
 `;
 
 test("Add suffix to service names with volumes_from in compose file", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 

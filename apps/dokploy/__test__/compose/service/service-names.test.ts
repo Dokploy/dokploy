@@ -26,7 +26,7 @@ networks:
 `;
 
 test("Add suffix to service names in compose file", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
