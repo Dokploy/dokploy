@@ -5,7 +5,6 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { environments } from "./environment";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { server } from "./server";
 import {
 	applicationStatus,

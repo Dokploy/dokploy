@@ -13,13 +13,14 @@ export const findVolumeBackupById = async (volumeBackupId: string) => {
 		where: eq(volumeBackups.volumeBackupId, volumeBackupId),
 		with: {
 			application: true,
-			postgres: true,
-			mysql: true,
-			mariadb: true,
-			mongo: true,
-			redis: true,
 			compose: true,
 			destination: true,
+			libsql: true,
+			mariadb: true,
+			mongo: true,
+			mysql: true,
+			postgres: true,
+			redis: true,
 		},
 	});
 

@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	AlertDialog,
@@ -44,7 +45,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import {
 	Select,
 	SelectContent,
@@ -192,26 +192,27 @@ export const ShowProjects = () => {
 												.map(
 													(env) =>
 														env.applications.length === 0 &&
+														env.compose.length === 0 &&
+														env.libsql.length === 0 &&
 														env.mariadb.length === 0 &&
 														env.mongo.length === 0 &&
 														env.mysql.length === 0 &&
 														env.postgres.length === 0 &&
-														env.redis.length === 0 &&
-														env.applications.length === 0 &&
-														env.compose.length === 0,
+														env.redis.length === 0,
 												)
 												.every(Boolean);
 
 											const totalServices = project?.environments
 												.map(
 													(env) =>
+														env.applications.length +
+														env.compose.length +
+														env.libsql.length +
 														env.mariadb.length +
 														env.mongo.length +
 														env.mysql.length +
 														env.postgres.length +
-														env.redis.length +
-														env.applications.length +
-														env.compose.length,
+														env.redis.length,
 												)
 												.reduce((acc, curr) => acc + curr, 0);
 

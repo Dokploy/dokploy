@@ -5,21 +5,12 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
 import { compose } from "./compose";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
-
-export const serviceType = pgEnum("serviceType", [
-	"application",
-	"postgres",
-	"mysql",
-	"mariadb",
-	"mongo",
-	"redis",
-	"compose",
-]);
 
 export const mountType = pgEnum("mountType", ["bind", "volume", "file"]);
 
@@ -33,13 +24,15 @@ export const mounts = pgTable("mount", {
 	volumeName: text("volumeName"),
 	filePath: text("filePath"),
 	content: text("content"),
-	serviceType: serviceType("serviceType").notNull().default("application"),
 	mountPath: text("mountPath").notNull(),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
 	),
-	postgresId: text("postgresId").references(() => postgres.postgresId, {
+	composeId: text("composeId").references(() => compose.composeId, {
+		onDelete: "cascade",
+	}),
+	libsqlId: text("libsqlId").references(() => libsql.libsqlId, {
 		onDelete: "cascade",
 	}),
 	mariadbId: text("mariadbId").references(() => mariadb.mariadbId, {
@@ -51,10 +44,10 @@ export const mounts = pgTable("mount", {
 	mysqlId: text("mysqlId").references(() => mysql.mysqlId, {
 		onDelete: "cascade",
 	}),
-	redisId: text("redisId").references(() => redis.redisId, {
+	postgresId: text("postgresId").references(() => postgres.postgresId, {
 		onDelete: "cascade",
 	}),
-	composeId: text("composeId").references(() => compose.composeId, {
+	redisId: text("redisId").references(() => redis.redisId, {
 		onDelete: "cascade",
 	}),
 });
@@ -64,9 +57,13 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.applicationId],
 		references: [applications.applicationId],
 	}),
-	postgres: one(postgres, {
-		fields: [mounts.postgresId],
-		references: [postgres.postgresId],
+	compose: one(compose, {
+		fields: [mounts.composeId],
+		references: [compose.composeId],
+	}),
+	libsql: one(libsql, {
+		fields: [mounts.libsqlId],
+		references: [libsql.libsqlId],
 	}),
 	mariadb: one(mariadb, {
 		fields: [mounts.mariadbId],
@@ -80,13 +77,13 @@ export const MountssRelations = relations(mounts, ({ one }) => ({
 		fields: [mounts.mysqlId],
 		references: [mysql.mysqlId],
 	}),
+	postgres: one(postgres, {
+		fields: [mounts.postgresId],
+		references: [postgres.postgresId],
+	}),
 	redis: one(redis, {
 		fields: [mounts.redisId],
 		references: [redis.redisId],
-	}),
-	compose: one(compose, {
-		fields: [mounts.composeId],
-		references: [compose.composeId],
 	}),
 }));
 
@@ -99,22 +96,7 @@ const createSchema = createInsertSchema(mounts, {
 	mountPath: z.string().min(1),
 	mountId: z.string().optional(),
 	filePath: z.string().optional(),
-	serviceType: z
-		.enum([
-			"application",
-			"postgres",
-			"mysql",
-			"mariadb",
-			"mongo",
-			"redis",
-			"compose",
-		])
-		.default("application"),
 });
-
-export type ServiceType = NonNullable<
-	z.infer<typeof createSchema>["serviceType"]
->;
 
 export const apiCreateMount = createSchema
 	.pick({
@@ -123,7 +105,6 @@ export const apiCreateMount = createSchema
 		volumeName: true,
 		content: true,
 		mountPath: true,
-		serviceType: true,
 		filePath: true,
 	})
 	.extend({
@@ -151,7 +132,6 @@ export const apiFindMountByApplicationId = createSchema
 	})
 	.pick({
 		serviceId: true,
-		serviceType: true,
 	})
 	.required();
 

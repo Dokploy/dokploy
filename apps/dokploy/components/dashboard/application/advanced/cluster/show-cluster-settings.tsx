@@ -37,7 +37,7 @@ import { AddSwarmSettings } from "./modify-swarm-settings";
 
 interface Props {
 	id: string;
-	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
+	type: "application" | "mariadb" | "mongo" | "mysql" | "postgres" | "redis";
 }
 
 const AddRedirectchema = z.object({
@@ -49,15 +49,15 @@ type AddCommand = z.infer<typeof AddRedirectchema>;
 
 export const ShowClusterSettings = ({ id, type }: Props) => {
 	const queryMap = {
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
-		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
-		mariadb: () =>
-			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
-		application: () =>
-			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
-		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
 	};
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
@@ -65,12 +65,13 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 	const { data: registries } = api.registry.all.useQuery();
 
 	const mutationMap = {
+		application: () => api.application.update.useMutation(),
+		libsql: () => api.libsql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
 		postgres: () => api.postgres.update.useMutation(),
 		redis: () => api.redis.update.useMutation(),
-		mysql: () => api.mysql.update.useMutation(),
-		mariadb: () => api.mariadb.update.useMutation(),
-		application: () => api.application.update.useMutation(),
-		mongo: () => api.mongo.update.useMutation(),
 	};
 
 	const { mutateAsync, isLoading } = mutationMap[type]
@@ -105,11 +106,11 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({
 			applicationId: id || "",
-			postgresId: id || "",
-			redisId: id || "",
-			mysqlId: id || "",
 			mariadbId: id || "",
 			mongoId: id || "",
+			mysqlId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
 			...(type === "application"
 				? {
 						registryId:

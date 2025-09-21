@@ -79,11 +79,12 @@ export const haveActiveServices = async (serverId: string) => {
 		with: {
 			applications: true,
 			compose: true,
-			redis: true,
+			libsql: true,
 			mariadb: true,
 			mongo: true,
 			mysql: true,
 			postgres: true,
+			redis: true,
 		},
 	});
 
@@ -94,11 +95,12 @@ export const haveActiveServices = async (serverId: string) => {
 	const total =
 		currentServer?.applications?.length +
 		currentServer?.compose?.length +
-		currentServer?.redis?.length +
+		currentServer?.libsql?.length +
 		currentServer?.mariadb?.length +
 		currentServer?.mongo?.length +
 		currentServer?.mysql?.length +
-		currentServer?.postgres?.length;
+		currentServer?.postgres?.length +
+		currentServer?.redis?.length;
 
 	if (total === 0) {
 		return false;

@@ -15,6 +15,7 @@ import { applications } from "./application";
 import { certificates } from "./certificate";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
+import { libsql } from "./libsql";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -97,24 +98,25 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	deployments: many(deployments),
-	sshKey: one(sshKeys, {
-		fields: [server.sshKeyId],
-		references: [sshKeys.sshKeyId],
-	}),
 	applications: many(applications),
+	certificates: many(certificates),
 	compose: many(compose),
-	redis: many(redis),
+	deployments: many(deployments),
+	libsql: many(libsql),
 	mariadb: many(mariadb),
 	mongo: many(mongo),
 	mysql: many(mysql),
-	postgres: many(postgres),
-	certificates: many(certificates),
 	organization: one(organization, {
 		fields: [server.organizationId],
 		references: [organization.id],
 	}),
+	postgres: many(postgres),
+	redis: many(redis),
 	schedules: many(schedules),
+	sshKey: one(sshKeys, {
+		fields: [server.sshKeyId],
+		references: [sshKeys.sshKeyId],
+	}),
 }));
 
 const createSchema = createInsertSchema(server, {
