@@ -328,6 +328,26 @@ export const apiFindOneApplication = createSchema
 	})
 	.required();
 
+export const apiDeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
+
+export const apiRedeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
+
 export const apiReloadApplication = createSchema
 	.pick({
 		appName: true,

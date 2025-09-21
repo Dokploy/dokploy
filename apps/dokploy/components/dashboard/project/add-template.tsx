@@ -141,6 +141,10 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 		}) || [];
 
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -167,7 +171,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 								<Input
 									placeholder="Search Template"
 									onChange={(e) => setQuery(e.target.value)}
-									className="w-full sm:w-[200px]"
+									className="w-full"
 									value={query}
 								/>
 								<Input
@@ -244,7 +248,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									onClick={() =>
 										setViewMode(viewMode === "detailed" ? "icon" : "detailed")
 									}
-									className="h-9 w-9"
+									className="h-9 w-9 flex-shrink-0"
 								>
 									{viewMode === "detailed" ? (
 										<LayoutGrid className="size-4" />
@@ -430,7 +434,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 															project.
 														</AlertDialogDescription>
 
-														{hasServers && (
+														{shouldShowServerDropdown && (
 															<div>
 																<TooltipProvider delayDuration={0}>
 																	<Tooltip>
@@ -459,12 +463,29 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																	onValueChange={(e) => {
 																		setServerId(e);
 																	}}
+																	defaultValue={
+																		!isCloud ? "dokploy" : undefined
+																	}
 																>
 																	<SelectTrigger>
-																		<SelectValue placeholder="Select a Server" />
+																		<SelectValue
+																			placeholder={
+																				!isCloud ? "Dokploy" : "Select a Server"
+																			}
+																		/>
 																	</SelectTrigger>
 																	<SelectContent>
 																		<SelectGroup>
+																			{!isCloud && (
+																				<SelectItem value="dokploy">
+																					<span className="flex items-center gap-2 justify-between w-full">
+																						<span>Dokploy</span>
+																						<span className="text-muted-foreground text-xs self-center">
+																							Default
+																						</span>
+																					</span>
+																				</SelectItem>
+																			)}
 																			{servers?.map((server) => (
 																				<SelectItem
 																					key={server.serverId}
@@ -479,7 +500,8 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 																				</SelectItem>
 																			))}
 																			<SelectLabel>
-																				Servers ({servers?.length})
+																				Servers (
+																				{servers?.length + (!isCloud ? 1 : 0)})
 																			</SelectLabel>
 																		</SelectGroup>
 																	</SelectContent>
@@ -493,8 +515,11 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 															disabled={isLoading}
 															onClick={async () => {
 																const promise = mutateAsync({
+																	serverId:
+																		serverId === "dokploy"
+																			? undefined
+																			: serverId,
 																	environmentId,
-																	serverId: serverId || undefined,
 																	id: template.id,
 																	baseUrl: customBaseUrl,
 																});

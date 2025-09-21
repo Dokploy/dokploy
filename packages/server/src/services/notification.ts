@@ -3,17 +3,20 @@ import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
 	type apiCreateGotify,
+	type apiCreateNtfy,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
 	type apiUpdateGotify,
+	type apiUpdateNtfy,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	discord,
 	email,
 	gotify,
 	notifications,
+	ntfy,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -482,6 +485,96 @@ export const updateGotifyNotification = async (
 	});
 };
 
+export const createNtfyNotification = async (
+	input: typeof apiCreateNtfy._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newNtfy = await tx
+			.insert(ntfy)
+			.values({
+				serverUrl: input.serverUrl,
+				topic: input.topic,
+				accessToken: input.accessToken,
+				priority: input.priority,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newNtfy) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting ntfy",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				ntfyId: newNtfy.ntfyId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "ntfy",
+				organizationId: organizationId,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateNtfyNotification = async (
+	input: typeof apiUpdateNtfy._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(ntfy)
+			.set({
+				serverUrl: input.serverUrl,
+				topic: input.topic,
+				accessToken: input.accessToken,
+				priority: input.priority,
+			})
+			.where(eq(ntfy.ntfyId, input.ntfyId));
+
+		return newDestination;
+	});
+};
+
 export const findNotificationById = async (notificationId: string) => {
 	const notification = await db.query.notifications.findFirst({
 		where: eq(notifications.notificationId, notificationId),
@@ -491,6 +584,7 @@ export const findNotificationById = async (notificationId: string) => {
 			discord: true,
 			email: true,
 			gotify: true,
+			ntfy: true,
 		},
 	});
 	if (!notification) {
