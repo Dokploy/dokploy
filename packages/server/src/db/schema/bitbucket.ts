@@ -11,6 +11,7 @@ export const bitbucket = pgTable("bitbucket", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	bitbucketUsername: text("bitbucketUsername"),
+	bitbucketEmail: text("bitbucketEmail"),
 	appPassword: text("appPassword"),
 	apiToken: text("apiToken"),
 	bitbucketWorkspaceName: text("bitbucketWorkspaceName"),
@@ -30,6 +31,7 @@ const createSchema = createInsertSchema(bitbucket);
 
 export const apiCreateBitbucket = createSchema.extend({
 	bitbucketUsername: z.string().optional(),
+	bitbucketEmail: z.string().email().optional(),
 	appPassword: z.string().optional(),
 	apiToken: z.string().optional(),
 	bitbucketWorkspaceName: z.string().optional(),
@@ -48,9 +50,19 @@ export const apiBitbucketTestConnection = createSchema
 	.extend({
 		bitbucketId: z.string().min(1),
 		bitbucketUsername: z.string().optional(),
+		bitbucketEmail: z.string().email().optional(),
 		workspaceName: z.string().optional(),
+		apiToken: z.string().optional(),
+		appPassword: z.string().optional(),
 	})
-	.pick({ bitbucketId: true, bitbucketUsername: true, workspaceName: true });
+	.pick({
+		bitbucketId: true,
+		bitbucketUsername: true,
+		bitbucketEmail: true,
+		workspaceName: true,
+		apiToken: true,
+		appPassword: true,
+	});
 
 export const apiFindBitbucketBranches = z.object({
 	owner: z.string(),
@@ -62,6 +74,9 @@ export const apiUpdateBitbucket = createSchema.extend({
 	bitbucketId: z.string().min(1),
 	name: z.string().min(1),
 	bitbucketUsername: z.string().optional(),
+	bitbucketEmail: z.string().email().optional(),
+	appPassword: z.string().optional(),
+	apiToken: z.string().optional(),
 	bitbucketWorkspaceName: z.string().optional(),
 	organizationId: z.string().optional(),
 });

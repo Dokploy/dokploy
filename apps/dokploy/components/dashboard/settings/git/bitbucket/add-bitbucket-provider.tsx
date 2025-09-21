@@ -1,7 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,11 +26,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { useUrl } from "@/utils/hooks/use-url";
 
 const Schema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 	username: z.string().min(1, { message: "Username is required" }),
+	email: z.string().email().optional(),
 	apiToken: z.string().min(1, { message: "API Token is required" }),
 	workspaceName: z.string().optional(),
 });
@@ -55,6 +54,7 @@ export const AddBitbucketProvider = () => {
 	useEffect(() => {
 		form.reset({
 			username: "",
+			email: "",
 			apiToken: "",
 			workspaceName: "",
 		});
@@ -67,6 +67,7 @@ export const AddBitbucketProvider = () => {
 			bitbucketWorkspaceName: data.workspaceName || "",
 			authId: auth?.id || "",
 			name: data.name || "",
+			bitbucketEmail: data.email || "",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -128,12 +129,11 @@ export const AddBitbucketProvider = () => {
 									permissions:
 								</p>
 								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
-									<li>Account: Read</li>
-									<li>Workspace membership: Read</li>
-									<li>Projects: Read</li>
-									<li>Repositories: Read</li>
-									<li>Pull requests: Read</li>
-									<li>Webhooks: Read and write</li>
+									<li>read:repository:bitbucket</li>
+									<li>read:pullrequest:bitbucket</li>
+									<li>read:webhook:bitbucket</li>
+									<li>read:workspace:bitbucket</li>
+									<li>write:webhook:bitbucket</li>
 								</ul>
 
 								<FormField
@@ -163,6 +163,20 @@ export const AddBitbucketProvider = () => {
 													placeholder="Your Bitbucket username"
 													{...field}
 												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Bitbucket Email</FormLabel>
+											<FormControl>
+												<Input placeholder="Your Bitbucket email" {...field} />
 											</FormControl>
 											<FormMessage />
 										</FormItem>
