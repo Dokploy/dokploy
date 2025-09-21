@@ -48,7 +48,7 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all secrets", () => {
-	const composeData = load(composeFileCombinedSecrets) as ComposeSpecification;
+	const composeData = parse(composeFileCombinedSecrets) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
@@ -99,7 +99,9 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all secrets (3rd Case)", () => {
-	const composeData = load(composeFileCombinedSecrets3) as ComposeSpecification;
+	const composeData = parse(
+		composeFileCombinedSecrets3,
+	) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
@@ -150,7 +152,9 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all secrets (4th Case)", () => {
-	const composeData = load(composeFileCombinedSecrets4) as ComposeSpecification;
+	const composeData = parse(
+		composeFileCombinedSecrets4,
+	) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
