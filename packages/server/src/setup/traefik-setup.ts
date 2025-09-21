@@ -1,4 +1,11 @@
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	rmSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
 import { dump } from "js-yaml";
@@ -375,13 +382,26 @@ export const createDefaultTraefikConfig = () => {
 	if (existsSync(acmeJsonPath)) {
 		chmodSync(acmeJsonPath, "600");
 	}
-	if (existsSync(mainConfig)) {
-		console.log("Main config already exists");
-		return;
-	}
-	const yamlStr = getDefaultTraefikConfig();
+
+	// Create the traefik directory first
 	mkdirSync(MAIN_TRAEFIK_PATH, { recursive: true });
+
+	// Check if traefik.yml exists and handle the case where it might be a directory
+	if (existsSync(mainConfig)) {
+		const stats = statSync(mainConfig);
+		if (stats.isDirectory()) {
+			// If traefik.yml is a directory, remove it
+			console.log("Found traefik.yml as directory, removing it...");
+			rmSync(mainConfig, { recursive: true, force: true });
+		} else if (stats.isFile()) {
+			console.log("Main config already exists");
+			return;
+		}
+	}
+
+	const yamlStr = getDefaultTraefikConfig();
 	writeFileSync(mainConfig, yamlStr, "utf8");
+	console.log("Traefik config created successfully");
 };
 
 export const getDefaultMiddlewares = () => {
