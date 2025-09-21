@@ -1,4 +1,9 @@
-import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import {
+	type Bitbucket,
+	getBitbucketHeaders,
+	IS_CLOUD,
+	shouldDeploy,
+} from "@dokploy/server";
 import { eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
@@ -146,10 +151,10 @@ export default async function handler(
 
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
-				application.bitbucketOwner,
-				application.bitbucket?.appPassword || "",
+				application.bitbucket,
 				application.bitbucketRepository || "",
 			);
+
 			const shouldDeployPaths = shouldDeploy(
 				application.watchPaths,
 				commitedPaths,
@@ -354,9 +359,8 @@ export const getProviderByHeader = (headers: any) => {
 
 export const extractCommitedPaths = async (
 	body: any,
-	bitbucketUsername: string | null,
-	bitbucketAppPassword: string | null,
-	repository: string | null,
+	bitbucket: Bitbucket | null,
+	repository: string,
 ) => {
 	const changes = body.push?.changes || [];
 
@@ -365,18 +369,16 @@ export const extractCommitedPaths = async (
 		.filter(Boolean);
 	const commitedPaths: string[] = [];
 	for (const commit of commitHashes) {
-		const url = `https://api.bitbucket.org/2.0/repositories/${bitbucketUsername}/${repository}/diffstat/${commit}`;
+		const url = `https://api.bitbucket.org/2.0/repositories/${bitbucket?.bitbucketUsername}/${repository}/diffstat/${commit}`;
 
 		try {
 			const response = await fetch(url, {
-				headers: {
-					Authorization: `Basic ${Buffer.from(`${bitbucketUsername}:${bitbucketAppPassword}`).toString("base64")}`,
-				},
+				headers: getBitbucketHeaders(bitbucket!),
 			});
 
 			const data = await response.json();
 			for (const value of data.values) {
-				commitedPaths.push(value.new?.path);
+				if (value?.new?.path) commitedPaths.push(value.new.path);
 			}
 		} catch (error) {
 			console.error(
