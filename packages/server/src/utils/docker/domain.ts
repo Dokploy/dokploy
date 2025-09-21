@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
-import { dump, load } from "js-yaml";
+import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import {
 	cloneRawBitbucketRepository,
@@ -92,7 +92,7 @@ export const loadDockerCompose = async (
 
 	if (existsSync(path)) {
 		const yamlStr = readFileSync(path, "utf8");
-		const parsedConfig = load(yamlStr) as ComposeSpecification;
+		const parsedConfig = parse(yamlStr) as ComposeSpecification;
 		return parsedConfig;
 	}
 	return null;
@@ -115,7 +115,7 @@ export const loadDockerComposeRemote = async (
 			return null;
 		}
 		if (!stdout) return null;
-		const parsedConfig = load(stdout) as ComposeSpecification;
+		const parsedConfig = parse(stdout) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
 		return null;
@@ -141,7 +141,7 @@ export const writeDomainsToCompose = async (
 	const composeConverted = await addDomainToCompose(compose, domains);
 
 	const path = getComposePath(compose);
-	const composeString = dump(composeConverted, { lineWidth: 1000 });
+	const composeString = stringify(composeConverted, { lineWidth: 1000 });
 	try {
 		await writeFile(path, composeString, "utf8");
 	} catch (error) {
@@ -169,7 +169,7 @@ exit 1;
 			`;
 		}
 		if (compose.serverId) {
-			const composeString = dump(composeConverted, { lineWidth: 1000 });
+			const composeString = stringify(composeConverted, { lineWidth: 1000 });
 			const encodedContent = encodeBase64(composeString);
 			return `echo "${encodedContent}" | base64 -d > "${path}";`;
 		}
@@ -287,7 +287,7 @@ export const writeComposeFile = async (
 	const path = getComposePath(compose);
 
 	try {
-		const composeFile = dump(composeSpec, {
+		const composeFile = stringify(composeSpec, {
 			lineWidth: 1000,
 		});
 		fs.writeFileSync(path, composeFile, "utf8");

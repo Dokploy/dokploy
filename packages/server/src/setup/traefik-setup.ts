@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
-import { dump } from "js-yaml";
+import { stringify } from "yaml";
 import { paths } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
@@ -241,7 +241,7 @@ export const createDefaultServerTraefikConfig = () => {
 		},
 	};
 
-	const yamlStr = dump(config);
+	const yamlStr = stringify(config);
 	mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(
 		path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`),
@@ -315,7 +315,7 @@ export const getDefaultTraefikConfig = () => {
 		}),
 	};
 
-	const yamlStr = dump(configObject);
+	const yamlStr = stringify(configObject);
 
 	return yamlStr;
 };
@@ -369,7 +369,7 @@ export const getDefaultServerTraefikConfig = () => {
 		},
 	};
 
-	const yamlStr = dump(configObject);
+	const yamlStr = stringify(configObject);
 
 	return yamlStr;
 };
@@ -417,7 +417,7 @@ export const getDefaultMiddlewares = () => {
 			},
 		},
 	};
-	const yamlStr = dump(defaultMiddlewares);
+	const yamlStr = stringify(defaultMiddlewares);
 	return yamlStr;
 };
 export const createDefaultMiddlewares = () => {
