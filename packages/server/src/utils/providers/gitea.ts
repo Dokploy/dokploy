@@ -362,17 +362,22 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 		}
 
 		const baseUrl = provider.giteaUrl.replace(/\/+$/, "");
-		const limit = 30;
-		let allRepos = 0;
-		let nextUrl = `${baseUrl}/api/v1/repos/search?limit=${limit}`;
 
-		while (nextUrl) {
-			const response = await fetch(nextUrl, {
-				headers: {
-					Accept: "application/json",
-					Authorization: `token ${provider.accessToken}`,
+		// Use /user/repos to get authenticated user's repositories with pagination
+		let allRepos = 0;
+		let page = 1;
+		const limit = 50; // Max per page
+
+		while (true) {
+			const response = await fetch(
+				`${baseUrl}/api/v1/user/repos?page=${page}&limit=${limit}`,
+				{
+					headers: {
+						Accept: "application/json",
+						Authorization: `token ${provider.accessToken}`,
+					},
 				},
-			});
+			);
 
 			if (!response.ok) {
 				throw new Error(
@@ -381,22 +386,18 @@ export const testGiteaConnection = async (input: { giteaId: string }) => {
 			}
 
 			const repos = await response.json();
-			allRepos += repos.data.length;
-
-			const linkHeader = response.headers.get("link");
-			nextUrl = "";
-
-			if (linkHeader) {
-				const nextLink = linkHeader
-					.split(",")
-					.find((link) => link.includes('rel="next"'));
-				if (nextLink) {
-					const matches = nextLink.match(/<([^>]+)>/);
-					if (matches?.[1]) {
-						nextUrl = matches[1];
-					}
-				}
+			if (!Array.isArray(repos) || repos.length === 0) {
+				break; // No more repositories
 			}
+
+			allRepos += repos.length;
+
+			// Check if there are more pages
+			if (repos.length < limit) {
+				break; // Last page (fewer results than limit)
+			}
+
+			page++;
 		}
 
 		await updateGitea(giteaId, {
@@ -418,17 +419,22 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 	const giteaProvider = await findGiteaById(giteaId);
 
 	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
-	const limit = 30;
-	let allRepositories: any[] = [];
-	let nextUrl = `${baseUrl}/api/v1/repos/search?limit=${limit}`;
 
-	while (nextUrl) {
-		const response = await fetch(nextUrl, {
-			headers: {
-				Accept: "application/json",
-				Authorization: `token ${giteaProvider.accessToken}`,
+	// Use /user/repos to get authenticated user's repositories with pagination
+	let allRepositories: any[] = [];
+	let page = 1;
+	const limit = 50; // Max per page
+
+	while (true) {
+		const response = await fetch(
+			`${baseUrl}/api/v1/user/repos?page=${page}&limit=${limit}`,
+			{
+				headers: {
+					Accept: "application/json",
+					Authorization: `token ${giteaProvider.accessToken}`,
+				},
 			},
-		});
+		);
 
 		if (!response.ok) {
 			throw new TRPCError({
@@ -437,23 +443,19 @@ export const getGiteaRepositories = async (giteaId?: string) => {
 			});
 		}
 
-		const result = await response.json();
-		allRepositories = [...allRepositories, ...result.data];
-
-		const linkHeader = response.headers.get("link");
-		nextUrl = "";
-
-		if (linkHeader) {
-			const nextLink = linkHeader
-				.split(",")
-				.find((link) => link.includes('rel="next"'));
-			if (nextLink) {
-				const matches = nextLink.match(/<([^>]+)>/);
-				if (matches?.[1]) {
-					nextUrl = matches[1];
-				}
-			}
+		const repos = await response.json();
+		if (!Array.isArray(repos) || repos.length === 0) {
+			break; // No more repositories
 		}
+
+		allRepositories = [...allRepositories, ...repos];
+
+		// Check if there are more pages
+		if (repos.length < limit) {
+			break; // Last page (fewer results than limit)
+		}
+
+		page++;
 	}
 
 	return (
@@ -482,25 +484,43 @@ export const getGiteaBranches = async (input: {
 	const giteaProvider = await findGiteaById(input.giteaId);
 
 	const baseUrl = giteaProvider.giteaUrl.replace(/\/+$/, "");
-	const url = `${baseUrl}/api/v1/repos/${input.owner}/${input.repo}/branches`;
 
-	const response = await fetch(url, {
-		headers: {
-			Accept: "application/json",
-			Authorization: `token ${giteaProvider.accessToken}`,
-		},
-	});
+	// Handle pagination for branches
+	let allBranches: any[] = [];
+	let page = 1;
+	const limit = 50; // Max per page
 
-	if (!response.ok) {
-		throw new Error(`Failed to fetch branches: ${response.statusText}`);
+	while (true) {
+		const response = await fetch(
+			`${baseUrl}/api/v1/repos/${input.owner}/${input.repo}/branches?page=${page}&limit=${limit}`,
+			{
+				headers: {
+					Accept: "application/json",
+					Authorization: `token ${giteaProvider.accessToken}`,
+				},
+			},
+		);
+
+		if (!response.ok) {
+			throw new Error(`Failed to fetch branches: ${response.statusText}`);
+		}
+
+		const branches = await response.json();
+		if (!Array.isArray(branches) || branches.length === 0) {
+			break; // No more branches
+		}
+
+		allBranches = [...allBranches, ...branches];
+
+		// Check if there are more pages
+		if (branches.length < limit) {
+			break; // Last page (fewer results than limit)
+		}
+
+		page++;
 	}
 
-	const branches = await response.json();
-
-	if (!branches) {
-		return [];
-	}
-	return branches?.map((branch: any) => ({
+	return allBranches?.map((branch: any) => ({
 		id: branch.name,
 		name: branch.name,
 		commit: {

@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
-import { dump, load } from "js-yaml";
+import { parse, stringify } from "yaml";
 import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
 import { writeTraefikConfigRemote } from "./application";
@@ -76,7 +76,7 @@ export const loadMiddlewares = <T>() => {
 		throw new Error(`File not found: ${configPath}`);
 	}
 	const yamlStr = readFileSync(configPath, "utf8");
-	const config = load(yamlStr) as T;
+	const config = parse(yamlStr) as T;
 	return config;
 };
 
@@ -94,7 +94,7 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 			console.error(`Error: ${stderr}`);
 			throw new Error(`File not found: ${configPath}`);
 		}
-		const config = load(stdout) as FileConfig;
+		const config = parse(stdout) as FileConfig;
 		return config;
 	} catch (_) {
 		throw new Error(`File not found: ${configPath}`);
@@ -103,7 +103,7 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 export const writeMiddleware = <T>(config: T) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
-	const newYamlContent = dump(config);
+	const newYamlContent = stringify(config);
 	writeFileSync(configPath, newYamlContent, "utf8");
 };
 

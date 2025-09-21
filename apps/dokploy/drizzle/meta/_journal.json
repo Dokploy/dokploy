@@ -778,6 +778,20 @@
       "when": 1757189541734,
       "tag": "0110_red_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1758445844561,
+      "tag": "0111_mushy_wolfsbane",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1758483520214,
+      "tag": "0112_freezing_skrulls",
+      "breakpoints": true
     }
   ]
 }
