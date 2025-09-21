@@ -123,11 +123,21 @@ export const AddBitbucketProvider = () => {
 										<ExternalLink className="w-fit text-primary size-4" />
 									</Link>
 								</div>
-
+								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
+									<li className="text-muted-foreground text-sm">
+										Click on Create API token with scopes
+									</li>
+									<li className="text-muted-foreground text-sm">
+										Select the expiration date (Max 1 year)
+									</li>
+									<li className="text-muted-foreground text-sm">
+										Select Bitbucket product.
+									</li>
+								</ul>
 								<p className="text-muted-foreground text-sm">
-									Make sure to create an API Token with the following
-									permissions:
+									Select the following scopes:
 								</p>
+
 								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
 									<li>read:repository:bitbucket</li>
 									<li>read:pullrequest:bitbucket</li>
