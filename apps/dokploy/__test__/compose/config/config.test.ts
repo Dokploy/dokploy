@@ -77,7 +77,7 @@ configs:
 `) as ComposeSpecification;
 
 test("Add suffix to all configs in root and services", () => {
-	const composeData = load(composeFileCombinedConfigs) as ComposeSpecification;
+	const composeData = parse(composeFileCombinedConfigs) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -159,7 +159,7 @@ configs:
 `) as ComposeSpecification;
 
 test("Add suffix to configs with environment and external", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileWithEnvAndExternal,
 	) as ComposeSpecification;
 
@@ -231,7 +231,7 @@ configs:
 `) as ComposeSpecification;
 
 test("Add suffix to configs with template driver and labels", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileWithTemplateDriverAndLabels,
 	) as ComposeSpecification;
 
