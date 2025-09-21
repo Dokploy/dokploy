@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import { addSuffixToAllSecrets } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFileCombinedSecrets = `
 version: "3.8"
@@ -25,7 +25,7 @@ secrets:
     file: ./app_secret.txt
 `;
 
-const expectedComposeFileCombinedSecrets = load(`
+const expectedComposeFileCombinedSecrets = parse(`
 version: "3.8"
 
 services:
@@ -48,7 +48,7 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all secrets", () => {
-	const composeData = load(composeFileCombinedSecrets) as ComposeSpecification;
+	const composeData = parse(composeFileCombinedSecrets) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
@@ -77,7 +77,7 @@ secrets:
     file: ./cache_secret.txt
 `;
 
-const expectedComposeFileCombinedSecrets3 = load(`
+const expectedComposeFileCombinedSecrets3 = parse(`
 version: "3.8"
 
 services:
@@ -99,7 +99,9 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all secrets (3rd Case)", () => {
-	const composeData = load(composeFileCombinedSecrets3) as ComposeSpecification;
+	const composeData = parse(
+		composeFileCombinedSecrets3,
+	) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);
@@ -128,7 +130,7 @@ secrets:
     file: ./db_password.txt
 `;
 
-const expectedComposeFileCombinedSecrets4 = load(`
+const expectedComposeFileCombinedSecrets4 = parse(`
 version: "3.8"
 
 services:
@@ -150,7 +152,9 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all secrets (4th Case)", () => {
-	const composeData = load(composeFileCombinedSecrets4) as ComposeSpecification;
+	const composeData = parse(
+		composeFileCombinedSecrets4,
+	) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllSecrets(composeData, suffix);

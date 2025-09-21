@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import { addSuffixToVolumesRoot, generateRandomHash } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile = `
 version: "3.8"
@@ -29,7 +29,7 @@ test("Generate random hash with 8 characters", () => {
 });
 
 test("Add suffix to volumes in root property", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -67,7 +67,7 @@ networks:
 `;
 
 test("Add suffix to volumes in root property (Case 2)", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -101,7 +101,7 @@ networks:
 `;
 
 test("Add suffix to volumes in root property (Case 3)", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -148,7 +148,7 @@ volumes:
 `;
 
 // Expected compose file con el prefijo `testhash`
-const expectedComposeFile4 = load(`
+const expectedComposeFile4 = parse(`
 version: "3.8"
 
 services:
@@ -179,7 +179,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Add suffix to volumes in root property", () => {
-	const composeData = load(composeFile4) as ComposeSpecification;
+	const composeData = parse(composeFile4) as ComposeSpecification;
 
 	const suffix = "testhash";
 

@@ -3,8 +3,8 @@ import {
 	addSuffixToSecretsInServices,
 	generateRandomHash,
 } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFileSecretsServices = `
 version: "3.8"
@@ -21,7 +21,7 @@ secrets:
 `;
 
 test("Add suffix to secrets in services", () => {
-	const composeData = load(composeFileSecretsServices) as ComposeSpecification;
+	const composeData = parse(composeFileSecretsServices) as ComposeSpecification;
 	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
@@ -54,7 +54,9 @@ secrets:
 `;
 
 test("Add suffix to secrets in services (Test 1)", () => {
-	const composeData = load(composeFileSecretsServices1) as ComposeSpecification;
+	const composeData = parse(
+		composeFileSecretsServices1,
+	) as ComposeSpecification;
 	const suffix = generateRandomHash();
 
 	if (!composeData.services) {
@@ -93,7 +95,9 @@ secrets:
 `;
 
 test("Add suffix to secrets in services (Test 2)", () => {
-	const composeData = load(composeFileSecretsServices2) as ComposeSpecification;
+	const composeData = parse(
+		composeFileSecretsServices2,
+	) as ComposeSpecification;
 	const suffix = generateRandomHash();
 
 	if (!composeData.services) {

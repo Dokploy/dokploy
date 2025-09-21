@@ -325,9 +325,6 @@ importers:
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
-      js-yaml:
-        specifier: 4.1.0
-        version: 4.1.0
       lodash:
         specifier: 4.17.21
         version: 4.17.21
@@ -448,6 +445,9 @@ importers:
       xterm-addon-fit:
         specifier: ^0.8.0
         version: 0.8.0(xterm@5.3.0)
+      yaml:
+        specifier: 2.8.1
+        version: 2.8.1
       zod:
         specifier: ^3.25.32
         version: 3.25.32
@@ -464,9 +464,6 @@ importers:
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
-      '@types/js-yaml':
-        specifier: 4.0.9
-        version: 4.0.9
       '@types/lodash':
         specifier: 4.17.4
         version: 4.17.4
@@ -681,9 +678,6 @@ importers:
       hi-base32:
         specifier: ^0.5.1
         version: 0.5.1
-      js-yaml:
-        specifier: 4.1.0
-        version: 4.1.0
       lodash:
         specifier: 4.17.21
         version: 4.17.21
@@ -747,6 +741,9 @@ importers:
       ws:
         specifier: 8.16.0
         version: 8.16.0
+      yaml:
+        specifier: 2.8.1
+        version: 2.8.1
       zod:
         specifier: ^3.25.32
         version: 3.25.32
@@ -760,9 +757,6 @@ importers:
       '@types/dockerode':
         specifier: 3.3.23
         version: 3.3.23
-      '@types/js-yaml':
-        specifier: 4.0.9
-        version: 4.0.9
       '@types/lodash':
         specifier: 4.17.4
         version: 4.17.4
@@ -3964,9 +3958,6 @@ packages:
 
   '@types/js-cookie@3.0.6':
     resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
-
-  '@types/js-yaml@4.0.9':
-    resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
 
   '@types/jsonwebtoken@9.0.9':
     resolution: {integrity: sha512-uoe+GxEuHbvy12OUQct2X9JenKM3qAscquYymuQN4fMWG9DBQtykrQEFcAbVACF7qaLw9BePSodUL0kquqBJpQ==}
@@ -7783,6 +7774,11 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
+  yaml@2.8.1:
+    resolution: {integrity: sha512-lcYcMxX2PO9XMGvAJkJ3OsNMw+/7FKes7/hgerGUYWIoWu5j/+YQqcZr5JnPZWzOsEBgMbSbiSTn/dv/69Mkpw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yargs-parser@18.1.3:
     resolution: {integrity: sha512-o50j0JeToy/4K6OZcaQmW6lyXXKhq7csREXcDwk2omFPJEwUNOVtJKvmDr9EI1fAJZUyZcRF7kxGBWmRXudrCQ==}
     engines: {node: '>=6'}
@@ -11223,8 +11219,6 @@ snapshots:
 
   '@types/js-cookie@3.0.6': {}
 
-  '@types/js-yaml@4.0.9': {}
-
   '@types/jsonwebtoken@9.0.9':
     dependencies:
       '@types/ms': 2.1.0
@@ -14032,7 +14026,7 @@ snapshots:
   postcss-load-config@4.0.2(postcss@8.5.3):
     dependencies:
       lilconfig: 3.1.3
-      yaml: 2.8.0
+      yaml: 2.8.1
     optionalDependencies:
       postcss: 8.5.3
 
@@ -15352,6 +15346,8 @@ snapshots:
   yallist@4.0.0: {}
 
   yaml@2.8.0: {}
+
+  yaml@2.8.1: {}
 
   yargs-parser@18.1.3:
     dependencies:
