@@ -1,1 +1,0 @@
-ALTER TABLE "bitbucket" ADD COLUMN "apiToken" text;
