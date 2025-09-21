@@ -303,7 +303,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																placeholder="Variable Name"
 																className="flex-1"
 															/>
-															<div className="flex-1 relative">
+															<div className="relative">
 																<Input
 																	type={"password"}
 																	value={env.value}
