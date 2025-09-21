@@ -39,10 +39,10 @@ import {
 import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { dump } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
+import { stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import { db } from "@/server/db";
@@ -364,7 +364,7 @@ export const composeRouter = createTRPCRouter({
 			}
 			const domains = await findDomainsByComposeId(input.composeId);
 			const composeFile = await addDomainToCompose(compose, domains);
-			return dump(composeFile, {
+			return stringify(composeFile, {
 				lineWidth: 1000,
 			});
 		}),

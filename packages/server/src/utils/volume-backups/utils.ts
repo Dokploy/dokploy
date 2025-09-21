@@ -1,3 +1,5 @@
+import path from "node:path";
+import { paths } from "@dokploy/server/constants";
 import {
 	createDeploymentVolumeBackup,
 	updateDeploymentStatus,
@@ -76,7 +78,20 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
+		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
+		const volumeBackupPath = path.join(
+			VOLUME_BACKUPS_PATH,
+			volumeBackup.appName,
+		);
+		// delete all the .tar files
+		const command = `rm -rf ${volumeBackupPath}/*.tar`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
+
 		console.error(error);
 	}
 };
