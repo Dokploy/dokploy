@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import { addSuffixToAllSecrets } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFileCombinedSecrets = `
 version: "3.8"
@@ -25,7 +25,7 @@ secrets:
     file: ./app_secret.txt
 `;
 
-const expectedComposeFileCombinedSecrets = load(`
+const expectedComposeFileCombinedSecrets = parse(`
 version: "3.8"
 
 services:
@@ -77,7 +77,7 @@ secrets:
     file: ./cache_secret.txt
 `;
 
-const expectedComposeFileCombinedSecrets3 = load(`
+const expectedComposeFileCombinedSecrets3 = parse(`
 version: "3.8"
 
 services:
@@ -128,7 +128,7 @@ secrets:
     file: ./db_password.txt
 `;
 
-const expectedComposeFileCombinedSecrets4 = load(`
+const expectedComposeFileCombinedSecrets4 = parse(`
 version: "3.8"
 
 services:

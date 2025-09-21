@@ -4,8 +4,8 @@ import {
 	addSuffixToVolumesRoot,
 	generateRandomHash,
 } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile = `
 services:
@@ -70,7 +70,7 @@ volumes:
     driver: local
 `;
 
-const expectedDockerCompose = load(`
+const expectedDockerCompose = parse(`
 services:
   mail:
     image: bytemark/smtp
@@ -195,7 +195,7 @@ volumes:
   mongo-data:
 `;
 
-const expectedDockerCompose2 = load(`
+const expectedDockerCompose2 = parse(`
 version: '3.8'
 services:
   app:
@@ -248,7 +248,7 @@ volumes:
   mongo-data:
 `;
 
-const expectedDockerCompose3 = load(`
+const expectedDockerCompose3 = parse(`
 version: '3.8'
 services:
   app:
@@ -645,7 +645,7 @@ volumes:
   db-config:
 `;
 
-const expectedDockerComposeComplex = load(`
+const expectedDockerComposeComplex = parse(`
 version: "3.8"
 services:
   studio:
@@ -1065,7 +1065,7 @@ volumes:
   db-data:
 `;
 
-const expectedDockerComposeExample1 = load(`
+const expectedDockerComposeExample1 = parse(`
 version: "3.8"
 services:
   web:
@@ -1143,7 +1143,7 @@ volumes:
   backrest-cache:
 `;
 
-const expectedDockerComposeBackrest = load(`
+const expectedDockerComposeBackrest = parse(`
 services:
   backrest:
     image: garethgeorge/backrest:v1.7.3

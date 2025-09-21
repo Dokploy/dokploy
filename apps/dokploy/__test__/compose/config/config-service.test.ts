@@ -3,8 +3,8 @@ import {
 	addSuffixToConfigsInServices,
 	generateRandomHash,
 } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile = `
 version: "3.8"
@@ -157,7 +157,7 @@ services:
 `;
 
 // Expected compose file con el prefijo `testhash`
-const expectedComposeFileConfigServices = load(`
+const expectedComposeFileConfigServices = parse(`
 version: "3.8"
 
 services:

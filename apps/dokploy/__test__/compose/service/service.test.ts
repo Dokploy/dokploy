@@ -3,8 +3,8 @@ import {
 	addSuffixToAllServiceNames,
 	addSuffixToServiceNames,
 } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFileCombinedAllCases = `
 version: "3.8"
@@ -38,7 +38,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile = load(`
+const expectedComposeFile = parse(`
 version: "3.8"
 
 services:
@@ -131,7 +131,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile1 = load(`
+const expectedComposeFile1 = parse(`
 version: "3.8"
 
 services:
@@ -227,7 +227,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile2 = load(`
+const expectedComposeFile2 = parse(`
 version: "3.8"
 
 services:
@@ -322,7 +322,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile3 = load(`
+const expectedComposeFile3 = parse(`
 version: "3.8"
 
 services:
