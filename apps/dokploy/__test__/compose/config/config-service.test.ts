@@ -22,7 +22,7 @@ configs:
 `;
 
 test("Add suffix to configs in services", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -54,7 +54,7 @@ configs:
 `;
 
 test("Add suffix to configs in services with single config", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileSingleServiceConfig,
 	) as ComposeSpecification;
 
@@ -108,7 +108,7 @@ configs:
 `;
 
 test("Add suffix to configs in services with multiple configs", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileMultipleServicesConfigs,
 	) as ComposeSpecification;
 
@@ -182,7 +182,7 @@ services:
 `) as ComposeSpecification;
 
 test("Add suffix to configs in services", () => {
-	const composeData = load(composeFileConfigServices) as ComposeSpecification;
+	const composeData = parse(composeFileConfigServices) as ComposeSpecification;
 
 	const suffix = "testhash";
 
