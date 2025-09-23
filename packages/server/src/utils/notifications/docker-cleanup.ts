@@ -37,7 +37,8 @@ export const sendDockerCleanupNotifications = async (
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -93,7 +94,7 @@ export const sendDockerCleanupNotifications = async (
 				gotify,
 				decorate("✅", "Docker Cleanup"),
 				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
-				`${decorate("📜", `Message:\n${message}`)}`,
+					`${decorate("📜", `Message:\n${message}`)}`,
 			);
 		}
 
@@ -150,10 +151,10 @@ export const sendDockerCleanupNotifications = async (
 								normal_v2: {
 									default: "normal",
 									pc: "normal",
-									mobile: "heading"
-								}
-							}
-						}
+									mobile: "heading",
+								},
+							},
+						},
 					},
 					header: {
 						title: {
@@ -165,7 +166,7 @@ export const sendDockerCleanupNotifications = async (
 							content: "",
 						},
 						template: "green",
-						padding: "12px 12px 12px 12px"
+						padding: "12px 12px 12px 12px",
 					},
 					body: {
 						direction: "vertical",
@@ -182,17 +183,17 @@ export const sendDockerCleanupNotifications = async (
 												tag: "markdown",
 												content: `**Status:**\nSuccessful`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Cleanup Details:**\n${message}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
+										weight: 1,
 									},
 									{
 										tag: "column",
@@ -202,16 +203,16 @@ export const sendDockerCleanupNotifications = async (
 												tag: "markdown",
 												content: `**Date:**\n${format(date, "PP pp")}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
-									}
-								]
-							}
+										weight: 1,
+									},
+								],
+							},
 						],
-					}
+					},
 				},
 			});
 		}

@@ -31,7 +31,8 @@ export const sendDokployRestartNotifications = async () => {
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -151,10 +152,10 @@ export const sendDokployRestartNotifications = async () => {
 									normal_v2: {
 										default: "normal",
 										pc: "normal",
-										mobile: "heading"
-									}
-								}
-							}
+										mobile: "heading",
+									},
+								},
+							},
 						},
 						header: {
 							title: {
@@ -166,7 +167,7 @@ export const sendDokployRestartNotifications = async () => {
 								content: "",
 							},
 							template: "green",
-							padding: "12px 12px 12px 12px"
+							padding: "12px 12px 12px 12px",
 						},
 						body: {
 							direction: "vertical",
@@ -183,11 +184,11 @@ export const sendDokployRestartNotifications = async () => {
 													tag: "markdown",
 													content: `**Status:**\nSuccessful`,
 													text_align: "left",
-													text_size: "normal_v2"
-												}
+													text_size: "normal_v2",
+												},
 											],
 											vertical_align: "top",
-											weight: 1
+											weight: 1,
 										},
 										{
 											tag: "column",
@@ -197,16 +198,16 @@ export const sendDokployRestartNotifications = async () => {
 													tag: "markdown",
 													content: `**Restart Time:**\n${format(date, "PP pp")}`,
 													text_align: "left",
-													text_size: "normal_v2"
-												}
+													text_size: "normal_v2",
+												},
 											],
 											vertical_align: "top",
-											weight: 1
-										}
-									]
-								}
+											weight: 1,
+										},
+									],
+								},
 							],
-						}
+						},
 					},
 				});
 			} catch (error) {

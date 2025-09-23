@@ -50,7 +50,8 @@ export const sendDatabaseBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -120,11 +121,11 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 					...(type === "error" && errorMessage
 						? [
-							{
-								name: decorate("`⚠️`", "Error Message"),
-								value: `\`\`\`${errorMessage}\`\`\``,
-							},
-						]
+								{
+									name: decorate("`⚠️`", "Error Message"),
+									value: `\`\`\`${errorMessage}\`\`\``,
+								},
+							]
 						: []),
 				],
 				timestamp: date.toISOString(),
@@ -145,11 +146,11 @@ export const sendDatabaseBackupNotifications = async ({
 					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
 				),
 				`${decorate("🛠️", `Project: ${projectName}`)}` +
-				`${decorate("⚙️", `Application: ${applicationName}`)}` +
-				`${decorate("❔", `Type: ${databaseType}`)}` +
-				`${decorate("📂", `Database Name: ${databaseName}`)}` +
-				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
-				`${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${databaseType}`)}` +
+					`${decorate("📂", `Database Name: ${databaseName}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${type === "error" && errorMessage ? decorate("❌", `Error:\n${errorMessage}`) : ""}`,
 			);
 		}
 
@@ -160,11 +161,11 @@ export const sendDatabaseBackupNotifications = async ({
 				`${type === "success" ? "white_check_mark" : "x"}`,
 				"",
 				`🛠Project: ${projectName}\n` +
-				`⚙️Application: ${applicationName}\n` +
-				`❔Type: ${databaseType}\n` +
-				`📂Database Name: ${databaseName}` +
-				`🕒Date: ${date.toLocaleString()}\n` +
-				`${type === "error" && errorMessage ? `❌Error:\n${errorMessage}` : ""}`,
+					`⚙️Application: ${applicationName}\n` +
+					`❔Type: ${databaseType}\n` +
+					`📂Database Name: ${databaseName}` +
+					`🕒Date: ${date.toLocaleString()}\n` +
+					`${type === "error" && errorMessage ? `❌Error:\n${errorMessage}` : ""}`,
 			);
 		}
 
@@ -196,12 +197,12 @@ export const sendDatabaseBackupNotifications = async ({
 						fields: [
 							...(type === "error" && errorMessage
 								? [
-									{
-										title: "Error Message",
-										value: errorMessage,
-										short: false,
-									},
-								]
+										{
+											title: "Error Message",
+											value: errorMessage,
+											short: false,
+										},
+									]
 								: []),
 							{
 								title: "Project",
@@ -243,9 +244,10 @@ export const sendDatabaseBackupNotifications = async ({
 
 		if (lark) {
 			const limitCharacter = 800;
-			const truncatedErrorMessage = errorMessage && errorMessage.length > limitCharacter
-				? errorMessage.substring(0, limitCharacter)
-				: errorMessage;
+			const truncatedErrorMessage =
+				errorMessage && errorMessage.length > limitCharacter
+					? errorMessage.substring(0, limitCharacter)
+					: errorMessage;
 
 			await sendLarkNotification(lark, {
 				msg_type: "interactive",
@@ -258,10 +260,10 @@ export const sendDatabaseBackupNotifications = async ({
 								normal_v2: {
 									default: "normal",
 									pc: "normal",
-									mobile: "heading"
-								}
-							}
-						}
+									mobile: "heading",
+								},
+							},
+						},
 					},
 					header: {
 						title: {
@@ -276,7 +278,7 @@ export const sendDatabaseBackupNotifications = async ({
 							content: "",
 						},
 						template: type === "success" ? "green" : "red",
-						padding: "12px 12px 12px 12px"
+						padding: "12px 12px 12px 12px",
 					},
 					body: {
 						direction: "vertical",
@@ -293,23 +295,23 @@ export const sendDatabaseBackupNotifications = async ({
 												tag: "markdown",
 												content: `**Project:**\n${projectName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Database Type:**\n${databaseType}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Status:**\n${type === "success" ? "Successful" : "Failed"}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
+										weight: 1,
 									},
 									{
 										tag: "column",
@@ -319,38 +321,38 @@ export const sendDatabaseBackupNotifications = async ({
 												tag: "markdown",
 												content: `**Application:**\n${applicationName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Database Name:**\n${databaseName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Date:**\n${format(date, "PP pp")}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
-									}
-								]
+										weight: 1,
+									},
+								],
 							},
 							...(type === "error" && truncatedErrorMessage
 								? [
-									{
-										tag: "markdown",
-										content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
-										text_align: "left",
-										text_size: "normal_v2"
-									}
-								]
-								: [])
+										{
+											tag: "markdown",
+											content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
+											text_align: "left",
+											text_size: "normal_v2",
+										},
+									]
+								: []),
 						],
-					}
+					},
 				},
 			});
 		}

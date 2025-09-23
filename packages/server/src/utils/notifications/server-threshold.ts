@@ -166,10 +166,10 @@ export const sendServerThresholdNotifications = async (
 								normal_v2: {
 									default: "normal",
 									pc: "normal",
-									mobile: "heading"
-								}
-							}
-						}
+									mobile: "heading",
+								},
+							},
+						},
 					},
 					header: {
 						title: {
@@ -181,7 +181,7 @@ export const sendServerThresholdNotifications = async (
 							content: "",
 						},
 						template: "red",
-						padding: "12px 12px 12px 12px"
+						padding: "12px 12px 12px 12px",
 					},
 					body: {
 						direction: "vertical",
@@ -198,23 +198,23 @@ export const sendServerThresholdNotifications = async (
 												tag: "markdown",
 												content: `**Server Name:**\n${payload.ServerName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Current Value:**\n${payload.Value.toFixed(2)}%`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Alert Message:**\n${payload.Message}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
+										weight: 1,
 									},
 									{
 										tag: "column",
@@ -224,28 +224,28 @@ export const sendServerThresholdNotifications = async (
 												tag: "markdown",
 												content: `**Type:**\n${payload.Type === "CPU" ? "🔲" : "💾"} ${payload.Type}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Threshold:**\n${payload.Threshold.toFixed(2)}%`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Alert Time:**\n${date.toLocaleString()}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
-									}
-								]
-							}
+										weight: 1,
+									},
+								],
+							},
 						],
-					}
+					},
 				},
 			});
 		}

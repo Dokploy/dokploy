@@ -51,7 +51,8 @@ export const sendBuildSuccessNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -123,10 +124,10 @@ export const sendBuildSuccessNotifications = async ({
 				gotify,
 				decorate("✅", "Build Success"),
 				`${decorate("🛠️", `Project: ${projectName}`)}` +
-				`${decorate("⚙️", `Application: ${applicationName}`)}` +
-				`${decorate("❔", `Type: ${applicationType}`)}` +
-				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
-				`${decorate("🔗", `Build details:\n${buildLink}`)}`,
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${applicationType}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
 			);
 		}
 
@@ -137,9 +138,9 @@ export const sendBuildSuccessNotifications = async ({
 				"white_check_mark",
 				`view, Build details, ${buildLink}, clear=true;`,
 				`🛠Project: ${projectName}\n` +
-				`⚙️Application: ${applicationName}\n` +
-				`❔Type: ${applicationType}\n` +
-				`🕒Date: ${date.toLocaleString()}`,
+					`⚙️Application: ${applicationName}\n` +
+					`❔Type: ${applicationType}\n` +
+					`🕒Date: ${date.toLocaleString()}`,
 			);
 		}
 
@@ -225,10 +226,10 @@ export const sendBuildSuccessNotifications = async ({
 								normal_v2: {
 									default: "normal",
 									pc: "normal",
-									mobile: "heading"
-								}
-							}
-						}
+									mobile: "heading",
+								},
+							},
+						},
 					},
 					header: {
 						title: {
@@ -240,7 +241,7 @@ export const sendBuildSuccessNotifications = async ({
 							content: "",
 						},
 						template: "green",
-						padding: "12px 12px 12px 12px"
+						padding: "12px 12px 12px 12px",
 					},
 					body: {
 						direction: "vertical",
@@ -257,17 +258,17 @@ export const sendBuildSuccessNotifications = async ({
 												tag: "markdown",
 												content: `**Project:**\n${projectName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Type:**\n${applicationType}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
+										weight: 1,
 									},
 									{
 										tag: "column",
@@ -277,19 +278,19 @@ export const sendBuildSuccessNotifications = async ({
 												tag: "markdown",
 												content: `**Application:**\n${applicationName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Date:**\n${format(date, "PP pp")}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
-									}
-								]
+										weight: 1,
+									},
+								],
 							},
 							{
 								tag: "button",
@@ -306,13 +307,13 @@ export const sendBuildSuccessNotifications = async ({
 										default_url: buildLink,
 										pc_url: "",
 										ios_url: "",
-										android_url: ""
-									}
+										android_url: "",
+									},
 								],
-								margin: "0px 0px 0px 0px"
-							}
+								margin: "0px 0px 0px 0px",
+							},
 						],
-					}
+					},
 				},
 			});
 		}

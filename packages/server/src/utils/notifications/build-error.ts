@@ -50,7 +50,8 @@ export const sendBuildErrorNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -128,11 +129,11 @@ export const sendBuildErrorNotifications = async ({
 				gotify,
 				decorate("⚠️", "Build Failed"),
 				`${decorate("🛠️", `Project: ${projectName}`)}` +
-				`${decorate("⚙️", `Application: ${applicationName}`)}` +
-				`${decorate("❔", `Type: ${applicationType}`)}` +
-				`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
-				`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
-				`${decorate("🔗", `Build details:\n${buildLink}`)}`,
+					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("❔", `Type: ${applicationType}`)}` +
+					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+					`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
+					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
 			);
 		}
 
@@ -143,10 +144,10 @@ export const sendBuildErrorNotifications = async ({
 				"warning",
 				`view, Build details, ${buildLink}, clear=true;`,
 				`🛠️Project: ${projectName}\n` +
-				`⚙️Application: ${applicationName}\n` +
-				`❔Type: ${applicationType}\n` +
-				`🕒Date: ${date.toLocaleString()}\n` +
-				`⚠️Error:\n${errorMessage}`,
+					`⚙️Application: ${applicationName}\n` +
+					`❔Type: ${applicationType}\n` +
+					`🕒Date: ${date.toLocaleString()}\n` +
+					`⚠️Error:\n${errorMessage}`,
 			);
 		}
 
@@ -228,10 +229,10 @@ export const sendBuildErrorNotifications = async ({
 								normal_v2: {
 									default: "normal",
 									pc: "normal",
-									mobile: "heading"
-								}
-							}
-						}
+									mobile: "heading",
+								},
+							},
+						},
 					},
 					header: {
 						title: {
@@ -243,7 +244,7 @@ export const sendBuildErrorNotifications = async ({
 							content: "",
 						},
 						template: "red",
-						padding: "12px 12px 12px 12px"
+						padding: "12px 12px 12px 12px",
 					},
 					body: {
 						direction: "vertical",
@@ -260,23 +261,23 @@ export const sendBuildErrorNotifications = async ({
 												tag: "markdown",
 												content: `**Project:**\n${projectName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Type:**\n${applicationType}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
+										weight: 1,
 									},
 									{
 										tag: "column",
@@ -286,19 +287,19 @@ export const sendBuildErrorNotifications = async ({
 												tag: "markdown",
 												content: `**Application:**\n${applicationName}`,
 												text_align: "left",
-												text_size: "normal_v2"
+												text_size: "normal_v2",
 											},
 											{
 												tag: "markdown",
 												content: `**Date:**\n${format(date, "PP pp")}`,
 												text_align: "left",
-												text_size: "normal_v2"
-											}
+												text_size: "normal_v2",
+											},
 										],
 										vertical_align: "top",
-										weight: 1
-									}
-								]
+										weight: 1,
+									},
+								],
 							},
 							{
 								tag: "button",
@@ -315,13 +316,13 @@ export const sendBuildErrorNotifications = async ({
 										default_url: buildLink,
 										pc_url: "",
 										ios_url: "",
-										android_url: ""
-									}
+										android_url: "",
+									},
 								],
-								margin: "0px 0px 0px 0px"
-							}
+								margin: "0px 0px 0px 0px",
+							},
 						],
-					}
+					},
 				},
 			});
 		}
