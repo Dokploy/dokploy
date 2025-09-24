@@ -45,6 +45,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
 	} = generateConfigContainer(mariadb);
 	const resources = calculateResources({
 		memoryLimit,
@@ -102,6 +103,8 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 				: [],
 		},
 		UpdateConfig,
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 	try {
 		const service = docker.getService(appName);
