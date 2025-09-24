@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, json, pgTable, text } from "drizzle-orm/pg-core";
+import { bigint, integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -60,6 +60,7 @@ export const redis = pgTable("redis", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	replicas: integer("replicas").default(1).notNull(),
 
 	environmentId: text("environmentId")
@@ -108,6 +109,7 @@ const createSchema = createInsertSchema(redis, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
 });
 
 export const apiCreateRedis = createSchema

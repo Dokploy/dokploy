@@ -142,6 +142,7 @@ export const mechanizeDockerContainer = async (
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
@@ -191,6 +192,8 @@ export const mechanizeDockerContainer = async (
 			})),
 		},
 		UpdateConfig,
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {
