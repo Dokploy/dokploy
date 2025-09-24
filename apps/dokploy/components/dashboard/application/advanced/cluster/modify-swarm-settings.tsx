@@ -182,6 +182,11 @@ const addSwarmSettings = z.object({
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
 
+const hasStopGracePeriodSwarm = (
+	value: unknown,
+): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
+	typeof value === "object" && value !== null && "stopGracePeriodSwarm" in value;
+
 interface Props {
 	id: string;
 	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
@@ -233,6 +238,15 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 
 	useEffect(() => {
 		if (data) {
+			const stopGracePeriodValue = hasStopGracePeriodSwarm(data)
+				? data.stopGracePeriodSwarm
+				: null;
+			const normalizedStopGracePeriod =
+				stopGracePeriodValue === null || stopGracePeriodValue === undefined
+					? null
+					: typeof stopGracePeriodValue === "bigint"
+						? stopGracePeriodValue
+						: BigInt(stopGracePeriodValue);
 			form.reset({
 				healthCheckSwarm: data.healthCheckSwarm
 					? JSON.stringify(data.healthCheckSwarm, null, 2)
@@ -258,9 +272,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				networkSwarm: data.networkSwarm
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
-				stopGracePeriodSwarm: data.stopGracePeriodSwarm
-					? BigInt(data.stopGracePeriodSwarm)
-					: null,
+				stopGracePeriodSwarm: normalizedStopGracePeriod,
 			});
 		}
 	}, [form, form.reset, data]);
