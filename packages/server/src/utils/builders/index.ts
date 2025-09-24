@@ -192,7 +192,8 @@ export const mechanizeDockerContainer = async (
 			})),
 		},
 		UpdateConfig,
-		...(StopGracePeriod && { StopGracePeriod }),
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {

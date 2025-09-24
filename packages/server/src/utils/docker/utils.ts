@@ -397,6 +397,11 @@ export const generateConfigContainer = (
 		stopGracePeriodSwarm,
 	} = application;
 
+	const sanitizedStopGracePeriodSwarm =
+		typeof stopGracePeriodSwarm === "bigint"
+			? Number(stopGracePeriodSwarm)
+			: stopGracePeriodSwarm;
+
 	const haveMounts = mounts && mounts.length > 0;
 
 	return {
@@ -445,8 +450,9 @@ export const generateConfigContainer = (
 						Order: "start-first",
 					},
 				}),
-		...(stopGracePeriodSwarm && {
-			StopGracePeriod: stopGracePeriodSwarm,
+		...(sanitizedStopGracePeriodSwarm !== null &&
+			sanitizedStopGracePeriodSwarm !== undefined && {
+			StopGracePeriod: sanitizedStopGracePeriodSwarm,
 		}),
 		...(networkSwarm
 			? {
