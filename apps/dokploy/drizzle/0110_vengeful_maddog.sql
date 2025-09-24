@@ -1,1 +1,0 @@
-ALTER TABLE "application" ADD COLUMN IF NOT EXISTS "stopGracePeriodSwarm" bigint;
