@@ -13,7 +13,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -40,23 +39,36 @@ interface Props {
 	appName: string;
 	children?: React.ReactNode;
 	serverId?: string;
+	appType?: "stack" | "docker-compose";
 }
 
-export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
+export const DockerTerminalModal = ({
+	children,
+	appName,
+	serverId,
+	appType,
+}: Props) => {
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
-			serverId,
+			appType,
+			...(serverId ? { serverId } : {}),
 		},
 		{
 			enabled: !!appName,
 		},
 	);
+
+	
 	const [containerId, setContainerId] = useState<string | undefined>();
 	const [mainDialogOpen, setMainDialogOpen] = useState(false);
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
 	const handleMainDialogOpenChange = (open: boolean) => {
+		if (!open && !containerId) {
+			setMainDialogOpen(false);
+			return;
+		}
 		if (!open) {
 			setConfirmDialogOpen(true);
 		} else {
@@ -83,7 +95,7 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 		<Dialog open={mainDialogOpen} onOpenChange={handleMainDialogOpenChange}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent
-				className="max-h-[85vh]    sm:max-w-7xl"
+				className="max-h-[85vh] sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
@@ -92,7 +104,6 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 						Easy way to access to docker container
 					</DialogDescription>
 				</DialogHeader>
-				<Label>Select a container to view logs</Label>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
@@ -121,11 +132,7 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 						</SelectGroup>
 					</SelectContent>
 				</Select>
-				<Terminal
-					serverId={serverId || ""}
-					id="terminal"
-					containerId={containerId || "select-a-container"}
-				/>
+				<Terminal serverId={serverId} id="terminal" containerId={containerId} />
 				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>

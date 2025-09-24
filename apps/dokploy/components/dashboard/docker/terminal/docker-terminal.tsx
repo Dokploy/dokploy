@@ -1,14 +1,15 @@
 import { Terminal } from "@xterm/xterm";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { useTheme } from "next-themes";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
 	id: string;
-	containerId: string;
+	containerId?: string;
 	serverId?: string;
 }
 
@@ -19,6 +20,7 @@ export const DockerTerminal: React.FC<Props> = ({
 }) => {
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
+	const [isConnected, setIsConnected] = useState(false);
 	const { resolvedTheme } = useTheme();
 	useEffect(() => {
 		const container = document.getElementById(id);
@@ -36,31 +38,48 @@ export const DockerTerminal: React.FC<Props> = ({
 			},
 		});
 		const addonFit = new FitAddon();
-
-		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-
-		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
-
-		const ws = new WebSocket(wsUrl);
-
-		const addonAttach = new AttachAddon(ws);
 		// @ts-ignore
 		term.open(termRef.current);
 		// @ts-ignore
 		term.loadAddon(addonFit);
-		term.loadAddon(addonAttach);
 		addonFit.fit();
-		return () => {
-			ws.readyState === WebSocket.OPEN && ws.close();
-		};
+
+		// only connect if containerId is provided
+		if (
+			containerId &&
+			containerId !== "" &&
+			containerId !== "select-a-container"
+		) {
+			const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+			const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
+
+			const ws = new WebSocket(wsUrl);
+
+			const addonAttach = new AttachAddon(ws);
+
+			term.loadAddon(addonAttach);
+
+			ws.onopen = () => {
+				setIsConnected(true);
+			};
+
+			ws.onclose = () => {
+				setIsConnected(false);
+			};
+
+			return () => {
+				ws.readyState === WebSocket.OPEN && ws.close();
+			};
+		}
 	}, [containerId, activeWay, id]);
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex flex-col gap-2">
-				<span>
-					Select way to connect to <b>{containerId}</b>
-				</span>
+			<div className="flex flex-col gap-2  mt-4">
+				<Label>
+					Select shell to connect to <b>{isConnected ? containerId : "..."}</b>
+				</Label>
 				<Tabs value={activeWay} onValueChange={setActiveWay}>
 					<TabsList>
 						<TabsTrigger value="bash">Bash</TabsTrigger>
