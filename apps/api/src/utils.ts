@@ -18,14 +18,14 @@ export const deploy = async (job: DeployJob) => {
 				if (job.type === "redeploy") {
 					await rebuildRemoteApplication({
 						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
+						titleLog: job.titleLog || "Rebuild deployment",
+						descriptionLog: job.descriptionLog || "",
 					});
 				} else if (job.type === "deploy") {
 					await deployRemoteApplication({
 						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
+						titleLog: job.titleLog || "Manual deployment",
+						descriptionLog: job.descriptionLog || "",
 					});
 				}
 			}
@@ -38,14 +38,14 @@ export const deploy = async (job: DeployJob) => {
 				if (job.type === "redeploy") {
 					await rebuildRemoteCompose({
 						composeId: job.composeId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
+						titleLog: job.titleLog || "Rebuild deployment",
+						descriptionLog: job.descriptionLog || "",
 					});
 				} else if (job.type === "deploy") {
 					await deployRemoteCompose({
 						composeId: job.composeId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
+						titleLog: job.titleLog || "Manual deployment",
+						descriptionLog: job.descriptionLog || "",
 					});
 				}
 			}
@@ -57,8 +57,8 @@ export const deploy = async (job: DeployJob) => {
 				if (job.type === "deploy") {
 					await deployRemotePreviewApplication({
 						applicationId: job.applicationId,
-						titleLog: job.titleLog,
-						descriptionLog: job.descriptionLog,
+						titleLog: job.titleLog || "Preview Deployment",
+						descriptionLog: job.descriptionLog || "",
 						previewDeploymentId: job.previewDeploymentId,
 					});
 				}

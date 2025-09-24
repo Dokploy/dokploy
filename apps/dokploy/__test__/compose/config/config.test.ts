@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import { addSuffixToAllConfigs, generateRandomHash } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();
@@ -43,7 +43,7 @@ configs:
     file: ./db-config.yml
 `;
 
-const expectedComposeFileCombinedConfigs = load(`
+const expectedComposeFileCombinedConfigs = parse(`
 version: "3.8"
 
 services:
@@ -77,7 +77,7 @@ configs:
 `) as ComposeSpecification;
 
 test("Add suffix to all configs in root and services", () => {
-	const composeData = load(composeFileCombinedConfigs) as ComposeSpecification;
+	const composeData = parse(composeFileCombinedConfigs) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -122,7 +122,7 @@ configs:
     file: ./db-config.yml
 `;
 
-const expectedComposeFileWithEnvAndExternal = load(`
+const expectedComposeFileWithEnvAndExternal = parse(`
 version: "3.8"
 
 services:
@@ -159,7 +159,7 @@ configs:
 `) as ComposeSpecification;
 
 test("Add suffix to configs with environment and external", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileWithEnvAndExternal,
 	) as ComposeSpecification;
 
@@ -200,7 +200,7 @@ configs:
     file: ./db-config.yml
 `;
 
-const expectedComposeFileWithTemplateDriverAndLabels = load(`
+const expectedComposeFileWithTemplateDriverAndLabels = parse(`
 version: "3.8"
 
 services:
@@ -231,7 +231,7 @@ configs:
 `) as ComposeSpecification;
 
 test("Add suffix to configs with template driver and labels", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileWithTemplateDriverAndLabels,
 	) as ComposeSpecification;
 

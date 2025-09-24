@@ -342,6 +342,8 @@ export const readPorts = async (
 		command = `docker service inspect ${resourceName} --format '{{json .Spec.EndpointSpec.Ports}}'`;
 	} else if (resourceType === "standalone") {
 		command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
+	} else {
+		throw new Error("Resource type not found");
 	}
 	let result = "";
 	if (serverId) {
@@ -397,17 +399,20 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 		"dokploy-traefik",
 		input.serverId,
 	);
+
 	if (resourceType === "service") {
 		await initializeTraefikService({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
-	} else {
+	} else if (resourceType === "standalone") {
 		await initializeStandaloneTraefik({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
 			serverId: input.serverId,
 		});
+	} else {
+		throw new Error("Traefik resource type not found");
 	}
 };

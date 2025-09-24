@@ -104,9 +104,9 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 					<CardHeader>
 						<CardTitle className="text-xl">External Credentials</CardTitle>
 						<CardDescription>
-							In order to make the database reachable trought internet is
-							required to set a port, make sure the port is not used by another
-							application or database
+							In order to make the database reachable through the internet, you
+							must set a port and ensure that the port is not being used by
+							another application or database
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">

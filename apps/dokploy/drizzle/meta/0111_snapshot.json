@@ -1,6 +1,6 @@
 {
-  "id": "9f9b4142-e739-4c21-8618-676d62e9b5ae",
-  "prevId": "b5e88b4f-1396-4456-b338-65c93e2194fa",
+  "id": "4512f45f-c14f-4bbe-a5f3-7470ae505d4f",
+  "prevId": "9f9b4142-e739-4c21-8618-676d62e9b5ae",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1710,6 +1710,12 @@
         },
         "appPassword": {
           "name": "appPassword",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apiToken": {
+          "name": "apiToken",
           "type": "text",
           "primaryKey": false,
           "notNull": false

@@ -1,7 +1,14 @@
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	rmSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import type { ContainerCreateOptions, CreateServiceOptions } from "dockerode";
-import { dump } from "js-yaml";
+import { stringify } from "yaml";
 import { paths } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
@@ -88,15 +95,26 @@ export const initializeStandaloneTraefik = async ({
 
 	const docker = await getRemoteDocker(serverId);
 	try {
+		await docker.pull(imageName);
+		await new Promise((resolve) => setTimeout(resolve, 3000));
+		console.log("Traefik Image Pulled ✅");
+	} catch (error) {
+		console.log("Traefik Image Not Found: Pulling ", error);
+	}
+	try {
 		const container = docker.getContainer(containerName);
 		await container.remove({ force: true });
 		await new Promise((resolve) => setTimeout(resolve, 5000));
 	} catch {}
 
-	await docker.createContainer(settings);
-	const newContainer = docker.getContainer(containerName);
-	await newContainer.start();
-	console.log("Traefik Started ✅");
+	try {
+		await docker.createContainer(settings);
+		const newContainer = docker.getContainer(containerName);
+		await newContainer.start();
+		console.log("Traefik Started ✅");
+	} catch (error) {
+		console.log("Traefik Not Found: Starting ", error);
+	}
 };
 
 export const initializeTraefikService = async ({
@@ -223,7 +241,7 @@ export const createDefaultServerTraefikConfig = () => {
 		},
 	};
 
-	const yamlStr = dump(config);
+	const yamlStr = stringify(config);
 	mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(
 		path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`),
@@ -297,7 +315,7 @@ export const getDefaultTraefikConfig = () => {
 		}),
 	};
 
-	const yamlStr = dump(configObject);
+	const yamlStr = stringify(configObject);
 
 	return yamlStr;
 };
@@ -351,7 +369,7 @@ export const getDefaultServerTraefikConfig = () => {
 		},
 	};
 
-	const yamlStr = dump(configObject);
+	const yamlStr = stringify(configObject);
 
 	return yamlStr;
 };
@@ -364,13 +382,26 @@ export const createDefaultTraefikConfig = () => {
 	if (existsSync(acmeJsonPath)) {
 		chmodSync(acmeJsonPath, "600");
 	}
-	if (existsSync(mainConfig)) {
-		console.log("Main config already exists");
-		return;
-	}
-	const yamlStr = getDefaultTraefikConfig();
+
+	// Create the traefik directory first
 	mkdirSync(MAIN_TRAEFIK_PATH, { recursive: true });
+
+	// Check if traefik.yml exists and handle the case where it might be a directory
+	if (existsSync(mainConfig)) {
+		const stats = statSync(mainConfig);
+		if (stats.isDirectory()) {
+			// If traefik.yml is a directory, remove it
+			console.log("Found traefik.yml as directory, removing it...");
+			rmSync(mainConfig, { recursive: true, force: true });
+		} else if (stats.isFile()) {
+			console.log("Main config already exists");
+			return;
+		}
+	}
+
+	const yamlStr = getDefaultTraefikConfig();
 	writeFileSync(mainConfig, yamlStr, "utf8");
+	console.log("Traefik config created successfully");
 };
 
 export const getDefaultMiddlewares = () => {
@@ -386,7 +417,7 @@ export const getDefaultMiddlewares = () => {
 			},
 		},
 	};
-	const yamlStr = dump(defaultMiddlewares);
+	const yamlStr = stringify(defaultMiddlewares);
 	return yamlStr;
 };
 export const createDefaultMiddlewares = () => {

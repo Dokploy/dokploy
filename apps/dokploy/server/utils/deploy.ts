@@ -23,3 +23,30 @@ export const deploy = async (jobData: DeploymentJob) => {
 		throw error;
 	}
 };
+
+type CancelDeploymentData =
+	| { applicationId: string; applicationType: "application" }
+	| { composeId: string; applicationType: "compose" };
+
+export const cancelDeployment = async (cancelData: CancelDeploymentData) => {
+	try {
+		const result = await fetch(`${process.env.SERVER_URL}/cancel-deployment`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-API-Key": process.env.API_KEY || "NO-DEFINED",
+			},
+			body: JSON.stringify(cancelData),
+		});
+
+		if (!result.ok) {
+			const errorData = await result.json().catch(() => ({}));
+			throw new Error(errorData.message || "Failed to cancel deployment");
+		}
+
+		const data = await result.json();
+		return data;
+	} catch (error) {
+		throw error;
+	}
+};
