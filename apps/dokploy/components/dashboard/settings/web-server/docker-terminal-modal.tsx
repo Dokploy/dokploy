@@ -59,7 +59,6 @@ export const DockerTerminalModal = ({
 		},
 	);
 
-	
 	const [containerId, setContainerId] = useState<string | undefined>();
 	const [mainDialogOpen, setMainDialogOpen] = useState(false);
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
