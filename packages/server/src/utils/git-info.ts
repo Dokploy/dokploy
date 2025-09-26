@@ -1,6 +1,9 @@
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import { execAsync, execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 
 export interface GitInfo {
 	gitHash: string;
@@ -31,7 +34,7 @@ export const extractGitInfo = async (
 		// Determine if we should use remote or local execution
 		const isRemote = !!serverId;
 		const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(isRemote);
-		
+
 		// Try both application and compose paths to find the git repository
 		const possiblePaths = [
 			join(APPLICATIONS_PATH, appName, "code"),

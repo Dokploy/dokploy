@@ -70,7 +70,11 @@ import { validUniqueServerAppName } from "./project";
 export type Compose = typeof compose.$inferSelect;
 
 const updateDeploymentWithGitInfo = async (
-	composeEntity: Compose & { appName: string; env: string | null; serverId?: string | null },
+	composeEntity: Compose & {
+		appName: string;
+		env: string | null;
+		serverId?: string | null;
+	},
 	deploymentId: string,
 	defaultTitle: string,
 	defaultDescription: string,
@@ -83,16 +87,18 @@ const updateDeploymentWithGitInfo = async (
 
 	if (gitInfoResult) {
 		const { gitInfo, updatedEnv } = gitInfoResult;
-		
+
 		// Update the database immediately
 		await updateCompose(composeEntity.composeId as string, { env: updatedEnv });
 
 		// Update the local entity for consistency
 		composeEntity.env = updatedEnv;
-		
+
 		await updateDeployment(deploymentId, {
 			title: gitInfo.gitMessage || defaultTitle,
-			description: gitInfo.gitHash ? `Hash: ${gitInfo.gitHash}` : defaultDescription,
+			description: gitInfo.gitHash
+				? `Hash: ${gitInfo.gitHash}`
+				: defaultDescription,
 		});
 	}
 };

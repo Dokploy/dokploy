@@ -70,7 +70,11 @@ import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
 
 const updateDeploymentWithGitInfo = async (
-	application: Application & { appName: string; env: string | null; serverId?: string | null },
+	application: Application & {
+		appName: string;
+		env: string | null;
+		serverId?: string | null;
+	},
 	deploymentId: string,
 	defaultTitle: string,
 	defaultDescription: string,
@@ -85,10 +89,12 @@ const updateDeploymentWithGitInfo = async (
 		const { gitInfo, updatedEnv } = gitInfoResult;
 		application.env = updatedEnv;
 		await updateApplication(application.applicationId, { env: updatedEnv });
-		
+
 		await updateDeployment(deploymentId, {
 			title: gitInfo.gitMessage || defaultTitle,
-			description: gitInfo.gitHash ? `Hash: ${gitInfo.gitHash}` : defaultDescription,
+			description: gitInfo.gitHash
+				? `Hash: ${gitInfo.gitHash}`
+				: defaultDescription,
 		});
 	}
 };
