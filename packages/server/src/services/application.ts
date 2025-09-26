@@ -42,6 +42,7 @@ import {
 	getGitlabCloneCommand,
 } from "@dokploy/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
+import { extractGitInfo } from "@dokploy/server/utils/git-info";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
@@ -68,81 +69,27 @@ import { validUniqueServerAppName } from "./project";
 import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
 
-const tryUpdateWithGitInfoLocal = async (
-	application: Application & { appName: string; env: string | null },
+const updateDeploymentWithGitInfo = async (
+	application: Application & { appName: string; env: string | null; serverId?: string | null },
 	deploymentId: string,
 	defaultTitle: string,
 	defaultDescription: string,
 ) => {
-	try {
-		const { APPLICATIONS_PATH } = paths();
-		const codePath = join(APPLICATIONS_PATH, application.appName, "code");
-		const { stdout: hashStdout } = await execAsync(
-			`git -C ${codePath} rev-parse HEAD`,
-		);
-		const gitHash = hashStdout.trim();
-		const { stdout: msgStdout } = await execAsync(
-			`git -C ${codePath} log -1 --pretty=%B`,
-		);
-		const gitMessage = msgStdout.trim();
-		if (gitHash) {
-			const current = application.env || "";
-			const withoutOld = current
-				.split("\n")
-				.filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
-				.join("\n");
-			const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
-			application.env = newEnv;
-			await updateApplication(application.applicationId, { env: newEnv });
-		}
-		await updateDeployment(deploymentId, {
-			title: gitMessage || defaultTitle,
-			description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
-		});
-	} catch {
-		// ignore if git data can't be fetched
-	}
-};
+	const gitInfoResult = await extractGitInfo({
+		appName: application.appName,
+		serverId: application.serverId,
+		env: application.env,
+	});
 
-const tryUpdateWithGitInfoRemote = async (
-	application: Application & {
-		appName: string;
-		env: string | null;
-		serverId: string;
-	},
-	deploymentId: string,
-	defaultTitle: string,
-	defaultDescription: string,
-) => {
-	try {
-		const { APPLICATIONS_PATH } = paths(true);
-		const codePath = join(APPLICATIONS_PATH, application.appName, "code");
-		const { stdout: hashStdout } = await execAsyncRemote(
-			application.serverId,
-			`git -C ${codePath} rev-parse HEAD | tr -d '\n'`,
-		);
-		const gitHash = (hashStdout || "").trim();
-		const { stdout: msgStdout } = await execAsyncRemote(
-			application.serverId,
-			`git -C ${codePath} log -1 --pretty=%B`,
-		);
-		const gitMessage = (msgStdout || "").trim();
-		if (gitHash) {
-			const current = application.env || "";
-			const withoutOld = current
-				.split("\n")
-				.filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
-				.join("\n");
-			const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
-			application.env = newEnv;
-			await updateApplication(application.applicationId, { env: newEnv });
-		}
+	if (gitInfoResult) {
+		const { gitInfo, updatedEnv } = gitInfoResult;
+		application.env = updatedEnv;
+		await updateApplication(application.applicationId, { env: updatedEnv });
+		
 		await updateDeployment(deploymentId, {
-			title: gitMessage || defaultTitle,
-			description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
+			title: gitInfo.gitMessage || defaultTitle,
+			description: gitInfo.gitHash ? `Hash: ${gitInfo.gitHash}` : defaultDescription,
 		});
-	} catch {
-		// ignore if git data can't be fetched
 	}
 };
 
@@ -280,7 +227,7 @@ export const deployApplication = async ({
 				...application,
 				logPath: deployment.logPath,
 			});
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				application as any,
 				deployment.deploymentId,
 				titleLog,
@@ -289,7 +236,7 @@ export const deployApplication = async ({
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitlab") {
 			await cloneGitlabRepository(application, deployment.logPath);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				application as any,
 				deployment.deploymentId,
 				titleLog,
@@ -298,7 +245,7 @@ export const deployApplication = async ({
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitea") {
 			await cloneGiteaRepository(application, deployment.logPath);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				application as any,
 				deployment.deploymentId,
 				titleLog,
@@ -307,7 +254,7 @@ export const deployApplication = async ({
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "bitbucket") {
 			await cloneBitbucketRepository(application, deployment.logPath);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				application as any,
 				deployment.deploymentId,
 				titleLog,
@@ -318,7 +265,7 @@ export const deployApplication = async ({
 			await buildDocker(application, deployment.logPath);
 		} else if (application.sourceType === "git") {
 			await cloneGitRepository(application, deployment.logPath);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				application as any,
 				deployment.deploymentId,
 				titleLog,
@@ -462,7 +409,7 @@ export const deployRemoteApplication = async ({
 				command += getBuildCommand(application, deployment.logPath);
 			}
 			await execAsyncRemote(application.serverId, command);
-			await tryUpdateWithGitInfoRemote(
+			await updateDeploymentWithGitInfo(
 				application as any,
 				deployment.deploymentId,
 				titleLog,

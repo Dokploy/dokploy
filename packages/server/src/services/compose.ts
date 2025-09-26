@@ -49,6 +49,7 @@ import {
 	createComposeFile,
 	getCreateComposeFileCommand,
 } from "@dokploy/server/utils/providers/raw";
+import { extractGitInfo } from "@dokploy/server/utils/git-info";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
@@ -68,91 +69,31 @@ import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
 
-const tryUpdateWithGitInfoLocal = async (
-	composeEntity: Compose & { appName: string; env: string | null },
+const updateDeploymentWithGitInfo = async (
+	composeEntity: Compose & { appName: string; env: string | null; serverId?: string | null },
 	deploymentId: string,
 	defaultTitle: string,
 	defaultDescription: string,
 ) => {
-	try {
-		const { COMPOSE_PATH } = paths();
-		const codePath = join(COMPOSE_PATH, composeEntity.appName, "code");
-		const { stdout: hashStdout } = await execAsync(
-			`git -C ${codePath} rev-parse HEAD`,
-		);
-		const gitHash = hashStdout.trim();
-		const { stdout: msgStdout } = await execAsync(
-			`git -C ${codePath} log -1 --pretty=%B`,
-		);
-		const gitMessage = msgStdout.trim();
+	const gitInfoResult = await extractGitInfo({
+		appName: composeEntity.appName,
+		serverId: composeEntity.serverId,
+		env: composeEntity.env,
+	});
 
-		if (gitHash) {
-			const current = composeEntity.env || "";
-			const withoutOld = current
-				.split("\n")
-				.filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
-				.join("\n");
-			const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
+	if (gitInfoResult) {
+		const { gitInfo, updatedEnv } = gitInfoResult;
+		
+		// Update the database immediately
+		await updateCompose(composeEntity.composeId as string, { env: updatedEnv });
 
-			// Update the database immediately
-			await updateCompose(composeEntity.composeId as string, { env: newEnv });
-
-			// Update the local entity for consistency
-			composeEntity.env = newEnv;
-		}
+		// Update the local entity for consistency
+		composeEntity.env = updatedEnv;
+		
 		await updateDeployment(deploymentId, {
-			title: gitMessage || defaultTitle,
-			description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
+			title: gitInfo.gitMessage || defaultTitle,
+			description: gitInfo.gitHash ? `Hash: ${gitInfo.gitHash}` : defaultDescription,
 		});
-	} catch (error) {
-		// ignore if git data can't be fetched
-	}
-};
-
-const tryUpdateWithGitInfoRemote = async (
-	composeEntity: Compose & {
-		appName: string;
-		env: string | null;
-		serverId: string;
-	},
-	deploymentId: string,
-	defaultTitle: string,
-	defaultDescription: string,
-) => {
-	try {
-		const { COMPOSE_PATH } = paths(true);
-		const codePath = join(COMPOSE_PATH, composeEntity.appName, "code");
-		const { stdout: hashStdout } = await execAsyncRemote(
-			composeEntity.serverId,
-			`git -C ${codePath} rev-parse HEAD | tr -d '\n'`,
-		);
-		const gitHash = (hashStdout || "").trim();
-		const { stdout: msgStdout } = await execAsyncRemote(
-			composeEntity.serverId,
-			`git -C ${codePath} log -1 --pretty=%B`,
-		);
-		const gitMessage = (msgStdout || "").trim();
-
-		if (gitHash) {
-			const current = composeEntity.env || "";
-			const withoutOld = current
-				.split("\n")
-				.filter((l) => l.trim() && !l.startsWith("GIT_HASH="))
-				.join("\n");
-			const newEnv = `${withoutOld}${withoutOld ? "\n" : ""}GIT_HASH=${gitHash}`;
-
-			// Update the database
-			await updateCompose(composeEntity.composeId as string, { env: newEnv });
-
-			// Update the local entity for consistency
-			composeEntity.env = newEnv;
-		}
-		await updateDeployment(deploymentId, {
-			title: gitMessage || defaultTitle,
-			description: gitHash ? `Hash: ${gitHash}` : defaultDescription,
-		});
-	} catch (error) {
-		// ignore if git data can't be fetched
 	}
 };
 
@@ -340,7 +281,7 @@ export const deployCompose = async ({
 				type: "compose",
 			});
 			// Update git info immediately after cloning
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				compose as any,
 				deployment.deploymentId,
 				titleLog,
@@ -348,7 +289,7 @@ export const deployCompose = async ({
 			);
 		} else if (compose.sourceType === "gitlab") {
 			await cloneGitlabRepository(compose, deployment.logPath, true);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				compose as any,
 				deployment.deploymentId,
 				titleLog,
@@ -356,7 +297,7 @@ export const deployCompose = async ({
 			);
 		} else if (compose.sourceType === "bitbucket") {
 			await cloneBitbucketRepository(compose, deployment.logPath, true);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				compose as any,
 				deployment.deploymentId,
 				titleLog,
@@ -364,7 +305,7 @@ export const deployCompose = async ({
 			);
 		} else if (compose.sourceType === "git") {
 			await cloneGitRepository(compose, deployment.logPath, true);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				compose as any,
 				deployment.deploymentId,
 				titleLog,
@@ -372,7 +313,7 @@ export const deployCompose = async ({
 			);
 		} else if (compose.sourceType === "gitea") {
 			await cloneGiteaRepository(compose, deployment.logPath, true);
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				compose as any,
 				deployment.deploymentId,
 				titleLog,
@@ -442,7 +383,7 @@ export const rebuildCompose = async ({
 			await createComposeFile(compose, deployment.logPath);
 		} else {
 			// Update with git info for git-based source types
-			await tryUpdateWithGitInfoLocal(
+			await updateDeploymentWithGitInfo(
 				compose as any,
 				deployment.deploymentId,
 				titleLog,
@@ -532,7 +473,7 @@ export const deployRemoteCompose = async ({
 
 			// Update with git info for git-based source types
 			if (compose.sourceType !== "raw") {
-				await tryUpdateWithGitInfoRemote(
+				await updateDeploymentWithGitInfo(
 					compose as any,
 					deployment.deploymentId,
 					titleLog,
@@ -609,7 +550,7 @@ export const rebuildRemoteCompose = async ({
 			await execAsyncRemote(compose.serverId, command);
 		} else if (compose.serverId) {
 			// Update with git info for git-based source types
-			await tryUpdateWithGitInfoRemote(
+			await updateDeploymentWithGitInfo(
 				compose as any,
 				deployment.deploymentId,
 				titleLog,
