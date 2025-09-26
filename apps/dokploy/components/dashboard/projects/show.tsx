@@ -97,24 +97,28 @@ export const ShowProjects = () => {
 					break;
 				case "services": {
 					const aTotalServices = a.environments.reduce((total, env) => {
-						return total + 
+						return (
+							total +
 							(env.applications?.length || 0) +
 							(env.mariadb?.length || 0) +
 							(env.mongo?.length || 0) +
 							(env.mysql?.length || 0) +
 							(env.postgres?.length || 0) +
 							(env.redis?.length || 0) +
-							(env.compose?.length || 0);
+							(env.compose?.length || 0)
+						);
 					}, 0);
 					const bTotalServices = b.environments.reduce((total, env) => {
-						return total + 
+						return (
+							total +
 							(env.applications?.length || 0) +
 							(env.mariadb?.length || 0) +
 							(env.mongo?.length || 0) +
 							(env.mysql?.length || 0) +
 							(env.postgres?.length || 0) +
 							(env.redis?.length || 0) +
-							(env.compose?.length || 0);
+							(env.compose?.length || 0)
+						);
 					}, 0);
 					comparison = aTotalServices - bTotalServices;
 					break;
