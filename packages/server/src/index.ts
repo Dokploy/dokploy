@@ -40,6 +40,7 @@ export * from "./services/server";
 export * from "./services/settings";
 export * from "./services/ssh-key";
 export * from "./services/user";
+export * from "./services/permission";
 export * from "./services/volume-backups";
 export * from "./setup/config-paths";
 export * from "./setup/monitoring-setup";

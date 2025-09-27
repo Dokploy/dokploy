@@ -174,104 +174,11 @@ export const canAccessToTraefikFiles = async (
 	return canAccessToTraefikFiles;
 };
 
-export const checkServiceReadOnlyPermission = async (
-	userId: string,
-	serviceId: string,
-	organizationId: string,
-) => {
-	const member = await findMemberById(userId, organizationId);
+// checkServiceReadOnlyPermission moved to permission service
 
-	if (!member) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "User not found in organization",
-		});
-	}
+// checkServiceAccess moved to permission service
 
-	// Owners and admins always have full access
-	if (member.role === "owner" || member.role === "admin") {
-		return false; // Not read-only
-	}
-
-	// Check if user has read-only access to this specific service
-	const hasServiceAccess = member.accessedServices.includes(serviceId);
-	const isReadOnly = member.canReadOnlyServices && hasServiceAccess;
-
-	return isReadOnly;
-};
-
-export const checkServiceAccess = async (
-	userId: string,
-	serviceId: string,
-	organizationId: string,
-	action = "access" as "access" | "create" | "delete" | "readonly",
-) => {
-	let hasPermission = false;
-	switch (action) {
-		case "create":
-			hasPermission = await canPerformCreationService(
-				userId,
-				serviceId,
-				organizationId,
-			);
-			break;
-		case "access":
-			hasPermission = await canPerformAccessService(
-				userId,
-				serviceId,
-				organizationId,
-			);
-			break;
-		case "delete":
-			hasPermission = await canPeformDeleteService(
-				userId,
-				serviceId,
-				organizationId,
-			);
-			break;
-		case "readonly":
-			hasPermission = await checkServiceReadOnlyPermission(
-				userId,
-				serviceId,
-				organizationId,
-			);
-			break;
-		default:
-			hasPermission = false;
-	}
-	if (!hasPermission) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Permission denied",
-		});
-	}
-};
-
-export const checkEnvironmentAccess = async (
-	userId: string,
-	environmentId: string,
-	organizationId: string,
-	action = "access" as const,
-) => {
-	let hasPermission = false;
-	switch (action) {
-		case "access":
-			hasPermission = await canPerformAccessEnvironment(
-				userId,
-				environmentId,
-				organizationId,
-			);
-			break;
-		default:
-			hasPermission = false;
-	}
-	if (!hasPermission) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Permission denied",
-		});
-	}
-};
+// checkEnvironmentAccess moved to permission service
 
 export const checkProjectAccess = async (
 	authId: string,

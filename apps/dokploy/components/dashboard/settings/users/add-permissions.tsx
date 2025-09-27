@@ -166,7 +166,7 @@ const addPermissions = z.object({
 	canAccessToAPI: z.boolean().optional().default(false),
 	canAccessToSSHKeys: z.boolean().optional().default(false),
 	canAccessToGitProviders: z.boolean().optional().default(false),
-	canReadOnlyServices: z.boolean().optional().default(false),
+	canReadOnlyServices: z.boolean().optional().default(true),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -200,6 +200,21 @@ export const AddUserPermissions = ({ userId }: Props) => {
 
 	useEffect(() => {
 		if (data) {
+			console.log("🔍 Frontend: Loading user data:", data);
+			console.log("🔍 Frontend: canReadOnlyServices from API:", data.canReadOnlyServices);
+			console.log("🔍 Frontend: All boolean fields:", {
+				canCreateProjects: data.canCreateProjects,
+				canCreateServices: data.canCreateServices,
+				canDeleteProjects: data.canDeleteProjects,
+				canDeleteServices: data.canDeleteServices,
+				canAccessToTraefikFiles: data.canAccessToTraefikFiles,
+				canAccessToDocker: data.canAccessToDocker,
+				canAccessToAPI: data.canAccessToAPI,
+				canAccessToSSHKeys: data.canAccessToSSHKeys,
+				canAccessToGitProviders: data.canAccessToGitProviders,
+				canReadOnlyServices: data.canReadOnlyServices,
+			});
+			
 			form.reset({
 				accessedProjects: data.accessedProjects || [],
 				accessedEnvironments: data.accessedEnvironments || [],
@@ -213,12 +228,15 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canAccessToAPI: data.canAccessToAPI,
 				canAccessToSSHKeys: data.canAccessToSSHKeys,
 				canAccessToGitProviders: data.canAccessToGitProviders,
-				canReadOnlyServices: data.canReadOnlyServices,
+				canReadOnlyServices: data.canReadOnlyServices ?? true, // Fallback to true if undefined
 			});
 		}
 	}, [form, form.formState.isSubmitSuccessful, form.reset, data]);
 
 	const onSubmit = async (data: AddPermissions) => {
+		console.log("🚀 Frontend: Submitting permissions data:", data);
+		console.log("🚀 Frontend: canReadOnlyServices value being sent:", data.canReadOnlyServices);
+		
 		await mutateAsync({
 			id: userId,
 			canCreateServices: data.canCreateServices,
@@ -236,10 +254,12 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			canReadOnlyServices: data.canReadOnlyServices,
 		})
 			.then(async () => {
+				console.log("✅ Frontend: Permissions updated successfully");
 				toast.success("Permissions updated");
 				refetch();
 			})
-			.catch(() => {
+			.catch((error) => {
+				console.error("❌ Frontend: Error updating permissions:", error);
 				toast.error("Error updating the permissions");
 			});
 	};
@@ -459,7 +479,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 									</div>
 									<FormControl>
 										<Switch
-											checked={field.value}
+											checked={field.value ?? true}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
@@ -816,7 +836,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 						</DialogFooter>
 					</form>
 				</Form>
-			</DialogContent>
-		</Dialog>
-	);
-};
+				</DialogContent>
+			</Dialog>
+		);
+	};

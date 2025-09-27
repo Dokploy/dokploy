@@ -20,8 +20,10 @@ import { createComposeByTemplate } from "@dokploy/server/services/compose";
 import { findProjectById } from "@dokploy/server/services/project";
 import {
 	addNewService,
-	checkServiceAccess,
 } from "@dokploy/server/services/user";
+import {
+	checkServiceAccess,
+} from "@dokploy/server";
 import {
 	getProviderHeaders,
 	getProviderName,

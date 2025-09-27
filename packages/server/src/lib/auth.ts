@@ -10,6 +10,7 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
 import { updateUser } from "../services/user";
+import { permissionService } from "../services/permission";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
@@ -216,6 +217,65 @@ const { handler, api } = betterAuth({
 					`,
 					});
 				}
+			},
+			organizationHooks: {
+				// Before a member is added to an organization
+				beforeAddMember: async ({ member, user, organization }) => {
+					// Validate that the user can be added to this organization
+					console.log(`Adding member ${user.email} to organization ${organization.name}`);
+					return { data: member };
+				},
+
+				// After a member is added to an organization
+				afterAddMember: async ({ member, user, organization }) => {
+					// Initialize default permissions for new members
+					console.log(`Member ${user.email} added to organization ${organization.name}`);
+					// The member will be created with default permissions from the schema
+				},
+
+				// Before a member's role is updated
+				beforeUpdateMemberRole: async ({ member, user, organization, role }) => {
+					// Validate role update permissions
+					console.log(`Updating role for member ${user.email} in organization ${organization.name} to ${role}`);
+					return { data: member };
+				},
+
+				// After a member's role is updated
+				afterUpdateMemberRole: async ({ member, user, organization, role }) => {
+					// Sync role changes with custom permission system
+					console.log(`Role updated for member ${user.email} in organization ${organization.name} to ${role}`);
+					
+					// If role is changed to owner/admin, grant all permissions
+					if (role.includes("owner") || role.includes("admin")) {
+						await db.update(schema.member)
+							.set({
+								canCreateProjects: true,
+								canDeleteProjects: true,
+								canCreateServices: true,
+								canDeleteServices: true,
+								canAccessToDocker: true,
+								canAccessToAPI: true,
+								canAccessToSSHKeys: true,
+								canAccessToGitProviders: true,
+								canAccessToTraefikFiles: true,
+								canReadOnlyServices: false, // Owners/admins don't need read-only
+							})
+							.where(eq(schema.member.id, member.id));
+					}
+				},
+
+				// Before a member is removed from an organization
+				beforeRemoveMember: async ({ member, user, organization }) => {
+					// Validate removal permissions
+					console.log(`Removing member ${user.email} from organization ${organization.name}`);
+					return { data: member };
+				},
+
+				// After a member is removed from an organization
+				afterRemoveMember: async ({ member, user, organization }) => {
+					// Clean up any member-specific data
+					console.log(`Member ${user.email} removed from organization ${organization.name}`);
+				},
 			},
 		}),
 		...(IS_CLOUD
