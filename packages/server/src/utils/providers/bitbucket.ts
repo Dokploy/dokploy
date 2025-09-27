@@ -39,14 +39,16 @@ export const getBitbucketCloneUrl = (
 	if (!bitbucketProvider) {
 		throw new Error("Bitbucket provider is required");
 	}
-	
+
 	if (bitbucketProvider.apiToken) {
 		return `https://x-bitbucket-api-token-auth:${bitbucketProvider.apiToken}@${repoClone}`;
 	}
-	
+
 	// For app passwords, use username:app_password format
 	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
-		throw new Error("Username and app password are required when not using API token");
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
 	}
 	return `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
 };
@@ -56,11 +58,13 @@ export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 		// According to Bitbucket official docs, for API calls with API tokens:
 		// "You will need both your Atlassian account email and an API token"
 		// Use: {atlassian_account_email}:{api_token}
-		
+
 		if (!bitbucketProvider.bitbucketEmail) {
-			throw new Error("Atlassian account email is required when using API token for API calls");
+			throw new Error(
+				"Atlassian account email is required when using API token for API calls",
+			);
 		}
-		
+
 		return {
 			Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketEmail}:${bitbucketProvider.apiToken}`).toString("base64")}`,
 		};
@@ -68,7 +72,9 @@ export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 
 	// For app passwords, use HTTP Basic auth with username and app password
 	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
-		throw new Error("Username and app password are required when not using API token");
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
 	}
 	return {
 		Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
