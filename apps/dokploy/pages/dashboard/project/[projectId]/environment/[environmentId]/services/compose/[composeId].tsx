@@ -347,18 +347,16 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="deployments" className="w-full pt-2.5">
-									<ReadOnlyFormWrapper
-										serviceId={composeId}
-									>
-										<div className="flex flex-col gap-4 border rounded-lg">
-											<ShowDeployments
-												id={composeId}
-												type="compose"
-												serverId={data?.serverId || ""}
-												refreshToken={data?.refreshToken || ""}
-											/>
-										</div>
-									</ReadOnlyFormWrapper>
+										<ReadOnlyFormWrapper serviceId={composeId}>
+											<div className="flex flex-col gap-4 border rounded-lg">
+												<ShowDeployments
+													id={composeId}
+													type="compose"
+													serverId={data?.serverId || ""}
+													refreshToken={data?.refreshToken || ""}
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 
 									<TabsContent value="domains">

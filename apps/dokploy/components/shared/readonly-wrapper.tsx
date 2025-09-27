@@ -138,8 +138,12 @@ export const ReadOnlyFormWrapper = ({
 
 			// Get the component name for better detection
 			const componentName =
-				(typeof child.type === 'function' && 'displayName' in child.type && child.type.displayName) || 
-				(typeof child.type === 'function' && 'name' in child.type && child.type.name) || 
+				(typeof child.type === "function" &&
+					"displayName" in child.type &&
+					child.type.displayName) ||
+				(typeof child.type === "function" &&
+					"name" in child.type &&
+					child.type.name) ||
 				child.type;
 
 			// Skip if already processed (prevent duplication) - only in read-only mode

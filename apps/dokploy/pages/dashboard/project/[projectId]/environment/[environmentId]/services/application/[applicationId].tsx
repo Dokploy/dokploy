@@ -327,18 +327,16 @@ const Service = (
 										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="deployments" className="w-full pt-2.5">
-									<ReadOnlyFormWrapper
-										serviceId={applicationId}
-									>
-										<div className="flex flex-col gap-4 border rounded-lg">
-											<ShowDeployments
-												id={applicationId}
-												type="application"
-												serverId={data?.serverId || ""}
-												refreshToken={data?.refreshToken || ""}
-											/>
-										</div>
-									</ReadOnlyFormWrapper>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 border rounded-lg">
+												<ShowDeployments
+													id={applicationId}
+													type="application"
+													serverId={data?.serverId || ""}
+													refreshToken={data?.refreshToken || ""}
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="volume-backups" className="w-full pt-2.5">
 										<ReadOnlyFormWrapper serviceId={applicationId}>
