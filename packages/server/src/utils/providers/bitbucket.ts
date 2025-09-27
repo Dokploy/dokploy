@@ -104,8 +104,6 @@ export const cloneBitbucketRepository = async (
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
-	console.log("cloneUrl", cloneUrl);	
-	console.log("repoclone", repoclone);
 	try {
 		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
 		const cloneArgs = [
