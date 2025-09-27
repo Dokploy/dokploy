@@ -1,13 +1,7 @@
 import React, { ReactNode, cloneElement, isValidElement } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Eye, Shield, AlertTriangle } from "lucide-react";
 import { api } from "@/utils/api";
 
@@ -54,14 +48,10 @@ export const EnhancedReadOnlyWrapper = ({
 							<div>
 								<strong>Read-Only Access</strong>
 								<p className="text-sm mt-1">
-									You have view-only permissions for this service. Action
-									buttons are disabled.
+									You have view-only permissions for this service. Action buttons are disabled.
 								</p>
 							</div>
-							<Badge
-								variant="outline"
-								className="text-amber-600 border-amber-300"
-							>
+							<Badge variant="outline" className="text-amber-600 border-amber-300">
 								<Lock className="h-3 w-3 mr-1" />
 								Read Only
 							</Badge>
@@ -82,9 +72,7 @@ export const EnhancedReadOnlyWrapper = ({
 							<div className="space-y-2 text-sm">
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">Service ID:</span>
-									<code className="text-xs bg-muted px-1 py-0.5 rounded">
-										{serviceId}
-									</code>
+									<code className="text-xs bg-muted px-1 py-0.5 rounded">{serviceId}</code>
 								</div>
 								<div className="flex justify-between">
 									<span className="text-muted-foreground">User Role:</span>
@@ -93,21 +81,15 @@ export const EnhancedReadOnlyWrapper = ({
 									</Badge>
 								</div>
 								<div className="flex justify-between">
-									<span className="text-muted-foreground">
-										Read-Only Access:
-									</span>
+									<span className="text-muted-foreground">Read-Only Access:</span>
 									<Badge variant="outline" className="text-xs">
 										{currentUser?.canReadOnlyServices ? "Enabled" : "Disabled"}
 									</Badge>
 								</div>
 								{permissionContext.resourceType && (
 									<div className="flex justify-between">
-										<span className="text-muted-foreground">
-											Resource Type:
-										</span>
-										<span className="text-xs font-medium">
-											{permissionContext.resourceType}
-										</span>
+										<span className="text-muted-foreground">Resource Type:</span>
+										<span className="text-xs font-medium">{permissionContext.resourceType}</span>
 									</div>
 								)}
 							</div>
@@ -121,8 +103,7 @@ export const EnhancedReadOnlyWrapper = ({
 					<AlertDescription className="text-gray-800 dark:text-gray-200">
 						<strong>Need Edit Access?</strong>
 						<p className="text-sm mt-1">
-							Contact your administrator to request edit permissions for this
-							service.
+							Contact your administrator to request edit permissions for this service.
 						</p>
 					</AlertDescription>
 				</Alert>
@@ -250,7 +231,7 @@ export const EnhancedReadOnlyFormWrapper = ({
 			}
 
 			// Check if this is a button or interactive element
-			const isInteractiveElement =
+			const isInteractiveElement = (
 				componentName === "button" ||
 				componentName === "Button" ||
 				componentName === "DialogTrigger" ||
@@ -268,18 +249,13 @@ export const EnhancedReadOnlyFormWrapper = ({
 						child.props.type === "submit" ||
 						child.props.type === "button" ||
 						child.props.asChild ||
-						child.props.role === "button"));
+						child.props.role === "button"))
+			);
 
 			// Check if this is an allowed action in read-only mode
-			const isAllowedAction = allowedActions.some(
-				(action) =>
-					child.props?.children
-						?.toString()
-						.toLowerCase()
-						.includes(action.toLowerCase()) ||
-					child.props?.["aria-label"]
-						?.toLowerCase()
-						.includes(action.toLowerCase()),
+			const isAllowedAction = allowedActions.some(action => 
+				child.props?.children?.toString().toLowerCase().includes(action.toLowerCase()) ||
+				child.props?.["aria-label"]?.toLowerCase().includes(action.toLowerCase())
 			);
 
 			// Apply read-only behavior
@@ -309,8 +285,7 @@ export const EnhancedReadOnlyFormWrapper = ({
 				<Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
 					<Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
 					<AlertDescription className="text-amber-800 dark:text-amber-200">
-						<strong>Read-Only Mode:</strong> Form elements are disabled. You can
-						view but not modify this service.
+						<strong>Read-Only Mode:</strong> Form elements are disabled. You can view but not modify this service.
 					</AlertDescription>
 				</Alert>
 			)}
@@ -334,8 +309,7 @@ export const useEnhancedReadOnly = (serviceId: string) => {
 		canReadOnlyServices: currentUser?.canReadOnlyServices,
 		accessedServices: currentUser?.accessedServices,
 		permissionDetails: {
-			hasServiceAccess:
-				currentUser?.accessedServices?.includes(serviceId) || false,
+			hasServiceAccess: currentUser?.accessedServices?.includes(serviceId) || false,
 			isMember: currentUser?.role === "member",
 			hasReadOnlyPermission: currentUser?.canReadOnlyServices || false,
 		},

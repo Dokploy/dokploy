@@ -236,19 +236,6 @@ export const findMemberById = async (
 };
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
-	// Validate email if it's being updated
-	if (userData.email !== undefined) {
-		if (!userData.email || userData.email.trim() === "") {
-			throw new Error("Email is required and cannot be empty");
-		}
-
-		// Basic email format validation
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(userData.email)) {
-			throw new Error("Please enter a valid email address");
-		}
-	}
-
 	const user = await db
 		.update(users_temp)
 		.set({

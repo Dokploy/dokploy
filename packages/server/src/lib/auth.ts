@@ -56,7 +56,7 @@ const { handler, api } = betterAuth({
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
-		sendVerificationEmail: async ({ user, url }) => {
+		sendVerificationEmail: async ({ user, url }: { user: any; url: any }) => {
 			if (IS_CLOUD) {
 				await sendEmail({
 					email: user.email,
@@ -73,14 +73,14 @@ const { handler, api } = betterAuth({
 		autoSignIn: !IS_CLOUD,
 		requireEmailVerification: IS_CLOUD,
 		password: {
-			async hash(password) {
+			async hash(password: any) {
 				return bcrypt.hashSync(password, 10);
 			},
-			async verify({ hash, password }) {
+			async verify({ hash, password }: { hash: any; password: any }) {
 				return bcrypt.compareSync(password, hash);
 			},
 		},
-		sendResetPassword: async ({ user, url }) => {
+		sendResetPassword: async ({ user, url }: { user: any; url: any }) => {
 			await sendEmail({
 				email: user.email,
 				subject: "Reset your password",
@@ -93,7 +93,7 @@ const { handler, api } = betterAuth({
 	databaseHooks: {
 		user: {
 			create: {
-				before: async (_user, context) => {
+				before: async (_user: any, context: any) => {
 					if (!IS_CLOUD) {
 						const xDokployToken =
 							context?.request?.headers?.get("x-dokploy-token");
@@ -116,7 +116,7 @@ const { handler, api } = betterAuth({
 						}
 					}
 				},
-				after: async (user) => {
+				after: async (user: any) => {
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
@@ -152,7 +152,7 @@ const { handler, api } = betterAuth({
 		},
 		session: {
 			create: {
-				before: async (session) => {
+				before: async (session: any) => {
 					const member = await db.query.member.findFirst({
 						where: eq(schema.member.userId, session.userId),
 						orderBy: desc(schema.member.createdAt),
@@ -201,7 +201,7 @@ const { handler, api } = betterAuth({
 		}),
 		twoFactor(),
 		organization({
-			async sendInvitationEmail(data, _request) {
+			async sendInvitationEmail(data: any, _request: any) {
 				if (IS_CLOUD) {
 					const host =
 						process.env.NODE_ENV === "development"
@@ -220,48 +220,34 @@ const { handler, api } = betterAuth({
 			},
 			organizationHooks: {
 				// Before a member is added to an organization
-				beforeAddMember: async ({ member, user, organization }) => {
+				beforeAddMember: async ({ member, user, organization }: { member: any; user: any; organization: any }) => {
 					// Validate that the user can be added to this organization
-					console.log(
-						`Adding member ${user.email} to organization ${organization.name}`,
-					);
+					console.log(`Adding member ${user.email} to organization ${organization.name}`);
 					return { data: member };
 				},
 
 				// After a member is added to an organization
-				afterAddMember: async ({ member, user, organization }) => {
+				afterAddMember: async ({ member, user, organization }: { member: any; user: any; organization: any }) => {
 					// Initialize default permissions for new members
-					console.log(
-						`Member ${user.email} added to organization ${organization.name}`,
-					);
+					console.log(`Member ${user.email} added to organization ${organization.name}`);
 					// The member will be created with default permissions from the schema
 				},
 
 				// Before a member's role is updated
-				beforeUpdateMemberRole: async ({
-					member,
-					user,
-					organization,
-					role,
-				}) => {
+				beforeUpdateMemberRole: async ({ member, user, organization, role }: { member: any; user: any; organization: any; role: string }) => {
 					// Validate role update permissions
-					console.log(
-						`Updating role for member ${user.email} in organization ${organization.name} to ${role}`,
-					);
+					console.log(`Updating role for member ${user.email} in organization ${organization.name} to ${role}`);
 					return { data: member };
 				},
 
 				// After a member's role is updated
-				afterUpdateMemberRole: async ({ member, user, organization, role }) => {
+				afterUpdateMemberRole: async ({ member, user, organization, role }: { member: any; user: any; organization: any; role: string }) => {
 					// Sync role changes with custom permission system
-					console.log(
-						`Role updated for member ${user.email} in organization ${organization.name} to ${role}`,
-					);
-
+					console.log(`Role updated for member ${user.email} in organization ${organization.name} to ${role}`);
+					
 					// If role is changed to owner/admin, grant all permissions
 					if (role.includes("owner") || role.includes("admin")) {
-						await db
-							.update(schema.member)
+						await db.update(schema.member)
 							.set({
 								canCreateProjects: true,
 								canDeleteProjects: true,
@@ -279,20 +265,16 @@ const { handler, api } = betterAuth({
 				},
 
 				// Before a member is removed from an organization
-				beforeRemoveMember: async ({ member, user, organization }) => {
+				beforeRemoveMember: async ({ member, user, organization }: { member: any; user: any; organization: any }) => {
 					// Validate removal permissions
-					console.log(
-						`Removing member ${user.email} from organization ${organization.name}`,
-					);
+					console.log(`Removing member ${user.email} from organization ${organization.name}`);
 					return { data: member };
 				},
 
 				// After a member is removed from an organization
-				afterRemoveMember: async ({ member, user, organization }) => {
+				afterRemoveMember: async ({ member, user, organization }: { member: any; user: any; organization: any }) => {
 					// Clean up any member-specific data
-					console.log(
-						`Member ${user.email} removed from organization ${organization.name}`,
-					);
+					console.log(`Member ${user.email} removed from organization ${organization.name}`);
 				},
 			},
 		}),
