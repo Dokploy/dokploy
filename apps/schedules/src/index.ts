@@ -11,7 +11,7 @@ import {
 } from "./queue.js";
 import { jobQueueSchema } from "./schema.js";
 import { initializeJobs } from "./utils.js";
-import { firstWorker, secondWorker } from "./workers.js";
+import { firstWorker, secondWorker, thirdWorker } from "./workers.js";
 
 const app = new Hono();
 
@@ -91,6 +91,7 @@ export const gracefulShutdown = async (signal: string) => {
 	logger.warn(`Received ${signal}, closing server...`);
 	await firstWorker.close();
 	await secondWorker.close();
+	await thirdWorker.close();
 	process.exit(0);
 };
 

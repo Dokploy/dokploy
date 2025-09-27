@@ -1,9 +1,6 @@
 {
- Read-Only-Access-Permission-for-Project-Services-#2608
-  "id": "90900f42-a554-46f9-8927-8bdde9d5689a",
-  "id": "4512f45f-c14f-4bbe-a5f3-7470ae505d4f",
- canary
-  "prevId": "9f9b4142-e739-4c21-8618-676d62e9b5ae",
+  "id": "61ac43a1-aa28-42a3-a4ab-5f006bdacbb4",
+  "prevId": "4512f45f-c14f-4bbe-a5f3-7470ae505d4f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -487,16 +484,6 @@
           "notNull": true,
           "default": false
         },
- Read-Only-Access-Permission-for-Project-Services-#2608
-        "canReadOnlyServices": {
-          "name": "canReadOnlyServices",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-
- canary
         "accesedProjects": {
           "name": "accesedProjects",
           "type": "text[]",
@@ -1721,21 +1708,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "bitbucketEmail": {
+          "name": "bitbucketEmail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "appPassword": {
           "name": "appPassword",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
- Read-Only-Access-Permission-for-Project-Services-#2608
-
         "apiToken": {
           "name": "apiToken",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
- canary
         "bitbucketWorkspaceName": {
           "name": "bitbucketWorkspaceName",
           "type": "text",

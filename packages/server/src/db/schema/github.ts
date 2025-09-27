@@ -58,4 +58,5 @@ export const apiUpdateGithub = createSchema.extend({
 	githubId: z.string().min(1),
 	name: z.string().min(1),
 	gitProviderId: z.string().min(1),
+	githubAppName: z.string().min(1),
 });
