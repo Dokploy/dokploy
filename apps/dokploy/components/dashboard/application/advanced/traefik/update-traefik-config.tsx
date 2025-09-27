@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import jsyaml from "js-yaml";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { parse, stringify, YAMLParseError } from "yaml";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
@@ -38,11 +38,11 @@ interface Props {
 
 export const validateAndFormatYAML = (yamlText: string) => {
 	try {
-		const obj = jsyaml.load(yamlText);
-		const formattedYaml = jsyaml.dump(obj, { indent: 4 });
+		const obj = parse(yamlText);
+		const formattedYaml = stringify(obj, { indent: 4 });
 		return { valid: true, formattedYaml, error: null };
 	} catch (error) {
-		if (error instanceof jsyaml.YAMLException) {
+		if (error instanceof YAMLParseError) {
 			return {
 				valid: false,
 				formattedYaml: yamlText,
@@ -89,7 +89,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		if (!valid) {
 			form.setError("traefikConfig", {
 				type: "manual",
-				message: error || "Invalid YAML",
+				message: (error as string) || "Invalid YAML",
 			});
 			return;
 		}

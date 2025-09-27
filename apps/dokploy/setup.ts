@@ -1,3 +1,4 @@
+import { exit } from "node:process";
 import { execAsync } from "@dokploy/server";
 import { setupDirectories } from "@dokploy/server/setup/config-paths";
 import { initializePostgres } from "@dokploy/server/setup/postgres-setup";
@@ -25,6 +26,8 @@ import {
 		await initializeStandaloneTraefik();
 		await initializeRedis();
 		await initializePostgres();
+		console.log("Dokploy setup completed");
+		exit(0);
 	} catch (e) {
 		console.error("Error in dokploy setup", e);
 	}

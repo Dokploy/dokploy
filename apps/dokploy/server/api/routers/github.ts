@@ -3,6 +3,7 @@ import {
 	getGithubBranches,
 	getGithubRepositories,
 	haveGithubRequirements,
+	updateGithub,
 	updateGitProvider,
 } from "@dokploy/server";
 import {
@@ -144,6 +145,10 @@ export const githubRouter = createTRPCRouter({
 			await updateGitProvider(input.gitProviderId, {
 				name: input.name,
 				organizationId: ctx.session.activeOrganizationId,
+			});
+
+			await updateGithub(input.githubId, {
+				...input,
 			});
 		}),
 });

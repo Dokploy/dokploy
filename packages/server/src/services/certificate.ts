@@ -9,7 +9,7 @@ import {
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { dump } from "js-yaml";
+import { stringify } from "yaml";
 import type { z } from "zod";
 import { encodeBase64 } from "../utils/docker/utils";
 import { execAsyncRemote } from "../utils/process/execAsync";
@@ -101,7 +101,7 @@ const createCertificateFiles = async (certificate: Certificate) => {
 			],
 		},
 	};
-	const yamlConfig = dump(traefikConfig);
+	const yamlConfig = stringify(traefikConfig);
 	const configFile = path.join(certDir, "certificate.yml");
 
 	if (certificate.serverId) {

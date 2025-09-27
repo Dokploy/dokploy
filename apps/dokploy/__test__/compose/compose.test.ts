@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import { addSuffixToAllProperties } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile1 = `
 version: "3.8"
@@ -61,7 +61,7 @@ secrets:
     file: ./db_password.txt
 `;
 
-const expectedComposeFile1 = load(`
+const expectedComposeFile1 = parse(`
 version: "3.8"
 
 services:
@@ -120,7 +120,7 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all properties in compose file 1", () => {
-	const composeData = load(composeFile1) as ComposeSpecification;
+	const composeData = parse(composeFile1) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
@@ -185,7 +185,7 @@ secrets:
     file: ./db_password.txt
 `;
 
-const expectedComposeFile2 = load(`
+const expectedComposeFile2 = parse(`
 version: "3.8"
 
 services:
@@ -243,7 +243,7 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all properties in compose file 2", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
@@ -308,7 +308,7 @@ secrets:
     file: ./service_secret.txt
 `;
 
-const expectedComposeFile3 = load(`
+const expectedComposeFile3 = parse(`
 version: "3.8"
 
 services:
@@ -366,7 +366,7 @@ secrets:
 `) as ComposeSpecification;
 
 test("Add suffix to all properties in compose file 3", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
@@ -420,7 +420,7 @@ volumes:
     driver: local
 `;
 
-const expectedComposeFile = load(`
+const expectedComposeFile = parse(`
 version: "3.8"
 
 services:
@@ -467,7 +467,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Add suffix to all properties in Plausible compose file", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllProperties(composeData, suffix);
