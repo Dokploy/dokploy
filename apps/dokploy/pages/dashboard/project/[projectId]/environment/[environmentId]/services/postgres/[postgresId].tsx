@@ -26,7 +26,6 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { ReadOnlyFormWrapper } from "@/components/shared/readonly-wrapper";
-import { ReadOnlyViewWrapper } from "@/components/shared/readonly-view-wrapper";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,

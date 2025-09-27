@@ -36,7 +36,6 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { ReadOnlyFormWrapper } from "@/components/shared/readonly-wrapper";
-import { ReadOnlyViewWrapper } from "@/components/shared/readonly-view-wrapper";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -328,19 +327,18 @@ const Service = (
 										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<ReadOnlyViewWrapper
-											serviceId={applicationId}
-											allowedActions={["view", "view-button", "logs"]}
-										>
-											<div className="flex flex-col gap-4 border rounded-lg">
-												<ShowDeployments
-													id={applicationId}
-													type="application"
-													serverId={data?.serverId || ""}
-													refreshToken={data?.refreshToken || ""}
-												/>
-											</div>
-										</ReadOnlyViewWrapper>
+									<ReadOnlyFormWrapper
+										serviceId={applicationId}
+									>
+										<div className="flex flex-col gap-4 border rounded-lg">
+											<ShowDeployments
+												id={applicationId}
+												type="application"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
+										</div>
+									</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="volume-backups" className="w-full pt-2.5">
 										<ReadOnlyFormWrapper serviceId={applicationId}>

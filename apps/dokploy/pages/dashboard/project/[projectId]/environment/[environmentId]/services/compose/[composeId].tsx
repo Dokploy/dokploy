@@ -33,7 +33,6 @@ import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { ReadOnlyFormWrapper } from "@/components/shared/readonly-wrapper";
-import { ReadOnlyViewWrapper } from "@/components/shared/readonly-view-wrapper";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -348,19 +347,18 @@ const Service = (
 									</TabsContent>
 
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<ReadOnlyViewWrapper
-											serviceId={composeId}
-											allowedActions={["view", "view-button", "logs"]}
-										>
-											<div className="flex flex-col gap-4 border rounded-lg">
-												<ShowDeployments
-													id={composeId}
-													type="compose"
-													serverId={data?.serverId || ""}
-													refreshToken={data?.refreshToken || ""}
-												/>
-											</div>
-										</ReadOnlyViewWrapper>
+									<ReadOnlyFormWrapper
+										serviceId={composeId}
+									>
+										<div className="flex flex-col gap-4 border rounded-lg">
+											<ShowDeployments
+												id={composeId}
+												type="compose"
+												serverId={data?.serverId || ""}
+												refreshToken={data?.refreshToken || ""}
+											/>
+										</div>
+									</ReadOnlyFormWrapper>
 									</TabsContent>
 
 									<TabsContent value="domains">
