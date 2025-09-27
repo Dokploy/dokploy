@@ -7,8 +7,8 @@ export const initCancelDeployments = async () => {
         console.log("Setting up cancel deployments....");
 
     const result = await db.update(deployments).set({
-        status: "error",
-    }).where(eq(deployments.status, "cancelled"));
+        status: "cancelled",
+    }).where(eq(deployments.status, "running")).returning();
 
     console.log(`Cancelled ${result.length} deployments`);
     } catch (error) {
