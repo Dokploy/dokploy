@@ -6,20 +6,15 @@ const githubSelectSchema = createSelectSchema(github);
 const gitProviderSelectSchema = createSelectSchema(gitProvider);
 
 export const apiFindOneGithubOutput = githubSelectSchema.extend({
-	gitProvider: gitProviderSelectSchema,
+  gitProvider: gitProviderSelectSchema,
 });
 
 export const apiGithubProvidersOutput = z.array(
-	z.object({
-		githubId: z.string(),
-		gitProvider: gitProviderSelectSchema,
-	})
+  z.object({
+    githubId: z.string(),
+    gitProvider: gitProviderSelectSchema,
+  })
 );
-
-
-
-
-
 
 export const apiTestConnectionGithubOutput = z.string();
 

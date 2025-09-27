@@ -1,7 +1,6 @@
 import { security } from "@dokploy/server/db/schema/security";
 import { createSelectSchema } from "drizzle-zod";
 
-
 const securitySelectSchema = createSelectSchema(security);
 
 export const apiCreateSecurityOutput = securitySelectSchema;

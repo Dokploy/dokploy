@@ -4,5 +4,4 @@ import { z } from "zod";
 
 const deploymentsSelectSchema = createSelectSchema(deployments);
 
-
 export const apiDeploymentAllOutput = z.array(deploymentsSelectSchema);

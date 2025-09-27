@@ -4,7 +4,6 @@ import { z } from "zod";
 
 const certificatesSelectSchema = createSelectSchema(certificates);
 
-
 export const apiCertificatesCreateOutput = certificatesSelectSchema;
 
 export const apiCertificatesFindOneOutput = certificatesSelectSchema;

@@ -20,16 +20,15 @@ const postgresSelectSchema = createSelectSchema(postgres);
 const redisSelectSchema = createSelectSchema(redis);
 const projectSelectSchema = createSelectSchema(projects);
 
-// Full environment object as returned by environment.one and environment.byProjectId
 const environmentWithRelationsSchema = environmentsSelectSchema.extend({
-	project: projectSelectSchema,
-	applications: z.array(applicationsSelectSchema),
-	mariadb: z.array(mariadbSelectSchema),
-	mongo: z.array(mongoSelectSchema),
-	mysql: z.array(mysqlSelectSchema),
-	postgres: z.array(postgresSelectSchema),
-	redis: z.array(redisSelectSchema),
-	compose: z.array(composeSelectSchema),
+  project: projectSelectSchema,
+  applications: z.array(applicationsSelectSchema),
+  mariadb: z.array(mariadbSelectSchema),
+  mongo: z.array(mongoSelectSchema),
+  mysql: z.array(mysqlSelectSchema),
+  postgres: z.array(postgresSelectSchema),
+  redis: z.array(redisSelectSchema),
+  compose: z.array(composeSelectSchema),
 });
 
 export const apiCreateEnvironmentOutput = environmentsSelectSchema;
@@ -37,7 +36,7 @@ export const apiCreateEnvironmentOutput = environmentsSelectSchema;
 export const apiFindOneEnvironmentOutput = environmentWithRelationsSchema;
 
 export const apiFindAllEnvironmentsOutput = z.array(
-	environmentWithRelationsSchema,
+  environmentWithRelationsSchema
 );
 
 export const apiUpdateEnvironmentOutput = environmentsSelectSchema;

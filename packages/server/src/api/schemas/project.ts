@@ -7,34 +7,40 @@ const projectSelectSchema = createSelectSchema(projects);
 const environmentSelectSchema = createSelectSchema(environments);
 
 export const apiCreateProjectOutput = z.object({
-	project: projectSelectSchema,
-	environment: environmentSelectSchema,
+  project: projectSelectSchema,
+  environment: environmentSelectSchema,
 });
 
 export const apiFindOneProjectOutput = projectSelectSchema.extend({
-	environments: z.array(environmentSelectSchema.extend({
-		applications: z.array(z.unknown()).optional(),
-		compose: z.array(z.unknown()).optional(),
-		mariadb: z.array(z.unknown()).optional(),
-		mongo: z.array(z.unknown()).optional(),
-		mysql: z.array(z.unknown()).optional(),
-		postgres: z.array(z.unknown()).optional(),
-		redis: z.array(z.unknown()).optional(),
-	})),
+  environments: z.array(
+    environmentSelectSchema.extend({
+      applications: z.array(z.unknown()).optional(),
+      compose: z.array(z.unknown()).optional(),
+      mariadb: z.array(z.unknown()).optional(),
+      mongo: z.array(z.unknown()).optional(),
+      mysql: z.array(z.unknown()).optional(),
+      postgres: z.array(z.unknown()).optional(),
+      redis: z.array(z.unknown()).optional(),
+    })
+  ),
 });
 
 export const apiUpdateProjectOutput = projectSelectSchema;
 
 export const apiDeleteProjectOutput = projectSelectSchema;
 
-export const apiFindAllProjectsOutput = z.array(projectSelectSchema.extend({
-	environments: z.array(environmentSelectSchema.extend({
-		applications: z.array(z.unknown()).optional(),
-		compose: z.array(z.unknown()).optional(),
-		mariadb: z.array(z.unknown()).optional(),
-		mongo: z.array(z.unknown()).optional(),
-		mysql: z.array(z.unknown()).optional(),
-		postgres: z.array(z.unknown()).optional(),
-		redis: z.array(z.unknown()).optional(),
-	})),
-}));
+export const apiFindAllProjectsOutput = z.array(
+  projectSelectSchema.extend({
+    environments: z.array(
+      environmentSelectSchema.extend({
+        applications: z.array(z.unknown()).optional(),
+        compose: z.array(z.unknown()).optional(),
+        mariadb: z.array(z.unknown()).optional(),
+        mongo: z.array(z.unknown()).optional(),
+        mysql: z.array(z.unknown()).optional(),
+        postgres: z.array(z.unknown()).optional(),
+        redis: z.array(z.unknown()).optional(),
+      })
+    ),
+  })
+);

@@ -8,6 +8,8 @@ export const apiCreatePreviewDeploymentOutput = previewDeploymentsSelectSchema;
 
 export const apiFindOnePreviewDeploymentOutput = previewDeploymentsSelectSchema;
 
-export const apiFindAllPreviewDeploymentsOutput = z.array(previewDeploymentsSelectSchema);
+export const apiFindAllPreviewDeploymentsOutput = z.array(
+  previewDeploymentsSelectSchema
+);
 
 export const apiDeletePreviewDeploymentOutput = z.boolean();
