@@ -43,7 +43,6 @@ void app.prepare().then(async () => {
 		if (!IS_CLOUD) {
 			setupDockerStatsMonitoringSocketServer(server);
 		}
-		await initCancelDeployments();
 
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 			setupDirectories();
@@ -54,6 +53,7 @@ void app.prepare().then(async () => {
 			await migration();
 			await initCronJobs();
 			await initSchedules();
+			await initCancelDeployments();
 			await initVolumeBackupsCronJobs();
 			await sendDokployRestartNotifications();
 		}
