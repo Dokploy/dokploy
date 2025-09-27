@@ -76,7 +76,8 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 										);
 									})
 									.catch((error) => {
-										const errorMessage = error?.message || "Error deploying application";
+										const errorMessage =
+											error?.message || "Error deploying application";
 										setLastError(errorMessage);
 										toast.error(errorMessage);
 									});
@@ -325,7 +326,9 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 				<Card>
 					<CardContent className="pt-6">
 						<div className="flex items-center gap-2">
-							<span className="text-sm text-muted-foreground">Deployment failed:</span>
+							<span className="text-sm text-muted-foreground">
+								Deployment failed:
+							</span>
 							<AiDebugButton
 								serviceType="application"
 								serviceId={applicationId}

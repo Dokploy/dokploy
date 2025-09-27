@@ -26,14 +26,20 @@ interface Props {
 	compact?: boolean;
 }
 
-export const AiDebugButton = ({ serviceType, serviceId, error, compact = false }: Props) => {
+export const AiDebugButton = ({
+	serviceType,
+	serviceId,
+	error,
+	compact = false,
+}: Props) => {
 	const [showProviderSelect, setShowProviderSelect] = useState(false);
 	const [selectedAiId, setSelectedAiId] = useState("");
 	const [isAnalyzing, setIsAnalyzing] = useState(false);
 	const [analysis, setAnalysis] = useState<string>("");
 
 	const { data: aiConfigs } = api.ai.getAll.useQuery();
-	const { mutateAsync: analyzeError } = api.ai.analyzeDeploymentError.useMutation();
+	const { mutateAsync: analyzeError } =
+		api.ai.analyzeDeploymentError.useMutation();
 
 	const hasAiConfigured = aiConfigs && aiConfigs.length > 0;
 
@@ -152,8 +158,10 @@ export const AiDebugButton = ({ serviceType, serviceId, error, compact = false }
 					</DialogHeader>
 					<div className="mt-4">
 						<div className="prose prose-sm max-w-none dark:prose-invert">
-							{analysis.split('\n').map((line, i) => (
-								<p key={i} className="mb-2">{line}</p>
+							{analysis.split("\n").map((line, i) => (
+								<p key={i} className="mb-2">
+									{line}
+								</p>
 							))}
 						</div>
 					</div>

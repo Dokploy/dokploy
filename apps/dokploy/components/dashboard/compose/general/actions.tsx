@@ -54,7 +54,8 @@ export const ComposeActions = ({ composeId }: Props) => {
 								);
 							})
 							.catch((error) => {
-								const errorMessage = error?.message || "Error deploying compose";
+								const errorMessage =
+									error?.message || "Error deploying compose";
 								setLastError(errorMessage);
 								toast.error(errorMessage);
 							});
@@ -93,7 +94,8 @@ export const ComposeActions = ({ composeId }: Props) => {
 								refetch();
 							})
 							.catch((error) => {
-								const errorMessage = error?.message || "Error reloading compose";
+								const errorMessage =
+									error?.message || "Error reloading compose";
 								setLastError(errorMessage);
 								toast.error(errorMessage);
 							});

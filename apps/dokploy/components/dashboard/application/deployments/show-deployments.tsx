@@ -339,7 +339,13 @@ export const ShowDeployments = ({
 					logPath={activeLog?.logPath || ""}
 					errorMessage={activeLog?.errorMessage || ""}
 					serviceId={id}
-					serviceType={type === "application" ? "application" : type === "compose" ? "compose" : undefined}
+					serviceType={
+						type === "application"
+							? "application"
+							: type === "compose"
+								? "compose"
+								: undefined
+					}
 					deploymentStatus={activeLog?.status}
 				/>
 			</CardContent>

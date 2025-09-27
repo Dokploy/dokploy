@@ -268,10 +268,14 @@ export const aiRouter = createTRPCRouter({
 
 				let serviceData: any = {};
 				if (input.serviceType === "application") {
-					const { findApplicationById } = await import("@dokploy/server/services/application");
+					const { findApplicationById } = await import(
+						"@dokploy/server/services/application"
+					);
 					serviceData = await findApplicationById(input.serviceId);
 				} else {
-					const { findComposeById } = await import("@dokploy/server/services/compose");
+					const { findComposeById } = await import(
+						"@dokploy/server/services/compose"
+					);
 					serviceData = await findComposeById(input.serviceId);
 				}
 
@@ -287,7 +291,10 @@ ${input.error}
 Explain the main problem and the exact fix needed. Be direct and skip optional warnings. Maximum 2 sentences. No markdown or code blocks.`;
 
 				const providerName = getProviderName(aiConfig.apiUrl);
-				const baseHeaders = getProviderHeaders(aiConfig.apiUrl, aiConfig.apiKey);
+				const baseHeaders = getProviderHeaders(
+					aiConfig.apiUrl,
+					aiConfig.apiKey,
+				);
 				const headers = {
 					...baseHeaders,
 					"Content-Type": "application/json",
@@ -325,14 +332,16 @@ Explain the main problem and the exact fix needed. Be direct and skip optional w
 				if (providerName === "ollama") {
 					analysis = result.response;
 				} else {
-					analysis = result.choices?.[0]?.message?.content || "No analysis available";
+					analysis =
+						result.choices?.[0]?.message?.content || "No analysis available";
 				}
 
 				return { analysis };
 			} catch (error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: error instanceof Error ? error.message : "Failed to analyze error",
+					message:
+						error instanceof Error ? error.message : "Failed to analyze error",
 				});
 			}
 		}),
