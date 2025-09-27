@@ -201,7 +201,10 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	useEffect(() => {
 		if (data) {
 			console.log("🔍 Frontend: Loading user data:", data);
-			console.log("🔍 Frontend: canReadOnlyServices from API:", data.canReadOnlyServices);
+			console.log(
+				"🔍 Frontend: canReadOnlyServices from API:",
+				data.canReadOnlyServices,
+			);
 			console.log("🔍 Frontend: All boolean fields:", {
 				canCreateProjects: data.canCreateProjects,
 				canCreateServices: data.canCreateServices,
@@ -214,7 +217,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canAccessToGitProviders: data.canAccessToGitProviders,
 				canReadOnlyServices: data.canReadOnlyServices,
 			});
-			
+
 			form.reset({
 				accessedProjects: data.accessedProjects || [],
 				accessedEnvironments: data.accessedEnvironments || [],
@@ -235,8 +238,11 @@ export const AddUserPermissions = ({ userId }: Props) => {
 
 	const onSubmit = async (data: AddPermissions) => {
 		console.log("🚀 Frontend: Submitting permissions data:", data);
-		console.log("🚀 Frontend: canReadOnlyServices value being sent:", data.canReadOnlyServices);
-		
+		console.log(
+			"🚀 Frontend: canReadOnlyServices value being sent:",
+			data.canReadOnlyServices,
+		);
+
 		await mutateAsync({
 			id: userId,
 			canCreateServices: data.canCreateServices,
@@ -836,7 +842,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 						</DialogFooter>
 					</form>
 				</Form>
-				</DialogContent>
-			</Dialog>
-		);
-	};
+			</DialogContent>
+		</Dialog>
+	);
+};

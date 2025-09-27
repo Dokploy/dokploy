@@ -1,21 +1,31 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-	Shield, 
-	Users, 
-	Settings, 
-	Eye, 
-	Lock, 
+import {
+	Shield,
+	Users,
+	Settings,
+	Eye,
+	Lock,
 	AlertTriangle,
 	CheckCircle,
 	XCircle,
-	Info
+	Info,
 } from "lucide-react";
-import { EnhancedReadOnlyWrapper, EnhancedReadOnlyIndicator, useEnhancedReadOnly } from "@/components/shared/enhanced-readonly-wrapper";
+import {
+	EnhancedReadOnlyWrapper,
+	EnhancedReadOnlyIndicator,
+	useEnhancedReadOnly,
+} from "@/components/shared/enhanced-readonly-wrapper";
 
 export const PermissionSystemDemo = () => {
 	const [selectedDemo, setSelectedDemo] = useState("readonly");
@@ -38,16 +48,16 @@ export const PermissionSystemDemo = () => {
 		<div className="space-y-4 p-4 border rounded-lg">
 			<div className="space-y-2">
 				<label className="text-sm font-medium">Service Name</label>
-				<input 
-					type="text" 
-					placeholder="Enter service name" 
+				<input
+					type="text"
+					placeholder="Enter service name"
 					className="w-full px-3 py-2 border rounded-md"
 				/>
 			</div>
 			<div className="space-y-2">
 				<label className="text-sm font-medium">Description</label>
-				<textarea 
-					placeholder="Enter service description" 
+				<textarea
+					placeholder="Enter service description"
 					className="w-full px-3 py-2 border rounded-md"
 					rows={3}
 				/>
@@ -60,7 +70,8 @@ export const PermissionSystemDemo = () => {
 	);
 
 	const ReadOnlyDemo = () => {
-		const { isReadOnly, permissionDetails } = useEnhancedReadOnly(demoServiceId);
+		const { isReadOnly, permissionDetails } =
+			useEnhancedReadOnly(demoServiceId);
 
 		return (
 			<div className="space-y-6">
@@ -94,13 +105,25 @@ export const PermissionSystemDemo = () => {
 										</div>
 										<div className="flex justify-between">
 											<span>Service Access:</span>
-											<Badge variant={permissionDetails.hasServiceAccess ? "default" : "secondary"}>
+											<Badge
+												variant={
+													permissionDetails.hasServiceAccess
+														? "default"
+														: "secondary"
+												}
+											>
 												{permissionDetails.hasServiceAccess ? "Yes" : "No"}
 											</Badge>
 										</div>
 										<div className="flex justify-between">
 											<span>Read-Only Permission:</span>
-											<Badge variant={permissionDetails.hasReadOnlyPermission ? "default" : "secondary"}>
+											<Badge
+												variant={
+													permissionDetails.hasReadOnlyPermission
+														? "default"
+														: "secondary"
+												}
+											>
 												{permissionDetails.hasReadOnlyPermission ? "Yes" : "No"}
 											</Badge>
 										</div>
@@ -112,13 +135,13 @@ export const PermissionSystemDemo = () => {
 						{/* Enhanced Read-Only Wrapper Demo */}
 						<div className="space-y-4">
 							<h4 className="font-medium">Enhanced Read-Only Wrapper</h4>
-							<EnhancedReadOnlyWrapper 
+							<EnhancedReadOnlyWrapper
 								serviceId={demoServiceId}
 								showDetailedInfo={true}
 								permissionContext={{
 									resourceType: "application",
 									action: "modify",
-									showPermissionDetails: true
+									showPermissionDetails: true,
 								}}
 							>
 								<DemoForm />
@@ -240,8 +263,9 @@ export const PermissionSystemDemo = () => {
 							<div className="space-y-2">
 								<div className="font-medium">Better Auth Integration</div>
 								<div className="text-sm">
-									This enhanced permission system integrates with Better Auth's organization plugin
-									while maintaining backward compatibility with the existing custom permission system.
+									This enhanced permission system integrates with Better Auth's
+									organization plugin while maintaining backward compatibility
+									with the existing custom permission system.
 								</div>
 							</div>
 						</AlertDescription>
@@ -260,20 +284,23 @@ export const PermissionSystemDemo = () => {
 						Enhanced Permission System Demo
 					</CardTitle>
 					<CardDescription>
-						Demonstrates the new hybrid permission system with Better Auth integration
+						Demonstrates the new hybrid permission system with Better Auth
+						integration
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Tabs value={selectedDemo} onValueChange={setSelectedDemo}>
 						<TabsList className="grid w-full grid-cols-2">
 							<TabsTrigger value="readonly">Read-Only Features</TabsTrigger>
-							<TabsTrigger value="management">Permission Management</TabsTrigger>
+							<TabsTrigger value="management">
+								Permission Management
+							</TabsTrigger>
 						</TabsList>
-						
+
 						<TabsContent value="readonly">
 							<ReadOnlyDemo />
 						</TabsContent>
-						
+
 						<TabsContent value="management">
 							<PermissionManagementDemo />
 						</TabsContent>

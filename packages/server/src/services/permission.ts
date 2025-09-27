@@ -17,7 +17,7 @@ export const DOKPLOY_RESOURCES = {
 } as const;
 
 export type DokployResource = keyof typeof DOKPLOY_RESOURCES;
-export type DokployAction = typeof DOKPLOY_RESOURCES[DokployResource][number];
+export type DokployAction = (typeof DOKPLOY_RESOURCES)[DokployResource][number];
 
 export interface PermissionContext {
 	userId: string;
@@ -43,11 +43,14 @@ export class PermissionService {
 	async checkPermission(
 		context: PermissionContext,
 		action: DokployAction,
-		resource: DokployResource
+		resource: DokployResource,
 	): Promise<PermissionResult> {
 		try {
-			const member = await this.getMember(context.userId, context.organizationId);
-			
+			const member = await this.getMember(
+				context.userId,
+				context.organizationId,
+			);
+
 			if (!member) {
 				return {
 					allowed: false,
@@ -64,15 +67,24 @@ export class PermissionService {
 			}
 
 			// Check custom Dokploy permissions
-			const customPermission = await this.checkCustomPermission(member, action, resource, context);
+			const customPermission = await this.checkCustomPermission(
+				member,
+				action,
+				resource,
+				context,
+			);
 			if (customPermission.allowed) {
 				return customPermission;
 			}
 
 			// Check Better Auth organization permissions
-			const orgPermission = await this.checkOrganizationPermission(member, action, resource, context);
+			const orgPermission = await this.checkOrganizationPermission(
+				member,
+				action,
+				resource,
+				context,
+			);
 			return orgPermission;
-
 		} catch (error) {
 			console.error("Permission check error:", error);
 			return {
@@ -89,7 +101,7 @@ export class PermissionService {
 		member: any,
 		action: DokployAction,
 		resource: DokployResource,
-		context: PermissionContext
+		context: PermissionContext,
 	): Promise<PermissionResult> {
 		// Map actions to permission flags
 		const permissionMap: Record<string, string> = {
@@ -119,7 +131,11 @@ export class PermissionService {
 
 		// Check resource-specific access
 		if (context.resourceId) {
-			const hasResourceAccess = await this.checkResourceAccess(member, resource, context.resourceId);
+			const hasResourceAccess = await this.checkResourceAccess(
+				member,
+				resource,
+				context.resourceId,
+			);
 			if (!hasResourceAccess) {
 				return { allowed: false, reason: "No access to specific resource" };
 			}
@@ -135,7 +151,7 @@ export class PermissionService {
 		member: any,
 		action: DokployAction,
 		resource: DokployResource,
-		context: PermissionContext
+		context: PermissionContext,
 	): Promise<PermissionResult> {
 		// This would integrate with Better Auth's permission system
 		// For now, we'll return false as we're keeping the custom system
@@ -149,7 +165,7 @@ export class PermissionService {
 	private async checkResourceAccess(
 		member: any,
 		resource: DokployResource,
-		resourceId: string
+		resourceId: string,
 	): Promise<boolean> {
 		switch (resource) {
 			case "project":
@@ -170,7 +186,7 @@ export class PermissionService {
 		return await db.query.member.findFirst({
 			where: and(
 				eq(schema.member.userId, userId),
-				eq(schema.member.organizationId, organizationId)
+				eq(schema.member.organizationId, organizationId),
 			),
 		});
 	}
@@ -181,12 +197,17 @@ export class PermissionService {
 	async checkServiceReadOnlyPermission(
 		userId: string,
 		serviceId: string,
-		organizationId: string
+		organizationId: string,
 	): Promise<boolean> {
 		const result = await this.checkPermission(
-			{ userId, organizationId, resourceId: serviceId, resourceType: "service" },
+			{
+				userId,
+				organizationId,
+				resourceId: serviceId,
+				resourceType: "service",
+			},
 			"readonly",
-			"service"
+			"service",
 		);
 		return result.allowed;
 	}
@@ -198,12 +219,17 @@ export class PermissionService {
 		userId: string,
 		serviceId: string,
 		organizationId: string,
-		action: "access" | "create" | "delete" | "readonly" = "access"
+		action: "access" | "create" | "delete" | "readonly" = "access",
 	): Promise<boolean> {
 		const result = await this.checkPermission(
-			{ userId, organizationId, resourceId: serviceId, resourceType: "service" },
+			{
+				userId,
+				organizationId,
+				resourceId: serviceId,
+				resourceType: "service",
+			},
 			action as DokployAction,
-			"service"
+			"service",
 		);
 		return result.allowed;
 	}
@@ -215,12 +241,17 @@ export class PermissionService {
 		userId: string,
 		environmentId: string,
 		organizationId: string,
-		action: "access" | "create" | "delete" = "access"
+		action: "access" | "create" | "delete" = "access",
 	): Promise<boolean> {
 		const result = await this.checkPermission(
-			{ userId, organizationId, resourceId: environmentId, resourceType: "environment" },
+			{
+				userId,
+				organizationId,
+				resourceId: environmentId,
+				resourceType: "environment",
+			},
 			action as DokployAction,
-			"environment"
+			"environment",
 		);
 		return result.allowed;
 	}
@@ -228,7 +259,10 @@ export class PermissionService {
 	/**
 	 * Get all permissions for a user
 	 */
-	async getUserPermissions(userId: string, organizationId: string): Promise<string[]> {
+	async getUserPermissions(
+		userId: string,
+		organizationId: string,
+	): Promise<string[]> {
 		const member = await this.getMember(userId, organizationId);
 		if (!member) return [];
 
@@ -255,7 +289,7 @@ export class PermissionService {
 	async validatePermissionAssignment(
 		userId: string,
 		organizationId: string,
-		permissions: Record<string, any>
+		permissions: Record<string, any>,
 	): Promise<{ valid: boolean; errors: string[] }> {
 		const errors: string[] = [];
 		const member = await this.getMember(userId, organizationId);
@@ -266,16 +300,25 @@ export class PermissionService {
 		}
 
 		// Validate resource access arrays
-		if (permissions.accessedProjects && Array.isArray(permissions.accessedProjects)) {
+		if (
+			permissions.accessedProjects &&
+			Array.isArray(permissions.accessedProjects)
+		) {
 			// Validate that projects exist and user has access
 			// This could be enhanced with actual project validation
 		}
 
-		if (permissions.accessedServices && Array.isArray(permissions.accessedServices)) {
+		if (
+			permissions.accessedServices &&
+			Array.isArray(permissions.accessedServices)
+		) {
 			// Validate that services exist and user has access
 		}
 
-		if (permissions.accessedEnvironments && Array.isArray(permissions.accessedEnvironments)) {
+		if (
+			permissions.accessedEnvironments &&
+			Array.isArray(permissions.accessedEnvironments)
+		) {
 			// Validate that environments exist and user has access
 		}
 
@@ -287,6 +330,9 @@ export class PermissionService {
 export const permissionService = new PermissionService();
 
 // Export convenience functions for backward compatibility
-export const checkServiceReadOnlyPermission = permissionService.checkServiceReadOnlyPermission.bind(permissionService);
-export const checkServiceAccess = permissionService.checkServiceAccess.bind(permissionService);
-export const checkEnvironmentAccess = permissionService.checkEnvironmentAccess.bind(permissionService);
+export const checkServiceReadOnlyPermission =
+	permissionService.checkServiceReadOnlyPermission.bind(permissionService);
+export const checkServiceAccess =
+	permissionService.checkServiceAccess.bind(permissionService);
+export const checkEnvironmentAccess =
+	permissionService.checkEnvironmentAccess.bind(permissionService);

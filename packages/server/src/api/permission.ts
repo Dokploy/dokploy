@@ -6,13 +6,19 @@ import { permissionService } from "../services/permission";
 export const permissionRouter = createTRPCRouter({
 	// Get user permissions
 	getUserPermissions: protectedProcedure
-		.input(z.object({
-			userId: z.string(),
-			organizationId: z.string(),
-		}))
+		.input(
+			z.object({
+				userId: z.string(),
+				organizationId: z.string(),
+			}),
+		)
 		.query(async ({ input, ctx }) => {
 			// Check if user has permission to view other user's permissions
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && ctx.user.id !== input.userId) {
+			if (
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin" &&
+				ctx.user.id !== input.userId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have permission to view this user's permissions",
@@ -21,7 +27,7 @@ export const permissionRouter = createTRPCRouter({
 
 			const permissions = await permissionService.getUserPermissions(
 				input.userId,
-				input.organizationId
+				input.organizationId,
 			);
 
 			return {
@@ -33,16 +39,22 @@ export const permissionRouter = createTRPCRouter({
 
 	// Check specific permission
 	checkPermission: protectedProcedure
-		.input(z.object({
-			userId: z.string(),
-			organizationId: z.string(),
-			resource: z.string(),
-			action: z.string(),
-			resourceId: z.string().optional(),
-		}))
+		.input(
+			z.object({
+				userId: z.string(),
+				organizationId: z.string(),
+				resource: z.string(),
+				action: z.string(),
+				resourceId: z.string().optional(),
+			}),
+		)
 		.query(async ({ input, ctx }) => {
 			// Check if user has permission to check other user's permissions
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && ctx.user.id !== input.userId) {
+			if (
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin" &&
+				ctx.user.id !== input.userId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You don't have permission to check this user's permissions",
@@ -57,7 +69,7 @@ export const permissionRouter = createTRPCRouter({
 					resourceType: input.resource as any,
 				},
 				input.action as any,
-				input.resource as any
+				input.resource as any,
 			);
 
 			return result;
@@ -65,24 +77,27 @@ export const permissionRouter = createTRPCRouter({
 
 	// Validate permission assignment
 	validatePermissionAssignment: protectedProcedure
-		.input(z.object({
-			userId: z.string(),
-			organizationId: z.string(),
-			permissions: z.record(z.any()),
-		}))
+		.input(
+			z.object({
+				userId: z.string(),
+				organizationId: z.string(),
+				permissions: z.record(z.any()),
+			}),
+		)
 		.mutation(async ({ input, ctx }) => {
 			// Only owners and admins can validate permission assignments
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You don't have permission to validate permission assignments",
+					message:
+						"You don't have permission to validate permission assignments",
 				});
 			}
 
 			const result = await permissionService.validatePermissionAssignment(
 				input.userId,
 				input.organizationId,
-				input.permissions
+				input.permissions,
 			);
 
 			return result;
@@ -90,9 +105,11 @@ export const permissionRouter = createTRPCRouter({
 
 	// Get permission statistics
 	getPermissionStats: protectedProcedure
-		.input(z.object({
-			organizationId: z.string(),
-		}))
+		.input(
+			z.object({
+				organizationId: z.string(),
+			}),
+		)
 		.query(async ({ input, ctx }) => {
 			// Only owners and admins can view permission statistics
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
@@ -114,10 +131,12 @@ export const permissionRouter = createTRPCRouter({
 
 	// Get available resources for permission assignment
 	getAvailableResources: protectedProcedure
-		.input(z.object({
-			organizationId: z.string(),
-			resourceType: z.enum(["project", "service", "environment"]),
-		}))
+		.input(
+			z.object({
+				organizationId: z.string(),
+				resourceType: z.enum(["project", "service", "environment"]),
+			}),
+		)
 		.query(async ({ input, ctx }) => {
 			// Only owners and admins can view available resources
 			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {

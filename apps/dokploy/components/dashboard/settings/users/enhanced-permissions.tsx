@@ -28,7 +28,13 @@ import {
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/utils/api";
@@ -62,16 +68,16 @@ const enhancedPermissions = z.object({
 	accessedProjects: z.array(z.string()).optional(),
 	accessedEnvironments: z.array(z.string()).optional(),
 	accessedServices: z.array(z.string()).optional(),
-	
+
 	// Project permissions
 	canCreateProjects: z.boolean().optional().default(false),
 	canDeleteProjects: z.boolean().optional().default(false),
-	
+
 	// Service permissions
 	canCreateServices: z.boolean().optional().default(false),
 	canDeleteServices: z.boolean().optional().default(false),
 	canReadOnlyServices: z.boolean().optional().default(false),
-	
+
 	// System access permissions
 	canAccessToDocker: z.boolean().optional().default(false),
 	canAccessToAPI: z.boolean().optional().default(false),
@@ -97,15 +103,15 @@ const PERMISSION_CATEGORIES = {
 				key: "canCreateProjects",
 				label: "Create Projects",
 				description: "Allow the user to create new projects",
-				impact: "high"
+				impact: "high",
 			},
 			{
-				key: "canDeleteProjects", 
+				key: "canDeleteProjects",
 				label: "Delete Projects",
 				description: "Allow the user to delete projects",
-				impact: "high"
-			}
-		]
+				impact: "high",
+			},
+		],
 	},
 	services: {
 		title: "Service Management",
@@ -116,21 +122,21 @@ const PERMISSION_CATEGORIES = {
 				key: "canCreateServices",
 				label: "Create Services",
 				description: "Allow the user to create new services",
-				impact: "high"
+				impact: "high",
 			},
 			{
 				key: "canDeleteServices",
-				label: "Delete Services", 
+				label: "Delete Services",
 				description: "Allow the user to delete services",
-				impact: "high"
+				impact: "high",
 			},
 			{
 				key: "canReadOnlyServices",
 				label: "Read-Only Services",
 				description: "Grant view-only access to specific services",
-				impact: "medium"
-			}
-		]
+				impact: "medium",
+			},
+		],
 	},
 	system: {
 		title: "System Access",
@@ -141,34 +147,34 @@ const PERMISSION_CATEGORIES = {
 				key: "canAccessToDocker",
 				label: "Docker Access",
 				description: "Allow access to Docker management features",
-				impact: "high"
+				impact: "high",
 			},
 			{
 				key: "canAccessToAPI",
 				label: "API Access",
 				description: "Allow access to API management",
-				impact: "medium"
+				impact: "medium",
 			},
 			{
 				key: "canAccessToSSHKeys",
 				label: "SSH Keys",
 				description: "Allow access to SSH key management",
-				impact: "high"
+				impact: "high",
 			},
 			{
 				key: "canAccessToGitProviders",
 				label: "Git Providers",
 				description: "Allow access to Git provider configuration",
-				impact: "medium"
+				impact: "medium",
 			},
 			{
 				key: "canAccessToTraefikFiles",
 				label: "Traefik Files",
 				description: "Allow access to Traefik configuration files",
-				impact: "high"
-			}
-		]
-	}
+				impact: "high",
+			},
+		],
+	},
 } as const;
 
 export const EnhancedUserPermissions = ({ userId }: Props) => {
@@ -231,10 +237,14 @@ export const EnhancedUserPermissions = ({ userId }: Props) => {
 
 	const getImpactColor = (impact: string) => {
 		switch (impact) {
-			case "high": return "destructive";
-			case "medium": return "default";
-			case "low": return "secondary";
-			default: return "default";
+			case "high":
+				return "destructive";
+			case "medium":
+				return "default";
+			case "low":
+				return "secondary";
+			default:
+				return "default";
 		}
 	};
 
@@ -250,7 +260,10 @@ export const EnhancedUserPermissions = ({ userId }: Props) => {
 							<FormLabel className="text-sm font-medium">
 								{permission.label}
 							</FormLabel>
-							<Badge variant={getImpactColor(permission.impact)} className="text-xs">
+							<Badge
+								variant={getImpactColor(permission.impact)}
+								className="text-xs"
+							>
 								{permission.impact} impact
 							</Badge>
 						</div>
@@ -294,16 +307,23 @@ export const EnhancedUserPermissions = ({ userId }: Props) => {
 								</FormDescription>
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
 									{projects?.map((project) => (
-										<div key={project.projectId} className="flex items-center space-x-2">
+										<div
+											key={project.projectId}
+											className="flex items-center space-x-2"
+										>
 											<Checkbox
 												id={`project-${project.projectId}`}
-												checked={field.value?.includes(project.projectId) || false}
+												checked={
+													field.value?.includes(project.projectId) || false
+												}
 												onCheckedChange={(checked) => {
 													const current = field.value || [];
 													if (checked) {
 														field.onChange([...current, project.projectId]);
 													} else {
-														field.onChange(current.filter(id => id !== project.projectId));
+														field.onChange(
+															current.filter((id) => id !== project.projectId),
+														);
 													}
 												}}
 											/>
@@ -373,7 +393,8 @@ export const EnhancedUserPermissions = ({ userId }: Props) => {
 						Enhanced Permission Management
 					</DialogTitle>
 					<DialogDescription>
-						Manage user permissions with granular control and better organization
+						Manage user permissions with granular control and better
+						organization
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -384,36 +405,42 @@ export const EnhancedUserPermissions = ({ userId }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="w-full"
 					>
-						<Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+						<Tabs
+							value={selectedTab}
+							onValueChange={setSelectedTab}
+							className="w-full"
+						>
 							<TabsList className="grid w-full grid-cols-2">
 								<TabsTrigger value="permissions">Permissions</TabsTrigger>
 								<TabsTrigger value="resources">Resource Access</TabsTrigger>
 							</TabsList>
-							
+
 							<TabsContent value="permissions" className="space-y-6">
-								{Object.entries(PERMISSION_CATEGORIES).map(([categoryKey, category]) => {
-									const IconComponent = category.icon;
-									return (
-										<Card key={categoryKey}>
-											<CardHeader>
-												<CardTitle className="flex items-center gap-2">
-													<IconComponent className="h-5 w-5" />
-													{category.title}
-												</CardTitle>
-												<CardDescription>
-													{category.description}
-												</CardDescription>
-											</CardHeader>
-											<CardContent className="space-y-4">
-												{category.permissions.map((permission) =>
-													renderPermissionField(permission, categoryKey)
-												)}
-											</CardContent>
-										</Card>
-									);
-								})}
+								{Object.entries(PERMISSION_CATEGORIES).map(
+									([categoryKey, category]) => {
+										const IconComponent = category.icon;
+										return (
+											<Card key={categoryKey}>
+												<CardHeader>
+													<CardTitle className="flex items-center gap-2">
+														<IconComponent className="h-5 w-5" />
+														{category.title}
+													</CardTitle>
+													<CardDescription>
+														{category.description}
+													</CardDescription>
+												</CardHeader>
+												<CardContent className="space-y-4">
+													{category.permissions.map((permission) =>
+														renderPermissionField(permission, categoryKey),
+													)}
+												</CardContent>
+											</Card>
+										);
+									},
+								)}
 							</TabsContent>
-							
+
 							<TabsContent value="resources">
 								{renderResourceAccess()}
 							</TabsContent>
