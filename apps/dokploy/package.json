@@ -188,7 +188,7 @@
 	},
 	"packageManager": "pnpm@9.5.0",
 	"engines": {
-		"node": "^20.16.0",
+		"node": "^20.19.5",
 		"pnpm": ">=9.5.0"
 	},
 	"lint-staged": {
