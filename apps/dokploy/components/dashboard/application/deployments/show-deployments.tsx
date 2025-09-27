@@ -1,6 +1,7 @@
 import { Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AiDebugButton } from "@/components/dashboard/shared/ai-debug-button";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -337,6 +338,9 @@ export const ShowDeployments = ({
 					onClose={() => setActiveLog(null)}
 					logPath={activeLog?.logPath || ""}
 					errorMessage={activeLog?.errorMessage || ""}
+					serviceId={id}
+					serviceType={type === "application" ? "application" : type === "compose" ? "compose" : undefined}
+					deploymentStatus={activeLog?.status}
 				/>
 			</CardContent>
 		</Card>

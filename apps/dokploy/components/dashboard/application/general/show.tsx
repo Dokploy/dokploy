@@ -8,7 +8,9 @@ import {
 	Terminal,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { toast } from "sonner";
+import { AiDebugButton } from "@/components/dashboard/shared/ai-debug-button";
 import { ShowBuildChooseForm } from "@/components/dashboard/application/build/show";
 import { ShowProviderForm } from "@/components/dashboard/application/general/generic/show";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -30,6 +32,7 @@ interface Props {
 
 export const ShowGeneralApplication = ({ applicationId }: Props) => {
 	const router = useRouter();
+	const [lastError, setLastError] = useState<string>("");
 	const { data, refetch } = api.application.one.useQuery(
 		{
 			applicationId,
@@ -72,8 +75,10 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 											`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/application/${applicationId}?tab=deployments`,
 										);
 									})
-									.catch(() => {
-										toast.error("Error deploying application");
+									.catch((error) => {
+										const errorMessage = error?.message || "Error deploying application";
+										setLastError(errorMessage);
+										toast.error(errorMessage);
 									});
 							}}
 						>
@@ -315,6 +320,22 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 					</div>
 				</CardContent>
 			</Card>
+
+			{lastError && (
+				<Card>
+					<CardContent className="pt-6">
+						<div className="flex items-center gap-2">
+							<span className="text-sm text-muted-foreground">Deployment failed:</span>
+							<AiDebugButton
+								serviceType="application"
+								serviceId={applicationId}
+								error={lastError}
+							/>
+						</div>
+					</CardContent>
+				</Card>
+			)}
+
 			<ShowProviderForm applicationId={applicationId} />
 			<ShowBuildChooseForm applicationId={applicationId} />
 		</>

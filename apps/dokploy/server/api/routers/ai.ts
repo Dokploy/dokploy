@@ -245,4 +245,95 @@ export const aiRouter = createTRPCRouter({
 
 			return null;
 		}),
+
+	analyzeDeploymentError: protectedProcedure
+		.input(
+			z.object({
+				serviceType: z.enum(["application", "compose"]),
+				serviceId: z.string(),
+				error: z.string(),
+				aiId: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				const aiConfig = await getAiSettingById(input.aiId);
+
+				if (aiConfig.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have access to this AI configuration",
+					});
+				}
+
+				let serviceData: any = {};
+				if (input.serviceType === "application") {
+					const { findApplicationById } = await import("@dokploy/server/services/application");
+					serviceData = await findApplicationById(input.serviceId);
+				} else {
+					const { findComposeById } = await import("@dokploy/server/services/compose");
+					serviceData = await findComposeById(input.serviceId);
+				}
+
+				const prompt = `Analyze this Docker deployment error and provide only the essential fix.
+
+Service: ${serviceData.name || "Unknown"} (${input.serviceType})
+${input.serviceType === "compose" ? `Docker Compose:\n${serviceData.composeFile || "Not available"}` : ""}
+${input.serviceType === "application" ? `Build Type: ${serviceData.buildType || "Unknown"}` : ""}
+
+Error:
+${input.error}
+
+Explain the main problem and the exact fix needed. Be direct and skip optional warnings. Maximum 2 sentences. No markdown or code blocks.`;
+
+				const providerName = getProviderName(aiConfig.apiUrl);
+				const baseHeaders = getProviderHeaders(aiConfig.apiUrl, aiConfig.apiKey);
+				const headers = {
+					...baseHeaders,
+					"Content-Type": "application/json",
+				};
+
+				let response: Response;
+				if (providerName === "ollama") {
+					response = await fetch(`${aiConfig.apiUrl}/api/generate`, {
+						method: "POST",
+						headers,
+						body: JSON.stringify({
+							model: aiConfig.model,
+							prompt,
+							stream: false,
+						}),
+					});
+				} else {
+					response = await fetch(`${aiConfig.apiUrl}/chat/completions`, {
+						method: "POST",
+						headers,
+						body: JSON.stringify({
+							model: aiConfig.model,
+							messages: [{ role: "user", content: prompt }],
+						}),
+					});
+				}
+
+				if (!response.ok) {
+					throw new Error(`AI API error: ${response.statusText}`);
+				}
+
+				const result = await response.json();
+				let analysis: string;
+
+				if (providerName === "ollama") {
+					analysis = result.response;
+				} else {
+					analysis = result.choices?.[0]?.message?.content || "No analysis available";
+				}
+
+				return { analysis };
+			} catch (error) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: error instanceof Error ? error.message : "Failed to analyze error",
+				});
+			}
+		}),
 });

@@ -1,7 +1,9 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { toast } from "sonner";
+import { AiDebugButton } from "@/components/dashboard/shared/ai-debug-button";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -19,6 +21,7 @@ interface Props {
 }
 export const ComposeActions = ({ composeId }: Props) => {
 	const router = useRouter();
+	const [lastError, setLastError] = useState<string>("");
 	const { data, refetch } = api.compose.one.useQuery(
 		{
 			composeId,
@@ -50,8 +53,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 									`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
 								);
 							})
-							.catch(() => {
-								toast.error("Error deploying compose");
+							.catch((error) => {
+								const errorMessage = error?.message || "Error deploying compose";
+								setLastError(errorMessage);
+								toast.error(errorMessage);
 							});
 					}}
 				>
@@ -87,8 +92,10 @@ export const ComposeActions = ({ composeId }: Props) => {
 								toast.success("Compose reloaded successfully");
 								refetch();
 							})
-							.catch(() => {
-								toast.error("Error reloading compose");
+							.catch((error) => {
+								const errorMessage = error?.message || "Error reloading compose";
+								setLastError(errorMessage);
+								toast.error(errorMessage);
 							});
 					}}
 				>
@@ -225,6 +232,17 @@ export const ComposeActions = ({ composeId }: Props) => {
 					className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"
 				/>
 			</div>
+
+			{lastError && (
+				<div className="flex items-center gap-2">
+					<AiDebugButton
+						serviceType="compose"
+						serviceId={composeId}
+						error={lastError}
+						compact
+					/>
+				</div>
+			)}
 		</div>
 	);
 };

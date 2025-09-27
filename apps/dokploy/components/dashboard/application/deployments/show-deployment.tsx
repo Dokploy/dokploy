@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { AiDebugButton } from "@/components/dashboard/shared/ai-debug-button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,6 +19,9 @@ interface Props {
 	onClose: () => void;
 	serverId?: string;
 	errorMessage?: string;
+	serviceId?: string;
+	serviceType?: "application" | "compose";
+	deploymentStatus?: string;
 }
 export const ShowDeployment = ({
 	logPath,
@@ -25,6 +29,9 @@ export const ShowDeployment = ({
 	onClose,
 	serverId,
 	errorMessage,
+	serviceId,
+	serviceType,
+	deploymentStatus,
 }: Props) => {
 	const [data, setData] = useState("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
@@ -126,7 +133,18 @@ export const ShowDeployment = ({
 		>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Deployment</DialogTitle>
+					<DialogTitle className="flex items-center justify-between">
+						<span>Deployment</span>
+						{serviceId && serviceType && deploymentStatus === "error" && (
+							<div className="mr-8">
+								<AiDebugButton
+									serviceType={serviceType}
+									serviceId={serviceId}
+									error={errorMessage || data}
+								/>
+							</div>
+						)}
+					</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
 						<span>
 							See all the details of this deployment |{" "}
