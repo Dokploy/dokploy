@@ -1,7 +1,10 @@
 {
 	"name": "dokploy",
 	"private": true,
-	"workspaces": ["apps/*", "packages/*"],
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
 	"scripts": {
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
@@ -25,7 +28,6 @@
 		"@commitlint/config-conventional": "^19.2.2",
 		"@types/node": "^18.17.0",
 		"dotenv": "16.4.5",
-		"esbuild": "0.20.2",
 		"lefthook": "1.8.4",
 		"lint-staged": "^15.2.7",
 		"tsx": "4.16.2"
@@ -41,7 +43,9 @@
 		]
 	},
 	"commitlint": {
-		"extends": ["@commitlint/config-conventional"]
+		"extends": [
+			"@commitlint/config-conventional"
+		]
 	},
 	"resolutions": {
 		"@types/react": "18.3.5",

@@ -38,15 +38,26 @@ const { handler, api } = betterAuth({
 				},
 			});
 
+			const origins = [
+				"http://localhost:3000",
+				"https://localhost:3000",
+			];
+
+			// Add ngrok domain if available
+			if (process.env.FORWARDED_HOST) {
+				origins.push(`https://${process.env.FORWARDED_HOST}`);
+			}
+
 			if (admin) {
-				return [
+				origins.push(
 					...(admin.user.serverIp
 						? [`http://${admin.user.serverIp}:3000`]
 						: []),
 					...(admin.user.host ? [`https://${admin.user.host}`] : []),
-				];
+				);
 			}
-			return [];
+
+			return origins;
 		},
 	}),
 	emailVerification: {
@@ -170,6 +181,18 @@ const { handler, api } = betterAuth({
 	session: {
 		expiresIn: 60 * 60 * 24 * 3,
 		updateAge: 60 * 60 * 24,
+		cookieCache: {
+			enabled: true,
+			maxAge: 60 * 5, // 5 minutes
+		},
+	},
+	cookies: {
+		sessionToken: {
+			name: "better-auth.session_token",
+			httpOnly: true,
+			secure: false, // Allow HTTP for development
+			sameSite: "lax",
+		},
 	},
 	user: {
 		modelName: "users_temp",

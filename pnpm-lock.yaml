@@ -27,9 +27,6 @@ importers:
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
-      esbuild:
-        specifier: 0.20.2
-        version: 0.20.2
       lefthook:
         specifier: 1.8.4
         version: 1.8.4

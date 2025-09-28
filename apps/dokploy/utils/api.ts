@@ -18,7 +18,15 @@ import superjson from "superjson";
 
 const getBaseUrl = () => {
 	if (typeof window !== "undefined") return ""; // browser should use relative url
-	return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
+
+	// Prioritize ngrok URL if available
+	const forwardedHost = process.env.FORWARDED_HOST;
+	if (forwardedHost) {
+		return `https://${forwardedHost}`;
+	}
+
+	// Fallback to localhost
+	return `http://localhost:${process.env.PORT ?? 3000}`;
 };
 
 const getWsUrl = () => {

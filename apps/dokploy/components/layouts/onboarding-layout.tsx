@@ -18,16 +18,9 @@ export const OnboardingLayout = ({ children }: Props) => {
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
 					<Logo className="size-10" />
-					Dokploy
+					Christopher Alphonse | Dokploy Environment
 				</Link>
-				<div className="relative z-20 mt-auto">
-					<blockquote className="space-y-2">
-						<p className="text-lg text-primary">
-							&ldquo;The Open Source alternative to Netlify, Vercel,
-							Heroku.&rdquo;
-						</p>
-					</blockquote>
-				</div>
+
 			</div>
 			<div className="w-full">
 				<div className="flex w-full flex-col justify-center space-y-6 max-w-lg mx-auto">
