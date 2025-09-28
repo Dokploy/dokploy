@@ -33,9 +33,19 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
+const hostnameRegex =
+	/^(?=.{1,253}$)(?!-)[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.(?!-)[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+
 const addServerDomain = z
 	.object({
-		domain: z.string(),
+		domain: z
+			.string()
+			.trim()
+			.toLowerCase()
+			.regex(
+				hostnameRegex,
+				"Invalid hostname (no http://, no slash, no port).",
+			),
 		letsEncryptEmail: z.string(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
@@ -48,7 +58,11 @@ const addServerDomain = z
 				message: "Required",
 			});
 		}
-		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
+		if (
+			data.https &&
+			data.certificateType === "letsencrypt" &&
+			!data.letsEncryptEmail
+		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				message:
