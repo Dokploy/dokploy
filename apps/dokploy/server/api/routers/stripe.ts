@@ -56,15 +56,16 @@ export const stripeRouter = createTRPCRouter({
 			});
 
 			const items = getStripeItems(input.serverQuantity, input.isAnnual);
-			const user = await findUserById(ctx.user.id);
+			// Always operate on the organization owner's Stripe customer
+			const owner = await findUserById(ctx.user.ownerId);
 
-			let stripeCustomerId = user.stripeCustomerId;
+			let stripeCustomerId = owner.stripeCustomerId;
 
 			if (stripeCustomerId) {
 				const customer = await stripe.customers.retrieve(stripeCustomerId);
 
 				if (customer.deleted) {
-					await updateUser(user.id, {
+					await updateUser(owner.id, {
 						stripeCustomerId: null,
 					});
 					stripeCustomerId = null;
@@ -78,7 +79,7 @@ export const stripeRouter = createTRPCRouter({
 					customer: stripeCustomerId,
 				}),
 				metadata: {
-					adminId: user.id,
+					adminId: owner.id,
 				},
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
@@ -88,15 +89,16 @@ export const stripeRouter = createTRPCRouter({
 			return { sessionId: session.id };
 		}),
 	createCustomerPortalSession: adminProcedure.mutation(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.id);
+		// Use the organization's owner account for billing portal
+		const owner = await findUserById(ctx.user.ownerId);
 
-		if (!user.stripeCustomerId) {
+		if (!owner.stripeCustomerId) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Stripe Customer ID not found",
 			});
 		}
-		const stripeCustomerId = user.stripeCustomerId;
+		const stripeCustomerId = owner.stripeCustomerId;
 
 		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 			apiVersion: "2024-09-30.acacia",
