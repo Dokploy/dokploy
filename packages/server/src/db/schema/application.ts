@@ -245,7 +245,7 @@ export const applicationsRelations = relations(
 	}),
 );
 
-const createSchema = createInsertSchema(applications, {
+export const createSchema = createInsertSchema(applications, {
 	appName: z.string(),
 	createdAt: z.string(),
 	applicationId: z.string(),

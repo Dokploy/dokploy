@@ -18,6 +18,16 @@ import {
 	stopServiceRemote,
 	updatePostgresById,
 } from "@dokploy/server";
+import {
+	apiChangePostgresStatusOutput,
+	apiDeployPostgresOutput,
+	apiFindOnePostgresOutput,
+	apiMovePostgresOutput,
+	apiRemovePostgresOutput,
+	apiSaveExternalPortPostgresOutput,
+	apiStartPostgresOutput,
+	apiStopPostgresOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -40,6 +50,7 @@ import { cancelJobs } from "@/server/utils/backup";
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreatePostgres)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get project from environment
@@ -101,6 +112,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOnePostgres)
+		.output(apiFindOnePostgresOutput)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -126,6 +138,7 @@ export const postgresRouter = createTRPCRouter({
 
 	start: protectedProcedure
 		.input(apiFindOnePostgres)
+		.output(apiStartPostgresOutput)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findPostgresById(input.postgresId);
 
@@ -152,6 +165,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	stop: protectedProcedure
 		.input(apiFindOnePostgres)
+		.output(apiStopPostgresOutput)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
@@ -176,6 +190,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortPostgres)
+		.output(apiSaveExternalPortPostgresOutput)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 
@@ -196,6 +211,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployPostgres)
+		.output(apiDeployPostgresOutput)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
@@ -240,6 +256,7 @@ export const postgresRouter = createTRPCRouter({
 
 	changeStatus: protectedProcedure
 		.input(apiChangePostgresStatus)
+		.output(apiChangePostgresStatusOutput)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
@@ -258,6 +275,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	remove: protectedProcedure
 		.input(apiFindOnePostgres)
+		.output(apiRemovePostgresOutput)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -293,6 +311,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesPostgres)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
@@ -319,6 +338,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	reload: protectedProcedure
 		.input(apiResetPostgres)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
@@ -351,6 +371,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdatePostgres)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const { postgresId, ...rest } = input;
 			const postgres = await findPostgresById(postgresId);
@@ -383,6 +404,7 @@ export const postgresRouter = createTRPCRouter({
 				targetEnvironmentId: z.string(),
 			}),
 		)
+		.output(apiMovePostgresOutput)
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
@@ -429,6 +451,7 @@ export const postgresRouter = createTRPCRouter({
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildPostgres)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const postgres = await findPostgresById(input.postgresId);
 			if (
