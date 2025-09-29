@@ -1,6 +1,6 @@
 {
-  "id": "8310936d-e9ff-408b-ae6d-2292aac02523",
-  "prevId": "61ac43a1-aa28-42a3-a4ab-5f006bdacbb4",
+  "id": "da1c966b-1fc0-41ea-b54c-38d748f3d5f5",
+  "prevId": "f859f128-7326-4ec9-b5d8-78b518c77fa5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -4013,27 +4013,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "httpMethod": {
-          "name": "httpMethod",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'POST'"
-        },
         "headers": {
           "name": "headers",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "queryParams": {
-          "name": "queryParams",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -6493,8 +6474,7 @@
       "values": [
         "running",
         "done",
-        "error",
-        "cancelled"
+        "error"
       ]
     },
     "public.domainType": {

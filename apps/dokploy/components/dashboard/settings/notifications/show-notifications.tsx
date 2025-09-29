@@ -1,4 +1,11 @@
-import { Bell, Loader2, Mail, MessageCircleMore, Trash2 } from "lucide-react";
+import {
+	Bell,
+	Loader2,
+	Mail,
+	MessageCircleMore,
+	PenBoxIcon,
+	Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
@@ -91,6 +98,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "ntfy" && (
 																<div className="flex  items-center justify-center rounded-lg ">
 																	<MessageCircleMore className="size-6 text-muted-foreground" />
+																</div>
+															)}
+															{notification.notificationType === "custom" && (
+																<div className="flex  items-center justify-center rounded-lg ">
+																	<PenBoxIcon className="size-6 text-muted-foreground" />
 																</div>
 															)}
 

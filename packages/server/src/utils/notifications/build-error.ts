@@ -5,6 +5,7 @@ import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -44,11 +45,13 @@ export const sendBuildErrorNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			custom: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, custom } =
+			notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -160,7 +163,13 @@ export const sendBuildErrorNotifications = async ({
 
 			await sendTelegramNotification(
 				telegram,
-				`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
+				`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(
+					date,
+					"PP",
+				)}\n<b>Time:</b> ${format(
+					date,
+					"pp",
+				)}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
 				inlineButton,
 			);
 		}
@@ -209,6 +218,22 @@ export const sendBuildErrorNotifications = async ({
 						],
 					},
 				],
+			});
+		}
+
+		if (custom) {
+			await sendCustomNotification(custom, {
+				title: "Build Error",
+				message: "Build failed with errors",
+				projectName,
+				applicationName,
+				applicationType,
+				errorMessage,
+				buildLink,
+				timestamp: date.toISOString(),
+				date: date.toLocaleString(),
+				status: "error",
+				type: "build",
 			});
 		}
 	}

@@ -5,6 +5,7 @@ import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -44,11 +45,13 @@ export const sendDatabaseBackupNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			custom: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, custom } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -236,6 +239,25 @@ export const sendDatabaseBackupNotifications = async ({
 						],
 					},
 				],
+			});
+		}
+
+		if (custom) {
+			await sendCustomNotification(custom, {
+				title: `Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+				message:
+					type === "success"
+						? "Database backup completed successfully"
+						: "Database backup failed",
+				projectName,
+				applicationName,
+				databaseType,
+				databaseName,
+				type,
+				errorMessage: errorMessage || "",
+				timestamp: date.toISOString(),
+				date: date.toLocaleString(),
+				status: type,
 			});
 		}
 	}
