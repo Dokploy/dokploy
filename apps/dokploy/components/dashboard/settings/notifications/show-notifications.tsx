@@ -2,6 +2,8 @@ import { Bell, Loader2, Mail, MessageCircleMore, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
+	GotifyIcon,
+	NtfyIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -85,12 +87,12 @@ export const ShowNotifications = () => {
 															)}
 															{notification.notificationType === "gotify" && (
 																<div className="flex  items-center justify-center rounded-lg ">
-																	<MessageCircleMore className="size-6 text-muted-foreground" />
+																	<GotifyIcon className="size-6" />
 																</div>
 															)}
 															{notification.notificationType === "ntfy" && (
 																<div className="flex  items-center justify-center rounded-lg ">
-																	<MessageCircleMore className="size-6 text-muted-foreground" />
+																	<NtfyIcon className="size-6" />
 																</div>
 															)}
 
