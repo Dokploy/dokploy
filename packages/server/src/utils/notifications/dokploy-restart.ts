@@ -31,7 +31,8 @@ export const sendDokployRestartNotifications = async () => {
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, custom } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(

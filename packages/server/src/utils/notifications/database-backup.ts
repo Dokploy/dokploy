@@ -50,7 +50,8 @@ export const sendDatabaseBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, custom } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -244,7 +245,10 @@ export const sendDatabaseBackupNotifications = async ({
 		if (custom) {
 			await sendCustomNotification(custom, {
 				title: `Database Backup ${type === "success" ? "Successful" : "Failed"}`,
-				message: type === "success" ? "Database backup completed successfully" : "Database backup failed",
+				message:
+					type === "success"
+						? "Database backup completed successfully"
+						: "Database backup failed",
 				projectName,
 				applicationName,
 				databaseType,
