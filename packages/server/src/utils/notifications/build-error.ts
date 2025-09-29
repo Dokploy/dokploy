@@ -9,6 +9,7 @@ import {
 	sendEmailNotification,
 	sendLarkNotification,
 	sendGotifyNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -45,13 +46,13 @@ export const sendBuildErrorNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
-			notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } = notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -215,6 +216,26 @@ export const sendBuildErrorNotifications = async ({
 			});
 		}
 
+		if (mattermost) {
+			await sendMattermostNotification(mattermost, {
+				text: `:warning: **Build Failed**
+
+**Project:** ${projectName}
+**Application:** ${applicationName}
+**Type:** ${applicationType}
+**Time:** ${date.toLocaleString()}
+
+**Error:**
+\`\`\`
+${errorMessage}
+\`\`\`
+
+[View Build Details](${buildLink})`,
+				channel: mattermost.channel,
+				username: mattermost.username || "Dokploy Bot",
+			});
+		}
+		
 		if (lark) {
 			const limitCharacter = 800;
 			const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);

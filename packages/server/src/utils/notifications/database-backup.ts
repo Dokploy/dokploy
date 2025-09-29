@@ -9,6 +9,7 @@ import {
 	sendEmailNotification,
 	sendLarkNotification,
 	sendGotifyNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -45,13 +46,13 @@ export const sendDatabaseBackupNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
-			notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } = notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -354,6 +355,20 @@ export const sendDatabaseBackupNotifications = async ({
 						],
 					},
 				},
+			});
+		}
+		
+		if (mattermost) {
+			const statusEmoji = type === "success" ? "✅" : "❌";
+			const typeStatus = type === "success" ? "Successful" : "Failed";
+			const errorMsg = type === "error" && errorMessage
+				? `\n\n**Error:**\n\`\`\`\n${errorMessage}\n\`\`\``
+				: "";
+
+			await sendMattermostNotification(mattermost, {
+				text: `**${statusEmoji} Database Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${databaseType}\n**Database Name:** ${databaseName}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}${errorMsg}`,
+				channel: mattermost.channel,
+				username: mattermost.username || "Dokploy",
 			});
 		}
 	}

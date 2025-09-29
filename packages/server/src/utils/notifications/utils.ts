@@ -3,6 +3,7 @@ import type {
 	email,
 	lark,
 	gotify,
+	mattermost,
 	ntfy,
 	slack,
 	telegram,
@@ -153,6 +154,28 @@ export const sendNtfyNotification = async (
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
 	}
 };
+
+export const sendMattermostNotification = async (
+	connection: typeof mattermost.$inferInsert,
+	message: any,
+) => {
+	try {
+		const payload = {
+			...message,
+			// Only include username if it's provided and not empty
+			...(message.username && message.username.trim() && { username: message.username }),
+			// Only include wchannel if it's provided and not empty
+			...(message.channel && message.channel.trim() && { channel: `#${message.channel.replace('#', '')}` }),
+		};
+
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		});
+	} catch (err) {
+		console.log(err);
+	}
 
 export const sendLarkNotification = async (
 	connection: typeof lark.$inferInsert,
