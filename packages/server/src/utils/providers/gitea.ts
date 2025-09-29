@@ -99,6 +99,19 @@ export const refreshGiteaToken = async (giteaProviderId: string) => {
 	}
 };
 
+const buildGiteaCloneUrl = (
+	giteaUrl: string,
+	accessToken: string,
+	owner: string,
+	repository: string,
+) => {
+	const protocol = giteaUrl.startsWith("http://") ? "http" : "https";
+	const baseUrl = giteaUrl.replace(/^https?:\/\//, "");
+	const repoClone = `${owner}/${repository}.git`;
+	const cloneUrl = `${protocol}://oauth2:${accessToken}@${baseUrl}/${repoClone}`;
+	return cloneUrl;
+};
+
 export type ApplicationWithGitea = InferResultType<
 	"applications",
 	{ gitea: true }
@@ -148,9 +161,13 @@ export const getGiteaCloneCommand = async (
 	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 
-	const baseUrl = gitea?.giteaUrl.replace(/^https?:\/\//, "");
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const cloneUrl = `https://oauth2:${gitea?.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = buildGiteaCloneUrl(
+		gitea?.giteaUrl!,
+		gitea?.accessToken!,
+		giteaOwner!,
+		giteaRepository!,
+	);
 
 	const cloneCommand = `
     rm -rf ${outputPath};
@@ -205,8 +222,12 @@ export const cloneGiteaRepository = async (
 	await recreateDirectory(outputPath);
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
-	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = buildGiteaCloneUrl(
+		giteaProvider.giteaUrl,
+		giteaProvider.accessToken!,
+		giteaOwner!,
+		giteaRepository!,
+	);
 
 	writeStream.write(`\nCloning Repo ${repoClone} to ${outputPath}...\n`);
 
@@ -269,9 +290,12 @@ export const cloneRawGiteaRepository = async (entity: Compose) => {
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 
-	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
-	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = buildGiteaCloneUrl(
+		giteaProvider.giteaUrl,
+		giteaProvider.accessToken!,
+		giteaOwner!,
+		giteaRepository!,
+	);
 
 	try {
 		await spawnAsync("git", [
@@ -317,9 +341,13 @@ export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
 	const giteaProvider = await findGiteaById(giteaId);
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
-	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const baseUrl = giteaProvider.giteaUrl.replace(/^https?:\/\//, "");
-	const cloneUrl = `https://oauth2:${giteaProvider.accessToken}@${baseUrl}/${repoClone}`;
+	const cloneUrl = buildGiteaCloneUrl(
+		giteaProvider.giteaUrl,
+		giteaProvider.accessToken!,
+		giteaOwner!,
+		giteaRepository!,
+	);
+
 	try {
 		const command = `
 			rm -rf ${outputPath};

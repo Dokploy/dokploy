@@ -1,5 +1,5 @@
 {
-  "id": "f859f128-7326-4ec9-b5d8-78b518c77fa5",
+  "id": "8310936d-e9ff-408b-ae6d-2292aac02523",
   "prevId": "61ac43a1-aa28-42a3-a4ab-5f006bdacbb4",
   "version": "7",
   "dialect": "postgresql",
@@ -6493,7 +6493,8 @@
       "values": [
         "running",
         "done",
-        "error"
+        "error",
+        "cancelled"
       ]
     },
     "public.domainType": {
