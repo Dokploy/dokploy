@@ -2,6 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Read-only mode styles */
+.readonly-mode {
+	pointer-events: none !important;
+	user-select: none !important;
+	-webkit-user-select: none !important;
+	-moz-user-select: none !important;
+	-ms-user-select: none !important;
+	opacity: 0.75 !important;
+}
+
+.readonly-mode * {
+	pointer-events: none !important;
+	user-select: none !important;
+	-webkit-user-select: none !important;
+	-moz-user-select: none !important;
+	-ms-user-select: none !important;
+}
+
+.readonly-mode button,
+.readonly-mode input,
+.readonly-mode textarea,
+.readonly-mode select,
+.readonly-mode [role="button"],
+.readonly-mode [role="textbox"],
+.readonly-mode [role="combobox"],
+.readonly-mode [role="switch"],
+.readonly-mode [role="checkbox"],
+.readonly-mode [role="radio"] {
+	pointer-events: none !important;
+	cursor: not-allowed !important;
+	opacity: 0.5 !important;
+}
+
+.readonly-mode button:hover,
+.readonly-mode input:hover,
+.readonly-mode textarea:hover,
+.readonly-mode select:hover {
+	background-color: transparent !important;
+	border-color: transparent !important;
+	box-shadow: none !important;
+}
+
 @layer base {
 	:root {
 		--terminal-paste: rgba(0, 0, 0, 0.2);

@@ -1,5 +1,8 @@
 {
+ Read-Only-Access-Permission-for-Project-Services-#2608
+  "id": "90900f42-a554-46f9-8927-8bdde9d5689a",
   "id": "4512f45f-c14f-4bbe-a5f3-7470ae505d4f",
+ canary
   "prevId": "9f9b4142-e739-4c21-8618-676d62e9b5ae",
   "version": "7",
   "dialect": "postgresql",
@@ -484,6 +487,16 @@
           "notNull": true,
           "default": false
         },
+ Read-Only-Access-Permission-for-Project-Services-#2608
+        "canReadOnlyServices": {
+          "name": "canReadOnlyServices",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+
+ canary
         "accesedProjects": {
           "name": "accesedProjects",
           "type": "text[]",
@@ -1714,12 +1727,15 @@
           "primaryKey": false,
           "notNull": false
         },
+ Read-Only-Access-Permission-for-Project-Services-#2608
+
         "apiToken": {
           "name": "apiToken",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
+ canary
         "bitbucketWorkspaceName": {
           "name": "bitbucketWorkspaceName",
           "type": "text",

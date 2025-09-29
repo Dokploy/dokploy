@@ -166,6 +166,7 @@ const addPermissions = z.object({
 	canAccessToAPI: z.boolean().optional().default(false),
 	canAccessToSSHKeys: z.boolean().optional().default(false),
 	canAccessToGitProviders: z.boolean().optional().default(false),
+	canReadOnlyServices: z.boolean().optional().default(true),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -199,6 +200,24 @@ export const AddUserPermissions = ({ userId }: Props) => {
 
 	useEffect(() => {
 		if (data) {
+			console.log("🔍 Frontend: Loading user data:", data);
+			console.log(
+				"🔍 Frontend: canReadOnlyServices from API:",
+				data.canReadOnlyServices,
+			);
+			console.log("🔍 Frontend: All boolean fields:", {
+				canCreateProjects: data.canCreateProjects,
+				canCreateServices: data.canCreateServices,
+				canDeleteProjects: data.canDeleteProjects,
+				canDeleteServices: data.canDeleteServices,
+				canAccessToTraefikFiles: data.canAccessToTraefikFiles,
+				canAccessToDocker: data.canAccessToDocker,
+				canAccessToAPI: data.canAccessToAPI,
+				canAccessToSSHKeys: data.canAccessToSSHKeys,
+				canAccessToGitProviders: data.canAccessToGitProviders,
+				canReadOnlyServices: data.canReadOnlyServices,
+			});
+
 			form.reset({
 				accessedProjects: data.accessedProjects || [],
 				accessedEnvironments: data.accessedEnvironments || [],
@@ -212,11 +231,18 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canAccessToAPI: data.canAccessToAPI,
 				canAccessToSSHKeys: data.canAccessToSSHKeys,
 				canAccessToGitProviders: data.canAccessToGitProviders,
+				canReadOnlyServices: data.canReadOnlyServices ?? true, // Fallback to true if undefined
 			});
 		}
 	}, [form, form.formState.isSubmitSuccessful, form.reset, data]);
 
 	const onSubmit = async (data: AddPermissions) => {
+		console.log("🚀 Frontend: Submitting permissions data:", data);
+		console.log(
+			"🚀 Frontend: canReadOnlyServices value being sent:",
+			data.canReadOnlyServices,
+		);
+
 		await mutateAsync({
 			id: userId,
 			canCreateServices: data.canCreateServices,
@@ -231,12 +257,15 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			canAccessToAPI: data.canAccessToAPI,
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
 			canAccessToGitProviders: data.canAccessToGitProviders,
+			canReadOnlyServices: data.canReadOnlyServices,
 		})
 			.then(async () => {
+				console.log("✅ Frontend: Permissions updated successfully");
 				toast.success("Permissions updated");
 				refetch();
 			})
-			.catch(() => {
+			.catch((error) => {
+				console.error("❌ Frontend: Error updating permissions:", error);
 				toast.error("Error updating the permissions");
 			});
 	};
@@ -437,6 +466,26 @@ export const AddUserPermissions = ({ userId }: Props) => {
 									<FormControl>
 										<Switch
 											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canReadOnlyServices"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Read-Only Services</FormLabel>
+										<FormDescription>
+											Allow users to view services but not modify them
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value ?? true}
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>

@@ -35,6 +35,7 @@ import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { ReadOnlyFormWrapper } from "@/components/shared/readonly-wrapper";
 import { Badge } from "@/components/ui/badge";
 import {
 	Card,
@@ -243,62 +244,68 @@ const Service = (
 									</div>
 
 									<TabsContent value="general">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowGeneralApplication applicationId={applicationId} />
-										</div>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowGeneralApplication applicationId={applicationId} />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="environment">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowEnvironment applicationId={applicationId} />
-										</div>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowEnvironment applicationId={applicationId} />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 
 									<TabsContent value="monitoring">
-										<div className="pt-2.5">
-											<div className="flex flex-col gap-4 border rounded-lg p-6">
-												{data?.serverId && isCloud ? (
-													<ContainerPaidMonitoring
-														appName={data?.appName || ""}
-														baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
-														token={
-															data?.server?.metricsConfig?.server?.token || ""
-														}
-													/>
-												) : (
-													<>
-														{/* {monitoring?.enabledFeatures &&
-															isCloud &&
-															data?.serverId && (
-																<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
-																	<Label className="text-muted-foreground">
-																		Change Monitoring
-																	</Label>
-																	<Switch
-																		checked={toggleMonitoring}
-																		onCheckedChange={setToggleMonitoring}
-																	/>
-																</div>
-															)} */}
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="pt-2.5">
+												<div className="flex flex-col gap-4 border rounded-lg p-6">
+													{data?.serverId && isCloud ? (
+														<ContainerPaidMonitoring
+															appName={data?.appName || ""}
+															baseUrl={`${data?.serverId ? `http://${data?.server?.ipAddress}:${data?.server?.metricsConfig?.server?.port}` : "http://localhost:4500"}`}
+															token={
+																data?.server?.metricsConfig?.server?.token || ""
+															}
+														/>
+													) : (
+														<>
+															{/* {monitoring?.enabledFeatures &&
+																isCloud &&
+																data?.serverId && (
+																	<div className="flex flex-row border w-fit p-4 rounded-lg items-center gap-2">
+																		<Label className="text-muted-foreground">
+																			Change Monitoring
+																		</Label>
+																		<Switch
+																			checked={toggleMonitoring}
+																			onCheckedChange={setToggleMonitoring}
+																		/>
+																	</div>
+																)} */}
 
-														{/* {toggleMonitoring ? (
-															<ContainerPaidMonitoring
-																appName={data?.appName || ""}
-																baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
-																token={
-																	monitoring?.metricsConfig?.server?.token || ""
-																}
-															/>
-														) : ( */}
-														<div>
-															<ContainerFreeMonitoring
-																appName={data?.appName || ""}
-															/>
-														</div>
-														{/* )} */}
-													</>
-												)}
+															{/* {toggleMonitoring ? (
+																<ContainerPaidMonitoring
+																	appName={data?.appName || ""}
+																	baseUrl={`http://${monitoring?.serverIp}:${monitoring?.metricsConfig?.server?.port}`}
+																	token={
+																		monitoring?.metricsConfig?.server?.token || ""
+																	}
+																/>
+															) : ( */}
+															<div>
+																<ContainerFreeMonitoring
+																	appName={data?.appName || ""}
+																/>
+															</div>
+															{/* )} */}
+														</>
+													)}
+												</div>
 											</div>
-										</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 
 									<TabsContent value="logs">
@@ -310,57 +317,69 @@ const Service = (
 										</div>
 									</TabsContent>
 									<TabsContent value="schedules">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowSchedules
-												id={applicationId}
-												scheduleType="application"
-											/>
-										</div>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowSchedules
+													id={applicationId}
+													scheduleType="application"
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="deployments" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4 border rounded-lg">
-											<ShowDeployments
-												id={applicationId}
-												type="application"
-												serverId={data?.serverId || ""}
-												refreshToken={data?.refreshToken || ""}
-											/>
-										</div>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 border rounded-lg">
+												<ShowDeployments
+													id={applicationId}
+													type="application"
+													serverId={data?.serverId || ""}
+													refreshToken={data?.refreshToken || ""}
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="volume-backups" className="w-full pt-2.5">
-										<div className="flex flex-col gap-4 border rounded-lg">
-											<ShowVolumeBackups
-												id={applicationId}
-												type="application"
-												serverId={data?.serverId || ""}
-											/>
-										</div>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 border rounded-lg">
+												<ShowVolumeBackups
+													id={applicationId}
+													type="application"
+													serverId={data?.serverId || ""}
+												/>
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="preview-deployments" className="w-full">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowPreviewDeployments applicationId={applicationId} />
-										</div>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowPreviewDeployments applicationId={applicationId} />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="domains" className="w-full">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<ShowDomains id={applicationId} type="application" />
-										</div>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<ShowDomains id={applicationId} type="application" />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 									<TabsContent value="advanced">
-										<div className="flex flex-col gap-4 pt-2.5">
-											<AddCommand applicationId={applicationId} />
-											<ShowClusterSettings
-												id={applicationId}
-												type="application"
-											/>
+										<ReadOnlyFormWrapper serviceId={applicationId}>
+											<div className="flex flex-col gap-4 pt-2.5">
+												<AddCommand applicationId={applicationId} />
+												<ShowClusterSettings
+													id={applicationId}
+													type="application"
+												/>
 
-											<ShowResources id={applicationId} type="application" />
-											<ShowVolumes id={applicationId} type="application" />
-											<ShowRedirects applicationId={applicationId} />
-											<ShowSecurity applicationId={applicationId} />
-											<ShowPorts applicationId={applicationId} />
-											<ShowTraefikConfig applicationId={applicationId} />
-										</div>
+												<ShowResources id={applicationId} type="application" />
+												<ShowVolumes id={applicationId} type="application" />
+												<ShowRedirects applicationId={applicationId} />
+												<ShowSecurity applicationId={applicationId} />
+												<ShowPorts applicationId={applicationId} />
+												<ShowTraefikConfig applicationId={applicationId} />
+											</div>
+										</ReadOnlyFormWrapper>
 									</TabsContent>
 								</Tabs>
 							)}

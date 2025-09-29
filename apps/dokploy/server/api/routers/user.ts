@@ -22,7 +22,7 @@ import {
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
 	adminProcedure,
@@ -65,6 +65,12 @@ export const userRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input, ctx }) => {
+			console.log("🔍 Backend: Querying member for userId:", input.userId);
+			console.log(
+				"🔍 Backend: organizationId:",
+				ctx.session?.activeOrganizationId,
+			);
+
 			const memberResult = await db.query.member.findFirst({
 				where: and(
 					eq(member.userId, input.userId),
@@ -74,6 +80,24 @@ export const userRouter = createTRPCRouter({
 					user: true,
 				},
 			});
+
+			console.log("🔍 Backend: Raw member result:", memberResult);
+			console.log(
+				"🔍 Backend: All member properties:",
+				Object.keys(memberResult || {}),
+			);
+
+			// Check if canReadOnlyServices exists in the result
+			if (memberResult) {
+				console.log(
+					"🔍 Backend: canReadOnlyServices value:",
+					memberResult.canReadOnlyServices,
+				);
+				console.log(
+					"🔍 Backend: has canReadOnlyServices property:",
+					"canReadOnlyServices" in memberResult,
+				);
+			}
 
 			// If user not found in the organization, deny access
 			if (!memberResult) {
@@ -93,6 +117,11 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
+			console.log("🔍 Backend: Returning member data:", memberResult);
+			console.log(
+				"🔍 Backend: canReadOnlyServices in member data:",
+				memberResult?.canReadOnlyServices,
+			);
 			return memberResult;
 		}),
 	get: protectedProcedure.query(async ({ ctx }) => {
@@ -192,16 +221,7 @@ export const userRouter = createTRPCRouter({
 					})
 					.where(eq(account.userId, ctx.user.id));
 			}
-
-			try {
-				return await updateUser(ctx.user.id, input);
-			} catch (error) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						error instanceof Error ? error.message : "Failed to update user",
-				});
-			}
+			return await updateUser(ctx.user.id, input);
 		}),
 	getUserByToken: publicProcedure
 		.input(apiFindOneToken)
@@ -232,6 +252,12 @@ export const userRouter = createTRPCRouter({
 		.input(apiAssignPermissions)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				console.log("🔧 Backend: Received assignPermissions input:", input);
+				console.log(
+					"🔧 Backend: canReadOnlyServices value:",
+					input.canReadOnlyServices,
+				);
+
 				const organization = await findOrganizationById(
 					ctx.session?.activeOrganizationId || "",
 				);
@@ -244,8 +270,13 @@ export const userRouter = createTRPCRouter({
 				}
 
 				const { id, ...rest } = input;
+				console.log("🔧 Backend: Updating member with data:", rest);
+				console.log(
+					"🔧 Backend: canReadOnlyServices in rest:",
+					rest.canReadOnlyServices,
+				);
 
-				await db
+				const result = await db
 					.update(member)
 					.set({
 						...rest,
@@ -259,7 +290,23 @@ export const userRouter = createTRPCRouter({
 							),
 						),
 					);
+
+				console.log("🔧 Backend: Update result:", result);
+
+				// Verify the update by querying the member
+				const updatedMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, input.id),
+						eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+					),
+				});
+				console.log("🔧 Backend: Updated member data:", updatedMember);
+				console.log(
+					"🔧 Backend: canReadOnlyServices after update:",
+					updatedMember?.canReadOnlyServices,
+				);
 			} catch (error) {
+				console.error("❌ Backend: Error in assignPermissions:", error);
 				throw error;
 			}
 		}),

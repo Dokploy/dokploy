@@ -1,6 +1,7 @@
 import {
 	addNewService,
 	checkServiceAccess,
+	checkServiceReadOnlyPermission,
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
@@ -183,6 +184,21 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			try {
 				if (
 					application.environment.project.organizationId !==
@@ -265,6 +281,22 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
+
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			if (
 				service.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
@@ -288,6 +320,22 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiFindOneApplication)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findApplicationById(input.applicationId);
+
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			if (
 				service.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
@@ -312,6 +360,22 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiRedeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			if (
 				application.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
@@ -676,6 +740,22 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiDeployApplication)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.applicationId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			if (
 				application.environment.project.organizationId !==
 				ctx.session.activeOrganizationId

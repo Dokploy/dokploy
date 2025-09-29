@@ -174,71 +174,11 @@ export const canAccessToTraefikFiles = async (
 	return canAccessToTraefikFiles;
 };
 
-export const checkServiceAccess = async (
-	userId: string,
-	serviceId: string,
-	organizationId: string,
-	action = "access" as "access" | "create" | "delete",
-) => {
-	let hasPermission = false;
-	switch (action) {
-		case "create":
-			hasPermission = await canPerformCreationService(
-				userId,
-				serviceId,
-				organizationId,
-			);
-			break;
-		case "access":
-			hasPermission = await canPerformAccessService(
-				userId,
-				serviceId,
-				organizationId,
-			);
-			break;
-		case "delete":
-			hasPermission = await canPeformDeleteService(
-				userId,
-				serviceId,
-				organizationId,
-			);
-			break;
-		default:
-			hasPermission = false;
-	}
-	if (!hasPermission) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Permission denied",
-		});
-	}
-};
+// checkServiceReadOnlyPermission moved to permission service
 
-export const checkEnvironmentAccess = async (
-	userId: string,
-	environmentId: string,
-	organizationId: string,
-	action = "access" as const,
-) => {
-	let hasPermission = false;
-	switch (action) {
-		case "access":
-			hasPermission = await canPerformAccessEnvironment(
-				userId,
-				environmentId,
-				organizationId,
-			);
-			break;
-		default:
-			hasPermission = false;
-	}
-	if (!hasPermission) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Permission denied",
-		});
-	}
-};
+// checkServiceAccess moved to permission service
+
+// checkEnvironmentAccess moved to permission service
 
 export const checkProjectAccess = async (
 	authId: string,
@@ -296,19 +236,6 @@ export const findMemberById = async (
 };
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
-	// Validate email if it's being updated
-	if (userData.email !== undefined) {
-		if (!userData.email || userData.email.trim() === "") {
-			throw new Error("Email is required and cannot be empty");
-		}
-
-		// Basic email format validation
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (!emailRegex.test(userData.email)) {
-			throw new Error("Please enter a valid email address");
-		}
-	}
-
 	const user = await db
 		.update(users_temp)
 		.set({

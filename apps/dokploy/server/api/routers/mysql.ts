@@ -1,6 +1,7 @@
 import {
 	addNewService,
 	checkServiceAccess,
+	checkServiceReadOnlyPermission,
 	createMount,
 	createMysql,
 	deployMySql,
@@ -129,6 +130,22 @@ export const mysqlRouter = createTRPCRouter({
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findMySqlById(input.mysqlId);
+
+			// Check read-only permission for members
+			if (ctx.user.role === "member") {
+				const isReadOnly = await checkServiceReadOnlyPermission(
+					ctx.user.id,
+					input.mysqlId,
+					ctx.session.activeOrganizationId,
+				);
+				if (isReadOnly) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You have read-only access to this service",
+					});
+				}
+			}
+
 			if (
 				service.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
