@@ -28,6 +28,7 @@ import {
 	readMonitoringConfig,
 	readPorts,
 	recreateDirectory,
+	getDockerResourceType,
 	reloadDockerResource,
 	sendDockerCleanupNotifications,
 	setupGPUSupport,
@@ -121,30 +122,56 @@ export const settingsRouter = createTRPCRouter({
 	toggleDashboard: adminProcedure
 		.input(apiEnableDashboard)
 		.mutation(async ({ input }) => {
-			const ports = await readPorts("dokploy-traefik", input.serverId);
-			const env = await readEnvironmentVariables(
-				"dokploy-traefik",
-				input.serverId,
-			);
-			const preparedEnv = prepareEnvironmentVariables(env);
-			let newPorts = ports;
-			// If receive true, add 8080 to ports
-			if (input.enableDashboard) {
-				newPorts.push({
-					targetPort: 8080,
-					publishedPort: 8080,
-					protocol: "tcp",
-				});
-			} else {
-				newPorts = ports.filter((port) => port.targetPort !== 8080);
-			}
+			try {
+				const ports = await readPorts("dokploy-traefik", input.serverId);
+				const env = await readEnvironmentVariables(
+					"dokploy-traefik",
+					input.serverId,
+				);
+				const preparedEnv = prepareEnvironmentVariables(env);
+				let newPorts = ports;
+				
+				// If receive true, add dashboard port
+				if (input.enableDashboard) {
+					// Check for existing dashboard port
+					const existingDashboardPort = ports.find(port => port.targetPort >= 8080 && port.targetPort <= 18080);
+					if (existingDashboardPort) {
+						console.log("Dashboard already enabled on port:", existingDashboardPort.publishedPort);
+						return true; // Already enabled, return success
+					}
+					
+					// Add port 8080 (the system will find an available port if 8080 is occupied)
+					newPorts.push({
+						targetPort: 8080,
+						publishedPort: 8080,
+						protocol: "tcp",
+					});
+				} else {
+					// Remove any dashboard port
+					newPorts = ports.filter((port) => !(port.targetPort >= 8080 && port.targetPort <= 18080));
+				}
 
-			await writeTraefikSetup({
-				env: preparedEnv,
-				additionalPorts: newPorts,
-				serverId: input.serverId,
-			});
-			return true;
+				await writeTraefikSetup({
+					env: preparedEnv,
+					additionalPorts: newPorts,
+					serverId: input.serverId,
+				});
+				
+				// Validate the container is running after setup
+				const resourceType = await getDockerResourceType("dokploy-traefik", input.serverId);
+				if (resourceType === "unknown") {
+					throw new Error("Failed to recreate Traefik container");
+				}
+				
+				return true;
+			} catch (error) {
+				console.error("Toggle dashboard error:", error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to ${input.enableDashboard ? 'enable' : 'disable'} dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`,
+					cause: error,
+				});
+			}
 		}),
 	cleanUnusedImages: adminProcedure
 		.input(apiServerSchema)
@@ -583,8 +610,27 @@ export const settingsRouter = createTRPCRouter({
 	haveTraefikDashboardPortEnabled: adminProcedure
 		.input(apiServerSchema)
 		.query(async ({ input }) => {
-			const ports = await readPorts("dokploy-traefik", input?.serverId);
-			return ports.some((port) => port.targetPort === 8080);
+			try {
+				const ports = await readPorts("dokploy-traefik", input?.serverId);
+				// Check for any port that could be the dashboard (8080 or higher ports)
+				return ports.some((port) => port.targetPort >= 8080 && port.targetPort <= 18080);
+			} catch (error) {
+				console.error("Error checking dashboard port status:", error);
+				return false;
+			}
+		}),
+
+	getTraefikDashboardPort: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input }) => {
+			try {
+				const ports = await readPorts("dokploy-traefik", input?.serverId);
+				const dashboardPort = ports.find((port) => port.targetPort >= 8080 && port.targetPort <= 18080);
+				return dashboardPort ? dashboardPort.publishedPort : null;
+			} catch (error) {
+				console.error("Error getting dashboard port:", error);
+				return null;
+			}
 		}),
 
 	readStatsLogs: adminProcedure

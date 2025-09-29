@@ -13,6 +13,7 @@ import { paths } from "../constants";
 import { getRemoteDocker } from "../utils/servers/remote-docker";
 import type { FileConfig } from "../utils/traefik/file-types";
 import type { MainTraefikConfig } from "../utils/traefik/types";
+import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 
 export const TRAEFIK_SSL_PORT =
 	Number.parseInt(process.env.TRAEFIK_SSL_PORT!, 10) || 443;
@@ -21,6 +22,42 @@ export const TRAEFIK_PORT =
 export const TRAEFIK_HTTP3_PORT =
 	Number.parseInt(process.env.TRAEFIK_HTTP3_PORT!, 10) || 443;
 export const TRAEFIK_VERSION = process.env.TRAEFIK_VERSION || "3.5.0";
+
+// Function to find an available port starting from 8080
+const findAvailablePort = async (startPort = 8080, serverId?: string): Promise<number> => {
+	const maxAttempts = 10;
+	
+	for (let i = 0; i < maxAttempts; i++) {
+		const port = startPort + i;
+		try {
+			const command = `netstat -tuln | grep :${port} || ss -tuln | grep :${port} || lsof -i :${port}`;
+			let result;
+			
+			if (serverId) {
+				const { stdout } = await execAsyncRemote(serverId, command);
+				result = stdout;
+			} else {
+				const { stdout } = await execAsync(command);
+				result = stdout;
+			}
+			
+			// If no output, port is available
+			if (!result || result.trim() === '') {
+				console.log(`Port ${port} is available for dashboard`);
+				return port;
+			}
+		} catch (error) {
+			// If command fails, assume port is available
+			console.log(`Port ${port} appears to be available (command failed)`);
+			return port;
+		}
+	}
+	
+	// Fallback to a high port number
+	const fallbackPort = 18080;
+	console.log(`Using fallback port ${fallbackPort} for dashboard`);
+	return fallbackPort;
+};
 
 export interface TraefikOptions {
 	env?: string[];
@@ -59,9 +96,12 @@ export const initializeStandaloneTraefik = async ({
 		(port) => port.targetPort === 8080,
 	);
 
+	let dashboardPort = 8080;
 	if (enableDashboard) {
-		exposedPorts["8080/tcp"] = {};
-		portBindings["8080/tcp"] = [{ HostPort: "8080" }];
+		// Find an available port for the dashboard
+		dashboardPort = await findAvailablePort(8080, serverId);
+		exposedPorts[`${dashboardPort}/tcp`] = {};
+		portBindings[`${dashboardPort}/tcp`] = [{ HostPort: dashboardPort.toString() }];
 	}
 
 	for (const port of additionalPorts) {
@@ -93,6 +133,18 @@ export const initializeStandaloneTraefik = async ({
 		Env: env,
 	};
 
+	// Regenerate Traefik config with dashboard support if needed
+	if (enableDashboard) {
+		console.log(`Regenerating Traefik config with dashboard support on port ${dashboardPort}...`);
+		const yamlStr = getDefaultTraefikConfig(true, dashboardPort);
+		writeFileSync(
+			path.join(MAIN_TRAEFIK_PATH, "traefik.yml"),
+			yamlStr,
+			"utf8",
+		);
+		console.log(`Traefik config updated with dashboard on port ${dashboardPort} ✅`);
+	}
+
 	const docker = await getRemoteDocker(serverId);
 	try {
 		await docker.pull(imageName);
@@ -103,17 +155,36 @@ export const initializeStandaloneTraefik = async ({
 	}
 	try {
 		const container = docker.getContainer(containerName);
+		const containerInfo = await container.inspect();
+		
+		if (containerInfo.State.Running) {
+			console.log("Stopping Traefik container gracefully...");
+			await container.stop({ t: 30 }); // 30 second timeout
+			await new Promise((resolve) => setTimeout(resolve, 2000));
+		}
+		
+		console.log("Removing Traefik container...");
 		await container.remove({ force: true });
-		await new Promise((resolve) => setTimeout(resolve, 5000));
-	} catch {}
+		await new Promise((resolve) => setTimeout(resolve, 3000));
+	} catch (error) {
+		console.log("Container removal error (may not exist):", error);
+	}
 
 	try {
-		await docker.createContainer(settings);
-		const newContainer = docker.getContainer(containerName);
-		await newContainer.start();
-		console.log("Traefik Started ✅");
+		console.log("Creating new Traefik container with dashboard support...");
+		const container = await docker.createContainer(settings);
+		await container.start();
+		
+		// Validate container is running
+		const containerInfo = await container.inspect();
+		if (!containerInfo.State.Running) {
+			throw new Error("Failed to start Traefik container");
+		}
+		
+		console.log("Traefik Started Successfully ✅");
 	} catch (error) {
-		console.log("Traefik Not Found: Starting ", error);
+		console.error("Failed to create/start Traefik container:", error);
+		throw error;
 	}
 };
 
@@ -250,7 +321,7 @@ export const createDefaultServerTraefikConfig = () => {
 	);
 };
 
-export const getDefaultTraefikConfig = () => {
+export const getDefaultTraefikConfig = (enableDashboard = false, dashboardPort = 8080) => {
 	const configObject: MainTraefikConfig = {
 		global: {
 			sendAnonymousUsage: false,
@@ -296,6 +367,11 @@ export const getDefaultTraefikConfig = () => {
 					},
 				}),
 			},
+			...(enableDashboard && {
+				dashboard: {
+					address: `:${dashboardPort}`,
+				},
+			}),
 		},
 		api: {
 			insecure: true,
@@ -374,7 +450,7 @@ export const getDefaultServerTraefikConfig = () => {
 	return yamlStr;
 };
 
-export const createDefaultTraefikConfig = () => {
+export const createDefaultTraefikConfig = (enableDashboard = false, dashboardPort = 8080) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths();
 	const mainConfig = path.join(MAIN_TRAEFIK_PATH, "traefik.yml");
 	const acmeJsonPath = path.join(DYNAMIC_TRAEFIK_PATH, "acme.json");
@@ -399,7 +475,7 @@ export const createDefaultTraefikConfig = () => {
 		}
 	}
 
-	const yamlStr = getDefaultTraefikConfig();
+	const yamlStr = getDefaultTraefikConfig(enableDashboard, dashboardPort);
 	writeFileSync(mainConfig, yamlStr, "utf8");
 	console.log("Traefik config created successfully");
 };
