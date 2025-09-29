@@ -481,7 +481,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'0.2.2'"
+          "default": "'0.3.0'"
         },
         "herokuVersion": {
           "name": "herokuVersion",
