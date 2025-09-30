@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
 	DiscordIcon,
+	MattermostIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -110,6 +111,14 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			priority: z.number().min(1).max(5).default(3),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("mattermost"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			channel: z.string().optional(),
+			username: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -136,6 +145,10 @@ export const notificationsMap = {
 	ntfy: {
 		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
 		label: "ntfy",
+	},
+	mattermost: {
+		icon: <MattermostIcon />,
+		label: "Mattermost",
 	},
 };
 
@@ -170,6 +183,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
+	const {
+		mutateAsync: testMattermostConnection,
+		isLoading: isLoadingMattermost,
+	} = api.notification.testMattermostConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -188,6 +205,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const ntfyMutation = notificationId
 		? api.notification.updateNtfy.useMutation()
 		: api.notification.createNtfy.useMutation();
+	const mattermostMutation = notificationId
+		? api.notification.updateMattermost.useMutation()
+		: api.notification.createMattermost.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -298,6 +318,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 				});
+			} else if (notification.notificationType === "mattermost") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.mattermost?.webhookUrl,
+					channel: notification.mattermost?.channel || "",
+					username: notification.mattermost?.username || "",
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -311,6 +345,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		email: emailMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
+		mattermost: mattermostMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -413,6 +448,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+			});
+		} else if (data.type === "mattermost") {
+			promise = mattermostMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				webhookUrl: data.webhookUrl,
+				channel: data.channel || undefined,
+				username: data.username || undefined,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				mattermostId: notification?.mattermostId || "",
+				serverThreshold: serverThreshold,
 			});
 		}
 
@@ -1000,6 +1050,61 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+
+								{type === "mattermost" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://your-mattermost.com/hooks/xxx-generatedkey-xxx"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="channel"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Channel</FormLabel>
+													<FormControl>
+														<Input placeholder="deployments" {...field} />
+													</FormControl>
+													<FormDescription>
+														Optional. Channel to post to (without #).
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="username"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Username</FormLabel>
+													<FormControl>
+														<Input placeholder="Dokploy" {...field} />
+													</FormControl>
+													<FormDescription>
+														Optional. Display name for the webhook.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
@@ -1150,7 +1255,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingDiscord ||
 								isLoadingEmail ||
 								isLoadingGotify ||
-								isLoadingNtfy
+								isLoadingNtfy ||
+								isLoadingMattermost
 							}
 							variant="secondary"
 							onClick={async () => {
@@ -1193,6 +1299,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											topic: form.getValues("topic"),
 											accessToken: form.getValues("accessToken"),
 											priority: form.getValues("priority"),
+										});
+									} else if (type === "mattermost") {
+										await testMattermostConnection({
+											webhookUrl: form.getValues("webhookUrl"),
+											channel: form.getValues("channel") || undefined,
+											username: form.getValues("username") || undefined,
 										});
 									}
 									toast.success("Connection Success");
