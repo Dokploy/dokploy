@@ -163,9 +163,13 @@ export const sendMattermostNotification = async (
 		const payload = {
 			...message,
 			// Only include username if it's provided and not empty
-			...(message.username && message.username.trim() && { username: message.username }),
+			...(message.username &&
+				message.username.trim() && { username: message.username }),
 			// Only include wchannel if it's provided and not empty
-			...(message.channel && message.channel.trim() && { channel: `#${message.channel.replace('#', '')}` }),
+			...(message.channel &&
+				message.channel.trim() && {
+					channel: `#${message.channel.replace("#", "")}`,
+				}),
 		};
 
 		await fetch(connection.webhookUrl, {
@@ -176,6 +180,7 @@ export const sendMattermostNotification = async (
 	} catch (err) {
 		console.log(err);
 	}
+};
 
 export const sendLarkNotification = async (
 	connection: typeof lark.$inferInsert,
