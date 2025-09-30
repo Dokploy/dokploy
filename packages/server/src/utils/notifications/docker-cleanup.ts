@@ -37,7 +37,8 @@ export const sendDockerCleanupNotifications = async (
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, mattermost } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(

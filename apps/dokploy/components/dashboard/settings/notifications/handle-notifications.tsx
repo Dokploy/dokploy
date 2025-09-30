@@ -183,8 +183,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
-	const { mutateAsync: testMattermostConnection, isLoading: isLoadingMattermost } =
-		api.notification.testMattermostConnection.useMutation();
+	const {
+		mutateAsync: testMattermostConnection,
+		isLoading: isLoadingMattermost,
+	} = api.notification.testMattermostConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();

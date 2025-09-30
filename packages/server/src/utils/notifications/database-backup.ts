@@ -50,7 +50,8 @@ export const sendDatabaseBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, mattermost } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -244,9 +245,10 @@ export const sendDatabaseBackupNotifications = async ({
 		if (mattermost) {
 			const statusEmoji = type === "success" ? "✅" : "❌";
 			const typeStatus = type === "success" ? "Successful" : "Failed";
-			const errorMsg = type === "error" && errorMessage
-				? `\n\n**Error:**\n\`\`\`\n${errorMessage}\n\`\`\``
-				: "";
+			const errorMsg =
+				type === "error" && errorMessage
+					? `\n\n**Error:**\n\`\`\`\n${errorMessage}\n\`\`\``
+					: "";
 
 			await sendMattermostNotification(mattermost, {
 				text: `**${statusEmoji} Database Backup ${typeStatus}**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${databaseType}\n**Database Name:** ${databaseName}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}${errorMsg}`,
