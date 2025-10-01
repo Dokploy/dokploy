@@ -49,8 +49,7 @@ export function parseLogs(logString: string): LogLine[] {
 	// { timestamp: new Date("2024-12-10T10:00:00.000Z"),
 	// message: "The server is running on port 8080" }
 	const logRegex =
-		/^(?:(\d+)\s+)?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC)?\s*(.*)$/;
-
+		/^(?:(\d+)\s+)?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}(?: UTC)?|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s*(.*)$/;
 	return logString
 		.split("\n")
 		.map((line) => line.trim())
@@ -77,6 +76,7 @@ export const getLogType = (message: string): LogStyle => {
 	const lowerMessage = message.toLowerCase();
 
 	if (
+		/INFO|LOG/i.test(message) ||
 		/(?:^|\s)(?:info|inf|information):?\s/i.test(lowerMessage) ||
 		/\[(?:info|information)\]/i.test(lowerMessage) ||
 		/\b(?:status|state|current|progress)\b:?\s/i.test(lowerMessage) ||
@@ -86,6 +86,7 @@ export const getLogType = (message: string): LogStyle => {
 	}
 
 	if (
+		/ERROR|EXCEPTION|FAIL|ERR/i.test(message) ||
 		/(?:^|\s)(?:error|err):?\s/i.test(lowerMessage) ||
 		/\b(?:exception|failed|failure)\b/i.test(lowerMessage) ||
 		/(?:stack\s?trace):\s*$/i.test(lowerMessage) ||
@@ -101,6 +102,7 @@ export const getLogType = (message: string): LogStyle => {
 	}
 
 	if (
+		/WARN|WARNING/i.test(message) ||
 		/(?:^|\s)(?:warning|warn):?\s/i.test(lowerMessage) ||
 		/\[(?:warn(?:ing)?|attention)\]/i.test(lowerMessage) ||
 		/(?:deprecated|obsolete)\s+(?:since|in|as\s+of)/i.test(lowerMessage) ||
@@ -129,6 +131,7 @@ export const getLogType = (message: string): LogStyle => {
 	}
 
 	if (
+		/DEBUG|TRACE|VERBOSE/i.test(message) ||
 		/(?:^|\s)(?:info|inf):?\s/i.test(lowerMessage) ||
 		/\[(info|log|debug|trace|server|db|api|http|request|response)\]/i.test(
 			lowerMessage,
