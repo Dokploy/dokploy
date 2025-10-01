@@ -60,6 +60,7 @@ const GithubProviderSchema = z.object({
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
+	webhookSecret: z.string().optional(),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -86,6 +87,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			branch: "",
 			triggerType: "push",
 			enableSubmodules: false,
+			webhookSecret: "",
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
@@ -132,6 +134,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
 				enableSubmodules: data.enableSubmodules ?? false,
+				webhookSecret: data.webhookSecret || "",
 			});
 		}
 	}, [form.reset, data?.applicationId, form]);
@@ -147,6 +150,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			watchPaths: data.watchPaths || [],
 			triggerType: data.triggerType,
 			enableSubmodules: data.enableSubmodules,
+			webhookSecret: data.webhookSecret,
 		})
 			.then(async () => {
 				toast.success("Service Provided Saved");
@@ -384,6 +388,38 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									<FormLabel>Build Path</FormLabel>
 									<FormControl>
 										<Input placeholder="/" {...field} />
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="webhookSecret"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Webhook Secret</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														The secret to verify webhooks from GitHub.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<FormControl>
+										<Input
+											type="password"
+											placeholder="Enter webhook secret"
+											{...field}
+											value={field.value ?? ""}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
