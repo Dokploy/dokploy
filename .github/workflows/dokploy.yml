@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: dokploy/dokploy
+  IMAGE_NAME: hollitizz/dokploy
 
 jobs:
   docker-amd:
