@@ -7,6 +7,7 @@ import Head from "next/head";
 import Script from "next/script";
 import { appWithTranslation } from "next-i18next";
 import { ThemeProvider } from "next-themes";
+import NextTopLoader from "nextjs-toploader";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Toaster } from "@/components/ui/sonner";
@@ -57,6 +58,7 @@ const MyApp = ({
 				disableTransitionOnChange
 				forcedTheme={Component.theme}
 			>
+				<NextTopLoader />
 				<Toaster richColors />
 				<SearchCommand />
 				{getLayout(<Component {...pageProps} />)}
