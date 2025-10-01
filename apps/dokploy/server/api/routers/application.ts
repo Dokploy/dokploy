@@ -524,7 +524,7 @@ export const applicationRouter = createTRPCRouter({
 
 			return true;
 		}),
-	saveGitProdiver: protectedProcedure
+	saveGitProvider: protectedProcedure
 		.input(apiSaveGitProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
