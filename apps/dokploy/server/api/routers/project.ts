@@ -736,9 +736,7 @@ export const projectRouter = createTRPCRouter({
 
 				// Verify source project belongs to current organization
 				const sourceProject = await findProjectById(input.projectId);
-				if (
-					sourceProject.organizationId !== ctx.session.activeOrganizationId
-				) {
+				if (sourceProject.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "Project does not belong to your organization",
@@ -798,7 +796,10 @@ export const projectRouter = createTRPCRouter({
 						let targetEnvId = newProject.environment.environmentId;
 
 						// Create new environment if not the first one
-						if (environment.environmentId !== sourceProject.environments[0]?.environmentId) {
+						if (
+							environment.environmentId !==
+							sourceProject.environments[0]?.environmentId
+						) {
 							const newEnv = await db
 								.insert(environments)
 								.values({
@@ -829,257 +830,236 @@ export const projectRouter = createTRPCRouter({
 								refreshToken,
 								...application
 							} = await findApplicationById(app.applicationId);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
+							const newAppName = appName.substring(0, appName.lastIndexOf("-"));
 
-								const newApplication = await createApplication({
-									...application,
-									appName: newAppName,
-									environmentId: targetEnvId,
+							const newApplication = await createApplication({
+								...application,
+								appName: newAppName,
+								environmentId: targetEnvId,
+							});
+
+							for (const domain of domains) {
+								const { domainId, ...rest } = domain;
+								await createDomain({
+									...rest,
+									applicationId: newApplication.applicationId,
+									domainType: "application",
 								});
-
-								for (const domain of domains) {
-									const { domainId, ...rest } = domain;
-									await createDomain({
-										...rest,
-										applicationId: newApplication.applicationId,
-										domainType: "application",
-									});
-								}
-
-								for (const port of ports) {
-									const { portId, ...rest } = port;
-									await createPort({
-										...rest,
-										applicationId: newApplication.applicationId,
-									});
-								}
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newApplication.applicationId,
-										serviceType: "application",
-									});
-								}
-
-								for (const redirect of redirects) {
-									const { redirectId, ...rest } = redirect;
-									await createRedirect({
-										...rest,
-										applicationId: newApplication.applicationId,
-									});
-								}
-
-								for (const secure of security) {
-									const { securityId, ...rest } = secure;
-									await createSecurity({
-										...rest,
-										applicationId: newApplication.applicationId,
-									});
-								}
-
-								for (const previewDeployment of previewDeployments) {
-									const { previewDeploymentId, ...rest } = previewDeployment;
-									await createPreviewDeployment({
-										...rest,
-										applicationId: newApplication.applicationId,
-									});
-								}
 							}
 
-							// Duplicate databases with relations
-							for (const pg of environment.postgres || []) {
-								const { postgresId, mounts, backups, appName, ...postgres } =
-									await findPostgresById(pg.postgresId);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newPostgres = await createPostgres({
-									...postgres,
-									appName: newAppName,
-									environmentId: targetEnvId,
+							for (const port of ports) {
+								const { portId, ...rest } = port;
+								await createPort({
+									...rest,
+									applicationId: newApplication.applicationId,
 								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newPostgres.postgresId,
-										serviceType: "postgres",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, ...rest } = backup;
-									await createBackup({
-										...rest,
-										postgresId: newPostgres.postgresId,
-									});
-								}
 							}
 
-							for (const my of environment.mysql || []) {
-								const { mysqlId, mounts, backups, appName, ...mysql} =
-									await findMySqlById(my.mysqlId);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newMysql = await createMysql({
-									...mysql,
-									appName: newAppName,
-									environmentId: targetEnvId,
+							for (const mount of mounts) {
+								const { mountId, ...rest } = mount;
+								await createMount({
+									...rest,
+									serviceId: newApplication.applicationId,
+									serviceType: "application",
 								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newMysql.mysqlId,
-										serviceType: "mysql",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, ...rest } = backup;
-									await createBackup({
-										...rest,
-										mysqlId: newMysql.mysqlId,
-									});
-								}
 							}
 
-							for (const mar of environment.mariadb || []) {
-								const { mariadbId, mounts, backups, appName, ...mariadb } =
-									await findMariadbById(mar.mariadbId);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newMariadb = await createMariadb({
-									...mariadb,
-									appName: newAppName,
-									environmentId: targetEnvId,
+							for (const redirect of redirects) {
+								const { redirectId, ...rest } = redirect;
+								await createRedirect({
+									...rest,
+									applicationId: newApplication.applicationId,
 								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newMariadb.mariadbId,
-										serviceType: "mariadb",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, ...rest } = backup;
-									await createBackup({
-										...rest,
-										mariadbId: newMariadb.mariadbId,
-									});
-								}
 							}
 
-							for (const mon of environment.mongo || []) {
-								const { mongoId, mounts, backups, appName, ...mongo } =
-									await findMongoById(mon.mongoId);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newMongo = await createMongo({
-									...mongo,
-									appName: newAppName,
-									environmentId: targetEnvId,
+							for (const secure of security) {
+								const { securityId, ...rest } = secure;
+								await createSecurity({
+									...rest,
+									applicationId: newApplication.applicationId,
 								});
-
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newMongo.mongoId,
-										serviceType: "mongo",
-									});
-								}
-
-								for (const backup of backups) {
-									const { backupId, ...rest } = backup;
-									await createBackup({
-										...rest,
-										mongoId: newMongo.mongoId,
-									});
-								}
 							}
 
-							for (const red of environment.redis || []) {
-								const { redisId, mounts, appName, ...redis } =
-									await findRedisById(red.redisId);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newRedis = await createRedis({
-									...redis,
-									appName: newAppName,
-									environmentId: targetEnvId,
+							for (const previewDeployment of previewDeployments) {
+								const { previewDeploymentId, ...rest } = previewDeployment;
+								await createPreviewDeployment({
+									...rest,
+									applicationId: newApplication.applicationId,
 								});
+							}
+						}
 
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newRedis.redisId,
-										serviceType: "redis",
-									});
-								}
+						// Duplicate databases with relations
+						for (const pg of environment.postgres || []) {
+							const { postgresId, mounts, backups, appName, ...postgres } =
+								await findPostgresById(pg.postgresId);
+							const newAppName = appName.substring(0, appName.lastIndexOf("-"));
+
+							const newPostgres = await createPostgres({
+								...postgres,
+								appName: newAppName,
+								environmentId: targetEnvId,
+							});
+
+							for (const mount of mounts) {
+								const { mountId, ...rest } = mount;
+								await createMount({
+									...rest,
+									serviceId: newPostgres.postgresId,
+									serviceType: "postgres",
+								});
 							}
 
-							for (const comp of environment.compose || []) {
-								const {
-									composeId,
-									mounts,
-									domains,
-									appName,
-									refreshToken,
-									...compose
-								} = await findComposeById(comp.composeId);
-								const newAppName = appName.substring(
-									0,
-									appName.lastIndexOf("-"),
-								);
-
-								const newCompose = await createCompose({
-									...compose,
-									appName: newAppName,
-									environmentId: targetEnvId,
+							for (const backup of backups) {
+								const { backupId, ...rest } = backup;
+								await createBackup({
+									...rest,
+									postgresId: newPostgres.postgresId,
 								});
+							}
+						}
 
-								for (const mount of mounts) {
-									const { mountId, ...rest } = mount;
-									await createMount({
-										...rest,
-										serviceId: newCompose.composeId,
-										serviceType: "compose",
-									});
-								}
+						for (const my of environment.mysql || []) {
+							const { mysqlId, mounts, backups, appName, ...mysql } =
+								await findMySqlById(my.mysqlId);
+							const newAppName = appName.substring(0, appName.lastIndexOf("-"));
 
-								for (const domain of domains) {
-									const { domainId, ...rest } = domain;
-									await createDomain({
-										...rest,
-										composeId: newCompose.composeId,
-										domainType: "compose",
-									});
+							const newMysql = await createMysql({
+								...mysql,
+								appName: newAppName,
+								environmentId: targetEnvId,
+							});
+
+							for (const mount of mounts) {
+								const { mountId, ...rest } = mount;
+								await createMount({
+									...rest,
+									serviceId: newMysql.mysqlId,
+									serviceType: "mysql",
+								});
+							}
+
+							for (const backup of backups) {
+								const { backupId, ...rest } = backup;
+								await createBackup({
+									...rest,
+									mysqlId: newMysql.mysqlId,
+								});
+							}
+						}
+
+						for (const mar of environment.mariadb || []) {
+							const { mariadbId, mounts, backups, appName, ...mariadb } =
+								await findMariadbById(mar.mariadbId);
+							const newAppName = appName.substring(0, appName.lastIndexOf("-"));
+
+							const newMariadb = await createMariadb({
+								...mariadb,
+								appName: newAppName,
+								environmentId: targetEnvId,
+							});
+
+							for (const mount of mounts) {
+								const { mountId, ...rest } = mount;
+								await createMount({
+									...rest,
+									serviceId: newMariadb.mariadbId,
+									serviceType: "mariadb",
+								});
+							}
+
+							for (const backup of backups) {
+								const { backupId, ...rest } = backup;
+								await createBackup({
+									...rest,
+									mariadbId: newMariadb.mariadbId,
+								});
+							}
+						}
+
+						for (const mon of environment.mongo || []) {
+							const { mongoId, mounts, backups, appName, ...mongo } =
+								await findMongoById(mon.mongoId);
+							const newAppName = appName.substring(0, appName.lastIndexOf("-"));
+
+							const newMongo = await createMongo({
+								...mongo,
+								appName: newAppName,
+								environmentId: targetEnvId,
+							});
+
+							for (const mount of mounts) {
+								const { mountId, ...rest } = mount;
+								await createMount({
+									...rest,
+									serviceId: newMongo.mongoId,
+									serviceType: "mongo",
+								});
+							}
+
+							for (const backup of backups) {
+								const { backupId, ...rest } = backup;
+								await createBackup({
+									...rest,
+									mongoId: newMongo.mongoId,
+								});
+							}
+						}
+
+						for (const red of environment.redis || []) {
+							const { redisId, mounts, appName, ...redis } =
+								await findRedisById(red.redisId);
+							const newAppName = appName.substring(0, appName.lastIndexOf("-"));
+
+							const newRedis = await createRedis({
+								...redis,
+								appName: newAppName,
+								environmentId: targetEnvId,
+							});
+
+							for (const mount of mounts) {
+								const { mountId, ...rest } = mount;
+								await createMount({
+									...rest,
+									serviceId: newRedis.redisId,
+									serviceType: "redis",
+								});
+							}
+						}
+
+						for (const comp of environment.compose || []) {
+							const {
+								composeId,
+								mounts,
+								domains,
+								appName,
+								refreshToken,
+								...compose
+							} = await findComposeById(comp.composeId);
+							const newAppName = appName.substring(0, appName.lastIndexOf("-"));
+
+							const newCompose = await createCompose({
+								...compose,
+								appName: newAppName,
+								environmentId: targetEnvId,
+							});
+
+							for (const mount of mounts) {
+								const { mountId, ...rest } = mount;
+								await createMount({
+									...rest,
+									serviceId: newCompose.composeId,
+									serviceType: "compose",
+								});
+							}
+
+							for (const domain of domains) {
+								const { domainId, ...rest } = domain;
+								await createDomain({
+									...rest,
+									composeId: newCompose.composeId,
+									domainType: "compose",
+								});
 							}
 						}
 					}
