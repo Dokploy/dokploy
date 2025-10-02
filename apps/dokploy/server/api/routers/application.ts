@@ -360,6 +360,7 @@ export const applicationRouter = createTRPCRouter({
 			await updateApplication(input.applicationId, {
 				env: input.env,
 				buildArgs: input.buildArgs,
+				buildSecrets: input.buildSecrets,
 			});
 			return true;
 		}),
