@@ -52,7 +52,7 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 			enabled: !!appName,
 		},
 	);
-	const [containerId, setContainerId] = useState<string | undefined>();
+	const [containerId, setContainerId] = useState<string>("");
 	const [mainDialogOpen, setMainDialogOpen] = useState(false);
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
@@ -75,7 +75,9 @@ export const DockerTerminalModal = ({ children, appName, serverId }: Props) => {
 
 	useEffect(() => {
 		if (data && data?.length > 0) {
-			setContainerId(data[0]?.containerId);
+			setContainerId(data[0]?.containerId || "");
+		} else {
+			setContainerId("");
 		}
 	}, [data]);
 

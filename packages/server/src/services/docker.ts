@@ -111,10 +111,15 @@ export const getContainersByAppNameMatch = async (
 		const cmd =
 			"docker ps -a --format 'CONTAINER ID : {{.ID}} | Name: {{.Names}} | State: {{.State}}'";
 
-		const command =
-			appType === "docker-compose"
-				? `${cmd} --filter='label=com.docker.compose.project=${appName}'`
-				: `${cmd} | grep '^.*Name: ${appName}'`;
+		// Use Docker labels for more reliable container detection
+		let command: string;
+		if (appType === "docker-compose") {
+			command = `${cmd} --filter='label=com.docker.compose.project=${appName}'`;
+		} else {
+			// For swarm services, try both label-based and name-based detection
+			command = `${cmd} --filter='label=com.docker.swarm.service.name=${appName}'`;
+		}
+		
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
@@ -134,6 +139,22 @@ export const getContainersByAppNameMatch = async (
 			if (!stdout) return [];
 
 			result = stdout.trim().split("\n");
+		}
+
+		// If no containers found with labels, try fallback to name-based detection
+		if (result.length === 0 && appType !== "docker-compose") {
+			const fallbackCommand = `${cmd} | grep '${appName}'`;
+			if (serverId) {
+				const { stdout, stderr } = await execAsyncRemote(serverId, fallbackCommand);
+				if (!stderr && stdout) {
+					result = stdout.trim().split("\n");
+				}
+			} else {
+				const { stdout, stderr } = await execAsync(fallbackCommand);
+				if (!stderr && stdout) {
+					result = stdout.trim().split("\n");
+				}
+			}
 		}
 
 		const containers = result.map((line) => {

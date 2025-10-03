@@ -41,7 +41,7 @@ badgeStateColor;
 
 export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
-	const [containerId, setContainerId] = useState<string | undefined>();
+	const [containerId, setContainerId] = useState<string>("");
 
 	const { data: services, isLoading: servicesLoading } =
 		api.docker.getStackContainersByAppName.useQuery(
@@ -69,11 +69,15 @@ export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	useEffect(() => {
 		if (option === "native") {
 			if (containers && containers?.length > 0) {
-				setContainerId(containers[0]?.containerId);
+				setContainerId(containers[0]?.containerId || "");
+			} else {
+				setContainerId("");
 			}
 		} else {
 			if (services && services?.length > 0) {
-				setContainerId(services[0]?.containerId);
+				setContainerId(services[0]?.containerId || "");
+			} else {
+				setContainerId("");
 			}
 		}
 	}, [option, services, containers]);
