@@ -76,7 +76,7 @@ export const loadMiddlewares = <T>() => {
 		throw new Error(`File not found: ${configPath}`);
 	}
 	const yamlStr = readFileSync(configPath, "utf8");
-	const config = parse(yamlStr) as T;
+	const config = (parse(yamlStr) ?? {}) as T;
 	return config;
 };
 
@@ -94,7 +94,7 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 			console.error(`Error: ${stderr}`);
 			throw new Error(`File not found: ${configPath}`);
 		}
-		const config = parse(stdout) as FileConfig;
+		const config = (parse(stdout) ?? {}) as FileConfig;
 		return config;
 	} catch (_) {
 		throw new Error(`File not found: ${configPath}`);
