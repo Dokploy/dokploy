@@ -35,20 +35,81 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 
-const AddRegistrySchema = z.object({
-	registryName: z.string().min(1, {
-		message: "Registry name is required",
-	}),
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
-	password: z.string().min(1, {
-		message: "Password is required",
-	}),
-	registryUrl: z.string(),
-	imagePrefix: z.string(),
-	serverId: z.string().optional(),
-});
+const isNonEmptyString = (s: unknown): boolean => {
+	if (!s) return false;
+	if (typeof s !== "string") return false;
+	if (s.trim() === "") return false;
+	if (s.trim().length < 1) return false;
+	return true;
+};
+
+const AddRegistrySchema = z
+	.object({
+		registryName: z.string().min(1, {
+			message: "Registry name is required",
+		}),
+		registryType: z.enum(["cloud", "awsEcr"], {
+			message: "Registry type is required",
+		}),
+		username: z.string().optional(),
+		password: z.string().optional(),
+		registryUrl: z.string(),
+		imagePrefix: z.string(),
+		serverId: z.string().optional(),
+		// AWS ECR specific fields
+		awsAccessKeyId: z.string().optional(),
+		awsSecretAccessKey: z.string().optional(),
+		awsRegion: z.string().optional(),
+	})
+	.superRefine((data, ctx) => {
+		const { awsAccessKeyId, awsSecretAccessKey, awsRegion, registryUrl } = data;
+		if (data.registryType === "awsEcr") {
+			if (!isNonEmptyString(awsAccessKeyId)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "AWS Access Key ID is required",
+					path: ["awsAccessKeyId"],
+				});
+			}
+			if (!isNonEmptyString(awsSecretAccessKey)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "AWS Secret Access Key is required",
+					path: ["awsSecretAccessKey"],
+				});
+			}
+			if (!isNonEmptyString(awsRegion)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "AWS Region is required",
+					path: ["awsRegion"],
+				});
+			}
+			if (!isNonEmptyString(registryUrl)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Registry URL is required",
+					path: ["registryUrl"],
+				});
+			}
+		} else {
+			// For regular registries, require username and password
+			if (!isNonEmptyString(data.username)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Username is required",
+					path: ["username"],
+				});
+			}
+			if (!isNonEmptyString(data.password)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "Password is required",
+					path: ["password"],
+				});
+			}
+		}
+	});
 
 type AddRegistry = z.infer<typeof AddRegistrySchema>;
 
@@ -83,12 +144,16 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	} = api.registry.testRegistry.useMutation();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
+			registryType: "cloud",
 			username: "",
 			password: "",
 			registryUrl: "",
 			imagePrefix: "",
 			registryName: "",
 			serverId: "",
+			awsAccessKeyId: "",
+			awsSecretAccessKey: "",
+			awsRegion: "",
 		},
 		resolver: zodResolver(AddRegistrySchema),
 	});
@@ -99,37 +164,55 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const registryName = form.watch("registryName");
 	const imagePrefix = form.watch("imagePrefix");
 	const serverId = form.watch("serverId");
+	const registryType = form.watch("registryType");
+	const awsAccessKeyId = form.watch("awsAccessKeyId");
+	const awsSecretAccessKey = form.watch("awsSecretAccessKey");
+	const awsRegion = form.watch("awsRegion");
 
 	useEffect(() => {
 		if (registry) {
 			form.reset({
-				username: registry.username,
+				registryType:
+					registry.registryType === "selfHosted"
+						? "cloud"
+						: registry.registryType,
+				username: registry.username || "",
 				password: "",
 				registryUrl: registry.registryUrl,
 				imagePrefix: registry.imagePrefix || "",
 				registryName: registry.registryName,
+				awsAccessKeyId: registry.awsAccessKeyId || "",
+				awsSecretAccessKey: "",
+				awsRegion: registry.awsRegion || "",
 			});
 		} else {
 			form.reset({
+				registryType: "cloud",
 				username: "",
 				password: "",
 				registryUrl: "",
 				imagePrefix: "",
 				serverId: "",
+				awsAccessKeyId: "",
+				awsSecretAccessKey: "",
+				awsRegion: "",
 			});
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, registry]);
 
 	const onSubmit = async (data: AddRegistry) => {
 		await mutateAsync({
-			password: data.password,
+			password: data.password || "",
 			registryName: data.registryName,
-			username: data.username,
+			username: data.username || "",
 			registryUrl: data.registryUrl,
-			registryType: "cloud",
+			registryType: data.registryType,
 			imagePrefix: data.imagePrefix,
 			serverId: data.serverId,
 			registryId: registryId || "",
+			awsAccessKeyId: data.awsAccessKeyId || "",
+			awsSecretAccessKey: data.awsSecretAccessKey || "",
+			awsRegion: data.awsRegion || "",
 		})
 			.then(async (_data) => {
 				await utils.registry.all.invalidate();
@@ -200,44 +283,135 @@ export const HandleRegistry = ({ registryId }: Props) => {
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}
-								name="username"
+								name="registryType"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>Registry Type</FormLabel>
 										<FormControl>
-											<Input
-												placeholder="Username"
-												autoComplete="username"
-												{...field}
-											/>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}
+											>
+												<SelectTrigger>
+													<SelectValue placeholder="Select registry type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectGroup>
+														<SelectLabel>Registry Types</SelectLabel>
+														<SelectItem value="cloud">
+															Generic Registry
+														</SelectItem>
+														<SelectItem value="awsEcr">AWS ECR</SelectItem>
+													</SelectGroup>
+												</SelectContent>
+											</Select>
 										</FormControl>
-
 										<FormMessage />
 									</FormItem>
 								)}
 							/>
 						</div>
-						<div className="flex flex-col gap-4">
-							<FormField
-								control={form.control}
-								name="password"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Password</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="Password"
-												autoComplete="one-time-code"
-												{...field}
-												type="password"
-											/>
-										</FormControl>
+						{registryType === "cloud" && (
+							<div className="flex flex-col gap-4">
+								<FormField
+									control={form.control}
+									name="username"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Username</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Username"
+													autoComplete="username"
+													{...field}
+												/>
+											</FormControl>
 
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						)}
+						{registryType === "cloud" && (
+							<div className="flex flex-col gap-4">
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Password</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Password"
+													autoComplete="one-time-code"
+													{...field}
+													type="password"
+												/>
+											</FormControl>
+
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						)}
+						{registryType === "awsEcr" && (
+							<>
+								<div className="flex flex-col gap-4">
+									<FormField
+										control={form.control}
+										name="awsAccessKeyId"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>AWS Access Key ID</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="AKIAIOSFODNN7EXAMPLE"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<div className="flex flex-col gap-4">
+									<FormField
+										control={form.control}
+										name="awsSecretAccessKey"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>AWS Secret Access Key</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+														type="password"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+								<div className="flex flex-col gap-4">
+									<FormField
+										control={form.control}
+										name="awsRegion"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>AWS Region</FormLabel>
+												<FormControl>
+													<Input placeholder="us-east-1" {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</>
+						)}
 						<div className="flex flex-col gap-4">
 							<FormField
 								control={form.control}
@@ -263,7 +437,11 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										<FormLabel>Registry URL</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="aws_account_id.dkr.ecr.us-west-2.amazonaws.com"
+												placeholder={
+													registryType === "awsEcr"
+														? "123456789012.dkr.ecr.us-east-1.amazonaws.com"
+														: "registry.example.com"
+												}
 												{...field}
 											/>
 										</FormControl>
@@ -324,12 +502,16 @@ export const HandleRegistry = ({ registryId }: Props) => {
 									isLoading={isLoading}
 									onClick={async () => {
 										const validationResult = AddRegistrySchema.safeParse({
+											registryType,
 											username,
 											password,
 											registryUrl,
 											registryName: "Dokploy Registry",
 											imagePrefix,
 											serverId,
+											awsAccessKeyId,
+											awsSecretAccessKey,
+											awsRegion,
 										});
 
 										if (!validationResult.success) {
@@ -343,13 +525,16 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										}
 
 										await testRegistry({
-											username: username,
-											password: password,
+											username: username || "",
+											password: password || "",
 											registryUrl: registryUrl,
 											registryName: registryName,
-											registryType: "cloud",
+											registryType: registryType,
 											imagePrefix: imagePrefix,
 											serverId: serverId,
+											awsAccessKeyId: awsAccessKeyId,
+											awsSecretAccessKey: awsSecretAccessKey,
+											awsRegion: awsRegion,
 										})
 											.then((data) => {
 												if (data) {

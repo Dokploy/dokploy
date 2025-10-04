@@ -1,5 +1,9 @@
 import { db } from "@dokploy/server/db";
-import { type apiCreateRegistry, registry } from "@dokploy/server/db/schema";
+import {
+	type apiCreateRegistry,
+	getSafeRegistryLoginCommand,
+	registry,
+} from "@dokploy/server/db/schema";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -9,22 +13,6 @@ import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
-
-function shEscape(s: string | undefined): string {
-	if (!s) return "''";
-	return `'${s.replace(/'/g, `'\\''`)}'`;
-}
-
-function safeDockerLoginCommand(
-	registry: string | undefined,
-	user: string | undefined,
-	pass: string | undefined,
-) {
-	const escapedRegistry = shEscape(registry);
-	const escapedUser = shEscape(user);
-	const escapedPassword = shEscape(pass);
-	return `printf %s ${escapedPassword} | docker login ${escapedRegistry} -u ${escapedUser} --password-stdin`;
-}
 
 export const createRegistry = async (
 	input: typeof apiCreateRegistry._type,
@@ -53,14 +41,23 @@ export const createRegistry = async (
 				message: "Select a server to add the registry",
 			});
 		}
-		const loginCommand = safeDockerLoginCommand(
-			input.registryUrl,
-			input.username,
-			input.password,
-		);
+
+		const loginCommand = getSafeRegistryLoginCommand({
+			registryType: newRegistry.registryType,
+			registryUrl: input.registryUrl,
+			username: input.username,
+			password: input.password,
+			awsAccessKeyId: input.awsAccessKeyId,
+			awsSecretAccessKey: input.awsSecretAccessKey,
+			awsRegion: input.awsRegion,
+		});
+
 		if (input.serverId && input.serverId !== "none") {
 			await execAsyncRemote(input.serverId, loginCommand);
-		} else if (newRegistry.registryType === "cloud") {
+		} else if (
+			newRegistry.registryType === "cloud" ||
+			newRegistry.registryType === "awsEcr"
+		) {
 			await execAsync(loginCommand);
 		}
 
@@ -111,11 +108,15 @@ export const updateRegistry = async (
 			.returning()
 			.then((res) => res[0]);
 
-		const loginCommand = safeDockerLoginCommand(
-			response?.registryUrl,
-			response?.username,
-			response?.password,
-		);
+		const loginCommand = getSafeRegistryLoginCommand({
+			registryType: response?.registryType || "cloud",
+			registryUrl: response?.registryUrl || undefined,
+			username: response?.username || undefined,
+			password: response?.password || undefined,
+			awsAccessKeyId: response?.awsAccessKeyId || undefined,
+			awsSecretAccessKey: response?.awsSecretAccessKey || undefined,
+			awsRegion: response?.awsRegion || undefined,
+		});
 
 		if (
 			IS_CLOUD &&
@@ -130,7 +131,10 @@ export const updateRegistry = async (
 
 		if (registryData?.serverId && registryData?.serverId !== "none") {
 			await execAsyncRemote(registryData.serverId, loginCommand);
-		} else if (response?.registryType === "cloud") {
+		} else if (
+			response?.registryType === "cloud" ||
+			response?.registryType === "awsEcr"
+		) {
 			await execAsync(loginCommand);
 		}
 
@@ -150,6 +154,7 @@ export const findRegistryById = async (registryId: string) => {
 		where: eq(registry.registryId, registryId),
 		columns: {
 			password: false,
+			awsSecretAccessKey: false,
 		},
 	});
 	if (!registryResponse) {
@@ -166,6 +171,10 @@ export const findAllRegistryByOrganizationId = async (
 ) => {
 	const registryResponse = await db.query.registry.findMany({
 		where: eq(registry.organizationId, organizationId),
+		columns: {
+			password: false,
+			awsSecretAccessKey: false,
+		},
 	});
 	return registryResponse;
 };
