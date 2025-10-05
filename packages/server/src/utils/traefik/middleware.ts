@@ -100,9 +100,17 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 		throw new Error(`File not found: ${configPath}`);
 	}
 };
-export const writeMiddleware = <T>(config: T) => {
+export const writeMiddleware = (config: FileConfig) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
+	if (config.http?.middlewares) {
+		// traefik will fail to start if the file contains middlewares entry but no middlewares are defined
+		const hasNoMiddlewares = Object.keys(config.http.middlewares).length === 0;
+		if (hasNoMiddlewares) {
+			// if there aren't any middlewares, remove the whole section
+			delete config.http.middlewares;
+		}
+	}
 	const newYamlContent = stringify(config);
 	writeFileSync(configPath, newYamlContent, "utf8");
 };
