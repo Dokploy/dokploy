@@ -78,6 +78,13 @@ export const deleteProject = async (projectId: string) => {
 		.returning()
 		.then((value) => value[0]);
 
+	if (!project) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Project not found",
+		});
+	}
+
 	return project;
 };
 
@@ -93,6 +100,13 @@ export const updateProjectById = async (
 		.where(eq(projects.projectId, projectId))
 		.returning()
 		.then((res) => res[0]);
+
+	if (!result) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Project not found",
+		});
+	}
 
 	return result;
 };

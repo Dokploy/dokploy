@@ -51,8 +51,8 @@ export const createGitea = async (
 
 		return {
 			giteaId: giteaProvider.giteaId,
-			clientId: giteaProvider.clientId,
 			giteaUrl: giteaProvider.giteaUrl,
+			clientId: giteaProvider.clientId || "",
 		};
 	});
 };
