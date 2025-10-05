@@ -80,7 +80,6 @@ export const WebDomain = () => {
 	const domain = form.watch("domain") || "";
 	const host = data?.user?.host || "";
 	const hasChanged = domain !== host;
-	console.log(domain, host);
 	useEffect(() => {
 		if (data) {
 			form.reset({
