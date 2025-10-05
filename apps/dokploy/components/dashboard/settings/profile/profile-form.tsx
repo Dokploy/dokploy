@@ -257,8 +257,16 @@ export const ProfileForm = () => {
 																onValueChange={(e) => {
 																	field.onChange(e);
 																}}
-																defaultValue={field.value?.startsWith('data:') ? 'upload' : field.value}
-																value={field.value?.startsWith('data:') ? 'upload' : field.value}
+																defaultValue={
+																	field.value?.startsWith("data:")
+																		? "upload"
+																		: field.value
+																}
+																value={
+																	field.value?.startsWith("data:")
+																		? "upload"
+																		: field.value
+																}
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
 																<FormItem key="no-avatar">
@@ -289,17 +297,31 @@ export const ProfileForm = () => {
 																		</FormControl>
 																		<div
 																			className="upload-avatar h-12 w-12 rounded-full border border-dashed border-muted-foreground hover:border-primary transition-colors flex items-center justify-center bg-muted/50 hover:bg-muted overflow-hidden"
-																			onClick={() => document.getElementById('avatar-upload')?.click()}
+																			onClick={() =>
+																				document
+																					.getElementById("avatar-upload")
+																					?.click()
+																			}
 																		>
-																			{field.value?.startsWith('data:') ? (
+																			{field.value?.startsWith("data:") ? (
 																				<img
 																					src={field.value}
 																					alt="Custom avatar"
 																					className="h-full w-full object-cover rounded-full"
 																				/>
 																			) : (
-																				<svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+																				<svg
+																					className="h-5 w-5 text-muted-foreground"
+																					fill="none"
+																					stroke="currentColor"
+																					viewBox="0 0 24 24"
+																				>
+																					<path
+																						strokeLinecap="round"
+																						strokeLinejoin="round"
+																						strokeWidth={2}
+																						d="M12 4v16m8-8H4"
+																					/>
 																				</svg>
 																			)}
 																		</div>
@@ -313,12 +335,15 @@ export const ProfileForm = () => {
 																				if (file) {
 																					// max file size 5mb
 																					if (file.size > 5 * 1024 * 1024) {
-																						toast.error('Image size must be less than 5MB');
+																						toast.error(
+																							"Image size must be less than 5MB",
+																						);
 																						return;
 																					}
 																					const reader = new FileReader();
 																					reader.onload = (event) => {
-																						const result = event.target?.result as string;
+																						const result = event.target
+																							?.result as string;
 																						field.onChange(result);
 																					};
 																					reader.readAsDataURL(file);
