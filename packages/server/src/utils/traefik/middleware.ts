@@ -195,6 +195,10 @@ export const removePathMiddlewares = async (
 		}
 	}
 
+	if (!config) {
+		return;
+	}
+
 	const { appName } = app;
 
 	if (config.http?.middlewares) {
@@ -205,13 +209,12 @@ export const removePathMiddlewares = async (
 		delete config.http.middlewares[stripPrefixMiddleware];
 	}
 
-	if (config?.http?.middlewares) {
-		// traefik will fail to start if the file contains middlewares entry but no middlewares are defined
-		const hasNoMiddlewares = Object.keys(config.http.middlewares).length === 0;
-		if (hasNoMiddlewares) {
-			// if there aren't any middlewares, remove the whole section
-			delete config.http.middlewares;
-		}
+	if (
+		config?.http?.middlewares &&
+		Object.keys(config.http.middlewares).length === 0
+	) {
+		// if there aren't any middlewares, remove the whole section
+		delete config.http.middlewares;
 	}
 
 	// // If http section is empty, remove it completely
