@@ -3,8 +3,8 @@ import {
 	addSuffixToAllServiceNames,
 	addSuffixToServiceNames,
 } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFileCombinedAllCases = `
 version: "3.8"
@@ -38,7 +38,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile = load(`
+const expectedComposeFile = parse(`
 version: "3.8"
 
 services:
@@ -71,7 +71,9 @@ networks:
 `);
 
 test("Add suffix to all service names in compose file", () => {
-	const composeData = load(composeFileCombinedAllCases) as ComposeSpecification;
+	const composeData = parse(
+		composeFileCombinedAllCases,
+	) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -131,7 +133,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile1 = load(`
+const expectedComposeFile1 = parse(`
 version: "3.8"
 
 services:
@@ -176,7 +178,7 @@ networks:
 `) as ComposeSpecification;
 
 test("Add suffix to all service names in compose file 1", () => {
-	const composeData = load(composeFile1) as ComposeSpecification;
+	const composeData = parse(composeFile1) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);
@@ -227,7 +229,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile2 = load(`
+const expectedComposeFile2 = parse(`
 version: "3.8"
 
 services:
@@ -271,7 +273,7 @@ networks:
 `) as ComposeSpecification;
 
 test("Add suffix to all service names in compose file 2", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);
@@ -322,7 +324,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile3 = load(`
+const expectedComposeFile3 = parse(`
 version: "3.8"
 
 services:
@@ -366,7 +368,7 @@ networks:
 `) as ComposeSpecification;
 
 test("Add suffix to all service names in compose file 3", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllServiceNames(composeData, suffix);

@@ -157,7 +157,13 @@ export const ShowGitProviders = () => {
 																</div>
 															</div>
 
-															<div className="flex flex-row gap-1">
+															<div className="flex flex-row gap-1 items-center">
+																{isBitbucket &&
+																gitProvider.bitbucket?.appPassword &&
+																!gitProvider.bitbucket?.apiToken ? (
+																	<Badge variant="yellow">Deprecated</Badge>
+																) : null}
+
 																{!haveGithubRequirements && isGithub && (
 																	<div className="flex flex-row gap-1 items-center">
 																		<Badge
