@@ -76,7 +76,7 @@ export const loadMiddlewares = <T>() => {
 		throw new Error(`File not found: ${configPath}`);
 	}
 	const yamlStr = readFileSync(configPath, "utf8");
-	const config = (parse(yamlStr) ?? {}) as T;
+	const config = parse(yamlStr) as T;
 	return config;
 };
 
@@ -94,7 +94,7 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 			console.error(`Error: ${stderr}`);
 			throw new Error(`File not found: ${configPath}`);
 		}
-		const config = (parse(stdout) ?? {}) as FileConfig;
+		const config = parse(stdout) as FileConfig;
 		return config;
 	} catch (_) {
 		throw new Error(`File not found: ${configPath}`);
@@ -139,17 +139,19 @@ export const createPathMiddlewares = async (
 		}
 	}
 
-	if (!config.http) {
+	if (!config) {
+		config = { http: { middlewares: {} } };
+	} else if (!config.http) {
 		config.http = { middlewares: {} };
 	}
-	if (!config.http.middlewares) {
-		config.http.middlewares = {};
+	if (!config.http?.middlewares) {
+		config.http!.middlewares = {};
 	}
 
 	// Add internal path prefix middleware
 	if (internalPath && internalPath !== "/" && internalPath !== path) {
 		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
-		config.http.middlewares[middlewareName] = {
+		config.http!.middlewares[middlewareName] = {
 			addPrefix: {
 				prefix: internalPath,
 			},
@@ -159,7 +161,7 @@ export const createPathMiddlewares = async (
 	// Strip external path middleware if needed
 	if (stripPath && path && path !== "/") {
 		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
-		config.http.middlewares[middlewareName] = {
+		config.http!.middlewares[middlewareName] = {
 			stripPrefix: {
 				prefixes: [path],
 			},
@@ -201,6 +203,24 @@ export const removePathMiddlewares = async (
 
 		delete config.http.middlewares[addPrefixMiddleware];
 		delete config.http.middlewares[stripPrefixMiddleware];
+	}
+
+	if (config?.http?.middlewares) {
+		// traefik will fail to start if the file contains middlewares entry but no middlewares are defined
+		const hasNoMiddlewares = Object.keys(config.http.middlewares).length === 0;
+		if (hasNoMiddlewares) {
+			// if there aren't any middlewares, remove the whole section
+			delete config.http.middlewares;
+		}
+	}
+
+	// // If http section is empty, remove it completely
+	if (config?.http && Object.keys(config?.http).length === 0) {
+		delete config.http;
+	}
+
+	if (config && Object.keys(config || {}).length === 0) {
+		config = {};
 	}
 
 	if (app.serverId) {
