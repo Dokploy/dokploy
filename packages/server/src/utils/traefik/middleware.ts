@@ -103,14 +103,6 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 export const writeMiddleware = (config: FileConfig) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
-	if (config.http?.middlewares) {
-		// traefik will fail to start if the file contains middlewares entry but no middlewares are defined
-		const hasNoMiddlewares = Object.keys(config.http.middlewares).length === 0;
-		if (hasNoMiddlewares) {
-			// if there aren't any middlewares, remove the whole section
-			delete config.http.middlewares;
-		}
-	}
 	const newYamlContent = stringify(config);
 	writeFileSync(configPath, newYamlContent, "utf8");
 };
@@ -119,6 +111,18 @@ export const createPathMiddlewares = async (
 	app: ApplicationNested,
 	domain: Domain,
 ) => {
+	const { appName } = app;
+	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
+
+	// Early return if there's no path middleware to create
+	const needsInternalPathMiddleware =
+		internalPath && internalPath !== "/" && internalPath !== path;
+	const needsStripPathMiddleware = stripPath && path && path !== "/";
+
+	if (!needsInternalPathMiddleware && !needsStripPathMiddleware) {
+		return;
+	}
+
 	let config: FileConfig;
 
 	if (app.serverId) {
@@ -134,9 +138,6 @@ export const createPathMiddlewares = async (
 			config = { http: { middlewares: {} } };
 		}
 	}
-
-	const { appName } = app;
-	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
 
 	if (!config.http) {
 		config.http = { middlewares: {} };
