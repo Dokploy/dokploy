@@ -64,10 +64,6 @@ export const DockerTerminalModal = ({
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
 	const handleMainDialogOpenChange = (open: boolean) => {
-		if (!open && !containerId) {
-			setMainDialogOpen(false);
-			return;
-		}
 		if (!open) {
 			setConfirmDialogOpen(true);
 		} else {
@@ -131,7 +127,11 @@ export const DockerTerminalModal = ({
 						</SelectGroup>
 					</SelectContent>
 				</Select>
-				<Terminal serverId={serverId} id="terminal" containerId={containerId} />
+				<Terminal
+					serverId={serverId || ""}
+					id="terminal"
+					containerId={containerId || "select-a-container"}
+				/>
 				<Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
