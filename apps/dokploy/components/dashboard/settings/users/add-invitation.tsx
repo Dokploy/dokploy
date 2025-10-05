@@ -71,18 +71,25 @@ export const AddInvitation = () => {
 
 	const onSubmit = async (data: AddInvitation) => {
 		setIsLoading(true);
+		if (!activeOrganization?.id) {
+			toast.error("No active organization selected");
+			setIsLoading(false);
+			return;
+		}
+		const organizationId = activeOrganization.id as string;
 		const result = await authClient.organization.inviteMember({
 			email: data.email.toLowerCase(),
 			role: data.role,
-			organizationId: activeOrganization?.id,
+			organizationId,
 		});
 
 		if (result.error) {
 			setError(result.error.message || "");
 		} else {
-			if (!isCloud && data.notificationId) {
+			const invitationId = result.data?.id;
+			if (!isCloud && data.notificationId && invitationId) {
 				await sendInvitation({
-					invitationId: result.data.id,
+					invitationId,
 					notificationId: data.notificationId || "",
 				})
 					.then(() => {

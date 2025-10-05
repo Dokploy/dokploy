@@ -3,6 +3,7 @@ import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
+import { sso } from "@better-auth/sso";
 import { admin, apiKey, organization, twoFactor } from "better-auth/plugins";
 import { and, desc, eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
@@ -108,6 +109,29 @@ const { handler, api } = betterAuth({
 								where: eq(schema.member.role, "owner"),
 							});
 							if (isAdminPresent) {
+								// Allow SSO / OIDC flows to proceed by linking to existing user if email matches.
+								try {
+									const incomingEmail = (/** @ts-ignore */ _user as any)?.email;
+									if (incomingEmail) {
+										const existingUser = await db.query.users_temp.findFirst({
+											where: eq(schema.users_temp.email, incomingEmail),
+										});
+										if (existingUser) {
+											console.warn("[auth] Skipping new user creation – linking SSO to existing user", incomingEmail);
+											return; // Skip blocking – Better Auth will attach / update account record.
+										}
+									}
+									// Heuristic: if the request URL indicates SSO callback or sign-in, allow it.
+									const reqUrl = context?.request?.url || "";
+									if (reqUrl.includes("/auth/sso") || reqUrl.includes("/sign-in/sso")) {
+										console.warn("[auth] Allowing SSO user creation despite existing admin (SSO flow)");
+										return;
+									}
+								} catch (e) {
+									console.error("[auth] Error while checking existing user for SSO linking", e);
+								}
+
+								// Fallback: block additional local (non-SSO) first-user creations.
 								throw new APIError("BAD_REQUEST", {
 									message: "Admin is already created",
 								});
@@ -116,6 +140,40 @@ const { handler, api } = betterAuth({
 					}
 				},
 				after: async (user) => {
+					// Enrich freshly created user with OIDC claims if available
+					try {
+						// We rely on an existing account row containing idToken; fetch it
+						const accountRow = await db.query.account.findFirst({
+							where: and(
+								eq(schema.account.userId, user.id),
+								eq(schema.account.providerId, "oidc"),
+							),
+						});
+						if (accountRow?.idToken) {
+							const tokenParts = accountRow.idToken.split(".");
+							if (tokenParts.length === 3 && tokenParts[1]) {
+								const payloadRaw = Buffer.from(tokenParts[1]!, "base64").toString("utf8");
+								let payload: any = {};
+								try {
+									payload = JSON.parse(payloadRaw);
+								} catch {
+									// ignore malformed token
+								}
+								const displayName = payload.name || [payload.given_name, payload.family_name].filter(Boolean).join(" ");
+								const image = payload.picture;
+								const emailVerified = payload.email_verified === true;
+								const updates: Record<string, any> = {};
+								if (displayName && !user.name) updates.name = displayName;
+								if (typeof emailVerified === "boolean" && !user.emailVerified) updates.emailVerified = emailVerified;
+								if (image && !user.image) updates.image = image;
+								if (Object.keys(updates).length) {
+									await updateUser(user.id, updates);
+								}
+							}
+						}
+					} catch (e) {
+						console.warn("[auth] OIDC enrichment failed", e);
+					}
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
@@ -218,6 +276,9 @@ const { handler, api } = betterAuth({
 				}
 			},
 		}),
+		sso({
+			trustEmailVerified: true,
+		}),
 		...(IS_CLOUD
 			? [
 					admin({
@@ -232,6 +293,8 @@ export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
 };
+
+export const authApi = api;
 
 export const validateRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
@@ -336,33 +399,70 @@ export const validateRequest = async (request: IncomingMessage) => {
 	});
 
 	if (!session?.session || !session.user) {
-		return {
-			session: null,
-			user: null,
-		};
+		return { session: null, user: null };
 	}
 
-	if (session?.user) {
-		const member = await db.query.member.findFirst({
-			where: and(
-				eq(schema.member.userId, session.user.id),
-				eq(
-					schema.member.organizationId,
-					session.session.activeOrganizationId || "",
-				),
-			),
-			with: {
-				organization: true,
-			},
-		});
+	// Resolve or assign active organization id
+	let activeOrgId = session.session.activeOrganizationId || "";
+	const userId = session.user.id;
 
-		session.user.role = member?.role || "member";
-		if (member) {
-			session.user.ownerId = member.organization.ownerId;
+	// Try to find any membership if none active
+	if (!activeOrgId) {
+		const anyMember = await db.query.member.findFirst({
+			where: eq(schema.member.userId, userId),
+		});
+		if (anyMember) {
+			activeOrgId = anyMember.organizationId;
 		} else {
-			session.user.ownerId = session.user.id;
+			// If no membership exists, attach user to existing owner org (or create if none)
+			const existingOwnerMember = await db.query.member.findFirst({
+				where: eq(schema.member.role, "owner"),
+				with: { organization: true },
+			});
+			if (existingOwnerMember) {
+				await db.insert(schema.member).values({
+					id: crypto.randomUUID(),
+					organizationId: existingOwnerMember.organizationId,
+					userId,
+					role: "member",
+					createdAt: new Date(),
+				});
+				activeOrgId = existingOwnerMember.organizationId;
+			} else {
+				// Last resort: create a fresh organization for this user
+				const orgId = crypto.randomUUID();
+				await db.transaction(async (tx) => {
+					await tx.insert(schema.organization).values({
+						id: orgId,
+						name: "My Organization",
+						ownerId: userId,
+						createdAt: new Date(),
+					});
+					await tx.insert(schema.member).values({
+						id: crypto.randomUUID(),
+						organizationId: orgId,
+						userId,
+						role: "owner",
+						createdAt: new Date(),
+					});
+				});
+				activeOrgId = orgId;
+			}
 		}
 	}
+
+	// Fetch member for final role/owner assignment
+	const member = await db.query.member.findFirst({
+		where: and(
+			eq(schema.member.userId, userId),
+			eq(schema.member.organizationId, activeOrgId),
+		),
+		with: { organization: true },
+	});
+
+	session.session.activeOrganizationId = activeOrgId;
+	session.user.role = member?.role || session.user.role || "member";
+	session.user.ownerId = member?.organization?.ownerId || session.user.id;
 
 	return session;
 };

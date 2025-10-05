@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 
 const LoginSchema = z.object({
 	email: z.string().email(),
@@ -64,6 +65,7 @@ export default function Home({ IS_CLOUD }: Props) {
 	const [backupCode, setBackupCode] = useState("");
 	const [isGithubLoading, setIsGithubLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+	const [isSsoLoading, setIsSsoLoading] = useState(false);
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
@@ -71,6 +73,8 @@ export default function Home({ IS_CLOUD }: Props) {
 			password: "",
 		},
 	});
+
+	const { data: ssoStatus } = api.sso.getStatus.useQuery();
 
 	const onSubmit = async (values: LoginForm) => {
 		setIsLoginLoading(true);
@@ -200,6 +204,46 @@ export default function Home({ IS_CLOUD }: Props) {
 			setIsGoogleLoading(false);
 		}
 	};
+
+	const handleSsoSignIn = async () => {
+		if (!ssoStatus?.enabled || typeof window === "undefined") return;
+		setIsSsoLoading(true);
+		try {
+			const origin = window.location.origin;
+			const callbackURL = `${origin}/dashboard/projects`;
+			const errorCallbackURL = `${origin}${router.asPath}`;
+			const response = await fetch("/api/auth/sign-in/sso", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				credentials: "include",
+				body: JSON.stringify({
+					providerId: ssoStatus.providerId,
+					callbackURL,
+					errorCallbackURL,
+				}),
+			});
+			const payload = await response.json().catch(() => null);
+			if (!response.ok) {
+				const message =
+					payload?.message || payload?.error || "Unable to start SSO flow";
+				toast.error(message);
+				return;
+			}
+			if (payload?.redirect && payload.url) {
+				window.location.href = payload.url as string;
+				return;
+			}
+			toast.error("Unexpected SSO response, please try again");
+		} catch (error) {
+			toast.error("Unable to start SSO flow", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		} finally {
+			setIsSsoLoading(false);
+		}
+	};
 	return (
 		<>
 			<div className="flex flex-col space-y-2 text-center">
@@ -265,6 +309,23 @@ export default function Home({ IS_CLOUD }: Props) {
 									/>
 								</svg>
 								Sign in with Google
+							</Button>
+						)}
+						{ssoStatus?.enabled && (
+							<Button
+								variant="outline"
+								type="button"
+								className="w-full mb-4"
+								onClick={handleSsoSignIn}
+								isLoading={isSsoLoading}
+							>
+								<svg viewBox="0 0 24 24" className="mr-2 size-4">
+									<path
+										fill="currentColor"
+										d="M16.5 1a1 1 0 0 1 .993.883L17.5 2v3h2a2.5 2.5 0 0 1 2.495 2.336L22 7.5v9a2.5 2.5 0 0 1-2.336 2.495L19.5 19h-15a2.5 2.5 0 0 1-2.495-2.336L2 16.5v-9A2.5 2.5 0 0 1 4.336 5.01L4.5 5h2V2a1 1 0 0 1 .883-.993L7.5 1Zm0 2h-9v2h9Zm3 4h-15a.5.5 0 0 0-.492.41L4.5 7.5v9a.5.5 0 0 0 .41.492L5 17h15a.5.5 0 0 0 .492-.41L20.5 16.5v-9a.5.5 0 0 0-.41-.492ZM12 9a3 3 0 0 1 1.995 5.258l-.159.126.164.355a1 1 0 0 1-1.282 1.304l-.106-.052L12 15.67l-.612.321a1 1 0 0 1-1.302-1.282l.157-.34A3 3 0 0 1 12 9Zm0 2a1 1 0 1 0 .117 1.993L12 13a1 1 0 0 0 .117-1.993L12 11Z"
+									/>
+								</svg>
+								Sign in with {ssoStatus.displayName}
 							</Button>
 						)}
 						<Form {...loginForm}>

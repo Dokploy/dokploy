@@ -34,6 +34,7 @@ import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
+import { ssoRouter } from "./routers/sso";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
@@ -86,6 +87,7 @@ export const appRouter = createTRPCRouter({
 	rollback: rollbackRouter,
 	volumeBackups: volumeBackupsRouter,
 	environment: environmentRouter,
+	sso: ssoRouter,
 });
 
 // export type definition of API
