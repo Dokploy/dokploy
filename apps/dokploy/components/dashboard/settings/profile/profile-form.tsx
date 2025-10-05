@@ -333,10 +333,10 @@ export const ProfileForm = () => {
 																			onChange={async (e) => {
 																				const file = e.target.files?.[0];
 																				if (file) {
-																					// max file size 5mb
-																					if (file.size > 5 * 1024 * 1024) {
+																					// max file size 2mb
+																					if (file.size > 2 * 1024 * 1024) {
 																						toast.error(
-																							"Image size must be less than 5MB",
+																							"Image size must be less than 2MB",
 																						);
 																						return;
 																					}
