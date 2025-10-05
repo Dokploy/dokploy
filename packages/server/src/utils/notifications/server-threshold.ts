@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { notifications } from "../../db/schema";
 import {
 	sendDiscordNotification,
+	sendMattermostNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -34,6 +35,7 @@ export const sendServerThresholdNotifications = async (
 			discord: true,
 			telegram: true,
 			slack: true,
+			mattermost: true,
 		},
 	});
 
@@ -41,7 +43,7 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack } = notification;
+		const { discord, telegram, slack, mattermost } = notification;
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -149,6 +151,14 @@ export const sendServerThresholdNotifications = async (
 						],
 					},
 				],
+			});
+		}
+
+		if (mattermost) {
+			await sendMattermostNotification(mattermost, {
+				text: `**⚠️ Server ${payload.Type} Alert**\n\n**Server Name:** ${payload.ServerName}\n**Type:** ${payload.Type}\n**Current Value:** ${payload.Value.toFixed(2)}%\n**Threshold:** ${payload.Threshold.toFixed(2)}%\n**Message:** ${payload.Message}\n**Time:** ${date.toLocaleString()}`,
+				channel: mattermost.channel,
+				username: mattermost.username || "Dokploy",
 			});
 		}
 	}

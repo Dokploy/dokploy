@@ -8,6 +8,7 @@ import {
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -44,11 +45,13 @@ export const sendBuildErrorNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost } =
+			notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -209,6 +212,26 @@ export const sendBuildErrorNotifications = async ({
 						],
 					},
 				],
+			});
+		}
+
+		if (mattermost) {
+			await sendMattermostNotification(mattermost, {
+				text: `:warning: **Build Failed**
+
+**Project:** ${projectName}
+**Application:** ${applicationName}
+**Type:** ${applicationType}
+**Time:** ${date.toLocaleString()}
+
+**Error:**
+\`\`\`
+${errorMessage}
+\`\`\`
+
+[View Build Details](${buildLink})`,
+				channel: mattermost.channel,
+				username: mattermost.username || "Dokploy Bot",
 			});
 		}
 	}
