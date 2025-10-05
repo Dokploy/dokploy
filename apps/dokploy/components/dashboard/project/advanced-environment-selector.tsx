@@ -59,25 +59,9 @@ export const AdvancedEnvironmentSelector = ({
 		},
 	);
 
-	const { data: currentUser } = api.user.get.useQuery();
-
-	// Check if user can delete environments
-	const canDeleteEnvironments =
-		currentUser?.role === "owner" ||
-		currentUser?.role === "admin" ||
-		currentUser?.canDeleteEnvironments === true;
-
 	// Form states
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
-
-	// API mutations
-	const { data: environment } = api.environment.one.useQuery(
-		{ environmentId: currentEnvironmentId || "" },
-		{
-			enabled: !!currentEnvironmentId,
-		},
-	);
 
 	// Get current user's permissions
 	const { data: currentUser } = api.user.get.useQuery();
@@ -87,6 +71,12 @@ export const AdvancedEnvironmentSelector = ({
 		currentUser?.role === "owner" ||
 		currentUser?.role === "admin" ||
 		currentUser?.canCreateEnvironments === true;
+
+	// Check if user can delete environments
+	const canDeleteEnvironments =
+		currentUser?.role === "owner" ||
+		currentUser?.role === "admin" ||
+		currentUser?.canDeleteEnvironments === true;
 
 	const haveServices =
 		selectedEnvironment &&
