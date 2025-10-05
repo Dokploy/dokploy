@@ -59,7 +59,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 	const router = useRouter();
 
 	const { mutateAsync, isLoading } =
-		api.application.saveGitProdiver.useMutation();
+		api.application.saveGitProvider.useMutation();
 
 	const form = useForm<GitProvider>({
 		defaultValues: {
