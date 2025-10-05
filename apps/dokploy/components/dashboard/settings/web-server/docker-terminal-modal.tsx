@@ -52,7 +52,7 @@ export const DockerTerminalModal = ({
 		{
 			appName,
 			appType,
-			...(serverId ? { serverId } : {}),
+			serverId,
 		},
 		{
 			enabled: !!appName,
