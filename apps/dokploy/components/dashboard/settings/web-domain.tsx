@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -76,6 +77,10 @@ export const WebDomain = () => {
 		resolver: zodResolver(addServerDomain),
 	});
 	const https = form.watch("https");
+	const domain = form.watch("domain") || "";
+	const host = data?.user?.host || "";
+	const hasChanged = domain !== host;
+	console.log(domain, host);
 	useEffect(() => {
 		if (data) {
 			form.reset({
@@ -119,6 +124,36 @@ export const WebDomain = () => {
 						</div>
 					</CardHeader>
 					<CardContent className="space-y-2 py-6 border-t">
+						{/* Warning for GitHub webhook URL changes */}
+						{hasChanged && (
+							<AlertBlock type="warning">
+								<div className="space-y-2">
+									<p className="font-medium">⚠️ Important: URL Change Impact</p>
+									<p>
+										If you change the Dokploy Server URL from{" "}
+										<span>{domain}</span> to a new URL, you will need to update:
+									</p>
+									<ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+										<li>
+											<strong>GitHub Apps:</strong> Update webhook URLs in your
+											Github Apps settings
+										</li>
+										<li>
+											<strong>GitLab Apps:</strong> Update redirect URIs in your
+											GitLab Apps settings
+										</li>
+										<li>
+											<strong>Gitea Apps:</strong> Update redirect URIs in your
+											Gitea Apps settings
+										</li>
+									</ul>
+									<p className="text-sm text-muted-foreground mt-2">
+										💡 <strong>Tip:</strong> Consider recreating Git providers
+										after URL changes to avoid manual configuration.
+									</p>
+								</div>
+							</AlertBlock>
+						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
