@@ -1,5 +1,5 @@
 import { Terminal } from "@xterm/xterm";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
@@ -19,7 +19,6 @@ export const DockerTerminal: React.FC<Props> = ({
 }) => {
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
-	const [isConnected, setIsConnected] = useState(false);
 	const { resolvedTheme } = useTheme();
 	useEffect(() => {
 		const container = document.getElementById(id);
