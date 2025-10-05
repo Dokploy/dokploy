@@ -111,6 +111,9 @@ export const member = pgTable("member", {
 	canDeleteEnvironments: boolean("canDeleteEnvironments")
 		.notNull()
 		.default(false),
+	canCreateEnvironments: boolean("canCreateEnvironments")
+		.notNull()
+		.default(false),
 	accessedProjects: text("accesedProjects")
 		.array()
 		.notNull()

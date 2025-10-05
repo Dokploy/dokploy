@@ -142,6 +142,7 @@ export const mechanizeDockerContainer = async (
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
@@ -191,6 +192,8 @@ export const mechanizeDockerContainer = async (
 			})),
 		},
 		UpdateConfig,
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {
@@ -220,8 +223,8 @@ const getImageName = (application: ApplicationNested) => {
 	if (registry) {
 		const { registryUrl, imagePrefix, username } = registry;
 		const registryTag = imagePrefix
-			? `${registryUrl}/${imagePrefix}/${imageName}`
-			: `${registryUrl}/${username}/${imageName}`;
+			? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
+			: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
 		return registryTag;
 	}
 

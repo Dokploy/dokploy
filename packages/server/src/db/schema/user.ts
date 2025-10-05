@@ -187,6 +187,7 @@ export const apiAssignPermissions = createSchema
 		canAccessToSSHKeys: z.boolean().optional(),
 		canAccessToGitProviders: z.boolean().optional(),
 		canDeleteEnvironments: z.boolean().optional(),
+		canCreateEnvironments: z.boolean().optional(),
 	})
 	.required();
 
@@ -323,6 +324,11 @@ export const apiUpdateWebServerMonitoring = z.object({
 });
 
 export const apiUpdateUser = createSchema.partial().extend({
+	email: z
+		.string()
+		.email("Please enter a valid email address")
+		.min(1, "Email is required")
+		.optional(),
 	password: z.string().optional(),
 	currentPassword: z.string().optional(),
 	name: z.string().optional(),

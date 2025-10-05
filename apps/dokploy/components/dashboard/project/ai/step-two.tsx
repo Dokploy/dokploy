@@ -1,5 +1,5 @@
-import { Bot, Eye, EyeOff, PlusCircle, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bot, PlusCircle, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -27,7 +27,6 @@ export interface StepProps {
 export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 	const suggestions = templateInfo.suggestions || [];
 	const selectedVariant = templateInfo.details;
-	const [showValues, setShowValues] = useState<Record<string, boolean>>({});
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.ai.suggest.useMutation();
@@ -44,7 +43,7 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 			.then((data) => {
 				setTemplateInfo({
 					...templateInfo,
-					suggestions: data,
+					suggestions: data || [],
 				});
 			})
 			.catch((error) => {
@@ -53,10 +52,6 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 				});
 			});
 	}, [templateInfo.userInput]);
-
-	const toggleShowValue = (name: string) => {
-		setShowValues((prev) => ({ ...prev, [name]: !prev[name] }));
-	};
 
 	const handleEnvVariableChange = (
 		index: number,
@@ -308,11 +303,9 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																placeholder="Variable Name"
 																className="flex-1"
 															/>
-															<div className="flex-1 relative">
+															<div className="relative">
 																<Input
-																	type={
-																		showValues[env.name] ? "text" : "password"
-																	}
+																	type={"password"}
 																	value={env.value}
 																	onChange={(e) =>
 																		handleEnvVariableChange(
@@ -323,19 +316,6 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 																	}
 																	placeholder="Variable Value"
 																/>
-																<Button
-																	type="button"
-																	variant="ghost"
-																	size="icon"
-																	className="absolute right-2 top-1/2 transform -translate-y-1/2"
-																	onClick={() => toggleShowValue(env.name)}
-																>
-																	{showValues[env.name] ? (
-																		<EyeOff className="h-4 w-4" />
-																	) : (
-																		<Eye className="h-4 w-4" />
-																	)}
-																</Button>
 															</div>
 															<Button
 																type="button"
@@ -437,13 +417,14 @@ export const StepTwo = ({ templateInfo, setTemplateInfo }: StepProps) => {
 										<AccordionContent>
 											<ScrollArea className="w-full rounded-md border">
 												<div className="p-4 space-y-4">
-													{selectedVariant?.configFiles?.length > 0 ? (
+													{selectedVariant?.configFiles?.length &&
+													selectedVariant?.configFiles?.length > 0 ? (
 														<>
 															<div className="text-sm text-muted-foreground mb-4">
 																This template requires the following
 																configuration files to be mounted:
 															</div>
-															{selectedVariant.configFiles.map(
+															{selectedVariant?.configFiles?.map(
 																(config, index) => (
 																	<div
 																		key={index}

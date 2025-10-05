@@ -68,6 +68,7 @@ export * from "./utils/backups/postgres";
 export * from "./utils/backups/utils";
 export * from "./utils/backups/web-server";
 export * from "./utils/builders/compose";
+export * from "./utils/startup/cancell-deployments";
 export * from "./utils/builders/docker-file";
 export * from "./utils/builders/drop";
 export * from "./utils/builders/heroku";

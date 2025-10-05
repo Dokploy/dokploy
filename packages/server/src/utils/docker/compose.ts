@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { findComposeById } from "@dokploy/server/services/compose";
-import { dump, load } from "js-yaml";
+import { parse, stringify } from "yaml";
 import { addSuffixToAllConfigs } from "./compose/configs";
 import { addSuffixToAllNetworks } from "./compose/network";
 import { addSuffixToAllSecrets } from "./compose/secrets";
@@ -18,13 +18,13 @@ export const randomizeComposeFile = async (
 ) => {
 	const compose = await findComposeById(composeId);
 	const composeFile = compose.composeFile;
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const randomSuffix = suffix || generateRandomHash();
 
 	const newComposeFile = addSuffixToAllProperties(composeData, randomSuffix);
 
-	return dump(newComposeFile);
+	return stringify(newComposeFile);
 };
 
 export const randomizeSpecificationFile = (

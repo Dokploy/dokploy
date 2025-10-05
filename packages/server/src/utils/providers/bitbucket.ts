@@ -5,7 +5,10 @@ import type {
 	apiBitbucketTestConnection,
 	apiFindBitbucketBranches,
 } from "@dokploy/server/db/schema";
-import { findBitbucketById } from "@dokploy/server/services/bitbucket";
+import {
+	type Bitbucket,
+	findBitbucketById,
+} from "@dokploy/server/services/bitbucket";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
@@ -22,6 +25,61 @@ export type ComposeWithBitbucket = InferResultType<
 	"compose",
 	{ bitbucket: true }
 >;
+
+export const getBitbucketCloneUrl = (
+	bitbucketProvider: {
+		apiToken?: string | null;
+		bitbucketUsername?: string | null;
+		appPassword?: string | null;
+		bitbucketEmail?: string | null;
+		bitbucketWorkspaceName?: string | null;
+	} | null,
+	repoClone: string,
+) => {
+	if (!bitbucketProvider) {
+		throw new Error("Bitbucket provider is required");
+	}
+
+	if (bitbucketProvider.apiToken) {
+		return `https://x-bitbucket-api-token-auth:${bitbucketProvider.apiToken}@${repoClone}`;
+	}
+
+	// For app passwords, use username:app_password format
+	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
+	}
+	return `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
+};
+
+export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
+	if (bitbucketProvider.apiToken) {
+		// According to Bitbucket official docs, for API calls with API tokens:
+		// "You will need both your Atlassian account email and an API token"
+		// Use: {atlassian_account_email}:{api_token}
+
+		if (!bitbucketProvider.bitbucketEmail) {
+			throw new Error(
+				"Atlassian account email is required when using API token for API calls",
+			);
+		}
+
+		return {
+			Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketEmail}:${bitbucketProvider.apiToken}`).toString("base64")}`,
+		};
+	}
+
+	// For app passwords, use HTTP Basic auth with username and app password
+	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
+	}
+	return {
+		Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
+	};
+};
 
 export const cloneBitbucketRepository = async (
 	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
@@ -51,7 +109,7 @@ export const cloneBitbucketRepository = async (
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucket?.bitbucketUsername}:${bitbucket?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
 	try {
 		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
 		const cloneArgs = [
@@ -103,7 +161,7 @@ export const cloneRawBitbucketRepository = async (entity: Compose) => {
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
 
 	try {
 		const cloneArgs = [
@@ -153,7 +211,7 @@ export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
 	const basePath = COMPOSE_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
 
 	try {
 		const cloneCommand = `
@@ -206,7 +264,7 @@ export const getBitbucketCloneCommand = async (
 	const outputPath = join(basePath, appName, "code");
 	await recreateDirectory(outputPath);
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = `https://${bitbucketProvider?.bitbucketUsername}:${bitbucketProvider?.appPassword}@${repoclone}`;
+	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
 
 	const cloneCommand = `
 rm -rf ${outputPath};
@@ -241,9 +299,7 @@ export const getBitbucketRepositories = async (bitbucketId?: string) => {
 		while (url) {
 			const response = await fetch(url, {
 				method: "GET",
-				headers: {
-					Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-				},
+				headers: getBitbucketHeaders(bitbucketProvider),
 			});
 
 			if (!response.ok) {
@@ -279,35 +335,43 @@ export const getBitbucketBranches = async (
 	}
 	const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 	const { owner, repo } = input;
-	const url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches?pagelen=100`;
+	let url = `https://api.bitbucket.org/2.0/repositories/${owner}/${repo}/refs/branches?pagelen=1`;
+	let allBranches: {
+		name: string;
+		commit: {
+			sha: string;
+		};
+	}[] = [];
 
 	try {
-		const response = await fetch(url, {
-			method: "GET",
-			headers: {
-				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-			},
-		});
-
-		if (!response.ok) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `HTTP error! status: ${response.status}`,
+		while (url) {
+			const response = await fetch(url, {
+				method: "GET",
+				headers: getBitbucketHeaders(bitbucketProvider),
 			});
+
+			if (!response.ok) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `HTTP error! status: ${response.status}`,
+				});
+			}
+
+			const data = await response.json();
+
+			const mappedData = data.values.map((branch: any) => {
+				return {
+					name: branch.name,
+					commit: {
+						sha: branch.target.hash,
+					},
+				};
+			});
+			allBranches = allBranches.concat(mappedData);
+			url = data.next || null;
 		}
 
-		const data = await response.json();
-
-		const mappedData = data.values.map((branch: any) => {
-			return {
-				name: branch.name,
-				commit: {
-					sha: branch.target.hash,
-				},
-			};
-		});
-
-		return mappedData as {
+		return allBranches as {
 			name: string;
 			commit: {
 				sha: string;
@@ -335,9 +399,7 @@ export const testBitbucketConnection = async (
 	try {
 		const response = await fetch(url, {
 			method: "GET",
-			headers: {
-				Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
-			},
+			headers: getBitbucketHeaders(bitbucketProvider),
 		});
 
 		if (!response.ok) {

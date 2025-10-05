@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	bigint,
 	boolean,
 	integer,
 	json,
@@ -20,7 +21,6 @@ import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
-import { projects } from "./project";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
@@ -164,6 +164,7 @@ export const applications = pgTable("application", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -312,6 +313,7 @@ const createSchema = createInsertSchema(applications, {
 	watchPaths: z.array(z.string()).optional(),
 	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({

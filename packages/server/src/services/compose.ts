@@ -227,7 +227,7 @@ export const deployCompose = async ({
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
-	}/services/compose/${compose.composeId}?tab=deployments`;
+	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -335,7 +335,7 @@ export const deployRemoteCompose = async ({
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
-	}/services/compose/${compose.composeId}?tab=deployments`;
+	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
