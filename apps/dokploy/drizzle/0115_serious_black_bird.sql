@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "canCreateEnvironments" boolean DEFAULT false NOT NULL;
