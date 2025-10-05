@@ -265,9 +265,10 @@ export const writeTraefikConfigRemote = async (
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		if (traefikConfig.http?.middlewares) {
 			// traefik will fail to start if the file contains middlewares entry but no middlewares are defined
-			const hasNoMiddlewares = Object.keys(traefikConfig.http.middlewares).length === 0;
+			const hasNoMiddlewares =
+				Object.keys(traefikConfig.http.middlewares).length === 0;
 			if (hasNoMiddlewares) {
-			// if there aren't any middlewares, remove the whole section
+				// if there aren't any middlewares, remove the whole section
 				delete traefikConfig.http.middlewares;
 			}
 		}
