@@ -21,6 +21,7 @@ export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
 	"error",
+	"cancelled",
 ]);
 
 export const deployments = pgTable("deployment", {

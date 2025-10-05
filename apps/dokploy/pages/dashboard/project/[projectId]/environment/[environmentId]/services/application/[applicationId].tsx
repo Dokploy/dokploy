@@ -226,6 +226,7 @@ const Service = (
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="domains">Domains</TabsTrigger>
+											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="preview-deployments">
 												Preview Deployments
 											</TabsTrigger>
@@ -233,7 +234,6 @@ const Service = (
 											<TabsTrigger value="volume-backups">
 												Volume Backups
 											</TabsTrigger>
-											<TabsTrigger value="deployments">Deployments</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
