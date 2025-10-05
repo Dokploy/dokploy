@@ -132,11 +132,11 @@ export const notificationsMap = {
 		label: "Email",
 	},
 	gotify: {
-		icon: <GotifyIcon/>,
+		icon: <GotifyIcon />,
 		label: "Gotify",
 	},
 	ntfy: {
-		icon: <NtfyIcon/>,
+		icon: <NtfyIcon />,
 		label: "ntfy",
 	},
 };
