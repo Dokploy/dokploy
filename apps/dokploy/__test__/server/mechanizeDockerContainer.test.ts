@@ -8,28 +8,24 @@ type MockCreateServiceOptions = {
 	[key: string]: unknown;
 };
 
-const {
-	inspectMock,
-	getServiceMock,
-	createServiceMock,
-	getRemoteDockerMock,
-} = vi.hoisted(() => {
-	const inspect = vi.fn<[], Promise<never>>();
-	const getService = vi.fn(() => ({ inspect }));
-	const createService = vi.fn<[MockCreateServiceOptions], Promise<void>>(async () =>
-		undefined,
-	);
-	const getRemoteDocker = vi.fn(async () => ({
-		getService,
-		createService,
-	}));
-	return {
-		inspectMock: inspect,
-		getServiceMock: getService,
-		createServiceMock: createService,
-		getRemoteDockerMock: getRemoteDocker,
-	};
-});
+const { inspectMock, getServiceMock, createServiceMock, getRemoteDockerMock } =
+	vi.hoisted(() => {
+		const inspect = vi.fn<[], Promise<never>>();
+		const getService = vi.fn(() => ({ inspect }));
+		const createService = vi.fn<[MockCreateServiceOptions], Promise<void>>(
+			async () => undefined,
+		);
+		const getRemoteDocker = vi.fn(async () => ({
+			getService,
+			createService,
+		}));
+		return {
+			inspectMock: inspect,
+			getServiceMock: getService,
+			createServiceMock: createService,
+			getRemoteDockerMock: getRemoteDocker,
+		};
+	});
 
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 	getRemoteDocker: getRemoteDockerMock,
@@ -37,29 +33,30 @@ vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
 
 const createApplication = (
 	overrides: Partial<ApplicationNested> = {},
-): ApplicationNested => ({
-	appName: "test-app",
-	buildType: "dockerfile",
-	env: null,
-	mounts: [],
-	cpuLimit: null,
-	memoryLimit: null,
-	memoryReservation: null,
-	cpuReservation: null,
-	command: null,
-	ports: [],
-	sourceType: "docker",
-	dockerImage: "example:latest",
-	registry: null,
-	environment: {
-		project: { env: null },
+): ApplicationNested =>
+	({
+		appName: "test-app",
+		buildType: "dockerfile",
 		env: null,
-	},
-	replicas: 1,
-	stopGracePeriodSwarm: 0n,
-	serverId: "server-id",
-	...overrides,
-} as unknown as ApplicationNested);
+		mounts: [],
+		cpuLimit: null,
+		memoryLimit: null,
+		memoryReservation: null,
+		cpuReservation: null,
+		command: null,
+		ports: [],
+		sourceType: "docker",
+		dockerImage: "example:latest",
+		registry: null,
+		environment: {
+			project: { env: null },
+			env: null,
+		},
+		replicas: 1,
+		stopGracePeriodSwarm: 0n,
+		serverId: "server-id",
+		...overrides,
+	}) as unknown as ApplicationNested;
 
 describe("mechanizeDockerContainer", () => {
 	beforeEach(() => {

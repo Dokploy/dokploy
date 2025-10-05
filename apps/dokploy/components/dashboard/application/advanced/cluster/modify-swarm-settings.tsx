@@ -185,7 +185,9 @@ type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
 const hasStopGracePeriodSwarm = (
 	value: unknown,
 ): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
-	typeof value === "object" && value !== null && "stopGracePeriodSwarm" in value;
+	typeof value === "object" &&
+	value !== null &&
+	"stopGracePeriodSwarm" in value;
 
 interface Props {
 	id: string;

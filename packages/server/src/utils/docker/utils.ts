@@ -452,8 +452,8 @@ export const generateConfigContainer = (
 				}),
 		...(sanitizedStopGracePeriodSwarm !== null &&
 			sanitizedStopGracePeriodSwarm !== undefined && {
-			StopGracePeriod: sanitizedStopGracePeriodSwarm,
-		}),
+				StopGracePeriod: sanitizedStopGracePeriodSwarm,
+			}),
 		...(networkSwarm
 			? {
 					Networks: networkSwarm,
