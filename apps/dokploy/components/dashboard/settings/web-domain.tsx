@@ -130,26 +130,9 @@ export const WebDomain = () => {
 								<div className="space-y-2">
 									<p className="font-medium">⚠️ Important: URL Change Impact</p>
 									<p>
-										If you change the Dokploy Server URL from{" "}
-										<span>{domain}</span> to a new URL, you will need to update:
-									</p>
-									<ul className="list-disc list-inside space-y-1 ml-4 text-sm">
-										<li>
-											<strong>GitHub Apps:</strong> Update webhook URLs in your
-											Github Apps settings
-										</li>
-										<li>
-											<strong>GitLab Apps:</strong> Update redirect URIs in your
-											GitLab Apps settings
-										</li>
-										<li>
-											<strong>Gitea Apps:</strong> Update redirect URIs in your
-											Gitea Apps settings
-										</li>
-									</ul>
-									<p className="text-sm text-muted-foreground mt-2">
-										💡 <strong>Tip:</strong> Consider recreating Git providers
-										after URL changes to avoid manual configuration.
+										If you change the Dokploy Server URL make sure to update
+										your Github Apps to keep the auto-deploy working and preview
+										deployments working.
 									</p>
 								</div>
 							</AlertBlock>
