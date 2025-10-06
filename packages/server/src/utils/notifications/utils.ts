@@ -4,6 +4,7 @@ import type {
 	gotify,
 	ntfy,
 	slack,
+	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
@@ -150,5 +151,20 @@ export const sendNtfyNotification = async (
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
+	}
+};
+
+export const sendTeamsNotification = async (
+	connection: typeof teams.$inferInsert,
+	message: any,
+) => {
+	try {
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
 	}
 };

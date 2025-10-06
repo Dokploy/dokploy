@@ -11,6 +11,7 @@ import {
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
+	sendTeamsNotification,
 } from "./utils";
 
 interface Props {
@@ -44,11 +45,12 @@ export const sendBuildErrorNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			teams: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, teams } = notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -209,6 +211,55 @@ export const sendBuildErrorNotifications = async ({
 						],
 					},
 				],
+			});
+		}
+
+		if (teams) {
+			const decorate = (decoration: string, text: string) =>
+				`${teams.decoration ? decoration : ""} ${text}`.trim();
+			
+			await sendTeamsNotification(teams, {
+				"@type": "MessageCard",
+				"@context": "http://schema.org/extensions",
+				themeColor: "FF0000",
+				summary: "Build Failed",
+				sections: [
+					{
+						activityTitle: decorate("⚠️", "Build Failed"),
+						facts: [
+							{
+								name: decorate("🛠️", "Project"),
+								value: projectName
+							},
+							{
+								name: decorate("⚙️", "Application"),
+								value: applicationName
+							},
+							{
+								name: decorate("❔", "Type"),
+								value: applicationType
+							},
+							{
+								name: decorate("🕒", "Date"),
+								value: date.toLocaleString()
+							},
+							{
+								name: decorate("⚠️", "Error Message"),
+								value: errorMessage
+							}
+						],
+						markdown: true
+					}
+				],
+				potentialAction: [
+					{
+						"@type": "OpenUri",
+						name: "View Build Details",
+						targets: [
+							{ os: "default", uri: buildLink }
+						]
+					}
+				]
 			});
 		}
 	}

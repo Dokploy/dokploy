@@ -15,8 +15,9 @@ import {
 	GotifyIcon,
 	NtfyIcon,
 	SlackIcon,
-	TelegramIcon,
+	TelegramIcon,TeamsIcon
 } from "@/components/icons/notification-icons";
+// import { MessageSquare as TeamsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -41,6 +42,37 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+
+export const notificationsMap = {
+	slack: {
+		icon: <SlackIcon />,
+		label: "Slack",
+	},
+	telegram: {
+		icon: <TelegramIcon />,
+		label: "Telegram",
+	},
+	discord: {
+		icon: <DiscordIcon />,
+		label: "Discord",
+	},
+	email: {
+		icon: <Mail size={29} className="text-muted-foreground" />,
+		label: "Email",
+	},
+	gotify: {
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		label: "Gotify",
+	},
+	ntfy: {
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		label: "ntfy",
+	},
+	teams: {
+		icon: <TeamsIcon size={29} className="text-muted-foreground" />,
+		label: "Teams",
+	},
+};
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
@@ -86,11 +118,9 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			password: z.string().min(1, { message: "Password is required" }),
 			fromAddress: z.string().min(1, { message: "From Address is required" }),
 			toAddresses: z
-				.array(
-					z.string().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
-				)
+				.array(z.string().min(1, { message: "Email is required" }).email({
+					message: "Email is invalid",
+				}))
 				.min(1, { message: "At least one email is required" }),
 		})
 		.merge(notificationBaseSchema),
@@ -112,7 +142,15 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			priority: z.number().min(1).max(5).default(3),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("teams"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().default(true),
+		})
+		.merge(notificationBaseSchema),
 ]);
+
 
 export const notificationsMap = {
 	slack: {
@@ -132,12 +170,16 @@ export const notificationsMap = {
 		label: "Email",
 	},
 	gotify: {
-		icon: <GotifyIcon />,
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
 		label: "Gotify",
 	},
 	ntfy: {
-		icon: <NtfyIcon />,
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
 		label: "ntfy",
+	},
+	teams: {
+		icon: <TeamsIcon size={29} className="text-muted-foreground" />,
+		label: "Teams",
 	},
 };
 
@@ -172,6 +214,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
+	const { mutateAsync: testTeamsConnection, isLoading: isLoadingTeams } =
+		api.notification.testTeamsConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -190,6 +234,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const ntfyMutation = notificationId
 		? api.notification.updateNtfy.useMutation()
 		: api.notification.createNtfy.useMutation();
+	const teamsMutation = notificationId
+		? api.notification.updateTeams.useMutation()
+		: api.notification.createTeams.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -300,6 +347,19 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 				});
+			} else if (notification.notificationType === "teams") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.teams?.webhookUrl,
+					decoration: notification.teams?.decoration || undefined,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -313,6 +373,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		email: emailMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
+		teams: teamsMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -417,6 +478,25 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				ntfyId: notification?.ntfyId || "",
 			});
 		}
+		else if (data.type === "teams") {
+  const payload = {
+    appBuildError,
+    appDeploy,
+    dokployRestart,
+    databaseBackup,
+    webhookUrl: data.webhookUrl,
+    decoration: data.decoration,
+    name: data.name,
+    dockerCleanup,
+    serverThreshold
+  };
+  // Only add these for update, not for create
+  if (notificationId) payload.notificationId = notificationId;
+  if (notification?.teamsId) payload.teamsId = notification.teamsId;
+
+  promise = teamsMutation.mutateAsync(payload);
+}
+
 
 		if (promise) {
 			await promise
@@ -655,6 +735,50 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
+								{/* Teams provider fields */}
+								{type === "teams" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://outlook.office.com/webhook/..."
+															{...field}
+														/>
+													</FormControl>
 													<FormMessage />
 												</FormItem>
 											)}

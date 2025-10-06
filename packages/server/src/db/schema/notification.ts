@@ -12,6 +12,7 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+	"teams",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -46,6 +47,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
+		onDelete: "cascade",
+	}),
+	teamsId: text("teamsId").references(() => teams.teamsId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -116,6 +120,15 @@ export const ntfy = pgTable("ntfy", {
 	priority: integer("priority").notNull().default(3),
 });
 
+export const teams = pgTable("teams", {
+	teamsId: text("teamsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	decoration: boolean("decoration"),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -140,6 +153,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	ntfy: one(ntfy, {
 		fields: [notifications.ntfyId],
 		references: [ntfy.ntfyId],
+	}),
+	teams: one(teams, {
+		fields: [notifications.teamsId],
+		references: [teams.teamsId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -333,6 +350,36 @@ export const apiTestNtfyConnection = apiCreateNtfy.pick({
 	priority: true,
 });
 
+export const apiCreateTeams = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+		decoration: z.boolean(),
+	})
+	.required();
+
+export const apiUpdateTeams = apiCreateTeams.partial().extend({
+	notificationId: z.string().min(1),
+	teamsId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestTeamsConnection = apiCreateTeams
+	.pick({
+		webhookUrl: true,
+	})
+	.extend({
+		decoration: z.boolean().optional(),
+	});
+
 export const apiFindOneNotification = notificationsSchema
 	.pick({
 		notificationId: true,
@@ -356,5 +403,6 @@ export const apiSendTest = notificationsSchema
 		appToken: z.string(),
 		accessToken: z.string(),
 		priority: z.number(),
+		decoration: z.boolean()
 	})
 	.partial();
