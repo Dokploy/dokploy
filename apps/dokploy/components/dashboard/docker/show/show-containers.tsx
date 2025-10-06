@@ -35,7 +35,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api, type RouterOutputs } from "@/utils/api";
-import { columns } from "./colums";
+import { getColumns } from "./colums";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
@@ -45,7 +45,7 @@ interface Props {
 }
 
 export const ShowContainers = ({ serverId }: Props) => {
-	const { data, isLoading } = api.docker.getContainers.useQuery({
+	const { data, isLoading, refetch } = api.docker.getContainers.useQuery({
 		serverId,
 	});
 
@@ -56,6 +56,8 @@ export const ShowContainers = ({ serverId }: Props) => {
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = React.useState({});
+	const { mutateAsync: removeContainer, isLoading: isRemoving } = api.docker.removeContainer.useMutation();
+	const columns = getColumns({refetch, removeContainer});
 
 	const table = useReactTable({
 		data: data ?? [],
@@ -73,7 +75,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 			columnFilters,
 			columnVisibility,
 			rowSelection,
-		},
+		}
 	});
 
 	return (
