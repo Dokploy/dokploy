@@ -98,7 +98,7 @@ export const getConfig = async (
 		const config = JSON.parse(stdout);
 
 		return config;
-	} catch {}
+	} catch { }
 };
 
 export const getContainersByAppNameMatch = async (
@@ -156,7 +156,7 @@ export const getContainersByAppNameMatch = async (
 		});
 
 		return containers || [];
-	} catch {}
+	} catch { }
 
 	return [];
 };
@@ -214,7 +214,7 @@ export const getStackContainersByAppName = async (
 		});
 
 		return containers || [];
-	} catch {}
+	} catch { }
 
 	return [];
 };
@@ -274,7 +274,7 @@ export const getServiceContainersByAppName = async (
 		});
 
 		return containers || [];
-	} catch {}
+	} catch { }
 
 	return [];
 };
@@ -331,7 +331,7 @@ export const getContainersByAppLabel = async (
 		});
 
 		return containers || [];
-	} catch {}
+	} catch { }
 
 	return [];
 };
@@ -350,7 +350,7 @@ export const containerRestart = async (containerId: string) => {
 		const config = JSON.parse(stdout);
 
 		return config;
-	} catch {}
+	} catch { }
 };
 
 export const getSwarmNodes = async (serverId?: string) => {
@@ -379,7 +379,7 @@ export const getSwarmNodes = async (serverId?: string) => {
 			.split("\n")
 			.map((line) => JSON.parse(line));
 		return nodesArray;
-	} catch {}
+	} catch { }
 };
 
 export const getNodeInfo = async (nodeId: string, serverId?: string) => {
@@ -405,7 +405,7 @@ export const getNodeInfo = async (nodeId: string, serverId?: string) => {
 		const nodeInfo = JSON.parse(stdout);
 
 		return nodeInfo;
-	} catch {}
+	} catch { }
 };
 
 export const getNodeApplications = async (serverId?: string) => {
@@ -437,7 +437,7 @@ export const getNodeApplications = async (serverId?: string) => {
 			.filter((service) => !service.Name.startsWith("dokploy-"));
 
 		return appArray;
-	} catch {}
+	} catch { }
 };
 
 export const getApplicationInfo = async (
@@ -470,5 +470,22 @@ export const getApplicationInfo = async (
 			.map((line) => JSON.parse(line));
 
 		return appArray;
-	} catch {}
+	} catch { }
+};
+
+export const containerRemove = async (containerId: string) => {
+	try {
+		const { stdout, stderr } = await execAsync(
+			`docker rm ${containerId}`,
+		);
+
+		if (stderr) {
+			console.error(`Error: ${stderr}`);
+			return;
+		}
+
+		const config = JSON.parse(stdout);
+
+		return config;
+	} catch { }
 };
