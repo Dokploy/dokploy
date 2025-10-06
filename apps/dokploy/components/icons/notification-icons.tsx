@@ -89,7 +89,6 @@ export const DiscordIcon = ({ className }: Props) => {
 	);
 };
 
-
 export const GotifyIcon = ({ className }: Props) => {
 	return (
 		<svg
@@ -210,16 +209,28 @@ export const NtfyIcon = ({ className }: Props) => {
 
 export const TeamsIcon = ({ className, size = 14 }: Props) => {
 	return (
-		<svg xmlns="http://www.w3.org/2000/svg" width="26" height="36" viewBox="0 0 512 476">
-  <g>
-    <rect x="116" y="50" width="280" height="276" rx="64" fill="#6264A7"/>
-    <rect x="236" y="138" width="180" height="224" rx="60" fill="#5059C9"/>
-    <circle cx="122" cy="332" r="80" fill="#B2B4D3"/>
-    <circle cx="370" cy="364" r="64" fill="#A6A7DC"/>
-    <text x="180" y="270" fill="#fff" font-family="Segoe UI, Arial, sans-serif" font-size="110" font-weight="bold">T</text>
-  </g>
-</svg>
-
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="26"
+			height="36"
+			viewBox="0 0 512 476"
+		>
+			<g>
+				<rect x="116" y="50" width="280" height="276" rx="64" fill="#6264A7" />
+				<rect x="236" y="138" width="180" height="224" rx="60" fill="#5059C9" />
+				<circle cx="122" cy="332" r="80" fill="#B2B4D3" />
+				<circle cx="370" cy="364" r="64" fill="#A6A7DC" />
+				<text
+					x="180"
+					y="270"
+					fill="#fff"
+					font-family="Segoe UI, Arial, sans-serif"
+					font-size="110"
+					font-weight="bold"
+				>
+					T
+				</text>
+			</g>
+		</svg>
 	);
 };
-

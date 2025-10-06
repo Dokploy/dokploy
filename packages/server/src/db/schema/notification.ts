@@ -403,6 +403,6 @@ export const apiSendTest = notificationsSchema
 		appToken: z.string(),
 		accessToken: z.string(),
 		priority: z.number(),
-		decoration: z.boolean()
+		decoration: z.boolean(),
 	})
 	.partial();

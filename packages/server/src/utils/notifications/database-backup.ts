@@ -50,7 +50,8 @@ export const sendDatabaseBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, teams } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, teams } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -245,40 +246,49 @@ export const sendDatabaseBackupNotifications = async ({
 			const message = {
 				"@type": "MessageCard",
 				"@context": "http://schema.org/extensions",
-				"themeColor": type === "success" ? "00FF00" : "FF0000",
-				"summary": `Database Backup ${type === "success" ? "Successful" : "Failed"}`,
-				"sections": [{
-					"activityTitle": `🗄️ Database Backup ${type === "success" ? "Successful" : "Failed"}`,
-					"activitySubtitle": `${projectName} - ${applicationName}`,
-					"facts": [{
-						"name": "Project",
-						"value": projectName
-					}, {
-						"name": "Application",
-						"value": applicationName
-					}, {
-						"name": "Database Type",
-						"value": databaseType
-					}, {
-						"name": "Database Name",
-						"value": databaseName
-					}, {
-						"name": "Date",
-						"value": date.toLocaleString()
-					}, {
-						"name": "Status",
-						"value": type === "success" ? "Successful" : "Failed"
-					}]
-				}]
+				themeColor: type === "success" ? "00FF00" : "FF0000",
+				summary: `Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+				sections: [
+					{
+						activityTitle: `🗄️ Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+						activitySubtitle: `${projectName} - ${applicationName}`,
+						facts: [
+							{
+								name: "Project",
+								value: projectName,
+							},
+							{
+								name: "Application",
+								value: applicationName,
+							},
+							{
+								name: "Database Type",
+								value: databaseType,
+							},
+							{
+								name: "Database Name",
+								value: databaseName,
+							},
+							{
+								name: "Date",
+								value: date.toLocaleString(),
+							},
+							{
+								name: "Status",
+								value: type === "success" ? "Successful" : "Failed",
+							},
+						],
+					},
+				],
 			};
-			
+
 			if (type === "error" && errorMessage) {
 				message.sections[0].facts.push({
-					"name": "Error",
-					"value": errorMessage
+					name: "Error",
+					value: errorMessage,
 				});
 			}
-			
+
 			await sendTeamsNotification(teams, message);
 		}
 	}

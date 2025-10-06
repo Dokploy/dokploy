@@ -15,7 +15,7 @@ import {
 	GotifyIcon,
 	NtfyIcon,
 	SlackIcon,
-	TelegramIcon
+	TelegramIcon,
 } from "@/components/icons/notification-icons";
 
 // import { MessageSquare as TeamsIcon } from "lucide-react";
@@ -71,86 +71,86 @@ export const notificationsMap = {
 	},
 	teams: {
 		icon: (
-            <img
-                src="/teams_logo.png"
-                alt="Teams"
-                className="h-7 w-7 object-contain"
-            />
-        ),
+			<img
+				src="/teams_logo.png"
+				alt="Teams"
+				className="h-7 w-7 object-contain"
+			/>
+		),
 		label: "Teams",
 	},
 };
 
 // --- added: Zod schemas required by the form resolver ---
 const notificationBaseSchema = z.object({
-    name: z.string().min(1, { message: "Name is required" }),
-    appDeploy: z.boolean().default(false),
-    appBuildError: z.boolean().default(false),
-    databaseBackup: z.boolean().default(false),
-    dokployRestart: z.boolean().default(false),
-    dockerCleanup: z.boolean().default(false),
-    serverThreshold: z.boolean().default(false),
+	name: z.string().min(1, { message: "Name is required" }),
+	appDeploy: z.boolean().default(false),
+	appBuildError: z.boolean().default(false),
+	databaseBackup: z.boolean().default(false),
+	dokployRestart: z.boolean().default(false),
+	dockerCleanup: z.boolean().default(false),
+	serverThreshold: z.boolean().default(false),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
-    z
-        .object({
-            type: z.literal("slack"),
-            webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-            channel: z.string().optional(),
-        })
-        .merge(notificationBaseSchema),
-    z
-        .object({
-            type: z.literal("telegram"),
-            botToken: z.string().min(1, { message: "Bot Token is required" }),
-            chatId: z.string().min(1, { message: "Chat ID is required" }),
-            messageThreadId: z.string().optional(),
-        })
-        .merge(notificationBaseSchema),
-    z
-        .object({
-            type: z.literal("discord"),
-            webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-            decoration: z.boolean().optional(),
-        })
-        .merge(notificationBaseSchema),
-    z
-        .object({
-            type: z.literal("email"),
-            smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
-            smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
-            username: z.string().min(1, { message: "Username is required" }),
-            password: z.string().min(1, { message: "Password is required" }),
-            fromAddress: z.string().min(1, { message: "From Address is required" }),
-            toAddresses: z.array(z.string().email()).min(1),
-        })
-        .merge(notificationBaseSchema),
-    z
-        .object({
-            type: z.literal("gotify"),
-            serverUrl: z.string().min(1, { message: "Server URL is required" }),
-            appToken: z.string().min(1, { message: "App Token is required" }),
-            priority: z.number().min(1).max(10).default(5),
-            decoration: z.boolean().optional(),
-        })
-        .merge(notificationBaseSchema),
-    z
-        .object({
-            type: z.literal("ntfy"),
-            serverUrl: z.string().min(1, { message: "Server URL is required" }),
-            topic: z.string().min(1, { message: "Topic is required" }),
-            accessToken: z.string().min(1, { message: "Access Token is required" }),
-            priority: z.number().min(1).max(5).default(3),
-        })
-        .merge(notificationBaseSchema),
-    z
-        .object({
-            type: z.literal("teams"),
-            webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-            decoration: z.boolean().optional(),
-        })
-        .merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("slack"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			channel: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("telegram"),
+			botToken: z.string().min(1, { message: "Bot Token is required" }),
+			chatId: z.string().min(1, { message: "Chat ID is required" }),
+			messageThreadId: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("discord"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("email"),
+			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
+			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
+			username: z.string().min(1, { message: "Username is required" }),
+			password: z.string().min(1, { message: "Password is required" }),
+			fromAddress: z.string().min(1, { message: "From Address is required" }),
+			toAddresses: z.array(z.string().email()).min(1),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("gotify"),
+			serverUrl: z.string().min(1, { message: "Server URL is required" }),
+			appToken: z.string().min(1, { message: "App Token is required" }),
+			priority: z.number().min(1).max(10).default(5),
+			decoration: z.boolean().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("ntfy"),
+			serverUrl: z.string().min(1, { message: "Server URL is required" }),
+			topic: z.string().min(1, { message: "Topic is required" }),
+			accessToken: z.string().min(1, { message: "Access Token is required" }),
+			priority: z.number().min(1).max(5).default(3),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("teams"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().optional(),
+		})
+		.merge(notificationBaseSchema),
 ]);
 // --- end added schemas ---
 
@@ -448,8 +448,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
 			});
-		}
-		else if (data.type === "teams") {
+		} else if (data.type === "teams") {
 			promise = teamsMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
@@ -464,7 +463,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				teamsId: notification?.teamsId || "",
 			});
 		}
-
 
 		if (promise) {
 			await promise

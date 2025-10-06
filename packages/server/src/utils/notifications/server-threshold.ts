@@ -159,33 +159,42 @@ export const sendServerThresholdNotifications = async (
 				const message = {
 					"@type": "MessageCard",
 					"@context": "http://schema.org/extensions",
-					"themeColor": "FF0000",
-					"summary": `Server ${payload.Type} Alert`,
-					"sections": [{
-						"activityTitle": `⚠️ Server ${payload.Type} Alert`,
-						"activitySubtitle": `${payload.ServerName} - ${payload.Type} threshold exceeded`,
-						"facts": [{
-							"name": "Server Name",
-							"value": payload.ServerName
-						}, {
-							"name": "Type",
-							"value": payload.Type
-						}, {
-							"name": "Current Value",
-							"value": `${payload.Value.toFixed(2)}%`
-						}, {
-							"name": "Threshold",
-							"value": `${payload.Threshold.toFixed(2)}%`
-						}, {
-							"name": "Message",
-							"value": payload.Message
-						}, {
-							"name": "Time",
-							"value": date.toLocaleString()
-						}]
-					}]
+					themeColor: "FF0000",
+					summary: `Server ${payload.Type} Alert`,
+					sections: [
+						{
+							activityTitle: `⚠️ Server ${payload.Type} Alert`,
+							activitySubtitle: `${payload.ServerName} - ${payload.Type} threshold exceeded`,
+							facts: [
+								{
+									name: "Server Name",
+									value: payload.ServerName,
+								},
+								{
+									name: "Type",
+									value: payload.Type,
+								},
+								{
+									name: "Current Value",
+									value: `${payload.Value.toFixed(2)}%`,
+								},
+								{
+									name: "Threshold",
+									value: `${payload.Threshold.toFixed(2)}%`,
+								},
+								{
+									name: "Message",
+									value: payload.Message,
+								},
+								{
+									name: "Time",
+									value: date.toLocaleString(),
+								},
+							],
+						},
+					],
 				};
-				
+
 				await sendTeamsNotification(teams, message);
 			} catch (error) {
 				console.log(error);

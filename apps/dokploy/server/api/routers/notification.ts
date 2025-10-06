@@ -73,7 +73,7 @@ export const notificationRouter = createTRPCRouter({
 				);
 			} catch (error) {
 				// Log the raw error to server console to aid debugging (temporary)
-				console.error('createSlack error:', error);
+				console.error("createSlack error:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -126,7 +126,7 @@ export const notificationRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
-				console.error('createTelegram error:', error);
+				console.error("createTelegram error:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -181,7 +181,7 @@ export const notificationRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
-				console.error('createDiscord error:', error);
+				console.error("createDiscord error:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -198,7 +198,7 @@ export const notificationRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
-				console.error('createTeams error:', error);
+				console.error("createTeams error:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -283,18 +283,22 @@ export const notificationRouter = createTRPCRouter({
 				const message = {
 					"@type": "MessageCard",
 					"@context": "http://schema.org/extensions",
-					"themeColor": "0076D7",
-					"summary": "Test Notification",
-					"sections": [{
-						"activityTitle": "🤚 - Test Notification",
-						"activitySubtitle": "Hi, From Dokploy 👋",
-						"facts": [{
-							"name": "Status",
-							"value": "Success"
-						}]
-					}]
+					themeColor: "0076D7",
+					summary: "Test Notification",
+					sections: [
+						{
+							activityTitle: "🤚 - Test Notification",
+							activitySubtitle: "Hi, From Dokploy 👋",
+							facts: [
+								{
+									name: "Status",
+									value: "Success",
+								},
+							],
+						},
+					],
 				};
-				
+
 				await sendTeamsNotification(input, message);
 				return true;
 			} catch (error) {
@@ -314,7 +318,7 @@ export const notificationRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
-				console.error('createEmail error:', error);
+				console.error("createEmail error:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -486,7 +490,7 @@ export const notificationRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
-				console.error('createGotify error:', error);
+				console.error("createGotify error:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",
@@ -543,7 +547,7 @@ export const notificationRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
-				console.error('createNtfy error:', error);
+				console.error("createNtfy error:", error);
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Error creating the notification",

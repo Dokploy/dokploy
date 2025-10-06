@@ -37,7 +37,8 @@ export const sendDockerCleanupNotifications = async (
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, teams } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, teams } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -143,24 +144,30 @@ export const sendDockerCleanupNotifications = async (
 				const message = {
 					"@type": "MessageCard",
 					"@context": "http://schema.org/extensions",
-					"themeColor": "00FF00",
-					"summary": "Docker Cleanup",
-					"sections": [{
-						"activityTitle": "✅ Docker Cleanup",
-						"activitySubtitle": "Docker cleanup completed successfully",
-						"facts": [{
-							"name": "Date",
-							"value": date.toLocaleString()
-						}, {
-							"name": "Message",
-							"value": message
-						}, {
-							"name": "Status",
-							"value": "Successful"
-						}]
-					}]
+					themeColor: "00FF00",
+					summary: "Docker Cleanup",
+					sections: [
+						{
+							activityTitle: "✅ Docker Cleanup",
+							activitySubtitle: "Docker cleanup completed successfully",
+							facts: [
+								{
+									name: "Date",
+									value: date.toLocaleString(),
+								},
+								{
+									name: "Message",
+									value: message,
+								},
+								{
+									name: "Status",
+									value: "Successful",
+								},
+							],
+						},
+					],
 				};
-				
+
 				await sendTeamsNotification(teams, message);
 			} catch (error) {
 				console.log(error);

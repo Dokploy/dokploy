@@ -50,7 +50,8 @@ export const sendBuildErrorNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, teams } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, teams } =
+			notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -217,7 +218,7 @@ export const sendBuildErrorNotifications = async ({
 		if (teams) {
 			const decorate = (decoration: string, text: string) =>
 				`${teams.decoration ? decoration : ""} ${text}`.trim();
-			
+
 			await sendTeamsNotification(teams, {
 				"@type": "MessageCard",
 				"@context": "http://schema.org/extensions",
@@ -229,37 +230,35 @@ export const sendBuildErrorNotifications = async ({
 						facts: [
 							{
 								name: decorate("🛠️", "Project"),
-								value: projectName
+								value: projectName,
 							},
 							{
 								name: decorate("⚙️", "Application"),
-								value: applicationName
+								value: applicationName,
 							},
 							{
 								name: decorate("❔", "Type"),
-								value: applicationType
+								value: applicationType,
 							},
 							{
 								name: decorate("🕒", "Date"),
-								value: date.toLocaleString()
+								value: date.toLocaleString(),
 							},
 							{
 								name: decorate("⚠️", "Error Message"),
-								value: errorMessage
-							}
+								value: errorMessage,
+							},
 						],
-						markdown: true
-					}
+						markdown: true,
+					},
 				],
 				potentialAction: [
 					{
 						"@type": "OpenUri",
 						name: "View Build Details",
-						targets: [
-							{ os: "default", uri: buildLink }
-						]
-					}
-				]
+						targets: [{ os: "default", uri: buildLink }],
+					},
+				],
 			});
 		}
 	}

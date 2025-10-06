@@ -31,7 +31,8 @@ export const sendDokployRestartNotifications = async () => {
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, teams } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, teams } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -143,21 +144,26 @@ export const sendDokployRestartNotifications = async () => {
 				const message = {
 					"@type": "MessageCard",
 					"@context": "http://schema.org/extensions",
-					"themeColor": "00FF00",
-					"summary": "Dokploy Server Restarted",
-					"sections": [{
-						"activityTitle": "✅ Dokploy Server Restarted",
-						"activitySubtitle": "Server has been successfully restarted",
-						"facts": [{
-							"name": "Date",
-							"value": date.toLocaleString()
-						}, {
-							"name": "Status",
-							"value": "Successful"
-						}]
-					}]
+					themeColor: "00FF00",
+					summary: "Dokploy Server Restarted",
+					sections: [
+						{
+							activityTitle: "✅ Dokploy Server Restarted",
+							activitySubtitle: "Server has been successfully restarted",
+							facts: [
+								{
+									name: "Date",
+									value: date.toLocaleString(),
+								},
+								{
+									name: "Status",
+									value: "Successful",
+								},
+							],
+						},
+					],
 				};
-				
+
 				await sendTeamsNotification(teams, message);
 			} catch (error) {
 				console.log(error);
