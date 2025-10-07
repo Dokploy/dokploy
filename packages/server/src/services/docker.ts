@@ -119,7 +119,7 @@ export const getContainersByAppNameMatch = async (
 			// For swarm services, try both label-based and name-based detection
 			command = `${cmd} --filter='label=com.docker.swarm.service.name=${appName}'`;
 		}
-		
+
 		if (serverId) {
 			const { stdout, stderr } = await execAsyncRemote(serverId, command);
 
@@ -145,7 +145,10 @@ export const getContainersByAppNameMatch = async (
 		if (result.length === 0 && appType !== "docker-compose") {
 			const fallbackCommand = `${cmd} | grep '${appName}'`;
 			if (serverId) {
-				const { stdout, stderr } = await execAsyncRemote(serverId, fallbackCommand);
+				const { stdout, stderr } = await execAsyncRemote(
+					serverId,
+					fallbackCommand,
+				);
 				if (!stderr && stdout) {
 					result = stdout.trim().split("\n");
 				}
