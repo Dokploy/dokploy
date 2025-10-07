@@ -1,4 +1,5 @@
 import {
+	addNewEnvironment,
 	addNewProject,
 	checkProjectAccess,
 	createApplication,
@@ -85,6 +86,12 @@ export const projectRouter = createTRPCRouter({
 					await addNewProject(
 						ctx.user.id,
 						project.project.projectId,
+						ctx.session.activeOrganizationId,
+					);
+
+					await addNewEnvironment(
+						ctx.user.id,
+						project?.environment?.environmentId || "",
 						ctx.session.activeOrganizationId,
 					);
 				}
