@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface Props {
 	className?: string;
+	size?: number;
 }
 export const SlackIcon = ({ className }: Props) => {
 	return (

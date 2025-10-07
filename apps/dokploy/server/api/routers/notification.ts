@@ -23,6 +23,7 @@ import {
 	updateNtfyNotification,
 	updateSlackNotification,
 	updateTeamsNotification,
+	updateTelegramNotification,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { desc, eq, sql } from "drizzle-orm";
