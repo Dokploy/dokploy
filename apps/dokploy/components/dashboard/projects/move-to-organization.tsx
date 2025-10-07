@@ -3,7 +3,6 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -37,7 +36,6 @@ export const MoveToOrganization = ({
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
-	const [deleteFromSource, setDeleteFromSource] = useState(true);
 	const utils = api.useUtils();
 	const router = useRouter();
 
@@ -52,11 +50,7 @@ export const MoveToOrganization = ({
 			onSuccess: async () => {
 				await utils.project.all.invalidate();
 				await utils.organization.all.invalidate();
-				toast.success(
-					deleteFromSource
-						? "Project moved successfully"
-						: "Project copied successfully",
-				);
+				toast.success("Project moved successfully");
 				setIsOpen(false);
 				router.push("/");
 			},
@@ -74,7 +68,6 @@ export const MoveToOrganization = ({
 		await moveProject({
 			projectId,
 			targetOrganizationId: selectedOrganizationId,
-			deleteFromSource,
 		});
 	};
 
@@ -91,12 +84,10 @@ export const MoveToOrganization = ({
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>
-						{deleteFromSource ? "Move" : "Copy"} Project to Another Organization
-					</DialogTitle>
+					<DialogTitle>Move Project to Another Organization</DialogTitle>
 					<DialogDescription>
-						{deleteFromSource ? "Move" : "Copy"} "{projectName}" to a different
-						organization. All services and settings will be transferred.
+						Move "{projectName}" to a different organization. All services and
+						settings will be transferred.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -108,42 +99,24 @@ export const MoveToOrganization = ({
 							</p>
 						</div>
 					) : (
-						<>
-							<div className="grid gap-2">
-								<Label>Target Organization</Label>
-								<Select
-									value={selectedOrganizationId}
-									onValueChange={setSelectedOrganizationId}
-								>
-									<SelectTrigger>
-										<SelectValue placeholder="Select target organization" />
-									</SelectTrigger>
-									<SelectContent>
-										{availableOrganizations.map((org) => (
-											<SelectItem key={org.id} value={org.id}>
-												{org.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="delete-source"
-									checked={deleteFromSource}
-									onCheckedChange={(checked) =>
-										setDeleteFromSource(checked === true)
-									}
-								/>
-								<Label
-									htmlFor="delete-source"
-									className="text-sm font-normal cursor-pointer"
-								>
-									Delete project from current organization after transfer
-								</Label>
-							</div>
-						</>
+						<div className="grid gap-2">
+							<Label>Target Organization</Label>
+							<Select
+								value={selectedOrganizationId}
+								onValueChange={setSelectedOrganizationId}
+							>
+								<SelectTrigger>
+									<SelectValue placeholder="Select target organization" />
+								</SelectTrigger>
+								<SelectContent>
+									{availableOrganizations.map((org) => (
+										<SelectItem key={org.id} value={org.id}>
+											{org.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
 					)}
 				</div>
 
@@ -167,12 +140,10 @@ export const MoveToOrganization = ({
 						{isLoading ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								{deleteFromSource ? "Moving" : "Copying"} project...
+								Moving project...
 							</>
-						) : deleteFromSource ? (
-							"Move Project"
 						) : (
-							"Copy Project"
+							"Move Project"
 						)}
 					</Button>
 				</DialogFooter>
