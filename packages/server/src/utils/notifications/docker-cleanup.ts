@@ -141,7 +141,7 @@ export const sendDockerCleanupNotifications = async (
 
 		if (teams) {
 			try {
-				const message = {
+				const teamsMessage = {
 					"@type": "MessageCard",
 					"@context": "http://schema.org/extensions",
 					themeColor: "00FF00",
@@ -167,8 +167,8 @@ export const sendDockerCleanupNotifications = async (
 						},
 					],
 				};
-
-				await sendTeamsNotification(teams, message);
+				
+				await sendTeamsNotification(teams, teamsMessage);
 			} catch (error) {
 				console.log(error);
 			}
