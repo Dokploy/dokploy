@@ -60,6 +60,7 @@ export const domain = z
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		scheme: z.string().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -195,6 +196,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customCertResolver: undefined,
 			serviceName: undefined,
 			domainType: type,
+			scheme: "http",
 		},
 		mode: "onChange",
 	});
@@ -216,6 +218,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				scheme: data?.scheme || "http",
 			});
 		}
 
@@ -230,6 +233,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
+				scheme: "http",
 			});
 		}
 	}, [form, data, isLoading, domainId]);
@@ -606,6 +610,39 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 												</FormDescription>
 												<FormControl>
 													<NumberInput placeholder={"3000"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="scheme"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Container Scheme</FormLabel>
+												<FormDescription>
+													The protocol scheme your application is serving inside the
+													container. Usually HTTP, unless the container is for example
+													a gRPC application or is explicitly configured to serve with TLS
+												</FormDescription>
+												<FormControl>
+													<Select
+														onValueChange={field.onChange}
+														value={field.value || "http"}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder="Select a scheme" />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="http">http</SelectItem>
+															<SelectItem value="https">https</SelectItem>
+															<SelectItem value="h2c">h2c (HTTP/2 over cleartext)</SelectItem>
+														</SelectContent>
+													</Select>
 												</FormControl>
 												<FormMessage />
 											</FormItem>

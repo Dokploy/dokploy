@@ -21,6 +21,7 @@ describe("createDomainLabels", () => {
 		previewDeploymentId: "",
 		internalPath: "/",
 		stripPath: false,
+		scheme: "http",
 	};
 
 	it("should create basic labels for web entrypoint", async () => {
@@ -29,6 +30,7 @@ describe("createDomainLabels", () => {
 			"traefik.http.routers.test-app-1-web.rule=Host(`example.com`)",
 			"traefik.http.routers.test-app-1-web.entrypoints=web",
 			"traefik.http.services.test-app-1-web.loadbalancer.server.port=8080",
+			"traefik.http.services.test-app-1-web.loadbalancer.server.scheme=http",
 			"traefik.http.routers.test-app-1-web.service=test-app-1-web",
 		]);
 	});
@@ -39,6 +41,7 @@ describe("createDomainLabels", () => {
 			"traefik.http.routers.test-app-1-websecure.rule=Host(`example.com`)",
 			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",
 			"traefik.http.services.test-app-1-websecure.loadbalancer.server.port=8080",
+			"traefik.http.services.test-app-1-websecure.loadbalancer.server.scheme=http",
 			"traefik.http.routers.test-app-1-websecure.service=test-app-1-websecure",
 		]);
 	});
@@ -57,6 +60,7 @@ describe("createDomainLabels", () => {
 			"traefik.http.routers.test-app-1-websecure.rule=Host(`example.com`) && PathPrefix(`/hello`)",
 			"traefik.http.routers.test-app-1-websecure.entrypoints=websecure",
 			"traefik.http.services.test-app-1-websecure.loadbalancer.server.port=8080",
+			"traefik.http.services.test-app-1-websecure.loadbalancer.server.scheme=http",
 			"traefik.http.routers.test-app-1-websecure.service=test-app-1-websecure",
 		]);
 	});

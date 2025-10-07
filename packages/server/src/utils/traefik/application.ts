@@ -277,7 +277,7 @@ export const createServiceConfig = (
 	loadBalancer: HttpLoadBalancerService;
 } => ({
 	loadBalancer: {
-		servers: [{ url: `http://${appName}:${domain.port || 80}` }],
+		servers: [{ url: `${domain.scheme || "http"}://${appName}:${domain.port || 80}` }],
 		passHostHeader: true,
 	},
 });

@@ -311,12 +311,14 @@ export const createDomainLabels = (
 		customCertResolver,
 		stripPath,
 		internalPath,
+		scheme,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	const labels = [
 		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
+		`traefik.http.services.${routerName}.loadbalancer.server.scheme=${scheme || "http"}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
 	];
 
