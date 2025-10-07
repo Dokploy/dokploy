@@ -33,15 +33,24 @@ const { handler, api } = betterAuth({
 		disabled: process.env.NODE_ENV === "production",
 	},
 	...(!IS_CLOUD && {
-		// Trusted origins for CORS validation
-		// To add ngrok or other tunneling services, set TRUSTED_ORIGINS environment variable
-		// Example: TRUSTED_ORIGINS="https://your-ngrok-url.ngrok-free.dev,https://another-url.ngrok.io"
-		trustedOrigins: [
-			"http://localhost:3000",
-			"https://localhost:3000",
-			// Add any custom trusted origins from environment variable
-			...(process.env.TRUSTED_ORIGINS ? process.env.TRUSTED_ORIGINS.split(",").map(o => o.trim()) : []),
-		],
+		async trustedOrigins() {
+			const admin = await db.query.member.findFirst({
+				where: eq(schema.member.role, "owner"),
+				with: {
+					user: true,
+				},
+			});
+
+			if (admin) {
+				return [
+					...(admin.user.serverIp
+						? [`http://${admin.user.serverIp}:3000`]
+						: []),
+					...(admin.user.host ? [`https://${admin.user.host}`] : []),
+				];
+			}
+			return [];
+		},
 	}),
 	emailVerification: {
 		sendOnSignUp: true,
