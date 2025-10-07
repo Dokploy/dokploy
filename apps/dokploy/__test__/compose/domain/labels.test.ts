@@ -113,6 +113,14 @@ describe("createDomainLabels", () => {
 		);
 	});
 
+	it("should handle different schemes correctly", async () => {
+		const customSchemeDomain = { ...baseDomain, scheme: "h2c" };
+		const labels = await createDomainLabels(appName, customSchemeDomain, "web");
+		expect(labels).toContain(
+			"traefik.http.services.test-app-1-web.loadbalancer.server.scheme=h2c",
+		);
+	});
+
 	it("should add stripPath middleware when stripPath is enabled", async () => {
 		const stripPathDomain = {
 			...baseDomain,
