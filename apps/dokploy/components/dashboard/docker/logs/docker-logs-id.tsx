@@ -122,7 +122,13 @@ export const DockerLogsId: React.FC<Props> = ({
 	};
 
 	useEffect(() => {
-		if (!containerId) return;
+		if (
+			!containerId ||
+			containerId === "" ||
+			containerId === "select-a-container" ||
+			containerId === "no-containers"
+		)
+			return;
 
 		let isCurrentConnection = true;
 		let noDataTimeout: NodeJS.Timeout;
@@ -364,6 +370,12 @@ export const DockerLogsId: React.FC<Props> = ({
 						) : isLoading ? (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
 								<Loader2 className="h-6 w-6 animate-spin" />
+							</div>
+						) : containerId === "" ||
+							containerId === "select-a-container" ||
+							containerId === "no-containers" ? (
+							<div className="flex justify-center items-center h-full text-muted-foreground">
+								Please select a container to view logs
 							</div>
 						) : (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
