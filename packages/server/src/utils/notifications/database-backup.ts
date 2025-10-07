@@ -281,7 +281,7 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 				],
 			};
-			
+
 			if (type === "error" && errorMessage && message.sections[0]) {
 				message.sections[0].facts.push({
 					name: "Error",

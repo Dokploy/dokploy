@@ -167,7 +167,7 @@ export const sendDockerCleanupNotifications = async (
 						},
 					],
 				};
-				
+
 				await sendTeamsNotification(teams, teamsMessage);
 			} catch (error) {
 				console.log(error);
