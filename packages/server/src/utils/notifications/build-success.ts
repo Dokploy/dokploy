@@ -11,6 +11,7 @@ import {
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -45,11 +46,13 @@ export const sendBuildSuccessNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			teams: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, teams } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -206,6 +209,49 @@ export const sendBuildSuccessNotifications = async ({
 								url: buildLink,
 							},
 						],
+					},
+				],
+			});
+		}
+
+		if (teams) {
+			const decorate = (decoration: string, text: string) =>
+				`${teams.decoration ? decoration : ""} ${text}`.trim();
+
+			await sendTeamsNotification(teams, {
+				"@type": "MessageCard",
+				"@context": "http://schema.org/extensions",
+				themeColor: "0078D7",
+				summary: "Build Success",
+				sections: [
+					{
+						activityTitle: decorate("✅", "Build Success"),
+						facts: [
+							{
+								name: decorate("🛠️", "Project"),
+								value: projectName,
+							},
+							{
+								name: decorate("⚙️", "Application"),
+								value: applicationName,
+							},
+							{
+								name: decorate("❔", "Type"),
+								value: applicationType,
+							},
+							{
+								name: decorate("🕒", "Date"),
+								value: date.toLocaleString(),
+							},
+						],
+						markdown: true,
+					},
+				],
+				potentialAction: [
+					{
+						"@type": "OpenUri",
+						name: "View Build Details",
+						targets: [{ os: "default", uri: buildLink }],
 					},
 				],
 			});
