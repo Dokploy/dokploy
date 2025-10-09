@@ -34,6 +34,7 @@ export const sendEmailNotification = async (
 			to: toAddresses.join(", "),
 			subject,
 			html: htmlContent,
+			textEncoding: "base64",
 		});
 	} catch (err) {
 		console.log(err);

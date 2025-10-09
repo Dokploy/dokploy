@@ -257,8 +257,16 @@ export const ProfileForm = () => {
 																onValueChange={(e) => {
 																	field.onChange(e);
 																}}
-																defaultValue={field.value}
-																value={field.value}
+																defaultValue={
+																	field.value?.startsWith("data:")
+																		? "upload"
+																		: field.value
+																}
+																value={
+																	field.value?.startsWith("data:")
+																		? "upload"
+																		: field.value
+																}
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
 																<FormItem key="no-avatar">
@@ -277,6 +285,71 @@ export const ProfileForm = () => {
 																				)}
 																			</AvatarFallback>
 																		</Avatar>
+																	</FormLabel>
+																</FormItem>
+																<FormItem key="custom-upload">
+																	<FormLabel className="[&:has([data-state=checked])>.upload-avatar]:border-primary [&:has([data-state=checked])>.upload-avatar]:border-1 [&:has([data-state=checked])>.upload-avatar]:p-px cursor-pointer">
+																		<FormControl>
+																			<RadioGroupItem
+																				value="upload"
+																				className="sr-only"
+																			/>
+																		</FormControl>
+																		<div
+																			className="upload-avatar h-12 w-12 rounded-full border border-dashed border-muted-foreground hover:border-primary transition-colors flex items-center justify-center bg-muted/50 hover:bg-muted overflow-hidden"
+																			onClick={() =>
+																				document
+																					.getElementById("avatar-upload")
+																					?.click()
+																			}
+																		>
+																			{field.value?.startsWith("data:") ? (
+																				<img
+																					src={field.value}
+																					alt="Custom avatar"
+																					className="h-full w-full object-cover rounded-full"
+																				/>
+																			) : (
+																				<svg
+																					className="h-5 w-5 text-muted-foreground"
+																					fill="none"
+																					stroke="currentColor"
+																					viewBox="0 0 24 24"
+																				>
+																					<path
+																						strokeLinecap="round"
+																						strokeLinejoin="round"
+																						strokeWidth={2}
+																						d="M12 4v16m8-8H4"
+																					/>
+																				</svg>
+																			)}
+																		</div>
+																		<input
+																			id="avatar-upload"
+																			type="file"
+																			accept="image/*"
+																			className="hidden"
+																			onChange={async (e) => {
+																				const file = e.target.files?.[0];
+																				if (file) {
+																					// max file size 2mb
+																					if (file.size > 2 * 1024 * 1024) {
+																						toast.error(
+																							"Image size must be less than 2MB",
+																						);
+																						return;
+																					}
+																					const reader = new FileReader();
+																					reader.onload = (event) => {
+																						const result = event.target
+																							?.result as string;
+																						field.onChange(result);
+																					};
+																					reader.readAsDataURL(file);
+																				}
+																			}}
+																		/>
 																	</FormLabel>
 																</FormItem>
 																{availableAvatars.map((image) => (

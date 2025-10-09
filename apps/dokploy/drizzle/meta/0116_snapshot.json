@@ -1,6 +1,6 @@
 {
-  "id": "da1c966b-1fc0-41ea-b54c-38d748f3d5f5",
-  "prevId": "f859f128-7326-4ec9-b5d8-78b518c77fa5",
+  "id": "def4c7aa-bf14-4060-8f54-60ef3a79a5ea",
+  "prevId": "b3bfd4b0-5ad1-4a76-8858-1e585c3ef9dc",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -479,6 +479,20 @@
         },
         "canAccessToTraefikFiles": {
           "name": "canAccessToTraefikFiles",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteEnvironments": {
+          "name": "canDeleteEnvironments",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canCreateEnvironments": {
+          "name": "canCreateEnvironments",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -4021,37 +4035,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.custom": {
-      "name": "custom",
-      "schema": "",
-      "columns": {
-        "customId": {
-          "name": "customId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "headers": {
-          "name": "headers",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.discord": {
       "name": "discord",
       "schema": "",
@@ -4289,12 +4272,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "customId": {
-          "name": "customId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4378,19 +4355,6 @@
           ],
           "columnsTo": [
             "ntfyId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "notification_customId_custom_customId_fk": {
-          "name": "notification_customId_custom_customId_fk",
-          "tableFrom": "notification",
-          "tableTo": "custom",
-          "columnsFrom": [
-            "customId"
-          ],
-          "columnsTo": [
-            "customId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -6564,8 +6528,7 @@
         "discord",
         "email",
         "gotify",
-        "ntfy",
-        "custom"
+        "ntfy"
       ]
     },
     "public.protocolType": {

@@ -100,7 +100,7 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 		throw new Error(`File not found: ${configPath}`);
 	}
 };
-export const writeMiddleware = <T>(config: T) => {
+export const writeMiddleware = (config: FileConfig) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
 	const newYamlContent = stringify(config);
@@ -111,6 +111,18 @@ export const createPathMiddlewares = async (
 	app: ApplicationNested,
 	domain: Domain,
 ) => {
+	const { appName } = app;
+	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
+
+	// Early return if there's no path middleware to create
+	const needsInternalPathMiddleware =
+		internalPath && internalPath !== "/" && internalPath !== path;
+	const needsStripPathMiddleware = stripPath && path && path !== "/";
+
+	if (!needsInternalPathMiddleware && !needsStripPathMiddleware) {
+		return;
+	}
+
 	let config: FileConfig;
 
 	if (app.serverId) {
@@ -127,20 +139,19 @@ export const createPathMiddlewares = async (
 		}
 	}
 
-	const { appName } = app;
-	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
-
-	if (!config.http) {
+	if (!config) {
+		config = { http: { middlewares: {} } };
+	} else if (!config.http) {
 		config.http = { middlewares: {} };
 	}
-	if (!config.http.middlewares) {
-		config.http.middlewares = {};
+	if (!config.http?.middlewares) {
+		config.http!.middlewares = {};
 	}
 
 	// Add internal path prefix middleware
 	if (internalPath && internalPath !== "/" && internalPath !== path) {
 		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
-		config.http.middlewares[middlewareName] = {
+		config.http!.middlewares[middlewareName] = {
 			addPrefix: {
 				prefix: internalPath,
 			},
@@ -150,7 +161,7 @@ export const createPathMiddlewares = async (
 	// Strip external path middleware if needed
 	if (stripPath && path && path !== "/") {
 		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
-		config.http.middlewares[middlewareName] = {
+		config.http!.middlewares[middlewareName] = {
 			stripPrefix: {
 				prefixes: [path],
 			},
@@ -184,6 +195,10 @@ export const removePathMiddlewares = async (
 		}
 	}
 
+	if (!config) {
+		return;
+	}
+
 	const { appName } = app;
 
 	if (config.http?.middlewares) {
@@ -192,6 +207,23 @@ export const removePathMiddlewares = async (
 
 		delete config.http.middlewares[addPrefixMiddleware];
 		delete config.http.middlewares[stripPrefixMiddleware];
+	}
+
+	if (
+		config?.http?.middlewares &&
+		Object.keys(config.http.middlewares).length === 0
+	) {
+		// if there aren't any middlewares, remove the whole section
+		delete config.http.middlewares;
+	}
+
+	// // If http section is empty, remove it completely
+	if (config?.http && Object.keys(config?.http).length === 0) {
+		delete config.http;
+	}
+
+	if (config && Object.keys(config || {}).length === 0) {
+		config = {};
 	}
 
 	if (app.serverId) {
