@@ -69,11 +69,11 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			});
 		case "gemini":
 			return createOpenAICompatible({
-				name:"gemini",
-				baseURL:config.apiUrl,
-				queryParams:{ key: config.apiKey},
-				headers:{}
-			})
+				name: "gemini",
+				baseURL: config.apiUrl,
+				queryParams: { key: config.apiKey },
+				headers: {},
+			});
 		case "custom":
 			return createOpenAICompatible({
 				name: "custom",
