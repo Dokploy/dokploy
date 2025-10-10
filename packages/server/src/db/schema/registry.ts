@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { applications } from "./application";
-import { isNonEmptyString } from "./utils";
+import { isNonEmptyString, shEscape } from "./utils";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -199,11 +199,6 @@ export const apiEnableSelfHostedRegistry = createSchema
 		password: true,
 	})
 	.required();
-
-export const shEscape = (s: string | undefined | null): string => {
-	if (!s) return "''";
-	return `'${s.replace(/'/g, `'\\''`)}'`;
-};
 
 interface RegistryLoginData {
 	registryType: "cloud" | "awsEcr" | "selfHosted";

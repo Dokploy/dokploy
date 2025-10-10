@@ -29,7 +29,7 @@ export const buildAppName = (type: string, baseAppName?: string) => {
 	return generateAppName(type);
 };
 
-export const shEscape = (s: string | undefined) => {
+export const shEscape = (s: string | null | undefined) => {
 	if (!s) return "''";
 	return `'${s.replace(/'/g, `'\\''`)}'`;
 };
