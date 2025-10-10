@@ -428,7 +428,13 @@ export const generateConfigContainer = (
 		replicas,
 		mounts,
 		networkSwarm,
+		stopGracePeriodSwarm,
 	} = application;
+
+	const sanitizedStopGracePeriodSwarm =
+		typeof stopGracePeriodSwarm === "bigint"
+			? Number(stopGracePeriodSwarm)
+			: stopGracePeriodSwarm;
 
 	const haveMounts = mounts && mounts.length > 0;
 
@@ -478,6 +484,10 @@ export const generateConfigContainer = (
 						Order: "start-first",
 					},
 				}),
+		...(sanitizedStopGracePeriodSwarm !== null &&
+			sanitizedStopGracePeriodSwarm !== undefined && {
+				StopGracePeriod: sanitizedStopGracePeriodSwarm,
+			}),
 		...(networkSwarm
 			? {
 					Networks: networkSwarm,
