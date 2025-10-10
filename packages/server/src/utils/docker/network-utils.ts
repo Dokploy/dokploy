@@ -214,49 +214,102 @@ export const getContainerNetworks = async (
 	}
 };
 
-export const ensureTraefikConnectedToNetwork = async (
+const connectTraefik = async (
 	networkName: string,
+	traefikService: string,
+	mode: "connect" | "disconnect",
 	serverId?: string | null,
 ): Promise<void> => {
+	const networkExists = await dockerNetworkExists(networkName, serverId);
+	if (!networkExists) {
+		console.warn(`Network ${networkName} does not exist`);
+		return;
+	}
+
 	try {
-		const traefikService = "dokploy-traefik";
+		const operation =
+			mode === "connect"
+				? connectServiceToNetwork
+				: disconnectServiceFromNetwork;
+		await operation(networkName, traefikService, serverId);
+		console.log(
+			`Traefik service ${mode === "connect" ? "connected to" : "disconnected from"} network ${networkName}`,
+		);
+		return;
+	} catch (swarmError) {
+		console.log("Traefik not running as service, trying container mode");
+	}
 
-		const networkExists = await dockerNetworkExists(networkName, serverId);
-		if (!networkExists) {
-			console.warn(`Network ${networkName} does not exist`);
+	try {
+		const networks = await getContainerNetworks(traefikService, serverId);
+		const isConnected = networks.includes(networkName);
+
+		if (mode === "connect" && isConnected) {
+			console.log(`Traefik container already connected to ${networkName}`);
 			return;
 		}
 
-		try {
-			await connectServiceToNetwork(networkName, traefikService, serverId);
-			console.log(`Traefik service connected to network ${networkName}`);
+		if (mode === "disconnect" && !isConnected) {
+			console.log(
+				`Traefik container already disconnected from ${networkName}`,
+			);
 			return;
-		} catch (swarmError) {
-			console.log("Traefik not running as service, trying container mode");
 		}
 
-		try {
-			const networks = await getContainerNetworks(traefikService, serverId);
-			if (networks.includes(networkName)) {
-				console.log(`Traefik container already connected to ${networkName}`);
-				return;
-			}
-
+		if (mode === "connect") {
 			await connectContainerToNetwork(
 				networkName,
 				traefikService,
 				[],
 				serverId,
 			);
-			console.log(`Traefik container connected to network ${networkName}`);
-		} catch (containerError) {
-			console.error("Failed to connect Traefik to network:", containerError);
-			throw new Error(
-				`Could not connect Traefik to network ${networkName}. Ensure Traefik is running.`,
+		} else {
+			await disconnectContainerFromNetwork(
+				networkName,
+				traefikService,
+				serverId,
 			);
 		}
+
+		console.log(
+			`Traefik container ${mode === "connect" ? "connected to" : "disconnected from"} network ${networkName}`,
+		);
+	} catch (containerError) {
+		console.error(
+			`Failed to ${mode} Traefik ${mode === "connect" ? "to" : "from"} network:`,
+			containerError,
+		);
+		throw new Error(
+			`Could not ${mode} Traefik ${mode === "connect" ? "to" : "from"} network ${networkName}. Ensure Traefik is running.`,
+		);
+	}
+};
+
+export const ensureTraefikConnectedToNetwork = async (
+	networkName: string,
+	serverId?: string | null,
+): Promise<void> => {
+	try {
+		await connectTraefik(networkName, "dokploy-traefik", "connect", serverId);
 	} catch (error) {
 		console.error("Error ensuring Traefik network connection:", error);
+		throw error;
+	}
+};
+
+export const ensureTraefikDisconnectedFromNetwork = async (
+	networkName: string,
+	serverId?: string | null,
+): Promise<void> => {
+	try {
+		await connectTraefik(
+			networkName,
+			"dokploy-traefik",
+			"disconnect",
+			serverId,
+		);
+	} catch (error) {
+		console.error("Error ensuring Traefik network disconnection:", error);
 		throw error;
 	}
 };

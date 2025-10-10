@@ -17,12 +17,84 @@ import {
 	type DockerNetworkConfig,
 	dockerNetworkExists,
 	ensureTraefikConnectedToNetwork,
+	ensureTraefikDisconnectedFromNetwork,
 	inspectDockerNetwork,
 	listDockerNetworks,
 	removeDockerNetwork,
 } from "../utils/docker/network-utils";
 
 export type DokployNetwork = typeof networks.$inferSelect;
+
+type ResourceType =
+	| "application"
+	| "compose"
+	| "postgres"
+	| "mysql"
+	| "mariadb"
+	| "mongo"
+	| "redis";
+
+interface ResourceWithNetworks {
+	customNetworkIds?: string[] | null;
+	composeType?: string;
+}
+
+const RESOURCE_TABLE_MAP = {
+	application: applications,
+	compose: compose,
+	postgres: postgres,
+	mysql: mysql,
+	mariadb: mariadb,
+	mongo: mongo,
+	redis: redis,
+} as const;
+
+const RESOURCE_QUERIES = {
+	application: (id: string) =>
+		db.query.applications.findFirst({
+			where: eq(applications.applicationId, id),
+		}),
+	compose: (id: string) =>
+		db.query.compose.findFirst({
+			where: eq(compose.composeId, id),
+		}),
+	postgres: (id: string) =>
+		db.query.postgres.findFirst({
+			where: eq(postgres.postgresId, id),
+		}),
+	mysql: (id: string) =>
+		db.query.mysql.findFirst({
+			where: eq(mysql.mysqlId, id),
+		}),
+	mariadb: (id: string) =>
+		db.query.mariadb.findFirst({
+			where: eq(mariadb.mariadbId, id),
+		}),
+	mongo: (id: string) =>
+		db.query.mongo.findFirst({
+			where: eq(mongo.mongoId, id),
+		}),
+	redis: (id: string) =>
+		db.query.redis.findFirst({
+			where: eq(redis.redisId, id),
+		}),
+} as const;
+
+const findResourceById = async (
+	resourceId: string,
+	resourceType: ResourceType,
+): Promise<ResourceWithNetworks> => {
+	const resource = await RESOURCE_QUERIES[resourceType](resourceId);
+
+	if (!resource) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `${resourceType} not found`,
+		});
+	}
+
+	return resource as ResourceWithNetworks;
+};
 
 /**
  * Create a new custom network
@@ -93,10 +165,7 @@ export const createNetwork = async (input: typeof apiCreateNetwork._type) => {
 		}
 
 		// Create Docker network
-		const dockerNetwork = await createDockerNetwork(
-			networkConfig,
-			input.serverId,
-		);
+		await createDockerNetwork(networkConfig, input.serverId);
 		const dockerNetworkInspect = await inspectDockerNetwork(
 			input.networkName,
 			input.serverId,
@@ -302,70 +371,11 @@ export const deleteNetwork = async (networkId: string) => {
 export const assignNetworkToResource = async (
 	networkId: string,
 	resourceId: string,
-	resourceType:
-		| "application"
-		| "compose"
-		| "postgres"
-		| "mysql"
-		| "mariadb"
-		| "mongo"
-		| "redis",
+	resourceType: ResourceType,
 ) => {
 	const network = await findNetworkById(networkId);
+	const resource = await findResourceById(resourceId, resourceType);
 
-	const tableMap = {
-		application: applications,
-		compose: compose,
-		postgres: postgres,
-		mysql: mysql,
-		mariadb: mariadb,
-		mongo: mongo,
-		redis: redis,
-	};
-
-	const table = tableMap[resourceType];
-	const idField = `${resourceType}Id` as keyof typeof table.$inferSelect;
-
-	// Get current resource using type-specific queries
-	let resource: any;
-	if (resourceType === "application") {
-		resource = await db.query.applications.findFirst({
-			where: eq(applications.applicationId, resourceId),
-		});
-	} else if (resourceType === "compose") {
-		resource = await db.query.compose.findFirst({
-			where: eq(compose.composeId, resourceId),
-		});
-	} else if (resourceType === "postgres") {
-		resource = await db.query.postgres.findFirst({
-			where: eq(postgres.postgresId, resourceId),
-		});
-	} else if (resourceType === "mysql") {
-		resource = await db.query.mysql.findFirst({
-			where: eq(mysql.mysqlId, resourceId),
-		});
-	} else if (resourceType === "mariadb") {
-		resource = await db.query.mariadb.findFirst({
-			where: eq(mariadb.mariadbId, resourceId),
-		});
-	} else if (resourceType === "mongo") {
-		resource = await db.query.mongo.findFirst({
-			where: eq(mongo.mongoId, resourceId),
-		});
-	} else {
-		resource = await db.query.redis.findFirst({
-			where: eq(redis.redisId, resourceId),
-		});
-	}
-
-	if (!resource) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: `${resourceType} not found`,
-		});
-	}
-
-	// Get current network IDs
 	const currentNetworkIds = (resource.customNetworkIds || []) as string[];
 
 	// Check if already assigned
@@ -392,101 +402,84 @@ export const assignNetworkToResource = async (
 
 	// Add network ID
 	const updatedNetworkIds = [...currentNetworkIds, networkId];
+	const table = RESOURCE_TABLE_MAP[resourceType];
+	const idField = `${resourceType}Id` as keyof typeof table.$inferSelect;
 
 	// Update resource
 	await db
 		.update(table)
-		.set({
-			customNetworkIds: updatedNetworkIds,
-		})
+		.set({ customNetworkIds: updatedNetworkIds })
 		.where(eq(table[idField], resourceId));
 
-	// If resource is running, connect it to the network
-	// This will be handled by deployment logic
+	try {
+		await ensureTraefikConnectedToNetwork(network.networkName, network.serverId);
+	} catch (error) {
+		console.warn(
+			`Failed to connect Traefik to network ${network.networkName}:`,
+			error,
+		);
+	}
 
 	return { success: true, networkId, resourceId, resourceType };
 };
 
-/**
- * Remove a network from a resource
- */
+const isNetworkUsedByResourcesWithDomains = async (
+	networkId: string,
+): Promise<boolean> => {
+	const allApps = await db.query.applications.findMany({
+		with: { domains: true },
+	});
+
+	const allCompose = await db.query.compose.findMany({
+		with: { domains: true },
+	});
+
+	const hasNetworkWithDomains = (resources: typeof allApps | typeof allCompose) =>
+		resources.some((resource) => {
+			const networkIds = (resource.customNetworkIds || []) as string[];
+			const hasDomains = resource.domains && resource.domains.length > 0;
+			return networkIds.includes(networkId) && hasDomains;
+		});
+
+	return (
+		hasNetworkWithDomains(allApps) || hasNetworkWithDomains(allCompose)
+	);
+};
+
 export const removeNetworkFromResource = async (
 	networkId: string,
 	resourceId: string,
-	resourceType:
-		| "application"
-		| "compose"
-		| "postgres"
-		| "mysql"
-		| "mariadb"
-		| "mongo"
-		| "redis",
+	resourceType: ResourceType,
 ) => {
-	const tableMap = {
-		application: applications,
-		compose: compose,
-		postgres: postgres,
-		mysql: mysql,
-		mariadb: mariadb,
-		mongo: mongo,
-		redis: redis,
-	};
+	const network = await findNetworkById(networkId);
+	const resource = await findResourceById(resourceId, resourceType);
 
-	const table = tableMap[resourceType];
-	const idField = `${resourceType}Id` as keyof typeof table.$inferSelect;
-
-	// Get current resource using type-specific queries
-	let resource: any;
-	if (resourceType === "application") {
-		resource = await db.query.applications.findFirst({
-			where: eq(applications.applicationId, resourceId),
-		});
-	} else if (resourceType === "compose") {
-		resource = await db.query.compose.findFirst({
-			where: eq(compose.composeId, resourceId),
-		});
-	} else if (resourceType === "postgres") {
-		resource = await db.query.postgres.findFirst({
-			where: eq(postgres.postgresId, resourceId),
-		});
-	} else if (resourceType === "mysql") {
-		resource = await db.query.mysql.findFirst({
-			where: eq(mysql.mysqlId, resourceId),
-		});
-	} else if (resourceType === "mariadb") {
-		resource = await db.query.mariadb.findFirst({
-			where: eq(mariadb.mariadbId, resourceId),
-		});
-	} else if (resourceType === "mongo") {
-		resource = await db.query.mongo.findFirst({
-			where: eq(mongo.mongoId, resourceId),
-		});
-	} else {
-		resource = await db.query.redis.findFirst({
-			where: eq(redis.redisId, resourceId),
-		});
-	}
-
-	if (!resource) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: `${resourceType} not found`,
-		});
-	}
-
-	// Get current network IDs
 	const currentNetworkIds = (resource.customNetworkIds || []) as string[];
-
-	// Remove network ID
 	const updatedNetworkIds = currentNetworkIds.filter((id) => id !== networkId);
 
-	// Update resource
+	const table = RESOURCE_TABLE_MAP[resourceType];
+	const idField = `${resourceType}Id` as keyof typeof table.$inferSelect;
+
 	await db
 		.update(table)
-		.set({
-			customNetworkIds: updatedNetworkIds,
-		})
+		.set({ customNetworkIds: updatedNetworkIds })
 		.where(eq(table[idField], resourceId));
+
+	const stillInUse = await isNetworkUsedByResourcesWithDomains(networkId);
+
+	if (!stillInUse) {
+		try {
+			await ensureTraefikDisconnectedFromNetwork(
+				network.networkName,
+				network.serverId,
+			);
+		} catch (error) {
+			console.warn(
+				`Failed to disconnect Traefik from network ${network.networkName}:`,
+				error,
+			);
+		}
+	}
 
 	return { success: true, networkId, resourceId, resourceType };
 };
@@ -496,67 +489,9 @@ export const removeNetworkFromResource = async (
  */
 export const getResourceNetworks = async (
 	resourceId: string,
-	resourceType:
-		| "application"
-		| "compose"
-		| "postgres"
-		| "mysql"
-		| "mariadb"
-		| "mongo"
-		| "redis",
+	resourceType: ResourceType,
 ) => {
-	const tableMap = {
-		application: applications,
-		compose: compose,
-		postgres: postgres,
-		mysql: mysql,
-		mariadb: mariadb,
-		mongo: mongo,
-		redis: redis,
-	};
-
-	const table = tableMap[resourceType];
-	const idField = `${resourceType}Id` as keyof typeof table.$inferSelect;
-
-	// Get current resource using type-specific queries
-	let resource: any;
-	if (resourceType === "application") {
-		resource = await db.query.applications.findFirst({
-			where: eq(applications.applicationId, resourceId),
-		});
-	} else if (resourceType === "compose") {
-		resource = await db.query.compose.findFirst({
-			where: eq(compose.composeId, resourceId),
-		});
-	} else if (resourceType === "postgres") {
-		resource = await db.query.postgres.findFirst({
-			where: eq(postgres.postgresId, resourceId),
-		});
-	} else if (resourceType === "mysql") {
-		resource = await db.query.mysql.findFirst({
-			where: eq(mysql.mysqlId, resourceId),
-		});
-	} else if (resourceType === "mariadb") {
-		resource = await db.query.mariadb.findFirst({
-			where: eq(mariadb.mariadbId, resourceId),
-		});
-	} else if (resourceType === "mongo") {
-		resource = await db.query.mongo.findFirst({
-			where: eq(mongo.mongoId, resourceId),
-		});
-	} else {
-		resource = await db.query.redis.findFirst({
-			where: eq(redis.redisId, resourceId),
-		});
-	}
-
-	if (!resource) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: `${resourceType} not found`,
-		});
-	}
-
+	const resource = await findResourceById(resourceId, resourceType);
 	const networkIds = (resource.customNetworkIds || []) as string[];
 
 	if (networkIds.length === 0) {
@@ -702,59 +637,14 @@ export const findOrCreateIsolatedNetwork = async ({
  */
 export const connectTraefikToResourceNetworks = async (
 	resourceId: string,
-	resourceType:
-		| "application"
-		| "compose"
-		| "postgres"
-		| "mysql"
-		| "mariadb"
-		| "mongo"
-		| "redis",
+	resourceType: ResourceType,
 	serverId?: string | null,
 ): Promise<void> => {
 	try {
-		// Get the resource with its customNetworkIds
-		let customNetworkIds: string[] = [];
+		const resource = await findResourceById(resourceId, resourceType);
+		const customNetworkIds = (resource.customNetworkIds || []) as string[];
 
-		if (resourceType === "application") {
-			const app = await db.query.applications.findFirst({
-				where: eq(applications.applicationId, resourceId),
-			});
-			customNetworkIds = (app?.customNetworkIds || []) as string[];
-		} else if (resourceType === "compose") {
-			const comp = await db.query.compose.findFirst({
-				where: eq(compose.composeId, resourceId),
-			});
-			customNetworkIds = (comp?.customNetworkIds || []) as string[];
-		} else if (resourceType === "postgres") {
-			const pg = await db.query.postgres.findFirst({
-				where: eq(postgres.postgresId, resourceId),
-			});
-			customNetworkIds = (pg?.customNetworkIds || []) as string[];
-		} else if (resourceType === "mysql") {
-			const mys = await db.query.mysql.findFirst({
-				where: eq(mysql.mysqlId, resourceId),
-			});
-			customNetworkIds = (mys?.customNetworkIds || []) as string[];
-		} else if (resourceType === "mariadb") {
-			const maria = await db.query.mariadb.findFirst({
-				where: eq(mariadb.mariadbId, resourceId),
-			});
-			customNetworkIds = (maria?.customNetworkIds || []) as string[];
-		} else if (resourceType === "mongo") {
-			const mng = await db.query.mongo.findFirst({
-				where: eq(mongo.mongoId, resourceId),
-			});
-			customNetworkIds = (mng?.customNetworkIds || []) as string[];
-		} else {
-			const rd = await db.query.redis.findFirst({
-				where: eq(redis.redisId, resourceId),
-			});
-			customNetworkIds = (rd?.customNetworkIds || []) as string[];
-		}
-
-		// If no custom networks assigned, nothing to do (will use dokploy-network)
-		if (!customNetworkIds || customNetworkIds.length === 0) {
+		if (customNetworkIds.length === 0) {
 			console.log(
 				`No custom networks for ${resourceType} ${resourceId}, skipping Traefik connection`,
 			);
@@ -792,10 +682,10 @@ export const connectTraefikToResourceNetworks = async (
 			if (!result) continue;
 
 			if (result.status === "fulfilled") {
-				console.log(`✅ Traefik connected to network: ${networkName}`);
+				console.log(`Traefik connected to network: ${networkName}`);
 			} else {
 				console.warn(
-					`⚠️  Failed to connect Traefik to network ${networkName}:`,
+					`Failed to connect Traefik to network ${networkName}:`,
 					"reason" in result ? result.reason : "Unknown error",
 				);
 				// Don't throw - this shouldn't block deployment
