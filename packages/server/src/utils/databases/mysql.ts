@@ -52,7 +52,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
-	} = generateConfigContainer(mysql);
+	} = await generateConfigContainer(mysql);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,

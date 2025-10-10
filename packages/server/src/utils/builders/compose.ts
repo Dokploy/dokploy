@@ -6,18 +6,23 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
+import {
+	assignNetworkToResource,
+	findOrCreateIsolatedNetwork,
+} from "@dokploy/server/services/network";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
 import {
 	writeDomainsToCompose,
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
+import { ensureTraefikConnectedToNetwork } from "../docker/network-utils";
 import {
 	encodeBase64,
 	getEnviromentVariablesObject,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -34,9 +39,20 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		createEnvFile(compose);
 
 		if (compose.isolatedDeployment) {
-			await execAsync(
-				`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}`,
-			);
+			const network = await findOrCreateIsolatedNetwork({
+				organizationId: compose.environment.project.organizationId,
+				projectId: compose.environment.projectId,
+				appName: compose.appName,
+				serverId: compose.serverId,
+			});
+
+			if (!compose.customNetworkIds?.includes(network.networkId)) {
+				await assignNetworkToResource(
+					network.networkId,
+					compose.composeId,
+					"compose",
+				).catch(() => {});
+			}
 		}
 
 		const logContent = `
@@ -82,9 +98,12 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		);
 
 		if (compose.isolatedDeployment) {
-			await execAsync(
-				`docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
-			).catch(() => {});
+			await ensureTraefikConnectedToNetwork(
+				compose.appName,
+				compose.serverId,
+			).catch((error) => {
+				console.warn(`Could not connect Traefik to ${compose.appName}:`, error);
+			});
 		}
 
 		writeStream.write("Docker Compose Deployed: ✅");
