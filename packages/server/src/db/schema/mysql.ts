@@ -61,6 +61,7 @@ export const mysql = pgTable("mysql", {
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	customNetworkIds: text("customNetworkIds").array(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
@@ -127,6 +128,7 @@ const createSchema = createInsertSchema(mysql, {
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
+	customNetworkIds: z.array(z.string()).nullable(),
 });
 
 export const apiCreateMySql = createSchema

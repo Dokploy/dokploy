@@ -5,7 +5,6 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { environments } from "./environment";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { server } from "./server";
 import {
 	applicationStatus,
@@ -61,6 +60,7 @@ export const redis = pgTable("redis", {
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	customNetworkIds: text("customNetworkIds").array(),
 	replicas: integer("replicas").default(1).notNull(),
 
 	environmentId: text("environmentId")
@@ -110,6 +110,7 @@ const createSchema = createInsertSchema(redis, {
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
+	customNetworkIds: z.array(z.string()).nullable(),
 });
 
 export const apiCreateRedis = createSchema

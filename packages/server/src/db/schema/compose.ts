@@ -12,7 +12,6 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";
@@ -85,6 +84,7 @@ export const compose = pgTable("compose", {
 		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
+	customNetworkIds: text("customNetworkIds").array(),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -156,6 +156,7 @@ const createSchema = createInsertSchema(compose, {
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
+	customNetworkIds: z.array(z.string()).nullable(),
 });
 
 export const apiCreateCompose = createSchema.pick({
