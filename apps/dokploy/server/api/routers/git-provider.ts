@@ -1,9 +1,17 @@
-import { findGitProviderById, removeGitProvider } from "@dokploy/server";
+import {
+	findGitProviderById,
+	removeGitProvider,
+	updateGitProvider,
+} from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import { apiRemoveGitProvider, gitProvider } from "@/server/db/schema";
+import {
+	apiRemoveGitProvider,
+	apiUpdateSharedInOrg,
+	gitProvider,
+} from "@/server/db/schema";
 
 export const gitProviderRouter = createTRPCRouter({
 	getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -16,7 +24,10 @@ export const gitProviderRouter = createTRPCRouter({
 			},
 			orderBy: desc(gitProvider.createdAt),
 			where: and(
-				eq(gitProvider.userId, ctx.session.userId),
+				or(
+					eq(gitProvider.sharedInOrg, true),
+					eq(gitProvider.userId, ctx.session.userId),
+				),
 				eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
 			),
 		});
@@ -44,5 +55,22 @@ export const gitProviderRouter = createTRPCRouter({
 					message,
 				});
 			}
+		}),
+	updateSharedInOrg: protectedProcedure
+		.input(apiUpdateSharedInOrg)
+		.mutation(async ({ input, ctx }) => {
+			const gitProvider = await findGitProviderById(input.gitProviderId);
+			if (
+				gitProvider.organizationId !== ctx.session.activeOrganizationId ||
+				gitProvider.userId !== ctx.session.userId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to update this Git provider",
+				});
+			}
+			return await updateGitProvider(input.gitProviderId, {
+				sharedInOrg: input.sharedInOrg,
+			});
 		}),
 });

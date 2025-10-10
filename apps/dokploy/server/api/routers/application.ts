@@ -165,7 +165,10 @@ export const applicationRouter = createTRPCRouter({
 			if (gitProviderId) {
 				try {
 					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
+					if (
+						gitProvider.userId !== ctx.session.userId &&
+						!gitProvider.sharedInOrg
+					) {
 						hasGitProviderAccess = false;
 						unauthorizedProvider = application.sourceType;
 					}

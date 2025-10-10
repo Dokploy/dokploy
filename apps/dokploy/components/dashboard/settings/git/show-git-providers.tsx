@@ -24,6 +24,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
@@ -39,7 +41,10 @@ export const ShowGitProviders = () => {
 	const { data, isLoading, refetch } = api.gitProvider.getAll.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
 		api.gitProvider.remove.useMutation();
+	const { mutateAsync: updateSharedInOrg } =
+		api.gitProvider.updateSharedInOrg.useMutation();
 	const url = useUrl();
+	const { data: session } = authClient.useSession();
 
 	const getGitlabUrl = (
 		clientId: string,
@@ -221,6 +226,38 @@ export const ShowGitProviders = () => {
 																		</Link>
 																	</div>
 																)}
+
+																{gitProvider.userId === session?.user?.id ? (
+																	<label
+																		className="flex items-center gap-2 cursor-pointer select-none"
+																		htmlFor={`switch-org-${gitProvider.gitProviderId}`}
+																	>
+																		<Switch
+																			checked={gitProvider.sharedInOrg}
+																			onCheckedChange={async (
+																				checked: boolean,
+																			) => {
+																				await updateSharedInOrg({
+																					gitProviderId:
+																						gitProvider.gitProviderId,
+																					sharedInOrg: checked,
+																				});
+																				toast.success(
+																					"Shared in Organization updated",
+																				);
+																				refetch();
+																			}}
+																			id={`switch-org-${gitProvider.gitProviderId}`}
+																			aria-describedby={`switch-org-label-${gitProvider.gitProviderId}`}
+																		/>
+																		<span
+																			id={`switch-org-label-${gitProvider.gitProviderId}`}
+																			className="text-sm text-muted-foreground"
+																		>
+																			Share in Organization
+																		</span>
+																	</label>
+																) : null}
 
 																{isGithub && haveGithubRequirements && (
 																	<EditGithubProvider

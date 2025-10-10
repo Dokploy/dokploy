@@ -42,7 +42,8 @@ export const bitbucketRouter = createTRPCRouter({
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
 					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
+				bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
+				!bitbucketProvider.gitProvider.sharedInOrg
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -63,8 +64,9 @@ export const bitbucketRouter = createTRPCRouter({
 
 		result = result.filter((provider) => {
 			return (
-				provider.gitProvider.organizationId ===
+				(provider.gitProvider.organizationId ===
 					ctx.session.activeOrganizationId &&
+					provider.gitProvider.sharedInOrg) ||
 				provider.gitProvider.userId === ctx.session.userId
 			);
 		});
@@ -96,7 +98,8 @@ export const bitbucketRouter = createTRPCRouter({
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
 					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
+				bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
+				!bitbucketProvider.gitProvider.sharedInOrg
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -113,7 +116,8 @@ export const bitbucketRouter = createTRPCRouter({
 				if (
 					bitbucketProvider.gitProvider.organizationId !==
 						ctx.session.activeOrganizationId &&
-					bitbucketProvider.gitProvider.userId !== ctx.session.userId
+					bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
+					!bitbucketProvider.gitProvider.sharedInOrg
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -137,7 +141,8 @@ export const bitbucketRouter = createTRPCRouter({
 			if (
 				bitbucketProvider.gitProvider.organizationId !==
 					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
+				bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
+				!bitbucketProvider.gitProvider.sharedInOrg
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
