@@ -5,6 +5,7 @@ import { docker, paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
+import { executeECRLogin } from "../../db/schema/registry";
 import type { ApplicationNested } from "../builders";
 import type { MariadbNested } from "../databases/mariadb";
 import type { MongoNested } from "../databases/mongo";
@@ -19,6 +20,11 @@ interface RegistryAuth {
 	username: string;
 	password: string;
 	registryUrl: string;
+	ecr?: {
+		awsAccessKeyId?: string;
+		awsSecretAccessKey?: string;
+		awsRegion?: string;
+	};
 }
 
 export const pullImage = async (
@@ -31,7 +37,20 @@ export const pullImage = async (
 			throw new Error("Docker image not found");
 		}
 
-		if (authConfig?.username && authConfig?.password) {
+		// Handle ECR authentication
+		if (authConfig?.ecr) {
+			await executeECRLogin(
+				{
+					registryUrl: authConfig.registryUrl,
+					awsAccessKeyId: authConfig.ecr.awsAccessKeyId,
+					awsSecretAccessKey: authConfig.ecr.awsSecretAccessKey,
+					awsRegion: authConfig.ecr.awsRegion,
+				},
+				execAsync,
+				execAsyncRemote,
+			);
+		} else if (authConfig?.username && authConfig?.password) {
+			// Handle regular registry authentication
 			await spawnAsync(
 				"docker",
 				[
@@ -60,6 +79,21 @@ export const pullRemoteImage = async (
 	try {
 		if (!dockerImage) {
 			throw new Error("Docker image not found");
+		}
+
+		// Handle ECR authentication for remote servers
+		if (authConfig?.ecr) {
+			await executeECRLogin(
+				{
+					registryUrl: authConfig.registryUrl,
+					awsAccessKeyId: authConfig.ecr.awsAccessKeyId,
+					awsSecretAccessKey: authConfig.ecr.awsSecretAccessKey,
+					awsRegion: authConfig.ecr.awsRegion,
+					serverId: serverId,
+				},
+				execAsync,
+				execAsyncRemote,
+			);
 		}
 
 		const remoteDocker = await getRemoteDocker(serverId);

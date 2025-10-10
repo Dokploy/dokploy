@@ -243,6 +243,21 @@ export const getAuthConfig = (application: ApplicationNested) => {
 			};
 		}
 	} else if (registry) {
+		// Handle ECR registries
+		if (registry.registryType === "awsEcr") {
+			return {
+				password: registry.awsSecretAccessKey || "",
+				username: "AWS",
+				serveraddress: registry.registryUrl || "",
+				// ECR-specific fields for re-authentication
+				ecr: {
+					awsAccessKeyId: registry.awsAccessKeyId || undefined,
+					awsSecretAccessKey: registry.awsSecretAccessKey || undefined,
+					awsRegion: registry.awsRegion || undefined,
+				},
+			};
+		}
+		// Handle regular registries
 		return {
 			password: registry.password,
 			username: registry.username,
