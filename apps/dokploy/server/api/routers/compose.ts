@@ -17,6 +17,7 @@ import {
 	findProjectById,
 	findServerById,
 	findUserById,
+	generateFullComposePreview,
 	getComposeContainer,
 	IS_CLOUD,
 	loadServices,
@@ -344,10 +345,7 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to randomize this compose",
 				});
 			}
-			return await randomizeIsolatedDeploymentComposeFile(
-				input.composeId,
-				input.suffix,
-			);
+			return await generateFullComposePreview(input.composeId, input.suffix);
 		}),
 	getConvertedCompose: protectedProcedure
 		.input(apiFindCompose)

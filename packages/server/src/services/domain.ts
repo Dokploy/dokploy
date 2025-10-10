@@ -9,9 +9,26 @@ import { type apiCreateDomain, domains } from "../db/schema";
 import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import { connectTraefikToResourceNetworks } from "./network";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
+
+const connectTraefikToResource = async (
+	resourceId: string,
+	resourceType: "application" | "compose",
+	serverId: string | null | undefined,
+): Promise<void> => {
+	try {
+		await connectTraefikToResourceNetworks(resourceId, resourceType, serverId);
+	} catch (error) {
+		const errorMessage =
+			error instanceof Error ? error.message : String(error);
+		console.warn(
+			`Failed to connect Traefik to ${resourceType} networks: ${errorMessage}`,
+		);
+	}
+};
 
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
 	const result = await db.transaction(async (tx) => {
@@ -33,6 +50,25 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
 			await manageDomain(application, domain);
+			await connectTraefikToResource(
+				domain.applicationId,
+				"application",
+				application.serverId,
+			);
+		}
+
+		if (domain.composeId) {
+			const compose = await db.query.compose.findFirst({
+				where: (compose, { eq }) => eq(compose.composeId, domain.composeId!),
+			});
+
+			if (compose) {
+				await connectTraefikToResource(
+					domain.composeId,
+					"compose",
+					compose.serverId,
+				);
+			}
 		}
 
 		return domain;
