@@ -20,7 +20,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
+import { ShowComposeNetworks } from "@/components/dashboard/compose/advanced/network/show-compose-networks";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
@@ -355,7 +355,7 @@ const Service = (
 											<AddCommandCompose composeId={composeId} />
 											<ShowVolumes id={composeId} type="compose" />
 											<ShowImport composeId={composeId} />
-											<IsolatedDeploymentTab composeId={composeId} />
+											<ShowComposeNetworks composeId={composeId} />
 										</div>
 									</TabsContent>
 								</Tabs>
