@@ -465,6 +465,10 @@ const generateDomainLabels = async (
 			internalPath,
 		} = domain;
 
+		if (!port) {
+			continue;
+		}
+
 		const routerName = `${appName}-${uniqueConfigKey}`;
 		const serviceName = `${appName}-service-${uniqueConfigKey}`;
 		const webRouterName = `${routerName}-web`;
@@ -479,7 +483,7 @@ const generateDomainLabels = async (
 
 		const webMiddlewares = collectMiddlewares(
 			appName,
-			uniqueConfigKey,
+			uniqueConfigKey.toString(),
 			domainPath,
 			stripPath,
 			internalPath,
@@ -515,7 +519,7 @@ const generateDomainLabels = async (
 
 			const websecureMiddlewares = collectMiddlewares(
 				appName,
-				uniqueConfigKey,
+				uniqueConfigKey.toString(),
 				domainPath,
 				stripPath,
 				internalPath,
