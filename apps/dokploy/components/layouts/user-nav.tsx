@@ -44,6 +44,7 @@ export const UserNav = () => {
 				>
 					<Avatar className="h-8 w-8 rounded-lg">
 						<AvatarImage
+              className="object-cover"
 							src={data?.user?.image || ""}
 							alt={data?.user?.image || ""}
 						/>
