@@ -4126,12 +4126,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "attachable": {
-          "name": "attachable",
+        "encrypted": {
+          "name": "encrypted",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": false
         },
         "internal": {
           "name": "internal",

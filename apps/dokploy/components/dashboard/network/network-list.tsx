@@ -1,4 +1,4 @@
-import { AlertTriangle, Globe, Network, Server, Settings } from "lucide-react";
+import { AlertTriangle, Globe, Lock, Network, Server, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,6 +114,13 @@ export const NetworkList = () => {
 								<Badge variant="outline" className="text-xs">
 									<Globe className="mr-1 h-3 w-3" />
 									External
+								</Badge>
+							)}
+
+							{network.encrypted && network.driver === "overlay" && (
+								<Badge variant="outline" className="text-xs">
+									<Lock className="mr-1 h-3 w-3" />
+									Encrypted
 								</Badge>
 							)}
 						</div>

@@ -163,13 +163,16 @@ export const createNetwork = async (
 			Name: input.networkName,
 			Driver: input.driver || "bridge",
 			CheckDuplicate: true,
-			Attachable: input.attachable,
+			Attachable: true,
 			Internal: input.internal,
 			Labels: {
 				"com.dokploy.organization.id": input.organizationId,
 				"com.dokploy.network.name": input.name,
 				...(input.projectId && { "com.dokploy.project.id": input.projectId }),
 			},
+			...(input.encrypted && input.driver === "overlay" && {
+				Options: { encrypted: "" },
+			}),
 		};
 
 		if (input.subnet || input.gateway || input.ipRange) {
@@ -205,8 +208,8 @@ export const createNetwork = async (
 				subnet: input.subnet,
 				gateway: input.gateway,
 				ipRange: input.ipRange,
-				attachable: input.attachable ?? true,
 				internal: input.internal ?? false,
+				encrypted: input.encrypted ?? false,
 				organizationId: input.organizationId,
 				projectId: input.projectId,
 				serverId: input.serverId,
@@ -564,13 +567,43 @@ export const importOrphanedNetworks = async (
 		if (exists) continue;
 
 		try {
+			// Verify organization exists
+			const organization = await db.query.organization.findFirst({
+				where: (organization, { eq }) => eq(organization.id, orgId),
+			});
+
+			if (!organization) {
+				errors.push({
+					networkName: dockerNetwork.Name,
+					error: `Organization with ID "${orgId}" does not exist. Network cannot be imported (orphaned network).`,
+				});
+				continue;
+			}
+
+			const projectId = dockerNetwork.Labels?.["com.dokploy.project.id"] || null;
+			let validatedProjectId = projectId;
+
+			// Verify project exists if projectId is provided
+			if (projectId) {
+				const project = await db.query.projects.findFirst({
+					where: (projects, { eq }) => eq(projects.projectId, projectId),
+				});
+
+				if (!project) {
+					errors.push({
+						networkName: dockerNetwork.Name,
+						error: `Project with ID "${projectId}" does not exist. Network cannot be imported (orphaned network).`,
+					});
+					continue;
+				}
+			}
+
 			const networkInspect = await inspectDockerNetwork(
 				dockerNetwork.Name,
 				serverId,
 			);
 
 			const ipamConfig = networkInspect.IPAM?.Config?.[0];
-			const projectId = dockerNetwork.Labels?.["com.dokploy.project.id"] || null;
 			const displayName =
 				dockerNetwork.Labels?.["com.dokploy.network.name"] || dockerNetwork.Name;
 			const driverType = dockerNetwork.Driver === "overlay" ? "overlay" : "bridge";
@@ -587,8 +620,8 @@ export const importOrphanedNetworks = async (
 					projectId,
 					serverId,
 					isDefault: false,
-					attachable: networkInspect.Attachable ?? true,
 					internal: networkInspect.Internal ?? false,
+					encrypted: false,
 					subnet: ipamConfig?.Subnet || null,
 					gateway: ipamConfig?.Gateway || null,
 					ipRange: ipamConfig?.IPRange || null,

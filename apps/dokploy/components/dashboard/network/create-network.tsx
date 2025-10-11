@@ -71,8 +71,8 @@ const CreateNetworkSchema = z.object({
 		.optional()
 		.or(z.literal("")),
 	isDefault: z.boolean().default(false),
-	attachable: z.boolean().default(true),
 	internal: z.boolean().default(false),
+	encrypted: z.boolean().default(false),
 });
 
 type CreateNetwork = z.infer<typeof CreateNetworkSchema>;
@@ -99,8 +99,8 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 			gateway: "",
 			ipRange: "",
 			isDefault: false,
-			attachable: true,
 			internal: false,
+			encrypted: false,
 		},
 		resolver: zodResolver(CreateNetworkSchema),
 	});
@@ -324,13 +324,13 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 
 								<FormField
 									control={form.control}
-									name="attachable"
+									name="internal"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between">
 											<div className="space-y-0.5">
-												<FormLabel>Attachable</FormLabel>
+												<FormLabel>Internal</FormLabel>
 												<FormDescription>
-													Allow containers to attach to this network manually
+													Restrict external access (no internet connectivity)
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -345,19 +345,20 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 
 								<FormField
 									control={form.control}
-									name="internal"
+									name="encrypted"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between">
 											<div className="space-y-0.5">
-												<FormLabel>Internal</FormLabel>
+												<FormLabel>Encrypted</FormLabel>
 												<FormDescription>
-													Restrict external access (no internet connectivity)
+													Encrypt network traffic between nodes (Overlay only)
 												</FormDescription>
 											</div>
 											<FormControl>
 												<Switch
 													checked={field.value}
 													onCheckedChange={field.onChange}
+													disabled={form.watch("driver") !== "overlay"}
 												/>
 											</FormControl>
 										</FormItem>

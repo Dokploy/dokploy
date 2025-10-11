@@ -36,8 +36,8 @@ export const networks = pgTable("network", {
 	subnet: text("subnet"),
 	gateway: text("gateway"),
 	ipRange: text("ipRange"),
-	attachable: boolean("attachable").notNull().default(true),
 	internal: boolean("internal").notNull().default(false),
+	encrypted: boolean("encrypted").notNull().default(false),
 	dockerNetworkId: text("dockerNetworkId"),
 	createdAt: text("createdAt")
 		.notNull()
@@ -107,8 +107,8 @@ export const apiCreateNetwork = createSchema
 		subnet: true,
 		gateway: true,
 		ipRange: true,
-		attachable: true,
 		internal: true,
+		encrypted: true,
 		projectId: true,
 		organizationId: true,
 		serverId: true,

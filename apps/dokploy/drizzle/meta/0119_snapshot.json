@@ -1,6 +1,6 @@
 {
-  "id": "8d7f3e45-a19c-4f2b-9e81-c6b2d4f5e890",
-  "prevId": "02653ff8-9cf4-4ad3-8712-b537f3b08483",
+  "id": "f9a4b3c2-d1e0-4f5a-8b7c-9d6e5f4a3b2c",
+  "prevId": "8d7f3e45-a19c-4f2b-9e81-c6b2d4f5e890",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -4119,12 +4119,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "attachable": {
-          "name": "attachable",
+        "encrypted": {
+          "name": "encrypted",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": false
         },
         "internal": {
           "name": "internal",
