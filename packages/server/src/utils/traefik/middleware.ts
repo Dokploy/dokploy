@@ -46,8 +46,14 @@ export const deleteMiddleware = (
 };
 
 export const deleteAllMiddlewares = async (application: ApplicationNested) => {
-	const config = loadMiddlewares<FileConfig>();
-	const { security, appName, redirects } = application;
+	const { security, appName, redirects, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
 
 	if (config.http?.middlewares) {
 		if (security.length > 0) {
@@ -62,8 +68,8 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 		}
 	}
 
-	if (application.serverId) {
-		await writeTraefikConfigRemote(config, "middlewares", application.serverId);
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
 	} else {
 		writeMiddleware(config);
 	}
