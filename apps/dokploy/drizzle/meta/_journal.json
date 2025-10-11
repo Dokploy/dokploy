@@ -827,6 +827,13 @@
       "when": 1760023259308,
       "tag": "0117_aspiring_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1760168280000,
+      "tag": "0118_migrate_isolated_deployment",
+      "breakpoints": true
     }
   ]
 }
