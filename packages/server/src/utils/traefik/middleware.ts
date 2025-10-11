@@ -49,11 +49,11 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 	const { security, appName, redirects, serverId } = application;
 	let config: FileConfig;
 
-    if (serverId) {
-        config = await loadRemoteMiddlewares(serverId);
-    } else {
-        config = loadMiddlewares<FileConfig>();
-    }
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
 
 	if (config.http?.middlewares) {
 		if (security.length > 0) {
