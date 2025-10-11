@@ -1,8 +1,16 @@
-import { Network, Plus, X } from "lucide-react";
+import { Info, Network, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import {
 	Command,
 	CommandEmpty,
@@ -29,12 +37,37 @@ interface Props {
 		| "mongo"
 		| "redis";
 	composeType?: "docker-compose" | "stack";
+	showCard?: boolean;
 }
+
+const getResourceTypeName = (type: Props["resourceType"]): string => {
+	const names: Record<Props["resourceType"], string> = {
+		application: "application",
+		compose: "compose service",
+		postgres: "database",
+		mysql: "database",
+		mariadb: "database",
+		mongo: "database",
+		redis: "database",
+	};
+	return names[type];
+};
+
+const isSwarmResource = (
+	type: Props["resourceType"],
+	composeType?: Props["composeType"],
+): boolean => {
+	if (type === "compose") {
+		return composeType === "stack";
+	}
+	return true;
+};
 
 export const AssignNetworkToResource = ({
 	resourceId,
 	resourceType,
 	composeType,
+	showCard = false,
 }: Props) => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
@@ -102,13 +135,41 @@ export const AssignNetworkToResource = ({
 		}
 	};
 
-	return (
+	const resourceTypeName = getResourceTypeName(resourceType);
+	const isSwarm = isSwarmResource(resourceType, composeType);
+	const isDatabaseType = ["postgres", "mysql", "mariadb", "mongo", "redis"].includes(
+		resourceType,
+	);
+
+	const content = (
 		<div className="space-y-4">
+			{isSwarm && (
+				<Alert>
+					<Info className="h-4 w-4" />
+					<AlertDescription>
+						{isDatabaseType ? "Databases" : "Applications"} are deployed as
+						Docker Swarm services and can only use <strong>overlay</strong>{" "}
+						networks. Only overlay networks are shown below.
+					</AlertDescription>
+				</Alert>
+			)}
+
+			{resourceType === "compose" && composeType === "docker-compose" && (
+				<Alert>
+					<Info className="h-4 w-4" />
+					<AlertDescription>
+						This compose service uses <strong>docker-compose</strong> mode and
+						can use both <strong>bridge</strong> and <strong>overlay</strong>{" "}
+						networks.
+					</AlertDescription>
+				</Alert>
+			)}
+
 			<div className="flex items-center justify-between">
 				<div>
 					<h3 className="text-sm font-medium">Custom Networks</h3>
 					<p className="text-sm text-muted-foreground">
-						Assign this service to custom networks for isolation
+						Assign this {resourceTypeName} to custom networks for isolation
 					</p>
 				</div>
 				<Popover open={open} onOpenChange={setOpen}>
@@ -157,32 +218,58 @@ export const AssignNetworkToResource = ({
 			</div>
 
 			{assignedNetworks && assignedNetworks.length > 0 ? (
-				<div className="flex flex-wrap gap-2">
-					{assignedNetworks.map((network) => (
-						<Badge
-							key={network.networkId}
-							variant="secondary"
-							className="group flex items-center gap-2 pr-1"
-						>
-							<Network className="h-3 w-3" />
-							<span>{network.name}</span>
-							<button
-								type="button"
-								onClick={() => handleRemove(network.networkId)}
-								disabled={isRemoving}
-								className="ml-1 rounded-sm opacity-70 transition-opacity hover:opacity-100 disabled:opacity-50"
+				<>
+					<div className="flex flex-wrap gap-2">
+						{assignedNetworks.map((network) => (
+							<Badge
+								key={network.networkId}
+								variant="secondary"
+								className="group flex items-center gap-2 pr-1"
 							>
-								<X className="h-3 w-3" />
-							</button>
-						</Badge>
-					))}
-				</div>
+								<Network className="h-3 w-3" />
+								<span>{network.name}</span>
+								<button
+									type="button"
+									onClick={() => handleRemove(network.networkId)}
+									disabled={isRemoving}
+									className="ml-1 rounded-sm opacity-70 transition-opacity hover:opacity-100 disabled:opacity-50"
+								>
+									<X className="h-3 w-3" />
+								</button>
+							</Badge>
+						))}
+					</div>
+					{isDatabaseType ? (
+						<div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950 p-3">
+							<p className="text-sm text-blue-900 dark:text-blue-100">
+								<strong>Network Isolation Active:</strong> This database is
+								disconnected from{" "}
+								<code className="relative rounded bg-blue-100 dark:bg-blue-900 px-[0.3rem] py-[0.2rem] font-mono text-xs">
+									dokploy-network
+								</code>{" "}
+								and only accessible through the custom networks assigned above.
+							</p>
+							<p className="text-xs text-blue-800 dark:text-blue-200 mt-2">
+								This enhances security by limiting connectivity to explicitly
+								allowed networks only.
+							</p>
+						</div>
+					) : (
+						<p className="text-sm text-muted-foreground">
+							This {resourceTypeName} will not be connected to{" "}
+							<code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-xs">
+								dokploy-network
+							</code>{" "}
+							and will only use the networks assigned above.
+						</p>
+					)}
+				</>
 			) : (
 				<div className="flex items-center gap-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
 					<Network className="h-4 w-4" />
 					<span>
-						No custom networks assigned. This service will use the default
-						dokploy-network.
+						No custom networks assigned. This {resourceTypeName} will use the
+						default dokploy-network.
 					</span>
 				</div>
 			)}
@@ -196,4 +283,20 @@ export const AssignNetworkToResource = ({
 			) : null}
 		</div>
 	);
+
+	if (showCard) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Network Configuration</CardTitle>
+					<CardDescription>
+						Manage network connectivity for this {resourceTypeName}
+					</CardDescription>
+				</CardHeader>
+				<CardContent>{content}</CardContent>
+			</Card>
+		);
+	}
+
+	return content;
 };

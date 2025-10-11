@@ -20,8 +20,8 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { ShowComposeNetworks } from "@/components/dashboard/compose/advanced/network/show-compose-networks";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { AssignNetworkToResource } from "@/components/dashboard/network/assign-network-to-resource";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
@@ -355,7 +355,12 @@ const Service = (
 											<AddCommandCompose composeId={composeId} />
 											<ShowVolumes id={composeId} type="compose" />
 											<ShowImport composeId={composeId} />
-											<ShowComposeNetworks composeId={composeId} />
+											<AssignNetworkToResource
+												resourceId={composeId}
+												resourceType="compose"
+												composeType={data?.composeType}
+												showCard
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>
