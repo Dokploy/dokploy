@@ -55,17 +55,7 @@ export const randomizeIsolatedDeploymentComposeFile = async (
 		throw new Error("Compose data not found");
 	}
 
-	const randomSuffix = suffix || compose.appName || generateRandomHash();
-
-	const newComposeFile = compose.isolatedDeployment
-		? addAppNameToPreventCollision(
-				composeData,
-				randomSuffix,
-				compose.isolatedDeploymentsVolume,
-			)
-		: composeData;
-
-	return stringify(newComposeFile);
+	return stringify(composeData);
 };
 
 export const randomizeDeployableSpecificationFile = (
@@ -108,20 +98,9 @@ export const generateFullComposePreview = async (
 		throw new Error("Compose data not found");
 	}
 
-	const randomSuffix = suffix || compose.appName || generateRandomHash();
-
 	let newComposeFile = composeData;
 
-	// 1. Apply isolated deployment transformations
-	if (compose.isolatedDeployment) {
-		newComposeFile = addAppNameToPreventCollision(
-			newComposeFile,
-			randomSuffix,
-			compose.isolatedDeploymentsVolume,
-		);
-	}
-
-	// 2. Add custom networks from customNetworkIds
+	// Add custom networks from customNetworkIds
 	if (compose.customNetworkIds && compose.customNetworkIds.length > 0) {
 		newComposeFile = await addCustomNetworksToCompose(
 			newComposeFile,

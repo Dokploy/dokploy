@@ -834,6 +834,13 @@
       "when": 1760168280000,
       "tag": "0118_migrate_isolated_deployment",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1760169000000,
+      "tag": "0119_remove_isolated_deployment",
+      "breakpoints": true
     }
   ]
 }

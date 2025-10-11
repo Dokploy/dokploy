@@ -218,14 +218,7 @@ export const addDomainToCompose = async (
 		return null;
 	}
 
-	if (compose.isolatedDeployment) {
-		const randomized = randomizeDeployableSpecificationFile(
-			result,
-			compose.isolatedDeploymentsVolume,
-			compose.suffix || compose.appName,
-		);
-		result = randomized;
-	} else if (compose.randomize) {
+	if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
 	}
@@ -278,13 +271,9 @@ export const addDomainToCompose = async (
 			// Determine which network Traefik should use to reach this service
 			let traefikNetwork = "dokploy-network"; // Default
 
-			// If isolatedDeployment, use the isolated network (appName)
-			if (compose.isolatedDeployment) {
-				traefikNetwork = compose.appName;
-			}
 			// If custom networks exist in the compose file, use one of them
 			// (Traefik will be connected to all custom networks, so any will work)
-			else if (result.networks && Object.keys(result.networks).length > 0) {
+			if (result.networks && Object.keys(result.networks).length > 0) {
 				// Find the first non-dokploy-network network
 				const networkNames = Object.keys(result.networks);
 				const customNetwork = networkNames.find(
@@ -322,8 +311,7 @@ export const addDomainToCompose = async (
 
 		// Only add dokploy-network if no custom networks are defined
 		if (
-			!compose.isolatedDeployment &&
-			(!compose.customNetworkIds || compose.customNetworkIds.length === 0)
+			!compose.customNetworkIds || compose.customNetworkIds.length === 0
 		) {
 			// Add the dokploy-network to the service
 			result.services[serviceName].networks = addDokployNetworkToService(
@@ -334,8 +322,7 @@ export const addDomainToCompose = async (
 
 	// Add dokploy-network to the root of the compose file (only if no custom networks)
 	if (
-		!compose.isolatedDeployment &&
-		(!compose.customNetworkIds || compose.customNetworkIds.length === 0)
+		!compose.customNetworkIds || compose.customNetworkIds.length === 0
 	) {
 		result.networks = addDokployNetworkToRoot(result.networks);
 	}
