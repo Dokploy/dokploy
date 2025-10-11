@@ -1,6 +1,5 @@
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
-import { Network } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
 	InferGetServerSidePropsType,
@@ -10,6 +9,7 @@ import type { ReactElement } from "react";
 import superjson from "superjson";
 import { CreateNetwork } from "@/components/dashboard/network/create-network";
 import { NetworkList } from "@/components/dashboard/network/network-list";
+import { SyncNetworks } from "@/components/dashboard/network/sync-networks";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import {
@@ -39,67 +39,23 @@ const NetworksPage = (
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl">
 					<div className="rounded-xl bg-background shadow-md space-y-4">
 						<Card>
-							<CardHeader>
-								<div className="flex items-center justify-between">
-									<div>
+							<CardHeader className="p-4 sm:p-6">
+								<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+									<div className="space-y-1 flex-1">
 										<CardTitle>Custom Networks</CardTitle>
 										<CardDescription>
 											Manage Docker networks for service isolation and
 											communication control across your organization
 										</CardDescription>
 									</div>
-									<CreateNetwork />
+									<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 flex-shrink-0">
+										<SyncNetworks />
+										<CreateNetwork />
+									</div>
 								</div>
 							</CardHeader>
 							<CardContent>
 								<NetworkList />
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardHeader>
-								<CardTitle>Network Isolation Benefits</CardTitle>
-							</CardHeader>
-							<CardContent className="space-y-3">
-								<div className="flex items-start gap-3">
-									<Network className="mt-0.5 h-5 w-5 text-muted-foreground" />
-									<div>
-										<div className="font-medium">Security Isolation</div>
-										<p className="text-sm text-muted-foreground">
-											Services can only communicate if they're on the same
-											network, preventing unauthorized access
-										</p>
-									</div>
-								</div>
-								<div className="flex items-start gap-3">
-									<Network className="mt-0.5 h-5 w-5 text-muted-foreground" />
-									<div>
-										<div className="font-medium">Multi-Tenancy</div>
-										<p className="text-sm text-muted-foreground">
-											Isolate different projects or clients on separate networks
-										</p>
-									</div>
-								</div>
-								<div className="flex items-start gap-3">
-									<Network className="mt-0.5 h-5 w-5 text-muted-foreground" />
-									<div>
-										<div className="font-medium">Organization-Wide Access</div>
-										<p className="text-sm text-muted-foreground">
-											Networks are available across all projects in your
-											organization, enabling flexible resource sharing
-										</p>
-									</div>
-								</div>
-								<div className="flex items-start gap-3">
-									<Network className="mt-0.5 h-5 w-5 text-muted-foreground" />
-									<div>
-										<div className="font-medium">Traefik Integration</div>
-										<p className="text-sm text-muted-foreground">
-											Traefik automatically connects to your networks to route
-											traffic without exposing services globally
-										</p>
-									</div>
-								</div>
 							</CardContent>
 						</Card>
 					</div>
@@ -129,11 +85,11 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const helpers = createServerSideHelpers({
 		router: appRouter,
 		ctx: {
-			req: req as any,
-			res: res as any,
-			db: null as any,
-			session: session as any,
-			user: user as any,
+			req,
+			res,
+			db: null,
+			session,
+			user,
 		},
 		transformer: superjson,
 	});

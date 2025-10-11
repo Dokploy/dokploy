@@ -5,6 +5,7 @@ import {
 	findNetworkById,
 	findNetworksByOrganizationId,
 	getResourceNetworks,
+	importOrphanedNetworks,
 	listServerNetworks,
 	removeNetworkFromResource,
 	syncNetworks,
@@ -30,6 +31,31 @@ const RESOURCE_TYPE_ENUM = z.enum([
 	"redis",
 ] as const);
 
+const handleTRPCError = (error: unknown, message: string, logMessage: string) => {
+	console.error(logMessage, error);
+	if (error instanceof TRPCError) {
+		throw error;
+	}
+	throw new TRPCError({
+		code: "INTERNAL_SERVER_ERROR",
+		message,
+		cause: error,
+	});
+};
+
+const verifyNetworkAccess = async (networkId: string, organizationId: string) => {
+	const network = await findNetworkById(networkId);
+
+	if (network.organizationId !== organizationId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have access to this network",
+		});
+	}
+
+	return network;
+};
+
 export const networkRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateNetwork)
@@ -42,15 +68,7 @@ export const networkRouter = createTRPCRouter({
 			try {
 				return await createNetwork(networkInput);
 			} catch (error) {
-				console.error("Error creating network:", error);
-				if (error instanceof TRPCError) {
-					throw error;
-				}
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create network",
-					cause: error,
-				});
+				handleTRPCError(error, "Failed to create network", "Error creating network:");
 			}
 		}),
 
@@ -87,54 +105,24 @@ export const networkRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateNetwork)
 		.mutation(async ({ input, ctx }) => {
-			const network = await findNetworkById(input.networkId);
-
-			if (network.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have access to this network",
-				});
-			}
+			await verifyNetworkAccess(input.networkId, ctx.session.activeOrganizationId);
 
 			try {
 				return await updateNetwork(input.networkId, input);
 			} catch (error) {
-				console.error("Error updating network:", error);
-				if (error instanceof TRPCError) {
-					throw error;
-				}
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to update network",
-					cause: error,
-				});
+				handleTRPCError(error, "Failed to update network", "Error updating network:");
 			}
 		}),
 
 	delete: protectedProcedure
 		.input(apiRemoveNetwork)
 		.mutation(async ({ input, ctx }) => {
-			const network = await findNetworkById(input.networkId);
-
-			if (network.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have access to this network",
-				});
-			}
+			await verifyNetworkAccess(input.networkId, ctx.session.activeOrganizationId);
 
 			try {
 				return await deleteNetwork(input.networkId);
 			} catch (error) {
-				console.error("Error deleting network:", error);
-				if (error instanceof TRPCError) {
-					throw error;
-				}
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to delete network",
-					cause: error,
-				});
+				handleTRPCError(error, "Failed to delete network", "Error deleting network:");
 			}
 		}),
 
@@ -147,14 +135,7 @@ export const networkRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const network = await findNetworkById(input.networkId);
-
-			if (network.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have access to this network",
-				});
-			}
+			await verifyNetworkAccess(input.networkId, ctx.session.activeOrganizationId);
 
 			try {
 				return await assignNetworkToResource(
@@ -163,15 +144,7 @@ export const networkRouter = createTRPCRouter({
 					input.resourceType,
 				);
 			} catch (error) {
-				console.error("Error assigning network to resource:", error);
-				if (error instanceof TRPCError) {
-					throw error;
-				}
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to assign network to resource",
-					cause: error,
-				});
+				handleTRPCError(error, "Failed to assign network to resource", "Error assigning network to resource:");
 			}
 		}),
 
@@ -184,14 +157,7 @@ export const networkRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
-			const network = await findNetworkById(input.networkId);
-
-			if (network.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You do not have access to this network",
-				});
-			}
+			await verifyNetworkAccess(input.networkId, ctx.session.activeOrganizationId);
 
 			try {
 				return await removeNetworkFromResource(
@@ -200,15 +166,7 @@ export const networkRouter = createTRPCRouter({
 					input.resourceType,
 				);
 			} catch (error) {
-				console.error("Error removing network from resource:", error);
-				if (error instanceof TRPCError) {
-					throw error;
-				}
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to remove network from resource",
-					cause: error,
-				});
+				handleTRPCError(error, "Failed to remove network from resource", "Error removing network from resource:");
 			}
 		}),
 
@@ -245,5 +203,19 @@ export const networkRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			return await syncNetworks(input.serverId);
+		}),
+
+	importOrphanedNetworks: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().nullable().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				return await importOrphanedNetworks(input.serverId);
+			} catch (error) {
+				handleTRPCError(error, "Failed to import orphaned networks", "Error importing orphaned networks:");
+			}
 		}),
 });

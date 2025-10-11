@@ -540,7 +540,7 @@ export const syncNetworks = async (serverId?: string | null) => {
 
 	// Check for orphaned Docker networks (created by Dokploy but not in DB)
 	for (const dockerNetwork of dockerNetworks) {
-		if (dockerNetwork.Labels?.["com.dokploy.project.id"]) {
+		if (dockerNetwork.Labels?.["com.dokploy.organization.id"]) {
 			const exists = dokployNetworks.some(
 				(dn: any) => dn.networkName === dockerNetwork.Name,
 			);
@@ -551,6 +551,83 @@ export const syncNetworks = async (serverId?: string | null) => {
 	}
 
 	return synced;
+};
+
+/**
+ * Import orphaned Docker networks into the database
+ * This imports networks that exist in Docker but not in the Dokploy database
+ */
+export const importOrphanedNetworks = async (serverId?: string | null) => {
+	const dockerNetworks = await listDockerNetworks(serverId);
+	const imported: DokployNetwork[] = [];
+	const errors: { networkName: string; error: string }[] = [];
+
+	for (const dockerNetwork of dockerNetworks) {
+		// Only import networks with Dokploy organization label
+		const orgId = dockerNetwork.Labels?.["com.dokploy.organization.id"];
+		if (!orgId) continue;
+
+		// Check if already exists in DB
+		const exists = await db.query.networks.findFirst({
+			where: and(
+				eq(networks.networkName, dockerNetwork.Name),
+				serverId ? eq(networks.serverId, serverId) : undefined,
+			),
+		});
+
+		if (exists) continue;
+
+		try {
+			const networkInspect = await inspectDockerNetwork(
+				dockerNetwork.Name,
+				serverId,
+			);
+
+			// Extract IPAM configuration
+			const ipamConfig = networkInspect.IPAM?.Config?.[0];
+
+			// Get project ID from labels if available
+			const projectId = dockerNetwork.Labels?.["com.dokploy.project.id"] || null;
+			const displayName =
+				dockerNetwork.Labels?.["com.dokploy.network.name"] || dockerNetwork.Name;
+
+			// Determine driver type - only allow bridge or overlay
+			const driverType = dockerNetwork.Driver === "overlay" ? "overlay" : "bridge";
+
+			// Import network into database
+			const [importedNetwork] = await db
+				.insert(networks)
+				.values({
+					name: displayName,
+					networkName: dockerNetwork.Name,
+					description: `Imported from Docker on ${new Date().toISOString()}`,
+					driver: driverType,
+					dockerNetworkId: dockerNetwork.Id,
+					organizationId: orgId,
+					projectId,
+					serverId,
+					isDefault: false,
+					attachable: networkInspect.Attachable ?? true,
+					internal: networkInspect.Internal ?? false,
+					subnet: ipamConfig?.Subnet || null,
+					gateway: ipamConfig?.Gateway || null,
+					ipRange: ipamConfig?.IPRange || null,
+				})
+				.returning();
+
+			if (importedNetwork) {
+				imported.push(importedNetwork);
+			}
+		} catch (error) {
+			console.error(`Failed to import network ${dockerNetwork.Name}:`, error);
+			errors.push({
+				networkName: dockerNetwork.Name,
+				error: error instanceof Error ? error.message : "Unknown error",
+			});
+		}
+	}
+
+	return { imported, errors };
 };
 
 /**
