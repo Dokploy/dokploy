@@ -70,7 +70,6 @@ const CreateNetworkSchema = z.object({
 		.regex(CIDR_REGEX, "Invalid IP range format")
 		.optional()
 		.or(z.literal("")),
-	isDefault: z.boolean().default(false),
 	internal: z.boolean().default(false),
 	encrypted: z.boolean().default(false),
 });
@@ -98,7 +97,6 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 			subnet: "",
 			gateway: "",
 			ipRange: "",
-			isDefault: false,
 			internal: false,
 			encrypted: false,
 		},
@@ -307,34 +305,13 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 
 								<FormField
 									control={form.control}
-									name="isDefault"
-									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between">
-											<div className="space-y-0.5">
-												<FormLabel>Default Network</FormLabel>
-												<FormDescription>
-													Auto-assign to new resources in this organization
-												</FormDescription>
-											</div>
-											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
-												/>
-											</FormControl>
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={form.control}
 									name="internal"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between">
 											<div className="space-y-0.5">
 												<FormLabel>Internal</FormLabel>
 												<FormDescription>
-													Restrict external access (no internet connectivity)
+													Internal network isolated from external access.
 												</FormDescription>
 											</div>
 											<FormControl>

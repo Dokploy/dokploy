@@ -1,4 +1,11 @@
-import { AlertTriangle, Globe, Lock, Network, Server, Settings } from "lucide-react";
+import {
+	AlertTriangle,
+	Globe,
+	Lock,
+	Network,
+	Server,
+	Settings,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,11 +83,6 @@ export const NetworkList = () => {
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</div>
-						{network.isDefault && (
-							<Badge variant="secondary" className="w-fit">
-								Default
-							</Badge>
-						)}
 					</CardHeader>
 					<CardContent className="space-y-2">
 						<div className="space-y-1">

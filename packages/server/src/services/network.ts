@@ -111,17 +111,6 @@ const findResourceById = async (
 	return resource as ResourceWithNetworks;
 };
 
-const unsetDefaultNetworkForOrganization = async (
-	organizationId: string,
-): Promise<void> => {
-	await db
-		.update(networks)
-		.set({ isDefault: false })
-		.where(
-			and(eq(networks.organizationId, organizationId), eq(networks.isDefault, true)),
-		);
-};
-
 export const createNetwork = async (
 	input: typeof apiCreateNetwork._type,
 ): Promise<DokployNetwork> => {
@@ -193,10 +182,6 @@ export const createNetwork = async (
 			input.serverId,
 		);
 
-		if (input.isDefault) {
-			await unsetDefaultNetworkForOrganization(input.organizationId);
-		}
-
 		const newNetwork = await db
 			.insert(networks)
 			.values({
@@ -204,7 +189,6 @@ export const createNetwork = async (
 				description: input.description,
 				networkName: input.networkName,
 				driver: input.driver || "bridge",
-				isDefault: input.isDefault || false,
 				subnet: input.subnet,
 				gateway: input.gateway,
 				ipRange: input.ipRange,
@@ -277,11 +261,7 @@ export const updateNetwork = async (
 	networkId: string,
 	data: Partial<DokployNetwork>,
 ): Promise<DokployNetwork> => {
-	const network = await findNetworkById(networkId);
-
-	if (data.isDefault) {
-		await unsetDefaultNetworkForOrganization(network.organizationId);
-	}
+	await findNetworkById(networkId);
 
 	const updated = await db
 		.update(networks)
@@ -653,7 +633,6 @@ export const importOrphanedNetworks = async (
 					organizationId: orgId,
 					projectId,
 					serverId,
-					isDefault: false,
 					internal: networkInspect.Internal ?? false,
 					encrypted: false,
 					subnet: ipamConfig?.Subnet || null,

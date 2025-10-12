@@ -14,7 +14,6 @@ describe("Network Schema Validation", () => {
 				description: "Network for production services",
 				networkName: "prod-network",
 				driver: "bridge" as const,
-				isDefault: false,
 				subnet: "172.20.0.0/16",
 				gateway: "172.20.0.1",
 				ipRange: "172.20.10.0/24",
@@ -245,15 +244,6 @@ describe("Network Schema Validation", () => {
 			};
 
 			expect(() => apiUpdateNetwork.parse(missingId)).toThrow();
-		});
-
-		it("validates isDefault update", () => {
-			const update = {
-				networkId: "net-123",
-				isDefault: true,
-			};
-
-			expect(() => apiUpdateNetwork.parse(update)).not.toThrow();
 		});
 	});
 

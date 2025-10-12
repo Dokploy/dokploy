@@ -5,7 +5,6 @@ CREATE TABLE "network" (
 	"description" text,
 	"networkName" text NOT NULL,
 	"driver" "networkDriver" DEFAULT 'bridge' NOT NULL,
-	"isDefault" boolean DEFAULT false NOT NULL,
 	"subnet" text,
 	"gateway" text,
 	"ipRange" text,

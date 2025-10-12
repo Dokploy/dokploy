@@ -27,7 +27,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
@@ -36,7 +35,6 @@ const UpdateNetworkSchema = z.object({
 		message: "Name is required",
 	}),
 	description: z.string().optional(),
-	isDefault: z.boolean().default(false),
 });
 
 type UpdateNetwork = z.infer<typeof UpdateNetworkSchema>;
@@ -56,7 +54,6 @@ export const UpdateNetwork = ({ network }: Props) => {
 		defaultValues: {
 			name: network.name,
 			description: network.description || "",
-			isDefault: network.isDefault,
 		},
 		resolver: zodResolver(UpdateNetworkSchema),
 	});
@@ -154,29 +151,6 @@ export const UpdateNetwork = ({ network }: Props) => {
 											/>
 										</FormControl>
 										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={form.control}
-								name="isDefault"
-								render={({ field }) => (
-									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-										<div className="space-y-0.5">
-											<FormLabel className="text-base">
-												Default Network
-											</FormLabel>
-											<FormDescription>
-												Auto-assign to new resources in this project
-											</FormDescription>
-										</div>
-										<FormControl>
-											<Switch
-												checked={field.value}
-												onCheckedChange={field.onChange}
-											/>
-										</FormControl>
 									</FormItem>
 								)}
 							/>

@@ -4101,13 +4101,6 @@
           "notNull": true,
           "default": "'bridge'"
         },
-        "isDefault": {
-          "name": "isDefault",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "subnet": {
           "name": "subnet",
           "type": "text",

@@ -156,19 +156,6 @@ describe("createNetwork", () => {
 		);
 	});
 
-	it("sets isDefault and unsets other defaults", async () => {
-		const input = {
-			name: "Default Network",
-			networkName: "default-net",
-			isDefault: true,
-			organizationId: "org-1",
-		};
-
-		await createNetwork(input);
-
-		expect(db.update).toHaveBeenCalled();
-	});
-
 	it("creates network with IPAM configuration", async () => {
 		const input = {
 			name: "IPAM Network",
@@ -206,12 +193,6 @@ describe("updateNetwork", () => {
 		const result = await updateNetwork("net-123", updates);
 
 		expect(result.name).toBe("Updated Network");
-		expect(db.update).toHaveBeenCalled();
-	});
-
-	it("unsets other defaults when setting isDefault", async () => {
-		await updateNetwork("net-123", { isDefault: true });
-
 		expect(db.update).toHaveBeenCalled();
 	});
 });

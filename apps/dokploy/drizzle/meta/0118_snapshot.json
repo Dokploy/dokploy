@@ -4101,13 +4101,6 @@
           "notNull": true,
           "default": "'bridge'"
         },
-        "isDefault": {
-          "name": "isDefault",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "subnet": {
           "name": "subnet",
           "type": "text",
@@ -4126,12 +4119,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "encrypted": {
-          "name": "encrypted",
+        "attachable": {
+          "name": "attachable",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": false
+          "default": true
         },
         "internal": {
           "name": "internal",
