@@ -62,14 +62,18 @@ export const UpdateNetwork = ({ network }: Props) => {
 	});
 
 	const onSubmit = async (data: UpdateNetwork) => {
-		await mutateAsync({
-			networkId: network.networkId,
-			...data,
-		});
+		try {
+			await mutateAsync({
+				networkId: network.networkId,
+				...data,
+			});
 
-		toast.success("Network updated successfully");
-		await utils.network.all.invalidate();
-		setVisible(false);
+			toast.success("Network updated successfully");
+			await utils.network.all.invalidate();
+			setVisible(false);
+		} catch (error) {
+			console.error("Failed to update network:", error);
+		}
 	};
 
 	return (

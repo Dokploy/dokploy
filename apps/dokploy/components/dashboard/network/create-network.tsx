@@ -106,19 +106,23 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 	});
 
 	const onSubmit = async (data: CreateNetwork) => {
-		await mutateAsync({
-			...data,
-			projectId: projectId || undefined,
-			serverId: serverId || undefined,
-			subnet: data.subnet || undefined,
-			gateway: data.gateway || undefined,
-			ipRange: data.ipRange || undefined,
-		});
+		try {
+			await mutateAsync({
+				...data,
+				projectId: projectId || undefined,
+				serverId: serverId || undefined,
+				subnet: data.subnet || undefined,
+				gateway: data.gateway || undefined,
+				ipRange: data.ipRange || undefined,
+			});
 
-		toast.success("Network created successfully");
-		await utils.network.all.invalidate();
-		form.reset();
-		setVisible(false);
+			toast.success("Network created successfully");
+			await utils.network.all.invalidate();
+			form.reset();
+			setVisible(false);
+		} catch (error) {
+			console.error("Failed to create network:", error);
+		}
 	};
 
 	return (

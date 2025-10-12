@@ -28,10 +28,14 @@ export const DeleteNetwork = ({ networkId }: Props) => {
 		api.network.delete.useMutation();
 
 	const handleDelete = async () => {
-		await mutateAsync({ networkId });
-		toast.success("Network deleted successfully");
-		await utils.network.all.invalidate();
-		setIsOpen(false);
+		try {
+			await mutateAsync({ networkId });
+			toast.success("Network deleted successfully");
+			await utils.network.all.invalidate();
+			setIsOpen(false);
+		} catch (error) {
+			console.error("Failed to delete network:", error);
+		}
 	};
 
 	return (
