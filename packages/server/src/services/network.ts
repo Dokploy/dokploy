@@ -482,18 +482,6 @@ export const assignNetworkToResource = async (
 		.set({ customNetworkIds: updatedNetworkIds })
 		.where(eq(table[idField], resourceId));
 
-	try {
-		await ensureTraefikConnectedToNetwork(
-			network.networkName,
-			network.serverId,
-		);
-	} catch (error) {
-		console.warn(
-			`Failed to connect Traefik to network ${network.networkName}:`,
-			error,
-		);
-	}
-
 	return { success: true, networkId, resourceId, resourceType };
 };
 
@@ -523,6 +511,33 @@ const isNetworkUsedByResourcesWithDomains = async (
 	return hasNetworkWithDomains(allApps) || hasNetworkWithDomains(allCompose);
 };
 
+const disconnectTraefikFromNetworkIfNotUsed = async (
+	networkId: string,
+	networkName: string,
+	serverId?: string | null,
+): Promise<boolean> => {
+	const stillInUse = await isNetworkUsedByResourcesWithDomains(networkId);
+
+	if (!stillInUse) {
+		try {
+			await ensureTraefikDisconnectedFromNetwork(networkName, serverId);
+			console.log(`Traefik disconnected from network: ${networkName}`);
+			return true;
+		} catch (error) {
+			console.warn(
+				`Failed to disconnect Traefik from network ${networkName}:`,
+				error,
+			);
+			return false;
+		}
+	}
+
+	console.log(
+		`Network ${networkName} still in use by resources with domains, keeping Traefik connected`,
+	);
+	return false;
+};
+
 export const removeNetworkFromResource = async (
 	networkId: string,
 	resourceId: string,
@@ -547,21 +562,11 @@ export const removeNetworkFromResource = async (
 		.set({ customNetworkIds: updatedNetworkIds })
 		.where(eq(table[idField], resourceId));
 
-	const stillInUse = await isNetworkUsedByResourcesWithDomains(networkId);
-
-	if (!stillInUse) {
-		try {
-			await ensureTraefikDisconnectedFromNetwork(
-				network.networkName,
-				network.serverId,
-			);
-		} catch (error) {
-			console.warn(
-				`Failed to disconnect Traefik from network ${network.networkName}:`,
-				error,
-			);
-		}
-	}
+	await disconnectTraefikFromNetworkIfNotUsed(
+		networkId,
+		network.networkName,
+		network.serverId,
+	);
 
 	return { success: true, networkId, resourceId, resourceType };
 };
@@ -787,6 +792,56 @@ export const connectTraefikToResourceNetworks = async (
 	} catch (error) {
 		console.error(
 			`Error connecting Traefik to networks for ${resourceType} ${resourceId}:`,
+			error,
+		);
+	}
+};
+
+/**
+ * Disconnect Traefik from resource networks if they are no longer used by resources with domains
+ * This is called when a domain is deleted from a resource
+ */
+export const disconnectTraefikFromResourceNetworks = async (
+	resourceId: string,
+	resourceType: ResourceType,
+	serverId?: string | null,
+): Promise<void> => {
+	try {
+		const resource = await findResourceById(resourceId, resourceType);
+		const customNetworkIds = Array.from(resource.customNetworkIds || []);
+
+		if (customNetworkIds.length === 0) {
+			console.log(
+				`No custom networks for ${resourceType} ${resourceId}, skipping Traefik disconnection`,
+			);
+			return;
+		}
+
+		const customNetworks = await db.query.networks.findMany({
+			where: inArray(networks.networkId, customNetworkIds),
+		});
+
+		if (customNetworks.length === 0) {
+			console.warn(
+				`Custom networks not found in DB for ${resourceType} ${resourceId}`,
+			);
+			return;
+		}
+
+		console.log(
+			`Checking if Traefik should disconnect from ${customNetworks.length} networks for ${resourceType} ${resourceId}`,
+		);
+
+		for (const network of customNetworks) {
+			await disconnectTraefikFromNetworkIfNotUsed(
+				network.networkId,
+				network.networkName,
+				serverId,
+			);
+		}
+	} catch (error) {
+		console.error(
+			`Error disconnecting Traefik from networks for ${resourceType} ${resourceId}:`,
 			error,
 		);
 	}

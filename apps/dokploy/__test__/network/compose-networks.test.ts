@@ -223,8 +223,12 @@ describe("addCustomNetworksToCompose (with mocked DB)", () => {
 
 		const result = await addCustomNetworksToCompose(compose, ["net-1"]);
 
-		expect((result.services?.web?.networks as string[]).includes("prod-network")).toBe(true);
-		expect((result.services?.api?.networks as string[]).includes("prod-network")).toBe(true);
+		expect(
+			(result.services?.web?.networks as string[]).includes("prod-network"),
+		).toBe(true);
+		expect(
+			(result.services?.api?.networks as string[]).includes("prod-network"),
+		).toBe(true);
 	});
 
 	it("handles empty custom networks array", async () => {

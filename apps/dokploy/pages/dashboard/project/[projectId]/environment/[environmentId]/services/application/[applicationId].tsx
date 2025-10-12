@@ -15,7 +15,6 @@ import superjson from "superjson";
 import { ShowClusterSettings } from "@/components/dashboard/application/advanced/cluster/show-cluster-settings";
 import { AddCommand } from "@/components/dashboard/application/advanced/general/add-command";
 import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
-import { AssignNetworkToResource } from "@/components/dashboard/network/assign-network-to-resource";
 import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
 import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
 import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
@@ -33,6 +32,7 @@ import { ShowVolumeBackups } from "@/components/dashboard/application/volume-bac
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
+import { AssignNetworkToResource } from "@/components/dashboard/network/assign-network-to-resource";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";

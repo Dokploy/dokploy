@@ -1,5 +1,6 @@
 import {
 	createDomain,
+	disconnectTraefikFromResourceNetworks,
 	findApplicationById,
 	findComposeById,
 	findDomainById,
@@ -207,6 +208,20 @@ export const domainRouter = createTRPCRouter({
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
 				await mechanizeDockerContainer(application);
+
+				await disconnectTraefikFromResourceNetworks(
+					domain.applicationId,
+					"application",
+					application.serverId,
+				);
+			} else if (domain.composeId) {
+				const compose = await findComposeById(domain.composeId);
+
+				await disconnectTraefikFromResourceNetworks(
+					domain.composeId,
+					"compose",
+					compose.serverId,
+				);
 			}
 
 			return result;

@@ -137,9 +137,13 @@ export const AssignNetworkToResource = ({
 
 	const resourceTypeName = getResourceTypeName(resourceType);
 	const isSwarm = isSwarmResource(resourceType, composeType);
-	const isDatabaseType = ["postgres", "mysql", "mariadb", "mongo", "redis"].includes(
-		resourceType,
-	);
+	const isDatabaseType = [
+		"postgres",
+		"mysql",
+		"mariadb",
+		"mongo",
+		"redis",
+	].includes(resourceType);
 
 	const content = (
 		<div className="space-y-4">
@@ -174,10 +178,7 @@ export const AssignNetworkToResource = ({
 				</div>
 				<Popover open={open} onOpenChange={setOpen}>
 					<PopoverTrigger asChild>
-						<Button
-							size="sm"
-							disabled={!availableToAssign?.length}
-						>
+						<Button size="sm" disabled={!availableToAssign?.length}>
 							<Plus className="mr-2 h-4 w-4" />
 							Assign Network
 						</Button>

@@ -258,9 +258,7 @@ describe("deleteNetwork", () => {
 	});
 
 	it("continues deletion if Docker removal fails", async () => {
-		vi.mocked(removeDockerNetwork).mockRejectedValue(
-			new Error("Docker error"),
-		);
+		vi.mocked(removeDockerNetwork).mockRejectedValue(new Error("Docker error"));
 
 		await expect(deleteNetwork("net-123")).rejects.toThrow(
 			"Failed to remove Docker network",
@@ -294,7 +292,8 @@ describe("assignNetworkToResource", () => {
 		);
 
 		expect(result.success).toBe(true);
-		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalled();
+		// Traefik connection is deferred until a domain is added
+		expect(ensureTraefikConnectedToNetwork).not.toHaveBeenCalled();
 	});
 
 	it("throws when assigning bridge network to swarm service", async () => {
@@ -342,7 +341,7 @@ describe("assignNetworkToResource", () => {
 		).rejects.toThrow("already assigned");
 	});
 
-	it("connects Traefik to network on assignment", async () => {
+	it("does not connect Traefik on network assignment (deferred until domain is added)", async () => {
 		vi.mocked(db.query.applications.findFirst).mockResolvedValue({
 			applicationId: "app-1",
 			customNetworkIds: [],
@@ -359,10 +358,8 @@ describe("assignNetworkToResource", () => {
 
 		await assignNetworkToResource("net-123", "app-1", "application");
 
-		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledWith(
-			"overlay-net",
-			"server-1",
-		);
+		// Traefik connection is deferred until a domain is added to the resource
+		expect(ensureTraefikConnectedToNetwork).not.toHaveBeenCalled();
 	});
 });
 
