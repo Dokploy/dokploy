@@ -117,7 +117,7 @@ func getRealOS() string {
 
 func GetServerMetrics() database.ServerMetric {
 	v, _ := mem.VirtualMemory()
-	c, _ := cpu.Percent(0, false)
+	c, _ := cpu.Percent(time.Second, false)
 	cpuInfo, _ := cpu.Info()
 	diskInfo, _ := disk.Usage("/")
 	netInfo, _ := net.IOCounters(false)
