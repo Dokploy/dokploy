@@ -138,13 +138,6 @@ export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
-	if (
-		!domains.length &&
-		compose.customNetworkIds &&
-		compose.customNetworkIds.length > 0
-	) {
-		return;
-	}
 	const composeConverted = await addDomainToCompose(compose, domains);
 
 	if (!composeConverted) {
@@ -165,14 +158,6 @@ export const writeDomainsToComposeRemote = async (
 	domains: Domain[],
 	logPath: string,
 ) => {
-	if (
-		!domains.length &&
-		compose.customNetworkIds &&
-		compose.customNetworkIds.length > 0
-	) {
-		return "";
-	}
-
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
@@ -214,14 +199,6 @@ export const addDomainToCompose = async (
 		return null;
 	}
 
-	if (
-		domains.length === 0 &&
-		compose.customNetworkIds &&
-		compose.customNetworkIds.length > 0
-	) {
-		return null;
-	}
-
 	if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
@@ -231,8 +208,8 @@ export const addDomainToCompose = async (
 		result = await addCustomNetworksToCompose(result, compose.customNetworkIds);
 	}
 
-	// Ensure stacks without customNetworkIds use dokploy-network to prevent Docker Swarm
-	// from creating an unmanaged {stack}_default network
+	// Ensure all composes without customNetworkIds use dokploy-network to prevent conflicts
+	// with unmanaged network {stack}_default networks
 	if (
 		(!compose.customNetworkIds || compose.customNetworkIds.length === 0) &&
 		result.services
@@ -329,9 +306,7 @@ export const addDomainToCompose = async (
 		}
 
 		// Redundant safety check for services added after initial network setup
-		if (
-			!compose.customNetworkIds || compose.customNetworkIds.length === 0
-		) {
+		if (!compose.customNetworkIds || compose.customNetworkIds.length === 0) {
 			result.services[serviceName].networks = addDokployNetworkToService(
 				result.services[serviceName].networks,
 			);
