@@ -31,17 +31,28 @@ vi.mock("@dokploy/server/db", () => ({
 			},
 			postgres: {
 				findFirst: vi.fn(),
+				findMany: vi.fn(),
 			},
 			mysql: {
 				findFirst: vi.fn(),
+				findMany: vi.fn(),
 			},
 			mariadb: {
 				findFirst: vi.fn(),
+				findMany: vi.fn(),
 			},
 			mongo: {
 				findFirst: vi.fn(),
+				findMany: vi.fn(),
 			},
 			redis: {
+				findFirst: vi.fn(),
+				findMany: vi.fn(),
+			},
+			organization: {
+				findFirst: vi.fn(),
+			},
+			projects: {
 				findFirst: vi.fn(),
 			},
 		},
@@ -209,13 +220,20 @@ describe("deleteNetwork", () => {
 		} as any);
 
 		// Mock isNetworkInUse checks - must return undefined for unused
-		vi.mocked(db.query.applications.findFirst).mockResolvedValue(undefined as any);
-		vi.mocked(db.query.compose.findFirst).mockResolvedValue(undefined as any);
-		vi.mocked(db.query.postgres.findFirst).mockResolvedValue(undefined as any);
-		vi.mocked(db.query.mysql.findFirst).mockResolvedValue(undefined as any);
-		vi.mocked(db.query.mariadb.findFirst).mockResolvedValue(undefined as any);
-		vi.mocked(db.query.mongo.findFirst).mockResolvedValue(undefined as any);
-		vi.mocked(db.query.redis.findFirst).mockResolvedValue(undefined as any);
+		vi.mocked(db.query.applications.findMany).mockResolvedValue([]);
+		vi.mocked(db.query.compose.findMany).mockResolvedValue([]);
+		vi.mocked(db.query.postgres.findMany).mockResolvedValue([]);
+		vi.mocked(db.query.mysql.findMany).mockResolvedValue([]);
+		vi.mocked(db.query.mariadb.findMany).mockResolvedValue([]);
+		vi.mocked(db.query.mongo.findMany).mockResolvedValue([]);
+		vi.mocked(db.query.redis.findMany).mockResolvedValue([]);
+
+		// Mock inspectDockerNetwork for container check
+		vi.mocked(inspectDockerNetwork).mockResolvedValue({
+			Id: "docker-net-123",
+			Name: "test-network",
+			Containers: {},
+		} as any);
 	});
 
 	it("deletes unused network", async () => {
@@ -227,10 +245,12 @@ describe("deleteNetwork", () => {
 	});
 
 	it("throws when network is in use by application", async () => {
-		vi.mocked(db.query.applications.findFirst).mockResolvedValue({
-			applicationId: "app-1",
-			customNetworkIds: ["net-123"],
-		} as any);
+		vi.mocked(db.query.applications.findMany).mockResolvedValue([
+			{
+				applicationId: "app-1",
+				customNetworkIds: ["net-123"],
+			} as any,
+		]);
 
 		await expect(deleteNetwork("net-123")).rejects.toThrow(
 			"Cannot delete network that is in use",
@@ -242,10 +262,9 @@ describe("deleteNetwork", () => {
 			new Error("Docker error"),
 		);
 
-		const result = await deleteNetwork("net-123");
-
-		expect(result.name).toBe("Deleted Network");
-		expect(db.delete).toHaveBeenCalled();
+		await expect(deleteNetwork("net-123")).rejects.toThrow(
+			"Failed to remove Docker network",
+		);
 	});
 });
 
@@ -516,6 +535,12 @@ describe("importOrphanedNetworks", () => {
 					},
 				],
 			},
+		} as any);
+
+		// Mock organization exists
+		vi.mocked(db.query.organization.findFirst).mockResolvedValue({
+			id: "org-1",
+			name: "Test Org",
 		} as any);
 
 		const result = await importOrphanedNetworks();
