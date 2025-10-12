@@ -138,14 +138,18 @@ export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
-	// Skip only if no domains AND no custom networks
 	if (
 		!domains.length &&
-		(!compose.customNetworkIds || compose.customNetworkIds.length === 0)
+		compose.customNetworkIds &&
+		compose.customNetworkIds.length > 0
 	) {
 		return;
 	}
 	const composeConverted = await addDomainToCompose(compose, domains);
+
+	if (!composeConverted) {
+		return;
+	}
 
 	const path = getComposePath(compose);
 	const composeString = stringify(composeConverted, { lineWidth: 1000 });
@@ -161,10 +165,10 @@ export const writeDomainsToComposeRemote = async (
 	domains: Domain[],
 	logPath: string,
 ) => {
-	// Skip only if no domains AND no custom networks
 	if (
 		!domains.length &&
-		(!compose.customNetworkIds || compose.customNetworkIds.length === 0)
+		compose.customNetworkIds &&
+		compose.customNetworkIds.length > 0
 	) {
 		return "";
 	}
@@ -206,14 +210,14 @@ export const addDomainToCompose = async (
 		result = await loadDockerCompose(compose);
 	}
 
-	// Return null only if no result OR (no domains AND no custom networks)
 	if (!result) {
 		return null;
 	}
 
 	if (
 		domains.length === 0 &&
-		(!compose.customNetworkIds || compose.customNetworkIds.length === 0)
+		compose.customNetworkIds &&
+		compose.customNetworkIds.length > 0
 	) {
 		return null;
 	}
@@ -223,9 +227,24 @@ export const addDomainToCompose = async (
 		result = randomized;
 	}
 
-	// Add custom networks from customNetworkIds
 	if (compose.customNetworkIds && compose.customNetworkIds.length > 0) {
 		result = await addCustomNetworksToCompose(result, compose.customNetworkIds);
+	}
+
+	// Ensure stacks without customNetworkIds use dokploy-network to prevent Docker Swarm
+	// from creating an unmanaged {stack}_default network
+	if (
+		(!compose.customNetworkIds || compose.customNetworkIds.length === 0) &&
+		result.services
+	) {
+		for (const serviceName in result.services) {
+			const service = result.services[serviceName];
+			if (service) {
+				service.networks = addDokployNetworkToService(service.networks);
+			}
+		}
+
+		result.networks = addDokployNetworkToRoot(result.networks);
 	}
 
 	for (const domain of domains) {
@@ -309,22 +328,14 @@ export const addDomainToCompose = async (
 			}
 		}
 
-		// Only add dokploy-network if no custom networks are defined
+		// Redundant safety check for services added after initial network setup
 		if (
 			!compose.customNetworkIds || compose.customNetworkIds.length === 0
 		) {
-			// Add the dokploy-network to the service
 			result.services[serviceName].networks = addDokployNetworkToService(
 				result.services[serviceName].networks,
 			);
 		}
-	}
-
-	// Add dokploy-network to the root of the compose file (only if no custom networks)
-	if (
-		!compose.customNetworkIds || compose.customNetworkIds.length === 0
-	) {
-		result.networks = addDokployNetworkToRoot(result.networks);
 	}
 
 	return result;
