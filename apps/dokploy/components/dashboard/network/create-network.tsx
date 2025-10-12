@@ -83,10 +83,10 @@ interface Props {
 
 export const CreateNetwork = ({ serverId, projectId }: Props) => {
 	const [visible, setVisible] = useState(false);
+	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const utils = api.useUtils();
 
-	const { mutateAsync, isLoading, error, isError } =
-		api.network.create.useMutation();
+	const { mutateAsync, isLoading } = api.network.create.useMutation();
 
 	const form = useForm<CreateNetwork>({
 		defaultValues: {
@@ -104,6 +104,7 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 	});
 
 	const onSubmit = async (data: CreateNetwork) => {
+		setErrorMessage(null);
 		try {
 			await mutateAsync({
 				...data,
@@ -119,12 +120,23 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 			form.reset();
 			setVisible(false);
 		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Failed to create network";
+			setErrorMessage(message);
 			console.error("Failed to create network:", error);
 		}
 	};
 
+	const handleOpenChange = (open: boolean) => {
+		setVisible(open);
+		if (!open) {
+			setErrorMessage(null);
+			form.reset();
+		}
+	};
+
 	return (
-		<Dialog open={visible} onOpenChange={setVisible}>
+		<Dialog open={visible} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>
 				<Button>
 					<Network className="h-4 w-4" />
@@ -139,7 +151,7 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				{errorMessage && <AlertBlock type="error">{errorMessage}</AlertBlock>}
 
 				<Form {...form}>
 					<form
@@ -352,7 +364,7 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 							<Button
 								type="button"
 								variant="secondary"
-								onClick={() => setVisible(false)}
+								onClick={() => handleOpenChange(false)}
 							>
 								Cancel
 							</Button>

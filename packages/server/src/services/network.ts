@@ -159,9 +159,10 @@ export const createNetwork = async (
 				"com.dokploy.network.name": input.name,
 				...(input.projectId && { "com.dokploy.project.id": input.projectId }),
 			},
-			...(input.encrypted && input.driver === "overlay" && {
-				Options: { encrypted: "" },
-			}),
+			...(input.encrypted &&
+				input.driver === "overlay" && {
+					Options: { encrypted: "" },
+				}),
 		};
 
 		if (input.subnet || input.gateway || input.ipRange) {
@@ -176,7 +177,40 @@ export const createNetwork = async (
 			};
 		}
 
-		await createDockerNetwork(networkConfig, input.serverId);
+		try {
+			await createDockerNetwork(networkConfig, input.serverId);
+		} catch (dockerError) {
+			const errorMessage =
+				dockerError instanceof Error
+					? dockerError.message
+					: String(dockerError);
+			console.error("Error creating Docker network:", dockerError);
+
+			if (
+				errorMessage.includes("Pool overlaps") ||
+				errorMessage.includes("pool overlaps")
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `The subnet range ${input.subnet || "provided"} overlaps with an existing Docker network. Please choose a different subnet or leave empty for automatic allocation.`,
+				});
+			}
+
+			if (errorMessage.includes("already exists")) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message:
+						"A Docker network with this configuration already exists. Please use a different network name or check existing networks.",
+				});
+			}
+
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Failed to create Docker network: ${errorMessage}`,
+				cause: dockerError,
+			});
+		}
+
 		const dockerNetworkInspect = await inspectDockerNetwork(
 			input.networkName,
 			input.serverId,
@@ -213,7 +247,17 @@ export const createNetwork = async (
 		return newNetwork;
 	} catch (error) {
 		console.error("Error creating network:", error);
-		throw error;
+		if (error instanceof TRPCError) {
+			throw error;
+		}
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message:
+				error instanceof Error
+					? error.message
+					: "Unknown error occurred while creating network",
+			cause: error,
+		});
 	}
 };
 
@@ -302,7 +346,9 @@ const isNetworkInUse = async (networkId: string): Promise<boolean> => {
 		db.query.redis.findMany(),
 	]);
 
-	const hasNetwork = <T extends { customNetworkIds?: readonly string[] | null }>(
+	const hasNetwork = <
+		T extends { customNetworkIds?: readonly string[] | null },
+	>(
 		resources: T[],
 	): boolean =>
 		resources.some((resource) => {
@@ -403,7 +449,12 @@ export const assignNetworkToResource = async (
 	networkId: string,
 	resourceId: string,
 	resourceType: ResourceType,
-): Promise<{ success: boolean; networkId: string; resourceId: string; resourceType: ResourceType }> => {
+): Promise<{
+	success: boolean;
+	networkId: string;
+	resourceId: string;
+	resourceType: ResourceType;
+}> => {
 	const network = await findNetworkById(networkId);
 	const resource = await findResourceById(resourceId, resourceType);
 
@@ -416,7 +467,11 @@ export const assignNetworkToResource = async (
 		});
 	}
 
-	validateNetworkDriverCompatibility(network, resourceType, resource.composeType);
+	validateNetworkDriverCompatibility(
+		network,
+		resourceType,
+		resource.composeType,
+	);
 
 	const updatedNetworkIds = [...currentNetworkIds, networkId];
 	const table = RESOURCE_TABLE_MAP[resourceType];
@@ -428,7 +483,10 @@ export const assignNetworkToResource = async (
 		.where(eq(table[idField], resourceId));
 
 	try {
-		await ensureTraefikConnectedToNetwork(network.networkName, network.serverId);
+		await ensureTraefikConnectedToNetwork(
+			network.networkName,
+			network.serverId,
+		);
 	} catch (error) {
 		console.warn(
 			`Failed to connect Traefik to network ${network.networkName}:`,
@@ -447,12 +505,18 @@ const isNetworkUsedByResourcesWithDomains = async (
 		db.query.compose.findMany({ with: { domains: true } }),
 	]);
 
-	const hasNetworkWithDomains = <T extends { customNetworkIds?: readonly string[] | null; domains?: unknown[] }>(
-		resources: T[]
+	const hasNetworkWithDomains = <
+		T extends {
+			customNetworkIds?: readonly string[] | null;
+			domains?: unknown[];
+		},
+	>(
+		resources: T[],
 	): boolean =>
 		resources.some((resource) => {
 			const networkIds = Array.from(resource.customNetworkIds || []);
-			const hasDomains = Array.isArray(resource.domains) && resource.domains.length > 0;
+			const hasDomains =
+				Array.isArray(resource.domains) && resource.domains.length > 0;
 			return networkIds.includes(networkId) && hasDomains;
 		});
 
@@ -463,7 +527,12 @@ export const removeNetworkFromResource = async (
 	networkId: string,
 	resourceId: string,
 	resourceType: ResourceType,
-): Promise<{ success: boolean; networkId: string; resourceId: string; resourceType: ResourceType }> => {
+): Promise<{
+	success: boolean;
+	networkId: string;
+	resourceId: string;
+	resourceType: ResourceType;
+}> => {
 	const network = await findNetworkById(networkId);
 	const resource = await findResourceById(resourceId, resourceType);
 
@@ -595,7 +664,8 @@ export const importOrphanedNetworks = async (
 				continue;
 			}
 
-			const projectId = dockerNetwork.Labels?.["com.dokploy.project.id"] || null;
+			const projectId =
+				dockerNetwork.Labels?.["com.dokploy.project.id"] || null;
 
 			// Verify project exists if projectId is provided
 			if (projectId) {
@@ -619,8 +689,10 @@ export const importOrphanedNetworks = async (
 
 			const ipamConfig = networkInspect.IPAM?.Config?.[0];
 			const displayName =
-				dockerNetwork.Labels?.["com.dokploy.network.name"] || dockerNetwork.Name;
-			const driverType = dockerNetwork.Driver === "overlay" ? "overlay" : "bridge";
+				dockerNetwork.Labels?.["com.dokploy.network.name"] ||
+				dockerNetwork.Name;
+			const driverType =
+				dockerNetwork.Driver === "overlay" ? "overlay" : "bridge";
 
 			const [importedNetwork] = await db
 				.insert(networks)
