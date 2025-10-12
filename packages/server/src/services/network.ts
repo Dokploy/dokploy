@@ -304,31 +304,61 @@ export const updateNetwork = async (
 };
 
 const isNetworkInUse = async (networkId: string): Promise<boolean> => {
-	const usageChecks = await Promise.all([
-		db.query.applications.findFirst({
-			where: eq(applications.customNetworkIds, [networkId]),
-		}),
-		db.query.compose.findFirst({
-			where: eq(compose.customNetworkIds, [networkId]),
-		}),
-		db.query.postgres.findFirst({
-			where: eq(postgres.customNetworkIds, [networkId]),
-		}),
-		db.query.mysql.findFirst({
-			where: eq(mysql.customNetworkIds, [networkId]),
-		}),
-		db.query.mariadb.findFirst({
-			where: eq(mariadb.customNetworkIds, [networkId]),
-		}),
-		db.query.mongo.findFirst({
-			where: eq(mongo.customNetworkIds, [networkId]),
-		}),
-		db.query.redis.findFirst({
-			where: eq(redis.customNetworkIds, [networkId]),
-		}),
+	const [
+		allApps,
+		allCompose,
+		allPostgres,
+		allMysql,
+		allMariadb,
+		allMongo,
+		allRedis,
+	] = await Promise.all([
+		db.query.applications.findMany(),
+		db.query.compose.findMany(),
+		db.query.postgres.findMany(),
+		db.query.mysql.findMany(),
+		db.query.mariadb.findMany(),
+		db.query.mongo.findMany(),
+		db.query.redis.findMany(),
 	]);
 
-	return usageChecks.some((check) => check !== undefined);
+	const hasNetwork = <T extends { customNetworkIds?: readonly string[] | null }>(
+		resources: T[],
+	): boolean =>
+		resources.some((resource) => {
+			const networkIds = Array.from(resource.customNetworkIds || []);
+			return networkIds.includes(networkId);
+		});
+
+	const dbUsage =
+		hasNetwork(allApps) ||
+		hasNetwork(allCompose) ||
+		hasNetwork(allPostgres) ||
+		hasNetwork(allMysql) ||
+		hasNetwork(allMariadb) ||
+		hasNetwork(allMongo) ||
+		hasNetwork(allRedis);
+
+	if (dbUsage) {
+		return true;
+	}
+
+	// Check if Docker network has any containers connected
+	try {
+		const network = await findNetworkById(networkId);
+		const networkInspect = await inspectDockerNetwork(
+			network.networkName,
+			network.serverId,
+		);
+
+		const containers = networkInspect.Containers || {};
+		const hasConnectedContainers = Object.keys(containers).length > 0;
+
+		return hasConnectedContainers;
+	} catch (error) {
+		console.warn("Failed to inspect Docker network for usage check:", error);
+		return false;
+	}
 };
 
 export const deleteNetwork = async (
@@ -349,7 +379,12 @@ export const deleteNetwork = async (
 	try {
 		await removeDockerNetwork(network.networkName, network.serverId);
 	} catch (error) {
-		console.warn("Failed to remove Docker network, continuing:", error);
+		const errorMessage =
+			error instanceof Error ? error.message : "Unknown error";
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: `Failed to remove Docker network: ${errorMessage}. The network may still be in use by containers.`,
+		});
 	}
 
 	const deleted = await db
@@ -581,7 +616,6 @@ export const importOrphanedNetworks = async (
 			}
 
 			const projectId = dockerNetwork.Labels?.["com.dokploy.project.id"] || null;
-			let validatedProjectId = projectId;
 
 			// Verify project exists if projectId is provided
 			if (projectId) {
