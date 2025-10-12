@@ -130,7 +130,8 @@ func GetServerMetrics() database.ServerMetric {
 	}
 
 	memTotalGB := float64(v.Total) / 1024 / 1024 / 1024
-	memUsedGB := float64(v.Used) / 1024 / 1024 / 1024
+	memAvailableGB := float64(v.Available) / 1024 / 1024 / 1024
+	memUsedGB := memTotalGB - memAvailableGB
 	memUsedPercent := (memUsedGB / memTotalGB) * 100
 
 	var networkIn, networkOut float64
