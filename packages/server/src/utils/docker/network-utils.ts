@@ -179,9 +179,20 @@ export const disconnectServiceFromNetwork = async (
 		const service = remoteDocker.getService(serviceName);
 		const inspect = await service.inspect();
 
+		let networkId: string | undefined;
+		try {
+			const network = remoteDocker.getNetwork(networkName);
+			const networkInspect = await network.inspect();
+			networkId = networkInspect.Id;
+		} catch (error) {
+			console.warn(`Could not get network ID for ${networkName}:`, error);
+		}
+
 		const currentNetworks = inspect.Spec.TaskTemplate?.Networks || [];
 		const updatedNetworks = currentNetworks.filter(
-			(net: { Target?: string }) => net.Target !== networkName,
+			(net: { Target?: string }) => {
+				return net.Target !== networkId;
+			},
 		);
 
 		await service.update({
@@ -250,9 +261,7 @@ const connectTraefik = async (
 		}
 
 		if (mode === "disconnect" && !isConnected) {
-			console.log(
-				`Traefik container already disconnected from ${networkName}`,
-			);
+			console.log(`Traefik container already disconnected from ${networkName}`);
 			return;
 		}
 
