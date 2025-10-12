@@ -39,7 +39,7 @@ export const NetworkList = () => {
 
 	if (!networks || networks.length === 0) {
 		return (
-			<Card>
+			<Card className="bg-background">
 				<CardHeader>
 					<CardTitle>No Networks</CardTitle>
 					<CardDescription>
@@ -62,7 +62,7 @@ export const NetworkList = () => {
 	return (
 		<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{networks.map((network) => (
-				<Card key={network.networkId} className="relative">
+				<Card key={network.networkId} className="relative bg-background">
 					<CardHeader className="pb-3">
 						<div className="flex items-start justify-between">
 							<div className="flex items-center gap-2">

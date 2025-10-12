@@ -175,7 +175,6 @@ export const AssignNetworkToResource = ({
 				<Popover open={open} onOpenChange={setOpen}>
 					<PopoverTrigger asChild>
 						<Button
-							variant="outline"
 							size="sm"
 							disabled={!availableToAssign?.length}
 						>
@@ -286,7 +285,7 @@ export const AssignNetworkToResource = ({
 
 	if (showCard) {
 		return (
-			<Card>
+			<Card className="bg-background">
 				<CardHeader>
 					<CardTitle>Network Configuration</CardTitle>
 					<CardDescription>
