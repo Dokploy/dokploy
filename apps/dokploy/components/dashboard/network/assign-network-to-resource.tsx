@@ -201,6 +201,7 @@ export const AssignNetworkToResource = ({
 												<div className="font-medium">{network.name}</div>
 												<div className="text-xs text-muted-foreground">
 													{network.networkName} • {network.driver}
+													{network.internal && " (internal)"}
 												</div>
 											</div>
 											{network.isDefault && (
