@@ -58,5 +58,7 @@ export function filterVisibleProviders<T extends { gitProvider: GitProvider }>(
 	activeOrganizationId: string,
 	userId: string,
 ): T[] {
-	return providers.filter((provider) => canAccessProvider(provider.gitProvider, activeOrganizationId, userId));
+	return providers.filter((provider) =>
+		canAccessProvider(provider.gitProvider, activeOrganizationId, userId),
+	);
 }
