@@ -1,4 +1,6 @@
 import {
+	canAccessProvider,
+	filterVisibleProviders,
 	createGitlab,
 	findGitlabById,
 	getGitlabBranches,
@@ -41,11 +43,7 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(gitlabProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
@@ -60,13 +58,7 @@ export const gitlabRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter((provider) => {
-			return (
-				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
-			);
-		});
+		result = filterVisibleProviders(result, ctx.session.activeOrganizationId, ctx.session.userId);
 		const filtered = result
 			.filter((provider) => haveGitlabRequirements(provider))
 			.map((provider) => {
@@ -85,11 +77,7 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(gitlabProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
@@ -102,11 +90,7 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiFindGitlabBranches)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId || "");
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(gitlabProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
@@ -119,11 +103,7 @@ export const gitlabRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const gitlabProvider = await findGitlabById(input.gitlabId || "");
-				if (
-					gitlabProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					gitlabProvider.gitProvider.userId !== ctx.session.userId
-				) {
+				if (!canAccessProvider(gitlabProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to access this Gitlab provider",
@@ -143,11 +123,7 @@ export const gitlabRouter = createTRPCRouter({
 		.input(apiUpdateGitlab)
 		.mutation(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
-			if (
-				gitlabProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				gitlabProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(gitlabProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitlab provider",
