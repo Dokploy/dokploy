@@ -83,6 +83,7 @@ export const compose = pgTable("compose", {
 	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
 		.notNull()
 		.default(false),
+	is_secured: boolean("is_secured").notNull().default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
 	environmentId: text("environmentId")

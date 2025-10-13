@@ -1,0 +1,1 @@
+ALTER TABLE "compose" ADD COLUMN "is_secured" boolean DEFAULT false NOT NULL;

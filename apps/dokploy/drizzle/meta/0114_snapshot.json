@@ -1,5 +1,5 @@
 {
-  "id": "70e92aa8-56d1-4842-b844-775cb8198849",
+  "id": "37105a38-501c-4008-ad69-294afe30f2d5",
   "prevId": "8310936d-e9ff-408b-ae6d-2292aac02523",
   "version": "7",
   "dialect": "postgresql",
@@ -1249,12 +1249,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< Updated upstream
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> Stashed changes
         "replicas": {
           "name": "replicas",
           "type": "integer",
@@ -2083,6 +2086,16 @@
           "notNull": true,
           "default": false
         },
+<<<<<<< Updated upstream
+=======
+        "is_secured": {
+          "name": "is_secured",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+>>>>>>> Stashed changes
         "triggerType": {
           "name": "triggerType",
           "type": "triggerType",
@@ -3291,12 +3304,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< Updated upstream
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> Stashed changes
         "replicas": {
           "name": "replicas",
           "type": "integer",
@@ -3510,12 +3526,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< Updated upstream
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> Stashed changes
         "replicas": {
           "name": "replicas",
           "type": "integer",
@@ -3946,12 +3965,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< Updated upstream
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> Stashed changes
         "replicas": {
           "name": "replicas",
           "type": "integer",
@@ -4693,12 +4715,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< Updated upstream
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> Stashed changes
         "replicas": {
           "name": "replicas",
           "type": "integer",
@@ -5174,12 +5199,15 @@
           "primaryKey": false,
           "notNull": false
         },
+<<<<<<< Updated upstream
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
           "primaryKey": false,
           "notNull": false
         },
+=======
+>>>>>>> Stashed changes
         "replicas": {
           "name": "replicas",
           "type": "integer",

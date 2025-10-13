@@ -199,6 +199,7 @@ export const applications = pgTable("application", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	is_secured: boolean("is_secured").notNull().default(false),
 });
 
 export const applicationsRelations = relations(
@@ -313,7 +314,11 @@ const createSchema = createInsertSchema(applications, {
 	watchPaths: z.array(z.string()).optional(),
 	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
+
 	stopGracePeriodSwarm: z.bigint().nullable(),
+
+	is_secured: z.boolean().optional(),
+
 });
 
 export const apiCreateApplication = createSchema.pick({
