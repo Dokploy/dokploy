@@ -105,10 +105,26 @@ export const findApplicationById = async (applicationId: string) => {
 			security: true,
 			ports: true,
 			registry: true,
-			gitlab: true,
-			github: true,
-			bitbucket: true,
-			gitea: true,
+			gitlab: {
+				with: {
+					gitProvider: true,
+				},
+			},
+			github: {
+				with: {
+					gitProvider: true,
+				},
+			},
+			bitbucket: {
+				with: {
+					gitProvider: true,
+				},
+			},
+			gitea: {
+				with: {
+					gitProvider: true,
+				},
+			},
 			server: true,
 			previewDeployments: true,
 			buildRegistry: true,
