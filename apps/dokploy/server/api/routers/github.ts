@@ -22,7 +22,13 @@ export const githubRouter = createTRPCRouter({
 		.input(apiFindOneGithub)
 		.query(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
-			if (!canAccessProvider(githubProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
+			if (
+				!canAccessProvider(
+					githubProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this github provider",
@@ -34,7 +40,13 @@ export const githubRouter = createTRPCRouter({
 		.input(apiFindOneGithub)
 		.query(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
-			if (!canAccessProvider(githubProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
+			if (
+				!canAccessProvider(
+					githubProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this github provider",
@@ -46,7 +58,13 @@ export const githubRouter = createTRPCRouter({
 		.input(apiFindGithubBranches)
 		.query(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId || "");
-			if (!canAccessProvider(githubProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
+			if (
+				!canAccessProvider(
+					githubProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
+			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -62,7 +80,11 @@ export const githubRouter = createTRPCRouter({
 			},
 		});
 
-		result = filterVisibleProviders(result, ctx.session.activeOrganizationId, ctx.session.userId);
+		result = filterVisibleProviders(
+			result,
+			ctx.session.activeOrganizationId,
+			ctx.session.userId,
+		);
 
 		const filtered = result
 			.filter((provider) => haveGithubRequirements(provider))
@@ -83,7 +105,13 @@ export const githubRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const githubProvider = await findGithubById(input.githubId);
-				if (!canAccessProvider(githubProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
+				if (
+					!canAccessProvider(
+						githubProvider.gitProvider,
+						ctx.session.activeOrganizationId,
+						ctx.session.userId,
+					)
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to access this github provider",
@@ -102,7 +130,13 @@ export const githubRouter = createTRPCRouter({
 		.input(apiUpdateGithub)
 		.mutation(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
-			if (!canAccessProvider(githubProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
+			if (
+				!canAccessProvider(
+					githubProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this github provider",
