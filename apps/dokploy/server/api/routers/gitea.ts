@@ -1,4 +1,6 @@
 import {
+	canAccessProvider,
+	filterVisibleProviders,
 	createGitea,
 	findGiteaById,
 	getGiteaBranches,
@@ -42,11 +44,7 @@ export const giteaRouter = createTRPCRouter({
 		.input(apiFindOneGitea)
 		.query(async ({ input, ctx }) => {
 			const giteaProvider = await findGiteaById(input.giteaId);
-			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(giteaProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitea provider",
@@ -62,12 +60,7 @@ export const giteaRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter(
-			(provider) =>
-				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
-		);
+		result = filterVisibleProviders(result, ctx.session.activeOrganizationId, ctx.session.userId);
 
 		const filtered = result
 			.filter((provider) => haveGiteaRequirements(provider))
@@ -96,11 +89,7 @@ export const giteaRouter = createTRPCRouter({
 			}
 
 			const giteaProvider = await findGiteaById(giteaId);
-			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(giteaProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitea provider",
@@ -133,11 +122,7 @@ export const giteaRouter = createTRPCRouter({
 			}
 
 			const giteaProvider = await findGiteaById(giteaId);
-			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(giteaProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitea provider",
@@ -166,11 +151,7 @@ export const giteaRouter = createTRPCRouter({
 
 			try {
 				const giteaProvider = await findGiteaById(giteaId);
-				if (
-					giteaProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					giteaProvider.gitProvider.userId !== ctx.session.userId
-				) {
+				if (!canAccessProvider(giteaProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to access this Gitea provider",
@@ -195,11 +176,7 @@ export const giteaRouter = createTRPCRouter({
 		.input(apiUpdateGitea)
 		.mutation(async ({ input, ctx }) => {
 			const giteaProvider = await findGiteaById(input.giteaId);
-			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(giteaProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitea provider",
@@ -237,11 +214,7 @@ export const giteaRouter = createTRPCRouter({
 			}
 
 			const giteaProvider = await findGiteaById(giteaId);
-			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(giteaProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this Gitea provider",

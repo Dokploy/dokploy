@@ -1,4 +1,6 @@
 import {
+	canAccessProvider,
+	filterVisibleProviders,
 	createBitbucket,
 	findBitbucketById,
 	getBitbucketBranches,
@@ -39,12 +41,7 @@ export const bitbucketRouter = createTRPCRouter({
 		.input(apiFindOneBitbucket)
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
-			if (
-				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
-				!bitbucketProvider.gitProvider.sharedInOrg
-			) {
+			if (!canAccessProvider(bitbucketProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
@@ -62,14 +59,7 @@ export const bitbucketRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter((provider) => {
-			return (
-				(provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-					provider.gitProvider.sharedInOrg) ||
-				provider.gitProvider.userId === ctx.session.userId
-			);
-		});
+		result = filterVisibleProviders(result, ctx.session.activeOrganizationId, ctx.session.userId);
 		return result;
 	}),
 
@@ -77,11 +67,7 @@ export const bitbucketRouter = createTRPCRouter({
 		.input(apiFindOneBitbucket)
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
-			if (
-				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId
-			) {
+			if (!canAccessProvider(bitbucketProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
@@ -95,12 +81,7 @@ export const bitbucketRouter = createTRPCRouter({
 			const bitbucketProvider = await findBitbucketById(
 				input.bitbucketId || "",
 			);
-			if (
-				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
-				!bitbucketProvider.gitProvider.sharedInOrg
-			) {
+			if (!canAccessProvider(bitbucketProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
@@ -113,12 +94,7 @@ export const bitbucketRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const bitbucketProvider = await findBitbucketById(input.bitbucketId);
-				if (
-					bitbucketProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
-					!bitbucketProvider.gitProvider.sharedInOrg
-				) {
+				if (!canAccessProvider(bitbucketProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not allowed to access this bitbucket provider",
@@ -138,12 +114,7 @@ export const bitbucketRouter = createTRPCRouter({
 		.input(apiUpdateBitbucket)
 		.mutation(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
-			if (
-				bitbucketProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				bitbucketProvider.gitProvider.userId !== ctx.session.userId &&
-				!bitbucketProvider.gitProvider.sharedInOrg
-			) {
+			if (!canAccessProvider(bitbucketProvider.gitProvider, ctx.session.activeOrganizationId, ctx.session.userId)) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not allowed to access this bitbucket provider",
