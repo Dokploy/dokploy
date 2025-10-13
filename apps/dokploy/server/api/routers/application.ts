@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	canAccessProvider,
 	checkServiceAccess,
 	createApplication,
 	deleteAllMiddlewares,
@@ -405,8 +406,11 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					application.github?.gitProvider!,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -433,8 +437,11 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					application.gitlab?.gitProvider!,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -462,8 +469,11 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					application.bitbucket?.gitProvider!,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -489,8 +499,11 @@ export const applicationRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					application.gitea?.gitProvider!,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
