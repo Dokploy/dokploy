@@ -318,7 +318,6 @@ const createSchema = createInsertSchema(applications, {
 	stopGracePeriodSwarm: z.bigint().nullable(),
 
 	is_secured: z.boolean().optional(),
-
 });
 
 export const apiCreateApplication = createSchema.pick({
