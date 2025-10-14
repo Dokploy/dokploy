@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Fingerprint, QrCode } from "lucide-react";
+import { CopyIcon, Fingerprint, QrCode } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -29,6 +29,12 @@ import {
 	InputOTPGroup,
 	InputOTPSlot,
 } from "@/components/ui/input-otp";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
@@ -281,7 +287,33 @@ export const Enable2FA = () => {
 
 										{backupCodes && backupCodes.length > 0 && (
 											<div className="w-full space-y-3 border rounded-lg p-4">
-												<h4 className="font-medium">Backup Codes</h4>
+												<div className="flex items-center justify-between">
+													<h4 className="font-medium">Backup Codes</h4>
+													<TooltipProvider>
+														<Tooltip delayDuration={0}>
+															<TooltipTrigger>
+																<Button
+																	type="button"
+																	variant="outline"
+																	size="icon"
+																	onClick={() => {
+																		navigator.clipboard.writeText(
+																			backupCodes.join("\n"),
+																		);
+																		toast.success(
+																			"Backup codes copied to clipboard",
+																		);
+																	}}
+																>
+																	<CopyIcon className="size-4" />
+																</Button>
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>Copy</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+												</div>
 												<div className="grid grid-cols-2 gap-2">
 													{backupCodes.map((code, index) => (
 														<code
