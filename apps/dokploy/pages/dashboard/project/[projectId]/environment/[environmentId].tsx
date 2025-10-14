@@ -15,7 +15,9 @@ import {
 	Search,
 	ServerIcon,
 	Trash2,
-	X,Terminal,SquareTerminal
+	X,
+	Terminal,
+	SquareTerminal,
 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -779,8 +781,8 @@ const EnvironmentPage = (
 										currentEnvironmentId={environmentId}
 									/>
 									<EnvironmentVariables environmentId={environmentId}>
-        <SquareTerminal className="h-5 w-5 text-muted-foreground" />
-    </EnvironmentVariables>
+										<SquareTerminal className="h-5 w-5 text-muted-foreground" />
+									</EnvironmentVariables>
 								</CardTitle>
 								<CardDescription>
 									{currentEnvironment.description || "No description provided"}
