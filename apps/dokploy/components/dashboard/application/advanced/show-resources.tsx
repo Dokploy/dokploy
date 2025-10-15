@@ -150,7 +150,7 @@ export const ShowResources = ({ id, type }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<div className="flex items-center gap-2">
+											<div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
 												<FormLabel>Memory Limit</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
@@ -182,7 +182,7 @@ export const ShowResources = ({ id, type }: Props) => {
 								name="memoryReservation"
 								render={({ field }) => (
 									<FormItem>
-										<div className="flex items-center gap-2">
+										<div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
 											<FormLabel>Memory Reservation</FormLabel>
 											<TooltipProvider>
 												<Tooltip delayDuration={0}>
@@ -215,7 +215,7 @@ export const ShowResources = ({ id, type }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<div className="flex items-center gap-2">
+											<div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
 												<FormLabel>CPU Limit</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
@@ -249,7 +249,7 @@ export const ShowResources = ({ id, type }: Props) => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<div className="flex items-center gap-2">
+											<div className="flex items-center gap-2" onClick={(e) => e.preventDefault()}>
 												<FormLabel>CPU Reservation</FormLabel>
 												<TooltipProvider>
 													<Tooltip delayDuration={0}>
