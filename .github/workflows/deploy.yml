@@ -8,6 +8,9 @@ on:
 jobs:
   build-and-push-cloud-image:
     runs-on: depot-ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -19,7 +22,6 @@ jobs:
         with:
           context: .
           project: w97qrww01h
-          token: ${{ secrets.DEPOT_TOKEN }}
           file: ./Dockerfile.cloud
           push: false
           tags: |
@@ -32,6 +34,9 @@ jobs:
 
   build-and-push-schedule-image:
     runs-on: depot-ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -42,7 +47,6 @@ jobs:
         with:
           context: .
           project: w97qrww01h
-          token: ${{ secrets.DEPOT_TOKEN }}
           file: ./Dockerfile.schedule
           push: false
           tags: |
@@ -51,7 +55,9 @@ jobs:
 
   build-and-push-server-image:
     runs-on: depot-ubuntu-24.04
-
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -61,7 +67,6 @@ jobs:
         with:
           context: .
           project: w97qrww01h
-          token: ${{ secrets.DEPOT_TOKEN }}
           file: ./Dockerfile.server
           push: false
           tags: |
