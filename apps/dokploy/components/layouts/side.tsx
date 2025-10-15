@@ -135,258 +135,155 @@ type Menu = {
 // The items are filtered based on the user's role and permissions
 // The `isEnabled` function is called to determine if the item should be displayed
 const MENU: Menu = {
-	home: [
-		{
-			isSingle: true,
-			title: "Projects",
-			url: "/dashboard/projects",
-			icon: Folder,
-		},
-		{
-			isSingle: true,
-			title: "Monitoring",
-			url: "/dashboard/monitoring",
-			icon: BarChartHorizontalBigIcon,
-			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud }) => !isCloud,
-		},
-		{
-			isSingle: true,
-			title: "Schedules",
-			url: "/dashboard/schedules",
-			icon: Clock,
-			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud, auth }) => !isCloud && auth?.role === "owner",
-		},
-		{
-			isSingle: true,
-			title: "Traefik File System",
-			url: "/dashboard/traefik",
-			icon: GalleryVerticalEnd,
-			// Only enabled for admins and users with access to Traefik files in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" || auth?.canAccessToTraefikFiles) &&
-					!isCloud
-				),
-		},
-		{
-			isSingle: true,
-			title: "Docker",
-			url: "/dashboard/docker",
-			icon: BlocksIcon,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
-		},
-		{
-			isSingle: true,
-			title: "Swarm",
-			url: "/dashboard/swarm",
-			icon: PieChart,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
-		},
-		{
-			isSingle: true,
-			title: "Requests",
-			url: "/dashboard/requests",
-			icon: Forward,
-			// Only enabled for admins and users with access to Docker in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
-		},
-
-		// Legacy unused menu, adjusted to the new structure
-		// {
-		// 	isSingle: true,
-		// 	title: "Projects",
-		// 	url: "/dashboard/projects",
-		// 	icon: Folder,
-		// },
-		// {
-		// 	isSingle: true,
-		// 	title: "Monitoring",
-		// 	icon: BarChartHorizontalBigIcon,
-		// 	url: "/dashboard/settings/monitoring",
-		// },
-		// {
-		//   isSingle: false,
-		//   title: "Settings",
-		//   icon: Settings2,
-		//   items: [
-		//     {
-		//       title: "Profile",
-		//       url: "/dashboard/settings/profile",
-		//     },
-		//     {
-		//       title: "Users",
-		//       url: "/dashboard/settings/users",
-		//     },
-		//     {
-		//       title: "SSH Key",
-		//       url: "/dashboard/settings/ssh-keys",
-		//     },
-		//     {
-		//       title: "Git",
-		//       url: "/dashboard/settings/git-providers",
-		//     },
-		//   ],
-		// },
-		// {
-		//   isSingle: false,
-		//   title: "Integrations",
-		//   icon: BlocksIcon,
-		//   items: [
-		//     {
-		//       title: "S3 Destinations",
-		//       url: "/dashboard/settings/destinations",
-		//     },
-		//     {
-		//       title: "Registry",
-		//       url: "/dashboard/settings/registry",
-		//     },
-		//     {
-		//       title: "Notifications",
-		//       url: "/dashboard/settings/notifications",
-		//     },
-		//   ],
-		// },
-	],
-
-	settings: [
-		{
-			isSingle: true,
-			title: "Web Server",
-			url: "/dashboard/settings/server",
-			icon: Activity,
-			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
-		},
-		{
-			isSingle: true,
-			title: "Profile",
-			url: "/dashboard/settings/profile",
-			icon: User,
-		},
-		{
-			isSingle: true,
-			title: "Remote Servers",
-			url: "/dashboard/settings/servers",
-			icon: Server,
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-		{
-			isSingle: true,
-			title: "Users",
-			icon: Users,
-			url: "/dashboard/settings/users",
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-		{
-			isSingle: true,
-			title: "SSH Keys",
-			icon: KeyRound,
-			url: "/dashboard/settings/ssh-keys",
-			// Only enabled for admins and users with access to SSH keys
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
-		},
-		{
-			title: "AI",
-			icon: BotIcon,
-			url: "/dashboard/settings/ai",
-			isSingle: true,
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-		{
-			isSingle: true,
-			title: "Git",
-			url: "/dashboard/settings/git-providers",
-			icon: GitBranch,
-			// Only enabled for admins and users with access to Git providers
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.canAccessToGitProviders),
-		},
-		{
-			isSingle: true,
-			title: "Registry",
-			url: "/dashboard/settings/registry",
-			icon: Package,
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-		{
-			isSingle: true,
-			title: "S3 Destinations",
-			url: "/dashboard/settings/destinations",
-			icon: Database,
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-
-		{
-			isSingle: true,
-			title: "Certificates",
-			url: "/dashboard/settings/certificates",
-			icon: ShieldCheck,
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-		{
-			isSingle: true,
-			title: "Cluster",
-			url: "/dashboard/settings/cluster",
-			icon: Boxes,
-			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
-		},
-		{
-			isSingle: true,
-			title: "Notifications",
-			url: "/dashboard/settings/notifications",
-			icon: Bell,
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
-		{
-			isSingle: true,
-			title: "Billing",
-			url: "/dashboard/settings/billing",
-			icon: CreditCard,
-			// Only enabled for admins in cloud environments
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
-		},
-	],
-
-	help: [
-		{
-			name: "Documentation",
-			url: "https://docs.dokploy.com/docs/core",
-			icon: BookIcon,
-		},
-		{
-			name: "Support",
-			url: "https://discord.gg/2tBnJ3jDJc",
-			icon: CircleHelp,
-		},
-		{
-			name: "Sponsor",
-			url: "https://opencollective.com/dokploy",
-			icon: ({ className }) => (
-				<HeartIcon
-					className={cn(
-						"text-red-500 fill-red-600 animate-heartbeat",
-						className,
-					)}
-				/>
-			),
-		},
-	],
+  home: [
+    {
+      isSingle: true,
+      title: "Projects",
+      url: "/dashboard/projects",
+      icon: Folder,
+    },
+  ],
+  settings: [
+    {
+      isSingle: false,
+      title: "Dokploy Server",
+      icon: Server,
+      items: [
+        {
+          title: "Web Server",
+          url: "/dashboard/settings/server",
+          icon: Activity,
+        },
+        {
+          title: "Monitoring",
+          url: "/dashboard/monitoring",
+          icon: BarChartHorizontalBigIcon,
+        },
+        {
+          title: "Schedules",
+          url: "/dashboard/schedules",
+          icon: Clock,
+        },
+        {
+          title: "Traefik File System",
+          url: "/dashboard/traefik",
+          icon: GalleryVerticalEnd,
+        },
+        {
+          title: "Docker",
+          url: "/dashboard/docker",
+          icon: BlocksIcon,
+        },
+        {
+          title: "Swarm",
+          url: "/dashboard/swarm",
+          icon: PieChart,
+        },
+        {
+          title: "Requests",
+          url: "/dashboard/requests",
+          icon: Forward,
+        },
+      ],
+    },
+    {
+      isSingle: false,
+      title: "Configuration",
+      icon: KeyRound,
+      items: [
+        {
+          title: "Git",
+          url: "/dashboard/settings/git-providers",
+          icon: GitBranch,
+        },
+        {
+          title: "S3 Destinations",
+          url: "/dashboard/settings/destinations",
+          icon: Database,
+        },
+        {
+          title: "AI",
+          url: "/dashboard/settings/ai",
+          icon: BotIcon,
+        },
+        {
+          title: "Certificates",
+          url: "/dashboard/settings/certificates",
+          icon: ShieldCheck,
+        },
+      ],
+    },
+    {
+      isSingle: false,
+      title: "Cluster",
+      icon: Boxes,
+      items: [
+        {
+          title: "SSH Keys",
+          url: "/dashboard/settings/ssh-keys",
+          icon: KeyRound,
+        },
+        {
+          title: "Registry",
+          url: "/dashboard/settings/registry",
+          icon: Package,
+        },
+        {
+          title: "Cluster",
+          url: "/dashboard/settings/cluster",
+          icon: Boxes,
+        },
+        {
+          title: "Remote Servers",
+          url: "/dashboard/settings/servers",
+          icon: Server,
+        },
+      ],
+    },
+    {
+      isSingle: false,
+      title: "Manage",
+      icon: Users,
+      items: [
+        {
+          title: "Users",
+          url: "/dashboard/settings/users",
+          icon: Users,
+        },
+        {
+          title: "Notifications",
+          url: "/dashboard/settings/notifications",
+          icon: Bell,
+        },
+      ],
+    },
+  ],
+  help: [
+    {
+      name: "Documentation",
+      url: "https://docs.dokploy.com/docs/core",
+      icon: BookIcon,
+    },
+    {
+      name: "Support",
+      url: "https://discord.gg/2tBnJ3jDJc",
+      icon: CircleHelp,
+    },
+    {
+      name: "Sponsor",
+      url: "https://opencollective.com/dokploy",
+      icon: ({ className }) => (
+        <HeartIcon
+          className={cn(
+            "text-red-500 fill-red-600 animate-heartbeat",
+            className,
+          )}
+        />
+      ),
+    },
+  ],
 } as const;
+
 
 /**
  * Creates a menu based on the current user's role and permissions
@@ -869,31 +766,34 @@ export default function Page({ children }: Props) {
 													</CollapsibleTrigger>
 													<CollapsibleContent>
 														<SidebarMenuSub>
-															{item.items?.map((subItem) => (
-																<SidebarMenuSubItem key={subItem.title}>
-																	<SidebarMenuSubButton
-																		asChild
-																		className={cn(isActive && "bg-border")}
-																	>
-																		<Link
-																			href={subItem.url}
-																			className="flex w-full items-center"
+															{item.items?.map((subItem) => {
+																const isSubItemActive = isActiveRoute({ itemUrl: subItem.url, pathname });
+																return (
+																	<SidebarMenuSubItem key={subItem.title}>
+																		<SidebarMenuSubButton
+																			asChild
+																			className={cn(isSubItemActive && "bg-border")}
 																		>
-																			{subItem.icon && (
-																				<span className="mr-2">
-																					<subItem.icon
-																						className={cn(
-																							"h-4 w-4 text-muted-foreground",
-																							isActive && "text-primary",
-																						)}
-																					/>
-																				</span>
-																			)}
-																			<span>{subItem.title}</span>
-																		</Link>
-																	</SidebarMenuSubButton>
-																</SidebarMenuSubItem>
-															))}
+																			<Link
+																				href={subItem.url}
+																				className="flex w-full items-center"
+																			>
+																				{subItem.icon && (
+																					<span className="mr-2">
+																						<subItem.icon
+																							className={cn(
+																								"h-4 w-4 text-muted-foreground",
+																								isSubItemActive && "text-primary",
+																							)}
+																						/>
+																					</span>
+																				)}
+																				<span>{subItem.title}</span>
+																			</Link>
+																		</SidebarMenuSubButton>
+																	</SidebarMenuSubItem>
+																);
+															})}
 														</SidebarMenuSub>
 													</CollapsibleContent>
 												</>
@@ -958,31 +858,34 @@ export default function Page({ children }: Props) {
 													</CollapsibleTrigger>
 													<CollapsibleContent>
 														<SidebarMenuSub>
-															{item.items?.map((subItem) => (
-																<SidebarMenuSubItem key={subItem.title}>
-																	<SidebarMenuSubButton
-																		asChild
-																		className={cn(isActive && "bg-border")}
-																	>
-																		<Link
-																			href={subItem.url}
-																			className="flex w-full items-center"
+															{item.items?.map((subItem) => {
+																const isSubItemActive = isActiveRoute({ itemUrl: subItem.url, pathname });
+																return (
+																	<SidebarMenuSubItem key={subItem.title}>
+																		<SidebarMenuSubButton
+																			asChild
+																			className={cn(isSubItemActive && "bg-border")}
 																		>
-																			{subItem.icon && (
-																				<span className="mr-2">
-																					<subItem.icon
-																						className={cn(
-																							"h-4 w-4 text-muted-foreground",
-																							isActive && "text-primary",
-																						)}
-																					/>
-																				</span>
-																			)}
-																			<span>{subItem.title}</span>
-																		</Link>
-																	</SidebarMenuSubButton>
-																</SidebarMenuSubItem>
-															))}
+																			<Link
+																				href={subItem.url}
+																				className="flex w-full items-center"
+																			>
+																				{subItem.icon && (
+																					<span className="mr-2">
+																						<subItem.icon
+																							className={cn(
+																								"h-4 w-4 text-muted-foreground",
+																								isSubItemActive && "text-primary",
+																							)}
+																						/>
+																					</span>
+																				)}
+																				<span>{subItem.title}</span>
+																			</Link>
+																		</SidebarMenuSubButton>
+																	</SidebarMenuSubItem>
+																);
+															})}
 														</SidebarMenuSub>
 													</CollapsibleContent>
 												</>
