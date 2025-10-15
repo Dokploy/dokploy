@@ -62,7 +62,7 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 
 ## ♥️ Sponsors
 
-🙏 We're deeply grateful to all our sponsors who make Dokploy possible! Your support helps cover the costs of hosting, testing, and developing new features.
+🙏 We're blabla deeply grateful to all our sponsors who make Dokploy possible! Your support helps cover the costs of hosting, testing, and developing new features.
 
 [Dokploy Open Collective](https://opencollective.com/dokploy)
 
