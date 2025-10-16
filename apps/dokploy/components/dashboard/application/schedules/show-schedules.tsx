@@ -44,7 +44,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 		},
 		{
 			enabled: !!id,
-		}
+		},
 	);
 
 	const utils = api.useUtils();
@@ -163,7 +163,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 															})
 																.then(async () => {
 																	await new Promise((resolve) =>
-																		setTimeout(resolve, 1500)
+																		setTimeout(resolve, 1500),
 																	);
 																	refetchSchedules();
 																})
