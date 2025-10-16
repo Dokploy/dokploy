@@ -131,6 +131,7 @@ const baseDomain: Domain = {
 	previewDeploymentId: "",
 	internalPath: "/",
 	stripPath: false,
+	scheme: "http",
 };
 
 const baseRedirect: Redirect = {
