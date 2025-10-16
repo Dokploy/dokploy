@@ -16,6 +16,8 @@ import {
 	ServerIcon,
 	Trash2,
 	X,
+	Terminal,
+	SquareTerminal,
 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -34,6 +36,7 @@ import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
+
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -96,6 +99,7 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
+import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 
 export type Services = {
 	appName: string;
@@ -776,6 +780,9 @@ const EnvironmentPage = (
 										projectId={projectId}
 										currentEnvironmentId={environmentId}
 									/>
+									<EnvironmentVariables environmentId={environmentId}>
+										<SquareTerminal className="h-5 w-5 text-muted-foreground" />
+									</EnvironmentVariables>
 								</CardTitle>
 								<CardDescription>
 									{currentEnvironment.description || "No description provided"}
