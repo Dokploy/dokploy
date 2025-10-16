@@ -128,12 +128,12 @@ export const ShowDeployment = ({
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
-						<span>
-							See all the details of this deployment |{" "}
+						<div className="flex items-center gap-2">
+							<span>See all the details of this deployment |</span>
 							<Badge variant="blank" className="text-xs">
 								{filteredLogs.length} lines
 							</Badge>
-						</span>
+						</div>
 
 						{serverId && (
 							<div className="flex items-center space-x-2">

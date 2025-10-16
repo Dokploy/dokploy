@@ -59,7 +59,7 @@ export const DockerTerminalModal = ({
 		},
 	);
 
-	const [containerId, setContainerId] = useState<string | undefined>();
+	const [containerId, setContainerId] = useState<string>("");
 	const [mainDialogOpen, setMainDialogOpen] = useState(false);
 	const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
@@ -82,7 +82,9 @@ export const DockerTerminalModal = ({
 
 	useEffect(() => {
 		if (data && data?.length > 0) {
-			setContainerId(data[0]?.containerId);
+			setContainerId(data[0]?.containerId || "");
+		} else {
+			setContainerId("");
 		}
 	}, [data]);
 
