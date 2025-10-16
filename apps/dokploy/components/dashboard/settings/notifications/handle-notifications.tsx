@@ -17,6 +17,8 @@ import {
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
+
+// import { MessageSquare as TeamsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -42,78 +44,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
-const notificationBaseSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appDeploy: z.boolean().default(false),
-	appBuildError: z.boolean().default(false),
-	databaseBackup: z.boolean().default(false),
-	dokployRestart: z.boolean().default(false),
-	dockerCleanup: z.boolean().default(false),
-	serverThreshold: z.boolean().default(false),
-});
-
-export const notificationSchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("slack"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			channel: z.string(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("telegram"),
-			botToken: z.string().min(1, { message: "Bot Token is required" }),
-			chatId: z.string().min(1, { message: "Chat ID is required" }),
-			messageThreadId: z.string().optional(),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("discord"),
-			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			decoration: z.boolean().default(true),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("email"),
-			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
-			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
-			username: z.string().min(1, { message: "Username is required" }),
-			password: z.string().min(1, { message: "Password is required" }),
-			fromAddress: z.string().min(1, { message: "From Address is required" }),
-			toAddresses: z
-				.array(
-					z.string().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
-				)
-				.min(1, { message: "At least one email is required" }),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("gotify"),
-			serverUrl: z.string().min(1, { message: "Server URL is required" }),
-			appToken: z.string().min(1, { message: "App Token is required" }),
-			priority: z.number().min(1).max(10).default(5),
-			decoration: z.boolean().default(true),
-		})
-		.merge(notificationBaseSchema),
-	z
-		.object({
-			type: z.literal("ntfy"),
-			serverUrl: z.string().min(1, { message: "Server URL is required" }),
-			topic: z.string().min(1, { message: "Topic is required" }),
-			accessToken: z.string().min(1, { message: "Access Token is required" }),
-			priority: z.number().min(1).max(5).default(3),
-		})
-		.merge(notificationBaseSchema),
-]);
-
 export const notificationsMap = {
 	slack: {
 		icon: <SlackIcon />,
@@ -132,14 +62,97 @@ export const notificationsMap = {
 		label: "Email",
 	},
 	gotify: {
-		icon: <GotifyIcon />,
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
 		label: "Gotify",
 	},
 	ntfy: {
-		icon: <NtfyIcon />,
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
 		label: "ntfy",
 	},
+	teams: {
+		icon: (
+			<img
+				src="/teams_logo.png"
+				alt="Teams"
+				className="h-7 w-7 object-contain"
+			/>
+		),
+		label: "Teams",
+	},
 };
+
+// --- added: Zod schemas required by the form resolver ---
+const notificationBaseSchema = z.object({
+	name: z.string().min(1, { message: "Name is required" }),
+	appDeploy: z.boolean().default(false),
+	appBuildError: z.boolean().default(false),
+	databaseBackup: z.boolean().default(false),
+	dokployRestart: z.boolean().default(false),
+	dockerCleanup: z.boolean().default(false),
+	serverThreshold: z.boolean().default(false),
+});
+
+export const notificationSchema = z.discriminatedUnion("type", [
+	z
+		.object({
+			type: z.literal("slack"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			channel: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("telegram"),
+			botToken: z.string().min(1, { message: "Bot Token is required" }),
+			chatId: z.string().min(1, { message: "Chat ID is required" }),
+			messageThreadId: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("discord"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("email"),
+			smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
+			smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
+			username: z.string().min(1, { message: "Username is required" }),
+			password: z.string().min(1, { message: "Password is required" }),
+			fromAddress: z.string().min(1, { message: "From Address is required" }),
+			toAddresses: z.array(z.string().email()).min(1),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("gotify"),
+			serverUrl: z.string().min(1, { message: "Server URL is required" }),
+			appToken: z.string().min(1, { message: "App Token is required" }),
+			priority: z.number().min(1).max(10).default(5),
+			decoration: z.boolean().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("ntfy"),
+			serverUrl: z.string().min(1, { message: "Server URL is required" }),
+			topic: z.string().min(1, { message: "Topic is required" }),
+			accessToken: z.string().min(1, { message: "Access Token is required" }),
+			priority: z.number().min(1).max(5).default(3),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("teams"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().optional(),
+		})
+		.merge(notificationBaseSchema),
+]);
+// --- end added schemas ---
 
 export type NotificationSchema = z.infer<typeof notificationSchema>;
 
@@ -172,6 +185,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
+	const { mutateAsync: testTeamsConnection, isLoading: isLoadingTeams } =
+		api.notification.testTeamsConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -190,6 +205,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const ntfyMutation = notificationId
 		? api.notification.updateNtfy.useMutation()
 		: api.notification.createNtfy.useMutation();
+	const teamsMutation = notificationId
+		? api.notification.updateTeams.useMutation()
+		: api.notification.createTeams.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -300,6 +318,19 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 				});
+			} else if (notification.notificationType === "teams") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.teams?.webhookUrl,
+					decoration: notification.teams?.decoration || undefined,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -313,6 +344,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		email: emailMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
+		teams: teamsMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -332,7 +364,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: data.webhookUrl,
-				channel: data.channel,
+				channel: data.channel || "",
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
@@ -361,7 +393,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: data.webhookUrl,
-				decoration: data.decoration,
+				decoration: data.decoration || false,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
@@ -397,7 +429,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
-				decoration: data.decoration,
+				decoration: data.decoration || false,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
 			});
@@ -415,6 +447,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+			});
+		} else if (data.type === "teams") {
+			promise = teamsMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				webhookUrl: data.webhookUrl,
+				decoration: data.decoration || false,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				teamsId: notification?.teamsId || "",
 			});
 		}
 
@@ -655,6 +701,50 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
+								{/* Teams provider fields */}
+								{type === "teams" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://outlook.office.com/webhook/..."
+															{...field}
+														/>
+													</FormControl>
 													<FormMessage />
 												</FormItem>
 											)}
@@ -1152,7 +1242,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingDiscord ||
 								isLoadingEmail ||
 								isLoadingGotify ||
-								isLoadingNtfy
+								isLoadingNtfy ||
+								isLoadingTeams
 							}
 							variant="secondary"
 							onClick={async () => {
@@ -1160,7 +1251,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									if (type === "slack") {
 										await testSlackConnection({
 											webhookUrl: form.getValues("webhookUrl"),
-											channel: form.getValues("channel"),
+											channel: form.getValues("channel") || "",
 										});
 									} else if (type === "telegram") {
 										await testTelegramConnection({
@@ -1195,6 +1286,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											topic: form.getValues("topic"),
 											accessToken: form.getValues("accessToken"),
 											priority: form.getValues("priority"),
+										});
+									} else if (type === "teams") {
+										await testTeamsConnection({
+											webhookUrl: form.getValues("webhookUrl"),
+											decoration: form.getValues("decoration") || false,
 										});
 									}
 									toast.success("Connection Success");
