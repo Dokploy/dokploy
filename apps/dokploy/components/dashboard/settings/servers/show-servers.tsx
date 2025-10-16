@@ -95,7 +95,7 @@ export const ShowServers = () => {
 										<span className="text-base text-muted-foreground">
 											No SSH Keys found. Add a SSH Key to start adding servers.{" "}
 											<Link
-												href="/dashboard/settings/ssh-keys"
+                                                                                            href="/dashboard/settings/keys"
 												className="text-primary"
 											>
 												Add SSH Key

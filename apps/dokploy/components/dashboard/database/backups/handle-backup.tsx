@@ -7,12 +7,13 @@ import {
 	PlusIcon,
 	RefreshCw,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
 	Command,
 	CommandEmpty,
@@ -39,6 +40,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Popover,
 	PopoverContent,
@@ -67,13 +69,24 @@ type CacheType = "cache" | "fetch";
 
 type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
 
+const NO_GPG_KEY_VALUE = "__no_gpg_key__";
+
 const Schema = z
 	.object({
 		destinationId: z.string().min(1, "Destination required"),
-		schedule: z.string().min(1, "Schedule (Cron) required"),
-		prefix: z.string().min(1, "Prefix required"),
-		enabled: z.boolean(),
-		database: z.string().min(1, "Database required"),
+                schedule: z.string().min(1, "Schedule (Cron) required"),
+                prefix: z.string().min(1, "Prefix required"),
+                gpgKeyId: z.string().optional(),
+                gpgPublicKey: z
+                        .string()
+                        .optional()
+                        .transform((value) => {
+                                if (!value) return undefined;
+                                const trimmed = value.trim();
+                                return trimmed.length > 0 ? trimmed : undefined;
+                        }),
+                enabled: z.boolean(),
+                database: z.string().min(1, "Database required"),
 		keepLatestCount: z.coerce.number().optional(),
 		serviceName: z.string().nullable(),
 		databaseType: z
@@ -124,8 +137,8 @@ const Schema = z
 			});
 		}
 
-		if (data.backupType === "compose" && data.databaseType) {
-			if (data.databaseType === "postgres") {
+                if (data.backupType === "compose" && data.databaseType) {
+                        if (data.databaseType === "postgres") {
 				if (!data.metadata?.postgres?.databaseUser) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
@@ -172,8 +185,16 @@ const Schema = z
 					});
 				}
 			}
-		}
-	});
+                }
+
+                if (data.gpgKeyId === "custom" && !data.gpgPublicKey) {
+                        ctx.addIssue({
+                                code: z.ZodIssueCode.custom,
+                                message: "Provide a public key when using a custom GPG key",
+                                path: ["gpgPublicKey"],
+                        });
+                }
+        });
 
 interface Props {
 	id?: string;
@@ -193,14 +214,15 @@ export const HandleBackup = ({
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data, isLoading } = api.destination.all.useQuery();
-	const { data: backup } = api.backup.one.useQuery(
-		{
-			backupId: backupId ?? "",
-		},
-		{
-			enabled: !!backupId,
-		},
-	);
+        const { data: backup } = api.backup.one.useQuery(
+                {
+                        backupId: backupId ?? "",
+                },
+                {
+                        enabled: !!backupId,
+                },
+        );
+        const { data: gpgKeys, isLoading: isLoadingGpgKeys } = api.gpgKey.all.useQuery();
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
 	const { mutateAsync: createBackup, isLoading: isCreatingPostgresBackup } =
 		backupId
@@ -208,12 +230,14 @@ export const HandleBackup = ({
 			: api.backup.create.useMutation();
 
 	const form = useForm<z.infer<typeof Schema>>({
-		defaultValues: {
-			database: databaseType === "web-server" ? "dokploy" : "",
-			destinationId: "",
-			enabled: true,
-			prefix: "/",
-			schedule: "",
+                defaultValues: {
+                        database: databaseType === "web-server" ? "dokploy" : "",
+                        destinationId: "",
+                        enabled: true,
+                        prefix: "/",
+                        gpgKeyId: "",
+                        gpgPublicKey: "",
+                        schedule: "",
 			keepLatestCount: undefined,
 			serviceName: null,
 			databaseType: backupType === "compose" ? undefined : databaseType,
@@ -240,24 +264,58 @@ export const HandleBackup = ({
 		},
 	);
 
-	useEffect(() => {
-		form.reset({
-			database: backup?.database
-				? backup?.database
-				: databaseType === "web-server"
-					? "dokploy"
-					: "",
-			destinationId: backup?.destinationId ?? "",
-			enabled: backup?.enabled ?? true,
-			prefix: backup?.prefix ?? "/",
-			schedule: backup?.schedule ?? "",
-			keepLatestCount: backup?.keepLatestCount ?? undefined,
-			serviceName: backup?.serviceName ?? null,
-			databaseType: backup?.databaseType ?? databaseType,
-			backupType: backup?.backupType ?? backupType,
-			metadata: backup?.metadata ?? {},
-		});
-	}, [form, form.reset, backupId, backup]);
+        useEffect(() => {
+                const managedGpgKeyId = backup?.gpgKeyId ?? backup?.gpgKey?.gpgKeyId ?? "";
+                const gpgSelection =
+                        managedGpgKeyId || (backup?.gpgPublicKey ? "custom" : "");
+
+                form.reset({
+                        database: backup?.database
+                                ? backup?.database
+                                : databaseType === "web-server"
+                                        ? "dokploy"
+                                        : "",
+                        destinationId: backup?.destinationId ?? "",
+                        enabled: backup?.enabled ?? true,
+                        prefix: backup?.prefix ?? "/",
+                        schedule: backup?.schedule ?? "",
+                        keepLatestCount: backup?.keepLatestCount ?? undefined,
+                        serviceName: backup?.serviceName ?? null,
+                        databaseType: backup?.databaseType ?? databaseType,
+                        backupType: backup?.backupType ?? backupType,
+                        metadata: backup?.metadata ?? {},
+                        gpgKeyId: gpgSelection,
+                        gpgPublicKey:
+                                managedGpgKeyId && backup?.gpgKey?.publicKey
+                                        ? backup.gpgKey.publicKey
+                                        : backup?.gpgPublicKey ?? "",
+                });
+        }, [form, form.reset, backupId, backup, databaseType, backupType]);
+
+        const selectedGpgKeyId = form.watch("gpgKeyId");
+        const selectedManagedGpgKey = useMemo(
+                () => gpgKeys?.find((key) => key.gpgKeyId === selectedGpgKeyId),
+                [gpgKeys, selectedGpgKeyId],
+        );
+
+        useEffect(() => {
+                if (!selectedGpgKeyId) {
+                        form.setValue("gpgPublicKey", "", { shouldDirty: false, shouldValidate: false });
+                        return;
+                }
+
+                if (selectedGpgKeyId === "custom") {
+                        return;
+                }
+
+                const match = gpgKeys?.find((key) => key.gpgKeyId === selectedGpgKeyId);
+                if (match) {
+                        form.setValue("gpgPublicKey", match.publicKey ?? "", {
+                                shouldDirty: false,
+                                shouldValidate: false,
+                        });
+                }
+        }, [selectedGpgKeyId, gpgKeys, form]);
 
 	const onSubmit = async (data: z.infer<typeof Schema>) => {
 		const getDatabaseId =
@@ -287,20 +345,40 @@ export const HandleBackup = ({
 										}
 									: undefined;
 
-		await createBackup({
-			destinationId: data.destinationId,
-			prefix: data.prefix,
-			schedule: data.schedule,
-			enabled: data.enabled,
-			database: data.database,
-			keepLatestCount: data.keepLatestCount ?? null,
-			databaseType: data.databaseType || databaseType,
-			serviceName: data.serviceName,
-			...getDatabaseId,
-			backupId: backupId ?? "",
-			backupType,
-			metadata: data.metadata,
-		})
+                const selection = data.gpgKeyId?.trim();
+                const usingManagedKey = !!selection && selection !== "custom";
+                const managedKey = usingManagedKey
+                        ? gpgKeys?.find((key) => key.gpgKeyId === selection)
+                        : undefined;
+
+                if (usingManagedKey && !managedKey) {
+                        toast.error("Selected GPG key is no longer available. Please refresh and try again.");
+                        return;
+                }
+
+                const resolvedGpgPublicKey = usingManagedKey
+                        ? managedKey?.publicKey ?? null
+                        : selection === "custom"
+                                ? data.gpgPublicKey ?? null
+                                : null;
+                const resolvedGpgKeyId = usingManagedKey && managedKey ? selection : null;
+
+                await createBackup({
+                        destinationId: data.destinationId,
+                        prefix: data.prefix,
+                        schedule: data.schedule,
+                        enabled: data.enabled,
+                        database: data.database,
+                        keepLatestCount: data.keepLatestCount ?? null,
+                        databaseType: data.databaseType || databaseType,
+                        serviceName: data.serviceName,
+                        ...getDatabaseId,
+                        backupId: backupId ?? "",
+                        backupType,
+                        metadata: data.metadata,
+                        gpgPublicKey: resolvedGpgPublicKey,
+                        gpgKeyId: resolvedGpgKeyId,
+                })
 			.then(async () => {
 				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
 				refetch();
@@ -581,31 +659,130 @@ export const HandleBackup = ({
 
 							<ScheduleFormField name="schedule" formControl={form.control} />
 
-							<FormField
-								control={form.control}
-								name="prefix"
-								render={({ field }) => {
-									return (
-										<FormItem>
-											<FormLabel>Prefix Destination</FormLabel>
-											<FormControl>
-												<Input placeholder={"dokploy/"} {...field} />
-											</FormControl>
-											<FormDescription>
-												Use if you want to back up in a specific path of your
-												destination/bucket
-											</FormDescription>
+                                                        <FormField
+                                                                control={form.control}
+                                                                name="prefix"
+                                                                render={({ field }) => {
+                                                                        return (
+                                                                                <FormItem>
+                                                                                        <FormLabel>Prefix Destination</FormLabel>
+                                                                                        <FormControl>
+                                                                                                <Input placeholder={"dokploy/"} {...field} />
+                                                                                        </FormControl>
+                                                                                        <FormDescription>
+                                                                                                Use if you want to back up in a specific path of your
+                                                                                                destination/bucket
+                                                                                        </FormDescription>
 
-											<FormMessage />
-										</FormItem>
-									);
-								}}
-							/>
-							<FormField
-								control={form.control}
-								name="keepLatestCount"
-								render={({ field }) => {
-									return (
+                                                                                        <FormMessage />
+                                                                                </FormItem>
+                                                                        );
+                                                                }}
+                                                        />
+                                                        <FormField
+                                                                control={form.control}
+                                                                name="gpgKeyId"
+                                                                render={({ field }) => (
+                                                                        <FormItem>
+                                                                                <FormLabel>Backup encryption</FormLabel>
+                                                                                <FormControl>
+                                                                                        <Select
+                                                                                                value={
+                                                                                                        field.value && field.value.length > 0
+                                                                                                                ? field.value
+                                                                                                                : NO_GPG_KEY_VALUE
+                                                                                                }
+                                                                                                onValueChange={(value) => {
+                                                                                                        const normalizedValue =
+                                                                                                                value === NO_GPG_KEY_VALUE ? "" : value;
+                                                                                                        field.onChange(normalizedValue);
+                                                                                                }}
+                                                                                        >
+                                                                                                <SelectTrigger
+                                                                                                        disabled={isLoadingGpgKeys}
+                                                                                                        className="w-full"
+                                                                                                >
+                                                                                                        <SelectValue placeholder="Select encryption" />
+                                                                                                </SelectTrigger>
+                                                                                                <SelectContent>
+                                                                                                        <SelectItem value={NO_GPG_KEY_VALUE}>
+                                                                                                                No encryption
+                                                                                                        </SelectItem>
+                                                                                                        <SelectItem value="custom">
+                                                                                                                Provide custom key
+                                                                                                        </SelectItem>
+                                                                                                        {gpgKeys?.map((gpgKey) => (
+                                                                                                                <SelectItem
+                                                                                                                        key={gpgKey.gpgKeyId}
+                                                                                                                        value={gpgKey.gpgKeyId}
+                                                                                                                >
+                                                                                                                        {gpgKey.name}
+                                                                                                                </SelectItem>
+                                                                                                        ))}
+                                                                                                </SelectContent>
+                                                                                        </Select>
+                                                                                </FormControl>
+                                                                                <FormDescription>
+                                                                                        Manage reusable keys from the Settings → Keys page.
+                                                                                </FormDescription>
+                                                                                {selectedManagedGpgKey && (
+                                                                                        <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                                                                                                {selectedManagedGpgKey.description && (
+                                                                                                        <p>{selectedManagedGpgKey.description}</p>
+                                                                                                )}
+                                                                                                <div className="flex flex-wrap gap-2">
+                                                                                                        <Badge
+                                                                                                                variant={selectedManagedGpgKey.privateKey
+                                                                                                                        ? "default"
+                                                                                                                        : "outline"}
+                                                                                                        >
+                                                                                                                {selectedManagedGpgKey.privateKey
+                                                                                                                        ? "Secret stored"
+                                                                                                                        : "Secret not stored"}
+                                                                                                        </Badge>
+                                                                                                        <Badge
+                                                                                                                variant={selectedManagedGpgKey.passphrase
+                                                                                                                        ? "default"
+                                                                                                                        : "outline"}
+                                                                                                        >
+                                                                                                                {selectedManagedGpgKey.passphrase
+                                                                                                                        ? "Passphrase stored"
+                                                                                                                        : "No passphrase"}
+                                                                                                        </Badge>
+                                                                                                </div>
+                                                                                        </div>
+                                                                                )}
+                                                                                <FormMessage />
+                                                                        </FormItem>
+                                                                )}
+                                                        />
+                                                        {selectedGpgKeyId === "custom" && (
+                                                                <FormField
+                                                                        control={form.control}
+                                                                        name="gpgPublicKey"
+                                                                        render={({ field }) => (
+                                                                                <FormItem>
+                                                                                        <FormLabel>Custom GPG Public Key</FormLabel>
+                                                                                        <FormControl>
+                                                                                                <Textarea
+                                                                                                        placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"
+                                                                                                        className="min-h-[150px]"
+                                                                                                        {...field}
+                                                                                                />
+                                                                                        </FormControl>
+                                                                                        <FormDescription>
+                                                                                                Backups will be encrypted with this key before uploading.
+                                                                                        </FormDescription>
+                                                                                        <FormMessage />
+                                                                                </FormItem>
+                                                                        )}
+                                                                />
+                                                        )}
+                                                        <FormField
+                                                                control={form.control}
+                                                                name="keepLatestCount"
+                                                                render={({ field }) => {
+                                                                        return (
 										<FormItem>
 											<FormLabel>Keep the latest</FormLabel>
 											<FormControl>

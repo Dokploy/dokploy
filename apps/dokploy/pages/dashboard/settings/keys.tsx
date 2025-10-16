@@ -3,22 +3,24 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowDestinations } from "@/components/dashboard/settings/ssh-keys/show-ssh-keys";
+import { GpgKeysCard } from "@/components/dashboard/settings/keys/show-gpg-keys";
+import { SshKeysCard } from "@/components/dashboard/settings/keys/show-ssh-keys";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 
 const Page = () => {
 	return (
-		<div className="flex flex-col gap-4 w-full">
-			<ShowDestinations />
-		</div>
+                <div className="flex flex-col gap-6 w-full">
+                        <SshKeysCard />
+                        <GpgKeysCard />
+                </div>
 	);
 };
 
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="SSH Keys">{page}</DashboardLayout>;
+        return <DashboardLayout metaName="Keys">{page}</DashboardLayout>;
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

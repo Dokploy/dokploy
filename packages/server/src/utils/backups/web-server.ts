@@ -1,5 +1,5 @@
 import { createWriteStream } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
@@ -30,8 +30,11 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
-		const backupFileName = `webserver-backup-${timestamp}.zip`;
-		const s3Path = `:s3:${destination.bucket}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
+                const gpgPublicKey =
+                        backup.gpgKey?.publicKey?.trim() || backup.gpgPublicKey?.trim();
+                const zipFileName = `webserver-backup-${timestamp}.zip`;
+                const finalFileName = gpgPublicKey ? `${zipFileName}.gpg` : zipFileName;
+                const s3Path = `:s3:${destination.bucket}/${normalizeS3Path(backup.prefix)}${finalFileName}`;
 
 		try {
 			await execAsync(`mkdir -p ${tempDir}/filesystem`);
@@ -72,16 +75,27 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			writeStream.write("Copied filesystem to temp directory\n");
 
-			await execAsync(
-				// Zip all .sql files since we created more than one
-				`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
-			);
+                        await execAsync(
+                                // Zip all .sql files since we created more than one
+                                `cd ${tempDir} && zip -r ${zipFileName} *.sql filesystem/ > /dev/null 2>&1`,
+                        );
 
-			writeStream.write("Zipped database and filesystem\n");
+                        writeStream.write("Zipped database and filesystem\n");
 
-			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
+                        if (gpgPublicKey) {
+                                const publicKeyPath = join(tempDir, "public.key");
+                                await writeFile(publicKeyPath, gpgPublicKey);
+                                writeStream.write("Encrypting backup with GPG\n");
+                                await execAsync(
+                                        `gpg --batch --yes --no-tty --pinentry-mode loopback --trust-model always --recipient-file "${publicKeyPath}" --output "${tempDir}/${finalFileName}" --encrypt "${tempDir}/${zipFileName}"`,
+                                );
+                                await execAsync(`rm "${tempDir}/${zipFileName}"`);
+                                writeStream.write("Encrypted backup created\n");
+                        }
+
+                        const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${finalFileName}" "${s3Path}"`;
 			writeStream.write("Running command to upload backup to S3\n");
-			await execAsync(uploadCommand);
+                        await execAsync(uploadCommand);
 			writeStream.write("Uploaded backup to S3 ✅\n");
 			writeStream.end();
 			await updateDeploymentStatus(deployment.deploymentId, "done");

@@ -4,7 +4,12 @@ import type { Mariadb } from "@dokploy/server/services/mariadb";
 import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getRestoreCommand } from "./utils";
+import {
+        getRestoreCommand,
+        normalizeGpgError,
+        prepareGpgDecryption,
+        resolveBackupGpgMaterial,
+} from "./utils";
 
 export const restoreMariadbBackup = async (
 	mariadb: Mariadb,
@@ -19,23 +24,40 @@ export const restoreMariadbBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+                const baseDownloadCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}"`;
+                const { privateKey, passphrase } = await resolveBackupGpgMaterial(
+                        backupInput,
+                );
 
-		const command = getRestoreCommand({
-			appName,
-			credentials: {
-				database: backupInput.databaseName,
-				databaseUser,
-				databasePassword,
-			},
-			type: "mariadb",
-			rcloneCommand,
-			restoreType: "database",
-		});
+                const { setup, decryptCommand } = prepareGpgDecryption({
+                        privateKey,
+                        passphrase,
+                });
+                const downloadPipeline = decryptCommand
+                        ? `${baseDownloadCommand} | ${decryptCommand} --output - | gunzip`
+                        : `${baseDownloadCommand} | gunzip`;
 
-		emit("Starting restore...");
+                const restoreSteps = getRestoreCommand({
+                        appName,
+                        credentials: {
+                                database: backupInput.databaseName,
+                                databaseUser,
+                                databasePassword,
+                        },
+                        type: "mariadb",
+                        rcloneCommand: downloadPipeline,
+                        restoreType: "database",
+                });
 
-		emit(`Executing command: ${command}`);
+                const command = `
+set -eo pipefail;
+${setup}
+${restoreSteps}
+`;
+
+                emit("Starting restore...");
+
+                emit("Executing restore command...");
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
@@ -44,17 +66,10 @@ export const restoreMariadbBackup = async (
 		}
 
 		emit("Restore completed successfully!");
-	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring mariadb backup"
-			}`,
-		);
-		throw new Error(
-			error instanceof Error ? error.message : "Error restoring mariadb backup",
-		);
-	}
+        } catch (rawError) {
+                const error = normalizeGpgError(rawError);
+                console.error(error);
+                emit(`Error: ${error.message}`);
+                throw error;
+        }
 };

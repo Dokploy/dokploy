@@ -43,16 +43,16 @@ interface Props {
 	backupType?: "database" | "compose";
 }
 export const ShowBackups = ({
-	id,
-	databaseType,
-	backupType = "database",
+        id,
+        databaseType,
+        backupType = "database",
 }: Props) => {
 	const [activeManualBackup, setActiveManualBackup] = useState<
 		string | undefined
 	>();
-	const queryMap =
-		backupType === "database"
-			? {
+        const queryMap =
+                backupType === "database"
+                        ? {
 					postgres: () =>
 						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
 					mysql: () =>
@@ -74,9 +74,9 @@ export const ShowBackups = ({
 		? query()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
-	const mutationMap =
-		backupType === "database"
-			? {
+        const mutationMap =
+                backupType === "database"
+                        ? {
 					postgres: api.backup.manualBackupPostgres.useMutation(),
 					mysql: api.backup.manualBackupMySql.useMutation(),
 					mariadb: api.backup.manualBackupMariadb.useMutation(),
@@ -87,14 +87,15 @@ export const ShowBackups = ({
 					compose: api.backup.manualBackupCompose.useMutation(),
 				};
 
-	const mutation = mutationMap[key as keyof typeof mutationMap];
+        const mutation = mutationMap[key as keyof typeof mutationMap];
 
-	const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutation
-		? mutation
-		: api.backup.manualBackupMongo.useMutation();
+        const { mutateAsync: manualBackup, isLoading: isManualBackup } = mutation
+                ? mutation
+                : api.backup.manualBackupMongo.useMutation();
 
-	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
-		api.backup.remove.useMutation();
+        const { mutateAsync: deleteBackup, isLoading: isRemoving } =
+                api.backup.remove.useMutation();
+        const { data: gpgKeys } = api.gpgKey.all.useQuery();
 
 	return (
 		<Card className="bg-background">
@@ -267,16 +268,28 @@ export const ShowBackups = ({
 																</p>
 															</div>
 
-															<div className="min-w-[100px]">
-																<span className="text-sm font-medium text-muted-foreground">
-																	Keep Latest
-																</span>
-																<p className="font-medium text-sm mt-0.5">
-																	{backup.keepLatestCount || "All"}
-																</p>
-															</div>
-														</div>
-													</div>
+                                                                                                                       <div className="min-w-[100px]">
+                                                                                                                               <span className="text-sm font-medium text-muted-foreground">
+                                                                                                                                       Keep Latest
+                                                                                                                               </span>
+                                                                                                                               <p className="font-medium text-sm mt-0.5">
+                                                                                                                                       {backup.keepLatestCount || "All"}
+                                                                                                                               </p>
+                                                                                                                       </div>
+                                                                                                                       <div className="min-w-[120px]">
+                                                                                                                               <span className="text-sm font-medium text-muted-foreground">
+                                                                                                                                       Encryption
+                                                                                                                               </span>
+                                                                                                                               <p className="font-medium text-sm mt-0.5">
+                                                                                                                               {backup.gpgKeyId
+                                                                                                                               ? gpgKeys?.find((key) => key.gpgKeyId === backup.gpgKeyId)?.name ?? "Managed key"
+                                                                                                                               : backup.gpgPublicKey
+                                                                                                                               ? "Custom key"
+                                                                                                                               : "Disabled"}
+                                                                                                                               </p>
+                                                                                                                       </div>
+                                                                                                               </div>
+                                                                                                       </div>
 
 													<div className="flex flex-row md:flex-col gap-1.5">
 														<ShowDeploymentsModal

@@ -1,55 +1,99 @@
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { apiRestoreBackup } from "@dokploy/server/db/schema";
+import type { z } from "zod";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
+import {
+        normalizeGpgError,
+        prepareGpgDecryption,
+        resolveBackupGpgMaterial,
+} from "./utils";
+
+type RestoreInput = z.infer<typeof apiRestoreBackup>;
 
 export const restoreWebServerBackup = async (
-	destination: Destination,
-	backupFile: string,
-	emit: (log: string) => void,
+        destination: Destination,
+        backupInput: RestoreInput,
+        emit: (log: string) => void,
 ) => {
-	if (IS_CLOUD) {
-		return;
-	}
-	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupFile}`;
-		const { BASE_PATH } = paths();
+        if (IS_CLOUD) {
+                return;
+        }
+        try {
+                const rcloneFlags = getS3Credentials(destination);
+                const bucketPath = `:s3:${destination.bucket}`;
+                const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+                const { BASE_PATH } = paths();
 
-		// Create a temporary directory outside of BASE_PATH
-		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-restore-"));
+                // Create a temporary directory outside of BASE_PATH
+                const tempDir = await mkdtemp(join(tmpdir(), "dokploy-restore-"));
+                const remoteFileName = backupInput.backupFile.split("/").pop() || backupInput.backupFile;
+                const isEncrypted = remoteFileName.endsWith(".gpg");
+                const decryptedFileName = isEncrypted
+                        ? remoteFileName.replace(/\.gpg$/u, "")
+                        : remoteFileName;
+                const encryptedLocalPath = join(tempDir, remoteFileName);
+                const decryptedLocalPath = join(tempDir, decryptedFileName);
+                const baseDownloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${encryptedLocalPath}"`;
+                const { privateKey, passphrase } = await resolveBackupGpgMaterial(
+                        backupInput,
+                );
 
-		try {
-			emit("Starting restore...");
-			emit(`Backup path: ${backupPath}`);
-			emit(`Temp directory: ${tempDir}`);
+                const { setup: gpgSetup, decryptCommand } = prepareGpgDecryption({
+                        privateKey,
+                        passphrase,
+                });
+
+                try {
+                        emit("Starting restore...");
+                        emit(`Backup path: ${backupPath}`);
+                        emit(`Temp directory: ${tempDir}`);
 
 			// Create temp directory
 			emit("Creating temporary directory...");
 			await execAsync(`mkdir -p ${tempDir}`);
 
 			// Download backup from S3
-			emit("Downloading backup from S3...");
-			await execAsync(
-				`rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
-			);
+                        emit("Downloading backup from S3...");
+                        await execAsync(baseDownloadCommand);
 
-			// List files before extraction
-			emit("Listing files before extraction...");
-			const { stdout: beforeFiles } = await execAsync(`ls -la ${tempDir}`);
-			emit(`Files before extraction: ${beforeFiles}`);
+                        if (isEncrypted) {
+                                if (!privateKey) {
+                                        throw new Error(
+                                                "A GPG private key is required to restore encrypted web server backups",
+                                        );
+                                }
 
-			// Extract backup
-			emit("Extracting backup...");
-			await execAsync(`cd ${tempDir} && unzip ${backupFile} > /dev/null 2>&1`);
+                                emit("Decrypting backup archive...");
+                                const decryptScript = `
+set -eo pipefail;
+${gpgSetup}
+${decryptCommand} --output "${decryptedLocalPath}" "${encryptedLocalPath}";
+rm "${encryptedLocalPath}";
+`;
+                                await execAsync(decryptScript);
+                                emit("Decryption completed.");
+                        }
 
-			// Restore filesystem first
-			emit("Restoring filesystem...");
-			emit(`Copying from ${tempDir}/filesystem/* to ${BASE_PATH}/`);
+                        // List files before extraction
+                        emit("Listing files before extraction...");
+                        const { stdout: beforeFiles } = await execAsync(`ls -la ${tempDir}`);
+                        emit(`Files before extraction: ${beforeFiles}`);
+
+                        // Extract backup
+                        emit("Extracting backup...");
+                        const archiveToExtract = isEncrypted ? decryptedFileName : remoteFileName;
+                        await execAsync(
+                                `cd ${tempDir} && unzip "${archiveToExtract}" > /dev/null 2>&1`,
+                        );
+
+                        // Restore filesystem first
+                        emit("Restoring filesystem...");
+                        emit(`Copying from ${tempDir}/filesystem/* to ${BASE_PATH}/`);
 
 			// First clean the target directory
 			emit("Cleaning target directory...");
@@ -139,15 +183,10 @@ export const restoreWebServerBackup = async (
 			emit("Cleaning up temporary files...");
 			await execAsync(`rm -rf ${tempDir}`);
 		}
-	} catch (error) {
-		console.error(error);
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring web server backup"
-			}`,
-		);
-		throw error;
-	}
+        } catch (rawError) {
+                const error = normalizeGpgError(rawError);
+                console.error(error);
+                emit(`Error: ${error.message}`);
+                throw error;
+        }
 };

@@ -10,28 +10,55 @@ export const backupVolume = async (
 	const { serviceType, volumeName, turnOff, prefix } = volumeBackup;
 	const serverId =
 		volumeBackup.application?.serverId || volumeBackup.compose?.serverId;
-	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
-	const destination = volumeBackup.destination;
-	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
-	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
+        const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
+        const destination = volumeBackup.destination;
+        const gpgPublicKey =
+                volumeBackup.gpgKey?.publicKey?.trim() || volumeBackup.gpgPublicKey?.trim();
+        const timestamp = new Date().toISOString();
+        const baseFileName = `${volumeName}-${timestamp}`;
+        const unencryptedFileName = `${baseFileName}.tar`;
+        const backupFileName = gpgPublicKey ? `${unencryptedFileName}.gpg` : unencryptedFileName;
+        const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
+        const rcloneFlags = getS3Credentials(volumeBackup.destination);
+        const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+        const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+        const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+        const gpgSetupScript = gpgPublicKey
+                ? String.raw`
+        GPG_TEMP_DIR=$(mktemp -d);
+        trap 'rm -rf "$GPG_TEMP_DIR"' EXIT;
+        GPG_PUBLIC_KEY_FILE="$GPG_TEMP_DIR/public.key";
+        cat <<'EOF' > "$GPG_PUBLIC_KEY_FILE"
+${gpgPublicKey}
+EOF
+        chmod 600 "$GPG_PUBLIC_KEY_FILE";
+        `
+                : "";
+        const gpgEncryptStep = gpgPublicKey
+                ? String.raw`
+  echo "Encrypting backup file with GPG..."
+  gpg --homedir "$GPG_TEMP_DIR" --batch --yes --no-tty --pinentry-mode loopback --trust-model always --recipient-file "$GPG_PUBLIC_KEY_FILE" --output "${volumeBackupPath}/${backupFileName}" --encrypt "${volumeBackupPath}/${unencryptedFileName}";
+  rm "${volumeBackupPath}/${unencryptedFileName}"
+  echo "Encryption completed ✅"
+        `
+                : "";
+        const archiveFileName = gpgPublicKey ? unencryptedFileName : backupFileName;
 
-	const baseCommand = `
-	set -e
-	echo "Volume name: ${volumeName}"
-	echo "Backup file name: ${backupFileName}"
-	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
-	echo "Starting volume backup" 
-	echo "Dir: ${volumeBackupPath}"
+        const baseCommand = `
+        set -e
+        echo "Volume name: ${volumeName}"
+        echo "Backup file name: ${backupFileName}"
+        echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
+        echo "Starting volume backup"
+        echo "Dir: ${volumeBackupPath}"
+${gpgSetupScript}
     docker run --rm \
   -v ${volumeName}:/volume_data \
   -v ${volumeBackupPath}:/backup \
   ubuntu \
-  bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
+  bash -c "cd /volume_data && tar cvf \"/backup/${archiveFileName}\" ."
+${gpgEncryptStep}
   echo "Volume backup done ✅"
   echo "Starting upload to S3..."
   ${rcloneCommand}

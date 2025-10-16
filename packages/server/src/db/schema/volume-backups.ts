@@ -7,6 +7,7 @@ import { applications } from "./application";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { destinations } from "./destination";
+import { gpgKeys } from "./gpg-key";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { serviceType } from "./mount";
@@ -28,15 +29,19 @@ export const volumeBackups = pgTable("volume_backup", {
 		.notNull()
 		.$defaultFn(() => generateAppName("volumeBackup")),
 	serviceName: text("serviceName"),
-	turnOff: boolean("turnOff").notNull().default(false),
-	cronExpression: text("cronExpression").notNull(),
-	keepLatestCount: integer("keepLatestCount"),
-	enabled: boolean("enabled"),
-	applicationId: text("applicationId").references(
-		() => applications.applicationId,
-		{
-			onDelete: "cascade",
-		},
+        turnOff: boolean("turnOff").notNull().default(false),
+        cronExpression: text("cronExpression").notNull(),
+        keepLatestCount: integer("keepLatestCount"),
+        enabled: boolean("enabled"),
+        gpgPublicKey: text("gpgPublicKey"),
+        gpgKeyId: text("gpgKeyId").references(() => gpgKeys.gpgKeyId, {
+                onDelete: "set null",
+        }),
+        applicationId: text("applicationId").references(
+                () => applications.applicationId,
+                {
+                        onDelete: "cascade",
+                },
 	),
 	postgresId: text("postgresId").references(() => postgres.postgresId, {
 		onDelete: "cascade",
@@ -100,6 +105,10 @@ export const volumeBackupsRelations = relations(
 		destination: one(destinations, {
 			fields: [volumeBackups.destinationId],
 			references: [destinations.destinationId],
+		}),
+		gpgKey: one(gpgKeys, {
+			fields: [volumeBackups.gpgKeyId],
+			references: [gpgKeys.gpgKeyId],
 		}),
 		deployments: many(deployments),
 	}),

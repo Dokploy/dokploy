@@ -1,24 +1,25 @@
 import {
-	createVolumeBackup,
-	findVolumeBackupById,
-	IS_CLOUD,
-	removeVolumeBackup,
-	removeVolumeBackupJob,
-	restoreVolume,
-	runVolumeBackup,
-	scheduleVolumeBackup,
-	updateVolumeBackup,
+        createVolumeBackup,
+        findVolumeBackupById,
+        IS_CLOUD,
+        removeVolumeBackup,
+        removeVolumeBackupJob,
+        restoreVolume,
+        runVolumeBackup,
+        scheduleVolumeBackup,
+        updateVolumeBackup,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import {
-	createVolumeBackupSchema,
-	updateVolumeBackupSchema,
-	volumeBackups,
+        createVolumeBackupSchema,
+        updateVolumeBackupSchema,
+        volumeBackups,
 } from "@dokploy/server/db/schema";
 import {
-	execAsyncRemote,
-	execAsyncStream,
+        execAsyncRemote,
+        execAsyncStream,
 } from "@dokploy/server/utils/process/execAsync";
+import { normalizeGpgError } from "@dokploy/server/utils/restore/utils";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -45,17 +46,19 @@ export const volumeBackupsRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			return await db.query.volumeBackups.findMany({
 				where: eq(volumeBackups[`${input.volumeBackupType}Id`], input.id),
-				with: {
-					application: true,
-					postgres: true,
-					mysql: true,
-					mariadb: true,
-					mongo: true,
-					redis: true,
-					compose: true,
-				},
-			});
-		}),
+                                with: {
+                                        application: true,
+                                        postgres: true,
+                                        mysql: true,
+                                        mariadb: true,
+                                        mongo: true,
+                                        redis: true,
+                                        compose: true,
+                                        destination: true,
+                                        gpgKey: true,
+                                },
+                        });
+                }),
 	create: protectedProcedure
 		.input(createVolumeBackupSchema)
 		.mutation(async ({ input }) => {
@@ -151,17 +154,19 @@ export const volumeBackupsRouter = createTRPCRouter({
 				override: true,
 			},
 		})
-		.input(
-			z.object({
-				backupFileName: z.string().min(1),
-				destinationId: z.string().min(1),
-				volumeName: z.string().min(1),
-				id: z.string().min(1),
-				serviceType: z.enum(["application", "compose"]),
-				serverId: z.string().optional(),
-			}),
-		)
-		.subscription(async ({ input }) => {
+                .input(
+                        z.object({
+                                backupFileName: z.string().min(1),
+                                destinationId: z.string().min(1),
+                                volumeName: z.string().min(1),
+                                id: z.string().min(1),
+                                serviceType: z.enum(["application", "compose"]),
+                                serverId: z.string().optional(),
+                                gpgPrivateKey: z.string().optional(),
+                                gpgPassphrase: z.string().optional(),
+                        }),
+                )
+                .subscription(async ({ input }) => {
 			return observable<string>((emit) => {
 				const runRestore = async () => {
 					try {
@@ -172,14 +177,16 @@ export const volumeBackupsRouter = createTRPCRouter({
 						emit.next(""); // Empty line for better readability
 
 						// Generate the restore command
-						const restoreCommand = await restoreVolume(
-							input.id,
-							input.destinationId,
-							input.volumeName,
-							input.backupFileName,
-							input.serverId || "",
-							input.serviceType,
-						);
+                                                const restoreCommand = await restoreVolume(
+                                                        input.id,
+                                                        input.destinationId,
+                                                        input.volumeName,
+                                                        input.backupFileName,
+                                                        input.serverId || "",
+                                                        input.serviceType,
+                                                        input.gpgPrivateKey,
+                                                        input.gpgPassphrase,
+                                                );
 
 						emit.next("📋 Generated restore command:");
 						emit.next("▶️ Executing restore...");
@@ -203,13 +210,16 @@ export const volumeBackupsRouter = createTRPCRouter({
 						emit.next(
 							"🎉 All containers/services have been restarted with the restored volume.",
 						);
-					} catch {
-						emit.next("");
-						emit.next("❌ Volume restore failed!");
-					} finally {
-						emit.complete();
-					}
-				};
+                                        } catch (rawError) {
+                                                const error = normalizeGpgError(rawError);
+                                                console.error(error);
+                                                emit.next("");
+                                                emit.next("❌ Volume restore failed!");
+                                                emit.next(`Reason: ${error.message}`);
+                                        } finally {
+                                                emit.complete();
+                                        }
+                                };
 
 				// Start the restore process
 				runRestore();

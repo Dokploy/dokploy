@@ -4,7 +4,12 @@ import type { Postgres } from "@dokploy/server/services/postgres";
 import type { z } from "zod";
 import { getS3Credentials } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getRestoreCommand } from "./utils";
+import {
+        getRestoreCommand,
+        normalizeGpgError,
+        prepareGpgDecryption,
+        resolveBackupGpgMaterial,
+} from "./utils";
 
 export const restorePostgresBackup = async (
 	postgres: Postgres,
@@ -20,39 +25,52 @@ export const restorePostgresBackup = async (
 
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+                const baseDownloadCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}"`;
+                const { privateKey, passphrase } = await resolveBackupGpgMaterial(
+                        backupInput,
+                );
 
-		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
+                const { setup, decryptCommand } = prepareGpgDecryption({
+                        privateKey,
+                        passphrase,
+                });
+                const downloadPipeline = decryptCommand
+                        ? `${baseDownloadCommand} | ${decryptCommand} --output - | gunzip`
+                        : `${baseDownloadCommand} | gunzip`;
 
-		const command = getRestoreCommand({
-			appName,
-			credentials: {
-				database: backupInput.databaseName,
-				databaseUser,
-			},
-			type: "postgres",
-			rcloneCommand,
-			restoreType: "database",
-		});
+                emit("Starting restore...");
+                emit(`Backup path: ${backupPath}`);
 
-		emit(`Executing command: ${command}`);
+                const restoreSteps = getRestoreCommand({
+                        appName,
+                        credentials: {
+                                database: backupInput.databaseName,
+                                databaseUser,
+                        },
+                        type: "postgres",
+                        rcloneCommand: downloadPipeline,
+                        restoreType: "database",
+                });
 
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
-		} else {
-			await execAsync(command);
-		}
+                const command = `
+set -eo pipefail;
+${setup}
+${restoreSteps}
+`;
+
+                emit("Executing restore command...");
+
+                if (serverId) {
+                        await execAsyncRemote(serverId, command);
+                } else {
+                        await execAsync(command);
+                }
 
 		emit("Restore completed successfully!");
-	} catch (error) {
-		emit(
-			`Error: ${
-				error instanceof Error
-					? error.message
-					: "Error restoring postgres backup"
-			}`,
-		);
-		throw error;
-	}
+        } catch (rawError) {
+                const error = normalizeGpgError(rawError);
+                console.error(error);
+                emit(`Error: ${error.message}`);
+                throw error;
+        }
 };

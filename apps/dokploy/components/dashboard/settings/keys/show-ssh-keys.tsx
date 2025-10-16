@@ -13,14 +13,14 @@ import {
 import { api } from "@/utils/api";
 import { HandleSSHKeys } from "./handle-ssh-keys";
 
-export const ShowDestinations = () => {
+export const SshKeysCard = () => {
 	const { data, isLoading, refetch } = api.sshKey.all.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
 		api.sshKey.remove.useMutation();
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+                        <Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">

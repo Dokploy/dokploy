@@ -5,11 +5,12 @@ import {
 	findComposeById,
 	findMariadbByBackupId,
 	findMariadbById,
-	findMongoByBackupId,
-	findMongoById,
-	findMySqlByBackupId,
-	findMySqlById,
-	findPostgresByBackupId,
+        findMongoByBackupId,
+        findMongoById,
+        findMySqlByBackupId,
+        findMySqlById,
+        findGpgKeyById,
+        findPostgresByBackupId,
 	findPostgresById,
 	findServerById,
 	IS_CLOUD,
@@ -68,11 +69,32 @@ interface RcloneFile {
 }
 
 export const backupRouter = createTRPCRouter({
-	create: protectedProcedure
-		.input(apiCreateBackup)
-		.mutation(async ({ input }) => {
-			try {
-				const newBackup = await createBackup(input);
+        create: protectedProcedure
+                .input(apiCreateBackup)
+                .mutation(async ({ input, ctx }) => {
+                        try {
+                                const { gpgKeyId, gpgPublicKey, ...rest } = input;
+                                const trimmedGpgKeyId = gpgKeyId?.trim();
+                                let resolvedGpgPublicKey = gpgPublicKey?.trim();
+                                let resolvedGpgKeyId: string | undefined;
+
+                                if (trimmedGpgKeyId) {
+                                        const gpgKey = await findGpgKeyById(trimmedGpgKeyId);
+                                        if (gpgKey.organizationId !== ctx.session.activeOrganizationId) {
+                                                throw new TRPCError({
+                                                        code: "UNAUTHORIZED",
+                                                        message: "You are not allowed to use this GPG key",
+                                                });
+                                        }
+                                        resolvedGpgKeyId = trimmedGpgKeyId;
+                                        resolvedGpgPublicKey = gpgKey.publicKey;
+                                }
+
+                                const newBackup = await createBackup({
+                                        ...rest,
+                                        gpgKeyId: resolvedGpgKeyId,
+                                        gpgPublicKey: resolvedGpgPublicKey,
+                                });
 
 				const backup = await findBackupById(newBackup.backupId);
 
@@ -128,12 +150,33 @@ export const backupRouter = createTRPCRouter({
 
 		return backup;
 	}),
-	update: protectedProcedure
-		.input(apiUpdateBackup)
-		.mutation(async ({ input }) => {
-			try {
-				await updateBackupById(input.backupId, input);
-				const backup = await findBackupById(input.backupId);
+        update: protectedProcedure
+                .input(apiUpdateBackup)
+                .mutation(async ({ input, ctx }) => {
+                        try {
+                                const { backupId, gpgKeyId, gpgPublicKey, ...rest } = input;
+                                const trimmedGpgKeyId = gpgKeyId?.trim();
+                                let resolvedGpgPublicKey = gpgPublicKey?.trim() ?? null;
+                                let resolvedGpgKeyId: string | null = null;
+
+                                if (trimmedGpgKeyId) {
+                                        const gpgKey = await findGpgKeyById(trimmedGpgKeyId);
+                                        if (gpgKey.organizationId !== ctx.session.activeOrganizationId) {
+                                                throw new TRPCError({
+                                                        code: "UNAUTHORIZED",
+                                                        message: "You are not allowed to use this GPG key",
+                                                });
+                                        }
+                                        resolvedGpgKeyId = trimmedGpgKeyId;
+                                        resolvedGpgPublicKey = gpgKey.publicKey;
+                                }
+
+                                await updateBackupById(backupId, {
+                                        ...rest,
+                                        gpgKeyId: resolvedGpgKeyId,
+                                        gpgPublicKey: resolvedGpgPublicKey,
+                                });
+                                const backup = await findBackupById(backupId);
 
 				if (IS_CLOUD) {
 					if (backup.enabled) {
@@ -410,13 +453,13 @@ export const backupRouter = createTRPCRouter({
 						});
 					});
 				}
-				if (input.databaseType === "web-server") {
-					return observable<string>((emit) => {
-						restoreWebServerBackup(destination, input.backupFile, (log) => {
-							emit.next(log);
-						});
-					});
-				}
+                                if (input.databaseType === "web-server") {
+                                        return observable<string>((emit) => {
+                                                restoreWebServerBackup(destination, input, (log) => {
+                                                        emit.next(log);
+                                                });
+                                        });
+                                }
 			}
 			if (input.backupType === "compose") {
 				const compose = await findComposeById(input.databaseId);

@@ -18,14 +18,16 @@ export const runPostgresBackup = async (
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 
-	const deployment = await createDeploymentBackup({
-		backupId: backup.backupId,
-		title: "Initializing Backup",
-		description: "Initializing Backup",
-	});
-	const { prefix } = backup;
-	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+        const deployment = await createDeploymentBackup({
+                backupId: backup.backupId,
+                title: "Initializing Backup",
+                description: "Initializing Backup",
+        });
+        const { prefix } = backup;
+        const destination = backup.destination;
+        const gpgPublicKey = (backup.gpgKey?.publicKey ?? backup.gpgPublicKey)?.trim();
+        const backupFileSuffix = gpgPublicKey ? ".sql.gz.gpg" : ".sql.gz";
+        const backupFileName = `${new Date().toISOString()}${backupFileSuffix}`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
 		const rcloneFlags = getS3Credentials(destination);

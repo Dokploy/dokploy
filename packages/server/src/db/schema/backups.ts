@@ -15,6 +15,7 @@ import { generateAppName } from ".";
 import { compose } from "./compose";
 import { deployments } from "./deployment";
 import { destinations } from "./destination";
+import { gpgKeys } from "./gpg-key";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
@@ -49,7 +50,11 @@ export const backups = pgTable("backup", {
 		.references(() => destinations.destinationId, { onDelete: "cascade" }),
 	keepLatestCount: integer("keepLatestCount"),
 	backupType: backupType("backupType").notNull().default("database"),
-	databaseType: databaseType("databaseType").notNull(),
+        databaseType: databaseType("databaseType").notNull(),
+        gpgPublicKey: text("gpgPublicKey"),
+        gpgKeyId: text("gpgKeyId").references((): AnyPgColumn => gpgKeys.gpgKeyId, {
+                onDelete: "set null",
+        }),
 	composeId: text("composeId").references(
 		(): AnyPgColumn => compose.composeId,
 		{
@@ -122,11 +127,15 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 		fields: [backups.userId],
 		references: [users_temp.id],
 	}),
-	compose: one(compose, {
-		fields: [backups.composeId],
-		references: [compose.composeId],
-	}),
-	deployments: many(deployments),
+        compose: one(compose, {
+                fields: [backups.composeId],
+                references: [compose.composeId],
+        }),
+        gpgKey: one(gpgKeys, {
+                fields: [backups.gpgKeyId],
+                references: [gpgKeys.gpgKeyId],
+        }),
+        deployments: many(deployments),
 }));
 
 const createSchema = createInsertSchema(backups, {
@@ -143,7 +152,9 @@ const createSchema = createInsertSchema(backups, {
 	mysqlId: z.string().optional(),
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
-	metadata: z.any().optional(),
+        metadata: z.any().optional(),
+        gpgPublicKey: z.string().optional(),
+        gpgKeyId: z.string().optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
@@ -156,13 +167,15 @@ export const apiCreateBackup = createSchema.pick({
 	mariadbId: true,
 	mysqlId: true,
 	postgresId: true,
-	mongoId: true,
-	databaseType: true,
-	userId: true,
-	backupType: true,
-	composeId: true,
-	serviceName: true,
-	metadata: true,
+        mongoId: true,
+        databaseType: true,
+        userId: true,
+        backupType: true,
+        composeId: true,
+        serviceName: true,
+        metadata: true,
+        gpgPublicKey: true,
+        gpgKeyId: true,
 });
 
 export const apiFindOneBackup = createSchema
@@ -185,22 +198,26 @@ export const apiUpdateBackup = createSchema
 		backupId: true,
 		destinationId: true,
 		database: true,
-		keepLatestCount: true,
-		serviceName: true,
-		metadata: true,
-		databaseType: true,
-	})
-	.required();
+                keepLatestCount: true,
+                serviceName: true,
+                metadata: true,
+                databaseType: true,
+                gpgPublicKey: true,
+                gpgKeyId: true,
+        })
+        .required();
 
 export const apiRestoreBackup = z.object({
 	databaseId: z.string(),
-	databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo", "web-server"]),
-	backupType: z.enum(["database", "compose"]),
-	databaseName: z.string().min(1),
-	backupFile: z.string().min(1),
-	destinationId: z.string().min(1),
-	metadata: z
-		.object({
+        databaseType: z.enum(["postgres", "mysql", "mariadb", "mongo", "web-server"]),
+        backupType: z.enum(["database", "compose"]),
+        databaseName: z.string().min(1),
+        backupFile: z.string().min(1),
+        destinationId: z.string().min(1),
+        gpgPrivateKey: z.string().optional(),
+        gpgPassphrase: z.string().optional(),
+        metadata: z
+                .object({
 			serviceName: z.string().optional(),
 			postgres: z
 				.object({
