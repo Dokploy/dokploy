@@ -18,6 +18,7 @@ const baseApp: ApplicationNested = {
 	appName: "",
 	autoDeploy: true,
 	enableSubmodules: false,
+	is_secured: false,
 	previewRequireCollaboratorPermissions: false,
 	serverId: "",
 	branch: null,

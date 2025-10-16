@@ -32,6 +32,7 @@ const baseApp: ApplicationNested = {
 	giteaBranch: "",
 	giteaBuildPath: "",
 	previewRequireCollaboratorPermissions: false,
+	is_secured: false,
 	giteaId: "",
 	giteaOwner: "",
 	giteaRepository: "",
