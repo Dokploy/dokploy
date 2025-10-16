@@ -299,6 +299,7 @@ export const Enable2FA = () => {
 											<span className="text-sm font-medium">
 												Scan this QR code with your authenticator app
 											</span>
+											{/** biome-ignore lint/performance/noImgElement: This is a valid use case for an img element */}
 											<img
 												src={data.qrCodeUrl}
 												alt="2FA QR Code"
