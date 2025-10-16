@@ -1,4 +1,6 @@
 import {
+	canAccessProvider,
+	filterVisibleProviders,
 	createGitea,
 	findGiteaById,
 	getGiteaBranches,
@@ -43,9 +45,11 @@ export const giteaRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const giteaProvider = await findGiteaById(input.giteaId);
 			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
+				!canAccessProvider(
+					giteaProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -62,11 +66,10 @@ export const giteaRouter = createTRPCRouter({
 			},
 		});
 
-		result = result.filter(
-			(provider) =>
-				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
+		result = filterVisibleProviders(
+			result,
+			ctx.session.activeOrganizationId,
+			ctx.session.userId,
 		);
 
 		const filtered = result
@@ -97,9 +100,11 @@ export const giteaRouter = createTRPCRouter({
 
 			const giteaProvider = await findGiteaById(giteaId);
 			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
+				!canAccessProvider(
+					giteaProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -134,9 +139,11 @@ export const giteaRouter = createTRPCRouter({
 
 			const giteaProvider = await findGiteaById(giteaId);
 			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
+				!canAccessProvider(
+					giteaProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -167,9 +174,11 @@ export const giteaRouter = createTRPCRouter({
 			try {
 				const giteaProvider = await findGiteaById(giteaId);
 				if (
-					giteaProvider.gitProvider.organizationId !==
-						ctx.session.activeOrganizationId &&
-					giteaProvider.gitProvider.userId !== ctx.session.userId
+					!canAccessProvider(
+						giteaProvider.gitProvider,
+						ctx.session.activeOrganizationId,
+						ctx.session.userId,
+					)
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -196,9 +205,11 @@ export const giteaRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const giteaProvider = await findGiteaById(input.giteaId);
 			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
+				!canAccessProvider(
+					giteaProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -238,9 +249,11 @@ export const giteaRouter = createTRPCRouter({
 
 			const giteaProvider = await findGiteaById(giteaId);
 			if (
-				giteaProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId &&
-				giteaProvider.gitProvider.userId !== ctx.session.userId
+				!canAccessProvider(
+					giteaProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
