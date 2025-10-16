@@ -34,7 +34,9 @@ interface Props {
 }
 
 export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
-	const [runningSchedules, setRunningSchedules] = useState<Set<string>>(new Set());
+	const [runningSchedules, setRunningSchedules] = useState<Set<string>>(
+		new Set(),
+	);
 	const {
 		data: schedules,
 		isLoading: isLoadingSchedules,
@@ -51,8 +53,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 	const utils = api.useUtils();
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
 		api.schedule.delete.useMutation();
-	const { mutateAsync: runManually } =
-		api.schedule.runManually.useMutation();
+	const { mutateAsync: runManually } = api.schedule.runManually.useMutation();
 
 	const handleRunManually = async (scheduleId: string) => {
 		setRunningSchedules((prev) => new Set(prev).add(scheduleId));
@@ -174,7 +175,9 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 														variant="ghost"
 														size="icon"
 														disabled={runningSchedules.has(schedule.scheduleId)}
-														onClick={() => handleRunManually(schedule.scheduleId)}
+														onClick={() =>
+															handleRunManually(schedule.scheduleId)
+														}
 													>
 														{runningSchedules.has(schedule.scheduleId) ? (
 															<Loader2 className="size-4 animate-spin" />
