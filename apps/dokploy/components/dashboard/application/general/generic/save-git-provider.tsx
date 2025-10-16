@@ -183,7 +183,7 @@ export const SaveGitProvider = ({ applicationId }: Props) => {
 						) : (
 							<Button
 								variant="secondary"
-								onClick={() => router.push("/dashboard/settings/ssh-keys")}
+                                                            onClick={() => router.push("/dashboard/settings/keys")}
 								type="button"
 							>
 								<KeyRoundIcon className="size-4" /> Add SSH Key

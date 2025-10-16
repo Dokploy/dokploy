@@ -101,20 +101,27 @@ export const ShowVolumeBackups = ({
 					</div>
 				) : volumeBackups && volumeBackups.length > 0 ? (
 					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
-						{volumeBackups.map((volumeBackup) => {
-							const serverId =
-								volumeBackup.application?.serverId ||
-								volumeBackup.postgres?.serverId ||
-								volumeBackup.mysql?.serverId ||
-								volumeBackup.mariadb?.serverId ||
-								volumeBackup.mongo?.serverId ||
-								volumeBackup.redis?.serverId ||
-								volumeBackup.compose?.serverId;
-							return (
-								<div
-									key={volumeBackup.volumeBackupId}
-									className="flex items-center justify-between rounded-lg border p-3 transition-colors bg-muted/50"
-								>
+                                                {volumeBackups.map((volumeBackup) => {
+                                                        const serverId =
+                                                                volumeBackup.application?.serverId ||
+                                                                volumeBackup.postgres?.serverId ||
+                                                                volumeBackup.mysql?.serverId ||
+                                                                volumeBackup.mariadb?.serverId ||
+                                                                volumeBackup.mongo?.serverId ||
+                                                                volumeBackup.redis?.serverId ||
+                                                                volumeBackup.compose?.serverId;
+                                                        const encryptionLabel = volumeBackup.gpgKeyId
+                                                                ? volumeBackup.gpgKey?.name ?? "Managed key"
+                                                                : volumeBackup.gpgPublicKey
+                                                                        ? "Custom key"
+                                                                        : "Disabled";
+                                                        const encryptionVariant =
+                                                                encryptionLabel === "Disabled" ? "outline" : "default";
+                                                        return (
+                                                                <div
+                                                                        key={volumeBackup.volumeBackupId}
+                                                                        className="flex items-center justify-between rounded-lg border p-3 transition-colors bg-muted/50"
+                                                                >
 									<div className="flex items-start gap-3">
 										<div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/5">
 											<DatabaseBackup className="size-4 text-primary/70" />
@@ -133,18 +140,24 @@ export const ShowVolumeBackups = ({
 													{volumeBackup.enabled ? "Enabled" : "Disabled"}
 												</Badge>
 											</div>
-											<div className="flex items-center gap-2 text-sm text-muted-foreground">
-												<Badge
-													variant="outline"
-													className="font-mono text-[10px] bg-transparent"
-												>
-													Cron: {volumeBackup.cronExpression}
-												</Badge>
-											</div>
-										</div>
-									</div>
+                                                                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                                                                <Badge
+                                                                                                        variant="outline"
+                                                                                                        className="font-mono text-[10px] bg-transparent"
+                                                                                                >
+                                                                                                        Cron: {volumeBackup.cronExpression}
+                                                                                                </Badge>
+                                                                                                <Badge
+                                                                                                        variant={encryptionVariant}
+                                                                                                        className="font-mono text-[10px]"
+                                                                                                >
+                                                                                                        Encryption: {encryptionLabel}
+                                                                                                </Badge>
+                                                                                        </div>
+                                                                                </div>
+                                                                        </div>
 
-									<div className="flex items-center gap-1.5">
+                                                                        <div className="flex items-center gap-1.5">
 										<ShowDeploymentsModal
 											id={volumeBackup.volumeBackupId}
 											type="volumeBackup"

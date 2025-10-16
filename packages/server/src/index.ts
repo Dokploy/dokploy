@@ -18,6 +18,7 @@ export * from "./services/docker";
 export * from "./services/domain";
 export * from "./services/environment";
 export * from "./services/git-provider";
+export * from "./services/gpg-key";
 export * from "./services/gitea";
 export * from "./services/github";
 export * from "./services/gitlab";

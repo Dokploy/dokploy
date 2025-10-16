@@ -13,6 +13,7 @@ import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
 import { environmentRouter } from "./routers/environment";
 import { gitProviderRouter } from "./routers/git-provider";
+import { gpgKeyRouter } from "./routers/gpg-key";
 import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
 import { gitlabRouter } from "./routers/gitlab";
@@ -71,8 +72,9 @@ export const appRouter = createTRPCRouter({
 	registry: registryRouter,
 	cluster: clusterRouter,
 	notification: notificationRouter,
-	sshKey: sshRouter,
-	gitProvider: gitProviderRouter,
+        sshKey: sshRouter,
+        gpgKey: gpgKeyRouter,
+        gitProvider: gitProviderRouter,
 	gitea: giteaRouter,
 	bitbucket: bitbucketRouter,
 	gitlab: gitlabRouter,

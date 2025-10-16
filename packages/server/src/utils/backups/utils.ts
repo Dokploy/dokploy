@@ -217,54 +217,76 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 };
 
 export const getBackupCommand = (
-	backup: BackupSchedule,
-	rcloneCommand: string,
-	logPath: string,
+        backup: BackupSchedule,
+        rcloneCommand: string,
+        logPath: string,
 ) => {
-	const containerSearch = getContainerSearchCommand(backup);
-	const backupCommand = generateBackupCommand(backup);
+        const containerSearch = getContainerSearchCommand(backup);
+        const backupCommand = generateBackupCommand(backup);
+        const gpgPublicKey = (backup.gpgKey?.publicKey ?? backup.gpgPublicKey)?.trim();
 
-	logger.info(
-		{
-			containerSearch,
-			backupCommand,
+        const gpgSetupScript = gpgPublicKey
+                ? String.raw`
+        GPG_TEMP_DIR=$(mktemp -d);
+        trap 'rm -rf "$GPG_TEMP_DIR"' EXIT;
+        GPG_PUBLIC_KEY_FILE="$GPG_TEMP_DIR/public.key";
+        cat <<'EOF' > "$GPG_PUBLIC_KEY_FILE"
+${gpgPublicKey}
+EOF
+        chmod 600 "$GPG_PUBLIC_KEY_FILE";
+        `
+                : "";
+
+        const uploadCommand = gpgPublicKey
+                ? String.raw`
+        echo "[$(date)] Encrypting backup stream with GPG..." >> ${logPath};
+        UPLOAD_OUTPUT=$(${backupCommand} | gpg --homedir "$GPG_TEMP_DIR" --batch --yes --no-tty --pinentry-mode loopback --trust-model always --recipient-file "$GPG_PUBLIC_KEY_FILE" --output - --encrypt | ${rcloneCommand} 2>&1 >/dev/null) || {
+                echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+                echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
+                exit 1;
+        }
+        `
+                : String.raw`
+        UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
+                echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
+                echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
+                exit 1;
+        }
+        `;
+
+        logger.info(
+                {
+                        containerSearch,
+                        backupCommand,
 			rcloneCommand,
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
 	);
 
-	return `
-	set -eo pipefail;
-	echo "[$(date)] Starting backup process..." >> ${logPath};
-	echo "[$(date)] Executing backup command..." >> ${logPath};
-	CONTAINER_ID=$(${containerSearch})
+        return `
+        set -eo pipefail;
+        echo "[$(date)] Starting backup process..." >> ${logPath};
+        echo "[$(date)] Executing backup command..." >> ${logPath};
+        CONTAINER_ID=$(${containerSearch})
 
-	if [ -z "$CONTAINER_ID" ]; then
-		echo "[$(date)] ❌ Error: Container not found" >> ${logPath};
-		exit 1;
-	fi
+        if [ -z "$CONTAINER_ID" ]; then
+                echo "[$(date)] ❌ Error: Container not found" >> ${logPath};
+                exit 1;
+        fi
 
-	echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
+        echo "[$(date)] Container Up: $CONTAINER_ID" >> ${logPath};
+${gpgSetupScript}
 
-	# Run the backup command and capture the exit status
-	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
-		exit 1;
-	}
+        # Stream the backup directly into the upload command (no intermediate run)
+        echo "[$(date)] Streaming backup into upload command..." >> ${logPath};
 
-	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+        echo "[$(date)] Starting upload to S3..." >> ${logPath};
 
-	# Run the upload command and capture the exit status
-	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
-		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
-		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
-		exit 1;
-	}
+        # Run the upload command which streams the backup (and encrypts if enabled)
+${uploadCommand}
 
-	echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
-	echo "Backup done ✅" >> ${logPath};
-	`;
+        echo "[$(date)] ✅ Upload to S3 completed successfully" >> ${logPath};
+        echo "Backup done ✅" >> ${logPath};
+        `;
 };

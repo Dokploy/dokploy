@@ -9,7 +9,7 @@ import {
 	RefreshCw,
 	RotateCcw,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -33,14 +33,16 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
+        Form,
+        FormControl,
+        FormDescription,
+        FormField,
+        FormItem,
+        FormLabel,
+        FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Popover,
 	PopoverContent,
@@ -66,15 +68,17 @@ import type { ServiceType } from "../../application/advanced/show-resources";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 type DatabaseType =
-	| Exclude<ServiceType, "application" | "redis">
-	| "web-server";
+        | Exclude<ServiceType, "application" | "redis">
+        | "web-server";
 
 interface Props {
-	id: string;
-	databaseType?: DatabaseType;
-	serverId?: string | null;
-	backupType?: "database" | "compose";
+        id: string;
+        databaseType?: DatabaseType;
+        serverId?: string | null;
+        backupType?: "database" | "compose";
 }
+
+const MANUAL_GPG_KEY_OPTION = "__manual_gpg_key__";
 
 const RestoreBackupSchema = z
 	.object({
@@ -99,12 +103,28 @@ const RestoreBackupSchema = z
 			.min(1, {
 				message: "Database name is required",
 			}),
-		databaseType: z
-			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
-			.optional(),
-		backupType: z.enum(["database", "compose"]).default("database"),
-		metadata: z
-			.object({
+                databaseType: z
+                        .enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+                        .optional(),
+                backupType: z.enum(["database", "compose"]).default("database"),
+                gpgPrivateKey: z
+                        .string()
+                        .optional()
+                        .transform((value) => {
+                                if (!value) return undefined;
+                                const trimmed = value.trim();
+                                return trimmed.length > 0 ? trimmed : undefined;
+                        }),
+                gpgPassphrase: z
+                        .string()
+                        .optional()
+                        .transform((value) => {
+                                if (!value) return undefined;
+                                const trimmed = value.trim();
+                                return trimmed.length > 0 ? trimmed : undefined;
+                        }),
+                metadata: z
+                        .object({
 				postgres: z
 					.object({
 						databaseUser: z.string(),
@@ -148,11 +168,11 @@ const RestoreBackupSchema = z
 			});
 		}
 
-		if (data.backupType === "compose" && data.databaseType) {
-			if (data.databaseType === "postgres") {
-				if (!data.metadata?.postgres?.databaseUser) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
+                if (data.backupType === "compose" && data.databaseType) {
+                        if (data.databaseType === "postgres") {
+                                if (!data.metadata?.postgres?.databaseUser) {
+                                        ctx.addIssue({
+                                                code: z.ZodIssueCode.custom,
 						message: "Database user is required for PostgreSQL",
 						path: ["metadata", "postgres", "databaseUser"],
 					});
@@ -194,10 +214,18 @@ const RestoreBackupSchema = z
 						message: "Root password is required for MySQL",
 						path: ["metadata", "mysql", "databaseRootPassword"],
 					});
-				}
-			}
-		}
-	});
+                                }
+                        }
+                }
+
+                if (data.backupFile.endsWith(".gpg") && !data.gpgPrivateKey) {
+                        ctx.addIssue({
+                                code: z.ZodIssueCode.custom,
+                                message: "A GPG private key is required to restore encrypted backups",
+                                path: ["gpgPrivateKey"],
+                        });
+                }
+        });
 
 export const formatBytes = (bytes: number): string => {
 	if (bytes === 0) return "0 Bytes";
@@ -217,24 +245,128 @@ export const RestoreBackup = ({
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-	const { data: destinations = [] } = api.destination.all.useQuery();
+        const { data: destinations = [] } = api.destination.all.useQuery();
+        const { data: gpgKeys = [], isLoading: isLoadingGpgKeys } = api.gpgKey.all.useQuery(undefined, {
+                enabled: isOpen,
+        });
 
 	const form = useForm<z.infer<typeof RestoreBackupSchema>>({
-		defaultValues: {
-			destinationId: "",
-			backupFile: "",
-			databaseName: databaseType === "web-server" ? "dokploy" : "",
-			databaseType:
-				backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
-			backupType: backupType,
-			metadata: {},
-		},
+                defaultValues: {
+                        destinationId: "",
+                        backupFile: "",
+                        databaseName: databaseType === "web-server" ? "dokploy" : "",
+                        databaseType:
+                                backupType === "compose" ? ("postgres" as DatabaseType) : databaseType,
+                        backupType: backupType,
+                        metadata: {},
+                        gpgPrivateKey: "",
+                        gpgPassphrase: "",
+                },
 		resolver: zodResolver(RestoreBackupSchema),
 	});
 
-	const destionationId = form.watch("destinationId");
-	const currentDatabaseType = form.watch("databaseType");
-	const metadata = form.watch("metadata");
+        const destionationId = form.watch("destinationId");
+        const currentDatabaseType = form.watch("databaseType");
+        const metadata = form.watch("metadata");
+        const selectedBackupFile = form.watch("backupFile");
+        const requiresDecryption = selectedBackupFile?.endsWith(".gpg") ?? false;
+        const rawGpgPrivateKey = form.watch("gpgPrivateKey");
+        const rawGpgPassphrase = form.watch("gpgPassphrase");
+        const [selectedGpgKeyId, setSelectedGpgKeyId] = useState<string>(MANUAL_GPG_KEY_OPTION);
+        const selectedGpgKey = useMemo(
+                () => gpgKeys.find((key) => key.gpgKeyId === selectedGpgKeyId),
+                [gpgKeys, selectedGpgKeyId],
+        );
+        const appliedGpgKeySignatureRef = useRef<string | null>(null);
+        const gpgPrivateKeyValue =
+                requiresDecryption && rawGpgPrivateKey
+                        ? rawGpgPrivateKey.trim().length > 0
+                                ? rawGpgPrivateKey.trim()
+                                : undefined
+                        : undefined;
+        const gpgPassphraseValue =
+                requiresDecryption && rawGpgPassphrase
+                        ? rawGpgPassphrase.trim().length > 0
+                                ? rawGpgPassphrase.trim()
+                                : undefined
+                        : undefined;
+
+        useEffect(() => {
+                if (!isOpen) {
+                        setSelectedGpgKeyId(MANUAL_GPG_KEY_OPTION);
+                        appliedGpgKeySignatureRef.current = null;
+                        form.setValue("gpgPrivateKey", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                        form.setValue("gpgPassphrase", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                }
+        }, [isOpen, form]);
+
+        useEffect(() => {
+                if (!requiresDecryption) {
+                        setSelectedGpgKeyId(MANUAL_GPG_KEY_OPTION);
+                        appliedGpgKeySignatureRef.current = null;
+                        form.setValue("gpgPrivateKey", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                        form.setValue("gpgPassphrase", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                        return;
+                }
+
+                if (selectedGpgKeyId === MANUAL_GPG_KEY_OPTION) {
+                        appliedGpgKeySignatureRef.current = null;
+                        return;
+                }
+
+                if (!selectedGpgKey) {
+                        return;
+                }
+
+                const signature = `${selectedGpgKeyId}:${selectedGpgKey.privateKey ?? ""}:${selectedGpgKey.passphrase ?? ""}`;
+
+                if (appliedGpgKeySignatureRef.current === signature) {
+                        return;
+                }
+
+                const privateKeyValue = selectedGpgKey.privateKey ?? "";
+                const passphraseValue = selectedGpgKey.passphrase ?? "";
+
+                if ((form.getValues("gpgPrivateKey") ?? "") !== privateKeyValue) {
+                        form.setValue("gpgPrivateKey", privateKeyValue, {
+                                shouldDirty: privateKeyValue.length > 0,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                        });
+                }
+
+                if ((form.getValues("gpgPassphrase") ?? "") !== passphraseValue) {
+                        form.setValue("gpgPassphrase", passphraseValue, {
+                                shouldDirty: passphraseValue.length > 0,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                        });
+                }
+
+                appliedGpgKeySignatureRef.current = signature;
+        }, [requiresDecryption, selectedGpgKeyId, selectedGpgKey, form]);
+
+        useEffect(() => {
+                if (selectedGpgKeyId !== MANUAL_GPG_KEY_OPTION && !selectedGpgKey) {
+                        setSelectedGpgKeyId(MANUAL_GPG_KEY_OPTION);
+                }
+        }, [selectedGpgKeyId, selectedGpgKey]);
 
 	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
@@ -264,12 +396,14 @@ export const RestoreBackup = ({
 		{
 			databaseId: id,
 			databaseType: currentDatabaseType as DatabaseType,
-			databaseName: form.watch("databaseName"),
-			backupFile: form.watch("backupFile"),
-			destinationId: form.watch("destinationId"),
-			backupType: backupType,
-			metadata: metadata,
-		},
+                        databaseName: form.watch("databaseName"),
+                        backupFile: form.watch("backupFile"),
+                        destinationId: form.watch("destinationId"),
+                        backupType: backupType,
+                        metadata: metadata,
+                        gpgPrivateKey: gpgPrivateKeyValue,
+                        gpgPassphrase: gpgPassphraseValue,
+                },
 		{
 			enabled: isDeploying,
 			onData(log) {
@@ -291,13 +425,12 @@ export const RestoreBackup = ({
 	);
 
 	const onSubmit = async (data: z.infer<typeof RestoreBackupSchema>) => {
-		if (backupType === "compose" && !data.databaseType) {
-			toast.error("Please select a database type");
-			return;
-		}
-		console.log({ data });
-		setIsDeploying(true);
-	};
+                if (backupType === "compose" && !data.databaseType) {
+                        toast.error("Please select a database type");
+                        return;
+                }
+                setIsDeploying(true);
+        };
 
 	const [cacheType, setCacheType] = useState<"fetch" | "cache">("cache");
 	const {
@@ -524,10 +657,110 @@ export const RestoreBackup = ({
 									<FormMessage />
 								</FormItem>
 							)}
-						/>
-						<FormField
-							control={form.control}
-							name="databaseName"
+                                                />
+
+                                                {requiresDecryption && (
+                                                        <>
+                                                                <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-4">
+                                                                        <div className="flex flex-col gap-2">
+                                                                                <FormLabel>Saved GPG Key</FormLabel>
+                                                                                <Select
+                                                                                        value={selectedGpgKeyId}
+                                                                                        onValueChange={(value) => {
+                                                                                                setSelectedGpgKeyId(value);
+                                                                                                if (value !== selectedGpgKeyId) {
+                                                                                                        appliedGpgKeySignatureRef.current = null;
+                                                                                                }
+                                                                                        }}
+                                                                                        disabled={isLoadingGpgKeys}
+                                                                                >
+                                                                                        <SelectTrigger>
+                                                                                                <SelectValue
+                                                                                                        placeholder={
+                                                                                                                isLoadingGpgKeys
+                                                                                                                        ? "Loading keys..."
+                                                                                                                        : gpgKeys.length === 0
+                                                                                                                                ? "No saved keys"
+                                                                                                                                : "Select a saved key"
+                                                                                                        }
+                                                                                                />
+                                                                                        </SelectTrigger>
+                                                                                        <SelectContent>
+                                                                                                <SelectItem value={MANUAL_GPG_KEY_OPTION}>
+                                                                                                        Manual entry
+                                                                                                </SelectItem>
+                                                                                                {gpgKeys.map((gpgKey) => (
+                                                                                                        <SelectItem key={gpgKey.gpgKeyId} value={gpgKey.gpgKeyId}>
+                                                                                                                <div className="flex flex-col gap-0.5">
+                                                                                                                        <span className="font-medium">{gpgKey.name}</span>
+                                                                                                                        {gpgKey.description ? (
+                                                                                                                                <span className="text-xs text-muted-foreground">{gpgKey.description}</span>
+                                                                                                                        ) : null}
+                                                                                                                        <span className="text-xs text-muted-foreground">
+                                                                                                                                {gpgKey.privateKey ? "Secret stored" : "Secret not stored"}
+                                                                                                                                {" "}·{" "}
+                                                                                                                                {gpgKey.passphrase ? "Passphrase stored" : "No passphrase stored"}
+                                                                                                                        </span>
+                                                                                                                </div>
+                                                                                                        </SelectItem>
+                                                                                                ))}
+                                                                                        </SelectContent>
+                                                                                </Select>
+                                                                                <p className="text-xs text-muted-foreground">
+                                                                                        {selectedGpgKeyId === MANUAL_GPG_KEY_OPTION
+                                                                                                ? "Paste the matching private key and passphrase below to decrypt the backup."
+                                                                                                : selectedGpgKey?.privateKey
+                                                                                                        ? "The stored secret has been copied below — feel free to adjust it before starting the restore."
+                                                                                                        : "This key doesn't include a stored private key, so paste it manually below."}
+                                                                                </p>
+                                                                        </div>
+                                                                </div>
+                                                                <FormField
+                                                                        control={form.control}
+                                                                        name="gpgPrivateKey"
+                                                                        render={({ field }) => (
+                                                                                <FormItem>
+                                                                                        <FormLabel>GPG Private Key</FormLabel>
+                                                                                        <FormControl>
+                                                                                                <Textarea
+                                                                                                        placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----"
+                                                                                                        className="min-h-[150px]"
+                                                                                                        {...field}
+                                                                                                />
+                                                                                        </FormControl>
+                                                                                        <FormDescription>
+                                                                                                Paste the private key that matches the public key used to encrypt the backup.
+                                                                                        </FormDescription>
+                                                                                        <FormMessage />
+                                                                                </FormItem>
+                                                                        )}
+                                                                />
+                                                                <FormField
+                                                                        control={form.control}
+                                                                        name="gpgPassphrase"
+                                                                        render={({ field }) => (
+                                                                                <FormItem>
+                                                                                        <FormLabel>GPG Passphrase (optional)</FormLabel>
+                                                                                        <FormControl>
+                                                                                                <Input
+                                                                                                        type="password"
+                                                                                                        placeholder="Enter passphrase if required"
+                                                                                                        autoComplete="off"
+                                                                                                        {...field}
+                                                                                                />
+                                                                                        </FormControl>
+                                                                                        <FormDescription>
+                                                                                                Leave empty if the private key is not protected with a passphrase.
+                                                                                        </FormDescription>
+                                                                                        <FormMessage />
+                                                                                </FormItem>
+                                                                        )}
+                                                                />
+                                                        </>
+                                                )}
+                                                <FormField
+                                                        control={form.control}
+                                                        name="databaseName"
 							render={({ field }) => (
 								<FormItem>
 									<FormLabel>Database Name</FormLabel>

@@ -1,48 +1,114 @@
 import path from "node:path";
 import {
-	findApplicationById,
-	findComposeById,
-	findDestinationById,
-	getS3Credentials,
-	paths,
+        findApplicationById,
+        findComposeById,
+        findDestinationById,
+        getS3Credentials,
+        paths,
 } from "../..";
+import { prepareGpgDecryption, resolveVolumeBackupGpgMaterial } from "../restore/utils";
 
 export const restoreVolume = async (
-	id: string,
-	destinationId: string,
-	volumeName: string,
-	backupFileName: string,
-	serverId: string,
-	serviceType: "application" | "compose",
+        id: string,
+        destinationId: string,
+        volumeName: string,
+        backupFileName: string,
+        serverId: string,
+        serviceType: "application" | "compose",
+        gpgPrivateKey?: string,
+        gpgPassphrase?: string,
 ) => {
-	const destination = await findDestinationById(destinationId);
-	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
-	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const rcloneFlags = getS3Credentials(destination);
-	const bucketPath = `:s3:${destination.bucket}`;
-	const backupPath = `${bucketPath}/${backupFileName}`;
+        const destination = await findDestinationById(destinationId);
+        const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
+        const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
+        const rcloneFlags = getS3Credentials(destination);
+        const bucketPath = `:s3:${destination.bucket}`;
+        const backupPath = `${bucketPath}/${backupFileName}`;
 
-	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+        const isEncrypted = backupFileName.endsWith(".gpg");
+        const decryptedFileName = isEncrypted
+                ? backupFileName.replace(/\.gpg$/u, "")
+                : backupFileName;
 
-	// Base restore command that creates the volume and restores data
-	const baseRestoreCommand = `
-	set -e
-	echo "Volume name: ${volumeName}"
-	echo "Backup file name: ${backupFileName}"
-	echo "Volume backup path: ${volumeBackupPath}"
-	echo "Downloading backup from S3..."
-	mkdir -p ${volumeBackupPath}
-	${downloadCommand}
-	echo "Download completed ✅"
-	echo "Creating new volume and restoring data..."
-	docker run --rm \
-		-v ${volumeName}:/volume_data \
-		-v ${volumeBackupPath}:/backup \
-		ubuntu \
-		bash -c "cd /volume_data && tar xvf /backup/${backupFileName} ."
-	echo "Volume restore completed ✅"
-	`;
+        const { privateKey, passphrase } = await resolveVolumeBackupGpgMaterial({
+                destinationId,
+                backupFileName,
+                serviceId: id,
+                serviceType,
+                volumeName,
+                gpgPrivateKey,
+                gpgPassphrase,
+        });
+
+        if (isEncrypted && !privateKey) {
+                throw new Error(
+                        "A GPG private key is required to restore encrypted volume backups",
+                );
+        }
+
+        const { setup: gpgSetup, decryptCommand } = prepareGpgDecryption({
+                privateKey,
+                passphrase,
+        });
+
+        // Command to download backup file from S3
+        const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+
+        const gpgDecryptScript = isEncrypted
+                ? String.raw`
+        ${gpgSetup}
+        echo "Decrypting backup archive..."
+        ${decryptCommand} --output "${volumeBackupPath}/${decryptedFileName}" "${volumeBackupPath}/${backupFileName}";
+        rm "${volumeBackupPath}/${backupFileName}";
+        echo "Decryption completed ✅"
+        `
+                : "";
+
+        // Ensure downloaded archives are removed even if the restore exits early
+        const cleanupScript = String.raw`
+        cleanup() {
+                removed=0
+
+                for target in "${volumeBackupPath}/${backupFileName}" "${volumeBackupPath}/${decryptedFileName}"; do
+                        if [ -f "$target" ]; then
+                                if [ "$removed" -eq 0 ]; then
+                                        echo "Cleaning up downloaded backup files..."
+                                        removed=1
+                                fi
+
+                                rm -f "$target"
+                        fi
+                done
+
+                if [ "$removed" -eq 1 ]; then
+                        echo "Cleanup completed ✅"
+                fi
+        }
+
+        trap cleanup EXIT
+
+        cleanup
+        `;
+
+        const baseRestoreCommand = `
+        set -eo pipefail
+        echo "Volume name: ${volumeName}"
+        echo "Backup file name: ${backupFileName}"
+        echo "Volume backup path: ${volumeBackupPath}"
+        echo "Downloading backup from S3..."
+        mkdir -p ${volumeBackupPath}
+        ${cleanupScript}
+        ${downloadCommand}
+${gpgDecryptScript}
+        echo "Download completed ✅"
+        echo "Creating new volume and restoring data..."
+        docker run --rm \
+                -v ${volumeName}:/volume_data \
+                -v ${volumeBackupPath}:/backup \
+                ubuntu \
+                bash -c "cd /volume_data && tar xvf \"/backup/${decryptedFileName}\" ."
+        echo "Volume restore completed ✅"
+        `;
 
 	// Function to check if volume exists and get containers using it
 	const checkVolumeCommand = `

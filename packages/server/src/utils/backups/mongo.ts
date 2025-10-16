@@ -12,11 +12,13 @@ import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { environmentId, name } = mongo;
-	const environment = await findEnvironmentById(environmentId);
-	const project = await findProjectById(environment.projectId);
-	const { prefix } = backup;
-	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+        const environment = await findEnvironmentById(environmentId);
+        const project = await findProjectById(environment.projectId);
+        const { prefix } = backup;
+        const destination = backup.destination;
+        const gpgPublicKey = (backup.gpgKey?.publicKey ?? backup.gpgPublicKey)?.trim();
+        const backupFileSuffix = gpgPublicKey ? ".sql.gz.gpg" : ".sql.gz";
+        const backupFileName = `${new Date().toISOString()}${backupFileSuffix}`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,

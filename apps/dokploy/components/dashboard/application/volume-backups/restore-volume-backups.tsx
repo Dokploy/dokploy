@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import copy from "copy-to-clipboard";
 import { debounce } from "lodash";
 import { CheckIcon, ChevronsUpDown, Copy, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,53 +27,90 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
+        Form,
+        FormControl,
+        FormDescription,
+        FormField,
+        FormItem,
+        FormLabel,
+        FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
+        Popover,
+        PopoverContent,
+        PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+        Select,
+        SelectContent,
+        SelectItem,
+        SelectTrigger,
+        SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { formatBytes } from "../../database/backups/restore-backup";
 import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 interface Props {
-	id: string;
-	type: "application" | "compose";
-	serverId?: string;
+        id: string;
+        type: "application" | "compose";
+        serverId?: string;
 }
 
-const RestoreBackupSchema = z.object({
-	destinationId: z
-		.string({
-			required_error: "Please select a destination",
-		})
-		.min(1, {
-			message: "Destination is required",
-		}),
-	backupFile: z
-		.string({
-			required_error: "Please select a backup file",
-		})
-		.min(1, {
-			message: "Backup file is required",
-		}),
-	volumeName: z
-		.string({
-			required_error: "Please enter a volume name",
-		})
-		.min(1, {
-			message: "Volume name is required",
-		}),
+const MANUAL_GPG_KEY_OPTION = "__manual_gpg_key__";
+
+const RestoreBackupSchema = z
+.object({
+destinationId: z
+.string({
+required_error: "Please select a destination",
+})
+.min(1, {
+message: "Destination is required",
+}),
+backupFile: z
+.string({
+required_error: "Please select a backup file",
+})
+.min(1, {
+message: "Backup file is required",
+}),
+volumeName: z
+.string({
+required_error: "Please enter a volume name",
+})
+.min(1, {
+message: "Volume name is required",
+}),
+gpgPrivateKey: z
+.string()
+.optional()
+.transform((value) => {
+if (!value) return undefined;
+const trimmed = value.trim();
+return trimmed.length > 0 ? trimmed : undefined;
+}),
+gpgPassphrase: z
+.string()
+.optional()
+.transform((value) => {
+if (!value) return undefined;
+const trimmed = value.trim();
+return trimmed.length > 0 ? trimmed : undefined;
+}),
+})
+.superRefine((data, ctx) => {
+if (data.backupFile.endsWith(".gpg") && !data.gpgPrivateKey) {
+ctx.addIssue({
+code: z.ZodIssueCode.custom,
+message: "A GPG private key is required to restore encrypted backups",
+path: ["gpgPrivateKey"],
+});
+}
 });
 
 export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
@@ -81,20 +118,123 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 	const [search, setSearch] = useState("");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-	const { data: destinations = [] } = api.destination.all.useQuery();
+        const { data: destinations = [] } = api.destination.all.useQuery();
+        const { data: gpgKeys = [], isLoading: isLoadingGpgKeys } = api.gpgKey.all.useQuery(undefined, {
+                enabled: isOpen,
+        });
 
-	const form = useForm<z.infer<typeof RestoreBackupSchema>>({
-		defaultValues: {
-			destinationId: "",
-			backupFile: "",
-			volumeName: "",
-		},
-		resolver: zodResolver(RestoreBackupSchema),
-	});
+        const form = useForm<z.infer<typeof RestoreBackupSchema>>({
+                defaultValues: {
+                        destinationId: "",
+                        backupFile: "",
+                        volumeName: "",
+                        gpgPrivateKey: "",
+                        gpgPassphrase: "",
+                },
+                resolver: zodResolver(RestoreBackupSchema),
+        });
 
-	const destinationId = form.watch("destinationId");
-	const volumeName = form.watch("volumeName");
-	const backupFile = form.watch("backupFile");
+        const destinationId = form.watch("destinationId");
+        const volumeName = form.watch("volumeName");
+        const backupFile = form.watch("backupFile");
+        const requiresDecryption = backupFile?.endsWith(".gpg") ?? false;
+        const rawGpgPrivateKey = form.watch("gpgPrivateKey");
+        const rawGpgPassphrase = form.watch("gpgPassphrase");
+        const [selectedGpgKeyId, setSelectedGpgKeyId] = useState<string>(MANUAL_GPG_KEY_OPTION);
+        const selectedGpgKey = useMemo(
+                () => gpgKeys.find((key) => key.gpgKeyId === selectedGpgKeyId),
+                [gpgKeys, selectedGpgKeyId],
+        );
+        const appliedGpgKeySignatureRef = useRef<string | null>(null);
+        const gpgPrivateKeyValue =
+                requiresDecryption && rawGpgPrivateKey
+                        ? rawGpgPrivateKey.trim().length > 0
+                                ? rawGpgPrivateKey.trim()
+                                : undefined
+                        : undefined;
+        const gpgPassphraseValue =
+                requiresDecryption && rawGpgPassphrase
+                        ? rawGpgPassphrase.trim().length > 0
+                                ? rawGpgPassphrase.trim()
+                                : undefined
+                        : undefined;
+
+        useEffect(() => {
+                if (!isOpen) {
+                        setSelectedGpgKeyId(MANUAL_GPG_KEY_OPTION);
+                        appliedGpgKeySignatureRef.current = null;
+                        form.setValue("gpgPrivateKey", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                        form.setValue("gpgPassphrase", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                }
+        }, [isOpen, form]);
+
+        useEffect(() => {
+                if (!requiresDecryption) {
+                        setSelectedGpgKeyId(MANUAL_GPG_KEY_OPTION);
+                        appliedGpgKeySignatureRef.current = null;
+                        form.setValue("gpgPrivateKey", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                        form.setValue("gpgPassphrase", "", {
+                                shouldDirty: false,
+                                shouldTouch: false,
+                                shouldValidate: false,
+                        });
+                        return;
+                }
+
+                if (selectedGpgKeyId === MANUAL_GPG_KEY_OPTION) {
+                        appliedGpgKeySignatureRef.current = null;
+                        return;
+                }
+
+                if (!selectedGpgKey) {
+                        return;
+                }
+
+                const signature = `${selectedGpgKeyId}:${selectedGpgKey.privateKey ?? ""}:${selectedGpgKey.passphrase ?? ""}`;
+
+                if (appliedGpgKeySignatureRef.current === signature) {
+                        return;
+                }
+
+                const privateKeyValue = selectedGpgKey.privateKey ?? "";
+                const passphraseValue = selectedGpgKey.passphrase ?? "";
+
+                if ((form.getValues("gpgPrivateKey") ?? "") !== privateKeyValue) {
+                        form.setValue("gpgPrivateKey", privateKeyValue, {
+                                shouldDirty: privateKeyValue.length > 0,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                        });
+                }
+
+                if ((form.getValues("gpgPassphrase") ?? "") !== passphraseValue) {
+                        form.setValue("gpgPassphrase", passphraseValue, {
+                                shouldDirty: passphraseValue.length > 0,
+                                shouldTouch: true,
+                                shouldValidate: true,
+                        });
+                }
+
+                appliedGpgKeySignatureRef.current = signature;
+        }, [requiresDecryption, selectedGpgKeyId, selectedGpgKey, form]);
+
+        useEffect(() => {
+                if (selectedGpgKeyId !== MANUAL_GPG_KEY_OPTION && !selectedGpgKey) {
+                        setSelectedGpgKeyId(MANUAL_GPG_KEY_OPTION);
+                }
+        }, [selectedGpgKeyId, selectedGpgKey]);
 
 	const debouncedSetSearch = debounce((value: string) => {
 		setDebouncedSearchTerm(value);
@@ -120,15 +260,17 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
 
-	api.volumeBackups.restoreVolumeBackupWithLogs.useSubscription(
-		{
-			id,
-			serviceType: type,
-			serverId,
-			destinationId,
-			volumeName,
-			backupFileName: backupFile,
-		},
+api.volumeBackups.restoreVolumeBackupWithLogs.useSubscription(
+{
+id,
+serviceType: type,
+serverId,
+destinationId,
+volumeName,
+backupFileName: backupFile,
+gpgPrivateKey: gpgPrivateKeyValue,
+gpgPassphrase: gpgPassphraseValue,
+},
 		{
 			enabled: isDeploying,
 			onData(log) {
@@ -365,6 +507,113 @@ export const RestoreVolumeBackups = ({ id, type, serverId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
+
+
+                                                {requiresDecryption && (
+                                                        <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-4">
+                                                                <div className="flex flex-col gap-2">
+                                                                        <FormLabel>Saved GPG Key</FormLabel>
+                                                                        <Select
+                                                                                value={selectedGpgKeyId}
+                                                                                onValueChange={(value) => {
+                                                                                        setSelectedGpgKeyId(value);
+                                                                                        if (value !== selectedGpgKeyId) {
+                                                                                                appliedGpgKeySignatureRef.current = null;
+                                                                                        }
+                                                                                }}
+                                                                                disabled={isLoadingGpgKeys}
+                                                                        >
+                                                                                <SelectTrigger>
+                                                                                        <SelectValue
+                                                                                                placeholder={
+                                                                                                        isLoadingGpgKeys
+                                                                                                                ? "Loading keys..."
+                                                                                                                : gpgKeys.length === 0
+                                                                                                                        ? "No saved keys"
+                                                                                                                        : "Select a saved key"
+                                                                                                }
+                                                                                        />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                        <SelectItem value={MANUAL_GPG_KEY_OPTION}>
+                                                                                                Manual entry
+                                                                                        </SelectItem>
+                                                                                        {gpgKeys.map((gpgKey) => (
+                                                                                                <SelectItem key={gpgKey.gpgKeyId} value={gpgKey.gpgKeyId}>
+                                                                                                        <div className="flex flex-col gap-0.5">
+                                                                                                                <span className="font-medium">{gpgKey.name}</span>
+                                                                                                                {gpgKey.description ? (
+                                                                                                                        <span className="text-xs text-muted-foreground">{gpgKey.description}</span>
+                                                                                                                ) : null}
+                                                                                                                <span className="text-xs text-muted-foreground">
+                                                                                                                        {gpgKey.privateKey ? "Secret stored" : "Secret not stored"}
+                                                                                                                        {" "}·{" "}
+                                                                                                                        {gpgKey.passphrase ? "Passphrase stored" : "No passphrase stored"}
+                                                                                                                </span>
+                                                                                                        </div>
+                                                                                                </SelectItem>
+                                                                                        ))}
+                                                                                </SelectContent>
+                                                                        </Select>
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                                {selectedGpgKeyId === MANUAL_GPG_KEY_OPTION
+                                                                                        ? "Paste the matching private key and passphrase below to decrypt the backup."
+                                                                                        : selectedGpgKey?.privateKey
+                                                                                                ? "The stored secret has been copied below — feel free to adjust it before starting the restore."
+                                                                                                : "This key doesn't include a stored private key, so paste it manually below."}
+                                                                        </p>
+                                                                </div>
+                                                        </div>
+                                                )}
+
+                                                {requiresDecryption && (
+                                                        <FormField
+                                                                control={form.control}
+                                                                name="gpgPrivateKey"
+                                                                render={({ field }) => (
+                                                                        <FormItem>
+										<FormLabel>GPG Private Key</FormLabel>
+										<FormControl>
+											<Textarea
+												placeholder="-----BEGIN PGP PRIVATE KEY BLOCK-----"
+												className="min-h-[150px]"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											The private key that matches the public key used to encrypt this backup.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+
+						{requiresDecryption && (
+							<FormField
+								control={form.control}
+								name="gpgPassphrase"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>GPG Passphrase (optional)</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="Enter passphrase if required"
+												autoComplete="off"
+												{...field}
+											/>
+										</FormControl>
+										<FormDescription>
+											Leave empty if the private key does not require a passphrase.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+
 						<FormField
 							control={form.control}
 							name="volumeName"

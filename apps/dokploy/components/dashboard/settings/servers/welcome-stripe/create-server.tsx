@@ -169,7 +169,7 @@ export const CreateServer = ({ stepper }: Props) => {
 											Looks like you didn't have the SSH Key yet, you can create
 											one{" "}
 											<Link
-												href="/dashboard/settings/ssh-keys"
+                                                                                            href="/dashboard/settings/keys"
 												className="text-primary"
 											>
 												here

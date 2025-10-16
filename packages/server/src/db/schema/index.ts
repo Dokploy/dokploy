@@ -10,6 +10,7 @@ export * from "./destination";
 export * from "./domain";
 export * from "./environment";
 export * from "./git-provider";
+export * from "./gpg-key";
 export * from "./gitea";
 export * from "./github";
 export * from "./gitlab";

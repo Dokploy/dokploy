@@ -61,17 +61,18 @@ export const initCronJobs = async () => {
 		}
 	}
 
-	const backups = await db.query.backups.findMany({
-		with: {
-			destination: true,
-			postgres: true,
-			mariadb: true,
-			mysql: true,
-			mongo: true,
-			user: true,
-			compose: true,
-		},
-	});
+        const backups = await db.query.backups.findMany({
+                with: {
+                        destination: true,
+                        postgres: true,
+                        mariadb: true,
+                        mysql: true,
+                        mongo: true,
+                        user: true,
+                        compose: true,
+                        gpgKey: true,
+                },
+        });
 
 	for (const backup of backups) {
 		try {
@@ -108,7 +109,13 @@ export const keepLatestNBackups = async (
 		);
 
 		// --include "*.sql.gz" or "*.zip" ensures nothing else other than the dokploy backup files are touched by rclone
-		const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${backup.databaseType === "web-server" ? ".zip" : ".sql.gz"}" ${backupFilesPath}`;
+                const hasGpgKey = (backup.gpgKey?.publicKey ?? backup.gpgPublicKey)?.trim();
+                const fileExtension =
+                        backup.databaseType === "web-server"
+                                ? (hasGpgKey ? ".zip.gpg" : ".zip")
+                                : (hasGpgKey ? ".sql.gz.gpg" : ".sql.gz");
+
+                const rcloneList = `rclone lsf ${rcloneFlags.join(" ")} --include "*${fileExtension}" ${backupFilesPath}`;
 		// when we pipe the above command with this one, we only get the list of files we want to delete
 		const sortAndPickUnwantedBackups = `sort -r | tail -n +$((${backup.keepLatestCount}+1)) | xargs -I{}`;
 		// this command deletes the files

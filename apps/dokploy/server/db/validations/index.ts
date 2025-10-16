@@ -33,5 +33,42 @@ export const sshKeyUpdate = sshKeyCreate.pick({
 });
 
 export const sshKeyType = z.object({
-	type: z.enum(["rsa", "ed25519"]).optional(),
+        type: z.enum(["rsa", "ed25519"]).optional(),
 });
+
+const trimMultiline = (value: string) => value.trim();
+
+export const gpgKeyCreate = z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        publicKey: z
+                .string()
+                .transform(trimMultiline)
+                .refine(
+                        (key) =>
+                                /-----BEGIN PGP PUBLIC KEY BLOCK-----/.test(key) &&
+                                /-----END PGP PUBLIC KEY BLOCK-----/.test(key),
+                        {
+                                message: "Invalid GPG public key",
+                        },
+                ),
+        privateKey: z
+                .string()
+                .transform(trimMultiline)
+                .refine(
+                        (key) =>
+                                key.length === 0 ||
+                                (/-----BEGIN PGP PRIVATE KEY BLOCK-----/.test(key) &&
+                                        /-----END PGP PRIVATE KEY BLOCK-----/.test(key)),
+                        {
+                                message: "Invalid GPG private key",
+                        },
+                )
+                .optional(),
+        passphrase: z
+                .string()
+                .transform(trimMultiline)
+                .optional(),
+});
+
+export const gpgKeyUpdate = gpgKeyCreate.partial().required({ publicKey: true });

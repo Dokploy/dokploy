@@ -286,15 +286,15 @@ const MENU: Menu = {
 			// Only enabled for admins
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
-		{
-			isSingle: true,
-			title: "SSH Keys",
-			icon: KeyRound,
-			url: "/dashboard/settings/ssh-keys",
-			// Only enabled for admins and users with access to SSH keys
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
-		},
+                {
+                        isSingle: true,
+                        title: "Keys",
+                        icon: KeyRound,
+                        url: "/dashboard/settings/keys",
+                        // Only enabled for admins and users with access to SSH keys
+                        isEnabled: ({ auth }) =>
+                                !!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
+                },
 		{
 			title: "AI",
 			icon: BotIcon,
