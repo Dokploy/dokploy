@@ -1,5 +1,6 @@
 import {
 	createRegistry,
+	execAsync,
 	execAsyncRemote,
 	execFileAsync,
 	findRegistryById,
@@ -16,9 +17,11 @@ import {
 	apiRemoveRegistry,
 	apiTestRegistry,
 	apiUpdateRegistry,
+	executeECRLogin,
 	registry,
 } from "@/server/db/schema";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
+
 export const registryRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateRegistry)
@@ -83,20 +86,34 @@ export const registryRouter = createTRPCRouter({
 		.input(apiTestRegistry)
 		.mutation(async ({ input }) => {
 			try {
-				const args = [
-					"login",
-					input.registryUrl,
-					"--username",
-					input.username,
-					"--password-stdin",
-				];
-
 				if (IS_CLOUD && !input.serverId) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: "Select a server to test the registry",
 					});
 				}
+
+				if (input.registryType === "awsEcr") {
+					await executeECRLogin(
+						{
+							registryUrl: input.registryUrl,
+							awsAccessKeyId: input.awsAccessKeyId,
+							awsSecretAccessKey: input.awsSecretAccessKey,
+							awsRegion: input.awsRegion,
+							serverId: input.serverId,
+						},
+						execAsync,
+						execAsyncRemote,
+					);
+					return true;
+				}
+				const args = [
+					"login",
+					input.registryUrl,
+					"--username",
+					input.username || "",
+					"--password-stdin",
+				];
 
 				if (input.serverId && input.serverId !== "none") {
 					await execAsyncRemote(
@@ -105,7 +122,7 @@ export const registryRouter = createTRPCRouter({
 					);
 				} else {
 					await execFileAsync("docker", args, {
-						input: Buffer.from(input.password).toString(),
+						input: Buffer.from(input.password || "").toString(),
 					});
 				}
 

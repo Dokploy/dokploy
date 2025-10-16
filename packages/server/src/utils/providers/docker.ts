@@ -1,4 +1,5 @@
 import { createWriteStream } from "node:fs";
+import { getSafeECRLoginCommand } from "../../db/schema/registry";
 import { type ApplicationNested, mechanizeDockerContainer } from "../builders";
 import { pullImage } from "../docker/utils";
 
@@ -6,6 +7,11 @@ interface RegistryAuth {
 	username: string;
 	password: string;
 	registryUrl: string;
+	ecr?: {
+		awsAccessKeyId?: string;
+		awsSecretAccessKey?: string;
+		awsRegion?: string;
+	};
 }
 
 export const buildDocker = async (
@@ -55,7 +61,8 @@ export const buildRemoteDocker = async (
 	application: ApplicationNested,
 	logPath: string,
 ) => {
-	const { registryUrl, dockerImage, username, password } = application;
+	const { registryUrl, dockerImage, username, password, registry } =
+		application;
 
 	try {
 		if (!dockerImage) {
@@ -65,9 +72,28 @@ export const buildRemoteDocker = async (
 echo "Pulling ${dockerImage}" >> ${logPath};		
 		`;
 
-		if (username && password) {
+		// Handle ECR authentication
+		if (registry?.registryType === "awsEcr") {
+			const ecrLoginCommand = getSafeECRLoginCommand({
+				registryType: "awsEcr",
+				registryUrl: registry.registryUrl,
+				awsAccessKeyId: registry.awsAccessKeyId,
+				awsSecretAccessKey: registry.awsSecretAccessKey,
+				awsRegion: registry.awsRegion,
+			});
+
 			command += `
-if ! echo "${password}" | docker login --username "${username}" --password-stdin "${registryUrl || ""}" >> ${logPath} 2>&1; then
+if ! ${ecrLoginCommand} >> ${logPath} 2>&1; then
+	echo "❌ ECR Login failed" >> ${logPath};
+	exit 1;
+fi
+`;
+		} else if (username && password) {
+			// Handle regular registry authentication
+			command += `
+if ! echo "${password}" | docker login --username "${username}" --password-stdin "${
+				registryUrl || ""
+			}" >> ${logPath} 2>&1; then
 	echo "❌ Login failed" >> ${logPath};
 	exit 1;
 fi
