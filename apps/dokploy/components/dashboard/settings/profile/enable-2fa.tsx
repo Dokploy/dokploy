@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CopyIcon, Fingerprint, QrCode } from "lucide-react";
+import copy from "copy-to-clipboard";
+import { CopyIcon, DownloadIcon, Fingerprint, QrCode } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -184,6 +185,34 @@ export const Enable2FA = () => {
 		}
 	};
 
+	const handleDownloadBackupCodes = () => {
+		if (!backupCodes || backupCodes.length === 0) {
+			toast.error("No backup codes to download.");
+			return;
+		}
+
+		const backupCodesText = backupCodes.join("\n");
+		const date = new Date();
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, "0");
+		const day = String(date.getDate()).padStart(2, "0");
+		const filename = `dokploy-2fa-backup-codes-${year}${month}${day}.txt`;
+		const blob = new Blob([backupCodesText], { type: "text/plain" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	};
+
+	const handleCopyBackupCodes = () => {
+		copy(backupCodes.join("\n"));
+		toast.success("Backup codes copied to clipboard");
+	};
+
 	return (
 		<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 			<DialogTrigger asChild>
@@ -289,30 +318,43 @@ export const Enable2FA = () => {
 											<div className="w-full space-y-3 border rounded-lg p-4">
 												<div className="flex items-center justify-between">
 													<h4 className="font-medium">Backup Codes</h4>
-													<TooltipProvider>
-														<Tooltip delayDuration={0}>
-															<TooltipTrigger>
-																<Button
-																	type="button"
-																	variant="outline"
-																	size="icon"
-																	onClick={() => {
-																		navigator.clipboard.writeText(
-																			backupCodes.join("\n"),
-																		);
-																		toast.success(
-																			"Backup codes copied to clipboard",
-																		);
-																	}}
-																>
-																	<CopyIcon className="size-4" />
-																</Button>
-															</TooltipTrigger>
-															<TooltipContent>
-																<p>Copy</p>
-															</TooltipContent>
-														</Tooltip>
-													</TooltipProvider>
+													<div className="flex items-center gap-2">
+														<TooltipProvider>
+															<Tooltip delayDuration={0}>
+																<TooltipTrigger asChild>
+																	<Button
+																		type="button"
+																		variant="outline"
+																		size="icon"
+																		onClick={handleCopyBackupCodes}
+																	>
+																		<CopyIcon className="size-4" />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Copy</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+
+														<TooltipProvider>
+															<Tooltip delayDuration={0}>
+																<TooltipTrigger asChild>
+																	<Button
+																		type="button"
+																		variant="outline"
+																		size="icon"
+																		onClick={handleDownloadBackupCodes}
+																	>
+																		<DownloadIcon className="size-4" />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Download</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													</div>
 												</div>
 												<div className="grid grid-cols-2 gap-2">
 													{backupCodes.map((code, index) => (
