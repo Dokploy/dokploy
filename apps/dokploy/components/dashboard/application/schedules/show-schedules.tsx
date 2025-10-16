@@ -7,6 +7,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
+	const [runningSchedules, setRunningSchedules] = useState<Set<string>>(new Set());
 	const {
 		data: schedules,
 		isLoading: isLoadingSchedules,
@@ -46,14 +48,28 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 			enabled: !!id,
 		},
 	);
-
 	const utils = api.useUtils();
-
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
 		api.schedule.delete.useMutation();
-
-	const { mutateAsync: runManually, isLoading } =
+	const { mutateAsync: runManually } =
 		api.schedule.runManually.useMutation();
+
+	const handleRunManually = async (scheduleId: string) => {
+		setRunningSchedules((prev) => new Set(prev).add(scheduleId));
+		try {
+			await runManually({ scheduleId });
+			toast.success("Schedule run successfully");
+			await refetchSchedules();
+		} catch {
+			toast.error("Error running schedule");
+		} finally {
+			setRunningSchedules((prev) => {
+				const newSet = new Set(prev);
+				newSet.delete(scheduleId);
+				return newSet;
+			});
+		}
+	};
 
 	return (
 		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
@@ -67,7 +83,6 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 							Schedule tasks to run automatically at specified intervals.
 						</CardDescription>
 					</div>
-
 					{schedules && schedules.length > 0 && (
 						<HandleSchedules id={id} scheduleType={scheduleType} />
 					)}
@@ -75,7 +90,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingSchedules ? (
-					<div className="flex gap-4   w-full items-center justify-center text-center mx-auto min-h-[45vh]">
+					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
 							Loading scheduled tasks...
@@ -141,7 +156,6 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											)}
 										</div>
 									</div>
-
 									<div className="flex items-center gap-0.5 md:gap-1.5">
 										<ShowDeploymentsModal
 											id={schedule.scheduleId}
@@ -149,10 +163,9 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											serverId={serverId || undefined}
 										>
 											<Button variant="ghost" size="icon">
-												<ClipboardList className="size-4  transition-colors " />
+												<ClipboardList className="size-4 transition-colors" />
 											</Button>
 										</ShowDeploymentsModal>
-
 										<TooltipProvider delayDuration={0}>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -160,37 +173,24 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 														type="button"
 														variant="ghost"
 														size="icon"
-														isLoading={isLoading}
-														onClick={async () => {
-															toast.success("Schedule run successfully");
-
-															await runManually({
-																scheduleId: schedule.scheduleId,
-															})
-																.then(async () => {
-																	await new Promise((resolve) =>
-																		setTimeout(resolve, 1500),
-																	);
-																	refetchSchedules();
-																})
-																.catch(() => {
-																	toast.error("Error running schedule");
-																});
-														}}
+														disabled={runningSchedules.has(schedule.scheduleId)}
+														onClick={() => handleRunManually(schedule.scheduleId)}
 													>
-														<Play className="size-4  transition-colors" />
+														{runningSchedules.has(schedule.scheduleId) ? (
+															<Loader2 className="size-4 animate-spin" />
+														) : (
+															<Play className="size-4 transition-colors" />
+														)}
 													</Button>
 												</TooltipTrigger>
 												<TooltipContent>Run Manual Schedule</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
-
 										<HandleSchedules
 											scheduleId={schedule.scheduleId}
 											id={id}
 											scheduleType={scheduleType}
 										/>
-
 										<DialogAction
 											title="Delete Schedule"
 											description="Are you sure you want to delete this schedule?"
@@ -214,8 +214,8 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											<Button
 												variant="ghost"
 												size="icon"
-												className="group hover:bg-red-500/10 "
-												isLoading={isDeleting}
+												className="group hover:bg-red-500/10"
+												disabled={isDeleting}
 											>
 												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
 											</Button>
