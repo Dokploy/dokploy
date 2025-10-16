@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 import { HandleProject } from "./handle-project";
+import { MoveToOrganization } from "./move-to-organization";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
@@ -404,6 +405,20 @@ export const ShowProjects = () => {
 																						projectId={project.projectId}
 																					/>
 																				</div>
+
+																				{auth?.role === "owner" && (
+																					<div
+																						onClick={(e) => e.stopPropagation()}
+																					>
+																						<MoveToOrganization
+																							projectId={project.projectId}
+																							projectName={project.name}
+																							currentOrganizationId={
+																								project.organizationId
+																							}
+																						/>
+																					</div>
+																				)}
 
 																				<div
 																					onClick={(e) => e.stopPropagation()}
