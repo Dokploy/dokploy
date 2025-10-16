@@ -32,6 +32,13 @@ import {
 	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
+import {
+	apiCreateProjectOutput,
+	apiDeleteProjectOutput,
+	apiFindAllProjectsOutput,
+	apiFindOneProjectOutput,
+	apiUpdateProjectOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -57,6 +64,7 @@ import {
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateProject)
+		.output(apiCreateProjectOutput)
 		.mutation(async ({ ctx, input }) => {
 			try {
 				if (ctx.user.role === "member") {
@@ -106,6 +114,7 @@ export const projectRouter = createTRPCRouter({
 
 	one: protectedProcedure
 		.input(apiFindOneProject)
+		.output(apiFindOneProjectOutput)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				const { accessedServices } = await findMemberById(
@@ -184,101 +193,110 @@ export const projectRouter = createTRPCRouter({
 			}
 			return project;
 		}),
-	all: protectedProcedure.query(async ({ ctx }) => {
-		if (ctx.user.role === "member") {
-			const { accessedProjects, accessedEnvironments, accessedServices } =
-				await findMemberById(ctx.user.id, ctx.session.activeOrganizationId);
+	all: protectedProcedure
+		.output(apiFindAllProjectsOutput)
+		.query(async ({ ctx }) => {
+			if (ctx.user.role === "member") {
+				const { accessedProjects, accessedEnvironments, accessedServices } =
+					await findMemberById(ctx.user.id, ctx.session.activeOrganizationId);
 
-			if (accessedProjects.length === 0) {
-				return [];
+				if (accessedProjects.length === 0) {
+					return [];
+				}
+
+				// Build environment filter
+				const environmentFilter =
+					accessedEnvironments.length === 0
+						? sql`false`
+						: sql`${environments.environmentId} IN (${sql.join(
+								accessedEnvironments.map((envId) => sql`${envId}`),
+								sql`, `,
+							)})`;
+
+				return await db.query.projects.findMany({
+					where: and(
+						sql`${projects.projectId} IN (${sql.join(
+							accessedProjects.map((projectId) => sql`${projectId}`),
+							sql`, `,
+						)})`,
+						eq(projects.organizationId, ctx.session.activeOrganizationId),
+					),
+					with: {
+						environments: {
+							where: environmentFilter,
+							with: {
+								applications: {
+									where: buildServiceFilter(
+										applications.applicationId,
+										accessedServices,
+									),
+									with: { domains: true },
+								},
+								mariadb: {
+									where: buildServiceFilter(
+										mariadb.mariadbId,
+										accessedServices,
+									),
+								},
+								mongo: {
+									where: buildServiceFilter(mongo.mongoId, accessedServices),
+								},
+								mysql: {
+									where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								},
+								postgres: {
+									where: buildServiceFilter(
+										postgres.postgresId,
+										accessedServices,
+									),
+								},
+								redis: {
+									where: buildServiceFilter(redis.redisId, accessedServices),
+								},
+								compose: {
+									where: buildServiceFilter(
+										compose.composeId,
+										accessedServices,
+									),
+									with: { domains: true },
+								},
+							},
+						},
+					},
+					orderBy: desc(projects.createdAt),
+				});
 			}
 
-			// Build environment filter
-			const environmentFilter =
-				accessedEnvironments.length === 0
-					? sql`false`
-					: sql`${environments.environmentId} IN (${sql.join(
-							accessedEnvironments.map((envId) => sql`${envId}`),
-							sql`, `,
-						)})`;
-
 			return await db.query.projects.findMany({
-				where: and(
-					sql`${projects.projectId} IN (${sql.join(
-						accessedProjects.map((projectId) => sql`${projectId}`),
-						sql`, `,
-					)})`,
-					eq(projects.organizationId, ctx.session.activeOrganizationId),
-				),
 				with: {
 					environments: {
-						where: environmentFilter,
 						with: {
 							applications: {
-								where: buildServiceFilter(
-									applications.applicationId,
-									accessedServices,
-								),
-								with: { domains: true },
+								with: {
+									domains: true,
+								},
 							},
-							mariadb: {
-								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
-							},
-							mongo: {
-								where: buildServiceFilter(mongo.mongoId, accessedServices),
-							},
-							mysql: {
-								where: buildServiceFilter(mysql.mysqlId, accessedServices),
-							},
-							postgres: {
-								where: buildServiceFilter(
-									postgres.postgresId,
-									accessedServices,
-								),
-							},
-							redis: {
-								where: buildServiceFilter(redis.redisId, accessedServices),
-							},
+							mariadb: true,
+							mongo: true,
+							mysql: true,
+							postgres: true,
+							redis: true,
 							compose: {
-								where: buildServiceFilter(compose.composeId, accessedServices),
-								with: { domains: true },
+								with: {
+									domains: true,
+								},
 							},
 						},
 					},
 				},
+				where: eq(projects.organizationId, ctx.session.activeOrganizationId),
 				orderBy: desc(projects.createdAt),
 			});
-		}
-
-		return await db.query.projects.findMany({
-			with: {
-				environments: {
-					with: {
-						applications: {
-							with: {
-								domains: true,
-							},
-						},
-						mariadb: true,
-						mongo: true,
-						mysql: true,
-						postgres: true,
-						redis: true,
-						compose: {
-							with: {
-								domains: true,
-							},
-						},
-					},
-				},
-			},
-			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
-			orderBy: desc(projects.createdAt),
-		});
-	}),
+		}),
 
 	remove: protectedProcedure
 		.input(apiRemoveProject)
+		.output(apiDeleteProjectOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				if (ctx.user.role === "member") {
@@ -306,6 +324,7 @@ export const projectRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateProject)
+		.output(apiUpdateProjectOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const currentProject = await findProjectById(input.projectId);
