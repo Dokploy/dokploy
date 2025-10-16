@@ -44,14 +44,12 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 		},
 		{
 			enabled: !!id,
-		},
+		}
 	);
 
 	const utils = api.useUtils();
-
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
 		api.schedule.delete.useMutation();
-
 	const { mutateAsync: runManually, isLoading } =
 		api.schedule.runManually.useMutation();
 
@@ -67,7 +65,6 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 							Schedule tasks to run automatically at specified intervals.
 						</CardDescription>
 					</div>
-
 					{schedules && schedules.length > 0 && (
 						<HandleSchedules id={id} scheduleType={scheduleType} />
 					)}
@@ -75,7 +72,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingSchedules ? (
-					<div className="flex gap-4   w-full items-center justify-center text-center mx-auto min-h-[45vh]">
+					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
 							Loading scheduled tasks...
@@ -91,13 +88,13 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 							return (
 								<div
 									key={schedule.scheduleId}
-									className="flex items-center flex-wrap sm:flex-nowrap gap-y-2 justify-between rounded-lg border p-3 transition-colors bg-muted/50"
+									className="flex flex-col sm:flex-row sm:items-center flex-wrap sm:flex-nowrap gap-y-2 justify-between rounded-lg border p-3 transition-colors bg-muted/50 w-full"
 								>
-									<div className="flex items-start gap-3">
+									<div className="flex items-start gap-3 w-full sm:w-auto">
 										<div className="flex flex-shrink-0 h-9 w-9 items-center justify-center rounded-full bg-primary/5">
 											<Clock className="size-4 text-primary/70" />
 										</div>
-										<div className="space-y-1.5">
+										<div className="space-y-1.5 w-full sm:w-auto">
 											<div className="flex items-center gap-2 flex-wrap">
 												<h3 className="text-sm font-medium leading-none [overflow-wrap:anywhere] line-clamp-3">
 													{schedule.name}
@@ -132,27 +129,25 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 													)}
 											</div>
 											{schedule.command && (
-												<div className="flex items-center gap-2">
-													<Terminal className="size-3.5 text-muted-foreground/70" />
-													<code className="font-mono text-[10px] text-muted-foreground/70">
+												<div className="flex items-start gap-2 max-w-full">
+													<Terminal className="size-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+													<code className="font-mono text-[10px] text-muted-foreground/70 break-all max-w-[calc(100%-20px)]">
 														{schedule.command}
 													</code>
 												</div>
 											)}
 										</div>
 									</div>
-
-									<div className="flex items-center gap-0.5 md:gap-1.5">
+									<div className="flex items-center gap-0.5 md:gap-1.5 mt-2 sm:mt-0 sm:ml-3">
 										<ShowDeploymentsModal
 											id={schedule.scheduleId}
 											type="schedule"
 											serverId={serverId || undefined}
 										>
 											<Button variant="ghost" size="icon">
-												<ClipboardList className="size-4  transition-colors " />
+												<ClipboardList className="size-4 transition-colors" />
 											</Button>
 										</ShowDeploymentsModal>
-
 										<TooltipProvider delayDuration={0}>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -163,13 +158,12 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 														isLoading={isLoading}
 														onClick={async () => {
 															toast.success("Schedule run successfully");
-
 															await runManually({
 																scheduleId: schedule.scheduleId,
 															})
 																.then(async () => {
 																	await new Promise((resolve) =>
-																		setTimeout(resolve, 1500),
+																		setTimeout(resolve, 1500)
 																	);
 																	refetchSchedules();
 																})
@@ -178,19 +172,17 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 																});
 														}}
 													>
-														<Play className="size-4  transition-colors" />
+														<Play className="size-4 transition-colors" />
 													</Button>
 												</TooltipTrigger>
 												<TooltipContent>Run Manual Schedule</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
-
 										<HandleSchedules
 											scheduleId={schedule.scheduleId}
 											id={id}
 											scheduleType={scheduleType}
 										/>
-
 										<DialogAction
 											title="Delete Schedule"
 											description="Are you sure you want to delete this schedule?"
@@ -214,7 +206,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											<Button
 												variant="ghost"
 												size="icon"
-												className="group hover:bg-red-500/10 "
+												className="group hover:bg-red-500/10"
 												isLoading={isDeleting}
 											>
 												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
