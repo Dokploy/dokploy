@@ -21,6 +21,7 @@ import {
 	HeartIcon,
 	KeyRound,
 	Loader2,
+	LogIn,
 	type LucideIcon,
 	Package,
 	PieChart,
@@ -284,6 +285,13 @@ const MENU: Menu = {
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+		},
+		{
+			isSingle: true,
+			title: "Single Sign-On",
+			icon: LogIn,
+			url: "/dashboard/settings/sso",
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
