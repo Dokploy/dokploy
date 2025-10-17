@@ -83,6 +83,15 @@ export const AssignNetworkToResource = ({
 		resourceType,
 	});
 
+	const { data: resourceDomains } =
+		resourceType === "application"
+			? api.domain.byApplicationId.useQuery({ applicationId: resourceId })
+			: resourceType === "compose"
+				? api.domain.byComposeId.useQuery({ composeId: resourceId })
+				: { data: [] };
+
+	const hasDomains = resourceDomains && resourceDomains.length > 0;
+
 	const { mutateAsync: assignNetwork, isLoading: isAssigning } =
 		api.network.assignToResource.useMutation();
 
@@ -94,6 +103,22 @@ export const AssignNetworkToResource = ({
 	const availableToAssign = availableNetworks?.filter(
 		(network) => !assignedNetworkIds.includes(network.networkId),
 	);
+
+	const wouldBeAllInternal = (networkIdToAssign: string): boolean => {
+		const currentAssignedNetworks = assignedNetworks || [];
+		const networkToAssign = availableNetworks?.find(
+			(n) => n.networkId === networkIdToAssign,
+		);
+
+		if (!networkToAssign) return false;
+
+		const allNetworksAfterAssign = [
+			...currentAssignedNetworks,
+			networkToAssign,
+		];
+
+		return allNetworksAfterAssign.every((n) => n.internal);
+	};
 
 	const handleAssign = async (networkId: string) => {
 		try {
@@ -190,30 +215,57 @@ export const AssignNetworkToResource = ({
 							<CommandEmpty>No networks found.</CommandEmpty>
 							<CommandGroup>
 								<ScrollArea className="h-[200px]">
-									{availableToAssign?.map((network) => (
-										<CommandItem
-											key={network.networkId}
-											value={network.name}
-											onSelect={() => handleAssign(network.networkId)}
-											className="cursor-pointer"
-										>
-											<Network className="mr-2 h-4 w-4" />
-											<div className="flex-1">
-												<div className="font-medium">{network.name}</div>
-												<div className="text-xs text-muted-foreground">
-													{network.networkName} • {network.driver}
-													{network.internal && " (internal)"}
-													{network.server && ` • ${network.server.name}`}
+									{availableToAssign?.map((network) => {
+										const showWarning =
+											hasDomains && wouldBeAllInternal(network.networkId);
+
+										return (
+											<CommandItem
+												key={network.networkId}
+												value={network.name}
+												onSelect={() => handleAssign(network.networkId)}
+												className="cursor-pointer"
+											>
+												<Network className="mr-2 h-4 w-4" />
+												<div className="flex-1">
+													<div className="font-medium">{network.name}</div>
+													<div className="text-xs text-muted-foreground">
+														{network.networkName} • {network.driver}
+														{network.internal && " (internal)"}
+														{network.server && ` • ${network.server.name}`}
+													</div>
+													{showWarning && (
+														<div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+															Warning: This will make all networks internal.
+															Domains will be inaccessible.
+														</div>
+													)}
 												</div>
-											</div>
-										</CommandItem>
-									))}
+											</CommandItem>
+										);
+									})}
 								</ScrollArea>
 							</CommandGroup>
 						</Command>
 					</PopoverContent>
 				</Popover>
 			</div>
+
+			{hasDomains &&
+				assignedNetworks &&
+				assignedNetworks.length > 0 &&
+				assignedNetworks.every((n) => n.internal) && (
+					<Alert variant="destructive">
+						<Info className="h-4 w-4" />
+						<AlertDescription>
+							This {resourceTypeName} has {resourceDomains?.length || 0}{" "}
+							domain(s) but all assigned networks are internal. Domains will not
+							be accessible because Traefik cannot connect to internal networks.
+							Assign at least one non-internal network to make domains
+							accessible.
+						</AlertDescription>
+					</Alert>
+				)}
 
 			{assignedNetworks && assignedNetworks.length > 0 ? (
 				<>

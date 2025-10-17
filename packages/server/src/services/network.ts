@@ -42,6 +42,11 @@ interface ResourceWithNetworks {
 		name: string;
 		serverId: string;
 	} | null;
+	domains?:
+		| readonly {
+				domainId: string;
+		  }[]
+		| null;
 }
 
 type NetworkImportError = {
@@ -508,6 +513,34 @@ const validateServerCompatibility = async (
 	}
 };
 
+const checkDomainInternalNetworkConflict = async (
+	resource: ResourceWithNetworks,
+	network: DokployNetwork,
+): Promise<void> => {
+	const hasDomains =
+		Array.isArray(resource.domains) && resource.domains.length > 0;
+
+	if (!hasDomains) {
+		return;
+	}
+
+	const currentNetworkIds = Array.from(resource.customNetworkIds || []);
+	const allNetworks = await db.query.networks.findMany({
+		where: inArray(networks.networkId, [
+			...currentNetworkIds,
+			network.networkId,
+		]),
+	});
+
+	const allInternal = allNetworks.every((n) => n.internal);
+
+	if (allInternal && resource.domains) {
+		console.warn(
+			`This resource has ${resource.domains.length} domain(s) but all custom networks are internal. The domain(s) will not be accessible because Traefik cannot connect to internal networks.`,
+		);
+	}
+};
+
 export const assignNetworkToResource = async (
 	networkId: string,
 	resourceId: string,
@@ -537,6 +570,8 @@ export const assignNetworkToResource = async (
 	);
 
 	await validateServerCompatibility(networkId, resourceId, resourceType);
+
+	await checkDomainInternalNetworkConflict(resource, network);
 
 	const updatedNetworkIds = [...currentNetworkIds, networkId];
 	const table = RESOURCE_TABLE_MAP[resourceType];
@@ -829,19 +864,39 @@ export const connectTraefikToResourceNetworks = async (
 			return;
 		}
 
+		const publicNetworks = customNetworks.filter(
+			(network) => !network.internal,
+		);
+
+		if (publicNetworks.length === 0) {
+			console.warn(
+				`All custom networks for ${resourceType} ${resourceId} are internal. Traefik cannot connect to internal networks. The domain will not be accessible.`,
+			);
+			return;
+		}
+
+		const internalNetworks = customNetworks.filter(
+			(network) => network.internal,
+		);
+		if (internalNetworks.length > 0) {
+			console.log(
+				`Skipping ${internalNetworks.length} internal network(s): ${internalNetworks.map((n) => n.networkName).join(", ")}`,
+			);
+		}
+
 		console.log(
-			`Connecting Traefik to ${customNetworks.length} networks for ${resourceType} ${resourceId}`,
+			`Connecting Traefik to ${publicNetworks.length} network(s) for ${resourceType} ${resourceId}`,
 		);
 
 		const results = await Promise.allSettled(
-			customNetworks.map((network) =>
+			publicNetworks.map((network) =>
 				ensureTraefikConnectedToNetwork(network.networkName, serverId),
 			),
 		);
 
 		for (let i = 0; i < results.length; i++) {
 			const result = results[i];
-			const networkName = customNetworks[i]?.networkName;
+			const networkName = publicNetworks[i]?.networkName;
 
 			if (!result) continue;
 
