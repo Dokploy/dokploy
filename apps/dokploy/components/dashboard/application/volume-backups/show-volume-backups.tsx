@@ -174,8 +174,12 @@ export const ShowVolumeBackups = ({
 														type="button"
 														variant="ghost"
 														size="icon"
-														disabled={runningBackups.has(volumeBackup.volumeBackupId)}
-														onClick={() => handleRunManually(volumeBackup.volumeBackupId)}
+														disabled={runningBackups.has(
+															volumeBackup.volumeBackupId,
+														)}
+														onClick={() =>
+															handleRunManually(volumeBackup.volumeBackupId)
+														}
 													>
 														{runningBackups.has(volumeBackup.volumeBackupId) ? (
 															<Loader2 className="size-4 animate-spin" />
