@@ -92,7 +92,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
-	} = generateConfigContainer(mongo);
+	} = await generateConfigContainer(mongo);
 
 	const resources = calculateResources({
 		memoryLimit,

@@ -46,7 +46,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
-	} = generateConfigContainer(mariadb);
+	} = await generateConfigContainer(mariadb);
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,

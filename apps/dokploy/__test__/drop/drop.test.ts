@@ -134,6 +134,7 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 	rollbackActive: false,
 	stopGracePeriodSwarm: null,
+	customNetworkIds: null,
 };
 
 describe("unzipDrop using real zip files", () => {

@@ -289,6 +289,7 @@ export const rebuildApplication = async ({
 		} else if (application.sourceType === "drop") {
 			await buildApplication(application, deployment.logPath);
 		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 	} catch (error) {
