@@ -5,6 +5,7 @@ import type { Domain } from "@dokploy/server/services/domain";
 import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
+import { getNotificationsForService } from "./scoped-notifications";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -21,6 +22,15 @@ interface Props {
 	buildLink: string;
 	organizationId: string;
 	domains: Domain[];
+	serviceId?: string;
+	serviceType?:
+		| "application"
+		| "postgres"
+		| "mysql"
+		| "mariadb"
+		| "mongo"
+		| "redis"
+		| "compose";
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -30,23 +40,82 @@ export const sendBuildSuccessNotifications = async ({
 	buildLink,
 	organizationId,
 	domains,
+	serviceId,
+	serviceType,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
-	const notificationList = await db.query.notifications.findMany({
-		where: and(
-			eq(notifications.appDeploy, true),
-			eq(notifications.organizationId, organizationId),
-		),
-		with: {
-			email: true,
-			discord: true,
-			telegram: true,
-			slack: true,
-			gotify: true,
-			ntfy: true,
-		},
-	});
+
+	console.log("=== BUILD SUCCESS NOTIFICATION DISPATCH ===");
+	console.log(`Service ID: ${serviceId}`);
+	console.log(`Service Type: ${serviceType}`);
+	console.log(`Project Name: ${projectName}`);
+	console.log(`Application Name: ${applicationName}`);
+	console.log(`Organization ID: ${organizationId}`);
+
+	// Get scoped notifications - check in order: service-specific, organization-wide
+	let notificationList = [];
+
+	if (serviceId && serviceType) {
+		console.log("Checking for service-specific notifications first");
+		// First check for service-specific notifications
+		const serviceNotifications = await getNotificationsForService(
+			serviceId,
+			serviceType,
+			"appDeploy",
+			organizationId,
+		);
+
+		// The serviceNotifications already contain only notifications for this specific service
+		const matchingServiceNotifications = serviceNotifications;
+
+		if (matchingServiceNotifications.length > 0) {
+			console.log(
+				`Found ${matchingServiceNotifications.length} service-specific notifications for this service, using those`,
+			);
+			notificationList = matchingServiceNotifications;
+		} else {
+			console.log(
+				"No service-specific notifications found for this service, using organization-wide fallback",
+			);
+			// Fallback to organization-wide notifications
+			notificationList = await db.query.notifications.findMany({
+				where: and(
+					eq(notifications.appDeploy, true),
+					eq(notifications.organizationId, organizationId),
+					eq(notifications.scope, "organization"),
+				),
+				with: {
+					email: true,
+					discord: true,
+					telegram: true,
+					slack: true,
+					gotify: true,
+					ntfy: true,
+				},
+			});
+		}
+	} else {
+		console.log("No service info provided, using organization-wide fallback");
+		// Fallback to organization-wide notifications
+		notificationList = await db.query.notifications.findMany({
+			where: and(
+				eq(notifications.appDeploy, true),
+				eq(notifications.organizationId, organizationId),
+				eq(notifications.scope, "organization"),
+			),
+			with: {
+				email: true,
+				discord: true,
+				telegram: true,
+				slack: true,
+				gotify: true,
+				ntfy: true,
+			},
+		});
+	}
+
+	console.log(`Final notification list length: ${notificationList.length}`);
 
 	for (const notification of notificationList) {
 		const { email, discord, telegram, slack, gotify, ntfy } = notification;

@@ -4,6 +4,7 @@ import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
+import { getNotificationsForService } from "./scoped-notifications";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
@@ -20,6 +21,15 @@ interface Props {
 	errorMessage: string;
 	buildLink: string;
 	organizationId: string;
+	serviceId?: string;
+	serviceType?:
+		| "application"
+		| "postgres"
+		| "mysql"
+		| "mariadb"
+		| "mongo"
+		| "redis"
+		| "compose";
 }
 
 export const sendBuildErrorNotifications = async ({
@@ -29,23 +39,75 @@ export const sendBuildErrorNotifications = async ({
 	errorMessage,
 	buildLink,
 	organizationId,
+	serviceId,
+	serviceType,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
-	const notificationList = await db.query.notifications.findMany({
-		where: and(
-			eq(notifications.appBuildError, true),
-			eq(notifications.organizationId, organizationId),
-		),
-		with: {
-			email: true,
-			discord: true,
-			telegram: true,
-			slack: true,
-			gotify: true,
-			ntfy: true,
-		},
-	});
+
+	// Get scoped notifications - check in order: service-specific, organization-wide
+	let notificationList = [];
+
+	if (serviceId && serviceType) {
+		console.log(
+			"Checking for service-specific notifications first (build error)",
+		);
+		// First check for service-specific notifications
+		const serviceNotifications = await getNotificationsForService(
+			serviceId,
+			serviceType,
+			"appBuildError",
+			organizationId,
+		);
+
+		// The serviceNotifications already contain only notifications for this specific service
+		const matchingServiceNotifications = serviceNotifications;
+
+		if (matchingServiceNotifications.length > 0) {
+			console.log(
+				`Found ${matchingServiceNotifications.length} service-specific notifications for this service, using those`,
+			);
+			notificationList = matchingServiceNotifications;
+		} else {
+			console.log(
+				"No service-specific notifications found for this service, using organization-wide fallback",
+			);
+			// Fallback to organization-wide notifications
+			notificationList = await db.query.notifications.findMany({
+				where: and(
+					eq(notifications.appBuildError, true),
+					eq(notifications.organizationId, organizationId),
+					eq(notifications.scope, "organization"),
+				),
+				with: {
+					email: true,
+					discord: true,
+					telegram: true,
+					slack: true,
+					gotify: true,
+					ntfy: true,
+				},
+			});
+		}
+	} else {
+		console.log("No service info provided, using organization-wide fallback");
+		// Fallback to organization-wide notifications
+		notificationList = await db.query.notifications.findMany({
+			where: and(
+				eq(notifications.appBuildError, true),
+				eq(notifications.organizationId, organizationId),
+				eq(notifications.scope, "organization"),
+			),
+			with: {
+				email: true,
+				discord: true,
+				telegram: true,
+				slack: true,
+				gotify: true,
+				ntfy: true,
+			},
+		});
+	}
 
 	for (const notification of notificationList) {
 		const { email, discord, telegram, slack, gotify, ntfy } = notification;
