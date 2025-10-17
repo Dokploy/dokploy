@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -413,14 +413,32 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 											</Tooltip>
 										</TooltipProvider>
 									</div>
-									<FormControl>
-										<Input
-											type="password"
-											placeholder="Enter webhook secret"
-											{...field}
-											value={field.value ?? ""}
-										/>
-									</FormControl>
+									<div className="flex w-full items-center gap-2">
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="Enter webhook secret"
+												{...field}
+												value={field.value ?? ""}
+											/>
+										</FormControl>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											onClick={() => {
+												const secret =
+													Math.random().toString(36).substring(2) +
+													Math.random().toString(36).substring(2);
+												form.setValue("webhookSecret", secret, {
+													shouldValidate: true,
+												});
+												toast.success("Webhook secret generated");
+											}}
+										>
+											<RefreshCw className="size-4" />
+										</Button>
+									</div>
 									<FormMessage />
 								</FormItem>
 							)}
