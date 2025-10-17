@@ -26,12 +26,6 @@ const NetworksPage = (
 ) => {
 	return (
 		<div className="pb-10">
-			<BreadcrumbSidebar
-				list={[
-					{ name: "Dashboard", href: "/dashboard/projects" },
-					{ name: "Networks" },
-				]}
-			/>
 			<Head>
 				<title>Networks | Dokploy</title>
 			</Head>
