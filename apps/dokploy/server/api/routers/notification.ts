@@ -884,7 +884,6 @@ export const notificationRouter = createTRPCRouter({
 		}
 	}),
 
-
 	// Test endpoint to list all services and their projects
 	listServicesWithProjects: adminProcedure.query(async ({ ctx }) => {
 		try {
