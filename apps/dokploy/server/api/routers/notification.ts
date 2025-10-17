@@ -884,82 +884,6 @@ export const notificationRouter = createTRPCRouter({
 		}
 	}),
 
-	// Test endpoint to check project ID resolution
-	testProjectResolution: adminProcedure
-		.input(
-			z.object({
-				serviceId: z.string(),
-				serviceType: z.enum([
-					"application",
-					"postgres",
-					"mysql",
-					"mariadb",
-					"mongo",
-					"redis",
-					"compose",
-				]),
-			}),
-		)
-		.query(async ({ input, ctx }) => {
-			try {
-				console.log("=== PROJECT ID RESOLUTION TEST ===");
-				console.log("Service ID:", input.serviceId);
-				console.log("Service Type:", input.serviceType);
-				console.log("Organization ID:", ctx.session.activeOrganizationId);
-
-				// Import the project resolution function
-				const { getProjectIdForService } = await import(
-					"@dokploy/server/utils/notifications/scoped-notifications"
-				);
-
-				// Test project ID resolution
-				const projectId = await getProjectIdForService(
-					input.serviceId,
-					input.serviceType,
-				);
-				console.log("Resolved project ID:", projectId);
-
-				// If we got a project ID, test getting notifications for that project
-				let projectNotifications: any[] = [];
-				if (projectId) {
-					const { getNotificationsForProject } = await import(
-						"@dokploy/server/utils/notifications/scoped-notifications"
-					);
-					projectNotifications = await getNotificationsForProject(
-						projectId,
-						"appDeploy",
-						ctx.session.activeOrganizationId,
-					);
-					console.log(
-						"Project notifications found:",
-						projectNotifications.length,
-					);
-				}
-
-				return {
-					success: true,
-					serviceId: input.serviceId,
-					serviceType: input.serviceType,
-					resolvedProjectId: projectId,
-					expectedProjectId: "rZUcOfBeLDTiSDjc18oWJ",
-					projectIdMatch: projectId === "rZUcOfBeLDTiSDjc18oWJ",
-					projectNotificationsCount: projectNotifications.length,
-					projectNotifications: projectNotifications.map((n) => ({
-						id: n.notificationId,
-						name: n.name,
-						scope: n.scope,
-						discordId: n.discordId,
-					})),
-				};
-			} catch (error) {
-				console.error("Project resolution test error:", error);
-				return {
-					success: false,
-					message: "Project resolution test failed",
-					error: error instanceof Error ? error.message : "Unknown error",
-				};
-			}
-		}),
 
 	// Test endpoint to list all services and their projects
 	listServicesWithProjects: adminProcedure.query(async ({ ctx }) => {
@@ -968,11 +892,7 @@ export const notificationRouter = createTRPCRouter({
 			console.log("Organization ID:", ctx.session.activeOrganizationId);
 
 			// Get all applications with their project info
-			const applications = await db.query.applications.findMany({
-				where: eq(
-					applications.organizationId,
-					ctx.session.activeOrganizationId,
-				),
+			const applicationsData = await db.query.applications.findMany({
 				with: {
 					environment: {
 						with: {
@@ -982,7 +902,7 @@ export const notificationRouter = createTRPCRouter({
 				},
 			});
 
-			const servicesWithProjects = applications.map((app: any) => ({
+			const servicesWithProjects = applicationsData.map((app: any) => ({
 				serviceId: app.applicationId,
 				serviceType: "application",
 				name: app.name,
@@ -1222,13 +1142,13 @@ export const notificationRouter = createTRPCRouter({
 			console.log("All organizations:", allOrgs);
 
 			// Test projects query
-			const projects = await db.query.projects.findMany({
+			const projectsData = await db.query.projects.findMany({
 				where: eq(projects.organizationId, ctx.session.activeOrganizationId),
 				limit: 5,
 			});
 
-			console.log("Projects found:", projects.length);
-			console.log("Project details:", projects);
+			console.log("Projects found:", projectsData.length);
+			console.log("Project details:", projectsData);
 
 			// Test direct SQL query
 			const directQuery = await db.execute(sql`
@@ -1263,7 +1183,7 @@ export const notificationRouter = createTRPCRouter({
 			return {
 				success: true,
 				message: "Database connection successful",
-				projectCount: projects.length,
+				projectCount: projectsData.length,
 				sessionOrganizationId: ctx.session.activeOrganizationId,
 				allOrganizations: allOrgs,
 				directQueryResults: directQuery,
