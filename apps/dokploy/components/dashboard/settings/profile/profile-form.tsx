@@ -156,9 +156,8 @@ export const ProfileForm = () => {
 								{t("settings.profile.description")}
 							</CardDescription>
 						</div>
-						<div className="flex flex-row gap-2">
-							{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
-						</div>
+
+						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
 					</CardHeader>
 
 					<CardContent className="space-y-2 py-8 border-t">
