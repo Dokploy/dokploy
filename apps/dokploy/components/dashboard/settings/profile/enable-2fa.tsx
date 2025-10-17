@@ -61,6 +61,26 @@ type TwoFactorSetupData = {
 type PasswordForm = z.infer<typeof PasswordSchema>;
 type PinForm = z.infer<typeof PinSchema>;
 
+const USERNAME_PLACEHOLDER = "%username%";
+const DATE_PLACEHOLDER = "%date%";
+const BACKUP_CODES_PLACEHOLDER = "%backupCodes%";
+
+const backupCodeTemplate = `Dokploy - BACKUP VERIFICATION CODES
+
+Points to note
+--------------
+# Each code can be used only once.
+# Do not share these codes with anyone.
+
+Generated codes
+---------------
+Username: ${USERNAME_PLACEHOLDER}
+Generated on: ${DATE_PLACEHOLDER}
+
+
+${BACKUP_CODES_PLACEHOLDER}
+`;
+
 export const Enable2FA = () => {
 	const utils = api.useUtils();
 	const [data, setData] = useState<TwoFactorSetupData | null>(null);
@@ -69,6 +89,7 @@ export const Enable2FA = () => {
 	const [step, setStep] = useState<"password" | "verify">("password");
 	const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 	const [otpValue, setOtpValue] = useState("");
+	const { data: currentUser } = api.user.get.useQuery();
 
 	const handleVerifySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -191,12 +212,21 @@ export const Enable2FA = () => {
 			return;
 		}
 
-		const backupCodesText = backupCodes.join("\n");
+		const backupCodesFormatted = backupCodes
+			.map((code, index) => ` ${index + 1}. ${code}`)
+			.join("\n");
+
 		const date = new Date();
 		const year = date.getFullYear();
 		const month = String(date.getMonth() + 1).padStart(2, "0");
 		const day = String(date.getDate()).padStart(2, "0");
 		const filename = `dokploy-2fa-backup-codes-${year}${month}${day}.txt`;
+
+		const backupCodesText = backupCodeTemplate
+			.replace(USERNAME_PLACEHOLDER, currentUser?.user?.email || "unknown")
+			.replace(DATE_PLACEHOLDER, date.toLocaleString())
+			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
+
 		const blob = new Blob([backupCodesText], { type: "text/plain" });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
@@ -209,7 +239,18 @@ export const Enable2FA = () => {
 	};
 
 	const handleCopyBackupCodes = () => {
-		copy(backupCodes.join("\n"));
+		const date = new Date();
+
+		const backupCodesFormatted = backupCodes
+			.map((code, index) => ` ${index + 1}. ${code}`)
+			.join("\n");
+
+		const backupCodesText = backupCodeTemplate
+			.replace(USERNAME_PLACEHOLDER, currentUser?.user?.email || "unknown")
+			.replace(DATE_PLACEHOLDER, date.toLocaleString())
+			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
+
+		copy(backupCodesText);
 		toast.success("Backup codes copied to clipboard");
 	};
 
