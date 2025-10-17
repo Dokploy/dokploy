@@ -6,6 +6,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export const ShowVolumeBackups = ({
 	type = "application",
 	serverId,
 }: Props) => {
+	const [runningBackups, setRunningBackups] = useState<Set<string>>(new Set());
 	const {
 		data: volumeBackups,
 		isLoading: isLoadingVolumeBackups,
@@ -51,14 +53,28 @@ export const ShowVolumeBackups = ({
 			enabled: !!id,
 		},
 	);
-
 	const utils = api.useUtils();
-
 	const { mutateAsync: deleteVolumeBackup, isLoading: isDeleting } =
 		api.volumeBackups.delete.useMutation();
-
-	const { mutateAsync: runManually, isLoading } =
+	const { mutateAsync: runManually } =
 		api.volumeBackups.runManually.useMutation();
+
+	const handleRunManually = async (volumeBackupId: string) => {
+		setRunningBackups((prev) => new Set(prev).add(volumeBackupId));
+		try {
+			await runManually({ volumeBackupId });
+			toast.success("Volume backup run successfully");
+			await refetchVolumeBackups();
+		} catch {
+			toast.error("Error running volume backup");
+		} finally {
+			setRunningBackups((prev) => {
+				const newSet = new Set(prev);
+				newSet.delete(volumeBackupId);
+				return newSet;
+			});
+		}
+	};
 
 	return (
 		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
@@ -73,12 +89,10 @@ export const ShowVolumeBackups = ({
 							intervals.
 						</CardDescription>
 					</div>
-
 					<div className="flex items-center gap-2">
 						{volumeBackups && volumeBackups.length > 0 && (
 							<>
 								<HandleVolumeBackups id={id} volumeBackupType={type} />
-
 								<div className="flex items-center gap-2">
 									<RestoreVolumeBackups
 										id={id}
@@ -93,7 +107,7 @@ export const ShowVolumeBackups = ({
 			</CardHeader>
 			<CardContent className="px-0">
 				{isLoadingVolumeBackups ? (
-					<div className="flex gap-4   w-full items-center justify-center text-center mx-auto min-h-[45vh]">
+					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
 							Loading volume backups...
@@ -102,7 +116,7 @@ export const ShowVolumeBackups = ({
 				) : volumeBackups && volumeBackups.length > 0 ? (
 					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
 						{volumeBackups.map((volumeBackup) => {
-							const serverId =
+							const backupServerId =
 								volumeBackup.application?.serverId ||
 								volumeBackup.postgres?.serverId ||
 								volumeBackup.mysql?.serverId ||
@@ -113,13 +127,13 @@ export const ShowVolumeBackups = ({
 							return (
 								<div
 									key={volumeBackup.volumeBackupId}
-									className="flex items-center justify-between rounded-lg border p-3 transition-colors bg-muted/50"
+									className="flex flex-col sm:flex-row sm:items-center flex-wrap sm:flex-nowrap gap-y-2 justify-between rounded-lg border p-3 transition-colors bg-muted/50 w-full"
 								>
-									<div className="flex items-start gap-3">
+									<div className="flex items-start gap-3 w-full sm:w-auto">
 										<div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/5">
 											<DatabaseBackup className="size-4 text-primary/70" />
 										</div>
-										<div className="space-y-1.5">
+										<div className="space-y-1.5 w-full sm:w-auto">
 											<div className="flex items-center gap-2">
 												<h3 className="text-sm font-medium leading-none">
 													{volumeBackup.name}
@@ -143,18 +157,16 @@ export const ShowVolumeBackups = ({
 											</div>
 										</div>
 									</div>
-
-									<div className="flex items-center gap-1.5">
+									<div className="flex items-center gap-1.5 mt-2 sm:mt-0 sm:ml-3">
 										<ShowDeploymentsModal
 											id={volumeBackup.volumeBackupId}
 											type="volumeBackup"
-											serverId={serverId || undefined}
+											serverId={backupServerId || serverId}
 										>
 											<Button variant="ghost" size="icon">
-												<ClipboardList className="size-4  transition-colors " />
+												<ClipboardList className="size-4 transition-colors" />
 											</Button>
 										</ShowDeploymentsModal>
-
 										<TooltipProvider delayDuration={0}>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -162,25 +174,14 @@ export const ShowVolumeBackups = ({
 														type="button"
 														variant="ghost"
 														size="icon"
-														isLoading={isLoading}
-														onClick={async () => {
-															toast.success("Volume backup run successfully");
-
-															await runManually({
-																volumeBackupId: volumeBackup.volumeBackupId,
-															})
-																.then(async () => {
-																	await new Promise((resolve) =>
-																		setTimeout(resolve, 1500),
-																	);
-																	refetchVolumeBackups();
-																})
-																.catch(() => {
-																	toast.error("Error running volume backup");
-																});
-														}}
+														disabled={runningBackups.has(volumeBackup.volumeBackupId)}
+														onClick={() => handleRunManually(volumeBackup.volumeBackupId)}
 													>
-														<Play className="size-4  transition-colors" />
+														{runningBackups.has(volumeBackup.volumeBackupId) ? (
+															<Loader2 className="size-4 animate-spin" />
+														) : (
+															<Play className="size-4 transition-colors" />
+														)}
 													</Button>
 												</TooltipTrigger>
 												<TooltipContent>
@@ -188,13 +189,11 @@ export const ShowVolumeBackups = ({
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
-
 										<HandleVolumeBackups
 											volumeBackupId={volumeBackup.volumeBackupId}
 											id={id}
 											volumeBackupType={type}
 										/>
-
 										<DialogAction
 											title="Delete Volume Backup"
 											description="Are you sure you want to delete this volume backup?"
@@ -218,7 +217,7 @@ export const ShowVolumeBackups = ({
 											<Button
 												variant="ghost"
 												size="icon"
-												className="group hover:bg-red-500/10 "
+												className="group hover:bg-red-500/10"
 												isLoading={isDeleting}
 											>
 												<Trash2 className="size-4 text-primary group-hover:text-red-500" />
@@ -230,7 +229,7 @@ export const ShowVolumeBackups = ({
 						})}
 					</div>
 				) : (
-					<div className="flex flex-col gap-2 items-center justify-center py-12  rounded-lg">
+					<div className="flex flex-col gap-2 items-center justify-center py-12 rounded-lg">
 						<DatabaseBackup className="size-8 mb-4 text-muted-foreground" />
 						<p className="text-lg font-medium text-muted-foreground">
 							No volume backups
