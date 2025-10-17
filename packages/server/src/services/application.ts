@@ -237,6 +237,8 @@ export const deployApplication = async ({
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
+			serviceId: application.applicationId,
+			serviceType: "application",
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -250,6 +252,8 @@ export const deployApplication = async ({
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: application.environment.project.organizationId,
+			serviceId: application.applicationId,
+			serviceType: "application",
 		});
 
 		throw error;
@@ -373,6 +377,8 @@ export const deployRemoteApplication = async ({
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
+			serviceId: application.applicationId,
+			serviceType: "application",
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -397,6 +403,8 @@ export const deployRemoteApplication = async ({
 			errorMessage: `Please check the logs for details: ${errorMessage}`,
 			buildLink,
 			organizationId: application.environment.project.organizationId,
+			serviceId: application.applicationId,
+			serviceType: "application",
 		});
 
 		throw error;

@@ -12,8 +12,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
 	DiscordIcon,
-	GotifyIcon,
-	NtfyIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -41,6 +39,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { NotificationScopeSelector } from "./notification-scope-selector";
+import { ProjectSelector } from "./project-selector";
+import { ServiceSelector } from "./service-selector";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
@@ -52,6 +53,21 @@ const notificationBaseSchema = z.object({
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
 	serverThreshold: z.boolean().default(false),
+	scope: z
+		.enum(["organization", "project", "service"])
+		.optional()
+		.default("organization"),
+	isGlobal: z.boolean().optional().default(true),
+	projectIds: z.array(z.string()).optional().default([]),
+	serviceConfigs: z
+		.array(
+			z.object({
+				serviceId: z.string(),
+				serviceType: z.string(),
+			}),
+		)
+		.optional()
+		.default([]),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
@@ -132,11 +148,11 @@ export const notificationsMap = {
 		label: "Email",
 	},
 	gotify: {
-		icon: <GotifyIcon />,
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
 		label: "Gotify",
 	},
 	ntfy: {
-		icon: <NtfyIcon />,
+		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
 		label: "ntfy",
 	},
 };
@@ -208,10 +224,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (type === "email" && fields.length === 0) {
+		if (type === "email") {
 			append("");
 		}
-	}, [type, append, fields.length]);
+	}, [type, append]);
 
 	useEffect(() => {
 		if (notification) {
@@ -304,6 +320,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		} else {
 			form.reset();
 		}
+
+		// Ensure isGlobal is set correctly based on scope
+		if (notification) {
+			if (notification.scope === "organization") {
+				form.setValue("isGlobal", true);
+			} else {
+				form.setValue("isGlobal", false);
+			}
+		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, notification]);
 
 	const activeMutation = {
@@ -338,6 +363,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				slackId: notification?.slackId || "",
 				notificationId: notificationId || "",
 				serverThreshold: serverThreshold,
+				scope: data.scope || "organization",
+				isGlobal: data.isGlobal ?? true,
+				projectIds: data.projectIds || [],
+				serviceConfigs: data.serviceConfigs || [],
 			});
 		} else if (data.type === "telegram") {
 			promise = telegramMutation.mutateAsync({
@@ -353,6 +382,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
 				serverThreshold: serverThreshold,
+				scope: data.scope || "organization",
+				isGlobal: data.isGlobal ?? true,
+				projectIds: data.projectIds || [],
+				serviceConfigs: data.serviceConfigs || [],
 			});
 		} else if (data.type === "discord") {
 			promise = discordMutation.mutateAsync({
@@ -367,6 +400,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
 				serverThreshold: serverThreshold,
+				scope: data.scope || "organization",
+				isGlobal: data.isGlobal ?? true,
+				projectIds: data.projectIds || [],
+				serviceConfigs: data.serviceConfigs || [],
 			});
 		} else if (data.type === "email") {
 			promise = emailMutation.mutateAsync({
@@ -385,6 +422,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
 				serverThreshold: serverThreshold,
+				scope: data.scope || "organization",
+				isGlobal: data.isGlobal ?? true,
+				projectIds: data.projectIds || [],
+				serviceConfigs: data.serviceConfigs || [],
 			});
 		} else if (data.type === "gotify") {
 			promise = gotifyMutation.mutateAsync({
@@ -400,6 +441,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				decoration: data.decoration,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
+				scope: data.scope || "organization",
+				isGlobal: data.isGlobal ?? true,
+				projectIds: data.projectIds || [],
+				serviceConfigs: data.serviceConfigs || [],
 			});
 		} else if (data.type === "ntfy") {
 			promise = ntfyMutation.mutateAsync({
@@ -415,6 +460,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+				scope: data.scope || "organization",
+				isGlobal: data.isGlobal ?? true,
+				projectIds: data.projectIds || [],
+				serviceConfigs: data.serviceConfigs || [],
 			});
 		}
 
@@ -1141,6 +1190,65 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									/>
 								)}
 							</div>
+						</div>
+
+						{/* Scope Selection */}
+						<div className="space-y-4">
+							<FormField
+								control={form.control}
+								name="scope"
+								render={({ field }) => (
+									<FormItem>
+										<NotificationScopeSelector
+											value={field.value}
+											onChange={(value) => {
+												field.onChange(value);
+												// Automatically set isGlobal based on scope
+												if (value === "organization") {
+													form.setValue("isGlobal", true);
+												} else {
+													form.setValue("isGlobal", false);
+												}
+											}}
+										/>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							{/* Project Selection */}
+							{form.watch("scope") === "project" && (
+								<FormField
+									control={form.control}
+									name="projectIds"
+									render={({ field }) => (
+										<FormItem>
+											<ProjectSelector
+												selectedProjectIds={field.value || []}
+												onChange={field.onChange}
+											/>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
+
+							{/* Service Selection */}
+							{form.watch("scope") === "service" && (
+								<FormField
+									control={form.control}
+									name="serviceConfigs"
+									render={({ field }) => (
+										<FormItem>
+											<ServiceSelector
+												serviceConfigs={field.value || []}
+												onChange={field.onChange}
+											/>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
 						</div>
 					</form>
 

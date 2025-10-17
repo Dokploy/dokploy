@@ -4,6 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
+import { projects } from "./project";
 
 export const notificationType = pgEnum("notificationType", [
 	"slack",
@@ -12,6 +13,12 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+]);
+
+export const notificationScope = pgEnum("notificationScope", [
+	"organization",
+	"project",
+	"service",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -51,6 +58,8 @@ export const notifications = pgTable("notification", {
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
+	scope: notificationScope("scope").notNull().default("organization"),
+	isGlobal: boolean("isGlobal").notNull().default(true),
 });
 
 export const slack = pgTable("slack", {
@@ -116,36 +125,96 @@ export const ntfy = pgTable("ntfy", {
 	priority: integer("priority").notNull().default(3),
 });
 
-export const notificationsRelations = relations(notifications, ({ one }) => ({
-	slack: one(slack, {
-		fields: [notifications.slackId],
-		references: [slack.slackId],
+export const projectNotifications = pgTable("project_notifications", {
+	projectNotificationId: text("projectNotificationId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	notificationId: text("notificationId")
+		.notNull()
+		.references(() => notifications.notificationId, { onDelete: "cascade" }),
+	projectId: text("projectId")
+		.notNull()
+		.references(() => projects.projectId, { onDelete: "cascade" }),
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+});
+
+export const serviceNotifications = pgTable("service_notifications", {
+	serviceNotificationId: text("serviceNotificationId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	notificationId: text("notificationId")
+		.notNull()
+		.references(() => notifications.notificationId, { onDelete: "cascade" }),
+	serviceId: text("serviceId").notNull(),
+	serviceType: text("serviceType").notNull(), // 'application', 'postgres', 'mysql', 'redis', etc.
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+});
+
+export const notificationsRelations = relations(
+	notifications,
+	({ one, many }) => ({
+		slack: one(slack, {
+			fields: [notifications.slackId],
+			references: [slack.slackId],
+		}),
+		telegram: one(telegram, {
+			fields: [notifications.telegramId],
+			references: [telegram.telegramId],
+		}),
+		discord: one(discord, {
+			fields: [notifications.discordId],
+			references: [discord.discordId],
+		}),
+		email: one(email, {
+			fields: [notifications.emailId],
+			references: [email.emailId],
+		}),
+		gotify: one(gotify, {
+			fields: [notifications.gotifyId],
+			references: [gotify.gotifyId],
+		}),
+		ntfy: one(ntfy, {
+			fields: [notifications.ntfyId],
+			references: [ntfy.ntfyId],
+		}),
+		organization: one(organization, {
+			fields: [notifications.organizationId],
+			references: [organization.id],
+		}),
+		projectNotifications: many(projectNotifications),
+		serviceNotifications: many(serviceNotifications),
 	}),
-	telegram: one(telegram, {
-		fields: [notifications.telegramId],
-		references: [telegram.telegramId],
+);
+
+export const projectNotificationsRelations = relations(
+	projectNotifications,
+	({ one }) => ({
+		notification: one(notifications, {
+			fields: [projectNotifications.notificationId],
+			references: [notifications.notificationId],
+		}),
+		project: one(projects, {
+			fields: [projectNotifications.projectId],
+			references: [projects.projectId],
+		}),
 	}),
-	discord: one(discord, {
-		fields: [notifications.discordId],
-		references: [discord.discordId],
+);
+
+export const serviceNotificationsRelations = relations(
+	serviceNotifications,
+	({ one }) => ({
+		notification: one(notifications, {
+			fields: [serviceNotifications.notificationId],
+			references: [notifications.notificationId],
+		}),
 	}),
-	email: one(email, {
-		fields: [notifications.emailId],
-		references: [email.emailId],
-	}),
-	gotify: one(gotify, {
-		fields: [notifications.gotifyId],
-		references: [gotify.gotifyId],
-	}),
-	ntfy: one(ntfy, {
-		fields: [notifications.ntfyId],
-		references: [ntfy.ntfyId],
-	}),
-	organization: one(organization, {
-		fields: [notifications.organizationId],
-		references: [organization.id],
-	}),
-}));
+);
 
 export const notificationsSchema = createInsertSchema(notifications);
 
@@ -162,6 +231,21 @@ export const apiCreateSlack = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 		channel: z.string(),
+		scope: z
+			.enum(["organization", "project", "service"])
+			.optional()
+			.default("organization"),
+		isGlobal: z.boolean().optional().default(true),
+		projectIds: z.array(z.string()).optional().default([]),
+		serviceConfigs: z
+			.array(
+				z.object({
+					serviceId: z.string(),
+					serviceType: z.string(),
+				}),
+			)
+			.optional()
+			.default([]),
 	})
 	.required();
 
@@ -190,6 +274,21 @@ export const apiCreateTelegram = notificationsSchema
 		botToken: z.string().min(1),
 		chatId: z.string().min(1),
 		messageThreadId: z.string(),
+		scope: z
+			.enum(["organization", "project", "service"])
+			.optional()
+			.default("organization"),
+		isGlobal: z.boolean().optional().default(true),
+		projectIds: z.array(z.string()).optional().default([]),
+		serviceConfigs: z
+			.array(
+				z.object({
+					serviceId: z.string(),
+					serviceType: z.string(),
+				}),
+			)
+			.optional()
+			.default([]),
 	})
 	.required();
 
@@ -218,6 +317,21 @@ export const apiCreateDiscord = notificationsSchema
 	.extend({
 		webhookUrl: z.string().min(1),
 		decoration: z.boolean(),
+		scope: z
+			.enum(["organization", "project", "service"])
+			.optional()
+			.default("organization"),
+		isGlobal: z.boolean().optional().default(true),
+		projectIds: z.array(z.string()).optional().default([]),
+		serviceConfigs: z
+			.array(
+				z.object({
+					serviceId: z.string(),
+					serviceType: z.string(),
+				}),
+			)
+			.optional()
+			.default([]),
 	})
 	.required();
 
@@ -252,6 +366,21 @@ export const apiCreateEmail = notificationsSchema
 		password: z.string().min(1),
 		fromAddress: z.string().min(1),
 		toAddresses: z.array(z.string()).min(1),
+		scope: z
+			.enum(["organization", "project", "service"])
+			.optional()
+			.default("organization"),
+		isGlobal: z.boolean().optional().default(true),
+		projectIds: z.array(z.string()).optional().default([]),
+		serviceConfigs: z
+			.array(
+				z.object({
+					serviceId: z.string(),
+					serviceType: z.string(),
+				}),
+			)
+			.optional()
+			.default([]),
 	})
 	.required();
 
@@ -284,6 +413,21 @@ export const apiCreateGotify = notificationsSchema
 		appToken: z.string().min(1),
 		priority: z.number().min(1),
 		decoration: z.boolean(),
+		scope: z
+			.enum(["organization", "project", "service"])
+			.optional()
+			.default("organization"),
+		isGlobal: z.boolean().optional().default(true),
+		projectIds: z.array(z.string()).optional().default([]),
+		serviceConfigs: z
+			.array(
+				z.object({
+					serviceId: z.string(),
+					serviceType: z.string(),
+				}),
+			)
+			.optional()
+			.default([]),
 	})
 	.required();
 
@@ -317,6 +461,21 @@ export const apiCreateNtfy = notificationsSchema
 		topic: z.string().min(1),
 		accessToken: z.string().min(1),
 		priority: z.number().min(1),
+		scope: z
+			.enum(["organization", "project", "service"])
+			.optional()
+			.default("organization"),
+		isGlobal: z.boolean().optional().default(true),
+		projectIds: z.array(z.string()).optional().default([]),
+		serviceConfigs: z
+			.array(
+				z.object({
+					serviceId: z.string(),
+					serviceType: z.string(),
+				}),
+			)
+			.optional()
+			.default([]),
 	})
 	.required();
 
@@ -358,3 +517,32 @@ export const apiSendTest = notificationsSchema
 		priority: z.number(),
 	})
 	.partial();
+
+// New API schemas for project and service notifications
+export const apiCreateProjectNotification = z.object({
+	notificationId: z.string().min(1),
+	projectId: z.string().min(1),
+});
+
+export const apiCreateServiceNotification = z.object({
+	notificationId: z.string().min(1),
+	serviceId: z.string().min(1),
+	serviceType: z.string().min(1),
+});
+
+export const apiUpdateNotificationScope = z.object({
+	notificationId: z.string().min(1),
+	scope: z.enum(["organization", "project", "service"]),
+	isGlobal: z.boolean().optional(),
+});
+
+export const apiGetNotificationsForProject = z.object({
+	projectId: z.string().min(1),
+	eventType: z.string().optional(),
+});
+
+export const apiGetNotificationsForService = z.object({
+	serviceId: z.string().min(1),
+	serviceType: z.string().min(1),
+	eventType: z.string().optional(),
+});

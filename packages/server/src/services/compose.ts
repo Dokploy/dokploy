@@ -265,6 +265,8 @@ export const deployCompose = async ({
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
 			domains: compose.domains,
+			serviceId: compose.composeId,
+			serviceType: "compose",
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -279,6 +281,8 @@ export const deployCompose = async ({
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
+			serviceId: compose.composeId,
+			serviceType: "compose",
 		});
 		throw error;
 	}
@@ -397,6 +401,8 @@ export const deployRemoteCompose = async ({
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
 			domains: compose.domains,
+			serviceId: compose.composeId,
+			serviceType: "compose",
 		});
 	} catch (error) {
 		// @ts-ignore
@@ -421,6 +427,8 @@ export const deployRemoteCompose = async ({
 			errorMessage: error?.message || "Error building",
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
+			serviceId: compose.composeId,
+			serviceType: "compose",
 		});
 		throw error;
 	}
