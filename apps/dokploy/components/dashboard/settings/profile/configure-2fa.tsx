@@ -45,7 +45,7 @@ const PasswordSchema = z.object({
 type PasswordForm = z.infer<typeof PasswordSchema>;
 type Step = "password" | "actions" | "backup-codes";
 
-export const Disable2FA = () => {
+export const Configure2FA = () => {
 	const utils = api.useUtils();
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [step, setStep] = useState<Step>("password");

@@ -29,7 +29,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { Disable2FA } from "./disable-2fa";
+import { Configure2FA } from "./configure-2fa";
 import { Enable2FA } from "./enable-2fa";
 
 const profileSchema = z.object({
@@ -157,7 +157,7 @@ export const ProfileForm = () => {
 							</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2">
-							{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Disable2FA />}
+							{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
 						</div>
 					</CardHeader>
 
