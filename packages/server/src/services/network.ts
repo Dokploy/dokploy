@@ -11,7 +11,7 @@ import {
 	redis,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
 	createDockerNetwork,
 	type DockerNetworkConfig,
@@ -25,7 +25,7 @@ import {
 
 export type DokployNetwork = typeof networks.$inferSelect;
 
-type ResourceType =
+export type ResourceType =
 	| "application"
 	| "compose"
 	| "postgres"
@@ -37,6 +37,11 @@ type ResourceType =
 interface ResourceWithNetworks {
 	customNetworkIds?: readonly string[] | null;
 	composeType?: string;
+	serverId?: string | null;
+	server?: {
+		name: string;
+		serverId: string;
+	} | null;
 }
 
 type NetworkImportError = {
@@ -68,34 +73,41 @@ const RESOURCE_QUERIES = {
 	application: (id: string) =>
 		db.query.applications.findFirst({
 			where: eq(applications.applicationId, id),
+			with: { server: true },
 		}),
 	compose: (id: string) =>
 		db.query.compose.findFirst({
 			where: eq(compose.composeId, id),
+			with: { server: true },
 		}),
 	postgres: (id: string) =>
 		db.query.postgres.findFirst({
 			where: eq(postgres.postgresId, id),
+			with: { server: true },
 		}),
 	mysql: (id: string) =>
 		db.query.mysql.findFirst({
 			where: eq(mysql.mysqlId, id),
+			with: { server: true },
 		}),
 	mariadb: (id: string) =>
 		db.query.mariadb.findFirst({
 			where: eq(mariadb.mariadbId, id),
+			with: { server: true },
 		}),
 	mongo: (id: string) =>
 		db.query.mongo.findFirst({
 			where: eq(mongo.mongoId, id),
+			with: { server: true },
 		}),
 	redis: (id: string) =>
 		db.query.redis.findFirst({
 			where: eq(redis.redisId, id),
+			with: { server: true },
 		}),
 } as const;
 
-const findResourceById = async (
+export const findResourceById = async (
 	resourceId: string,
 	resourceType: ResourceType,
 ): Promise<ResourceWithNetworks> => {
@@ -301,6 +313,28 @@ export const findNetworksByOrganizationId = async (organizationId: string) => {
 	});
 };
 
+export const findNetworksByOrganizationIdAndServerId = async (
+	organizationId: string,
+	serverId: string | null,
+) => {
+	const whereConditions = [eq(networks.organizationId, organizationId)];
+
+	if (serverId) {
+		whereConditions.push(eq(networks.serverId, serverId));
+	} else {
+		whereConditions.push(isNull(networks.serverId));
+	}
+
+	return await db.query.networks.findMany({
+		where: and(...whereConditions),
+		with: {
+			server: true,
+			project: true,
+		},
+		orderBy: desc(networks.createdAt),
+	});
+};
+
 export const updateNetwork = async (
 	networkId: string,
 	data: Partial<DokployNetwork>,
@@ -445,6 +479,35 @@ const validateNetworkDriverCompatibility = (
 	}
 };
 
+const validateServerCompatibility = async (
+	networkId: string,
+	resourceId: string,
+	resourceType: ResourceType,
+): Promise<void> => {
+	const network = await findNetworkById(networkId);
+	const resource = await findResourceById(resourceId, resourceType);
+
+	if (network.serverId && resource.serverId !== network.serverId) {
+		const networkServerName = network.server?.name || network.serverId;
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Network is on server "${networkServerName}" but this ${resourceType} is on a different server. Both must be on the same server.`,
+		});
+	}
+
+	if (
+		resource.serverId &&
+		network.serverId &&
+		network.serverId !== resource.serverId
+	) {
+		const resourceServerName = resource.server?.name || resource.serverId;
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `This ${resourceType} is on server "${resourceServerName}" but the network is on a different server. Both must be on the same server.`,
+		});
+	}
+};
+
 export const assignNetworkToResource = async (
 	networkId: string,
 	resourceId: string,
@@ -472,6 +535,8 @@ export const assignNetworkToResource = async (
 		resourceType,
 		resource.composeType,
 	);
+
+	await validateServerCompatibility(networkId, resourceId, resourceType);
 
 	const updatedNetworkIds = [...currentNetworkIds, networkId];
 	const table = RESOURCE_TABLE_MAP[resourceType];

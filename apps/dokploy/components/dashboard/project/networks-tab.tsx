@@ -10,10 +10,9 @@ import { NetworkList } from "../network/network-list";
 
 interface Props {
 	projectId?: string;
-	serverId?: string | null;
 }
 
-export const NetworksTab = ({ projectId, serverId }: Props) => {
+export const NetworksTab = ({ projectId }: Props) => {
 	return (
 		<div className="space-y-4">
 			<Card>
@@ -26,7 +25,7 @@ export const NetworksTab = ({ projectId, serverId }: Props) => {
 								control
 							</CardDescription>
 						</div>
-						<CreateNetwork projectId={projectId} serverId={serverId} />
+						<CreateNetwork projectId={projectId} />
 					</div>
 				</CardHeader>
 				<CardContent>

@@ -72,21 +72,22 @@ const CreateNetworkSchema = z.object({
 		.or(z.literal("")),
 	internal: z.boolean().default(false),
 	encrypted: z.boolean().default(false),
+	serverId: z.string().nullable().optional(),
 });
 
 type CreateNetwork = z.infer<typeof CreateNetworkSchema>;
 
 interface Props {
-	serverId?: string | null;
 	projectId?: string | null;
 }
 
-export const CreateNetwork = ({ serverId, projectId }: Props) => {
+export const CreateNetwork = ({ projectId }: Props) => {
 	const [visible, setVisible] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const utils = api.useUtils();
 
 	const { mutateAsync, isLoading } = api.network.create.useMutation();
+	const { data: servers } = api.server.all.useQuery();
 
 	const form = useForm<CreateNetwork>({
 		defaultValues: {
@@ -99,6 +100,7 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 			ipRange: "",
 			internal: false,
 			encrypted: false,
+			serverId: null,
 		},
 		resolver: zodResolver(CreateNetworkSchema),
 	});
@@ -109,7 +111,8 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 			await mutateAsync({
 				...data,
 				projectId: projectId || undefined,
-				serverId: serverId || undefined,
+				serverId:
+					data.serverId === null ? undefined : data.serverId || undefined,
 				subnet: data.subnet || undefined,
 				gateway: data.gateway || undefined,
 				ipRange: data.ipRange || undefined,
@@ -250,6 +253,47 @@ export const CreateNetwork = ({ serverId, projectId }: Props) => {
 									</FormItem>
 								)}
 							/>
+
+							{servers && servers.length > 0 && (
+								<FormField
+									control={form.control}
+									name="serverId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Target Server</FormLabel>
+											<Select
+												onValueChange={(value) =>
+													field.onChange(value === "local" ? null : value)
+												}
+												defaultValue={field.value || "local"}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select target server" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="local">
+														Local Server (Dokploy)
+													</SelectItem>
+													{servers.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															{server.name} ({server.ipAddress})
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Choose where to create this Docker network
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
 
 							<div className="grid gap-4 md:grid-cols-2">
 								<FormField

@@ -105,6 +105,18 @@ export const NetworkList = () => {
 								{network.driver}
 							</Badge>
 
+							{network.server ? (
+								<Badge variant="secondary" className="text-xs">
+									<Server className="mr-1 h-3 w-3" />
+									{network.server.name}
+								</Badge>
+							) : (
+								<Badge variant="outline" className="text-xs">
+									<Server className="mr-1 h-3 w-3" />
+									Local Server
+								</Badge>
+							)}
+
 							{network.internal && (
 								<Badge variant="outline" className="text-xs">
 									<AlertTriangle className="mr-1 h-3 w-3" />

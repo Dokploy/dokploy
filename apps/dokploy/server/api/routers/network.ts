@@ -4,6 +4,8 @@ import {
 	deleteNetwork,
 	findNetworkById,
 	findNetworksByOrganizationId,
+	findNetworksByOrganizationIdAndServerId,
+	findResourceById,
 	getResourceNetworks,
 	importOrphanedNetworks,
 	listServerNetworks,
@@ -95,12 +97,20 @@ export const networkRouter = createTRPCRouter({
 		.input(
 			z.object({
 				resourceType: RESOURCE_TYPE_ENUM,
+				resourceId: z.string().min(1),
 				composeType: z.enum(["docker-compose", "stack"]).optional(),
 			}),
 		)
 		.query(async ({ input, ctx }) => {
-			const networks = await findNetworksByOrganizationId(
+			const resource = await findResourceById(
+				input.resourceId,
+				input.resourceType,
+			);
+			const resourceServerId = resource.serverId || null;
+
+			const networks = await findNetworksByOrganizationIdAndServerId(
 				ctx.session.activeOrganizationId,
+				resourceServerId,
 			);
 
 			if (

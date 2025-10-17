@@ -74,6 +74,7 @@ export const AssignNetworkToResource = ({
 
 	const { data: availableNetworks } = api.network.allForResource.useQuery({
 		resourceType,
+		resourceId,
 		composeType,
 	});
 
@@ -202,13 +203,9 @@ export const AssignNetworkToResource = ({
 												<div className="text-xs text-muted-foreground">
 													{network.networkName} • {network.driver}
 													{network.internal && " (internal)"}
+													{network.server && ` • ${network.server.name}`}
 												</div>
 											</div>
-											{network.isDefault && (
-												<Badge variant="secondary" className="ml-2">
-													Default
-												</Badge>
-											)}
 										</CommandItem>
 									))}
 								</ScrollArea>
