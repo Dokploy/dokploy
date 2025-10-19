@@ -220,8 +220,8 @@ export const addDomainToCompose = async (
 			throw new Error(`The service ${serviceName} not found in the compose`);
 		}
 
-		const httpLabels = createDomainLabels(appName, domain, "web");
-		if (https) {
+		const httpLabels = createDomainLabels(appName, domain, domain.customEntrypoint || "web");
+		if (domain.customEntrypoint == null && https) {
 			const httpsLabels = createDomainLabels(appName, domain, "websecure");
 			httpLabels.push(...httpsLabels);
 		}
@@ -299,11 +299,12 @@ export const writeComposeFile = async (
 export const createDomainLabels = (
 	appName: string,
 	domain: Domain,
-	entrypoint: "web" | "websecure",
+	entrypoint: string,
 ) => {
 	const {
 		host,
 		port,
+    customEntrypoint,
 		https,
 		uniqueConfigKey,
 		certificateType,
@@ -360,7 +361,7 @@ export const createDomainLabels = (
 	}
 
 	// Add TLS configuration for websecure
-	if (entrypoint === "websecure") {
+	if (entrypoint === "websecure" || (customEntrypoint != null && https)) {
 		if (certificateType === "letsencrypt") {
 			labels.push(
 				`traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,

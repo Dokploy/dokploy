@@ -123,6 +123,7 @@ const baseDomain: Domain = {
 	https: false,
 	path: null,
 	port: null,
+  customEntrypoint: null,
 	serviceName: "",
 	composeId: "",
 	customCertResolver: null,
@@ -259,5 +260,34 @@ test("CertificateType on websecure entrypoint", async () => {
 		"websecure",
 	);
 
+	expect(router.tls?.certResolver).toBe("letsencrypt");
+});
+
+test("Custom entrypoint on http domain", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: false, customEntrypoint: "custom" },
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.tls).toBeUndefined();
+});
+
+test("Custom entrypoint on https domain", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{
+			...baseDomain,
+			https: true,
+			customEntrypoint: "custom",
+			certificateType: "letsencrypt",
+		},
+		"custom",
+	);
+
+	expect(router.entryPoints).toEqual(["custom"]);
+	expect(router.middlewares).not.toContain("redirect-to-https");
 	expect(router.tls?.certResolver).toBe("letsencrypt");
 });

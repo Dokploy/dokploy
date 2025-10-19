@@ -32,10 +32,10 @@ export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	config.http.routers[routerName] = await createRouterConfig(
 		app,
 		domain,
-		"web",
+		domain.customEntrypoint || "web",
 	);
 
-	if (domain.https) {
+	if (domain.customEntrypoint == null && domain.https) {
 		config.http.routers[routerNameSecure] = await createRouterConfig(
 			app,
 			domain,
@@ -107,12 +107,12 @@ export const removeDomain = async (
 export const createRouterConfig = async (
 	app: ApplicationNested,
 	domain: Domain,
-	entryPoint: "web" | "websecure",
+	entryPoint: string,
 ) => {
 	const { appName, redirects, security } = app;
 	const { certificateType } = domain;
 
-	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
+	const { host, path, https, uniqueConfigKey, internalPath, stripPath, customEntrypoint } =
 		domain;
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
@@ -162,7 +162,7 @@ export const createRouterConfig = async (
 		}
 	}
 
-	if (entryPoint === "websecure") {
+	if (entryPoint === "websecure" || (customEntrypoint != null && https)) {
 		if (certificateType === "letsencrypt") {
 			routerConfig.tls = { certResolver: "letsencrypt" };
 		} else if (certificateType === "custom" && domain.customCertResolver) {
