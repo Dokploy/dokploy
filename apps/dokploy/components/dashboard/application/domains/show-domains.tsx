@@ -53,21 +53,21 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const { data: application } =
 		type === "application"
 			? api.application.one.useQuery(
-					{
-						applicationId: id,
-					},
-					{
-						enabled: !!id,
-					},
-				)
+				{
+					applicationId: id,
+				},
+				{
+					enabled: !!id,
+				},
+			)
 			: api.compose.one.useQuery(
-					{
-						composeId: id,
-					},
-					{
-						enabled: !!id,
-					},
-				);
+				{
+					composeId: id,
+				},
+				{
+					enabled: !!id,
+				},
+			);
 	const [validationStates, setValidationStates] = useState<ValidationStates>(
 		{},
 	);
@@ -78,7 +78,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 		refetch,
 		isLoading: isLoadingDomains,
 	} = type === "application"
-		? api.domain.byApplicationId.useQuery(
+			? api.domain.byApplicationId.useQuery(
 				{
 					applicationId: id,
 				},
@@ -86,7 +86,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					enabled: !!id,
 				},
 			)
-		: api.domain.byComposeId.useQuery(
+			: api.domain.byComposeId.useQuery(
 				{
 					composeId: id,
 				},
@@ -258,14 +258,21 @@ export const ShowDomains = ({ id, type }: Props) => {
 													</div>
 												</div>
 												<div className="w-full break-all">
-													<Link
-														className="flex items-center gap-2 text-base font-medium hover:underline"
-														target="_blank"
-														href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
-													>
-														{item.host}
-														<ExternalLink className="size-4 min-w-4" />
-													</Link>
+													<div className="flex items-center gap-2">
+														<Link
+															className="flex items-center gap-2 text-base font-medium hover:underline"
+															target="_blank"
+															href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
+														>
+															{item.host}
+															<ExternalLink className="size-4 min-w-4" />
+														</Link>
+														{item.host.includes("*") && (
+															<Badge variant="outline" className="text-xs">
+																🌐 Wildcard
+															</Badge>
+														)}
+													</div>
 												</div>
 
 												{/* Domain Details */}
@@ -357,7 +364,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
 																			{validationState.message &&
-																			validationState.cdnProvider
+																				validationState.cdnProvider
 																				? `Behind ${validationState.cdnProvider}`
 																				: "DNS Valid"}
 																		</>
