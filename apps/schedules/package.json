@@ -8,7 +8,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@dokploy/server": "workspace:*",
+		"@woap/server": "workspace:*",
 		"@hono/node-server": "^1.14.3",
 		"@hono/zod-validator": "0.3.0",
 		"bullmq": "5.4.2",

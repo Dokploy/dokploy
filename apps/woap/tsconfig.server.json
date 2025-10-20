@@ -1,0 +1,17 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "ESNext",
+		"outDir": "dist/",
+		"target": "ESNext",
+		"isolatedModules": false,
+		"noEmit": false,
+		"moduleResolution": "Node",
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./*"],
+			"@woap/server/*": ["../../packages/server/src/*"]
+		}
+	},
+	"include": ["next-env.d.ts", "./server/**/*"]
+}

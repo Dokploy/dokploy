@@ -7,7 +7,7 @@ import {
 	updateApplicationStatus,
 	updateCompose,
 	updatePreviewDeployment,
-} from "@dokploy/server";
+} from "@woap/server";
 import type { DeployJob } from "./schema";
 
 export const deploy = async (job: DeployJob) => {

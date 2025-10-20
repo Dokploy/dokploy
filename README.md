@@ -1,137 +1,172 @@
 <div align="center">
-  <a href="https://dokploy.com">
-    <img src=".github/sponsors/logo.png" alt="Dokploy - Open Source Alternative to Vercel, Heroku and Netlify." width="100%"  />
-  </a>
+  <h1>WOAP</h1>
+  <h3>AI-Powered No-Code Backend Platform</h3>
+  <p><strong>Build production backends with conversation</strong></p>
   </br>
-  </br>
-  <p>Join us on Discord for help, feedback, and discussions!</p>
-  <a href="https://discord.gg/2tBnJ3jDJc">
-    <img src="https://discordapp.com/api/guilds/1234073262418563112/widget.png?style=banner2" alt="Discord Shield"/>
-  </a>
+  <p>Chat with AI to deploy apps, create databases, and manage infrastructure - no DevOps knowledge required.</p>
 </div>
 <br />
 
+## What is WOAP?
 
+**WOAP** is an **AI-first, no-code backend platform** that makes backend development accessible to everyone. Simply describe what you need in plain English, and WOAP's AI assistant will configure, deploy, and manage your entire backend infrastructure.
 
-<div align="center" markdown="1">
-   <sup>Special thanks to:</sup>
-   <br>
-   <br>
-   <a href="https://tuple.app/dokploy">
-     <img src=".github/sponsors/tuple.png" alt="Tuple's sponsorship image" width="400"/>
-   </a>
+Built on top of [Dokploy](https://github.com/Dokploy/dokploy) (Apache 2.0), WOAP extends the powerful self-hosted PaaS with:
+- **AI Chat Interface**: Conversational backend building
+- **Visual Builders**: Drag-and-drop database schemas and API design
+- **Smart Templates**: Pre-built backends that AI customizes for you
+- **Zero DevOps**: AI handles all infrastructure configuration
 
-### [Tuple, the premier screen sharing app for developers](https://tuple.app/dokploy)
-[Available for MacOS & Windows](https://tuple.app/dokploy)<br>
+## ✨ Core Features
 
-</div>
+### AI-Powered Development
+- **Conversational Building**: "Create a blog backend with user auth" → Done
+- **Smart Configuration**: AI optimizes your infrastructure automatically
+- **Instant Deployment**: From chat to production in minutes
+- **Intelligent Suggestions**: AI recommends best practices and improvements
 
+### Visual Tools
+- **Database Designer**: Drag-and-drop schema builder
+- **API Builder**: Visual REST/GraphQL endpoint creator
+- **Service Architecture**: See your entire backend as a diagram
+- **Real-time Preview**: Watch your backend come to life
 
-Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
+### Inherited from Dokploy
+- **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.)
+- **Databases**: MySQL, PostgreSQL, MongoDB, MariaDB, Redis
+- **Docker Support**: Full Docker and Docker Compose integration
+- **Multi-Node**: Scale with Docker Swarm clustering
+- **Monitoring**: Real-time CPU, memory, storage, network metrics
+- **Backups**: Automated database backups
+- **SSL/TLS**: Automatic HTTPS with Let's Encrypt
+- **Multi-Server**: Deploy to remote servers
 
+## 🚀 Quick Start
 
-## ✨ Features
+### Installation
 
-Dokploy includes multiple features to make your life easier.
-
-- **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.).
-- **Databases**: Create and manage databases with support for MySQL, PostgreSQL, MongoDB, MariaDB, and Redis.
-- **Backups**: Automate backups for databases to an external storage destination.
-- **Docker Compose**: Native support for Docker Compose to manage complex applications.
-- **Multi Node**: Scale applications to multiple nodes using Docker Swarm to manage the cluster.
-- **Templates**: Deploy open-source templates (Plausible, Pocketbase, Calcom, etc.) with a single click.
-- **Traefik Integration**: Automatically integrates with Traefik for routing and load balancing.
-- **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage for every resource.
-- **Docker Management**: Easily deploy and manage Docker containers.
-- **CLI/API**: Manage your applications and databases using the command line or through the API.
-- **Notifications**: Get notified when your deployments succeed or fail (via Slack, Discord, Telegram, Email, etc.).
-- **Multi Server**: Deploy and manage your applications remotely to external servers.
-- **Self-Hosted**: Self-host Dokploy on your VPS.
-
-## 🚀 Getting Started
-
-To get started, run the following command on a VPS:
-
-Want to skip the installation process? [Try the Dokploy Cloud](https://app.dokploy.com).
+Run this on your VPS:
 
 ```bash
-curl -sSL https://dokploy.com/install.sh | sh
+curl -sSL https://woap.dev/install.sh | sh
 ```
 
-For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
+### First Steps
 
-## ♥️ Sponsors
+1. **Open WOAP** in your browser
+2. **Chat with AI**: "I need a REST API with user authentication"
+3. **Review & Deploy**: AI shows you what it will create
+4. **Done**: Your backend is live and ready
 
-🙏 We're deeply grateful to all our sponsors who make Dokploy possible! Your support helps cover the costs of hosting, testing, and developing new features.
+### Example Conversations
 
-[Dokploy Open Collective](https://opencollective.com/dokploy)
+```
+You: "Create a blog backend"
+WOAP AI: I'll set up:
+  - PostgreSQL database with posts, users, comments tables
+  - Node.js API with CRUD endpoints
+  - JWT authentication
+  - SSL certificate
+  Proceed? [Yes/Customize]
 
-[Github Sponsors](https://github.com/sponsors/Siumauricio)
+You: "Add real-time comments with WebSockets"
+WOAP AI: Adding Socket.io server and Redis for pub/sub...
+  ✓ WebSocket server created
+  ✓ Redis connected
+  ✓ Real-time events configured
+  Live at wss://your-domain.com
+```
 
-<!-- Hero Sponsors 🎖 -->
+## 🎯 Use Cases
 
-<!-- Add Hero Sponsors here -->
+### For Frontend Developers
+"I can build amazing UIs, but backend is overwhelming"
+→ Chat your backend into existence
 
-### Hero Sponsors 🎖
+### For Entrepreneurs
+"I have a SaaS idea but can't hire a backend team"
+→ Get a production backend in 10 minutes
 
-<div>
-  <a href="https://www.hostinger.com/vps-hosting?ref=dokploy"><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="300"/></a>
-  <a href="https://www.lxaer.com/?ref=dokploy"><img src=".github/sponsors/lxaer.png" alt="LX Aer" width="100"/></a>
-</div>
+### For Agencies
+"We need to ship client backends fast"
+→ Use templates + AI customization
 
-<!-- Premium Supporters 🥇 -->
+### For Students
+"I'm learning web dev and need a backend"
+→ Learn by building with AI guidance
 
-<!-- Add Premium Supporters here -->
+## 📦 Smart Templates
 
-### Premium Supporters 🥇
+One-click deployable backends that AI can customize:
 
-<div>
-  <a href="https://supafort.com/?ref=dokploy"><img src="https://supafort.com/build/q-4Ht4rBZR.webp" alt="Supafort.com" width="300"/></a>
-  <a href="https://agentdock.ai/?ref=dokploy"><img src=".github/sponsors/agentdock.png" alt="agentdock.ai" width="100"/></a>
-</div>
+- **Blog/CMS**: Posts, media, comments, SEO
+- **E-commerce**: Products, cart, checkout, inventory
+- **SaaS**: Teams, billing, workspaces, permissions
+- **Social Network**: Posts, followers, likes, messaging
+- **REST API**: Full CRUD with auth and rate limiting
+- **Real-time Chat**: WebSockets, presence, typing indicators
+- **And many more...**
 
-<!-- Elite Contributors 🥈 -->
+## 🧠 AI Capabilities
 
-<!-- Add Elite Contributors here -->
+WOAP's AI understands:
+- Infrastructure setup ("add Redis for caching")
+- Database design ("create a many-to-many relationship")
+- Security ("enable rate limiting on auth endpoints")
+- Performance ("optimize this slow query")
+- Debugging ("why is my deployment failing?")
+- Best practices ("make this production-ready")
 
-### Elite Contributors 🥈
+## 🛠️ Technology Stack
 
-<div>
-  <a href="https://americancloud.com/?ref=dokploy"><img src=".github/sponsors/american-cloud.png" alt="AmericanCloud" width="300"/></a>
-  <a href="https://tolgee.io/?utm_source=github_dokploy&utm_medium=banner&utm_campaign=dokploy"><img src="https://dokploy.com/tolgee-logo.png" alt="Tolgee" width="100"/></a>
-</div>
+- **Frontend**: Next.js 15 + React 18 + TypeScript
+- **Backend**: Node.js + Express + tRPC
+- **Database**: PostgreSQL + Drizzle ORM
+- **Containers**: Docker + Docker Compose
+- **Proxy**: Traefik
+- **AI**: Claude (Anthropic), OpenAI, Ollama support
+- **Real-time**: WebSockets + Socket.io
+- **Authentication**: Better-auth + 2FA
 
-### Supporting Members 🥉
+## 📖 Documentation
 
-<div>
+Full documentation at: [docs.woap.dev](https://docs.woap.dev)
 
-  <a href="https://cloudblast.io/?ref=dokploy"><img src="https://cloudblast.io/img/logo-icon.193cf13e.svg" width="250px" alt="Cloudblast.io"/></a>
-
-  <a href="https://synexa.ai/?ref=dokploy"><img src=".github/sponsors/synexa.png" width="65px" alt="Synexa"/></a>
-</div>
-
-### Community Backers 🤝
-
-#### Organizations:
-
-[Sponsors on Open Collective](https://opencollective.com/dokploy)
-
-#### Individuals:
-
-[![Individual Contributors on Open Collective](https://opencollective.com/dokploy/individuals.svg?width=890)](https://opencollective.com/dokploy)
-
-### Contributors 🤝
-
-<a href="https://github.com/dokploy/dokploy/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=dokploy/dokploy" alt="Contributors" />
-</a>
-
-## 📺 Video Tutorial
-
-<a href="https://youtu.be/mznYKPvhcfw">
-  <img src="https://dokploy.com/banner.png" alt="Watch the video" width="400"/>
-</a>
+- [Getting Started Guide](https://docs.woap.dev/getting-started)
+- [AI Chat Commands](https://docs.woap.dev/ai-commands)
+- [Visual Builders](https://docs.woap.dev/visual-builders)
+- [Templates Library](https://docs.woap.dev/templates)
+- [API Reference](https://docs.woap.dev/api)
 
 ## 🤝 Contributing
 
+WOAP is built on top of Dokploy's solid foundation. We welcome contributions!
+
 Check out the [Contributing Guide](CONTRIBUTING.md) for more information.
+
+## 📜 License
+
+WOAP is licensed under Apache 2.0, same as Dokploy.
+
+## 🙏 Attribution
+
+WOAP is built on [Dokploy](https://github.com/Dokploy/dokploy) by [Mauricio Siu](https://github.com/Siumauricio).
+
+We extend our deep gratitude to the Dokploy team and community for creating such a powerful foundation. WOAP aims to make their excellent platform even more accessible through AI-powered interfaces.
+
+## 🌟 What's Next?
+
+We're actively developing:
+- Advanced visual database designer
+- GraphQL API builder
+- Serverless function support
+- Multi-cloud deployment
+- AI-powered cost optimization
+- Collaborative team features
+
+---
+
+<div align="center">
+  <p><strong>Built with Dokploy | Enhanced with AI | Made for Developers</strong></p>
+  <p>Transform ideas into production backends through conversation</p>
+</div>

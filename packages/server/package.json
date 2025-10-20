@@ -1,5 +1,5 @@
 {
-  "name": "@dokploy/server",
+  "name": "@woap/server",
   "version": "1.0.0",
   "main": "./src/index.ts",
   "type": "module",

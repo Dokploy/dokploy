@@ -11,7 +11,7 @@
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./*"],
-			"@dokploy/server/*": ["../../packages/server/src/*"]
+			"@woap/server/*": ["../../packages/server/src/*"]
 		}
 	},
 	"exclude": ["node_modules", "dist"]
