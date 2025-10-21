@@ -240,7 +240,10 @@ export const deployApplication = async ({
 				domains: application.domains,
 			});
 		} catch (notificationError) {
-			console.error("Failed to send build success notifications:", notificationError);
+			console.error(
+				"Failed to send build success notifications:",
+				notificationError,
+			);
 		}
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -257,7 +260,10 @@ export const deployApplication = async ({
 				organizationId: application.environment.project.organizationId,
 			});
 		} catch (notificationError) {
-			console.error("Failed to send build error notifications:", notificationError);
+			console.error(
+				"Failed to send build error notifications:",
+				notificationError,
+			);
 		}
 
 		throw error;
@@ -384,7 +390,10 @@ export const deployRemoteApplication = async ({
 				domains: application.domains,
 			});
 		} catch (notificationError) {
-			console.error("Failed to send build success notifications:", notificationError);
+			console.error(
+				"Failed to send build success notifications:",
+				notificationError,
+			);
 		}
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);

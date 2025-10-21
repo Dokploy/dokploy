@@ -268,7 +268,10 @@ export const deployCompose = async ({
 				domains: compose.domains,
 			});
 		} catch (notificationError) {
-			console.error("Failed to send build success notifications:", notificationError);
+			console.error(
+				"Failed to send build success notifications:",
+				notificationError,
+			);
 		}
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -286,7 +289,10 @@ export const deployCompose = async ({
 				organizationId: compose.environment.project.organizationId,
 			});
 		} catch (notificationError) {
-			console.error("Failed to send build error notifications:", notificationError);
+			console.error(
+				"Failed to send build error notifications:",
+				notificationError,
+			);
 		}
 		throw error;
 	}
