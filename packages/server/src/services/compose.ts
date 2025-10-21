@@ -258,28 +258,36 @@ export const deployCompose = async ({
 			composeStatus: "done",
 		});
 
-		await sendBuildSuccessNotifications({
-			projectName: compose.environment.project.name,
-			applicationName: compose.name,
-			applicationType: "compose",
-			buildLink,
-			organizationId: compose.environment.project.organizationId,
-			domains: compose.domains,
-		});
+		try {
+			await sendBuildSuccessNotifications({
+				projectName: compose.environment.project.name,
+				applicationName: compose.name,
+				applicationType: "compose",
+				buildLink,
+				organizationId: compose.environment.project.organizationId,
+				domains: compose.domains,
+			});
+		} catch (notificationError) {
+			console.error("Failed to send build success notifications:", notificationError);
+		}
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",
 		});
-		await sendBuildErrorNotifications({
-			projectName: compose.environment.project.name,
-			applicationName: compose.name,
-			applicationType: "compose",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
-			buildLink,
-			organizationId: compose.environment.project.organizationId,
-		});
+		try {
+			await sendBuildErrorNotifications({
+				projectName: compose.environment.project.name,
+				applicationName: compose.name,
+				applicationType: "compose",
+				// @ts-ignore
+				errorMessage: error?.message || "Error building",
+				buildLink,
+				organizationId: compose.environment.project.organizationId,
+			});
+		} catch (notificationError) {
+			console.error("Failed to send build error notifications:", notificationError);
+		}
 		throw error;
 	}
 };

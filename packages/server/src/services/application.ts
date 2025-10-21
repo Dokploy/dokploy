@@ -230,27 +230,35 @@ export const deployApplication = async ({
 			});
 		}
 
-		await sendBuildSuccessNotifications({
-			projectName: application.environment.project.name,
-			applicationName: application.name,
-			applicationType: "application",
-			buildLink,
-			organizationId: application.environment.project.organizationId,
-			domains: application.domains,
-		});
+		try {
+			await sendBuildSuccessNotifications({
+				projectName: application.environment.project.name,
+				applicationName: application.name,
+				applicationType: "application",
+				buildLink,
+				organizationId: application.environment.project.organizationId,
+				domains: application.domains,
+			});
+		} catch (notificationError) {
+			console.error("Failed to send build success notifications:", notificationError);
+		}
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 
-		await sendBuildErrorNotifications({
-			projectName: application.environment.project.name,
-			applicationName: application.name,
-			applicationType: "application",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
-			buildLink,
-			organizationId: application.environment.project.organizationId,
-		});
+		try {
+			await sendBuildErrorNotifications({
+				projectName: application.environment.project.name,
+				applicationName: application.name,
+				applicationType: "application",
+				// @ts-ignore
+				errorMessage: error?.message || "Error building",
+				buildLink,
+				organizationId: application.environment.project.organizationId,
+			});
+		} catch (notificationError) {
+			console.error("Failed to send build error notifications:", notificationError);
+		}
 
 		throw error;
 	}
@@ -366,14 +374,18 @@ export const deployRemoteApplication = async ({
 			});
 		}
 
-		await sendBuildSuccessNotifications({
-			projectName: application.environment.project.name,
-			applicationName: application.name,
-			applicationType: "application",
-			buildLink,
-			organizationId: application.environment.project.organizationId,
-			domains: application.domains,
-		});
+		try {
+			await sendBuildSuccessNotifications({
+				projectName: application.environment.project.name,
+				applicationName: application.name,
+				applicationType: "application",
+				buildLink,
+				organizationId: application.environment.project.organizationId,
+				domains: application.domains,
+			});
+		} catch (notificationError) {
+			console.error("Failed to send build success notifications:", notificationError);
+		}
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 

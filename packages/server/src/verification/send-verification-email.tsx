@@ -11,20 +11,25 @@ export const sendEmail = async ({
 	subject: string;
 	text: string;
 }) => {
-	await sendEmailNotification(
-		{
-			fromAddress: process.env.SMTP_FROM_ADDRESS || "",
-			toAddresses: [email],
-			smtpServer: process.env.SMTP_SERVER || "",
-			smtpPort: Number(process.env.SMTP_PORT),
-			username: process.env.SMTP_USERNAME || "",
-			password: process.env.SMTP_PASSWORD || "",
-		},
-		subject,
-		text,
-	);
+	try {
+		await sendEmailNotification(
+			{
+				fromAddress: process.env.SMTP_FROM_ADDRESS || "",
+				toAddresses: [email],
+				smtpServer: process.env.SMTP_SERVER || "",
+				smtpPort: Number(process.env.SMTP_PORT),
+				username: process.env.SMTP_USERNAME || "",
+				password: process.env.SMTP_PASSWORD || "",
+			},
+			subject,
+			text,
+		);
 
-	return true;
+		return true;
+	} catch (error) {
+		console.error("Failed to send email:", error);
+		throw error;
+	}
 };
 
 export const sendDiscordNotificationWelcome = async (email: string) => {
