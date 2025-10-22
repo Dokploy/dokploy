@@ -141,8 +141,8 @@ export function processValue(
 			}
 			if (
 				typeof payload === "string" &&
-				payload.trim().startsWith("{") &&
-				payload.trim().endsWith("}")
+				payload.trimStart().startsWith("{") &&
+				payload.trimEnd().endsWith("}")
 			) {
 				try {
 					payload = JSON.parse(payload);
