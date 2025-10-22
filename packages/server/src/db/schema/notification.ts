@@ -13,6 +13,7 @@ export const notificationType = pgEnum("notificationType", [
 	"gotify",
 	"ntfy",
 	"lark",
+	"resms",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -50,6 +51,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	larkId: text("larkId").references(() => lark.larkId, {
+		onDelete: "cascade",
+	}),
+	resmsId: text("resmsId").references(() => resms.resmsId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -128,6 +132,16 @@ export const lark = pgTable("lark", {
 	webhookUrl: text("webhookUrl").notNull(),
 });
 
+export const resms = pgTable("resms", {
+	resmsId: text("resmsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	apiKey: text("apiKey").notNull(),
+	phoneNumber: text("phoneNumber").notNull(),
+	senderId: text("senderId"),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -156,6 +170,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	lark: one(lark, {
 		fields: [notifications.larkId],
 		references: [lark.larkId],
+	}),
+	resms: one(resms, {
+		fields: [notifications.resmsId],
+		references: [resms.resmsId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -380,6 +398,35 @@ export const apiTestLarkConnection = apiCreateLark.pick({
 	webhookUrl: true,
 });
 
+export const apiCreateResms = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		apiKey: z.string().min(1),
+		phoneNumber: z.string().min(1),
+		senderId: z.string(),
+	})
+	.required();
+
+export const apiUpdateResms = apiCreateResms.partial().extend({
+	notificationId: z.string().min(1),
+	resmsId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestResmsConnection = apiCreateResms.pick({
+	apiKey: true,
+	phoneNumber: true,
+	senderId: true,
+});
+
 export const apiSendTest = notificationsSchema
 	.extend({
 		botToken: z.string(),
@@ -397,5 +444,8 @@ export const apiSendTest = notificationsSchema
 		appToken: z.string(),
 		accessToken: z.string(),
 		priority: z.number(),
+		apiKey: z.string(),
+		phoneNumber: z.string(),
+		senderId: z.string(),
 	})
 	.partial();

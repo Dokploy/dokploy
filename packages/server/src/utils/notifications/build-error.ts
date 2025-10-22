@@ -10,6 +10,7 @@ import {
 	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
+	sendReSmsNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -46,11 +47,12 @@ export const sendBuildErrorNotifications = async ({
 			gotify: true,
 			ntfy: true,
 			lark: true,
+			resms: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark, resms } =
 			notification;
 		if (email) {
 			const template = await renderAsync(
@@ -325,6 +327,15 @@ export const sendBuildErrorNotifications = async ({
 					},
 				},
 			});
+		}
+
+		if (resms) {
+			const limitCharacter = 140;
+			const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+			await sendReSmsNotification(
+				resms,
+				`⚠️ Build Failed\n\nProject: ${projectName}\nApplication: ${applicationName}\nError: ${truncatedErrorMessage}`,
+			);
 		}
 	}
 };

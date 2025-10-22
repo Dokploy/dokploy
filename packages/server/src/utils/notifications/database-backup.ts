@@ -10,6 +10,7 @@ import {
 	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
+	sendReSmsNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -46,6 +47,7 @@ export const sendDatabaseBackupNotifications = async ({
 			gotify: true,
 			ntfy: true,
 			lark: true,
+			resms: true,
 		},
 	});
 
@@ -355,6 +357,11 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 				},
 			});
+			const status = type === "success" ? "✅ Success" : "❌ Failed";
+			await sendReSmsNotification(
+				resms,
+				`${status} Database Backup\n\nProject: ${projectName}\nApp: ${applicationName}\nDB: ${databaseName}\nType: ${databaseType}`,
+			);
 		}
 	}
 };

@@ -11,6 +11,7 @@ import {
 	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
+	sendReSmsNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -47,6 +48,7 @@ export const sendBuildSuccessNotifications = async ({
 			gotify: true,
 			ntfy: true,
 			lark: true,
+			resms: true,
 		},
 	});
 
@@ -316,6 +318,13 @@ export const sendBuildSuccessNotifications = async ({
 					},
 				},
 			});
+		}
+
+		if (resms) {
+			await sendReSmsNotification(
+				resms,
+				`✅ Build Success\n\nProject: ${projectName}\nApplication: ${applicationName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}`,
+			);
 		}
 	}
 };

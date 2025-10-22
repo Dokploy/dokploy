@@ -10,6 +10,7 @@ import {
 	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
+	sendReSmsNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -33,6 +34,7 @@ export const sendDockerCleanupNotifications = async (
 			gotify: true,
 			ntfy: true,
 			lark: true,
+			resms: true,
 		},
 	});
 
@@ -215,6 +217,10 @@ export const sendDockerCleanupNotifications = async (
 					},
 				},
 			});
+			await sendReSmsNotification(
+				resms,
+				`✅ Docker Cleanup\n\n${message}\nTime: ${date.toLocaleString()}`,
+			);
 		}
 	}
 };

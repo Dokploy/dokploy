@@ -10,6 +10,7 @@ import {
 	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
+	sendReSmsNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -27,6 +28,7 @@ export const sendDokployRestartNotifications = async () => {
 			gotify: true,
 			ntfy: true,
 			lark: true,
+			resms: true,
 		},
 	});
 
@@ -213,6 +215,10 @@ export const sendDokployRestartNotifications = async () => {
 			} catch (error) {
 				console.log(error);
 			}
+			await sendReSmsNotification(
+				resms,
+				`✅ Dokploy Server Restarted\n\nTime: ${date.toLocaleString()}`,
+			);
 		}
 	}
 };

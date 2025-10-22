@@ -36,6 +36,7 @@ export const sendServerThresholdNotifications = async (
 			telegram: true,
 			slack: true,
 			lark: true,
+			resms: true,
 		},
 	});
 
@@ -248,6 +249,10 @@ export const sendServerThresholdNotifications = async (
 					},
 				},
 			});
+			await sendReSmsNotification(
+				resms,
+				`⚠️ Server ${payload.Type} Alert\n\nServer: ${payload.ServerName}\nValue: ${payload.Value.toFixed(2)}%\nThreshold: ${payload.Threshold.toFixed(2)}%`,
+			);
 		}
 	}
 };

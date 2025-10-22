@@ -633,6 +633,9 @@ importers:
       '@react-email/components':
         specifier: ^0.0.21
         version: 0.0.21(@types/react@18.3.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@resms/sdk':
+        specifier: ^0.8.1
+        version: 0.8.1
       '@trpc/server':
         specifier: ^10.45.2
         version: 10.45.2
@@ -3583,6 +3586,9 @@ packages:
     resolution: {integrity: sha512-c1Q99M5ljsIuc4YdaCwfUEXsofakb9c8+Zse2qxTadu8TalLXuAESzLvFAvNVbkmSlvlzIQOLpBCmWI9wTOt+g==}
     peerDependencies:
       '@redis/client': ^1.0.0
+
+  '@resms/sdk@0.8.1':
+    resolution: {integrity: sha512-rMfakI43qJwE7VSPYuDjM/gdHSxmb32xvHy8aeoQuEWpKp7yea2uRpWu2kts7nL2omOt/bryr9gJ2SqJuYto8A==}
 
   '@rollup/rollup-android-arm-eabi@4.41.1':
     resolution: {integrity: sha512-NELNvyEWZ6R9QMkiytB4/L4zSEaBC03KIXEghptLGLZWJ6VPrL63ooZQCOnlx36aQPGhzuOMwDerC1Eb2VmrLw==}
@@ -10701,6 +10707,8 @@ snapshots:
   '@redis/time-series@1.1.0(@redis/client@1.6.0)':
     dependencies:
       '@redis/client': 1.6.0
+
+  '@resms/sdk@0.8.1': {}
 
   '@rollup/rollup-android-arm-eabi@4.41.1':
     optional: true
