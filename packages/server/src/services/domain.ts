@@ -143,6 +143,29 @@ export const getDomainHost = (domain: Domain) => {
 
 const resolveDns = promisify(dns.resolve4);
 
+export const updateDomainValidationStatus = async (
+	domainId: string,
+	validationResult: {
+		isValid: boolean;
+		resolvedIp?: string;
+		error?: string;
+		cdnProvider?: string;
+	},
+) => {
+	const now = new Date().toISOString();
+	
+	await db
+		.update(domains)
+		.set({
+			isValidated: validationResult.isValid,
+			validatedAt: now,
+			validationError: validationResult.error || null,
+			resolvedIp: validationResult.resolvedIp || null,
+			cdnProvider: validationResult.cdnProvider || null,
+		})
+		.where(eq(domains.domainId, domainId));
+};
+
 export const validateDomain = async (
 	domain: string,
 	expectedIp?: string,

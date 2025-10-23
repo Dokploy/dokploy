@@ -12,6 +12,12 @@ export const domain = z
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string().optional(),
+		// Domain validation fields
+		isValidated: z.boolean().optional(),
+		validatedAt: z.string().optional(),
+		validationError: z.string().optional(),
+		resolvedIp: z.string().optional(),
+		cdnProvider: z.string().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -44,6 +50,12 @@ export const domainCompose = z
 		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().min(1, { message: "Service name is required" }),
+		// Domain validation fields
+		isValidated: z.boolean().optional(),
+		validatedAt: z.string().optional(),
+		validationError: z.string().optional(),
+		resolvedIp: z.string().optional(),
+		cdnProvider: z.string().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {

@@ -60,6 +60,12 @@ export const domain = z
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		// Domain validation fields
+		isValidated: z.boolean().optional(),
+		validatedAt: z.string().optional(),
+		validationError: z.string().optional(),
+		resolvedIp: z.string().optional(),
+		cdnProvider: z.string().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -216,6 +222,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				// Convert null to undefined for validation fields
+				isValidated: data?.isValidated || false,
+				validatedAt: data?.validatedAt || undefined,
+				validationError: data?.validationError || undefined,
+				resolvedIp: data?.resolvedIp || undefined,
+				cdnProvider: data?.cdnProvider || undefined,
 			});
 		}
 

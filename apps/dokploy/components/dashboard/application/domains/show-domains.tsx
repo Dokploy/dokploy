@@ -100,7 +100,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const { mutateAsync: deleteDomain, isLoading: isRemoving } =
 		api.domain.delete.useMutation();
 
-	const handleValidateDomain = async (host: string) => {
+	const handleValidateDomain = async (domainId: string, host: string) => {
 		setValidationStates((prev) => ({
 			...prev,
 			[host]: { isLoading: true },
@@ -111,6 +111,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 				domain: host,
 				serverIp:
 					application?.server?.ipAddress?.toString() || ip?.toString() || "",
+				domainId: domainId,
 			});
 
 			setValidationStates((prev) => ({
@@ -124,6 +125,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 					message: result.error && result.isValid ? result.error : undefined,
 				},
 			}));
+
+			// Refetch domains to get updated validation status from database
+			await refetch();
 		} catch (err) {
 			const error = err as Error;
 			setValidationStates((prev) => ({
@@ -185,6 +189,12 @@ export const ShowDomains = ({ id, type }: Props) => {
 						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full min-h-[40vh] ">
 							{data?.map((item) => {
 								const validationState = validationStates[item.host];
+								// Use persisted validation status from database, fallback to local state
+								const isValidated = item.isValidated ?? validationState?.isValid;
+								const validationError = item.validationError ?? validationState?.error;
+								const resolvedIp = item.resolvedIp ?? validationState?.resolvedIp;
+								const cdnProvider = item.cdnProvider ?? validationState?.cdnProvider;
+								const validatedAt = item.validatedAt;
 								return (
 									<Card
 										key={item.domainId}
@@ -338,14 +348,14 @@ export const ShowDomains = ({ id, type }: Props) => {
 																<Badge
 																	variant="outline"
 																	className={
-																		validationState?.isValid
+																		isValidated
 																			? "bg-green-500/10 text-green-500 cursor-pointer"
-																			: validationState?.error
+																			: validationError
 																				? "bg-red-500/10 text-red-500 cursor-pointer"
 																				: "bg-yellow-500/10 text-yellow-500 cursor-pointer"
 																	}
 																	onClick={() =>
-																		handleValidateDomain(item.host)
+																		handleValidateDomain(item.domainId, item.host)
 																	}
 																>
 																	{validationState?.isLoading ? (
@@ -353,18 +363,17 @@ export const ShowDomains = ({ id, type }: Props) => {
 																			<Loader2 className="size-3 mr-1 animate-spin" />
 																			Checking DNS...
 																		</>
-																	) : validationState?.isValid ? (
+																	) : isValidated ? (
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
-																			{validationState.message &&
-																			validationState.cdnProvider
-																				? `Behind ${validationState.cdnProvider}`
+																			{cdnProvider
+																				? `Behind ${cdnProvider}`
 																				: "DNS Valid"}
 																		</>
-																	) : validationState?.error ? (
+																	) : validationError ? (
 																		<>
 																			<XCircle className="size-3 mr-1" />
-																			{validationState.error}
+																			{validationError}
 																		</>
 																	) : (
 																		<>
@@ -375,15 +384,36 @@ export const ShowDomains = ({ id, type }: Props) => {
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent className="max-w-xs">
-																{validationState?.error ? (
+																{validationError ? (
 																	<div className="flex flex-col gap-1">
 																		<p className="font-medium text-red-500">
 																			Error:
 																		</p>
-																		<p>{validationState.error}</p>
+																		<p className="text-sm">
+																			{validationError}
+																		</p>
+																		{validatedAt && (
+																			<p className="text-xs text-muted-foreground">
+																				Last validated: {new Date(validatedAt).toLocaleString()}
+																			</p>
+																		)}
+																	</div>
+																) : resolvedIp ? (
+																	<div className="flex flex-col gap-1">
+																		<p className="font-medium">
+																			Resolved IP:
+																		</p>
+																		<p className="text-sm">
+																			{resolvedIp}
+																		</p>
+																		{validatedAt && (
+																			<p className="text-xs text-muted-foreground">
+																				Last validated: {new Date(validatedAt).toLocaleString()}
+																			</p>
+																		)}
 																	</div>
 																) : (
-																	"Click to validate DNS configuration"
+																	<p>Click to validate DNS configuration</p>
 																)}
 															</TooltipContent>
 														</Tooltip>

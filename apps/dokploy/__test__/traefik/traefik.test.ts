@@ -131,6 +131,12 @@ const baseDomain: Domain = {
 	previewDeploymentId: "",
 	internalPath: "/",
 	stripPath: false,
+	// Domain validation fields
+	isValidated: false,
+	validatedAt: null,
+	validationError: null,
+	resolvedIp: null,
+	cdnProvider: null,
 };
 
 const baseRedirect: Redirect = {
