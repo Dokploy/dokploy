@@ -25,7 +25,14 @@ export const sendVolumeBackupNotifications = async ({
 	projectName: string;
 	applicationName: string;
 	volumeName: string;
-	serviceType: "application" | "postgres" | "mysql" | "mongodb" | "mariadb" | "redis" | "compose";
+	serviceType:
+		| "application"
+		| "postgres"
+		| "mysql"
+		| "mongodb"
+		| "mariadb"
+		| "redis"
+		| "compose";
 	type: "error" | "success";
 	organizationId: string;
 	errorMessage?: string;
@@ -106,11 +113,15 @@ export const sendVolumeBackupNotifications = async ({
 						value: serviceType,
 						inline: true,
 					},
-					...(backupSize ? [{
-						name: decorate("`📊`", "Backup Size"),
-						value: backupSize,
-						inline: true,
-					}] : []),
+					...(backupSize
+						? [
+								{
+									name: decorate("`📊`", "Backup Size"),
+									value: backupSize,
+									inline: true,
+								},
+							]
+						: []),
 					{
 						name: decorate("`📅`", "Date"),
 						value: `<t:${unixDate}:D>`,
@@ -236,11 +247,15 @@ export const sendVolumeBackupNotifications = async ({
 								value: serviceType,
 								short: true,
 							},
-							...(backupSize ? [{
-								title: "Backup Size",
-								value: backupSize,
-								short: true,
-							}] : []),
+							...(backupSize
+								? [
+										{
+											title: "Backup Size",
+											value: backupSize,
+											short: true,
+										},
+									]
+								: []),
 							{
 								title: "Time",
 								value: date.toLocaleString(),

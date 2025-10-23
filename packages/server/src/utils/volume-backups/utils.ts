@@ -81,37 +81,52 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 
 		// Send success notification
 		try {
-			const projectName = volumeBackup.application?.environment?.project?.name || 
-								volumeBackup.compose?.environment?.project?.name || 
-								volumeBackup.postgres?.environment?.project?.name ||
-								volumeBackup.mysql?.environment?.project?.name ||
-								volumeBackup.mariadb?.environment?.project?.name ||
-								volumeBackup.mongo?.environment?.project?.name ||
-								volumeBackup.redis?.environment?.project?.name ||
-								"Unknown Project";
-			
-			const organizationId = volumeBackup.application?.environment?.project?.organizationId || 
-									volumeBackup.compose?.environment?.project?.organizationId || 
-									volumeBackup.postgres?.environment?.project?.organizationId ||
-									volumeBackup.mysql?.environment?.project?.organizationId ||
-									volumeBackup.mariadb?.environment?.project?.organizationId ||
-									volumeBackup.mongo?.environment?.project?.organizationId ||
-									volumeBackup.redis?.environment?.project?.organizationId ||
-									"";
+			const projectName =
+				volumeBackup.application?.environment?.project?.name ||
+				volumeBackup.compose?.environment?.project?.name ||
+				volumeBackup.postgres?.environment?.project?.name ||
+				volumeBackup.mysql?.environment?.project?.name ||
+				volumeBackup.mariadb?.environment?.project?.name ||
+				volumeBackup.mongo?.environment?.project?.name ||
+				volumeBackup.redis?.environment?.project?.name ||
+				"Unknown Project";
+
+			const organizationId =
+				volumeBackup.application?.environment?.project?.organizationId ||
+				volumeBackup.compose?.environment?.project?.organizationId ||
+				volumeBackup.postgres?.environment?.project?.organizationId ||
+				volumeBackup.mysql?.environment?.project?.organizationId ||
+				volumeBackup.mariadb?.environment?.project?.organizationId ||
+				volumeBackup.mongo?.environment?.project?.organizationId ||
+				volumeBackup.redis?.environment?.project?.organizationId ||
+				"";
 
 			// Map service type to match notification function expectations
-			const mappedServiceType = volumeBackup.serviceType === "mongo" ? "mongodb" : volumeBackup.serviceType;
+			const mappedServiceType =
+				volumeBackup.serviceType === "mongo"
+					? "mongodb"
+					: volumeBackup.serviceType;
 
 			await sendVolumeBackupNotifications({
 				projectName,
 				applicationName: volumeBackup.name,
 				volumeName: volumeBackup.volumeName,
-				serviceType: mappedServiceType as "application" | "postgres" | "mysql" | "mongodb" | "mariadb" | "redis" | "compose",
+				serviceType: mappedServiceType as
+					| "application"
+					| "postgres"
+					| "mysql"
+					| "mongodb"
+					| "mariadb"
+					| "redis"
+					| "compose",
 				type: "success",
 				organizationId,
 			});
 		} catch (notificationError) {
-			console.error("Failed to send volume backup success notification:", notificationError);
+			console.error(
+				"Failed to send volume backup success notification:",
+				notificationError,
+			);
 		}
 	} catch (error) {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
@@ -130,38 +145,53 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 
 		// Send error notification
 		try {
-			const projectName = volumeBackup.application?.environment?.project?.name || 
-								volumeBackup.compose?.environment?.project?.name || 
-								volumeBackup.postgres?.environment?.project?.name ||
-								volumeBackup.mysql?.environment?.project?.name ||
-								volumeBackup.mariadb?.environment?.project?.name ||
-								volumeBackup.mongo?.environment?.project?.name ||
-								volumeBackup.redis?.environment?.project?.name ||
-								"Unknown Project";
-			
-			const organizationId = volumeBackup.application?.environment?.project?.organizationId || 
-									volumeBackup.compose?.environment?.project?.organizationId || 
-									volumeBackup.postgres?.environment?.project?.organizationId ||
-									volumeBackup.mysql?.environment?.project?.organizationId ||
-									volumeBackup.mariadb?.environment?.project?.organizationId ||
-									volumeBackup.mongo?.environment?.project?.organizationId ||
-									volumeBackup.redis?.environment?.project?.organizationId ||
-									"";
+			const projectName =
+				volumeBackup.application?.environment?.project?.name ||
+				volumeBackup.compose?.environment?.project?.name ||
+				volumeBackup.postgres?.environment?.project?.name ||
+				volumeBackup.mysql?.environment?.project?.name ||
+				volumeBackup.mariadb?.environment?.project?.name ||
+				volumeBackup.mongo?.environment?.project?.name ||
+				volumeBackup.redis?.environment?.project?.name ||
+				"Unknown Project";
+
+			const organizationId =
+				volumeBackup.application?.environment?.project?.organizationId ||
+				volumeBackup.compose?.environment?.project?.organizationId ||
+				volumeBackup.postgres?.environment?.project?.organizationId ||
+				volumeBackup.mysql?.environment?.project?.organizationId ||
+				volumeBackup.mariadb?.environment?.project?.organizationId ||
+				volumeBackup.mongo?.environment?.project?.organizationId ||
+				volumeBackup.redis?.environment?.project?.organizationId ||
+				"";
 
 			// Map service type to match notification function expectations
-			const mappedServiceType = volumeBackup.serviceType === "mongo" ? "mongodb" : volumeBackup.serviceType;
+			const mappedServiceType =
+				volumeBackup.serviceType === "mongo"
+					? "mongodb"
+					: volumeBackup.serviceType;
 
 			await sendVolumeBackupNotifications({
 				projectName,
 				applicationName: volumeBackup.name,
 				volumeName: volumeBackup.volumeName,
-				serviceType: mappedServiceType as "application" | "postgres" | "mysql" | "mongodb" | "mariadb" | "redis" | "compose",
+				serviceType: mappedServiceType as
+					| "application"
+					| "postgres"
+					| "mysql"
+					| "mongodb"
+					| "mariadb"
+					| "redis"
+					| "compose",
 				type: "error",
 				organizationId,
 				errorMessage: error instanceof Error ? error.message : String(error),
 			});
 		} catch (notificationError) {
-			console.error("Failed to send volume backup error notification:", notificationError);
+			console.error(
+				"Failed to send volume backup error notification:",
+				notificationError,
+			);
 		}
 
 		console.error(error);
