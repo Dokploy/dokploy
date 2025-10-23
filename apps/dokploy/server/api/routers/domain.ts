@@ -251,13 +251,16 @@ export const domainRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			const validationResult = await validateDomain(input.domain, input.serverIp);
-			
+			const validationResult = await validateDomain(
+				input.domain,
+				input.serverIp,
+			);
+
 			// If domainId is provided, persist the validation result
 			if (input.domainId) {
 				await updateDomainValidationStatus(input.domainId, validationResult);
 			}
-			
+
 			return validationResult;
 		}),
 });

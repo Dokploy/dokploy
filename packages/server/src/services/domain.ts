@@ -153,7 +153,7 @@ export const updateDomainValidationStatus = async (
 	},
 ) => {
 	const now = new Date().toISOString();
-	
+
 	await db
 		.update(domains)
 		.set({

@@ -190,10 +190,14 @@ export const ShowDomains = ({ id, type }: Props) => {
 							{data?.map((item) => {
 								const validationState = validationStates[item.host];
 								// Use persisted validation status from database, fallback to local state
-								const isValidated = item.isValidated ?? validationState?.isValid;
-								const validationError = item.validationError ?? validationState?.error;
-								const resolvedIp = item.resolvedIp ?? validationState?.resolvedIp;
-								const cdnProvider = item.cdnProvider ?? validationState?.cdnProvider;
+								const isValidated =
+									item.isValidated ?? validationState?.isValid;
+								const validationError =
+									item.validationError ?? validationState?.error;
+								const resolvedIp =
+									item.resolvedIp ?? validationState?.resolvedIp;
+								const cdnProvider =
+									item.cdnProvider ?? validationState?.cdnProvider;
 								const validatedAt = item.validatedAt;
 								return (
 									<Card
@@ -355,7 +359,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 																				: "bg-yellow-500/10 text-yellow-500 cursor-pointer"
 																	}
 																	onClick={() =>
-																		handleValidateDomain(item.domainId, item.host)
+																		handleValidateDomain(
+																			item.domainId,
+																			item.host,
+																		)
 																	}
 																>
 																	{validationState?.isLoading ? (
@@ -389,26 +396,22 @@ export const ShowDomains = ({ id, type }: Props) => {
 																		<p className="font-medium text-red-500">
 																			Error:
 																		</p>
-																		<p className="text-sm">
-																			{validationError}
-																		</p>
+																		<p className="text-sm">{validationError}</p>
 																		{validatedAt && (
 																			<p className="text-xs text-muted-foreground">
-																				Last validated: {new Date(validatedAt).toLocaleString()}
+																				Last validated:{" "}
+																				{new Date(validatedAt).toLocaleString()}
 																			</p>
 																		)}
 																	</div>
 																) : resolvedIp ? (
 																	<div className="flex flex-col gap-1">
-																		<p className="font-medium">
-																			Resolved IP:
-																		</p>
-																		<p className="text-sm">
-																			{resolvedIp}
-																		</p>
+																		<p className="font-medium">Resolved IP:</p>
+																		<p className="text-sm">{resolvedIp}</p>
 																		{validatedAt && (
 																			<p className="text-xs text-muted-foreground">
-																				Last validated: {new Date(validatedAt).toLocaleString()}
+																				Last validated:{" "}
+																				{new Date(validatedAt).toLocaleString()}
 																			</p>
 																		)}
 																	</div>
