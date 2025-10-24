@@ -213,6 +213,7 @@ export const domainRouter = createTRPCRouter({
 					domain.applicationId,
 					"application",
 					application.serverId,
+					domain.networkId,
 				);
 			} else if (domain.composeId) {
 				const compose = await findComposeById(domain.composeId);
@@ -221,6 +222,7 @@ export const domainRouter = createTRPCRouter({
 					domain.composeId,
 					"compose",
 					compose.serverId,
+					domain.networkId,
 				);
 			}
 

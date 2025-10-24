@@ -597,27 +597,36 @@ export const assignNetworkToResource = async (
 const isNetworkUsedByResourcesWithDomains = async (
 	networkId: string,
 ): Promise<boolean> => {
-	const [allApps, allCompose] = await Promise.all([
+	const [allApps, allCompose, allPreviews] = await Promise.all([
 		db.query.applications.findMany({ with: { domains: true } }),
 		db.query.compose.findMany({ with: { domains: true } }),
+		db.query.previewDeployments.findMany({ with: { domain: true } }),
 	]);
 
-	const hasNetworkWithDomains = <
+	const hasDomainsUsingNetwork = <
 		T extends {
-			customNetworkIds?: readonly string[] | null;
-			domains?: unknown[];
+			domains?: { networkId: string | null }[];
 		},
 	>(
 		resources: T[],
 	): boolean =>
 		resources.some((resource) => {
-			const networkIds = Array.from(resource.customNetworkIds || []);
-			const hasDomains =
-				Array.isArray(resource.domains) && resource.domains.length > 0;
-			return networkIds.includes(networkId) && hasDomains;
+			if (!Array.isArray(resource.domains)) return false;
+			return resource.domains.some((domain) => domain.networkId === networkId);
 		});
 
-	return hasNetworkWithDomains(allApps) || hasNetworkWithDomains(allCompose);
+	const hasPreviewDomainUsingNetwork = (
+		previews: { domain: { networkId: string | null } | null }[],
+	): boolean =>
+		previews.some(
+			(preview) => preview.domain && preview.domain.networkId === networkId,
+		);
+
+	return (
+		hasDomainsUsingNetwork(allApps) ||
+		hasDomainsUsingNetwork(allCompose) ||
+		hasPreviewDomainUsingNetwork(allPreviews)
+	);
 };
 
 const disconnectTraefikFromNetworkIfNotUsed = async (
@@ -951,50 +960,33 @@ export const connectTraefikToResourceNetworks = async (
 };
 
 /**
- * Disconnect Traefik from resource networks if they are no longer used by resources with domains
+ * Disconnect Traefik from a specific domain network if it's no longer used by any other domains
  * This is called when a domain is deleted from a resource
  */
 export const disconnectTraefikFromResourceNetworks = async (
 	resourceId: string,
 	resourceType: ResourceType,
-	serverId?: string | null,
+	serverId: string | null | undefined,
+	domainNetworkId: string | null,
 ): Promise<void> => {
 	try {
-		const resource = await findResourceById(resourceId, resourceType);
-		const customNetworkIds = Array.from(resource.customNetworkIds || []);
-
-		if (customNetworkIds.length === 0) {
+		if (domainNetworkId === null) {
 			console.log(
-				`No custom networks for ${resourceType} ${resourceId}, skipping Traefik disconnection`,
+				`Domain was on dokploy-network for ${resourceType} ${resourceId}, keeping Traefik connected`,
 			);
 			return;
 		}
 
-		const customNetworks = await db.query.networks.findMany({
-			where: inArray(networks.networkId, customNetworkIds),
-		});
+		const network = await findNetworkById(domainNetworkId);
 
-		if (customNetworks.length === 0) {
-			console.warn(
-				`Custom networks not found in DB for ${resourceType} ${resourceId}`,
-			);
-			return;
-		}
-
-		console.log(
-			`Checking if Traefik should disconnect from ${customNetworks.length} networks for ${resourceType} ${resourceId}`,
+		await disconnectTraefikFromNetworkIfNotUsed(
+			domainNetworkId,
+			network.networkName,
+			serverId,
 		);
-
-		for (const network of customNetworks) {
-			await disconnectTraefikFromNetworkIfNotUsed(
-				network.networkId,
-				network.networkName,
-				serverId,
-			);
-		}
 	} catch (error) {
 		console.error(
-			`Error disconnecting Traefik from networks for ${resourceType} ${resourceId}:`,
+			`Error disconnecting Traefik from network for ${resourceType} ${resourceId}:`,
 			error,
 		);
 	}
