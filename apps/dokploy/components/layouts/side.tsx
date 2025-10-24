@@ -325,7 +325,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			// Enabled for owners and members with destination permissions
-			isEnabled: ({ auth }) => !!(auth?.role === "owner" || auth?.canAccessToDestinations),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.canAccessToDestinations),
 		},
 
 		{
