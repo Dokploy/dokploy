@@ -6,6 +6,7 @@ import {
 	findNetworksByOrganizationId,
 	findNetworksByOrganizationIdAndServerId,
 	findResourceById,
+	getAllNetworksByServer,
 	getResourceNetworks,
 	importOrphanedNetworks,
 	listServerNetworks,
@@ -31,6 +32,17 @@ const RESOURCE_TYPE_ENUM = z.enum([
 	"mariadb",
 	"mongo",
 	"redis",
+] as const);
+
+const RESOURCE_TYPE_WITH_PREVIEW_ENUM = z.enum([
+	"application",
+	"compose",
+	"postgres",
+	"mysql",
+	"mariadb",
+	"mongo",
+	"redis",
+	"preview",
 ] as const);
 
 const handleTRPCError = (
@@ -223,7 +235,7 @@ export const networkRouter = createTRPCRouter({
 		.input(
 			z.object({
 				resourceId: z.string().min(1),
-				resourceType: RESOURCE_TYPE_ENUM,
+				resourceType: RESOURCE_TYPE_WITH_PREVIEW_ENUM,
 			}),
 		)
 		.query(async ({ input }) => {
@@ -234,7 +246,7 @@ export const networkRouter = createTRPCRouter({
 		.input(
 			z.object({
 				resourceId: z.string().min(1),
-				resourceType: z.enum(["application", "compose"]),
+				resourceType: RESOURCE_TYPE_WITH_PREVIEW_ENUM,
 			}),
 		)
 		.query(async ({ input }) => {
@@ -258,6 +270,22 @@ export const networkRouter = createTRPCRouter({
 		)
 		.query(async ({ input }) => {
 			return await listServerNetworks(input.serverId);
+		}),
+
+	getAllNetworksByServer: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().nullable(),
+				resourceType: z.enum(["application", "compose"]),
+				composeType: z.enum(["docker-compose", "stack"]).optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			return await getAllNetworksByServer(
+				input.serverId,
+				input.resourceType,
+				input.composeType,
+			);
 		}),
 
 	syncNetworks: protectedProcedure

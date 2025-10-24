@@ -478,6 +478,8 @@ export const deployPreviewApplication = async ({
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
+		application.customNetworkIds =
+			application.previewNetworkIds || application.customNetworkIds;
 
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
@@ -585,6 +587,8 @@ export const deployRemotePreviewApplication = async ({
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
+		application.customNetworkIds =
+			application.previewNetworkIds || application.customNetworkIds;
 
 		if (application.serverId) {
 			let command = "set -e;";

@@ -11,6 +11,7 @@ import {
 	applications,
 	compose,
 	domains,
+	previewDeployments,
 	type server,
 } from "../db/schema";
 import { findUserById } from "./admin";
@@ -48,7 +49,7 @@ export const ensureTraefikConnectedToDomainNetworks = async (
 const validateNetworkForDomain = async (
 	networkId: string,
 	resourceId: string,
-	resourceType: "application" | "compose",
+	resourceType: "application" | "compose" | "preview",
 	excludeDomainId?: string,
 ): Promise<void> => {
 	const network = await findNetworkById(networkId);
@@ -70,6 +71,11 @@ const validateNetworkForDomain = async (
 		| (typeof compose.$inferSelect & {
 				server: typeof server.$inferSelect | null;
 		  })
+		| (typeof previewDeployments.$inferSelect & {
+				application: typeof applications.$inferSelect & {
+					server: typeof server.$inferSelect | null;
+				};
+		  })
 		| undefined;
 
 	if (resourceType === "application") {
@@ -77,10 +83,15 @@ const validateNetworkForDomain = async (
 			where: eq(applications.applicationId, resourceId),
 			with: { server: true },
 		});
-	} else {
+	} else if (resourceType === "compose") {
 		resource = await db.query.compose.findFirst({
 			where: eq(compose.composeId, resourceId),
 			with: { server: true },
+		});
+	} else {
+		resource = await db.query.previewDeployments.findFirst({
+			where: eq(previewDeployments.previewDeploymentId, resourceId),
+			with: { application: { with: { server: true } } },
 		});
 	}
 
@@ -91,12 +102,22 @@ const validateNetworkForDomain = async (
 		});
 	}
 
-	if (network.serverId !== resource.serverId) {
+	// For previews, get serverId and networks from application
+	const actualServerId =
+		resourceType === "preview"
+			? (resource as any).application?.serverId
+			: (resource as any).serverId;
+	const actualServer =
+		resourceType === "preview"
+			? (resource as any).application?.server
+			: (resource as any).server;
+
+	if (network.serverId !== actualServerId) {
 		const networkLocation = network.serverId
 			? `server "${network.server?.name || network.serverId}"`
 			: "local server";
-		const resourceLocation = resource.serverId
-			? `server "${resource.server?.name || resource.serverId}"`
+		const resourceLocation = actualServerId
+			? `server "${actualServer?.name || actualServerId}"`
 			: "local server";
 
 		throw new TRPCError({
@@ -105,11 +126,25 @@ const validateNetworkForDomain = async (
 		});
 	}
 
-	const customNetworkIds = Array.from(resource.customNetworkIds || []);
+	// For previews, check against application's previewNetworkIds
+	const customNetworkIds =
+		resourceType === "preview"
+			? Array.from(
+					(resource as any).application?.previewNetworkIds ||
+						(resource as any).application?.customNetworkIds ||
+						[],
+				)
+			: Array.from((resource as any).customNetworkIds || []);
+
 	if (!customNetworkIds.includes(networkId)) {
+		const message =
+			resourceType === "preview"
+				? `Network "${network.name}" is not allowed for preview deployments. Please configure preview networks in the application settings.`
+				: `Network "${network.name}" is not assigned to this ${resourceType}. Please assign the network to the ${resourceType} first in the Networks tab.`;
+
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Network "${network.name}" is not assigned to this ${resourceType}. Please assign the network to the ${resourceType} first in the Networks tab.`,
+			message,
 		});
 	}
 
@@ -157,13 +192,34 @@ const validateNetworkForDomain = async (
 				const conflictNetworkName = conflictingDomain.networkId
 					? (await findNetworkById(conflictingDomain.networkId)).name
 					: "Default (dokploy-network)";
-				const newNetworkName = networkId
-					? network.name
-					: "Default (dokploy-network)";
 
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `This compose already has domain "${conflictingDomain.host}" using network "${conflictNetworkName}". All domains must use the same network due to Docker/Traefik limitations. Please use "${conflictNetworkName}" for all domains.`,
+				});
+			}
+		}
+	} else if (resourceType === "preview") {
+		const allDomains = await findDomainsByPreviewDeploymentId(resourceId);
+		const existingDomains = excludeDomainId
+			? allDomains.filter((d) => d.domainId !== excludeDomainId)
+			: allDomains;
+
+		const hasConflict = existingDomains.some((d) => d.networkId !== networkId);
+
+		if (hasConflict) {
+			const conflictingDomain = existingDomains.find(
+				(d) => d.networkId !== networkId,
+			);
+
+			if (conflictingDomain) {
+				const conflictNetworkName = conflictingDomain.networkId
+					? (await findNetworkById(conflictingDomain.networkId)).name
+					: "Default (dokploy-network)";
+
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `This preview already has domain "${conflictingDomain.host}" using network "${conflictNetworkName}". All domains must use the same network due to Docker/Traefik limitations. Please use "${conflictNetworkName}" for all domains.`,
 				});
 			}
 		}
@@ -173,13 +229,15 @@ const validateNetworkForDomain = async (
 const validateDomainNetworkConsistency = async (
 	networkId: string | null | undefined,
 	resourceId: string,
-	resourceType: "application" | "compose",
+	resourceType: "application" | "compose" | "preview",
 	excludeDomainId?: string,
 ): Promise<void> => {
 	const allDomains =
 		resourceType === "application"
 			? await findDomainsByApplicationId(resourceId)
-			: await findDomainsByComposeId(resourceId);
+			: resourceType === "compose"
+				? await findDomainsByComposeId(resourceId)
+				: await findDomainsByPreviewDeploymentId(resourceId);
 
 	const existingDomains = excludeDomainId
 		? allDomains.filter((d) => d.domainId !== excludeDomainId)
@@ -228,6 +286,12 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			input.composeId,
 			"compose",
 		);
+	} else if (input.previewDeploymentId) {
+		await validateDomainNetworkConsistency(
+			input.networkId,
+			input.previewDeploymentId,
+			"preview",
+		);
 	}
 
 	if (input.networkId) {
@@ -242,6 +306,12 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 				input.networkId,
 				input.composeId,
 				"compose",
+			);
+		} else if (input.previewDeploymentId) {
+			await validateNetworkForDomain(
+				input.networkId,
+				input.previewDeploymentId,
+				"preview",
 			);
 		}
 	}
@@ -367,6 +437,20 @@ export const findDomainsByComposeId = async (composeId: string) => {
 	return domainsArray;
 };
 
+export const findDomainsByPreviewDeploymentId = async (
+	previewDeploymentId: string,
+) => {
+	const domainsArray = await db.query.domains.findMany({
+		where: eq(domains.previewDeploymentId, previewDeploymentId),
+		with: {
+			previewDeployment: true,
+			network: true,
+		},
+	});
+
+	return domainsArray;
+};
+
 const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
@@ -426,6 +510,13 @@ export const updateDomain = async (
 					domainData.networkId,
 					existingDomain.composeId,
 					"compose",
+					domainId,
+				);
+			} else if (existingDomain.previewDeploymentId) {
+				await validateNetworkForDomain(
+					domainData.networkId,
+					existingDomain.previewDeploymentId,
+					"preview",
 					domainId,
 				);
 			}

@@ -8,6 +8,7 @@ import {
 	mysql,
 	networks,
 	postgres,
+	previewDeployments,
 	redis,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
@@ -33,6 +34,8 @@ export type ResourceType =
 	| "mariadb"
 	| "mongo"
 	| "redis";
+
+export type ResourceTypeWithPreview = ResourceType | "preview";
 
 interface ResourceWithNetworks {
 	customNetworkIds?: readonly string[] | null;
@@ -72,6 +75,7 @@ const RESOURCE_TABLE_MAP = {
 	mariadb: mariadb,
 	mongo: mongo,
 	redis: redis,
+	preview: previewDeployments,
 } as const;
 
 const RESOURCE_QUERIES = {
@@ -110,11 +114,16 @@ const RESOURCE_QUERIES = {
 			where: eq(redis.redisId, id),
 			with: { server: true },
 		}),
+	preview: (id: string) =>
+		db.query.previewDeployments.findFirst({
+			where: eq(previewDeployments.previewDeploymentId, id),
+			with: { application: { with: { server: true } } },
+		}),
 } as const;
 
 export const findResourceById = async (
 	resourceId: string,
-	resourceType: ResourceType,
+	resourceType: ResourceTypeWithPreview,
 ): Promise<ResourceWithNetworks> => {
 	const resource = await RESOURCE_QUERIES[resourceType](resourceId);
 
@@ -579,7 +588,7 @@ export const assignNetworkToResource = async (
 
 	await db
 		.update(table)
-		.set({ customNetworkIds: updatedNetworkIds })
+		.set({ customNetworkIds: updatedNetworkIds } as any)
 		.where(eq(table[idField], resourceId));
 
 	return { success: true, networkId, resourceId, resourceType };
@@ -659,7 +668,7 @@ export const removeNetworkFromResource = async (
 
 	await db
 		.update(table)
-		.set({ customNetworkIds: updatedNetworkIds })
+		.set({ customNetworkIds: updatedNetworkIds } as any)
 		.where(eq(table[idField], resourceId));
 
 	await disconnectTraefikFromNetworkIfNotUsed(
@@ -673,10 +682,21 @@ export const removeNetworkFromResource = async (
 
 export const getResourceNetworks = async (
 	resourceId: string,
-	resourceType: ResourceType,
+	resourceType: ResourceTypeWithPreview,
 ) => {
 	const resource = await findResourceById(resourceId, resourceType);
-	const networkIds = Array.from(resource.customNetworkIds || []);
+
+	let networkIds: string[];
+	if (resourceType === "preview") {
+		const previewResource = resource as any;
+		networkIds = Array.from(
+			previewResource.application?.previewNetworkIds ||
+				previewResource.application?.customNetworkIds ||
+				[],
+		);
+	} else {
+		networkIds = Array.from(resource.customNetworkIds || []);
+	}
 
 	if (networkIds.length === 0) {
 		return [];
@@ -684,6 +704,35 @@ export const getResourceNetworks = async (
 
 	return await db.query.networks.findMany({
 		where: inArray(networks.networkId, networkIds),
+	});
+};
+
+/**
+ * Get all networks for a server that are compatible with a resource type
+ */
+export const getAllNetworksByServer = async (
+	serverId: string | null,
+	resourceType: "application" | "compose",
+	composeType?: "docker-compose" | "stack",
+): Promise<(typeof networks.$inferSelect)[]> => {
+	// Compose docker-compose can use bridge OR overlay
+	// Applications and compose stack require overlay (swarm mode)
+	const compatibleDrivers: ("bridge" | "overlay")[] =
+		resourceType === "compose" && composeType === "docker-compose"
+			? ["bridge", "overlay"]
+			: ["overlay"];
+
+	// Handle local server (null serverId) or remote server
+	const serverCondition = serverId
+		? eq(networks.serverId, serverId)
+		: isNull(networks.serverId);
+
+	return await db.query.networks.findMany({
+		where: and(
+			serverCondition,
+			inArray(networks.driver, compatibleDrivers),
+			eq(networks.internal, false), // Exclude internal networks (can't be used with domains)
+		),
 	});
 };
 

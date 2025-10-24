@@ -89,6 +89,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("none"),
 	previewCustomCertResolver: text("previewCustomCertResolver"),
+	previewNetworkIds: text("previewNetworkIds").array(),
 	previewLimit: integer("previewLimit").default(3),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
@@ -313,6 +314,7 @@ const createSchema = createInsertSchema(applications, {
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	previewLabels: z.array(z.string()).optional(),
+	previewNetworkIds: z.array(z.string()).nullable().optional(),
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
 	customNetworkIds: z.array(z.string()).nullable(),
