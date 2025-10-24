@@ -1,6 +1,7 @@
 import { createWriteStream } from "node:fs";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
+import { ensureTraefikConnectedToDomainNetworks } from "../../services/domain";
 import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
@@ -64,6 +65,12 @@ export const buildApplication = async (
 		}
 		await mechanizeDockerContainer(application);
 		writeStream.write("Docker Deployed: ✅");
+
+		await ensureTraefikConnectedToDomainNetworks(
+			application.applicationId,
+			application.serverId,
+			writeStream,
+		);
 	} catch (error) {
 		if (error instanceof Error) {
 			writeStream.write(`Error ❌\n${error?.message}`);
@@ -143,7 +150,7 @@ export const mechanizeDockerContainer = async (
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
-	} = generateConfigContainer(application);
+	} = await generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
 	const filesMount = generateFileMounts(appName, application);

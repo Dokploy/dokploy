@@ -82,6 +82,17 @@ export const AddPreviewDomain = ({
 	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
 
+	const { data: availableNetworks, isLoading: isLoadingNetworks } =
+		api.network.getAllNetworksByServer.useQuery(
+			{
+				serverId: previewDeployment?.application?.serverId ?? null,
+				resourceType: "application",
+			},
+			{
+				enabled: previewDeployment?.application !== undefined,
+			},
+		);
+
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
 	});
@@ -94,6 +105,7 @@ export const AddPreviewDomain = ({
 				path: data?.path || undefined,
 				port: data?.port || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
+				networkId: data?.networkId ?? null,
 			});
 		}
 
@@ -152,6 +164,55 @@ export const AddPreviewDomain = ({
 					>
 						<div className="flex flex-col gap-4">
 							<div className="flex flex-col gap-2">
+								<FormField
+									control={form.control}
+									name="networkId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Network</FormLabel>
+											<Select
+												onValueChange={(value) => {
+													field.onChange(value === "default" ? null : value);
+												}}
+												value={field.value || "default"}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a network" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="default">
+														Default (dokploy-network)
+													</SelectItem>
+													{isLoadingNetworks ? (
+														<SelectItem value="loading" disabled>
+															Loading networks...
+														</SelectItem>
+													) : availableNetworks &&
+														availableNetworks.length > 0 ? (
+														availableNetworks.map((network) => (
+															<SelectItem
+																key={network.networkId}
+																value={network.networkId}
+															>
+																{network.name} ({network.networkName})
+																{network.internal && " (Internal)"}
+															</SelectItem>
+														))
+													) : null}
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Select which network Traefik should use to route traffic
+												to this domain. Must be one of the networks configured
+												in the preview deployment settings.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
 								<FormField
 									control={form.control}
 									name="host"

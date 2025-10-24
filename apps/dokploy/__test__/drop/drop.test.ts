@@ -56,6 +56,7 @@ const baseApp: ApplicationNested = {
 	previewPort: 3000,
 	previewLimit: 0,
 	previewWildcard: "",
+	previewNetworkIds: null,
 	environment: {
 		env: "",
 		environmentId: "",
@@ -134,6 +135,7 @@ const baseApp: ApplicationNested = {
 	dockerContextPath: null,
 	rollbackActive: false,
 	stopGracePeriodSwarm: null,
+	customNetworkIds: null,
 };
 
 describe("unzipDrop using real zip files", () => {

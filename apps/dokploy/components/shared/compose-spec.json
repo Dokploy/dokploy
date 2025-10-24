@@ -803,7 +803,7 @@
 				"internal": { "type": ["boolean", "string"] },
 				"enable_ipv4": { "type": ["boolean", "string"] },
 				"enable_ipv6": { "type": ["boolean", "string"] },
-				"attachable": { "type": ["boolean", "string"] },
+				"encrypted": { "type": ["boolean", "string"] },
 				"labels": { "$ref": "#/definitions/list_or_dict" }
 			},
 			"additionalProperties": false,

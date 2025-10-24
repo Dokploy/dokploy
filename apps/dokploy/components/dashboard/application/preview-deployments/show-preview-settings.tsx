@@ -50,6 +50,7 @@ const schema = z
 		port: z.number(),
 		previewLimit: z.number(),
 		previewLabels: z.array(z.string()).optional(),
+		previewNetworkIds: z.array(z.string()).optional(),
 		previewHttps: z.boolean(),
 		previewPath: z.string(),
 		previewCertificateType: z.enum(["letsencrypt", "none", "custom"]),
@@ -83,6 +84,17 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
+	const { data: availableNetworks, isLoading: isLoadingNetworks } =
+		api.network.getAllNetworksByServer.useQuery(
+			{
+				serverId: data?.serverId ?? null,
+				resourceType: "application",
+			},
+			{
+				enabled: data !== undefined,
+			},
+		);
+
 	const form = useForm<Schema>({
 		defaultValues: {
 			env: "",
@@ -90,6 +102,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			port: 3000,
 			previewLimit: 3,
 			previewLabels: [],
+			previewNetworkIds: [],
 			previewHttps: false,
 			previewPath: "/",
 			previewCertificateType: "none",
@@ -112,6 +125,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				wildcardDomain: data.previewWildcard || "*.traefik.me",
 				port: data.previewPort || 3000,
 				previewLabels: data.previewLabels || [],
+				previewNetworkIds: data.previewNetworkIds || [],
 				previewLimit: data.previewLimit || 3,
 				previewHttps: data.previewHttps || false,
 				previewPath: data.previewPath || "/",
@@ -130,6 +144,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			previewWildcard: formData.wildcardDomain,
 			previewPort: formData.port,
 			previewLabels: formData.previewLabels,
+			previewNetworkIds: formData.previewNetworkIds,
 			applicationId,
 			previewLimit: formData.previewLimit,
 			previewHttps: formData.previewHttps,
@@ -304,6 +319,60 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 												<FormControl>
 													<NumberInput placeholder="3000" {...field} />
 												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="previewNetworkIds"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Preview Networks</FormLabel>
+												<FormDescription>
+													Select networks that preview deployments will use.
+													Leave empty to inherit all networks from the
+													application.
+												</FormDescription>
+												<div className="flex flex-wrap gap-2">
+													{isLoadingNetworks ? (
+														<div>Loading networks...</div>
+													) : availableNetworks &&
+														availableNetworks.length > 0 ? (
+														availableNetworks.map((network) => (
+															<Badge
+																key={network.networkId}
+																variant={
+																	field.value?.includes(network.networkId)
+																		? "default"
+																		: "outline"
+																}
+																className="cursor-pointer"
+																onClick={() => {
+																	const current = field.value || [];
+																	if (current.includes(network.networkId)) {
+																		field.onChange(
+																			current.filter(
+																				(id) => id !== network.networkId,
+																			),
+																		);
+																	} else {
+																		field.onChange([
+																			...current,
+																			network.networkId,
+																		]);
+																	}
+																}}
+															>
+																{network.name} ({network.networkName})
+															</Badge>
+														))
+													) : (
+														<p className="text-sm text-muted-foreground">
+															No compatible networks available on this server.
+														</p>
+													)}
+												</div>
 												<FormMessage />
 											</FormItem>
 										)}
