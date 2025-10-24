@@ -324,8 +324,9 @@ const MENU: Menu = {
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			// Enabled for owners and members with destination permissions
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.canAccessToDestinations),
 		},
 
 		{

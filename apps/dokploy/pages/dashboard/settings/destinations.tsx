@@ -1,11 +1,14 @@
 import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
+import { and, eq } from "drizzle-orm";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
 import { ShowDestinations } from "@/components/dashboard/settings/destination/show-destinations";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { db } from "@/server/db";
+import { member } from "@/server/db/schema";
 
 const Page = () => {
 	return (
@@ -25,11 +28,42 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
-	if (!user || user.role === "member") {
+
+	if (!user) {
 		return {
 			redirect: {
 				permanent: true,
 				destination: "/",
+			},
+		};
+	}
+
+	// Owners always have access
+	if (user.role === "owner") {
+		// Continue with the page
+	} else if (user.role === "member") {
+		// For members, check destination permissions from member table
+		const memberResult = await db.query.member.findFirst({
+			where: and(
+				eq(member.userId, user.id),
+				eq(member.organizationId, session?.activeOrganizationId || ""),
+			),
+		});
+
+		if (!memberResult?.canAccessToDestinations) {
+			return {
+				redirect: {
+					permanent: true,
+					destination: "/dashboard/projects",
+				},
+			};
+		}
+	} else {
+		// For other roles, deny access
+		return {
+			redirect: {
+				permanent: true,
+				destination: "/dashboard/projects",
 			},
 		};
 	}
