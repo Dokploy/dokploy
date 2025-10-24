@@ -8,12 +8,8 @@ import {
 	updateDestinationById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { and, desc, eq } from "drizzle-orm";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	apiCreateDestination,
@@ -21,12 +17,42 @@ import {
 	apiRemoveDestination,
 	apiUpdateDestination,
 	destinations,
+	member,
 } from "@/server/db/schema";
 
+// Helper function to check destination access permissions
+const checkDestinationPermission = async (
+	userId: string,
+	organizationId: string,
+) => {
+	const memberResult = await db.query.member.findFirst({
+		where: and(
+			eq(member.userId, userId),
+			eq(member.organizationId, organizationId),
+		),
+	});
+
+	return memberResult?.canAccessToDestinations || false;
+};
+
 export const destinationRouter = createTRPCRouter({
-	create: adminProcedure
+	create: protectedProcedure
 		.input(apiCreateDestination)
 		.mutation(async ({ input, ctx }) => {
+			// Check if user has permission to access destinations
+			if (ctx.user.role !== "owner") {
+				const hasPermission = await checkDestinationPermission(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (!hasPermission) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have permission to access destinations",
+					});
+				}
+			}
+
 			try {
 				return await createDestintation(
 					input,
@@ -40,9 +66,22 @@ export const destinationRouter = createTRPCRouter({
 				});
 			}
 		}),
-	testConnection: adminProcedure
+	testConnection: protectedProcedure
 		.input(apiCreateDestination)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			// Check if user has permission to access destinations
+			if (ctx.user.role !== "owner") {
+				const hasPermission = await checkDestinationPermission(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (!hasPermission) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have permission to access destinations",
+					});
+				}
+			}
 			const { secretAccessKey, bucket, region, endpoint, accessKey, provider } =
 				input;
 			try {
@@ -86,6 +125,19 @@ export const destinationRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneDestination)
 		.query(async ({ input, ctx }) => {
+			// Check if user has permission to access destinations
+			if (ctx.user.role !== "owner") {
+				const hasPermission = await checkDestinationPermission(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (!hasPermission) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have permission to access destinations",
+					});
+				}
+			}
 			const destination = await findDestinationById(input.destinationId);
 			if (destination.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
@@ -96,14 +148,40 @@ export const destinationRouter = createTRPCRouter({
 			return destination;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
+		// Check if user has permission to access destinations
+		if (ctx.user.role !== "owner") {
+			const hasPermission = await checkDestinationPermission(
+				ctx.user.id,
+				ctx.session.activeOrganizationId,
+			);
+			if (!hasPermission) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You don't have permission to access destinations",
+				});
+			}
+		}
 		return await db.query.destinations.findMany({
 			where: eq(destinations.organizationId, ctx.session.activeOrganizationId),
 			orderBy: [desc(destinations.createdAt)],
 		});
 	}),
-	remove: adminProcedure
+	remove: protectedProcedure
 		.input(apiRemoveDestination)
 		.mutation(async ({ input, ctx }) => {
+			// Check if user has permission to access destinations
+			if (ctx.user.role !== "owner") {
+				const hasPermission = await checkDestinationPermission(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (!hasPermission) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have permission to access destinations",
+					});
+				}
+			}
 			try {
 				const destination = await findDestinationById(input.destinationId);
 
@@ -121,9 +199,22 @@ export const destinationRouter = createTRPCRouter({
 				throw error;
 			}
 		}),
-	update: adminProcedure
+	update: protectedProcedure
 		.input(apiUpdateDestination)
 		.mutation(async ({ input, ctx }) => {
+			// Check if user has permission to access destinations
+			if (ctx.user.role !== "owner") {
+				const hasPermission = await checkDestinationPermission(
+					ctx.user.id,
+					ctx.session.activeOrganizationId,
+				);
+				if (!hasPermission) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You don't have permission to access destinations",
+					});
+				}
+			}
 			try {
 				const destination = await findDestinationById(input.destinationId);
 				if (destination.organizationId !== ctx.session.activeOrganizationId) {

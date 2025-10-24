@@ -168,6 +168,7 @@ const addPermissions = z.object({
 	canAccessToSSHKeys: z.boolean().optional().default(false),
 	canAccessToGitProviders: z.boolean().optional().default(false),
 	canCreateEnvironments: z.boolean().optional().default(false),
+	canAccessToDestinations: z.boolean().optional().default(false),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -229,6 +230,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canAccessToSSHKeys: data.canAccessToSSHKeys,
 				canAccessToGitProviders: data.canAccessToGitProviders,
 				canCreateEnvironments: data.canCreateEnvironments,
+				canAccessToDestinations: data.canAccessToDestinations,
 			});
 		}
 	}, [form, form.reset, data, isOpen]);
@@ -250,6 +252,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
 			canAccessToGitProviders: data.canAccessToGitProviders,
 			canCreateEnvironments: data.canCreateEnvironments,
+			canAccessToDestinations: data.canAccessToDestinations,
 		})
 			.then(async () => {
 				toast.success("Permissions updated");
@@ -492,6 +495,26 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										<FormLabel>Access to Git Providers</FormLabel>
 										<FormDescription>
 											Allow to users to access to the Git Providers section
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canAccessToDestinations"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Access to S3 Destinations</FormLabel>
+										<FormDescription>
+											Allow the user to access to the S3 Destinations section
 										</FormDescription>
 									</div>
 									<FormControl>

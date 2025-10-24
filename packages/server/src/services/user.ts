@@ -192,6 +192,17 @@ export const canAccessToTraefikFiles = async (
 	return canAccessToTraefikFiles;
 };
 
+export const canAccessToDestinations = async (
+	userId: string,
+	organizationId: string,
+) => {
+	const { canAccessToDestinations } = await findMemberById(
+		userId,
+		organizationId,
+	);
+	return canAccessToDestinations;
+};
+
 export const checkServiceAccess = async (
 	userId: string,
 	serviceId: string,
@@ -292,6 +303,19 @@ export const checkEnvironmentDeletionPermission = async (
 	}
 
 	return true;
+};
+
+export const checkDestinationAccess = async (
+	userId: string,
+	organizationId: string,
+) => {
+	const hasPermission = await canAccessToDestinations(userId, organizationId);
+	if (!hasPermission) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have permission to access destinations",
+		});
+	}
 };
 
 export const checkProjectAccess = async (
