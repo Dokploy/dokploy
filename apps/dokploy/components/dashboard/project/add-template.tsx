@@ -82,7 +82,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
-	const [sortBy, setSortBy] = useState<"name" | "newest" | "oldest" | "recent">("name");
+	const [sortBy, setSortBy] = useState<"name" | "newest" | "oldest" | "recent">(
+		"name",
+	);
 	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
 		// Try to get from props first, then localStorage
 		if (baseUrl) return baseUrl;
@@ -131,26 +133,29 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 
 	const templates = useMemo(() => {
 		if (!data) return [];
-		
+
 		// Debug: Log template data to see what we're working with
-		console.log('Template data:', data.slice(0, 3).map(t => ({ 
-			id: t.id, 
-			name: t.name, 
-			createdAt: t.createdAt,
-			hasDate: !!t.createdAt 
-		})));
-		
+		console.log(
+			"Template data:",
+			data.slice(0, 3).map((t) => ({
+				id: t.id,
+				name: t.name,
+				createdAt: t.createdAt,
+				hasDate: !!t.createdAt,
+			})),
+		);
+
 		// Helper function to determine if a template is "new" based on creation date
 		const isNewTemplate = (template: any) => {
 			if (!template.createdAt) return false;
-			
+
 			const createdAt = new Date(template.createdAt);
 			const threeMonthsAgo = new Date();
 			threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-			
+
 			return createdAt > threeMonthsAgo;
 		};
-		
+
 		// Filter templates
 		let filtered = data.filter((template) => {
 			const matchesTags =
@@ -166,13 +171,20 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 		// For "recent" filter, show templates created within last 3 months
 		// If no recent templates found, show the most recent templates available
 		if (sortBy === "recent") {
-			const recentTemplates = filtered.filter((template) => isNewTemplate(template));
-			console.log('Recent filter - Total filtered:', filtered.length, 'Recent templates:', recentTemplates.length);
-			
+			const recentTemplates = filtered.filter((template) =>
+				isNewTemplate(template),
+			);
+			console.log(
+				"Recent filter - Total filtered:",
+				filtered.length,
+				"Recent templates:",
+				recentTemplates.length,
+			);
+
 			// If we have recent templates, use them; otherwise, show the most recent available
 			if (recentTemplates.length > 0) {
 				filtered = recentTemplates;
-				console.log('Using recent templates:', recentTemplates.length);
+				console.log("Using recent templates:", recentTemplates.length);
 			} else {
 				// Show the most recent templates available (top 10 by creation date)
 				filtered = [...filtered]
@@ -182,7 +194,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 						return dateB.getTime() - dateA.getTime();
 					})
 					.slice(0, 10); // Show top 10 most recent
-				console.log('Using fallback - most recent templates:', filtered.length);
+				console.log("Using fallback - most recent templates:", filtered.length);
 			}
 		}
 
@@ -215,7 +227,8 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 					// Note: we already filtered for recent templates above
 					const dateARecent = getTemplateDate(a);
 					const dateBRecent = getTemplateDate(b);
-					const dateCompareRecent = dateBRecent.getTime() - dateARecent.getTime();
+					const dateCompareRecent =
+						dateBRecent.getTime() - dateARecent.getTime();
 					if (dateCompareRecent !== 0) return dateCompareRecent;
 					return a.name.localeCompare(b.name);
 				case "name":
@@ -328,13 +341,20 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 										</Command>
 									</PopoverContent>
 								</Popover>
-								<Select value={sortBy} onValueChange={(value: "name" | "newest" | "oldest" | "recent") => setSortBy(value)}>
+								<Select
+									value={sortBy}
+									onValueChange={(
+										value: "name" | "newest" | "oldest" | "recent",
+									) => setSortBy(value)}
+								>
 									<SelectTrigger className="w-full sm:w-[150px]">
 										<SelectValue placeholder="Sort by" />
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="name">Name A-Z</SelectItem>
-										<SelectItem value="recent">Recent (Last 3 Months)</SelectItem>
+										<SelectItem value="recent">
+											Recent (Last 3 Months)
+										</SelectItem>
 										<SelectItem value="newest">Newest First</SelectItem>
 										<SelectItem value="oldest">Oldest First</SelectItem>
 									</SelectContent>
@@ -420,16 +440,17 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 										)}
 									>
 										<div className="absolute top-2 right-2 flex flex-col gap-1">
-											<Badge variant="blue">
-												{template?.version}
-											</Badge>
+											<Badge variant="blue">{template?.version}</Badge>
 											{/* Show "New" badge for templates created within the last 3 months */}
 											{(() => {
-												const isNew = template.createdAt && 
+												const isNew =
+													template.createdAt &&
 													(() => {
 														const createdAt = new Date(template.createdAt);
 														const threeMonthsAgo = new Date();
-														threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+														threeMonthsAgo.setMonth(
+															threeMonthsAgo.getMonth() - 3,
+														);
 														return createdAt > threeMonthsAgo;
 													})();
 												return isNew ? (
