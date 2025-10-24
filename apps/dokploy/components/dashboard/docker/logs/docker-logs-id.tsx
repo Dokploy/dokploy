@@ -1,4 +1,4 @@
-import { Download as DownloadIcon, Loader2, Pause, Play } from "lucide-react";
+import { Download as DownloadIcon, Check, Copy, Loader2, Pause, Play } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	const isPausedRef = useRef(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [isLoading, setIsLoading] = React.useState(false);
+	const [copied, setCopied] = React.useState(false);
 
 	const scrollToBottom = () => {
 		if (autoScroll && scrollRef.current) {
@@ -237,6 +238,32 @@ export const DockerLogsId: React.FC<Props> = ({
 		URL.revokeObjectURL(url);
 	};
 
+	const handleCopy = async () => {
+		const logContent = filteredLogs
+			.map(
+				({ timestamp, message }: { timestamp: Date | null; message: string }) =>
+					showTimestamp
+						? `${timestamp?.toISOString() || "No timestamp"} ${message}`
+						: message
+			)
+			.join("\n");
+
+		try {
+			await navigator.clipboard.writeText(logContent);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		} catch {
+			const textarea = document.createElement("textarea");
+			textarea.value = logContent;
+			document.body.appendChild(textarea);
+			textarea.select();
+			document.execCommand("copy");
+			document.body.removeChild(textarea);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		}
+	};
+
 	const handleFilter = (logs: LogLine[]) => {
 		return logs.filter((log) => {
 			const logType = getLogType(log.message).type;
@@ -319,6 +346,21 @@ export const DockerLogsId: React.FC<Props> = ({
 									<Pause className="mr-2 h-4 w-4" />
 								)}
 								{isPaused ? "Resume" : "Pause"}
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9"
+								onClick={handleCopy}
+								disabled={filteredLogs.length === 0}
+								title="Copy logs to clipboard"
+							>
+								{copied ? (
+									<Check className="mr-2 h-4 w-4" />
+								) : (
+									<Copy className="mr-2 h-4 w-4" />
+								)}
+								Copy
 							</Button>
 							<Button
 								variant="outline"
