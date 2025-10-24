@@ -18,6 +18,7 @@ import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
+import { connectTraefikToResourceNetworks } from "./network";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 
@@ -197,6 +198,13 @@ export const createPreviewDeployment = async (
 	application.appName = appName;
 
 	await manageDomain(application, newDomain);
+
+	await connectTraefikToResourceNetworks(
+		previewDeployment.previewDeploymentId,
+		"preview",
+		application.serverId,
+		newDomain.networkId,
+	);
 
 	await db
 		.update(previewDeployments)

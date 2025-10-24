@@ -891,7 +891,7 @@ export const importOrphanedNetworks = async (
  */
 export const connectTraefikToResourceNetworks = async (
 	resourceId: string,
-	resourceType: ResourceType,
+	resourceType: ResourceTypeWithPreview,
 	serverId?: string | null,
 	domainNetworkId?: string | null,
 ): Promise<void> => {
