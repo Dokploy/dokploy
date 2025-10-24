@@ -345,6 +345,7 @@ describe("assignNetworkToResource", () => {
 		vi.mocked(db.query.applications.findFirst).mockResolvedValue({
 			applicationId: "app-1",
 			customNetworkIds: [],
+			serverId: "server-1",
 		} as any);
 
 		vi.mocked(db.query.networks.findFirst).mockResolvedValue({
@@ -353,7 +354,7 @@ describe("assignNetworkToResource", () => {
 			driver: "overlay",
 			serverId: "server-1",
 			project: null,
-			server: null,
+			server: { name: "Test Server", serverId: "server-1" },
 		} as any);
 
 		await assignNetworkToResource("net-123", "app-1", "application");
@@ -606,57 +607,94 @@ describe("connectTraefikToResourceNetworks", () => {
 		vi.clearAllMocks();
 	});
 
-	it("connects Traefik to all custom networks", async () => {
-		vi.mocked(db.query.applications.findFirst).mockResolvedValue({
-			applicationId: "app-1",
-			customNetworkIds: ["net-1", "net-2"],
+	it("connects Traefik to specific domain network when domainNetworkId is provided", async () => {
+		vi.mocked(db.query.networks.findFirst).mockResolvedValue({
+			networkId: "net-1",
+			networkName: "custom-network",
+			internal: false,
 		} as any);
 
-		vi.mocked(db.query.networks.findMany).mockResolvedValue([
-			{ networkId: "net-1", networkName: "network-1" },
-			{ networkId: "net-2", networkName: "network-2" },
-		] as any);
-
-		await connectTraefikToResourceNetworks("app-1", "application");
-
-		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledTimes(2);
-		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledWith(
-			"network-1",
+		await connectTraefikToResourceNetworks(
+			"app-1",
+			"application",
 			undefined,
+			"net-1",
 		);
+
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledTimes(1);
 		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledWith(
-			"network-2",
+			"custom-network",
 			undefined,
 		);
 	});
 
-	it("does nothing when resource has no custom networks", async () => {
-		vi.mocked(db.query.applications.findFirst).mockResolvedValue({
-			applicationId: "app-1",
-			customNetworkIds: [],
-		} as any);
+	it("connects to dokploy-network when no domainNetworkId is provided", async () => {
+		await connectTraefikToResourceNetworks(
+			"app-1",
+			"application",
+			undefined,
+			null,
+		);
 
-		await connectTraefikToResourceNetworks("app-1", "application");
-
-		expect(ensureTraefikConnectedToNetwork).not.toHaveBeenCalled();
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledTimes(1);
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledWith(
+			"dokploy-network",
+			undefined,
+		);
 	});
 
-	it("continues on Traefik connection errors", async () => {
-		vi.mocked(db.query.applications.findFirst).mockResolvedValue({
-			applicationId: "app-1",
-			customNetworkIds: ["net-1"],
+	it("falls back to dokploy-network when domain network is internal", async () => {
+		vi.mocked(db.query.networks.findFirst).mockResolvedValue({
+			networkId: "net-1",
+			networkName: "internal-network",
+			internal: true,
 		} as any);
 
-		vi.mocked(db.query.networks.findMany).mockResolvedValue([
-			{ networkId: "net-1", networkName: "network-1" },
-		] as any);
+		await connectTraefikToResourceNetworks(
+			"app-1",
+			"application",
+			undefined,
+			"net-1",
+		);
 
-		vi.mocked(ensureTraefikConnectedToNetwork).mockRejectedValue(
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledTimes(1);
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledWith(
+			"dokploy-network",
+			undefined,
+		);
+	});
+
+	it("continues on Traefik connection errors and falls back to dokploy-network", async () => {
+		vi.mocked(db.query.networks.findFirst).mockResolvedValue({
+			networkId: "net-1",
+			networkName: "custom-network",
+			internal: false,
+		} as any);
+
+		vi.mocked(ensureTraefikConnectedToNetwork).mockRejectedValueOnce(
 			new Error("Connection failed"),
 		);
 
 		await expect(
-			connectTraefikToResourceNetworks("app-1", "application"),
+			connectTraefikToResourceNetworks(
+				"app-1",
+				"application",
+				undefined,
+				"net-1",
+			),
 		).resolves.not.toThrow();
+
+		// Should be called twice: once for custom-network (fails), once for fallback
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenCalledTimes(2);
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenNthCalledWith(
+			1,
+			"custom-network",
+			undefined,
+		);
+		expect(ensureTraefikConnectedToNetwork).toHaveBeenNthCalledWith(
+			2,
+			"dokploy-network",
+			undefined,
+		);
 	});
 });

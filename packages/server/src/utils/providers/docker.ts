@@ -1,4 +1,5 @@
 import { createWriteStream } from "node:fs";
+import { ensureTraefikConnectedToDomainNetworks } from "../../services/domain";
 import { type ApplicationNested, mechanizeDockerContainer } from "../builders";
 import { pullImage } from "../docker/utils";
 
@@ -41,6 +42,12 @@ export const buildDocker = async (
 		);
 		await mechanizeDockerContainer(application);
 		writeStream.write("\nDocker Deployed: ✅\n");
+
+		await ensureTraefikConnectedToDomainNetworks(
+			application.applicationId,
+			application.serverId,
+			writeStream,
+		);
 	} catch (error) {
 		writeStream.write(
 			`❌ Error: ${error instanceof Error ? error.message : String(error)}`,

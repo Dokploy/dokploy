@@ -397,6 +397,56 @@ const resolveTraefikNetwork = async (
 	return customNetworks[0]?.networkName ?? "dokploy-network";
 };
 
+/**
+ * Resolve Traefik network with priority system:
+ * 1. First non-null, non-internal domain.networkId (highest priority)
+ * 2. First non-internal custom network from customNetworkIds
+ * 3. dokploy-network (fallback)
+ */
+const resolveTraefikNetworkWithDomains = async (
+	domains: Array<{ networkId: string | null }>,
+	customNetworkIds: string[] | null | undefined,
+): Promise<string> => {
+	// Priority 1: Check if any domain has a specific network selected
+	const domainNetworkIds = domains
+		.map((d) => d.networkId)
+		.filter((id): id is string => id !== null);
+
+	if (domainNetworkIds.length > 0) {
+		// Find the first valid, non-internal network from domain selections
+		const domainNetworks = await db.query.networks.findMany({
+			where: inArray(networks.networkId, domainNetworkIds),
+		});
+
+		const nonInternalDomainNetwork = domainNetworks.find((n) => !n.internal);
+		if (nonInternalDomainNetwork) {
+			console.log(
+				`Using domain-specific network: ${nonInternalDomainNetwork.networkName}`,
+			);
+			return nonInternalDomainNetwork.networkName;
+		}
+	}
+
+	// Priority 2: Fall back to first non-internal custom network
+	if (customNetworkIds && customNetworkIds.length > 0) {
+		const customNetworks = await db.query.networks.findMany({
+			where: inArray(networks.networkId, customNetworkIds),
+		});
+
+		const nonInternalCustomNetwork = customNetworks.find((n) => !n.internal);
+		if (nonInternalCustomNetwork) {
+			console.log(
+				`Using custom network: ${nonInternalCustomNetwork.networkName}`,
+			);
+			return nonInternalCustomNetwork.networkName;
+		}
+	}
+
+	// Priority 3: Final fallback to dokploy-network
+	console.log("Using default network: dokploy-network");
+	return "dokploy-network";
+};
+
 const buildRouterRule = (host: string, domainPath?: string | null): string => {
 	const pathRule =
 		domainPath && domainPath !== "/" ? ` && PathPrefix(\`${domainPath}\`)` : "";
@@ -449,7 +499,10 @@ const generateDomainLabels = async (
 
 	const labels: Record<string, string> = {
 		"traefik.enable": "true",
-		"traefik.docker.network": await resolveTraefikNetwork(customNetworkIds),
+		"traefik.docker.network": await resolveTraefikNetworkWithDomains(
+			application.domains,
+			customNetworkIds,
+		),
 	};
 
 	for (const domain of application.domains) {
@@ -477,9 +530,8 @@ const generateDomainLabels = async (
 		labels[`traefik.http.routers.${webRouterName}.rule`] = routerRule;
 		labels[`traefik.http.routers.${webRouterName}.entrypoints`] = "web";
 		labels[`traefik.http.routers.${webRouterName}.service`] = serviceName;
-		labels[
-			`traefik.http.services.${serviceName}.loadbalancer.server.port`
-		] = port.toString();
+		labels[`traefik.http.services.${serviceName}.loadbalancer.server.port`] =
+			port.toString();
 
 		const webMiddlewares = collectMiddlewares(
 			appName,
@@ -532,13 +584,11 @@ const generateDomainLabels = async (
 			}
 
 			if (certificateType === "letsencrypt") {
-				labels[
-					`traefik.http.routers.${websecureRouterName}.tls.certresolver`
-				] = "letsencrypt";
+				labels[`traefik.http.routers.${websecureRouterName}.tls.certresolver`] =
+					"letsencrypt";
 			} else if (certificateType === "custom" && customCertResolver) {
-				labels[
-					`traefik.http.routers.${websecureRouterName}.tls.certresolver`
-				] = customCertResolver;
+				labels[`traefik.http.routers.${websecureRouterName}.tls.certresolver`] =
+					customCertResolver;
 			}
 		}
 	}

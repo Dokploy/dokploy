@@ -230,6 +230,22 @@ export const networkRouter = createTRPCRouter({
 			return await getResourceNetworks(input.resourceId, input.resourceType);
 		}),
 
+	getResourceNetworksForDomain: protectedProcedure
+		.input(
+			z.object({
+				resourceId: z.string().min(1),
+				resourceType: z.enum(["application", "compose"]),
+			}),
+		)
+		.query(async ({ input }) => {
+			const networks = await getResourceNetworks(
+				input.resourceId,
+				input.resourceType,
+			);
+			// Filter out internal networks - Traefik cannot connect to internal networks
+			return networks.filter((network) => !network.internal);
+		}),
+
 	listAvailableForOrganization: protectedProcedure.query(async ({ ctx }) => {
 		return await findNetworksByOrganizationId(ctx.session.activeOrganizationId);
 	}),

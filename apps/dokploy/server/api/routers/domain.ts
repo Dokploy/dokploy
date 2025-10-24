@@ -14,7 +14,7 @@ import {
 	mechanizeDockerContainer,
 	removeDomain,
 	removeDomainById,
-	updateDomainById,
+	updateDomain,
 	validateDomain,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -173,7 +173,7 @@ export const domainRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			await validateDomainAccess(input.domainId, ctx.session);
 
-			const result = await updateDomainById(input.domainId, input);
+			const result = await updateDomain(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
 
 			if (domain.applicationId) {

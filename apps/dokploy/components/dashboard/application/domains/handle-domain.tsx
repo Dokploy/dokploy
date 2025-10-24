@@ -60,6 +60,7 @@ export const domain = z
 		customCertResolver: z.string().optional(),
 		serviceName: z.string().optional(),
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
+		networkId: z.string().nullable().optional(),
 	})
 	.superRefine((input, ctx) => {
 		if (input.https && !input.certificateType) {
@@ -182,6 +183,17 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		},
 	);
 
+	const { data: availableNetworks, isLoading: isLoadingNetworks } =
+		api.network.getResourceNetworksForDomain.useQuery(
+			{
+				resourceId: id,
+				resourceType: type,
+			},
+			{
+				enabled: !!id,
+			},
+		);
+
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
 		defaultValues: {
@@ -195,6 +207,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			customCertResolver: undefined,
 			serviceName: undefined,
 			domainType: type,
+			networkId: null,
 		},
 		mode: "onChange",
 	});
@@ -216,6 +229,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				customCertResolver: data?.customCertResolver || undefined,
 				serviceName: data?.serviceName || undefined,
 				domainType: data?.domainType || type,
+				networkId: data?.networkId ?? null, // Keep null as is for proper Select handling
 			});
 		}
 
@@ -230,6 +244,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				certificateType: undefined,
 				customCertResolver: undefined,
 				domainType: type,
+				networkId: null,
 			});
 		}
 	}, [form, data, isLoading, domainId]);
@@ -469,6 +484,61 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 										</div>
 									)}
 								</div>
+								<FormField
+									control={form.control}
+									name="networkId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Routing Network (Optional)</FormLabel>
+											<Select
+												onValueChange={(value) => {
+													// Convert "default" back to null for the form (database stores null, not undefined)
+													const newValue = value === "default" ? null : value;
+													field.onChange(newValue);
+												}}
+												value={field.value ?? "default"}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Default (dokploy-network)" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="default">
+														Default (dokploy-network)
+													</SelectItem>
+													{isLoadingNetworks ? (
+														<SelectItem value="loading" disabled>
+															Loading networks...
+														</SelectItem>
+													) : availableNetworks &&
+														availableNetworks.length > 0 ? (
+														availableNetworks.map((network) => (
+															<SelectItem
+																key={network.networkId}
+																value={network.networkId}
+															>
+																{network.name} ({network.networkName})
+															</SelectItem>
+														))
+													) : (
+														<SelectItem value="none" disabled>
+															No custom networks available
+														</SelectItem>
+													)}
+												</SelectContent>
+											</Select>
+											<FormDescription>
+												Select which network Traefik should use to route traffic
+												to this domain. Leave as default to use dokploy-network.
+												Only non-internal networks assigned to this {type} are
+												available.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
 								<FormField
 									control={form.control}
 									name="host"

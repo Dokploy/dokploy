@@ -834,86 +834,70 @@ export const importOrphanedNetworks = async (
 };
 
 /**
- * Connect Traefik to all custom networks assigned to a resource
+ * Connect Traefik to a specific network for domain routing
  * This is called when a domain is added to a resource to ensure Traefik can route traffic
+ *
+ * If domainNetworkId is provided, connects Traefik to that network only.
+ * If domainNetworkId is null/undefined, connects to dokploy-network as fallback.
  */
 export const connectTraefikToResourceNetworks = async (
 	resourceId: string,
 	resourceType: ResourceType,
 	serverId?: string | null,
+	domainNetworkId?: string | null,
 ): Promise<void> => {
 	try {
-		const resource = await findResourceById(resourceId, resourceType);
-		const customNetworkIds = Array.from(resource.customNetworkIds || []);
+		// If a specific network is selected for this domain, use only that network
+		if (domainNetworkId) {
+			const selectedNetwork = await db.query.networks.findFirst({
+				where: eq(networks.networkId, domainNetworkId),
+			});
 
-		if (customNetworkIds.length === 0) {
-			console.log(
-				`No custom networks for ${resourceType} ${resourceId}, skipping Traefik connection`,
-			);
-			return;
-		}
-
-		const customNetworks = await db.query.networks.findMany({
-			where: inArray(networks.networkId, customNetworkIds),
-		});
-
-		if (customNetworks.length === 0) {
-			console.warn(
-				`Custom networks not found in DB for ${resourceType} ${resourceId}`,
-			);
-			return;
-		}
-
-		const publicNetworks = customNetworks.filter(
-			(network) => !network.internal,
-		);
-
-		if (publicNetworks.length === 0) {
-			console.warn(
-				`All custom networks for ${resourceType} ${resourceId} are internal. Traefik cannot connect to internal networks. The domain will not be accessible.`,
-			);
-			return;
-		}
-
-		const internalNetworks = customNetworks.filter(
-			(network) => network.internal,
-		);
-		if (internalNetworks.length > 0) {
-			console.log(
-				`Skipping ${internalNetworks.length} internal network(s): ${internalNetworks.map((n) => n.networkName).join(", ")}`,
-			);
-		}
-
-		console.log(
-			`Connecting Traefik to ${publicNetworks.length} network(s) for ${resourceType} ${resourceId}`,
-		);
-
-		const results = await Promise.allSettled(
-			publicNetworks.map((network) =>
-				ensureTraefikConnectedToNetwork(network.networkName, serverId),
-			),
-		);
-
-		for (let i = 0; i < results.length; i++) {
-			const result = results[i];
-			const networkName = publicNetworks[i]?.networkName;
-
-			if (!result) continue;
-
-			if (result.status === "fulfilled") {
-				console.log(`Traefik connected to network: ${networkName}`);
-			} else {
+			if (!selectedNetwork) {
 				console.warn(
-					`Failed to connect Traefik to network ${networkName}:`,
-					"reason" in result ? result.reason : "Unknown error",
+					`Selected network ${domainNetworkId} not found, falling back to dokploy-network`,
 				);
+				await ensureTraefikConnectedToNetwork("dokploy-network", serverId);
+				return;
 			}
+
+			if (selectedNetwork.internal) {
+				console.warn(
+					`Selected network ${selectedNetwork.networkName} is internal. Traefik cannot connect to internal networks. Falling back to dokploy-network.`,
+				);
+				await ensureTraefikConnectedToNetwork("dokploy-network", serverId);
+				return;
+			}
+
+			console.log(
+				`Connecting Traefik to selected network: ${selectedNetwork.networkName}`,
+			);
+			await ensureTraefikConnectedToNetwork(
+				selectedNetwork.networkName,
+				serverId,
+			);
+			return;
 		}
+
+		// No network selected - use dokploy-network as default fallback
+		console.log(
+			`No network selected for ${resourceType} ${resourceId}, using dokploy-network`,
+		);
+		await ensureTraefikConnectedToNetwork("dokploy-network", serverId);
 	} catch (error) {
 		console.error(
-			`Error connecting Traefik to networks for ${resourceType} ${resourceId}:`,
+			`Error connecting Traefik to network for ${resourceType} ${resourceId}:`,
 			error,
 		);
+		// If all else fails, try connecting to dokploy-network
+		try {
+			await ensureTraefikConnectedToNetwork("dokploy-network", serverId);
+		} catch (fallbackError) {
+			console.error(
+				"Failed to connect to fallback dokploy-network:",
+				fallbackError,
+			);
+		}
 	}
 };
 

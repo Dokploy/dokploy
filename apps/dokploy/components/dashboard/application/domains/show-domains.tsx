@@ -323,6 +323,25 @@ export const ShowDomains = ({ id, type }: Props) => {
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>
+																<Badge variant="secondary">
+																	<InfoIcon className="size-3 mr-1" />
+																	Network:{" "}
+																	{item.network?.name ||
+																		"Default (dokploy-network)"}
+																</Badge>
+															</TooltipTrigger>
+															<TooltipContent>
+																<p>
+																	Network used by Traefik for routing to this
+																	domain
+																</p>
+															</TooltipContent>
+														</Tooltip>
+													</TooltipProvider>
+
+													<TooltipProvider>
+														<Tooltip>
+															<TooltipTrigger asChild>
 																<Badge
 																	variant={item.https ? "outline" : "secondary"}
 																>

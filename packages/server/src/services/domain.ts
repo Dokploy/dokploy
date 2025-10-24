@@ -1,36 +1,251 @@
 import dns from "node:dns";
+import type { WriteStream } from "node:fs";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { type apiCreateDomain, domains } from "../db/schema";
+import {
+	type apiCreateDomain,
+	applications,
+	compose,
+	domains,
+	type server,
+} from "../db/schema";
 import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
-import { connectTraefikToResourceNetworks } from "./network";
+import { connectTraefikToResourceNetworks, findNetworkById } from "./network";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
-const connectTraefikToResource = async (
+export const ensureTraefikConnectedToDomainNetworks = async (
+	applicationId: string,
+	serverId: string | null | undefined,
+	writeStream?: WriteStream,
+): Promise<void> => {
+	const domains = await findDomainsByApplicationId(applicationId);
+
+	if (domains && domains.length > 0) {
+		const domainNetworkIds = domains
+			.map((d) => d.networkId)
+			.filter((id): id is string => id !== null);
+
+		if (domainNetworkIds.length > 0) {
+			await connectTraefikToResourceNetworks(
+				applicationId,
+				"application",
+				serverId,
+				domainNetworkIds[0],
+			);
+			writeStream?.write("\n✅ Traefik connected to domain network");
+		}
+	}
+};
+
+const validateNetworkForDomain = async (
+	networkId: string,
 	resourceId: string,
 	resourceType: "application" | "compose",
-	serverId: string | null | undefined,
+	excludeDomainId?: string,
 ): Promise<void> => {
-	try {
-		await connectTraefikToResourceNetworks(resourceId, resourceType, serverId);
-	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : String(error);
-		console.warn(
-			`Failed to connect Traefik to ${resourceType} networks: ${errorMessage}`,
+	const network = await findNetworkById(networkId);
+
+	// Check if network is internal
+	if (network.internal) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Cannot use an internal network for domain routing. Traefik cannot connect to internal networks. Please select a non-internal network or leave empty to use dokploy-network.",
+		});
+	}
+
+	// Get resource to check server and network assignment
+	let resource:
+		| (typeof applications.$inferSelect & {
+				server: typeof server.$inferSelect | null;
+		  })
+		| (typeof compose.$inferSelect & {
+				server: typeof server.$inferSelect | null;
+		  })
+		| undefined;
+
+	if (resourceType === "application") {
+		resource = await db.query.applications.findFirst({
+			where: eq(applications.applicationId, resourceId),
+			with: { server: true },
+		});
+	} else {
+		resource = await db.query.compose.findFirst({
+			where: eq(compose.composeId, resourceId),
+			with: { server: true },
+		});
+	}
+
+	if (!resource) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `${resourceType} not found`,
+		});
+	}
+
+	if (network.serverId !== resource.serverId) {
+		const networkLocation = network.serverId
+			? `server "${network.server?.name || network.serverId}"`
+			: "local server";
+		const resourceLocation = resource.serverId
+			? `server "${resource.server?.name || resource.serverId}"`
+			: "local server";
+
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Network is on ${networkLocation} but ${resourceType} is on ${resourceLocation}. Both must be on the same server.`,
+		});
+	}
+
+	const customNetworkIds = Array.from(resource.customNetworkIds || []);
+	if (!customNetworkIds.includes(networkId)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Network "${network.name}" is not assigned to this ${resourceType}. Please assign the network to the ${resourceType} first in the Networks tab.`,
+		});
+	}
+
+	if (resourceType === "application") {
+		const allDomains = await findDomainsByApplicationId(resourceId);
+		const existingDomains = excludeDomainId
+			? allDomains.filter((d) => d.domainId !== excludeDomainId)
+			: allDomains;
+
+		const hasConflict = existingDomains.some((d) => d.networkId !== networkId);
+
+		if (hasConflict) {
+			const conflictingDomain = existingDomains.find(
+				(d) => d.networkId !== networkId,
+			);
+
+			if (conflictingDomain) {
+				const conflictNetworkName = conflictingDomain.networkId
+					? (await findNetworkById(conflictingDomain.networkId)).name
+					: "Default (dokploy-network)";
+				const newNetworkName = networkId
+					? network.name
+					: "Default (dokploy-network)";
+
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `This application already has domain "${conflictingDomain.host}" using network "${conflictNetworkName}". All domains must use the same network due to Docker/Traefik limitations. Please use "${conflictNetworkName}" for all domains.`,
+				});
+			}
+		}
+	} else if (resourceType === "compose") {
+		const allDomains = await findDomainsByComposeId(resourceId);
+		const existingDomains = excludeDomainId
+			? allDomains.filter((d) => d.domainId !== excludeDomainId)
+			: allDomains;
+
+		const hasConflict = existingDomains.some((d) => d.networkId !== networkId);
+
+		if (hasConflict) {
+			const conflictingDomain = existingDomains.find(
+				(d) => d.networkId !== networkId,
+			);
+
+			if (conflictingDomain) {
+				const conflictNetworkName = conflictingDomain.networkId
+					? (await findNetworkById(conflictingDomain.networkId)).name
+					: "Default (dokploy-network)";
+				const newNetworkName = networkId
+					? network.name
+					: "Default (dokploy-network)";
+
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `This compose already has domain "${conflictingDomain.host}" using network "${conflictNetworkName}". All domains must use the same network due to Docker/Traefik limitations. Please use "${conflictNetworkName}" for all domains.`,
+				});
+			}
+		}
+	}
+};
+
+const validateDomainNetworkConsistency = async (
+	networkId: string | null | undefined,
+	resourceId: string,
+	resourceType: "application" | "compose",
+	excludeDomainId?: string,
+): Promise<void> => {
+	const allDomains =
+		resourceType === "application"
+			? await findDomainsByApplicationId(resourceId)
+			: await findDomainsByComposeId(resourceId);
+
+	const existingDomains = excludeDomainId
+		? allDomains.filter((d) => d.domainId !== excludeDomainId)
+		: allDomains;
+
+	if (existingDomains.length === 0) {
+		return;
+	}
+
+	const normalizedNetworkId = networkId ?? null;
+	const hasConflict = existingDomains.some(
+		(d) => (d.networkId ?? null) !== normalizedNetworkId,
+	);
+
+	if (hasConflict) {
+		const conflictingDomain = existingDomains.find(
+			(d) => (d.networkId ?? null) !== normalizedNetworkId,
 		);
+
+		if (conflictingDomain) {
+			const conflictNetworkName = conflictingDomain.networkId
+				? (await findNetworkById(conflictingDomain.networkId)).name
+				: "Default (dokploy-network)";
+			const newNetworkName = normalizedNetworkId
+				? (await findNetworkById(normalizedNetworkId)).name
+				: "Default (dokploy-network)";
+
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `This ${resourceType} already has domain "${conflictingDomain.host}" using network "${conflictNetworkName}". All domains must use the same network due to Docker/Traefik limitations. Please use "${conflictNetworkName}" for all domains.`,
+			});
+		}
 	}
 };
 
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
+	if (input.applicationId) {
+		await validateDomainNetworkConsistency(
+			input.networkId,
+			input.applicationId,
+			"application",
+		);
+	} else if (input.composeId) {
+		await validateDomainNetworkConsistency(
+			input.networkId,
+			input.composeId,
+			"compose",
+		);
+	}
+
+	if (input.networkId) {
+		if (input.applicationId) {
+			await validateNetworkForDomain(
+				input.networkId,
+				input.applicationId,
+				"application",
+			);
+		} else if (input.composeId) {
+			await validateNetworkForDomain(
+				input.networkId,
+				input.composeId,
+				"compose",
+			);
+		}
+	}
+
 	const result = await db.transaction(async (tx) => {
 		const domain = await tx
 			.insert(domains)
@@ -50,10 +265,11 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
 			await manageDomain(application, domain);
-			await connectTraefikToResource(
+			await connectTraefikToResourceNetworks(
 				domain.applicationId,
 				"application",
 				application.serverId,
+				domain.networkId,
 			);
 		}
 
@@ -63,10 +279,11 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			});
 
 			if (compose) {
-				await connectTraefikToResource(
+				await connectTraefikToResourceNetworks(
 					domain.composeId,
 					"compose",
 					compose.serverId,
+					domain.networkId,
 				);
 			}
 		}
@@ -131,6 +348,7 @@ export const findDomainsByApplicationId = async (applicationId: string) => {
 		where: eq(domains.applicationId, applicationId),
 		with: {
 			application: true,
+			network: true,
 		},
 	});
 
@@ -142,13 +360,14 @@ export const findDomainsByComposeId = async (composeId: string) => {
 		where: eq(domains.composeId, composeId),
 		with: {
 			compose: true,
+			network: true,
 		},
 	});
 
 	return domainsArray;
 };
 
-export const updateDomainById = async (
+const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
@@ -161,6 +380,98 @@ export const updateDomainById = async (
 		.returning();
 
 	return domain[0];
+};
+
+export const updateDomain = async (
+	domainId: string,
+	domainData: Partial<Domain>,
+) => {
+	const existingDomain = await findDomainById(domainId);
+
+	if (
+		domainData.networkId !== undefined &&
+		domainData.networkId !== existingDomain.networkId
+	) {
+		if (existingDomain.applicationId) {
+			await validateDomainNetworkConsistency(
+				domainData.networkId,
+				existingDomain.applicationId,
+				"application",
+				domainId,
+			);
+		} else if (existingDomain.composeId) {
+			await validateDomainNetworkConsistency(
+				domainData.networkId,
+				existingDomain.composeId,
+				"compose",
+				domainId,
+			);
+		}
+	}
+
+	if (
+		domainData.networkId !== undefined &&
+		domainData.networkId !== existingDomain.networkId
+	) {
+		if (domainData.networkId) {
+			if (existingDomain.applicationId) {
+				await validateNetworkForDomain(
+					domainData.networkId,
+					existingDomain.applicationId,
+					"application",
+					domainId,
+				);
+			} else if (existingDomain.composeId) {
+				await validateNetworkForDomain(
+					domainData.networkId,
+					existingDomain.composeId,
+					"compose",
+					domainId,
+				);
+			}
+		}
+	}
+
+	const updatedDomain = await updateDomainById(domainId, domainData);
+
+	if (!updatedDomain) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Failed to update domain",
+		});
+	}
+
+	if (
+		domainData.networkId !== undefined &&
+		domainData.networkId !== existingDomain.networkId
+	) {
+		if (updatedDomain.applicationId) {
+			const application = await findApplicationById(
+				updatedDomain.applicationId,
+			);
+			await connectTraefikToResourceNetworks(
+				updatedDomain.applicationId,
+				"application",
+				application.serverId,
+				domainData.networkId,
+			);
+		} else if (updatedDomain.composeId) {
+			const compose = await db.query.compose.findFirst({
+				where: (compose, { eq }) =>
+					eq(compose.composeId, updatedDomain.composeId!),
+			});
+			if (compose) {
+				await connectTraefikToResourceNetworks(
+					updatedDomain.composeId,
+					"compose",
+					compose.serverId,
+					domainData.networkId,
+				);
+			}
+		}
+	}
+
+	return updatedDomain;
 };
 
 export const removeDomainById = async (domainId: string) => {
