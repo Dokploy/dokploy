@@ -249,6 +249,28 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		}
 	}, [form, data, isLoading, domainId]);
 
+	useEffect(() => {
+		if (
+			!domainId &&
+			!isLoadingNetworks &&
+			availableNetworks &&
+			availableNetworks.length > 0
+		) {
+			const currentNetworkId = form.getValues("networkId");
+
+			if (currentNetworkId === null) {
+				const firstNetwork = availableNetworks[0];
+				if (firstNetwork) {
+					const networkValue =
+						firstNetwork.networkId === "default"
+							? null
+							: firstNetwork.networkId;
+					form.setValue("networkId", networkValue);
+				}
+			}
+		}
+	}, [domainId, isLoadingNetworks, availableNetworks, form]);
+
 	// Separate effect for handling custom cert resolver validation
 	useEffect(() => {
 		if (certificateType === "custom") {
@@ -504,9 +526,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value="default">
-														Default (dokploy-network)
-													</SelectItem>
 													{isLoadingNetworks ? (
 														<SelectItem value="loading" disabled>
 															Loading networks...
@@ -523,16 +542,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														))
 													) : (
 														<SelectItem value="none" disabled>
-															No custom networks available
+															No networks available
 														</SelectItem>
 													)}
 												</SelectContent>
 											</Select>
 											<FormDescription>
 												Select which network Traefik should use to route traffic
-												to this domain. Leave as default to use dokploy-network.
-												Only non-internal networks assigned to this {type} are
-												available.
+												to this domain. Only non-internal networks available to
+												this {type} are shown.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>

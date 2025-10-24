@@ -250,12 +250,58 @@ export const networkRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
+			const resource = await findResourceById(
+				input.resourceId,
+				input.resourceType,
+			);
+
+			let customNetworkIds: string[];
+			if (input.resourceType === "preview") {
+				const previewResource = resource as any;
+				customNetworkIds = Array.from(
+					previewResource.application?.previewNetworkIds ||
+						previewResource.application?.customNetworkIds ||
+						[],
+				);
+			} else {
+				customNetworkIds = Array.from(resource.customNetworkIds || []);
+			}
+
 			const networks = await getResourceNetworks(
 				input.resourceId,
 				input.resourceType,
 			);
+
 			// Filter out internal networks - Traefik cannot connect to internal networks
-			return networks.filter((network) => !network.internal);
+			const availableNetworks = networks.filter((network) => !network.internal);
+
+			// If resource has no custom networks, dokploy-network is available by default
+			// Return a special "default" entry that will be converted to null in the frontend
+			if (customNetworkIds.length === 0) {
+				return [
+					{
+						networkId: "default",
+						name: "Default",
+						networkName: "dokploy-network",
+						description: "Default Dokploy network",
+						driver: "bridge" as const,
+						internal: false,
+						encrypted: false,
+						subnet: null,
+						gateway: null,
+						ipRange: null,
+						organizationId: "",
+						projectId: null,
+						serverId: null,
+						dockerNetworkId: null,
+						createdAt: new Date().toISOString(),
+					},
+					...availableNetworks,
+				];
+			}
+
+			// If resource has custom networks, only show those
+			return availableNetworks;
 		}),
 
 	listAvailableForOrganization: protectedProcedure.query(async ({ ctx }) => {
