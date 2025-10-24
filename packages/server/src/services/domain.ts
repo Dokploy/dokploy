@@ -17,7 +17,11 @@ import {
 import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
-import { connectTraefikToResourceNetworks, findNetworkById } from "./network";
+import {
+	connectTraefikToResourceNetworks,
+	disconnectTraefikFromResourceNetworks,
+	findNetworkById,
+} from "./network";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
@@ -546,6 +550,12 @@ export const updateDomain = async (
 				application.serverId,
 				domainData.networkId,
 			);
+			await disconnectTraefikFromResourceNetworks(
+				updatedDomain.applicationId,
+				"application",
+				application.serverId,
+				existingDomain.networkId,
+			);
 		} else if (updatedDomain.composeId) {
 			const compose = await db.query.compose.findFirst({
 				where: (compose, { eq }) =>
@@ -557,6 +567,12 @@ export const updateDomain = async (
 					"compose",
 					compose.serverId,
 					domainData.networkId,
+				);
+				await disconnectTraefikFromResourceNetworks(
+					updatedDomain.composeId,
+					"compose",
+					compose.serverId,
+					existingDomain.networkId,
 				);
 			}
 		}
