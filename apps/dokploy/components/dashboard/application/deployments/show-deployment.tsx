@@ -111,7 +111,7 @@ export const ShowDeployment = ({
 	const handleCopy = async () => {
 		const logContent = filteredLogs
 			.map(({ timestamp, message }: LogLine) =>
-				`${timestamp?.toISOString() || ""} ${message}`.trim()
+				`${timestamp?.toISOString() || ""} ${message}`.trim(),
 			)
 			.join("\n");
 

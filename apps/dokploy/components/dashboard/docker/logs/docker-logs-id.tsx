@@ -1,4 +1,11 @@
-import { Download as DownloadIcon, Check, Copy, Loader2, Pause, Play } from "lucide-react";
+import {
+	Download as DownloadIcon,
+	Check,
+	Copy,
+	Loader2,
+	Pause,
+	Play,
+} from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -241,10 +248,16 @@ export const DockerLogsId: React.FC<Props> = ({
 	const handleCopy = async () => {
 		const logContent = filteredLogs
 			.map(
-				({ timestamp, message }: { timestamp: Date | null; message: string }) =>
+				({
+					timestamp,
+					message,
+				}: {
+					timestamp: Date | null;
+					message: string;
+				}) =>
 					showTimestamp
 						? `${timestamp?.toISOString() || "No timestamp"} ${message}`
-						: message
+						: message,
 			)
 			.join("\n");
 
