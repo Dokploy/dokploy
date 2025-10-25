@@ -1,7 +1,10 @@
-import { Bell, Loader2, Mail, MessageCircleMore, Trash2 } from "lucide-react";
+import { Bell, Loader2, Mail, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
+	GotifyIcon,
+	LarkIcon,
+	NtfyIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -33,7 +36,7 @@ export const ShowNotifications = () => {
 						</CardTitle>
 						<CardDescription>
 							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Email.
+							Telegram, Email, Lark.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -85,12 +88,17 @@ export const ShowNotifications = () => {
 															)}
 															{notification.notificationType === "gotify" && (
 																<div className="flex  items-center justify-center rounded-lg ">
-																	<MessageCircleMore className="size-6 text-muted-foreground" />
+																	<GotifyIcon className="size-6" />
 																</div>
 															)}
 															{notification.notificationType === "ntfy" && (
 																<div className="flex  items-center justify-center rounded-lg ">
-																	<MessageCircleMore className="size-6 text-muted-foreground" />
+																	<NtfyIcon className="size-6" />
+																</div>
+															)}
+															{notification.notificationType === "lark" && (
+																<div className="flex  items-center justify-center rounded-lg">
+																	<LarkIcon className="size-7 text-muted-foreground" />
 																</div>
 															)}
 

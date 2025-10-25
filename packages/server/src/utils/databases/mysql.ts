@@ -51,6 +51,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
 	} = generateConfigContainer(mysql);
 	const resources = calculateResources({
 		memoryLimit,
@@ -108,6 +109,8 @@ export const buildMysql = async (mysql: MysqlNested) => {
 				: [],
 		},
 		UpdateConfig,
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 	try {
 		const service = docker.getService(appName);

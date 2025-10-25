@@ -281,6 +281,7 @@ export const ImpersonationBar = () => {
 								<div className="flex items-center gap-4 flex-1 flex-wrap">
 									<Avatar className="h-10 w-10">
 										<AvatarImage
+											className="object-cover"
 											src={data?.user?.image || ""}
 											alt={data?.user?.name || ""}
 										/>

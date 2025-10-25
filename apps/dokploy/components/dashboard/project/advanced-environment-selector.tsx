@@ -63,13 +63,20 @@ export const AdvancedEnvironmentSelector = ({
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 
-	// API mutations
-	const { data: environment } = api.environment.one.useQuery(
-		{ environmentId: currentEnvironmentId || "" },
-		{
-			enabled: !!currentEnvironmentId,
-		},
-	);
+	// Get current user's permissions
+	const { data: currentUser } = api.user.get.useQuery();
+
+	// Check if user can create environments
+	const canCreateEnvironments =
+		currentUser?.role === "owner" ||
+		currentUser?.role === "admin" ||
+		currentUser?.canCreateEnvironments === true;
+
+	// Check if user can delete environments
+	const canDeleteEnvironments =
+		currentUser?.role === "owner" ||
+		currentUser?.role === "admin" ||
+		currentUser?.canDeleteEnvironments === true;
 
 	const haveServices =
 		selectedEnvironment &&
@@ -241,7 +248,7 @@ export const AdvancedEnvironmentSelector = ({
 								</DropdownMenuItem>
 
 								{/* Action buttons for non-production environments */}
-								<EnvironmentVariables environmentId={environment.environmentId}>
+								{/* <EnvironmentVariables environmentId={environment.environmentId}>
 									<Button
 										variant="ghost"
 										size="sm"
@@ -252,7 +259,7 @@ export const AdvancedEnvironmentSelector = ({
 									>
 										<Terminal className="h-3 w-3" />
 									</Button>
-								</EnvironmentVariables>
+								</EnvironmentVariables> */}
 								{environment.name !== "production" && (
 									<div className="flex items-center gap-1 px-2">
 										<Button
@@ -267,17 +274,19 @@ export const AdvancedEnvironmentSelector = ({
 											<PencilIcon className="h-3 w-3" />
 										</Button>
 
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-											onClick={(e) => {
-												e.stopPropagation();
-												openDeleteDialog(environment);
-											}}
-										>
-											<TrashIcon className="h-3 w-3" />
-										</Button>
+										{canDeleteEnvironments && (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+												onClick={(e) => {
+													e.stopPropagation();
+													openDeleteDialog(environment);
+												}}
+											>
+												<TrashIcon className="h-3 w-3" />
+											</Button>
+										)}
 									</div>
 								)}
 							</div>
@@ -285,13 +294,15 @@ export const AdvancedEnvironmentSelector = ({
 					})}
 
 					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => setIsCreateDialogOpen(true)}
-					>
-						<PlusIcon className="h-4 w-4 mr-2" />
-						Create Environment
-					</DropdownMenuItem>
+					{canCreateEnvironments && (
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onClick={() => setIsCreateDialogOpen(true)}
+						>
+							<PlusIcon className="h-4 w-4 mr-2" />
+							Create Environment
+						</DropdownMenuItem>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 

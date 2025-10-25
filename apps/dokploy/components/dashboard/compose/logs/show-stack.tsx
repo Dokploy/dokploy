@@ -37,8 +37,6 @@ interface Props {
 	serverId?: string;
 }
 
-badgeStateColor;
-
 export const ShowDockerLogsStack = ({ appName, serverId }: Props) => {
 	const [option, setOption] = useState<"swarm" | "native">("native");
 	const [containerId, setContainerId] = useState<string | undefined>();

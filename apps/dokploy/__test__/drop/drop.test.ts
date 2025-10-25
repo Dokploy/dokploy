@@ -48,6 +48,7 @@ const baseApp: ApplicationNested = {
 	dockerBuildStage: "",
 	isPreviewDeploymentsActive: false,
 	previewBuildArgs: null,
+	previewBuildSecrets: null,
 	previewCertificateType: "none",
 	previewCustomCertResolver: null,
 	previewEnv: null,
@@ -73,6 +74,7 @@ const baseApp: ApplicationNested = {
 		},
 	},
 	buildArgs: null,
+	buildSecrets: null,
 	buildPath: "/",
 	gitlabPathNamespace: "",
 	buildType: "nixpacks",
@@ -133,6 +135,7 @@ const baseApp: ApplicationNested = {
 	username: null,
 	dockerContextPath: null,
 	rollbackActive: false,
+	stopGracePeriodSwarm: null,
 };
 
 describe("unzipDrop using real zip files", () => {

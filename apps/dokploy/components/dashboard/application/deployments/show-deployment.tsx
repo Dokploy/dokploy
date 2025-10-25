@@ -1,6 +1,8 @@
-import { Loader2 } from "lucide-react";
+import copy from "copy-to-clipboard";
+import { Check, Copy, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
@@ -29,9 +31,10 @@ export const ShowDeployment = ({
 	const [data, setData] = useState("");
 	const [showExtraLogs, setShowExtraLogs] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
-	const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
+	const wsRef = useRef<WebSocket | null>(null);
 	const [autoScroll, setAutoScroll] = useState(true);
 	const scrollRef = useRef<HTMLDivElement>(null);
+	const [copied, setCopied] = useState(false);
 
 	const scrollToBottom = () => {
 		if (autoScroll && scrollRef.current) {
@@ -106,6 +109,20 @@ export const ShowDeployment = ({
 		}
 	}, [filteredLogs, autoScroll]);
 
+	const handleCopy = () => {
+		const logContent = filteredLogs
+			.map(({ timestamp, message }: LogLine) =>
+				`${timestamp?.toISOString() || ""} ${message}`.trim(),
+			)
+			.join("\n");
+
+		const success = copy(logContent);
+		if (success) {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		}
+	};
+
 	const optionalErrors = parseLogs(errorMessage || "");
 
 	return (
@@ -128,12 +145,26 @@ export const ShowDeployment = ({
 				<DialogHeader>
 					<DialogTitle>Deployment</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
-						<span>
+						<span className="flex items-center gap-2">
 							See all the details of this deployment |{" "}
 							<Badge variant="blank" className="text-xs">
 								{filteredLogs.length} lines
 							</Badge>
 						</span>
+
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-7"
+							onClick={handleCopy}
+							disabled={filteredLogs.length === 0}
+						>
+							{copied ? (
+								<Check className="h-3.5 w-3.5" />
+							) : (
+								<Copy className="h-3.5 w-3.5" />
+							)}
+						</Button>
 
 						{serverId && (
 							<div className="flex items-center space-x-2">

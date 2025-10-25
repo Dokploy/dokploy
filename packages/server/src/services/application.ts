@@ -473,6 +473,7 @@ export const deployPreviewApplication = async ({
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
@@ -490,7 +491,7 @@ export const deployPreviewApplication = async ({
 		);
 		await updateIssueComment({
 			...issueParams,
-			body: `### Dokploy Preview Deployment\n\n${successComment}`,
+			body: "### Dokploy Preview Deployment\n\n$successComment",
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updatePreviewDeployment(previewDeploymentId, {
@@ -500,7 +501,7 @@ export const deployPreviewApplication = async ({
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
 			...issueParams,
-			body: `### Dokploy Preview Deployment\n\n${comment}`,
+			body: "### Dokploy Preview Deployment\n\n$comment",
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
@@ -575,11 +576,12 @@ export const deployRemotePreviewApplication = async ({
 		);
 		await updateIssueComment({
 			...issueParams,
-			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
+			body: "### Dokploy Preview Deployment\n\n$buildingComment",
 		});
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 
 		if (application.serverId) {
 			let command = "set -e;";
@@ -605,7 +607,7 @@ export const deployRemotePreviewApplication = async ({
 		);
 		await updateIssueComment({
 			...issueParams,
-			body: `### Dokploy Preview Deployment\n\n${successComment}`,
+			body: "### Dokploy Preview Deployment\n\n$successComment",
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updatePreviewDeployment(previewDeploymentId, {
@@ -615,7 +617,7 @@ export const deployRemotePreviewApplication = async ({
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
 			...issueParams,
-			body: `### Dokploy Preview Deployment\n\n${comment}`,
+			body: "### Dokploy Preview Deployment\n\n$comment",
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
@@ -662,8 +664,8 @@ export const rebuildRemoteApplication = async ({
 		await execAsyncRemote(
 			application.serverId,
 			`
-			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
-			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
+			echo "\n\n===================================EXTRA LOGS============================================" >> $deployment.logPath;
+			echo "Error occurred ❌, check the logs for details." >> $deployment.logPath;
 			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
 		);
 
@@ -678,7 +680,7 @@ export const rebuildRemoteApplication = async ({
 export const getApplicationStats = async (appName: string) => {
 	const filter = {
 		status: ["running"],
-		label: [`com.docker.swarm.service.name=${appName}`],
+		label: ["com.docker.swarm.service.name=$appName"],
 	};
 
 	const containers = await docker.listContainers({
