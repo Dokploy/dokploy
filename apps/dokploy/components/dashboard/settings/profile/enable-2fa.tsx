@@ -61,11 +61,11 @@ type TwoFactorSetupData = {
 type PasswordForm = z.infer<typeof PasswordSchema>;
 type PinForm = z.infer<typeof PinSchema>;
 
-const USERNAME_PLACEHOLDER = "%username%";
-const DATE_PLACEHOLDER = "%date%";
-const BACKUP_CODES_PLACEHOLDER = "%backupCodes%";
+export const USERNAME_PLACEHOLDER = "%username%";
+export const DATE_PLACEHOLDER = "%date%";
+export const BACKUP_CODES_PLACEHOLDER = "%backupCodes%";
 
-const backupCodeTemplate = `Dokploy - BACKUP VERIFICATION CODES
+export const backupCodeTemplate = `Dokploy - BACKUP VERIFICATION CODES
 
 Points to note
 --------------
