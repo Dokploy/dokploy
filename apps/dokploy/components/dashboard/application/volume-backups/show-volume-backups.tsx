@@ -5,8 +5,8 @@ import {
 	Play,
 	Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useState } from "react";
+import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,7 +79,7 @@ export const ShowVolumeBackups = ({
 	return (
 		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
 			<CardHeader className="px-0">
-				<div className="flex justify-between items-center">
+				<div className="flex justify-between items-center flex-wrap gap-2">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl font-bold flex items-center gap-2">
 							Volume Backups
@@ -89,7 +89,7 @@ export const ShowVolumeBackups = ({
 							intervals.
 						</CardDescription>
 					</div>
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2 flex-wrap">
 						{volumeBackups && volumeBackups.length > 0 && (
 							<>
 								<HandleVolumeBackups id={id} volumeBackupType={type} />
