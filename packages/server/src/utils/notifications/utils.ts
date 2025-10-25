@@ -1,6 +1,7 @@
 import type {
 	discord,
 	email,
+	lark,
 	gotify,
 	ntfy,
 	slack,
@@ -150,5 +151,20 @@ export const sendNtfyNotification = async (
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
+	}
+};
+
+export const sendLarkNotification = async (
+	connection: typeof lark.$inferInsert,
+	message: any,
+) => {
+	try {
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
 	}
 };

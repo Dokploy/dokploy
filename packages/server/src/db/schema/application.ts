@@ -80,6 +80,7 @@ export const applications = pgTable("application", {
 	previewEnv: text("previewEnv"),
 	watchPaths: text("watchPaths").array(),
 	previewBuildArgs: text("previewBuildArgs"),
+	previewBuildSecrets: text("previewBuildSecrets"),
 	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
@@ -99,6 +100,7 @@ export const applications = pgTable("application", {
 	).default(true),
 	rollbackActive: boolean("rollbackActive").default(false),
 	buildArgs: text("buildArgs"),
+	buildSecrets: text("buildSecrets"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -253,6 +255,7 @@ const createSchema = createInsertSchema(applications, {
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
 	buildArgs: z.string().optional(),
+	buildSecrets: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
 	memoryReservation: z.string().optional(),
@@ -304,6 +307,7 @@ const createSchema = createInsertSchema(applications, {
 	previewPort: z.number().optional(),
 	previewEnv: z.string().optional(),
 	previewBuildArgs: z.string().optional(),
+	previewBuildSecrets: z.string().optional(),
 	previewWildcard: z.string().optional(),
 	previewLimit: z.number().optional(),
 	previewHttps: z.boolean().optional(),
@@ -458,6 +462,7 @@ export const apiSaveEnvironmentVariables = createSchema
 		applicationId: true,
 		env: true,
 		buildArgs: true,
+		buildSecrets: true,
 	})
 	.required();
 
