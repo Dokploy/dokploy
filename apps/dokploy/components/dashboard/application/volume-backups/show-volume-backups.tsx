@@ -116,7 +116,7 @@ export const ShowVolumeBackups = ({
 				) : volumeBackups && volumeBackups.length > 0 ? (
 					<div className="grid xl:grid-cols-2 gap-4 grid-cols-1 h-full">
 						{volumeBackups.map((volumeBackup) => {
-							const backupServerId =
+							const serverId =
 								volumeBackup.application?.serverId ||
 								volumeBackup.postgres?.serverId ||
 								volumeBackup.mysql?.serverId ||
@@ -161,7 +161,7 @@ export const ShowVolumeBackups = ({
 										<ShowDeploymentsModal
 											id={volumeBackup.volumeBackupId}
 											type="volumeBackup"
-											serverId={backupServerId || serverId}
+											serverId={serverId || undefined}
 										>
 											<Button variant="ghost" size="icon">
 												<ClipboardList className="size-4 transition-colors" />
