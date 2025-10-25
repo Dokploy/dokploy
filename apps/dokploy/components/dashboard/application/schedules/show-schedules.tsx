@@ -6,8 +6,8 @@ import {
 	Terminal,
 	Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useState } from "react";
+import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,13 +107,13 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 							return (
 								<div
 									key={schedule.scheduleId}
-									className="flex items-center flex-wrap sm:flex-nowrap gap-y-2 justify-between rounded-lg border p-3 transition-colors bg-muted/50"
+									className="flex flex-col sm:flex-row sm:items-center flex-wrap sm:flex-nowrap gap-y-2 justify-between rounded-lg border p-3 transition-colors bg-muted/50 w-full"
 								>
-									<div className="flex items-start gap-3">
+									<div className="flex items-start gap-3 w-full sm:w-auto">
 										<div className="flex flex-shrink-0 h-9 w-9 items-center justify-center rounded-full bg-primary/5">
 											<Clock className="size-4 text-primary/70" />
 										</div>
-										<div className="space-y-1.5">
+										<div className="space-y-1.5 w-full sm:w-auto">
 											<div className="flex items-center gap-2 flex-wrap">
 												<h3 className="text-sm font-medium leading-none [overflow-wrap:anywhere] line-clamp-3">
 													{schedule.name}
@@ -148,9 +148,9 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 													)}
 											</div>
 											{schedule.command && (
-												<div className="flex items-center gap-2">
-													<Terminal className="size-3.5 text-muted-foreground/70" />
-													<code className="font-mono text-[10px] text-muted-foreground/70">
+												<div className="flex items-start gap-2 max-w-full">
+													<Terminal className="size-3.5 text-muted-foreground/70 flex-shrink-0 mt-0.5" />
+													<code className="font-mono text-[10px] text-muted-foreground/70 break-all max-w-[calc(100%-20px)]">
 														{schedule.command}
 													</code>
 												</div>

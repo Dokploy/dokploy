@@ -473,6 +473,7 @@ export const deployPreviewApplication = async ({
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
+		application.buildSecrets = application.previewBuildSecrets;
 
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
@@ -580,6 +581,7 @@ export const deployRemotePreviewApplication = async ({
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = application.previewBuildArgs;
+		application.buildSecrets = application.previewBuildSecrets;
 
 		if (application.serverId) {
 			let command = "set -e;";
