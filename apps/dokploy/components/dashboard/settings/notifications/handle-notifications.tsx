@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
 	DiscordIcon,
+	GotifyIcon,
+	NtfyIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -130,11 +132,11 @@ export const notificationsMap = {
 		label: "Email",
 	},
 	gotify: {
-		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		icon: <GotifyIcon />,
 		label: "Gotify",
 	},
 	ntfy: {
-		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		icon: <NtfyIcon />,
 		label: "ntfy",
 	},
 };
@@ -206,10 +208,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (type === "email") {
+		if (type === "email" && fields.length === 0) {
 			append("");
 		}
-	}, [type, append]);
+	}, [type, append, fields.length]);
 
 	useEffect(() => {
 		if (notification) {
