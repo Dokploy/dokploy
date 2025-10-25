@@ -151,7 +151,7 @@ export const getDockerCommand = (
 		);
 
 		const joinedSecrets = Object.entries(secrets)
-			.map(([key, value]) => `${key}='${value}'`)
+			.map(([key, value]) => `${key}='${value.replace(/'/g, "'\"'\"'")}'`)
 			.join(" ");
 
 		for (const key in secrets) {
