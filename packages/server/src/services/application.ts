@@ -576,7 +576,7 @@ export const deployRemotePreviewApplication = async ({
 		);
 		await updateIssueComment({
 			...issueParams,
-			body: "### Dokploy Preview Deployment\n\n$buildingComment",
+			body: `### Dokploy Preview Deployment\n\n${buildingComment}`,
 		});
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
@@ -607,7 +607,7 @@ export const deployRemotePreviewApplication = async ({
 		);
 		await updateIssueComment({
 			...issueParams,
-			body: "### Dokploy Preview Deployment\n\n$successComment",
+			body: `### Dokploy Preview Deployment\n\n${successComment}`,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updatePreviewDeployment(previewDeploymentId, {
@@ -617,7 +617,7 @@ export const deployRemotePreviewApplication = async ({
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
 			...issueParams,
-			body: "### Dokploy Preview Deployment\n\n$comment",
+			body: `### Dokploy Preview Deployment\n\n${comment}`,
 		});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
