@@ -1,5 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, RefreshCw, ShieldOff } from "lucide-react";
+import copy from "copy-to-clipboard";
+import {
+	CopyIcon,
+	DownloadIcon,
+	KeyRound,
+	RefreshCw,
+	ShieldOff,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -35,6 +42,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
+import {
+	BACKUP_CODES_PLACEHOLDER,
+	backupCodeTemplate,
+	DATE_PLACEHOLDER,
+	USERNAME_PLACEHOLDER,
+} from "./enable-2fa";
 
 const PasswordSchema = z.object({
 	password: z.string().min(8, {
@@ -47,6 +60,7 @@ type Step = "password" | "actions" | "backup-codes";
 
 export const Configure2FA = () => {
 	const utils = api.useUtils();
+	const { data: currentUser } = api.user.get.useQuery();
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [step, setStep] = useState<Step>("password");
 	const [password, setPassword] = useState("");
@@ -156,6 +170,54 @@ export const Configure2FA = () => {
 		} else {
 			setIsDialogOpen(false);
 		}
+	};
+
+	const handleDownloadBackupCodes = () => {
+		if (!backupCodes || backupCodes.length === 0) {
+			toast.error("No backup codes to download.");
+			return;
+		}
+
+		const backupCodesFormatted = backupCodes
+			.map((code, index) => ` ${index + 1}. ${code}`)
+			.join("\n");
+
+		const date = new Date();
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, "0");
+		const day = String(date.getDate()).padStart(2, "0");
+		const filename = `dokploy-2fa-backup-codes-${year}${month}${day}.txt`;
+
+		const backupCodesText = backupCodeTemplate
+			.replace(USERNAME_PLACEHOLDER, currentUser?.user?.email || "unknown")
+			.replace(DATE_PLACEHOLDER, date.toLocaleString())
+			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
+
+		const blob = new Blob([backupCodesText], { type: "text/plain" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	};
+
+	const handleCopyBackupCodes = () => {
+		const date = new Date();
+
+		const backupCodesFormatted = backupCodes
+			.map((code, index) => ` ${index + 1}. ${code}`)
+			.join("\n");
+
+		const backupCodesText = backupCodeTemplate
+			.replace(USERNAME_PLACEHOLDER, currentUser?.user?.email || "unknown")
+			.replace(DATE_PLACEHOLDER, date.toLocaleString())
+			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
+
+		copy(backupCodesText);
+		toast.success("Backup codes copied to clipboard");
 	};
 
 	return (
@@ -306,6 +368,25 @@ export const Configure2FA = () => {
 									access your account if you lose access to your authenticator
 									device. Each code can only be used once.
 								</p>
+							</div>
+
+							<div className="flex gap-2">
+								<Button
+									variant="outline"
+									onClick={handleDownloadBackupCodes}
+									className="flex-1"
+								>
+									<DownloadIcon className="size-4 mr-2" />
+									Download
+								</Button>
+								<Button
+									variant="outline"
+									onClick={handleCopyBackupCodes}
+									className="flex-1"
+								>
+									<CopyIcon className="size-4 mr-2" />
+									Copy
+								</Button>
 							</div>
 
 							<div className="flex justify-end gap-4">
