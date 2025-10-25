@@ -1,5 +1,5 @@
 {
-  "id": "b9e98ad6-f5b2-4d0b-bbdc-07c72f64f491",
+  "id": "d9e974ba-cc49-41ff-b4af-48cdbc470c02",
   "prevId": "def4c7aa-bf14-4060-8f54-60ef3a79a5ea",
   "version": "7",
   "dialect": "postgresql",
@@ -860,6 +860,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "previewBuildSecrets": {
+          "name": "previewBuildSecrets",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "previewLabels": {
           "name": "previewLabels",
           "type": "text[]",
@@ -937,6 +943,12 @@
         },
         "buildArgs": {
           "name": "buildArgs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildSecrets": {
+          "name": "buildSecrets",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4272,12 +4284,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "resmsId": {
-          "name": "resmsId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4365,19 +4371,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "notification_resmsId_resms_resmsId_fk": {
-          "name": "notification_resmsId_resms_resmsId_fk",
-          "tableFrom": "notification",
-          "tableTo": "resms",
-          "columnsFrom": [
-            "resmsId"
-          ],
-          "columnsTo": [
-            "resmsId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "notification_organizationId_organization_id_fk": {
           "name": "notification_organizationId_organization_id_fk",
           "tableFrom": "notification",
@@ -4432,43 +4425,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": 3
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.resms": {
-      "name": "resms",
-      "schema": "",
-      "columns": {
-        "resmsId": {
-          "name": "resmsId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "apiKey": {
-          "name": "apiKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phoneNumber": {
-          "name": "phoneNumber",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "senderId": {
-          "name": "senderId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -6584,8 +6540,7 @@
         "discord",
         "email",
         "gotify",
-        "ntfy",
-        "resms"
+        "ntfy"
       ]
     },
     "public.protocolType": {

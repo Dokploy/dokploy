@@ -1,5 +1,5 @@
 {
-  "id": "b9e98ad6-f5b2-4d0b-bbdc-07c72f64f491",
+  "id": "b7c8f954-90ba-401e-8b0b-dc2b1b21f39c",
   "prevId": "e7d24dad-8dc2-4c17-b27a-1f5240b8ffeb",
   "version": "7",
   "dialect": "postgresql",
@@ -860,6 +860,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "previewBuildSecrets": {
+          "name": "previewBuildSecrets",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "previewLabels": {
           "name": "previewLabels",
           "type": "text[]",
@@ -937,6 +943,12 @@
         },
         "buildArgs": {
           "name": "buildArgs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildSecrets": {
+          "name": "buildSecrets",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4165,6 +4177,31 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.lark": {
+      "name": "lark",
+      "schema": "",
+      "columns": {
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookUrl": {
+          "name": "webhookUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.notification": {
       "name": "notification",
       "schema": "",
@@ -4272,6 +4309,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "resmsId": {
           "name": "resmsId",
           "type": "text",
@@ -4361,6 +4404,19 @@
           ],
           "columnsTo": [
             "ntfyId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_larkId_lark_larkId_fk": {
+          "name": "notification_larkId_lark_larkId_fk",
+          "tableFrom": "notification",
+          "tableTo": "lark",
+          "columnsFrom": [
+            "larkId"
+          ],
+          "columnsTo": [
+            "larkId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -6585,6 +6641,7 @@
         "email",
         "gotify",
         "ntfy",
+        "lark",
         "resms"
       ]
     },
