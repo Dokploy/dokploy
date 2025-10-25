@@ -57,11 +57,13 @@ export const ShowModalLogs = ({
 			enabled: !!appName,
 		},
 	);
-	const [containerId, setContainerId] = useState<string | undefined>();
+	const [containerId, setContainerId] = useState<string>("");
 
 	useEffect(() => {
 		if (data && data?.length > 0) {
-			setContainerId(data[0]?.containerId);
+			setContainerId(data[0]?.containerId || "");
+		} else {
+			setContainerId("");
 		}
 	}, [data]);
 	return (

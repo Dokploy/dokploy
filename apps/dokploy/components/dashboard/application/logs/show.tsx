@@ -1,7 +1,8 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -52,39 +53,51 @@ interface Props {
 }
 
 export const ShowDockerLogs = ({ appName, serverId }: Props) => {
-	const [containerId, setContainerId] = useState<string | undefined>();
+	const [containerId, setContainerId] = useState<string>("");
 	const [option, setOption] = useState<"swarm" | "native">("native");
 
-	const { data: services, isLoading: servicesLoading } =
-		api.docker.getServiceContainersByAppName.useQuery(
-			{
-				appName,
-				serverId,
-			},
-			{
-				enabled: !!appName && option === "swarm",
-			},
-		);
+	const {
+		data: services,
+		isLoading: servicesLoading,
+		refetch: refetchServices,
+	} = api.docker.getServiceContainersByAppName.useQuery(
+		{
+			appName,
+			serverId,
+		},
+		{
+			enabled: !!appName && option === "swarm",
+			refetchInterval: 5000, // Refetch every 5 seconds to catch newly created containers
+		},
+	);
 
-	const { data: containers, isLoading: containersLoading } =
-		api.docker.getContainersByAppNameMatch.useQuery(
-			{
-				appName,
-				serverId,
-			},
-			{
-				enabled: !!appName && option === "native",
-			},
-		);
+	const {
+		data: containers,
+		isLoading: containersLoading,
+		refetch: refetchContainers,
+	} = api.docker.getContainersByAppNameMatch.useQuery(
+		{
+			appName,
+			serverId,
+		},
+		{
+			enabled: !!appName && option === "native",
+			refetchInterval: 5000, // Refetch every 5 seconds to catch newly created containers
+		},
+	);
 
 	useEffect(() => {
 		if (option === "native") {
 			if (containers && containers?.length > 0) {
-				setContainerId(containers[0]?.containerId);
+				setContainerId(containers[0]?.containerId || "");
+			} else {
+				setContainerId("");
 			}
 		} else {
 			if (services && services?.length > 0) {
-				setContainerId(services[0]?.containerId);
+				setContainerId(services[0]?.containerId || "");
+			} else {
+				setContainerId("");
 			}
 		}
 	}, [option, services, containers]);
@@ -106,6 +119,22 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 				<div className="flex flex-row justify-between items-center gap-2">
 					<Label>Select a container to view logs</Label>
 					<div className="flex flex-row gap-2 items-center">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								if (option === "native") {
+									refetchContainers();
+								} else {
+									refetchServices();
+								}
+							}}
+							disabled={isLoading}
+						>
+							<RefreshCw
+								className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+							/>
+						</Button>
 						<span className="text-sm text-muted-foreground">
 							{option === "native" ? "Native" : "Swarm"}
 						</span>
@@ -163,6 +192,12 @@ export const ShowDockerLogs = ({ appName, serverId }: Props) => {
 							)}
 
 							<SelectLabel>Containers ({containersLenght})</SelectLabel>
+							{containersLenght === 0 && !isLoading && (
+								<SelectItem value="no-containers" disabled>
+									No containers found. Try refreshing or check if the
+									application is running.
+								</SelectItem>
+							)}
 						</SelectGroup>
 					</SelectContent>
 				</Select>
