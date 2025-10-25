@@ -7,7 +7,7 @@ describe("createDomainLabels", () => {
 	const baseDomain: Domain = {
 		host: "example.com",
 		port: 8080,
-    customEntrypoint: null,
+		customEntrypoint: null,
 		https: false,
 		uniqueConfigKey: 1,
 		customCertResolver: null,
@@ -272,7 +272,7 @@ describe("createDomainLabels", () => {
 			"traefik.http.routers.test-app-1-custom.entrypoints=custom",
 			"traefik.http.services.test-app-1-custom.loadbalancer.server.port=8080",
 			"traefik.http.routers.test-app-1-custom.service=test-app-1-custom",
-      "traefik.http.routers.test-app-1-custom.tls.certresolver=letsencrypt",
+			"traefik.http.routers.test-app-1-custom.tls.certresolver=letsencrypt",
 		]);
 	});
 });

@@ -220,7 +220,11 @@ export const addDomainToCompose = async (
 			throw new Error(`The service ${serviceName} not found in the compose`);
 		}
 
-		const httpLabels = createDomainLabels(appName, domain, domain.customEntrypoint || "web");
+		const httpLabels = createDomainLabels(
+			appName,
+			domain,
+			domain.customEntrypoint || "web",
+		);
 		if (domain.customEntrypoint == null && https) {
 			const httpsLabels = createDomainLabels(appName, domain, "websecure");
 			httpLabels.push(...httpsLabels);
@@ -304,7 +308,7 @@ export const createDomainLabels = (
 	const {
 		host,
 		port,
-    customEntrypoint,
+		customEntrypoint,
 		https,
 		uniqueConfigKey,
 		certificateType,

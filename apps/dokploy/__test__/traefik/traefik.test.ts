@@ -123,7 +123,7 @@ const baseDomain: Domain = {
 	https: false,
 	path: null,
 	port: null,
-  customEntrypoint: null,
+	customEntrypoint: null,
 	serviceName: "",
 	composeId: "",
 	customCertResolver: null,
