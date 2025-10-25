@@ -664,11 +664,10 @@ export const rebuildRemoteApplication = async ({
 		await execAsyncRemote(
 			application.serverId,
 			`
-			echo "\n\n===================================EXTRA LOGS============================================" >> $deployment.logPath;
-			echo "Error occurred ❌, check the logs for details." >> $deployment.logPath;
+			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
+			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
 			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
 		);
-
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
@@ -680,7 +679,7 @@ export const rebuildRemoteApplication = async ({
 export const getApplicationStats = async (appName: string) => {
 	const filter = {
 		status: ["running"],
-		label: ["com.docker.swarm.service.name=$appName"],
+		label: [`com.docker.swarm.service.name=${appName}`],
 	};
 
 	const containers = await docker.listContainers({
