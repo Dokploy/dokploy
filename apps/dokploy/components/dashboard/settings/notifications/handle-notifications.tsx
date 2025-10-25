@@ -347,13 +347,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
-					serverThreshold: notification.serverThreshold,
 					type: notification.notificationType,
-					apiKey: notification.resms?.apiKey,
-					phoneNumber: notification.resms?.phoneNumber,
+					apiKey: notification.resms?.apiKey || "",
+					phoneNumber: notification.resms?.phoneNumber || "",
 					senderId: notification.resms?.senderId || "",
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			}
 		} else {
@@ -475,8 +475,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			});
 		} else if (data.type === "lark") {
 			promise = larkMutation.mutateAsync({
-		} else if (data.type === "resms") {
-			promise = resmsMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
@@ -487,7 +485,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
 				serverThreshold: serverThreshold,
-				serverThreshold: serverThreshold,
+			});
+		} else if (data.type === "resms") {
+			promise = resmsMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
 				apiKey: data.apiKey,
 				phoneNumber: data.phoneNumber,
 				senderId: data.senderId || "",
@@ -495,6 +499,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				resmsId: notification?.resmsId || "",
+				serverThreshold: serverThreshold,
 			});
 		}
 
@@ -1097,6 +1102,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															{...field}
 														/>
 													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
 								{type === "resms" && (
 									<>
 										<FormField
@@ -1119,10 +1131,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<FormItem>
 													<FormLabel>Phone Number</FormLabel>
 													<FormControl>
-														<Input
-															placeholder="+33612345678"
-															{...field}
-														/>
+														<Input placeholder="+33612345678" {...field} />
 													</FormControl>
 													<FormDescription>
 														Phone number in international format (E.164)
@@ -1138,10 +1147,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<FormItem>
 													<FormLabel>Sender ID (Optional)</FormLabel>
 													<FormControl>
-														<Input
-															placeholder="DOKPLOY"
-															{...field}
-														/>
+														<Input placeholder="DOKPLOY" {...field} />
 													</FormControl>
 													<FormDescription>
 														Alphanumeric sender name displayed
@@ -1303,7 +1309,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingEmail ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
-								isLoadingLark
+								isLoadingLark ||
 								isLoadingResms
 							}
 							variant="secondary"
@@ -1351,6 +1357,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									} else if (type === "lark") {
 										await testLarkConnection({
 											webhookUrl: form.getValues("webhookUrl"),
+										});
 									} else if (type === "resms") {
 										await testResmsConnection({
 											apiKey: form.getValues("apiKey"),

@@ -4,6 +4,7 @@ import { notifications } from "../../db/schema";
 import {
 	sendDiscordNotification,
 	sendLarkNotification,
+	sendReSmsNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -44,7 +45,7 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, lark } = notification;
+		const { discord, telegram, slack, lark, resms } = notification;
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -249,6 +250,9 @@ export const sendServerThresholdNotifications = async (
 					},
 				},
 			});
+		}
+
+		if (resms) {
 			await sendReSmsNotification(
 				resms,
 				`⚠️ Server ${payload.Type} Alert\n\nServer: ${payload.ServerName}\nValue: ${payload.Value.toFixed(2)}%\nThreshold: ${payload.Threshold.toFixed(2)}%`,

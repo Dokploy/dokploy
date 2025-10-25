@@ -52,7 +52,7 @@ export const sendDatabaseBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark, resms } =
 			notification;
 
 		if (email) {
@@ -357,6 +357,9 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 				},
 			});
+		}
+
+		if (resms) {
 			const status = type === "success" ? "✅ Success" : "❌ Failed";
 			await sendReSmsNotification(
 				resms,

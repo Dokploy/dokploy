@@ -33,7 +33,7 @@ export const sendDokployRestartNotifications = async () => {
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark, resms } =
 			notification;
 
 		if (email) {
@@ -215,6 +215,9 @@ export const sendDokployRestartNotifications = async () => {
 			} catch (error) {
 				console.log(error);
 			}
+		}
+
+		if (resms) {
 			await sendReSmsNotification(
 				resms,
 				`✅ Dokploy Server Restarted\n\nTime: ${date.toLocaleString()}`,

@@ -100,6 +100,8 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "lark" && (
 																<div className="flex  items-center justify-center rounded-lg">
 																	<LarkIcon className="size-7 text-muted-foreground" />
+																</div>
+															)}
 															{notification.notificationType === "resms" && (
 																<div className="flex  items-center justify-center rounded-lg ">
 																	<ReSmsIcon className="size-6" />
