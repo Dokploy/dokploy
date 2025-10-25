@@ -779,7 +779,9 @@ const EnvironmentPage = (
 										currentEnvironmentId={environmentId}
 									/>
 									<EnvironmentVariables environmentId={environmentId}>
-										<SquareTerminal className="h-5 w-5 text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200 hover:bg-primary/10 rounded-md p-px" />
+										<Button variant="ghost" size="icon">
+											<SquareTerminal className="size-5 text-muted-foreground cursor-pointer" />
+										</Button>
 									</EnvironmentVariables>
 								</CardTitle>
 								<CardDescription>
