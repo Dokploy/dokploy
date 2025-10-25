@@ -1,7 +1,8 @@
+import copy from "copy-to-clipboard";
 import {
-	Download as DownloadIcon,
 	Check,
 	Copy,
+	Download as DownloadIcon,
 	Loader2,
 	Pause,
 	Play,
@@ -261,17 +262,8 @@ export const DockerLogsId: React.FC<Props> = ({
 			)
 			.join("\n");
 
-		try {
-			await navigator.clipboard.writeText(logContent);
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
-		} catch {
-			const textarea = document.createElement("textarea");
-			textarea.value = logContent;
-			document.body.appendChild(textarea);
-			textarea.select();
-			document.execCommand("copy");
-			document.body.removeChild(textarea);
+		const success = copy(logContent);
+		if (success) {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		}

@@ -1,3 +1,4 @@
+import copy from "copy-to-clipboard";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -108,24 +109,15 @@ export const ShowDeployment = ({
 		}
 	}, [filteredLogs, autoScroll]);
 
-	const handleCopy = async () => {
+	const handleCopy = () => {
 		const logContent = filteredLogs
 			.map(({ timestamp, message }: LogLine) =>
 				`${timestamp?.toISOString() || ""} ${message}`.trim(),
 			)
 			.join("\n");
 
-		try {
-			await navigator.clipboard.writeText(logContent);
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
-		} catch {
-			const textarea = document.createElement("textarea");
-			textarea.value = logContent;
-			document.body.appendChild(textarea);
-			textarea.select();
-			document.execCommand("copy");
-			document.body.removeChild(textarea);
+		const success = copy(logContent);
+		if (success) {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		}
