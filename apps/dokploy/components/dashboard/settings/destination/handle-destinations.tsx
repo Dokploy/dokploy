@@ -217,7 +217,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || isErrorConnection) && (
-					<AlertBlock type="error" className="break-words">
+					<AlertBlock type="error" className="w-full">
 						{connectionError?.message || error?.message}
 					</AlertBlock>
 				)}
