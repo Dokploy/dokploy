@@ -208,10 +208,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (type === "email") {
+		if (type === "email" && fields.length === 0) {
 			append("");
 		}
-	}, [type, append]);
+	}, [type, append, fields.length]);
 
 	useEffect(() => {
 		if (notification) {
