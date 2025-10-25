@@ -31,29 +31,51 @@ export const getBitbucketCloneUrl = (
 		apiToken?: string | null;
 		bitbucketUsername?: string | null;
 		appPassword?: string | null;
+		bitbucketEmail?: string | null;
+		bitbucketWorkspaceName?: string | null;
 	} | null,
 	repoClone: string,
 ) => {
 	if (!bitbucketProvider) {
 		throw new Error("Bitbucket provider is required");
 	}
-	return bitbucketProvider.apiToken
-		? `https://x-token-auth:${bitbucketProvider.apiToken}@${repoClone}`
-		: `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
+
+	if (bitbucketProvider.apiToken) {
+		return `https://x-bitbucket-api-token-auth:${bitbucketProvider.apiToken}@${repoClone}`;
+	}
+
+	// For app passwords, use username:app_password format
+	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
+	}
+	return `https://${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}@${repoClone}`;
 };
 
 export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 	if (bitbucketProvider.apiToken) {
-		// For API tokens, use HTTP Basic auth with email and token
-		// According to Bitbucket docs: email:token for API calls
-		const email =
-			bitbucketProvider.bitbucketEmail || bitbucketProvider.bitbucketUsername;
+		// According to Bitbucket official docs, for API calls with API tokens:
+		// "You will need both your Atlassian account email and an API token"
+		// Use: {atlassian_account_email}:{api_token}
+
+		if (!bitbucketProvider.bitbucketEmail) {
+			throw new Error(
+				"Atlassian account email is required when using API token for API calls",
+			);
+		}
+
 		return {
-			Authorization: `Basic ${Buffer.from(`${email}:${bitbucketProvider.apiToken}`).toString("base64")}`,
+			Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketEmail}:${bitbucketProvider.apiToken}`).toString("base64")}`,
 		};
 	}
 
 	// For app passwords, use HTTP Basic auth with username and app password
+	if (!bitbucketProvider.bitbucketUsername || !bitbucketProvider.appPassword) {
+		throw new Error(
+			"Username and app password are required when not using API token",
+		);
+	}
 	return {
 		Authorization: `Basic ${Buffer.from(`${bitbucketProvider.bitbucketUsername}:${bitbucketProvider.appPassword}`).toString("base64")}`,
 	};

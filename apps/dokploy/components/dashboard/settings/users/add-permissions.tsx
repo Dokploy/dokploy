@@ -1,6 +1,6 @@
 import type { findEnvironmentById } from "@dokploy/server/index";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -161,11 +161,13 @@ const addPermissions = z.object({
 	canCreateServices: z.boolean().optional().default(false),
 	canDeleteProjects: z.boolean().optional().default(false),
 	canDeleteServices: z.boolean().optional().default(false),
+	canDeleteEnvironments: z.boolean().optional().default(false),
 	canAccessToTraefikFiles: z.boolean().optional().default(false),
 	canAccessToDocker: z.boolean().optional().default(false),
 	canAccessToAPI: z.boolean().optional().default(false),
 	canAccessToSSHKeys: z.boolean().optional().default(false),
 	canAccessToGitProviders: z.boolean().optional().default(false),
+	canCreateEnvironments: z.boolean().optional().default(false),
 });
 
 type AddPermissions = z.infer<typeof addPermissions>;
@@ -175,6 +177,7 @@ interface Props {
 }
 
 export const AddUserPermissions = ({ userId }: Props) => {
+	const [isOpen, setIsOpen] = useState(false);
 	const { data: projects } = api.project.all.useQuery();
 
 	const { data, refetch } = api.user.one.useQuery(
@@ -192,13 +195,25 @@ export const AddUserPermissions = ({ userId }: Props) => {
 	const form = useForm<AddPermissions>({
 		defaultValues: {
 			accessedProjects: [],
+			accessedEnvironments: [],
 			accessedServices: [],
+			canDeleteEnvironments: false,
+			canCreateProjects: false,
+			canCreateServices: false,
+			canDeleteProjects: false,
+			canDeleteServices: false,
+			canAccessToTraefikFiles: false,
+			canAccessToDocker: false,
+			canAccessToAPI: false,
+			canAccessToSSHKeys: false,
+			canAccessToGitProviders: false,
+			canCreateEnvironments: false,
 		},
 		resolver: zodResolver(addPermissions),
 	});
 
 	useEffect(() => {
-		if (data) {
+		if (data && isOpen) {
 			form.reset({
 				accessedProjects: data.accessedProjects || [],
 				accessedEnvironments: data.accessedEnvironments || [],
@@ -207,14 +222,16 @@ export const AddUserPermissions = ({ userId }: Props) => {
 				canCreateServices: data.canCreateServices,
 				canDeleteProjects: data.canDeleteProjects,
 				canDeleteServices: data.canDeleteServices,
+				canDeleteEnvironments: data.canDeleteEnvironments || false,
 				canAccessToTraefikFiles: data.canAccessToTraefikFiles,
 				canAccessToDocker: data.canAccessToDocker,
 				canAccessToAPI: data.canAccessToAPI,
 				canAccessToSSHKeys: data.canAccessToSSHKeys,
 				canAccessToGitProviders: data.canAccessToGitProviders,
+				canCreateEnvironments: data.canCreateEnvironments,
 			});
 		}
-	}, [form, form.formState.isSubmitSuccessful, form.reset, data]);
+	}, [form, form.reset, data, isOpen]);
 
 	const onSubmit = async (data: AddPermissions) => {
 		await mutateAsync({
@@ -223,6 +240,7 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			canCreateProjects: data.canCreateProjects,
 			canDeleteServices: data.canDeleteServices,
 			canDeleteProjects: data.canDeleteProjects,
+			canDeleteEnvironments: data.canDeleteEnvironments,
 			canAccessToTraefikFiles: data.canAccessToTraefikFiles,
 			accessedProjects: data.accessedProjects || [],
 			accessedEnvironments: data.accessedEnvironments || [],
@@ -231,17 +249,19 @@ export const AddUserPermissions = ({ userId }: Props) => {
 			canAccessToAPI: data.canAccessToAPI,
 			canAccessToSSHKeys: data.canAccessToSSHKeys,
 			canAccessToGitProviders: data.canAccessToGitProviders,
+			canCreateEnvironments: data.canCreateEnvironments,
 		})
 			.then(async () => {
 				toast.success("Permissions updated");
 				refetch();
+				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error("Error updating the permissions");
 			});
 	};
 	return (
-		<Dialog>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger className="" asChild>
 				<DropdownMenuItem
 					className="w-full cursor-pointer"
@@ -332,6 +352,46 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										<FormLabel>Delete Services</FormLabel>
 										<FormDescription>
 											Allow the user to delete services
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canCreateEnvironments"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Create Environments</FormLabel>
+										<FormDescription>
+											Allow the user to create environments
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="canDeleteEnvironments"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Delete Environments</FormLabel>
+										<FormDescription>
+											Allow the user to delete environments
 										</FormDescription>
 									</div>
 									<FormControl>
