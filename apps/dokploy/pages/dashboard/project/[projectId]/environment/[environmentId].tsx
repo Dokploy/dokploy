@@ -14,10 +14,9 @@ import {
 	PlusIcon,
 	Search,
 	ServerIcon,
+	SquareTerminal,
 	Trash2,
 	X,
-	Terminal,
-	SquareTerminal,
 } from "lucide-react";
 import type {
 	GetServerSidePropsContext,
@@ -35,8 +34,8 @@ import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
+import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
-
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -49,6 +48,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,8 +98,6 @@ import {
 import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
-import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 
 export type Services = {
 	appName: string;
@@ -781,7 +779,7 @@ const EnvironmentPage = (
 										currentEnvironmentId={environmentId}
 									/>
 									<EnvironmentVariables environmentId={environmentId}>
-										<SquareTerminal className="h-5 w-5 text-muted-foreground" />
+										<SquareTerminal className="h-5 w-5 text-muted-foreground cursor-pointer hover:text-primary transition-colors duration-200 hover:bg-primary/10 rounded-md p-px" />
 									</EnvironmentVariables>
 								</CardTitle>
 								<CardDescription>
