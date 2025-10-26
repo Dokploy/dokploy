@@ -1,8 +1,8 @@
 import {
 	createDiscordNotification,
 	createEmailNotification,
-	createLarkNotification,
 	createGotifyNotification,
+	createLarkNotification,
 	createNtfyNotification,
 	createSlackNotification,
 	createTeamsNotification,
@@ -12,8 +12,8 @@ import {
 	removeNotificationById,
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendServerThresholdNotifications,
 	sendSlackNotification,
@@ -21,8 +21,8 @@ import {
 	sendTelegramNotification,
 	updateDiscordNotification,
 	updateEmailNotification,
-	updateLarkNotification,
 	updateGotifyNotification,
+	updateLarkNotification,
 	updateNtfyNotification,
 	updateSlackNotification,
 	updateTeamsNotification,
@@ -41,8 +41,8 @@ import { db } from "@/server/db";
 import {
 	apiCreateDiscord,
 	apiCreateEmail,
-	apiCreateLark,
 	apiCreateGotify,
+	apiCreateLark,
 	apiCreateNtfy,
 	apiCreateSlack,
 	apiCreateTeams,
@@ -50,16 +50,16 @@ import {
 	apiFindOneNotification,
 	apiTestDiscordConnection,
 	apiTestEmailConnection,
-	apiTestLarkConnection,
 	apiTestGotifyConnection,
+	apiTestLarkConnection,
 	apiTestNtfyConnection,
 	apiTestSlackConnection,
 	apiTestTeamsConnection,
 	apiTestTelegramConnection,
 	apiUpdateDiscord,
 	apiUpdateEmail,
-	apiUpdateLark,
 	apiUpdateGotify,
+	apiUpdateLark,
 	apiUpdateNtfy,
 	apiUpdateSlack,
 	apiUpdateTeams,
@@ -92,7 +92,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateSlack)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -146,7 +146,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateTelegram)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -218,7 +218,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateDiscord)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -241,7 +241,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateTeams)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -337,7 +337,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateEmail)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -378,14 +378,14 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiFindOneNotification)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (notification.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to delete this notification",
 					});
 				}
-				return await removeNotificationById(input.notificationId);
+				return await removeNotificationById(input.notificationId!);
 			} catch (error) {
 				const message =
 					error instanceof Error
@@ -400,7 +400,7 @@ export const notificationRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneNotification)
 		.query(async ({ input, ctx }) => {
-			const notification = await findNotificationById(input.notificationId);
+			const notification = await findNotificationById(input.notificationId!);
 			if (notification.organizationId !== ctx.session.activeOrganizationId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -512,7 +512,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateGotify)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (
 					IS_CLOUD &&
 					notification.organizationId !== ctx.session.activeOrganizationId
@@ -569,7 +569,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateNtfy)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (
 					IS_CLOUD &&
 					notification.organizationId !== ctx.session.activeOrganizationId
@@ -627,7 +627,7 @@ export const notificationRouter = createTRPCRouter({
 		.input(apiUpdateLark)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				const notification = await findNotificationById(input.notificationId);
+				const notification = await findNotificationById(input.notificationId!);
 				if (
 					IS_CLOUD &&
 					notification.organizationId !== ctx.session.activeOrganizationId

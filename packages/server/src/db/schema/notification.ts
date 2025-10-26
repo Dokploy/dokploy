@@ -431,3 +431,55 @@ export const apiSendTest = notificationsSchema
 		priority: z.number().optional(),
 	})
 	.partial();
+
+// API Test Connection Schemas
+export const apiTestSlackConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+	channel: z.string().optional(),
+	decoration: z.boolean().optional(),
+});
+
+export const apiTestTelegramConnection = z.object({
+	botToken: z.string().min(1, { message: "Bot token is required" }),
+	chatId: z.string().min(1, { message: "Chat ID is required" }),
+	messageThreadId: z.string().optional(),
+});
+
+export const apiTestDiscordConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+	decoration: z.boolean().optional(),
+});
+
+export const apiTestEmailConnection = z.object({
+	smtpServer: z.string().min(1, { message: "SMTP server is required" }),
+	smtpPort: z.number().min(1, { message: "SMTP port is required" }),
+	username: z.string().min(1, { message: "Username is required" }),
+	password: z.string().min(1, { message: "Password is required" }),
+	fromAddress: z.string().email({ message: "Valid email address is required" }),
+	toAddresses: z
+		.array(z.string().email())
+		.min(1, { message: "At least one recipient is required" }),
+});
+
+export const apiTestGotifyConnection = z.object({
+	serverUrl: z.string().min(1, { message: "Server URL is required" }),
+	appToken: z.string().min(1, { message: "App token is required" }),
+	decoration: z.boolean().optional(),
+	priority: z.number().optional(),
+});
+
+export const apiTestNtfyConnection = z.object({
+	serverUrl: z.string().min(1, { message: "Server URL is required" }),
+	topic: z.string().min(1, { message: "Topic is required" }),
+	accessToken: z.string().min(1, { message: "Access token is required" }),
+	priority: z.number().optional(),
+});
+
+export const apiTestTeamsConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+	decoration: z.boolean().optional(),
+});
+
+export const apiTestLarkConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+});

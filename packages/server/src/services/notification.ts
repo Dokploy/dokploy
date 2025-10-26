@@ -96,7 +96,7 @@ export const updateSlackNotification = async (
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -113,7 +113,7 @@ export const updateSlackNotification = async (
 				channel: input.channel,
 				webhookUrl: input.webhookUrl,
 			})
-			.where(eq(slack.slackId, input.slackId))
+			.where(eq(slack.slackId, input.slackId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -187,7 +187,7 @@ export const updateTelegramNotification = async (
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -205,7 +205,7 @@ export const updateTelegramNotification = async (
 				chatId: input.chatId,
 				messageThreadId: input.messageThreadId,
 			})
-			.where(eq(telegram.telegramId, input.telegramId))
+			.where(eq(telegram.telegramId, input.telegramId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -278,7 +278,7 @@ export const updateDiscordNotification = async (
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -295,7 +295,7 @@ export const updateDiscordNotification = async (
 				webhookUrl: input.webhookUrl,
 				decoration: input.decoration,
 			})
-			.where(eq(discord.discordId, input.discordId))
+			.where(eq(discord.discordId, input.discordId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -372,7 +372,7 @@ export const updateEmailNotification = async (
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -393,7 +393,7 @@ export const updateEmailNotification = async (
 				fromAddress: input.fromAddress,
 				toAddresses: input.toAddresses,
 			})
-			.where(eq(email.emailId, input.emailId))
+			.where(eq(email.emailId, input.emailId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -466,7 +466,7 @@ export const updateGotifyNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -485,7 +485,7 @@ export const updateGotifyNotification = async (
 				priority: input.priority,
 				decoration: input.decoration,
 			})
-			.where(eq(gotify.gotifyId, input.gotifyId));
+			.where(eq(gotify.gotifyId, input.gotifyId!));
 
 		return newDestination;
 	});
@@ -556,7 +556,7 @@ export const updateNtfyNotification = async (
 				dockerCleanup: input.dockerCleanup,
 				organizationId: input.organizationId,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -575,7 +575,7 @@ export const updateNtfyNotification = async (
 				accessToken: input.accessToken,
 				priority: input.priority,
 			})
-			.where(eq(ntfy.ntfyId, input.ntfyId));
+			.where(eq(ntfy.ntfyId, input.ntfyId!));
 
 		return newDestination;
 	});
@@ -646,7 +646,7 @@ export const updateTeamsNotification = async (
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -663,7 +663,7 @@ export const updateTeamsNotification = async (
 				webhookUrl: input.webhookUrl,
 				decoration: input.decoration,
 			})
-			.where(eq(teams.teamsId, input.teamsId))
+			.where(eq(teams.teamsId, input.teamsId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -769,7 +769,7 @@ export const updateLarkNotification = async (
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
-			.where(eq(notifications.notificationId, input.notificationId))
+			.where(eq(notifications.notificationId, input.notificationId!))
 			.returning()
 			.then((value) => value[0]);
 
@@ -785,7 +785,7 @@ export const updateLarkNotification = async (
 			.set({
 				webhookUrl: input.webhookUrl,
 			})
-			.where(eq(lark.larkId, input.larkId))
+			.where(eq(lark.larkId, input.larkId!))
 			.returning()
 			.then((value) => value[0]);
 
