@@ -187,12 +187,13 @@ export const createCommand = (compose: ComposeNested) => {
 
 const createEnvFile = (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths();
-	const { env, composePath, appName } = compose;
-	const composeFilePath =
-		join(COMPOSE_PATH, appName, "code", composePath) ||
-		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
+	const { env, appName, sourceType } = compose;
+	const composePath =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	const composeFilePath = join(COMPOSE_PATH, appName, "code", composePath);
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
+	console.log("envFilePath", envFilePath);
 	let envContent = `APP_NAME=${appName}\n`;
 	envContent += env || "";
 	if (!envContent.includes("DOCKER_CONFIG")) {
@@ -217,10 +218,10 @@ const createEnvFile = (compose: ComposeNested) => {
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
 	const { COMPOSE_PATH } = paths(true);
-	const { env, composePath, appName } = compose;
-	const composeFilePath =
-		join(COMPOSE_PATH, appName, "code", composePath) ||
-		join(COMPOSE_PATH, appName, "code", "docker-compose.yml");
+	const { env, appName, sourceType } = compose;
+	const composePath =
+		sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
+	const composeFilePath = join(COMPOSE_PATH, appName, "code", composePath);
 
 	const envFilePath = join(dirname(composeFilePath), ".env");
 
