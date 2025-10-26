@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
@@ -45,12 +46,20 @@ export const sendDatabaseBackupNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+
 			teams: true,
+
+			lark: true,
+
 		},
 	});
 
 	for (const notification of notificationList) {
+
 		const { email, discord, telegram, slack, gotify, ntfy, teams } =
+
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+
 			notification;
 
 		if (email) {
@@ -242,6 +251,7 @@ export const sendDatabaseBackupNotifications = async ({
 			});
 		}
 
+
 		if (teams) {
 			const message = {
 				"@type": "MessageCard",
@@ -290,6 +300,121 @@ export const sendDatabaseBackupNotifications = async ({
 			}
 
 			await sendTeamsNotification(teams, message);
+
+		if (lark) {
+			const limitCharacter = 800;
+			const truncatedErrorMessage =
+				errorMessage && errorMessage.length > limitCharacter
+					? errorMessage.substring(0, limitCharacter)
+					: errorMessage;
+
+			await sendLarkNotification(lark, {
+				msg_type: "interactive",
+				card: {
+					schema: "2.0",
+					config: {
+						update_multi: true,
+						style: {
+							text_size: {
+								normal_v2: {
+									default: "normal",
+									pc: "normal",
+									mobile: "heading",
+								},
+							},
+						},
+					},
+					header: {
+						title: {
+							tag: "plain_text",
+							content:
+								type === "success"
+									? "✅ Database Backup Successful"
+									: "❌ Database Backup Failed",
+						},
+						subtitle: {
+							tag: "plain_text",
+							content: "",
+						},
+						template: type === "success" ? "green" : "red",
+						padding: "12px 12px 12px 12px",
+					},
+					body: {
+						direction: "vertical",
+						padding: "12px 12px 12px 12px",
+						elements: [
+							{
+								tag: "column_set",
+								columns: [
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Project:**\n${projectName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Database Type:**\n${databaseType}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Status:**\n${type === "success" ? "Successful" : "Failed"}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Application:**\n${applicationName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Database Name:**\n${databaseName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Date:**\n${format(date, "PP pp")}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+								],
+							},
+							...(type === "error" && truncatedErrorMessage
+								? [
+										{
+											tag: "markdown",
+											content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
+											text_align: "left",
+											text_size: "normal_v2",
+										},
+									]
+								: []),
+						],
+					},
+				},
+			});
+
 		}
 	}
 };

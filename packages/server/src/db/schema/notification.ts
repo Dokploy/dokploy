@@ -12,7 +12,11 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+
 	"teams",
+
+	"lark",
+
 ]);
 
 export const notifications = pgTable("notification", {
@@ -49,7 +53,11 @@ export const notifications = pgTable("notification", {
 	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
 		onDelete: "cascade",
 	}),
+
 	teamsId: text("teamsId").references(() => teams.teamsId, {
+
+	larkId: text("larkId").references(() => lark.larkId, {
+
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -120,12 +128,18 @@ export const ntfy = pgTable("ntfy", {
 	priority: integer("priority").notNull().default(3),
 });
 
+
 export const teams = pgTable("teams", {
 	teamsId: text("teamsId")
+
+export const lark = pgTable("lark", {
+	larkId: text("larkId")
+
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	webhookUrl: text("webhookUrl").notNull(),
+
 	decoration: boolean("decoration"),
 });
 
@@ -154,9 +168,15 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.ntfyId],
 		references: [ntfy.ntfyId],
 	}),
+
 	teams: one(teams, {
 		fields: [notifications.teamsId],
 		references: [teams.teamsId],
+
+	lark: one(lark, {
+		fields: [notifications.larkId],
+		references: [lark.larkId],
+
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -385,6 +405,31 @@ export const apiFindOneNotification = notificationsSchema
 		notificationId: true,
 	})
 	.required();
+
+export const apiCreateLark = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateLark = apiCreateLark.partial().extend({
+	notificationId: z.string().min(1),
+	larkId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestLarkConnection = apiCreateLark.pick({
+	webhookUrl: true,
+});
 
 export const apiSendTest = notificationsSchema
 	.extend({

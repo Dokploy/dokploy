@@ -12,6 +12,7 @@ import { api } from "@/utils/api";
 const addEnvironmentSchema = z.object({
 	env: z.string(),
 	buildArgs: z.string(),
+	buildSecrets: z.string(),
 });
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
@@ -37,6 +38,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		defaultValues: {
 			env: "",
 			buildArgs: "",
+			buildSecrets: "",
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
@@ -44,15 +46,18 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	// Watch form values
 	const currentEnv = form.watch("env");
 	const currentBuildArgs = form.watch("buildArgs");
+	const currentBuildSecrets = form.watch("buildSecrets");
 	const hasChanges =
 		currentEnv !== (data?.env || "") ||
-		currentBuildArgs !== (data?.buildArgs || "");
+		currentBuildArgs !== (data?.buildArgs || "") ||
+		currentBuildSecrets !== (data?.buildSecrets || "");
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
+				buildSecrets: data.buildSecrets || "",
 			});
 		}
 	}, [data, form]);
@@ -61,6 +66,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		mutateAsync({
 			env: formData.env,
 			buildArgs: formData.buildArgs,
+			buildSecrets: formData.buildSecrets,
 			applicationId,
 		})
 			.then(async () => {
@@ -76,8 +82,24 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		form.reset({
 			env: data?.env || "",
 			buildArgs: data?.buildArgs || "",
+			buildSecrets: data?.buildSecrets || "",
 		});
 	};
+
+	// Add keyboard shortcut for Ctrl+S/Cmd+S
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading) {
+				e.preventDefault();
+				form.handleSubmit(onSubmit)();
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [form, onSubmit, isLoading]);
 
 	return (
 		<Card className="bg-background px-6 pb-6">
@@ -104,13 +126,36 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 					{data?.buildType === "dockerfile" && (
 						<Secrets
 							name="buildArgs"
-							title="Build-time Variables"
+							title="Build-time Arguments"
 							description={
 								<span>
-									Available only at build-time. See documentation&nbsp;
+									Arguments are available only at build-time. See
+									documentation&nbsp;
 									<a
 										className="text-primary"
-										href="https://docs.docker.com/build/guide/build-args/"
+										href="https://docs.docker.com/build/building/variables/"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										here
+									</a>
+									.
+								</span>
+							}
+							placeholder="NPM_TOKEN=xyz"
+						/>
+					)}
+					{data?.buildType === "dockerfile" && (
+						<Secrets
+							name="buildSecrets"
+							title="Build-time Secrets"
+							description={
+								<span>
+									Secrets are specially designed for sensitive information and
+									are only available at build-time. See documentation&nbsp;
+									<a
+										className="text-primary"
+										href="https://docs.docker.com/build/building/secrets/"
 										target="_blank"
 										rel="noopener noreferrer"
 									>

@@ -1,6 +1,7 @@
 import type {
 	discord,
 	email,
+	lark,
 	gotify,
 	ntfy,
 	slack,
@@ -154,8 +155,13 @@ export const sendNtfyNotification = async (
 	}
 };
 
+
 export const sendTeamsNotification = async (
 	connection: typeof teams.$inferInsert,
+
+export const sendLarkNotification = async (
+	connection: typeof lark.$inferInsert,
+
 	message: any,
 ) => {
 	try {
