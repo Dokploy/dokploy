@@ -11,8 +11,8 @@ import {
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
-	sendTelegramNotification,
 	sendTeamsNotification,
+	sendTelegramNotification,
 } from "./utils";
 
 export const sendDatabaseBackupNotifications = async ({
@@ -72,7 +72,7 @@ export const sendDatabaseBackupNotifications = async ({
 					errorMessage,
 					date: date.toLocaleString(),
 				}),
-			).catch();
+			).catch(() => "");
 			await sendEmailNotification(
 				email,
 				"Database backup for dokploy",

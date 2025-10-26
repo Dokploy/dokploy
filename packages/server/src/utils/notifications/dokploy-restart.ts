@@ -11,8 +11,8 @@ import {
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
-	sendTelegramNotification,
 	sendTeamsNotification,
+	sendTelegramNotification,
 } from "./utils";
 
 export const sendDokployRestartNotifications = async () => {
@@ -46,7 +46,7 @@ export const sendDokployRestartNotifications = async () => {
 		if (email) {
 			const template = await renderAsync(
 				DokployRestartEmail({ date: date.toLocaleString() }),
-			).catch();
+			).catch(() => "");
 			await sendEmailNotification(email, "Dokploy Server Restarted", template);
 		}
 

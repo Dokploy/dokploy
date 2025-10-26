@@ -72,7 +72,7 @@ export const sendBuildSuccessNotifications = async ({
 					buildLink,
 					date: date.toLocaleString(),
 				}),
-			).catch();
+			).catch(() => "");
 			await sendEmailNotification(email, "Build success for dokploy", template);
 		}
 

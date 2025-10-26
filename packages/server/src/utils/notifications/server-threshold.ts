@@ -5,8 +5,8 @@ import {
 	sendDiscordNotification,
 	sendLarkNotification,
 	sendSlackNotification,
-	sendTelegramNotification,
 	sendTeamsNotification,
+	sendTelegramNotification,
 } from "./utils";
 
 interface ServerThresholdPayload {

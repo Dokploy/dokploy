@@ -11,8 +11,8 @@ import {
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
-	sendTelegramNotification,
 	sendTeamsNotification,
+	sendTelegramNotification,
 } from "./utils";
 
 export const sendDockerCleanupNotifications = async (
@@ -52,7 +52,7 @@ export const sendDockerCleanupNotifications = async (
 		if (email) {
 			const template = await renderAsync(
 				DockerCleanupEmail({ message, date: date.toLocaleString() }),
-			).catch();
+			).catch(() => "");
 
 			await sendEmailNotification(
 				email,

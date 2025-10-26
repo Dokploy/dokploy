@@ -12,12 +12,89 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
-
 	"teams",
-
 	"lark",
-
 ]);
+
+export const slack = pgTable("slack", {
+	slackId: text("slackId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	channel: text("channel"),
+});
+
+export const telegram = pgTable("telegram", {
+	telegramId: text("telegramId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	botToken: text("botToken").notNull(),
+	chatId: text("chatId").notNull(),
+	messageThreadId: text("messageThreadId"),
+});
+
+export const discord = pgTable("discord", {
+	discordId: text("discordId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	decoration: boolean("decoration"),
+});
+
+export const email = pgTable("email", {
+	emailId: text("emailId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	smtpServer: text("smtpServer").notNull(),
+	smtpPort: integer("smtpPort").notNull(),
+	username: text("username").notNull(),
+	password: text("password").notNull(),
+	fromAddress: text("fromAddress").notNull(),
+	toAddresses: text("toAddresses").notNull(),
+});
+
+export const gotify = pgTable("gotify", {
+	gotifyId: text("gotifyId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	serverUrl: text("serverUrl").notNull(),
+	appToken: text("appToken").notNull(),
+	priority: integer("priority").notNull().default(5),
+	decoration: boolean("decoration"),
+});
+
+export const ntfy = pgTable("ntfy", {
+	ntfyId: text("ntfyId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	serverUrl: text("serverUrl").notNull(),
+	topic: text("topic").notNull(),
+	accessToken: text("accessToken").notNull(),
+	priority: integer("priority").notNull().default(3),
+});
+
+export const teams = pgTable("teams", {
+	teamsId: text("teamsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	decoration: boolean("decoration"),
+});
+
+export const lark = pgTable("lark", {
+	larkId: text("larkId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+});
 
 export const notifications = pgTable("notification", {
 	notificationId: text("notificationId")
@@ -53,18 +130,16 @@ export const notifications = pgTable("notification", {
 	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
 		onDelete: "cascade",
 	}),
-
 	teamsId: text("teamsId").references(() => teams.teamsId, {
-
+		onDelete: "cascade",
+	}),
 	larkId: text("larkId").references(() => lark.larkId, {
-
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 });
-
 export const slack = pgTable("slack", {
 	slackId: text("slackId")
 		.notNull()
@@ -141,6 +216,48 @@ export const lark = pgTable("lark", {
 	webhookUrl: text("webhookUrl").notNull(),
 
 	decoration: boolean("decoration"),
+});
+
+export const notifications = pgTable("notification", {
+	notificationId: text("notificationId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	name: text("name").notNull(),
+	appDeploy: boolean("appDeploy").notNull().default(false),
+	appBuildError: boolean("appBuildError").notNull().default(false),
+	databaseBackup: boolean("databaseBackup").notNull().default(false),
+	dokployRestart: boolean("dokployRestart").notNull().default(false),
+	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
+	serverThreshold: boolean("serverThreshold").notNull().default(false),
+	notificationType: notificationType("notificationType").notNull(),
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	slackId: text("slackId").references(() => slack.slackId, {
+		onDelete: "cascade",
+	}),
+	telegramId: text("telegramId").references(() => telegram.telegramId, {
+		onDelete: "cascade",
+	}),
+	discordId: text("discordId").references(() => discord.discordId, {
+		onDelete: "cascade",
+	}),
+	emailId: text("emailId").references(() => email.emailId, {
+		onDelete: "cascade",
+	}),
+	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
+		onDelete: "cascade",
+	}),
+	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
+		onDelete: "cascade",
+	}),
+	teamsId: text("teamsId").references(() => teams.teamsId, {
+		onDelete: "cascade",
+	}),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({

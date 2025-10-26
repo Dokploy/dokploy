@@ -233,7 +233,7 @@ export const NtfyIcon = ({ className }: Props) => {
 	);
 };
 
-export const TeamsIcon = ({ className, size = 14 }: Props) => {
+export const TeamsIcon = () => {
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"

@@ -11,8 +11,8 @@ import {
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
-	sendTelegramNotification,
 	sendTeamsNotification,
+	sendTelegramNotification,
 } from "./utils";
 
 interface Props {
@@ -71,7 +71,7 @@ export const sendBuildErrorNotifications = async ({
 					buildLink,
 					date: date.toLocaleString(),
 				}),
-			).catch();
+			).catch(() => "");
 			await sendEmailNotification(email, "Build failed for dokploy", template);
 		}
 

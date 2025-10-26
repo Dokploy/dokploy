@@ -57,11 +57,11 @@ export const notificationsMap = {
 		label: "Email",
 	},
 	gotify: {
-		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		icon: <GotifyIcon />,
 		label: "Gotify",
 	},
 	ntfy: {
-		icon: <MessageCircleMore size={29} className="text-muted-foreground" />,
+		icon: <NtfyIcon />,
 		label: "ntfy",
 	},
 	teams: {
@@ -73,6 +73,10 @@ export const notificationsMap = {
 			/>
 		),
 		label: "Teams",
+	},
+	lark: {
+		icon: <LarkIcon className="text-muted-foreground" />,
+		label: "Lark",
 	},
 };
 
@@ -141,51 +145,18 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
-
 			type: z.literal("teams"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 			decoration: z.boolean().optional(),
 		})
 		.merge(notificationBaseSchema),
-]);
-// --- end added schemas ---
-
+	z
+		.object({
 			type: z.literal("lark"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
 		.merge(notificationBaseSchema),
 ]);
-
-export const notificationsMap = {
-	slack: {
-		icon: <SlackIcon />,
-		label: "Slack",
-	},
-	telegram: {
-		icon: <TelegramIcon />,
-		label: "Telegram",
-	},
-	discord: {
-		icon: <DiscordIcon />,
-		label: "Discord",
-	},
-	lark: {
-		icon: <LarkIcon className="text-muted-foreground" />,
-		label: "Lark",
-	},
-	email: {
-		icon: <Mail size={29} className="text-muted-foreground" />,
-		label: "Email",
-	},
-	gotify: {
-		icon: <GotifyIcon />,
-		label: "Gotify",
-	},
-	ntfy: {
-		icon: <NtfyIcon />,
-		label: "ntfy",
-	},
-};
 
 
 export type NotificationSchema = z.infer<typeof notificationSchema>;
@@ -511,29 +482,30 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 		} else if (data.type === "teams") {
 			promise = teamsMutation.mutateAsync({
-
-		} else if (data.type === "lark") {
-			promise = larkMutation.mutateAsync({
-
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: data.webhookUrl,
-
 				decoration: data.decoration || false,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				teamsId: notification?.teamsId || "",
-
+			});
+		} else if (data.type === "lark") {
+			promise = larkMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				webhookUrl: data.webhookUrl,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
 				serverThreshold: serverThreshold,
-
 			});
 		}
 
@@ -1338,9 +1310,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingGotify ||
 								isLoadingNtfy ||
 
-								isLoadingTeams
-
-								isLoadingLark
+							isLoadingTeams ||
+							isLoadingLark
 
 							}
 							variant="secondary"
@@ -1390,11 +1361,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testTeamsConnection({
 											webhookUrl: form.getValues("webhookUrl"),
 											decoration: form.getValues("decoration") || false,
-
+										});
 									} else if (type === "lark") {
 										await testLarkConnection({
 											webhookUrl: form.getValues("webhookUrl"),
-
 										});
 									}
 									toast.success("Connection Success");
