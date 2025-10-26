@@ -35,7 +35,10 @@ export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
+	const { mutateAsync: removeMember } =
+		api.organization.removeMember.useMutation();
 	const utils = api.useUtils();
+	const { data: session } = authClient.useSession();
 
 	return (
 		<div className="w-full">
@@ -83,6 +86,21 @@ export const ShowUsers = () => {
 											</TableHeader>
 											<TableBody>
 												{data?.map((member) => {
+													const canEditPermissions = member.role === "member";
+													const canDelete =
+														member.role !== "owner" &&
+														!isCloud &&
+														member.user.id !== session?.user?.id;
+													const canUnlink =
+														member.role !== "owner" &&
+														!(
+															member.role === "admin" &&
+															member.user.id === session?.user?.id
+														);
+
+													const hasAnyAction =
+														canEditPermissions || canDelete || canUnlink;
+
 													return (
 														<TableRow key={member.id}>
 															<TableCell className="w-[100px]">
@@ -111,111 +129,98 @@ export const ShowUsers = () => {
 															</TableCell>
 
 															<TableCell className="text-right flex justify-end">
-																<DropdownMenu>
-																	<DropdownMenuTrigger asChild>
-																		<Button
-																			variant="ghost"
-																			className="h-8 w-8 p-0"
-																		>
-																			<span className="sr-only">Open menu</span>
-																			<MoreHorizontal className="h-4 w-4" />
-																		</Button>
-																	</DropdownMenuTrigger>
-																	<DropdownMenuContent align="end">
-																		<DropdownMenuLabel>
-																			Actions
-																		</DropdownMenuLabel>
+																{hasAnyAction ? (
+																	<DropdownMenu>
+																		<DropdownMenuTrigger asChild>
+																			<Button
+																				variant="ghost"
+																				className="h-8 w-8 p-0"
+																			>
+																				<span className="sr-only">
+																					Open menu
+																				</span>
+																				<MoreHorizontal className="h-4 w-4" />
+																			</Button>
+																		</DropdownMenuTrigger>
+																		<DropdownMenuContent align="end">
+																			<DropdownMenuLabel>
+																				Actions
+																			</DropdownMenuLabel>
 
-																		{member.role !== "owner" && (
-																			<AddUserPermissions
-																				userId={member.user.id}
-																			/>
-																		)}
+																			{canEditPermissions && (
+																				<AddUserPermissions
+																					userId={member.user.id}
+																				/>
+																			)}
 
-																		{member.role !== "owner" && (
-																			<>
-																				{!isCloud && (
-																					<DialogAction
-																						title="Delete User"
-																						description="Are you sure you want to delete this user?"
-																						type="destructive"
-																						onClick={async () => {
-																							await mutateAsync({
-																								userId: member.user.id,
+																			{canDelete && (
+																				<DialogAction
+																					title="Delete User"
+																					description="Are you sure you want to delete this user?"
+																					type="destructive"
+																					onClick={async () => {
+																						await mutateAsync({
+																							userId: member.user.id,
+																						})
+																							.then(() => {
+																								toast.success(
+																									"User deleted successfully",
+																								);
+																								refetch();
 																							})
-																								.then(() => {
-																									toast.success(
-																										"User deleted successfully",
-																									);
-																									refetch();
-																								})
-																								.catch(() => {
-																									toast.error(
-																										"Error deleting destination",
-																									);
-																								});
-																						}}
+																							.catch((err) => {
+																								toast.error(
+																									err?.message ||
+																										"Error deleting user",
+																								);
+																							});
+																					}}
+																				>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						onSelect={(e) => e.preventDefault()}
 																					>
-																						<DropdownMenuItem
-																							className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																							onSelect={(e) =>
-																								e.preventDefault()
-																							}
-																						>
-																							Delete User
-																						</DropdownMenuItem>
-																					</DialogAction>
-																				)}
+																						Delete User
+																					</DropdownMenuItem>
+																				</DialogAction>
+																			)}
 
+																			{canUnlink && (
 																				<DialogAction
 																					title="Unlink User"
 																					description="Are you sure you want to unlink this user?"
 																					type="destructive"
 																					onClick={async () => {
-																						if (!isCloud) {
-																							const orgCount =
-																								await utils.user.checkUserOrganizations.fetch(
-																									{
+																						try {
+																							if (!isCloud) {
+																								const orgCount =
+																									await utils.user.checkUserOrganizations.fetch(
+																										{
+																											userId: member.user.id,
+																										},
+																									);
+																								if (orgCount === 1) {
+																									await mutateAsync({
 																										userId: member.user.id,
-																									},
-																								);
-
-																							console.log(orgCount);
-
-																							if (orgCount === 1) {
-																								await mutateAsync({
-																									userId: member.user.id,
-																								})
-																									.then(() => {
-																										toast.success(
-																											"User deleted successfully",
-																										);
-																										refetch();
-																									})
-																									.catch(() => {
-																										toast.error(
-																											"Error deleting user",
-																										);
 																									});
-																								return;
+																									toast.success(
+																										"User deleted successfully",
+																									);
+																									refetch();
+																									return;
+																								}
 																							}
-																						}
-
-																						const { error } =
-																							await authClient.organization.removeMember(
-																								{
-																									memberIdOrEmail: member.id,
-																								},
-																							);
-
-																						if (!error) {
+																							await removeMember({
+																								memberId: member.id,
+																							});
 																							toast.success(
 																								"User unlinked successfully",
 																							);
 																							refetch();
-																						} else {
+																						} catch (error: any) {
 																							toast.error(
-																								"Error unlinking user",
+																								error?.message ||
+																									"Error unlinking user",
 																							);
 																						}
 																					}}
@@ -227,10 +232,21 @@ export const ShowUsers = () => {
 																						Unlink User
 																					</DropdownMenuItem>
 																				</DialogAction>
-																			</>
-																		)}
-																	</DropdownMenuContent>
-																</DropdownMenu>
+																			)}
+																		</DropdownMenuContent>
+																	</DropdownMenu>
+																) : (
+																	<Button
+																		variant="ghost"
+																		className="h-8 w-8 p-0"
+																		disabled
+																	>
+																		<span className="sr-only">
+																			No actions available
+																		</span>
+																		<MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+																	</Button>
+																)}
 															</TableCell>
 														</TableRow>
 													);

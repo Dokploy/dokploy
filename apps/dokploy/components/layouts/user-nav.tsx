@@ -102,7 +102,9 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -112,7 +114,9 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" || data?.canAccessToDocker) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -126,7 +130,7 @@ export const UserNav = () => {
 							)}
 						</>
 					) : (
-						data?.role === "owner" && (
+						(data?.role === "owner" || data?.role === "admin") && (
 							<DropdownMenuItem
 								className="cursor-pointer"
 								onClick={() => {
