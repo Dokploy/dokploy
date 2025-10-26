@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { paths } from "@dokploy/server/constants";
+// import { join } from "node:path";
+// import { paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateCompose,
@@ -21,10 +21,10 @@ import {
 import type { ComposeSpecification } from "@dokploy/server/utils/docker/types";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
-import {
-	execAsync,
-	execAsyncRemote,
-} from "@dokploy/server/utils/process/execAsync";
+// import {
+// 	execAsync,
+// 	execAsyncRemote,
+// } from "@dokploy/server/utils/process/execAsync";
 import {
 	cloneBitbucketRepository,
 	getBitbucketCloneCommand,
@@ -49,14 +49,59 @@ import {
 	createComposeFile,
 	getCreateComposeFileCommand,
 } from "@dokploy/server/utils/providers/raw";
+import { extractGitInfo } from "@dokploy/server/utils/git-info";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
+import { paths } from "@dokploy/server/constants";
+import { join } from "node:path";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { getDokployUrl } from "./admin";
-import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
+import {
+	createDeploymentCompose,
+	updateDeployment,
+	updateDeploymentStatus,
+} from "./deployment";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
+
+const updateDeploymentWithGitInfo = async (
+	composeEntity: Compose & {
+		appName: string;
+		env: string | null;
+		serverId?: string | null;
+	},
+	deploymentId: string,
+	defaultTitle: string,
+	defaultDescription: string,
+) => {
+	const gitInfoResult = await extractGitInfo({
+		appName: composeEntity.appName,
+		serverId: composeEntity.serverId,
+		env: composeEntity.env,
+	});
+
+	if (gitInfoResult) {
+		const { gitInfo, updatedEnv } = gitInfoResult;
+
+		// Update the database immediately
+		await updateCompose(composeEntity.composeId as string, { env: updatedEnv });
+
+		// Update the local entity for consistency
+		composeEntity.env = updatedEnv;
+
+		await updateDeployment(deploymentId, {
+			title: gitInfo.gitMessage || defaultTitle,
+			description: gitInfo.gitHash
+				? `Hash: ${gitInfo.gitHash}`
+				: defaultDescription,
+		});
+	}
+};
 
 export const createCompose = async (input: typeof apiCreateCompose._type) => {
 	const appName = buildAppName("compose", input.appName);
@@ -241,18 +286,56 @@ export const deployCompose = async ({
 				logPath: deployment.logPath,
 				type: "compose",
 			});
+			// Update git info immediately after cloning
+			await updateDeploymentWithGitInfo(
+				compose as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 		} else if (compose.sourceType === "gitlab") {
 			await cloneGitlabRepository(compose, deployment.logPath, true);
+			await updateDeploymentWithGitInfo(
+				compose as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 		} else if (compose.sourceType === "bitbucket") {
 			await cloneBitbucketRepository(compose, deployment.logPath, true);
+			await updateDeploymentWithGitInfo(
+				compose as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 		} else if (compose.sourceType === "git") {
 			await cloneGitRepository(compose, deployment.logPath, true);
+			await updateDeploymentWithGitInfo(
+				compose as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 		} else if (compose.sourceType === "gitea") {
 			await cloneGiteaRepository(compose, deployment.logPath, true);
+			await updateDeploymentWithGitInfo(
+				compose as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 		} else if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
 		}
-		await buildCompose(compose, deployment.logPath);
+
+		// Refresh compose object from database to get updated environment variables
+		const updatedCompose = await findComposeById(composeId);
+		await buildCompose(updatedCompose, deployment.logPath);
+
+		// Ensure environment update is completed before marking deployment as done
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
@@ -304,8 +387,19 @@ export const rebuildCompose = async ({
 	try {
 		if (compose.sourceType === "raw") {
 			await createComposeFile(compose, deployment.logPath);
+		} else {
+			// Update with git info for git-based source types
+			await updateDeploymentWithGitInfo(
+				compose as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 		}
-		await buildCompose(compose, deployment.logPath);
+
+		// Refresh compose object from database to get updated environment variables
+		const updatedCompose = await findComposeById(composeId);
+		await buildCompose(updatedCompose, deployment.logPath);
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
@@ -382,7 +476,20 @@ export const deployRemoteCompose = async ({
 			}
 
 			await execAsyncRemote(compose.serverId, command);
-			await getBuildComposeCommand(compose, deployment.logPath);
+
+			// Update with git info for git-based source types
+			if (compose.sourceType !== "raw") {
+				await updateDeploymentWithGitInfo(
+					compose as any,
+					deployment.deploymentId,
+					titleLog,
+					descriptionLog,
+				);
+			}
+
+			// Refresh compose object from database to get updated environment variables
+			const updatedCompose = await findComposeById(composeId);
+			await getBuildComposeCommand(updatedCompose, deployment.logPath);
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -447,9 +554,19 @@ export const rebuildRemoteCompose = async ({
 		if (compose.sourceType === "raw") {
 			const command = getCreateComposeFileCommand(compose, deployment.logPath);
 			await execAsyncRemote(compose.serverId, command);
+		} else if (compose.serverId) {
+			// Update with git info for git-based source types
+			await updateDeploymentWithGitInfo(
+				compose as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 		}
 		if (compose.serverId) {
-			await getBuildComposeCommand(compose, deployment.logPath);
+			// Refresh compose object from database to get updated environment variables
+			const updatedCompose = await findComposeById(composeId);
+			await getBuildComposeCommand(updatedCompose, deployment.logPath);
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");

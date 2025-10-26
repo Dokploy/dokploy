@@ -1,4 +1,4 @@
-import { docker } from "@dokploy/server/constants";
+import { docker, paths } from "@dokploy/server/constants";
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateApplication,
@@ -13,7 +13,10 @@ import {
 } from "@dokploy/server/utils/builders";
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import {
 	cloneBitbucketRepository,
 	getBitbucketCloneCommand,
@@ -39,6 +42,7 @@ import {
 	getGitlabCloneCommand,
 } from "@dokploy/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
+import { extractGitInfo } from "@dokploy/server/utils/git-info";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
@@ -46,8 +50,10 @@ import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
+	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
+import { join } from "node:path";
 import { type Domain, getDomainHost } from "./domain";
 import {
 	createPreviewDeploymentComment,
@@ -62,6 +68,36 @@ import {
 import { validUniqueServerAppName } from "./project";
 import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
+
+const updateDeploymentWithGitInfo = async (
+	application: Application & {
+		appName: string;
+		env: string | null;
+		serverId?: string | null;
+	},
+	deploymentId: string,
+	defaultTitle: string,
+	defaultDescription: string,
+) => {
+	const gitInfoResult = await extractGitInfo({
+		appName: application.appName,
+		serverId: application.serverId,
+		env: application.env,
+	});
+
+	if (gitInfoResult) {
+		const { gitInfo, updatedEnv } = gitInfoResult;
+		application.env = updatedEnv;
+		await updateApplication(application.applicationId, { env: updatedEnv });
+
+		await updateDeployment(deploymentId, {
+			title: gitInfo.gitMessage || defaultTitle,
+			description: gitInfo.gitHash
+				? `Hash: ${gitInfo.gitHash}`
+				: defaultDescription,
+		});
+	}
+};
 
 export const createApplication = async (
 	input: typeof apiCreateApplication._type,
@@ -197,20 +233,50 @@ export const deployApplication = async ({
 				...application,
 				logPath: deployment.logPath,
 			});
+			await updateDeploymentWithGitInfo(
+				application as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitlab") {
 			await cloneGitlabRepository(application, deployment.logPath);
+			await updateDeploymentWithGitInfo(
+				application as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "gitea") {
 			await cloneGiteaRepository(application, deployment.logPath);
+			await updateDeploymentWithGitInfo(
+				application as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "bitbucket") {
 			await cloneBitbucketRepository(application, deployment.logPath);
+			await updateDeploymentWithGitInfo(
+				application as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "docker") {
 			await buildDocker(application, deployment.logPath);
 		} else if (application.sourceType === "git") {
 			await cloneGitRepository(application, deployment.logPath);
+			await updateDeploymentWithGitInfo(
+				application as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "drop") {
 			await buildApplication(application, deployment.logPath);
@@ -349,6 +415,12 @@ export const deployRemoteApplication = async ({
 				command += getBuildCommand(application, deployment.logPath);
 			}
 			await execAsyncRemote(application.serverId, command);
+			await updateDeploymentWithGitInfo(
+				application as any,
+				deployment.deploymentId,
+				titleLog,
+				descriptionLog,
+			);
 			await mechanizeDockerContainer(application);
 		}
 
