@@ -112,7 +112,6 @@
 		"i18next": "^23.16.8",
 		"input-otp": "^1.4.2",
 		"js-cookie": "^3.0.5",
-		"yaml": "2.8.1",
 		"lodash": "4.17.21",
 		"lucide-react": "^0.469.0",
 		"micromatch": "4.0.8",
@@ -153,6 +152,7 @@
 		"use-resize-observer": "9.1.0",
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
+		"yaml": "2.8.1",
 		"zod": "^3.25.32",
 		"zod-form-data": "^2.0.7"
 	},
@@ -177,6 +177,7 @@
 		"esbuild": "0.20.2",
 		"lint-staged": "^15.5.2",
 		"memfs": "^4.17.2",
+		"node-mocks-http": "^1.17.2",
 		"tailwindcss": "^3.4.17",
 		"tsx": "^4.16.2",
 		"typescript": "^5.8.3",
