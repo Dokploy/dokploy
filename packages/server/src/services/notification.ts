@@ -2,24 +2,24 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
-	type apiCreateLark,
 	type apiCreateGotify,
+	type apiCreateLark,
 	type apiCreateNtfy,
 	type apiCreateSlack,
 	type apiCreateTeams,
 	type apiCreateTelegram,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
-	type apiUpdateLark,
 	type apiUpdateGotify,
+	type apiUpdateLark,
 	type apiUpdateNtfy,
 	type apiUpdateSlack,
 	type apiUpdateTeams,
 	type apiUpdateTelegram,
 	discord,
 	email,
-	lark,
 	gotify,
+	lark,
 	notifications,
 	ntfy,
 	slack,
@@ -685,7 +685,6 @@ export const findNotificationById = async (notificationId: string) => {
 			teams: true,
 
 			lark: true,
-
 		},
 	});
 	if (!notification) {

@@ -7,8 +7,8 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
@@ -50,16 +50,11 @@ export const sendBuildErrorNotifications = async ({
 			teams: true,
 
 			lark: true,
-
 		},
 	});
 
 	for (const notification of notificationList) {
-
-		const { email, discord, telegram, slack, gotify, ntfy, teams } =
-
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
-
+		const { email, discord, telegram, slack, gotify, ntfy, teams, lark } =
 			notification;
 		if (email) {
 			const template = await renderAsync(
@@ -224,7 +219,6 @@ export const sendBuildErrorNotifications = async ({
 			});
 		}
 
-
 		if (teams) {
 			const decorate = (decoration: string, text: string) =>
 				`${teams.decoration ? decoration : ""} ${text}`.trim();
@@ -269,6 +263,8 @@ export const sendBuildErrorNotifications = async ({
 						targets: [{ os: "default", uri: buildLink }],
 					},
 				],
+			});
+		}
 
 		if (lark) {
 			const limitCharacter = 800;
@@ -379,7 +375,6 @@ export const sendBuildErrorNotifications = async ({
 						],
 					},
 				},
-
 			});
 		}
 	}

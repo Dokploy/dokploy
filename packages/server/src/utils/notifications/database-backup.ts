@@ -7,8 +7,8 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
@@ -50,16 +50,11 @@ export const sendDatabaseBackupNotifications = async ({
 			teams: true,
 
 			lark: true,
-
 		},
 	});
 
 	for (const notification of notificationList) {
-
-		const { email, discord, telegram, slack, gotify, ntfy, teams } =
-
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
-
+		const { email, discord, telegram, slack, gotify, ntfy, teams, lark } =
 			notification;
 
 		if (email) {
@@ -251,7 +246,6 @@ export const sendDatabaseBackupNotifications = async ({
 			});
 		}
 
-
 		if (teams) {
 			const message = {
 				"@type": "MessageCard",
@@ -300,6 +294,7 @@ export const sendDatabaseBackupNotifications = async ({
 			}
 
 			await sendTeamsNotification(teams, message);
+		}
 
 		if (lark) {
 			const limitCharacter = 800;
@@ -414,7 +409,6 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 				},
 			});
-
 		}
 	}
 };

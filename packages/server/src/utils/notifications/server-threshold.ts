@@ -40,7 +40,6 @@ export const sendServerThresholdNotifications = async (
 			teams: true,
 
 			lark: true,
-
 		},
 	});
 
@@ -48,11 +47,9 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-
 		const { discord, telegram, slack, teams } = notification;
 
 		const { discord, telegram, slack, lark } = notification;
-
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -163,7 +160,6 @@ export const sendServerThresholdNotifications = async (
 			});
 		}
 
-
 		if (teams) {
 			try {
 				const message = {
@@ -209,6 +205,7 @@ export const sendServerThresholdNotifications = async (
 			} catch (error) {
 				console.log(error);
 			}
+		}
 
 		if (lark) {
 			await sendLarkNotification(lark, {
@@ -304,7 +301,6 @@ export const sendServerThresholdNotifications = async (
 					},
 				},
 			});
-
 		}
 	}
 };

@@ -1,8 +1,8 @@
 import type {
 	discord,
 	email,
-	lark,
 	gotify,
+	lark,
 	ntfy,
 	slack,
 	teams,
@@ -155,13 +155,23 @@ export const sendNtfyNotification = async (
 	}
 };
 
-
 export const sendTeamsNotification = async (
 	connection: typeof teams.$inferInsert,
+	message: any,
+) => {
+	try {
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
+	}
+};
 
 export const sendLarkNotification = async (
 	connection: typeof lark.$inferInsert,
-
 	message: any,
 ) => {
 	try {

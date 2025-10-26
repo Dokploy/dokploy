@@ -7,8 +7,8 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTeamsNotification,
@@ -37,16 +37,11 @@ export const sendDockerCleanupNotifications = async (
 			teams: true,
 
 			lark: true,
-
 		},
 	});
 
 	for (const notification of notificationList) {
-
-		const { email, discord, telegram, slack, gotify, ntfy, teams } =
-
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
-
+		const { email, discord, telegram, slack, gotify, ntfy, teams, lark } =
 			notification;
 
 		if (email) {
@@ -148,7 +143,6 @@ export const sendDockerCleanupNotifications = async (
 			});
 		}
 
-
 		if (teams) {
 			try {
 				const teamsMessage = {
@@ -182,6 +176,7 @@ export const sendDockerCleanupNotifications = async (
 			} catch (error) {
 				console.log(error);
 			}
+		}
 
 		if (lark) {
 			await sendLarkNotification(lark, {
@@ -225,7 +220,7 @@ export const sendDockerCleanupNotifications = async (
 										elements: [
 											{
 												tag: "markdown",
-												content: `**Status:**\nSuccessful`,
+												content: "**Status:**\nSuccessful",
 												text_align: "left",
 												text_size: "normal_v2",
 											},
@@ -259,7 +254,6 @@ export const sendDockerCleanupNotifications = async (
 					},
 				},
 			});
-
 		}
 	}
 };
