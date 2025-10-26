@@ -115,7 +115,7 @@ export const createRouterConfig = async (
 	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
 		domain;
 	// Generate the Host rule - support wildcards
-	const hostRule = host.includes("*") 
+	const hostRule = host.includes("*")
 		? `HostRegexp(\`${host.replace("*", "{subdomain:[a-zA-Z0-9-]+}")}\`)`
 		: `Host(\`${host}\`)`;
 

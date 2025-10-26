@@ -62,7 +62,8 @@ export const domain = z
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["host"],
-					message: "Wildcard domains must start with '*.' (e.g., '*.example.com' or '*.sub.example.com')",
+					message:
+						"Wildcard domains must start with '*.' (e.g., '*.example.com' or '*.sub.example.com')",
 				});
 			}
 			// Check if there are multiple wildcards
@@ -78,7 +79,8 @@ export const domain = z
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["host"],
-					message: "Wildcard must be at the beginning of a subdomain (e.g., '*.example.com' or '*.sub.example.com')",
+					message:
+						"Wildcard must be at the beginning of a subdomain (e.g., '*.example.com' or '*.sub.example.com')",
 				});
 			}
 		}
@@ -147,7 +149,8 @@ export const domainCompose = z
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["host"],
-					message: "Wildcard domains must start with '*.' (e.g., '*.example.com' or '*.sub.example.com')",
+					message:
+						"Wildcard domains must start with '*.' (e.g., '*.example.com' or '*.sub.example.com')",
 				});
 			}
 			// Check if there are multiple wildcards
@@ -163,7 +166,8 @@ export const domainCompose = z
 				ctx.addIssue({
 					code: z.ZodIssueCode.custom,
 					path: ["host"],
-					message: "Wildcard must be at the beginning of a subdomain (e.g., '*.example.com' or '*.sub.example.com')",
+					message:
+						"Wildcard must be at the beginning of a subdomain (e.g., '*.example.com' or '*.sub.example.com')",
 				});
 			}
 		}

@@ -314,10 +314,10 @@ export const createDomainLabels = (
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
 	// Generate the Host rule - support wildcards
-	const hostRule = host.includes("*") 
+	const hostRule = host.includes("*")
 		? `HostRegexp(\`${host.replace("*", "{subdomain:[a-zA-Z0-9-]+}")}\`)`
 		: `Host(\`${host}\`)`;
-	
+
 	const labels = [
 		`traefik.http.routers.${routerName}.rule=${hostRule}${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
