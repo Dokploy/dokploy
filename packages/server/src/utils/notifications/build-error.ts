@@ -7,10 +7,11 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -45,12 +46,15 @@ export const sendBuildErrorNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+
+			teams: true,
+
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, teams, lark } =
 			notification;
 		if (email) {
 			const template = await renderAsync(
@@ -62,7 +66,7 @@ export const sendBuildErrorNotifications = async ({
 					buildLink,
 					date: date.toLocaleString(),
 				}),
-			).catch();
+			).catch(() => "");
 			await sendEmailNotification(email, "Build failed for dokploy", template);
 		}
 
@@ -210,6 +214,53 @@ export const sendBuildErrorNotifications = async ({
 								url: buildLink,
 							},
 						],
+					},
+				],
+			});
+		}
+
+		if (teams) {
+			const decorate = (decoration: string, text: string) =>
+				`${teams.decoration ? decoration : ""} ${text}`.trim();
+
+			await sendTeamsNotification(teams, {
+				"@type": "MessageCard",
+				"@context": "http://schema.org/extensions",
+				themeColor: "FF0000",
+				summary: "Build Failed",
+				sections: [
+					{
+						activityTitle: decorate("⚠️", "Build Failed"),
+						facts: [
+							{
+								name: decorate("🛠️", "Project"),
+								value: projectName,
+							},
+							{
+								name: decorate("⚙️", "Application"),
+								value: applicationName,
+							},
+							{
+								name: decorate("❔", "Type"),
+								value: applicationType,
+							},
+							{
+								name: decorate("🕒", "Date"),
+								value: date.toLocaleString(),
+							},
+							{
+								name: decorate("⚠️", "Error Message"),
+								value: errorMessage,
+							},
+						],
+						markdown: true,
+					},
+				],
+				potentialAction: [
+					{
+						"@type": "OpenUri",
+						name: "View Build Details",
+						targets: [{ os: "default", uri: buildLink }],
 					},
 				],
 			});

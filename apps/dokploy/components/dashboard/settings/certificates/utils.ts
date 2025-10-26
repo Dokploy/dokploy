@@ -14,13 +14,13 @@ export const extractExpirationDate = (certData: string): Date | null => {
 
 		// Helper: read ASN.1 length field
 		function readLength(pos: number): { length: number; offset: number } {
-			// biome-ignore lint/style/noParameterAssign: <explanation>
+			// biome-ignore lint/style/noParameterAssign: parameter assignment is intentional for DER parsing
 			let len = der[pos++];
 			if (len & 0x80) {
 				const bytes = len & 0x7f;
 				len = 0;
 				for (let i = 0; i < bytes; i++) {
-					// biome-ignore lint/style/noParameterAssign: <explanation>
+					// biome-ignore lint/style/noParameterAssign: parameter assignment is intentional for DER parsing
 					len = (len << 8) + der[pos++];
 				}
 			}

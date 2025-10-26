@@ -1,15 +1,8 @@
 import type { findEnvironmentsByProjectId } from "@dokploy/server";
-import {
-	ChevronDownIcon,
-	PencilIcon,
-	PlusIcon,
-	Terminal,
-	TrashIcon,
-} from "lucide-react";
+import { ChevronDownIcon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {

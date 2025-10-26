@@ -1,10 +1,11 @@
 import type {
 	discord,
 	email,
-	lark,
 	gotify,
+	lark,
 	ntfy,
 	slack,
+	teams,
 	telegram,
 } from "@dokploy/server/db/schema";
 import nodemailer from "nodemailer";
@@ -15,14 +16,8 @@ export const sendEmailNotification = async (
 	htmlContent: string,
 ) => {
 	try {
-		const {
-			smtpServer,
-			smtpPort,
-			username,
-			password,
-			fromAddress,
-			toAddresses,
-		} = connection;
+		const { smtpServer, smtpPort, username, password, fromAddress, toAddress } =
+			connection;
 		const transporter = nodemailer.createTransport({
 			host: smtpServer,
 			port: smtpPort,
@@ -31,7 +26,7 @@ export const sendEmailNotification = async (
 
 		await transporter.sendMail({
 			from: fromAddress,
-			to: toAddresses.join(", "),
+			to: toAddress.join(", "),
 			subject,
 			html: htmlContent,
 			textEncoding: "base64",
@@ -151,6 +146,21 @@ export const sendNtfyNotification = async (
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
+	}
+};
+
+export const sendTeamsNotification = async (
+	connection: typeof teams.$inferInsert,
+	message: any,
+) => {
+	try {
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
 	}
 };
 

@@ -12,50 +12,9 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+	"teams",
 	"lark",
 ]);
-
-export const notifications = pgTable("notification", {
-	notificationId: text("notificationId")
-		.notNull()
-		.primaryKey()
-		.$defaultFn(() => nanoid()),
-	name: text("name").notNull(),
-	appDeploy: boolean("appDeploy").notNull().default(false),
-	appBuildError: boolean("appBuildError").notNull().default(false),
-	databaseBackup: boolean("databaseBackup").notNull().default(false),
-	dokployRestart: boolean("dokployRestart").notNull().default(false),
-	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
-	serverThreshold: boolean("serverThreshold").notNull().default(false),
-	notificationType: notificationType("notificationType").notNull(),
-	createdAt: text("createdAt")
-		.notNull()
-		.$defaultFn(() => new Date().toISOString()),
-	slackId: text("slackId").references(() => slack.slackId, {
-		onDelete: "cascade",
-	}),
-	telegramId: text("telegramId").references(() => telegram.telegramId, {
-		onDelete: "cascade",
-	}),
-	discordId: text("discordId").references(() => discord.discordId, {
-		onDelete: "cascade",
-	}),
-	emailId: text("emailId").references(() => email.emailId, {
-		onDelete: "cascade",
-	}),
-	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
-		onDelete: "cascade",
-	}),
-	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
-		onDelete: "cascade",
-	}),
-	larkId: text("larkId").references(() => lark.larkId, {
-		onDelete: "cascade",
-	}),
-	organizationId: text("organizationId")
-		.notNull()
-		.references(() => organization.id, { onDelete: "cascade" }),
-});
 
 export const slack = pgTable("slack", {
 	slackId: text("slackId")
@@ -95,7 +54,7 @@ export const email = pgTable("email", {
 	username: text("username").notNull(),
 	password: text("password").notNull(),
 	fromAddress: text("fromAddress").notNull(),
-	toAddresses: text("toAddress").array().notNull(),
+	toAddress: text("toAddress").array().notNull(),
 });
 
 export const gotify = pgTable("gotify", {
@@ -120,12 +79,66 @@ export const ntfy = pgTable("ntfy", {
 	priority: integer("priority").notNull().default(3),
 });
 
+export const teams = pgTable("teams", {
+	teamsId: text("teamsId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+	decoration: boolean("decoration"),
+});
+
 export const lark = pgTable("lark", {
 	larkId: text("larkId")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	webhookUrl: text("webhookUrl").notNull(),
+});
+
+export const notifications = pgTable("notification", {
+	notificationId: text("notificationId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	name: text("name").notNull(),
+	appDeploy: boolean("appDeploy").notNull().default(false),
+	appBuildError: boolean("appBuildError").notNull().default(false),
+	databaseBackup: boolean("databaseBackup").notNull().default(false),
+	dokployRestart: boolean("dokployRestart").notNull().default(false),
+	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
+	serverThreshold: boolean("serverThreshold").notNull().default(false),
+	notificationType: notificationType("notificationType").notNull(),
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	slackId: text("slackId").references(() => slack.slackId, {
+		onDelete: "cascade",
+	}),
+	telegramId: text("telegramId").references(() => telegram.telegramId, {
+		onDelete: "cascade",
+	}),
+	discordId: text("discordId").references(() => discord.discordId, {
+		onDelete: "cascade",
+	}),
+	emailId: text("emailId").references(() => email.emailId, {
+		onDelete: "cascade",
+	}),
+	gotifyId: text("gotifyId").references(() => gotify.gotifyId, {
+		onDelete: "cascade",
+	}),
+	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
+		onDelete: "cascade",
+	}),
+	teamsId: text("teamsId").references(() => teams.teamsId, {
+		onDelete: "cascade",
+	}),
+	larkId: text("larkId").references(() => lark.larkId, {
+		onDelete: "cascade",
+	}),
+	organizationId: text("organizationId")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -153,6 +166,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.ntfyId],
 		references: [ntfy.ntfyId],
 	}),
+	teams: one(teams, {
+		fields: [notifications.teamsId],
+		references: [teams.teamsId],
+	}),
 	lark: one(lark, {
 		fields: [notifications.larkId],
 		references: [lark.larkId],
@@ -164,190 +181,6 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 }));
 
 export const notificationsSchema = createInsertSchema(notifications);
-
-export const apiCreateSlack = notificationsSchema
-	.pick({
-		appBuildError: true,
-		databaseBackup: true,
-		dokployRestart: true,
-		name: true,
-		appDeploy: true,
-		dockerCleanup: true,
-		serverThreshold: true,
-	})
-	.extend({
-		webhookUrl: z.string().min(1),
-		channel: z.string(),
-	})
-	.required();
-
-export const apiUpdateSlack = apiCreateSlack.partial().extend({
-	notificationId: z.string().min(1),
-	slackId: z.string(),
-	organizationId: z.string().optional(),
-});
-
-export const apiTestSlackConnection = apiCreateSlack.pick({
-	webhookUrl: true,
-	channel: true,
-});
-
-export const apiCreateTelegram = notificationsSchema
-	.pick({
-		appBuildError: true,
-		databaseBackup: true,
-		dokployRestart: true,
-		name: true,
-		appDeploy: true,
-		dockerCleanup: true,
-		serverThreshold: true,
-	})
-	.extend({
-		botToken: z.string().min(1),
-		chatId: z.string().min(1),
-		messageThreadId: z.string(),
-	})
-	.required();
-
-export const apiUpdateTelegram = apiCreateTelegram.partial().extend({
-	notificationId: z.string().min(1),
-	telegramId: z.string().min(1),
-	organizationId: z.string().optional(),
-});
-
-export const apiTestTelegramConnection = apiCreateTelegram.pick({
-	botToken: true,
-	chatId: true,
-	messageThreadId: true,
-});
-
-export const apiCreateDiscord = notificationsSchema
-	.pick({
-		appBuildError: true,
-		databaseBackup: true,
-		dokployRestart: true,
-		name: true,
-		appDeploy: true,
-		dockerCleanup: true,
-		serverThreshold: true,
-	})
-	.extend({
-		webhookUrl: z.string().min(1),
-		decoration: z.boolean(),
-	})
-	.required();
-
-export const apiUpdateDiscord = apiCreateDiscord.partial().extend({
-	notificationId: z.string().min(1),
-	discordId: z.string().min(1),
-	organizationId: z.string().optional(),
-});
-
-export const apiTestDiscordConnection = apiCreateDiscord
-	.pick({
-		webhookUrl: true,
-	})
-	.extend({
-		decoration: z.boolean().optional(),
-	});
-
-export const apiCreateEmail = notificationsSchema
-	.pick({
-		appBuildError: true,
-		databaseBackup: true,
-		dokployRestart: true,
-		name: true,
-		appDeploy: true,
-		dockerCleanup: true,
-		serverThreshold: true,
-	})
-	.extend({
-		smtpServer: z.string().min(1),
-		smtpPort: z.number().min(1),
-		username: z.string().min(1),
-		password: z.string().min(1),
-		fromAddress: z.string().min(1),
-		toAddresses: z.array(z.string()).min(1),
-	})
-	.required();
-
-export const apiUpdateEmail = apiCreateEmail.partial().extend({
-	notificationId: z.string().min(1),
-	emailId: z.string().min(1),
-	organizationId: z.string().optional(),
-});
-
-export const apiTestEmailConnection = apiCreateEmail.pick({
-	smtpServer: true,
-	smtpPort: true,
-	username: true,
-	password: true,
-	toAddresses: true,
-	fromAddress: true,
-});
-
-export const apiCreateGotify = notificationsSchema
-	.pick({
-		appBuildError: true,
-		databaseBackup: true,
-		dokployRestart: true,
-		name: true,
-		appDeploy: true,
-		dockerCleanup: true,
-	})
-	.extend({
-		serverUrl: z.string().min(1),
-		appToken: z.string().min(1),
-		priority: z.number().min(1),
-		decoration: z.boolean(),
-	})
-	.required();
-
-export const apiUpdateGotify = apiCreateGotify.partial().extend({
-	notificationId: z.string().min(1),
-	gotifyId: z.string().min(1),
-	organizationId: z.string().optional(),
-});
-
-export const apiTestGotifyConnection = apiCreateGotify
-	.pick({
-		serverUrl: true,
-		appToken: true,
-		priority: true,
-	})
-	.extend({
-		decoration: z.boolean().optional(),
-	});
-
-export const apiCreateNtfy = notificationsSchema
-	.pick({
-		appBuildError: true,
-		databaseBackup: true,
-		dokployRestart: true,
-		name: true,
-		appDeploy: true,
-		dockerCleanup: true,
-	})
-	.extend({
-		serverUrl: z.string().min(1),
-		topic: z.string().min(1),
-		accessToken: z.string().min(1),
-		priority: z.number().min(1),
-	})
-	.required();
-
-export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
-	notificationId: z.string().min(1),
-	ntfyId: z.string().min(1),
-	organizationId: z.string().optional(),
-});
-
-export const apiTestNtfyConnection = apiCreateNtfy.pick({
-	serverUrl: true,
-	topic: true,
-	accessToken: true,
-	priority: true,
-});
 
 export const apiFindOneNotification = notificationsSchema
 	.pick({
@@ -366,36 +199,287 @@ export const apiCreateLark = notificationsSchema
 		serverThreshold: true,
 	})
 	.extend({
-		webhookUrl: z.string().min(1),
+		webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+	});
+
+export const apiUpdateLark = apiCreateLark
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		larkId: z.string().min(1, { message: "Lark ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
 	})
-	.required();
+	.partial();
 
-export const apiUpdateLark = apiCreateLark.partial().extend({
-	notificationId: z.string().min(1),
-	larkId: z.string().min(1),
-	organizationId: z.string().optional(),
-});
+export const apiCreateSlack = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+		channel: z.string().optional(),
+	});
 
-export const apiTestLarkConnection = apiCreateLark.pick({
-	webhookUrl: true,
-});
+export const apiUpdateSlack = apiCreateSlack
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		slackId: z.string().min(1, { message: "Slack ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
+	})
+	.partial();
+
+export const apiCreateTelegram = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		botToken: z.string().min(1, { message: "Bot Token is required" }),
+		chatId: z.string().min(1, { message: "Chat ID is required" }),
+		messageThreadId: z.string().optional(),
+	});
+
+export const apiUpdateTelegram = apiCreateTelegram
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		telegramId: z.string().min(1, { message: "Telegram ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
+	})
+	.partial();
+
+export const apiCreateDiscord = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+		decoration: z.boolean().optional(),
+	});
+
+export const apiUpdateDiscord = apiCreateDiscord
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		discordId: z.string().min(1, { message: "Discord ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
+	})
+	.partial();
+
+export const apiCreateEmail = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		smtpServer: z.string().min(1, { message: "SMTP Server is required" }),
+		smtpPort: z.number().min(1, { message: "SMTP Port is required" }),
+		username: z.string().min(1, { message: "Username is required" }),
+		password: z.string().min(1, { message: "Password is required" }),
+		fromAddress: z.string().min(1, { message: "From Address is required" }),
+		toAddress: z.array(z.string().email()).min(1),
+	});
+
+export const apiUpdateEmail = apiCreateEmail
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		emailId: z.string().min(1, { message: "Email ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
+	})
+	.partial();
+
+export const apiCreateGotify = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+	})
+	.extend({
+		serverUrl: z.string().min(1, { message: "Server URL is required" }),
+		appToken: z.string().min(1, { message: "App Token is required" }),
+		priority: z.number().min(1).max(10).default(5),
+		decoration: z.boolean().optional(),
+	});
+
+export const apiUpdateGotify = apiCreateGotify
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		gotifyId: z.string().min(1, { message: "Gotify ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
+	})
+	.partial();
+
+export const apiCreateNtfy = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+	})
+	.extend({
+		serverUrl: z.string().min(1, { message: "Server URL is required" }),
+		topic: z.string().min(1, { message: "Topic is required" }),
+		accessToken: z.string().min(1, { message: "Access Token is required" }),
+		priority: z.number().min(1).max(5).default(3),
+	});
+
+export const apiUpdateNtfy = apiCreateNtfy
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		ntfyId: z.string().min(1, { message: "Ntfy ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
+	})
+	.partial();
+
+export const apiCreateTeams = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+		decoration: z.boolean().optional(),
+	});
+
+export const apiUpdateTeams = apiCreateTeams
+	.extend({
+		notificationId: z
+			.string()
+			.min(1, { message: "Notification ID is required" }),
+		teamsId: z.string().min(1, { message: "Teams ID is required" }),
+		organizationId: z
+			.string()
+			.min(1, { message: "Organization ID is required" }),
+	})
+	.partial();
 
 export const apiSendTest = notificationsSchema
 	.extend({
-		botToken: z.string(),
-		chatId: z.string(),
-		webhookUrl: z.string(),
-		channel: z.string(),
-		smtpServer: z.string(),
-		smtpPort: z.number(),
-		fromAddress: z.string(),
-		username: z.string(),
-		password: z.string(),
-		toAddresses: z.array(z.string()),
-		serverUrl: z.string(),
-		topic: z.string(),
-		appToken: z.string(),
-		accessToken: z.string(),
-		priority: z.number(),
+		webhookUrl: z.string().optional(),
+		channel: z.string().optional(),
+		botToken: z.string().optional(),
+		chatId: z.string().optional(),
+		messageThreadId: z.string().optional(),
+		decoration: z.boolean().optional(),
+		smtpServer: z.string().optional(),
+		smtpPort: z.number().optional(),
+		username: z.string().optional(),
+		password: z.string().optional(),
+		fromAddress: z.string().optional(),
+		toAddress: z.array(z.string().email()).optional(),
+		serverUrl: z.string().optional(),
+		appToken: z.string().optional(),
+		topic: z.string().optional(),
+		accessToken: z.string().optional(),
+		priority: z.number().optional(),
 	})
 	.partial();
+
+// API Test Connection Schemas
+export const apiTestSlackConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+	channel: z.string().optional(),
+	decoration: z.boolean().optional(),
+});
+
+export const apiTestTelegramConnection = z.object({
+	botToken: z.string().min(1, { message: "Bot token is required" }),
+	chatId: z.string().min(1, { message: "Chat ID is required" }),
+	messageThreadId: z.string().optional(),
+});
+
+export const apiTestDiscordConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+	decoration: z.boolean().optional(),
+});
+
+export const apiTestEmailConnection = z.object({
+	smtpServer: z.string().min(1, { message: "SMTP server is required" }),
+	smtpPort: z.number().min(1, { message: "SMTP port is required" }),
+	username: z.string().min(1, { message: "Username is required" }),
+	password: z.string().min(1, { message: "Password is required" }),
+	fromAddress: z.string().email({ message: "Valid email address is required" }),
+	toAddress: z
+		.array(z.string().email())
+		.min(1, { message: "At least one recipient is required" }),
+});
+
+export const apiTestGotifyConnection = z.object({
+	serverUrl: z.string().min(1, { message: "Server URL is required" }),
+	appToken: z.string().min(1, { message: "App token is required" }),
+	decoration: z.boolean().optional(),
+	priority: z.number().optional(),
+});
+
+export const apiTestNtfyConnection = z.object({
+	serverUrl: z.string().min(1, { message: "Server URL is required" }),
+	topic: z.string().min(1, { message: "Topic is required" }),
+	accessToken: z.string().min(1, { message: "Access token is required" }),
+	priority: z.number().optional(),
+});
+
+export const apiTestTeamsConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+	decoration: z.boolean().optional(),
+});
+
+export const apiTestLarkConnection = z.object({
+	webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+});

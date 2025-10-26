@@ -12,6 +12,8 @@ import {
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
+
+// import { MessageSquare as TeamsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -37,10 +39,50 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
+export const notificationsMap = {
+	slack: {
+		icon: <SlackIcon />,
+		label: "Slack",
+	},
+	telegram: {
+		icon: <TelegramIcon />,
+		label: "Telegram",
+	},
+	discord: {
+		icon: <DiscordIcon />,
+		label: "Discord",
+	},
+	email: {
+		icon: <Mail size={29} className="text-muted-foreground" />,
+		label: "Email",
+	},
+	gotify: {
+		icon: <GotifyIcon />,
+		label: "Gotify",
+	},
+	ntfy: {
+		icon: <NtfyIcon />,
+		label: "ntfy",
+	},
+	teams: {
+		icon: (
+			<img
+				src="/teams_logo.png"
+				alt="Teams"
+				className="h-7 w-7 object-contain"
+			/>
+		),
+		label: "Teams",
+	},
+	lark: {
+		icon: <LarkIcon className="text-muted-foreground" />,
+		label: "Lark",
+	},
+};
+
+// --- added: Zod schemas required by the form resolver ---
 const notificationBaseSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
+	name: z.string().min(1, { message: "Name is required" }),
 	appDeploy: z.boolean().default(false),
 	appBuildError: z.boolean().default(false),
 	databaseBackup: z.boolean().default(false),
@@ -54,7 +96,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("slack"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			channel: z.string(),
+			channel: z.string().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -69,7 +111,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("discord"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
-			decoration: z.boolean().default(true),
+			decoration: z.boolean().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -80,13 +122,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			username: z.string().min(1, { message: "Username is required" }),
 			password: z.string().min(1, { message: "Password is required" }),
 			fromAddress: z.string().min(1, { message: "From Address is required" }),
-			toAddresses: z
-				.array(
-					z.string().min(1, { message: "Email is required" }).email({
-						message: "Email is invalid",
-					}),
-				)
-				.min(1, { message: "At least one email is required" }),
+			toAddress: z.array(z.string().email()).min(1),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -95,7 +131,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			serverUrl: z.string().min(1, { message: "Server URL is required" }),
 			appToken: z.string().min(1, { message: "App Token is required" }),
 			priority: z.number().min(1).max(10).default(5),
-			decoration: z.boolean().default(true),
+			decoration: z.boolean().optional(),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -109,42 +145,18 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
+			type: z.literal("teams"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+			decoration: z.boolean().optional(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
 			type: z.literal("lark"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
 		.merge(notificationBaseSchema),
 ]);
-
-export const notificationsMap = {
-	slack: {
-		icon: <SlackIcon />,
-		label: "Slack",
-	},
-	telegram: {
-		icon: <TelegramIcon />,
-		label: "Telegram",
-	},
-	discord: {
-		icon: <DiscordIcon />,
-		label: "Discord",
-	},
-	lark: {
-		icon: <LarkIcon className="text-muted-foreground" />,
-		label: "Lark",
-	},
-	email: {
-		icon: <Mail size={29} className="text-muted-foreground" />,
-		label: "Email",
-	},
-	gotify: {
-		icon: <GotifyIcon />,
-		label: "Gotify",
-	},
-	ntfy: {
-		icon: <NtfyIcon />,
-		label: "ntfy",
-	},
-};
 
 export type NotificationSchema = z.infer<typeof notificationSchema>;
 
@@ -177,8 +189,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
+
+	const { mutateAsync: testTeamsConnection, isLoading: isLoadingTeams } =
+		api.notification.testTeamsConnection.useMutation();
+
 	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
+
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -197,6 +214,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const ntfyMutation = notificationId
 		? api.notification.updateNtfy.useMutation()
 		: api.notification.createNtfy.useMutation();
+
+	const teamsMutation = notificationId
+		? api.notification.updateTeams.useMutation()
+		: api.notification.createTeams.useMutation();
+
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
@@ -214,7 +236,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
-		name: "toAddresses" as never,
+		name: "toAddress" as never,
 	});
 
 	useEffect(() => {
@@ -276,7 +298,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					smtpPort: notification.email?.smtpPort,
 					username: notification.email?.username,
 					password: notification.email?.password,
-					toAddresses: notification.email?.toAddresses,
+					toAddress: notification.email?.toAddress,
 					fromAddress: notification.email?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
@@ -323,6 +345,19 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "teams") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.teams?.webhookUrl,
+					decoration: notification.teams?.decoration || undefined,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -336,6 +371,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		email: emailMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
+		teams: teamsMutation,
 		lark: larkMutation,
 	};
 
@@ -356,7 +392,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: data.webhookUrl,
-				channel: data.channel,
+				channel: data.channel || "",
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				slackId: notification?.slackId || "",
@@ -385,7 +421,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				webhookUrl: data.webhookUrl,
-				decoration: data.decoration,
+				decoration: data.decoration || false,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
@@ -403,7 +439,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				username: data.username,
 				password: data.password,
 				fromAddress: data.fromAddress,
-				toAddresses: data.toAddresses,
+				toAddress: data.toAddress,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
@@ -421,7 +457,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				priority: data.priority,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
-				decoration: data.decoration,
+				decoration: data.decoration || false,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
 			});
@@ -439,6 +475,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+			});
+		} else if (data.type === "teams") {
+			promise = teamsMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				webhookUrl: data.webhookUrl,
+				decoration: data.decoration || false,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				teamsId: notification?.teamsId || "",
 			});
 		} else if (data.type === "lark") {
 			promise = larkMutation.mutateAsync({
@@ -721,6 +771,50 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									</>
 								)}
 
+								{/* Teams provider fields */}
+								{type === "teams" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://outlook.office.com/webhook/..."
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+
+										<FormField
+											control={form.control}
+											name="decoration"
+											defaultValue={true}
+											render={({ field }) => (
+												<FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+													<div className="space-y-0.5">
+														<FormLabel>Decoration</FormLabel>
+														<FormDescription>
+															Decorate the notification with emojis.
+														</FormDescription>
+													</div>
+													<FormControl>
+														<Switch
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
+
 								{type === "email" && (
 									<>
 										<div className="flex md:flex-row flex-col gap-2 w-full">
@@ -829,7 +923,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												>
 													<FormField
 														control={form.control}
-														name={`toAddresses.${index}`}
+														name={`toAddress.${index}`}
 														render={({ field }) => (
 															<FormItem className="w-full">
 																<FormControl>
@@ -856,9 +950,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												</div>
 											))}
 											{type === "email" &&
-												"toAddresses" in form.formState.errors && (
+												"toAddress" in form.formState.errors && (
 													<div className="text-sm font-medium text-destructive">
-														{form.formState?.errors?.toAddresses?.root?.message}
+														{form.formState?.errors?.toAddress?.root?.message}
 													</div>
 												)}
 										</div>
@@ -1211,6 +1305,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingEmail ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
+								isLoadingTeams ||
 								isLoadingLark
 							}
 							variant="secondary"
@@ -1219,7 +1314,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									if (type === "slack") {
 										await testSlackConnection({
 											webhookUrl: form.getValues("webhookUrl"),
-											channel: form.getValues("channel"),
+											channel: form.getValues("channel") || "",
 										});
 									} else if (type === "telegram") {
 										await testTelegramConnection({
@@ -1238,7 +1333,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											smtpPort: form.getValues("smtpPort"),
 											username: form.getValues("username"),
 											password: form.getValues("password"),
-											toAddresses: form.getValues("toAddresses"),
+											toAddress: form.getValues("toAddress"),
 											fromAddress: form.getValues("fromAddress"),
 										});
 									} else if (type === "gotify") {
@@ -1254,6 +1349,11 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											topic: form.getValues("topic"),
 											accessToken: form.getValues("accessToken"),
 											priority: form.getValues("priority"),
+										});
+									} else if (type === "teams") {
+										await testTeamsConnection({
+											webhookUrl: form.getValues("webhookUrl"),
+											decoration: form.getValues("decoration") || false,
 										});
 									} else if (type === "lark") {
 										await testLarkConnection({

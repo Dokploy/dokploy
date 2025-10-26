@@ -7,10 +7,11 @@ import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -26,18 +27,21 @@ export const sendDokployRestartNotifications = async () => {
 			slack: true,
 			gotify: true,
 			ntfy: true,
+
+			teams: true,
+
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, teams, lark } =
 			notification;
 
 		if (email) {
 			const template = await renderAsync(
 				DokployRestartEmail({ date: date.toLocaleString() }),
-			).catch();
+			).catch(() => "");
 			await sendEmailNotification(email, "Dokploy Server Restarted", template);
 		}
 
@@ -139,6 +143,37 @@ export const sendDokployRestartNotifications = async () => {
 			}
 		}
 
+		if (teams) {
+			try {
+				const message = {
+					"@type": "MessageCard",
+					"@context": "http://schema.org/extensions",
+					themeColor: "00FF00",
+					summary: "Dokploy Server Restarted",
+					sections: [
+						{
+							activityTitle: "✅ Dokploy Server Restarted",
+							activitySubtitle: "Server has been successfully restarted",
+							facts: [
+								{
+									name: "Date",
+									value: date.toLocaleString(),
+								},
+								{
+									name: "Status",
+									value: "Successful",
+								},
+							],
+						},
+					],
+				};
+
+				await sendTeamsNotification(teams, message);
+			} catch (error) {
+				console.log(error);
+			}
+		}
+
 		if (lark) {
 			try {
 				await sendLarkNotification(lark, {
@@ -182,7 +217,7 @@ export const sendDokployRestartNotifications = async () => {
 											elements: [
 												{
 													tag: "markdown",
-													content: `**Status:**\nSuccessful`,
+													content: "**Status:**\nSuccessful",
 													text_align: "left",
 													text_size: "normal_v2",
 												},

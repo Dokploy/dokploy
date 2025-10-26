@@ -7,10 +7,11 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
+	sendTeamsNotification,
 	sendTelegramNotification,
 } from "./utils";
 
@@ -45,12 +46,15 @@ export const sendDatabaseBackupNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+
+			teams: true,
+
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, teams, lark } =
 			notification;
 
 		if (email) {
@@ -63,7 +67,7 @@ export const sendDatabaseBackupNotifications = async ({
 					errorMessage,
 					date: date.toLocaleString(),
 				}),
-			).catch();
+			).catch(() => "");
 			await sendEmailNotification(
 				email,
 				"Database backup for dokploy",
@@ -240,6 +244,56 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 				],
 			});
+		}
+
+		if (teams) {
+			const message = {
+				"@type": "MessageCard",
+				"@context": "http://schema.org/extensions",
+				themeColor: type === "success" ? "00FF00" : "FF0000",
+				summary: `Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+				sections: [
+					{
+						activityTitle: `🗄️ Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+						activitySubtitle: `${projectName} - ${applicationName}`,
+						facts: [
+							{
+								name: "Project",
+								value: projectName,
+							},
+							{
+								name: "Application",
+								value: applicationName,
+							},
+							{
+								name: "Database Type",
+								value: databaseType,
+							},
+							{
+								name: "Database Name",
+								value: databaseName,
+							},
+							{
+								name: "Date",
+								value: date.toLocaleString(),
+							},
+							{
+								name: "Status",
+								value: type === "success" ? "Successful" : "Failed",
+							},
+						],
+					},
+				],
+			};
+
+			if (type === "error" && errorMessage && message.sections[0]) {
+				message.sections[0].facts.push({
+					name: "Error",
+					value: errorMessage,
+				});
+			}
+
+			await sendTeamsNotification(teams, message);
 		}
 
 		if (lark) {

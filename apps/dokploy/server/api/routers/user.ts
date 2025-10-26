@@ -434,7 +434,7 @@ export const userRouter = createTRPCRouter({
 				await sendEmailNotification(
 					{
 						...email,
-						toAddresses: [currentInvitation?.email || ""],
+						toAddress: [currentInvitation?.email || ""],
 					},
 					"Invitation to join organization",
 					`
