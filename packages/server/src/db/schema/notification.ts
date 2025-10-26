@@ -54,7 +54,7 @@ export const email = pgTable("email", {
 	username: text("username").notNull(),
 	password: text("password").notNull(),
 	fromAddress: text("fromAddress").notNull(),
-	toAddresses: text("toAddresses").array().notNull(),
+	toAddress: text("toAddress").array().notNull(),
 });
 
 export const gotify = pgTable("gotify", {
@@ -312,7 +312,7 @@ export const apiCreateEmail = notificationsSchema
 		username: z.string().min(1, { message: "Username is required" }),
 		password: z.string().min(1, { message: "Password is required" }),
 		fromAddress: z.string().min(1, { message: "From Address is required" }),
-		toAddresses: z.array(z.string().email()).min(1),
+		toAddress: z.array(z.string().email()).min(1),
 	});
 
 export const apiUpdateEmail = apiCreateEmail
@@ -423,7 +423,7 @@ export const apiSendTest = notificationsSchema
 		username: z.string().optional(),
 		password: z.string().optional(),
 		fromAddress: z.string().optional(),
-		toAddresses: z.array(z.string().email()).optional(),
+		toAddress: z.array(z.string().email()).optional(),
 		serverUrl: z.string().optional(),
 		appToken: z.string().optional(),
 		topic: z.string().optional(),
@@ -456,7 +456,7 @@ export const apiTestEmailConnection = z.object({
 	username: z.string().min(1, { message: "Username is required" }),
 	password: z.string().min(1, { message: "Password is required" }),
 	fromAddress: z.string().email({ message: "Valid email address is required" }),
-	toAddresses: z
+	toAddress: z
 		.array(z.string().email())
 		.min(1, { message: "At least one recipient is required" }),
 });

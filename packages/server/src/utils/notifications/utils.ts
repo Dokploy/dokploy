@@ -22,7 +22,7 @@ export const sendEmailNotification = async (
 			username,
 			password,
 			fromAddress,
-			toAddresses,
+			toAddress,
 		} = connection;
 		const transporter = nodemailer.createTransport({
 			host: smtpServer,
@@ -32,7 +32,7 @@ export const sendEmailNotification = async (
 
 		await transporter.sendMail({
 			from: fromAddress,
-			to: toAddresses.join(", "),
+			to: toAddress.join(", "),
 			subject,
 			html: htmlContent,
 			textEncoding: "base64",

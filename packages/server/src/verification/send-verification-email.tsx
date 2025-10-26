@@ -14,7 +14,7 @@ export const sendEmail = async ({
 	await sendEmailNotification(
 		{
 			fromAddress: process.env.SMTP_FROM_ADDRESS || "",
-			toAddresses: [email],
+			toAddress: [email],
 			smtpServer: process.env.SMTP_SERVER || "",
 			smtpPort: Number(process.env.SMTP_PORT),
 			username: process.env.SMTP_USERNAME || "",

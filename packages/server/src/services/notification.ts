@@ -316,7 +316,7 @@ export const createEmailNotification = async (
 				username: input.username,
 				password: input.password,
 				fromAddress: input.fromAddress,
-				toAddresses: input.toAddresses,
+				toAddress: input.toAddress,
 			})
 			.returning()
 			.then((value) => value[0]);
@@ -391,7 +391,7 @@ export const updateEmailNotification = async (
 				username: input.username,
 				password: input.password,
 				fromAddress: input.fromAddress,
-				toAddresses: input.toAddresses,
+				toAddress: input.toAddress,
 			})
 			.where(eq(email.emailId, input.emailId!))
 			.returning()

@@ -122,7 +122,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			username: z.string().min(1, { message: "Username is required" }),
 			password: z.string().min(1, { message: "Password is required" }),
 			fromAddress: z.string().min(1, { message: "From Address is required" }),
-			toAddresses: z.array(z.string().email()).min(1),
+			toAddress: z.array(z.string().email()).min(1),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -236,7 +236,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
-		name: "toAddresses" as never,
+		name: "toAddress" as never,
 	});
 
 	useEffect(() => {
@@ -298,7 +298,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					smtpPort: notification.email?.smtpPort,
 					username: notification.email?.username,
 					password: notification.email?.password,
-					toAddresses: notification.email?.toAddresses,
+					toAddress: notification.email?.toAddress,
 					fromAddress: notification.email?.fromAddress,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
@@ -439,7 +439,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				username: data.username,
 				password: data.password,
 				fromAddress: data.fromAddress,
-				toAddresses: data.toAddresses,
+				toAddress: data.toAddress,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
@@ -923,7 +923,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												>
 													<FormField
 														control={form.control}
-														name={`toAddresses.${index}`}
+														name={`toAddress.${index}`}
 														render={({ field }) => (
 															<FormItem className="w-full">
 																<FormControl>
@@ -950,9 +950,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												</div>
 											))}
 											{type === "email" &&
-												"toAddresses" in form.formState.errors && (
+												"toAddress" in form.formState.errors && (
 													<div className="text-sm font-medium text-destructive">
-														{form.formState?.errors?.toAddresses?.root?.message}
+														{form.formState?.errors?.toAddress?.root?.message}
 													</div>
 												)}
 										</div>
@@ -1333,7 +1333,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											smtpPort: form.getValues("smtpPort"),
 											username: form.getValues("username"),
 											password: form.getValues("password"),
-											toAddresses: form.getValues("toAddresses"),
+											toAddress: form.getValues("toAddress"),
 											fromAddress: form.getValues("fromAddress"),
 										});
 									} else if (type === "gotify") {
