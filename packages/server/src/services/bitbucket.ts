@@ -34,7 +34,7 @@ export const createBitbucket = async (
 			});
 		}
 
-		await tx
+		const newBitbucket = await tx
 			.insert(bitbucket)
 			.values({
 				...input,
@@ -42,6 +42,21 @@ export const createBitbucket = async (
 			})
 			.returning()
 			.then((response) => response[0]);
+
+		if (!newBitbucket) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error creating the Bitbucket record",
+			});
+		}
+
+		// Return the bitbucket with gitProvider relation
+		return await tx.query.bitbucket.findFirst({
+			where: eq(bitbucket.bitbucketId, newBitbucket.bitbucketId),
+			with: {
+				gitProvider: true,
+			},
+		});
 	});
 };
 

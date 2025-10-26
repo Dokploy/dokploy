@@ -5,6 +5,12 @@ import {
 	removeRedirectById,
 	updateRedirectById,
 } from "@dokploy/server";
+import {
+	apiCreateRedirectOutput,
+	apiDeleteRedirectOutput,
+	apiFindOneRedirectOutput,
+	apiUpdateRedirectOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import {
 	apiCreateRedirect,
@@ -16,6 +22,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const redirectsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedirect)
+		.output(apiCreateRedirectOutput)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -31,6 +38,7 @@ export const redirectsRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneRedirect)
+		.output(apiFindOneRedirectOutput)
 		.query(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
 			const application = await findApplicationById(redirect.applicationId);
@@ -47,6 +55,7 @@ export const redirectsRouter = createTRPCRouter({
 		}),
 	delete: protectedProcedure
 		.input(apiFindOneRedirect)
+		.output(apiDeleteRedirectOutput)
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
 			const application = await findApplicationById(redirect.applicationId);
@@ -63,6 +72,7 @@ export const redirectsRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateRedirect)
+		.output(apiUpdateRedirectOutput)
 		.mutation(async ({ input, ctx }) => {
 			const redirect = await findRedirectById(input.redirectId);
 			const application = await findApplicationById(redirect.applicationId);

@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
 import {
 	Tooltip,
 	TooltipContent,
@@ -8,12 +8,26 @@ import {
 import { cn } from "@/lib/utils";
 
 interface Props {
-	date: string;
+	date?: string | number | Date;
 	children?: React.ReactNode;
 	className?: string;
 }
 
 export const DateTooltip = ({ date, children, className }: Props) => {
+	const parsedDate = (() => {
+		if (!date) return null;
+		if (date instanceof Date) return date;
+		if (typeof date === "number") return new Date(date);
+		try {
+			const iso = parseISO(date as string);
+			if (isValid(iso)) return iso;
+		} catch {}
+		const fallback = new Date(date as string);
+		return isValid(fallback) ? fallback : null;
+	})();
+
+	const hasValidDate = parsedDate && isValid(parsedDate);
+
 	return (
 		<TooltipProvider delayDuration={0}>
 			<Tooltip>
@@ -25,12 +39,12 @@ export const DateTooltip = ({ date, children, className }: Props) => {
 						)}
 					>
 						{children}{" "}
-						{formatDistanceToNow(new Date(date), {
-							addSuffix: true,
-						})}
+						{hasValidDate ? formatDistanceToNow(parsedDate as Date, { addSuffix: true }) : "-"}
 					</span>
 				</TooltipTrigger>
-				<TooltipContent>{format(new Date(date), "PPpp")}</TooltipContent>
+				<TooltipContent>
+					{hasValidDate ? format(parsedDate as Date, "PPpp") : "Invalid date"}
+				</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>
 	);

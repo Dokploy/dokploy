@@ -4,6 +4,12 @@ import {
 	IS_CLOUD,
 	removeCertificateById,
 } from "@dokploy/server";
+import {
+	apiCertificatesCreateOutput,
+	apiCertificatesDeleteOutput,
+	apiCertificatesFindAllOutput,
+	apiCertificatesFindOneOutput,
+} from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
@@ -17,6 +23,7 @@ import {
 export const certificateRouter = createTRPCRouter({
 	create: adminProcedure
 		.input(apiCreateCertificate)
+		.output(apiCertificatesCreateOutput)
 		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD && !input.serverId) {
 				throw new TRPCError({
@@ -29,6 +36,7 @@ export const certificateRouter = createTRPCRouter({
 
 	one: adminProcedure
 		.input(apiFindCertificate)
+		.output(apiCertificatesFindOneOutput)
 		.query(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
 			if (certificates.organizationId !== ctx.session.activeOrganizationId) {
@@ -41,6 +49,7 @@ export const certificateRouter = createTRPCRouter({
 		}),
 	remove: adminProcedure
 		.input(apiFindCertificate)
+		.output(apiCertificatesDeleteOutput)
 		.mutation(async ({ input, ctx }) => {
 			const certificates = await findCertificateById(input.certificateId);
 			if (certificates.organizationId !== ctx.session.activeOrganizationId) {
@@ -49,12 +58,16 @@ export const certificateRouter = createTRPCRouter({
 					message: "You are not allowed to delete this certificate",
 				});
 			}
-			await removeCertificateById(input.certificateId);
-			return true;
+			return await removeCertificateById(input.certificateId);
 		}),
-	all: adminProcedure.query(async ({ ctx }) => {
-		return await db.query.certificates.findMany({
-			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
-		});
-	}),
+	all: adminProcedure
+		.output(apiCertificatesFindAllOutput)
+		.query(async ({ ctx }) => {
+			return await db.query.certificates.findMany({
+				where: eq(
+					certificates.organizationId,
+					ctx.session.activeOrganizationId,
+				),
+			});
+		}),
 });
