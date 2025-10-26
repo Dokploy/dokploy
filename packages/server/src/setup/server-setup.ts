@@ -74,8 +74,8 @@ SYS_ARCH=$(uname -m)
 CURRENT_USER=$USER
 
 echo "Installing requirements for: OS: $OS_TYPE"
-if [ $EUID != 0 ]; then
-	echo "Please run this script as root or with sudo ❌"
+if [ $EUID != 0 ] && ! sudo -n true 2>/dev/null; then
+	echo "Please run this script as root or as a user with NOPASSWD sudo access ❌"
 	exit
 fi
 
@@ -255,13 +255,14 @@ const setupDirectories = () => {
 };
 
 const setupMainDirectory = () => `
-	# Check if the /etc/dokploy directory exists
+	# Check if the /etc/dokploy directory exists and fix permissions
 	if [ -d /etc/dokploy ]; then
+		sudo chown "$(id -u)":"$(id -g)" /etc/dokploy -R
+		sudo chmod 775 /etc/dokploy -R
 		echo "/etc/dokploy already exists ✅"
 	else
 		# Create the /etc/dokploy directory
-		mkdir -p /etc/dokploy
-		chmod 777 /etc/dokploy
+		sudo install -d -o "$(id -u)" -g "$(id -g)" -m 775 /etc/dokploy
 
 		echo "Directory /etc/dokploy created ✅"
 	fi
@@ -355,33 +356,33 @@ const installUtilities = () => `
 
 	case "$OS_TYPE" in
 	arch)
-		pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
+		sudo pacman -Sy --noconfirm --needed curl wget git git-lfs jq openssl >/dev/null || true
 		;;
 	alpine)
 		sed -i '/^#.*\/community/s/^#//' /etc/apk/repositories
-		apk update >/dev/null
-		apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
+		sudo apk update >/dev/null
+		sudo apk add curl wget git git-lfs jq openssl sudo unzip tar >/dev/null
 		;;
 	ubuntu | debian | raspbian)
-		DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null
-		DEBIAN_FRONTEND=noninteractive apt-get install -y unzip curl wget git git-lfs jq openssl >/dev/null
+		DEBIAN_FRONTEND=noninteractive sudo apt-get update -y >/dev/null
+		DEBIAN_FRONTEND=noninteractive sudo apt-get install -y unzip curl wget git git-lfs jq openssl >/dev/null
 		;;
 	centos | fedora | rhel | ol | rocky | almalinux | opencloudos | amzn)
 		if [ "$OS_TYPE" = "amzn" ]; then
-			dnf install -y wget git git-lfs jq openssl >/dev/null
+			sudo dnf install -y wget git git-lfs jq openssl >/dev/null
 		else
 			if ! command -v dnf >/dev/null; then
-				yum install -y dnf >/dev/null
+				sudo yum install -y dnf >/dev/null
 			fi
 			if ! command -v curl >/dev/null; then
-				dnf install -y curl >/dev/null
+				sudo dnf install -y curl >/dev/null
 			fi
-			dnf install -y wget git git-lfs jq openssl unzip >/dev/null
+			sudo dnf install -y wget git git-lfs jq openssl unzip >/dev/null
 		fi
 		;;
 	sles | opensuse-leap | opensuse-tumbleweed)
-		zypper refresh >/dev/null
-		zypper install -y curl wget git git-lfs jq openssl >/dev/null
+		sudo zypper refresh >/dev/null
+		sudo zypper install -y curl wget git git-lfs jq openssl >/dev/null
 		;;
 	*)
 		echo "This script only supports Debian, Redhat, Arch Linux, or SLES based operating systems for now."
@@ -408,19 +409,19 @@ if ! [ -x "$(command -v docker)" ]; then
     echo " - Docker is not installed. Installing Docker. It may take a while."
     case "$OS_TYPE" in
         "almalinux")
-            dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo >/dev/null 2>&1
-            dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
+            sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo >/dev/null 2>&1
+            sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
             fi
-            systemctl start docker >/dev/null 2>&1
-            systemctl enable docker >/dev/null 2>&1
+            sudo systemctl start docker >/dev/null 2>&1
+            sudo systemctl enable docker >/dev/null 2>&1
             ;;
 	"opencloudos")
             # Special handling for OpenCloud OS
             echo " - Installing Docker for OpenCloud OS..."
-            dnf install -y docker >/dev/null 2>&1
+            sudo dnf install -y docker >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
@@ -429,20 +430,20 @@ if ! [ -x "$(command -v docker)" ]; then
             # Remove --live-restore parameter from Docker configuration if it exists
             if [ -f "/etc/sysconfig/docker" ]; then
                 echo " - Removing --live-restore parameter from Docker configuration..."
-                sed -i 's/--live-restore[^[:space:]]*//' /etc/sysconfig/docker >/dev/null 2>&1
-                sed -i 's/--live-restore//' /etc/sysconfig/docker >/dev/null 2>&1
+                sudo sed -i 's/--live-restore[^[:space:]]*//' /etc/sysconfig/docker >/dev/null 2>&1
+                sudo sed -i 's/--live-restore//' /etc/sysconfig/docker >/dev/null 2>&1
                 # Clean up any double spaces that might be left
-                sed -i 's/  */ /g' /etc/sysconfig/docker >/dev/null 2>&1
+                sudo sed -i 's/  */ /g' /etc/sysconfig/docker >/dev/null 2>&1
             fi
             
-            systemctl enable docker >/dev/null 2>&1
-            systemctl start docker >/dev/null 2>&1
+            sudo systemctl enable docker >/dev/null 2>&1
+            sudo systemctl start docker >/dev/null 2>&1
             echo " - Docker configured for OpenCloud OS"
             ;;
         "alpine")
-            apk add docker docker-cli-compose >/dev/null 2>&1
-            rc-update add docker default >/dev/null 2>&1
-            service docker start >/dev/null 2>&1
+            sudo apk add docker docker-cli-compose >/dev/null 2>&1
+            sudo rc-update add docker default >/dev/null 2>&1
+            sudo service docker start >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Failed to install Docker with apk. Try to install it manually."
                 echo "   Please visit https://wiki.alpinelinux.org/wiki/Docker for more information."
@@ -450,8 +451,8 @@ if ! [ -x "$(command -v docker)" ]; then
             fi
             ;;
         "arch")
-            pacman -Sy docker docker-compose --noconfirm >/dev/null 2>&1
-            systemctl enable docker.service >/dev/null 2>&1
+            sudo pacman -Sy docker docker-compose --noconfirm >/dev/null 2>&1
+            sudo systemctl enable docker.service >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Failed to install Docker with pacman. Try to install it manually."
                 echo "   Please visit https://wiki.archlinux.org/title/docker for more information."
@@ -459,13 +460,13 @@ if ! [ -x "$(command -v docker)" ]; then
             fi
             ;;
         "amzn")
-            dnf install docker -y >/dev/null 2>&1
+            sudo dnf install docker -y >/dev/null 2>&1
             DOCKER_CONFIG=/usr/local/lib/docker
-            mkdir -p $DOCKER_CONFIG/cli-plugins >/dev/null 2>&1
-            curl -sL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
-            chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
-            systemctl start docker >/dev/null 2>&1
-            systemctl enable docker >/dev/null 2>&1
+            sudo mkdir -p $DOCKER_CONFIG/cli-plugins >/dev/null 2>&1
+            sudo curl -sL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
+            sudo chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose >/dev/null 2>&1
+            sudo systemctl start docker >/dev/null 2>&1
+            sudo systemctl enable docker >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Failed to install Docker with dnf. Try to install it manually."
                 echo "   Please visit https://www.cyberciti.biz/faq/how-to-install-docker-on-amazon-linux-2/ for more information."
@@ -475,18 +476,18 @@ if ! [ -x "$(command -v docker)" ]; then
         "fedora")
             if [ -x "$(command -v dnf5)" ]; then
                 # dnf5 is available
-                dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo --overwrite >/dev/null 2>&1
+                sudo dnf config-manager addrepo --from-repofile=https://download.docker.com/linux/fedora/docker-ce.repo --overwrite >/dev/null 2>&1
             else
                 # dnf5 is not available, use dnf
-                dnf config-manager --add-repo=https://download.docker.com/linux/fedora/docker-ce.repo >/dev/null 2>&1
+                sudo dnf config-manager --add-repo=https://download.docker.com/linux/fedora/docker-ce.repo >/dev/null 2>&1
             fi
-            dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
+            sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin >/dev/null 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 echo " - Docker could not be installed automatically. Please visit https://docs.docker.com/engine/install/ and install Docker manually to continue."
                 exit 1
             fi
-            systemctl start docker >/dev/null 2>&1
-            systemctl enable docker >/dev/null 2>&1
+            sudo systemctl start docker >/dev/null 2>&1
+            sudo systemctl enable docker >/dev/null 2>&1
             ;;
         *)
             if [ "$OS_TYPE" = "ubuntu" ] && [ "$OS_VERSION" = "24.10" ]; then
@@ -494,9 +495,9 @@ if ! [ -x "$(command -v docker)" ]; then
                     echo "Please install Docker manually."
                 exit 1
             fi
-            curl -s https://releases.rancher.com/install-docker/$DOCKER_VERSION.sh | sh 2>&1
+            curl -s https://releases.rancher.com/install-docker/$DOCKER_VERSION.sh | sudo sh 2>&1
             if ! [ -x "$(command -v docker)" ]; then
-                curl -s https://get.docker.com | sh -s -- --version $DOCKER_VERSION 2>&1
+                curl -s https://get.docker.com | sudo sh -s -- --version $DOCKER_VERSION 2>&1
                 if ! [ -x "$(command -v docker)" ]; then
                     echo " - Docker installation failed."
                     echo "   Maybe your OS is not supported?"
@@ -505,13 +506,13 @@ if ! [ -x "$(command -v docker)" ]; then
                 fi
             fi
 			if [ "$OS_TYPE" = "rocky" ]; then
-				systemctl start docker >/dev/null 2>&1
-				systemctl enable docker >/dev/null 2>&1
+				sudo systemctl start docker >/dev/null 2>&1
+				sudo systemctl enable docker >/dev/null 2>&1
 			fi
 
 			if [ "$OS_TYPE" = "centos" ]; then
-				systemctl start docker >/dev/null 2>&1
-				systemctl enable docker >/dev/null 2>&1
+				sudo systemctl start docker >/dev/null 2>&1
+				sudo systemctl enable docker >/dev/null 2>&1
 			fi
 
 
@@ -520,6 +521,26 @@ if ! [ -x "$(command -v docker)" ]; then
 else
     echo " - Docker is installed."
 fi
+
+# Add ourselves to docker group to run docker commands without sudo
+if ! getent group docker >/dev/null; then
+	echo " - Creating 'docker' group."
+	sudo groupadd docker 2>&1
+fi
+
+if ! groups | grep -q docker; then
+	echo " - Adding ourselves to 'docker' group."
+	sudo usermod -aG docker "$USER" 2>&1
+	echo "Attention: We have added ourselves successfully to 'docker' group." >&2
+	echo "Attention: | In order to continue with the Server Setup, please" >&2
+	echo "Attention: | close this sidebar and click Server Setup again." >&2
+	exit 1
+fi
+
+# Make sure docker config directory permissions are correct
+mkdir -p "$HOME"/.docker 2>&1
+sudo chown "$USER":"$USER" "$HOME"/.docker -R 2>&1
+sudo chmod g+rwx "$HOME"/.docker -R 2>&1
 `;
 
 const createTraefikConfig = () => {
@@ -578,6 +599,7 @@ export const createTraefikInstance = () => {
 			TRAEFIK_VERSION=${TRAEFIK_VERSION}
 			docker run -d \
 				--name dokploy-traefik \
+				--user "$(id -u)":"$(id -g)" \
 				--restart always \
 				-v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
 				-v /etc/dokploy/traefik/dynamic:/etc/dokploy/traefik/dynamic \
@@ -599,8 +621,8 @@ const installNixpacks = () => `
 	if command_exists nixpacks; then
 		echo "Nixpacks already installed ✅"
 	else
-	    export NIXPACKS_VERSION=1.39.0
-        bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
+		export NIXPACKS_VERSION=1.39.0
+		sudo bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
 `;
@@ -609,8 +631,8 @@ const installRailpack = () => `
 	if command_exists railpack; then
 		echo "Railpack already installed ✅"
 	else
-	    export RAILPACK_VERSION=0.2.2
-		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
+		export RAILPACK_VERSION=0.2.2
+		sudo bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 		echo "Railpack version $RAILPACK_VERSION installed ✅"
 	fi
 `;
@@ -624,7 +646,7 @@ const installBuildpacks = () => `
 		echo "Buildpacks already installed ✅"
 	else
 		BUILDPACKS_VERSION=0.35.0
-		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | sudo tar -C /usr/local/bin/ --no-same-owner -xzv pack
 		echo "Buildpacks version $BUILDPACKS_VERSION installed ✅"
 	fi
 `;
