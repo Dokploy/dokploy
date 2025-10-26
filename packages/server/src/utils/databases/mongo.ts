@@ -76,7 +76,7 @@ fi
 		: ""
 }
 
-${command ?? "wait $MONGOD_PID"}`;
+${command || "wait $MONGOD_PID"}`;
 
 	const defaultMongoEnv = `MONGO_INITDB_ROOT_USERNAME="${databaseUser}"\nMONGO_INITDB_ROOT_PASSWORD="${databasePassword}"${replicaSets ? "\nMONGO_INITDB_DATABASE=admin" : ""}${
 		env ? `\n${env}` : ""
