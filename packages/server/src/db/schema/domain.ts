@@ -53,6 +53,12 @@ export const domains = pgTable("domain", {
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
+	// Domain validation fields
+	isValidated: boolean("isValidated").notNull().default(false),
+	validatedAt: text("validatedAt"),
+	validationError: text("validationError"),
+	resolvedIp: text("resolvedIp"),
+	cdnProvider: text("cdnProvider"),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -86,6 +92,11 @@ export const apiCreateDomain = createSchema.pick({
 	previewDeploymentId: true,
 	internalPath: true,
 	stripPath: true,
+	isValidated: true,
+	validatedAt: true,
+	validationError: true,
+	resolvedIp: true,
+	cdnProvider: true,
 });
 
 export const apiFindDomain = createSchema
@@ -118,5 +129,10 @@ export const apiUpdateDomain = createSchema
 		domainType: true,
 		internalPath: true,
 		stripPath: true,
+		isValidated: true,
+		validatedAt: true,
+		validationError: true,
+		resolvedIp: true,
+		cdnProvider: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

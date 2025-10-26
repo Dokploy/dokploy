@@ -21,6 +21,12 @@ describe("createDomainLabels", () => {
 		previewDeploymentId: "",
 		internalPath: "/",
 		stripPath: false,
+		// Domain validation fields
+		isValidated: false,
+		validatedAt: null,
+		validationError: null,
+		resolvedIp: null,
+		cdnProvider: null,
 	};
 
 	it("should create basic labels for web entrypoint", async () => {

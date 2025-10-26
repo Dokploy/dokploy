@@ -94,6 +94,12 @@ export const AddPreviewDomain = ({
 				path: data?.path || undefined,
 				port: data?.port || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
+				// Convert null to undefined for validation fields
+				isValidated: data?.isValidated || false,
+				validatedAt: data?.validatedAt || undefined,
+				validationError: data?.validationError || undefined,
+				resolvedIp: data?.resolvedIp || undefined,
+				cdnProvider: data?.cdnProvider || undefined,
 			});
 		}
 
