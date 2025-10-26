@@ -1,6 +1,6 @@
 {
-  "id": "d9e974ba-cc49-41ff-b4af-48cdbc470c02",
-  "prevId": "def4c7aa-bf14-4060-8f54-60ef3a79a5ea",
+  "id": "7148bc46-241e-43c1-b251-a4e468c8a834",
+  "prevId": "e7d24dad-8dc2-4c17-b27a-1f5240b8ffeb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2627,6 +2627,12 @@
           "notNull": false,
           "default": 3000
         },
+        "customEntrypoint": {
+          "name": "customEntrypoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "path": {
           "name": "path",
           "type": "text",
@@ -4177,6 +4183,31 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.lark": {
+      "name": "lark",
+      "schema": "",
+      "columns": {
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookUrl": {
+          "name": "webhookUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.notification": {
       "name": "notification",
       "schema": "",
@@ -4284,6 +4315,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4367,6 +4404,19 @@
           ],
           "columnsTo": [
             "ntfyId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_larkId_lark_larkId_fk": {
+          "name": "notification_larkId_lark_larkId_fk",
+          "tableFrom": "notification",
+          "tableTo": "lark",
+          "columnsFrom": [
+            "larkId"
+          ],
+          "columnsTo": [
+            "larkId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -6540,7 +6590,8 @@
         "discord",
         "email",
         "gotify",
-        "ntfy"
+        "ntfy",
+        "lark"
       ]
     },
     "public.protocolType": {
