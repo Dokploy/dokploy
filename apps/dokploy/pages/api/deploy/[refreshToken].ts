@@ -368,14 +368,14 @@ export const extractCommitedPaths = async (
 		.map((change: any) => change.new?.target?.hash)
 		.filter(Boolean);
 	const commitedPaths: string[] = [];
+	const username =
+		bitbucket?.bitbucketWorkspaceName || bitbucket?.bitbucketUsername || "";
 	for (const commit of commitHashes) {
-		const url = `https://api.bitbucket.org/2.0/repositories/${bitbucket?.bitbucketUsername}/${repository}/diffstat/${commit}`;
-
+		const url = `https://api.bitbucket.org/2.0/repositories/${username}/${repository}/diffstat/${commit}`;
 		try {
 			const response = await fetch(url, {
 				headers: getBitbucketHeaders(bitbucket!),
 			});
-
 			const data = await response.json();
 			for (const value of data.values) {
 				if (value?.new?.path) commitedPaths.push(value.new.path);
