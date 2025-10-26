@@ -42,6 +42,7 @@
     "@oslojs/crypto": "1.0.1",
     "@oslojs/encoding": "1.1.0",
     "@react-email/components": "^0.0.21",
+    "@resms/sdk": "^0.8.1",
     "@trpc/server": "^10.45.2",
     "adm-zip": "^0.5.16",
     "ai": "^5.0.17",
@@ -57,7 +58,6 @@
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "0.5.1",
     "hi-base32": "^0.5.1",
-    "yaml": "2.8.1",
     "lodash": "4.17.21",
     "micromatch": "4.0.8",
     "nanoid": "3.3.11",
@@ -79,6 +79,7 @@
     "ssh2": "1.15.0",
     "toml": "3.0.0",
     "ws": "8.16.0",
+    "yaml": "2.8.1",
     "zod": "^3.25.32"
   },
   "devDependencies": {

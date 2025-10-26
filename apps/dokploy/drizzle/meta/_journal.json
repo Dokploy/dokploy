@@ -834,6 +834,13 @@
       "when": 1761415824484,
       "tag": "0118_loose_anita_blake",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1761430369818,
+      "tag": "0119_yielding_tattoo",
+      "breakpoints": true
     }
   ]
 }

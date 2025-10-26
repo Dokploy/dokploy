@@ -5,6 +5,7 @@ import {
 	type apiCreateLark,
 	type apiCreateGotify,
 	type apiCreateNtfy,
+	type apiCreateResms,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateDiscord,
@@ -12,6 +13,7 @@ import {
 	type apiUpdateLark,
 	type apiUpdateGotify,
 	type apiUpdateNtfy,
+	type apiUpdateResms,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	discord,
@@ -20,6 +22,7 @@ import {
 	gotify,
 	notifications,
 	ntfy,
+	resms,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -578,6 +581,96 @@ export const updateNtfyNotification = async (
 	});
 };
 
+export const createReSmsNotification = async (
+	input: typeof apiCreateResms._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newResms = await tx
+			.insert(resms)
+			.values({
+				apiKey: input.apiKey,
+				phoneNumber: input.phoneNumber,
+				senderId: input.senderId || undefined,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newResms) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting resms",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				resmsId: newResms.resmsId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "resms",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateReSmsNotification = async (
+	input: typeof apiUpdateResms._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(resms)
+			.set({
+				apiKey: input.apiKey,
+				phoneNumber: input.phoneNumber,
+				senderId: input.senderId || undefined,
+			})
+			.where(eq(resms.resmsId, input.resmsId));
+
+		return newDestination;
+	});
+};
+
 export const findNotificationById = async (notificationId: string) => {
 	const notification = await db.query.notifications.findFirst({
 		where: eq(notifications.notificationId, notificationId),
@@ -589,6 +682,7 @@ export const findNotificationById = async (notificationId: string) => {
 			gotify: true,
 			ntfy: true,
 			lark: true,
+			resms: true,
 		},
 	});
 	if (!notification) {
