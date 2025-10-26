@@ -158,7 +158,6 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 ]);
 
-
 export type NotificationSchema = z.infer<typeof notificationSchema>;
 
 interface Props {
@@ -223,7 +222,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
-
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -375,7 +373,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		ntfy: ntfyMutation,
 		teams: teamsMutation,
 		lark: larkMutation,
-
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -479,7 +476,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
 			});
-
 		} else if (data.type === "teams") {
 			promise = teamsMutation.mutateAsync({
 				appBuildError: appBuildError,
@@ -1309,10 +1305,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingEmail ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
-
-							isLoadingTeams ||
-							isLoadingLark
-
+								isLoadingTeams ||
+								isLoadingLark
 							}
 							variant="secondary"
 							onClick={async () => {
@@ -1356,7 +1350,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											accessToken: form.getValues("accessToken"),
 											priority: form.getValues("priority"),
 										});
-
 									} else if (type === "teams") {
 										await testTeamsConnection({
 											webhookUrl: form.getValues("webhookUrl"),
