@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
@@ -25,11 +26,13 @@ export const sendDokployRestartNotifications = async () => {
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -130,6 +133,82 @@ export const sendDokployRestartNotifications = async () => {
 							],
 						},
 					],
+				});
+			} catch (error) {
+				console.log(error);
+			}
+		}
+
+		if (lark) {
+			try {
+				await sendLarkNotification(lark, {
+					msg_type: "interactive",
+					card: {
+						schema: "2.0",
+						config: {
+							update_multi: true,
+							style: {
+								text_size: {
+									normal_v2: {
+										default: "normal",
+										pc: "normal",
+										mobile: "heading",
+									},
+								},
+							},
+						},
+						header: {
+							title: {
+								tag: "plain_text",
+								content: "✅ Dokploy Server Restarted",
+							},
+							subtitle: {
+								tag: "plain_text",
+								content: "",
+							},
+							template: "green",
+							padding: "12px 12px 12px 12px",
+						},
+						body: {
+							direction: "vertical",
+							padding: "12px 12px 12px 12px",
+							elements: [
+								{
+									tag: "column_set",
+									columns: [
+										{
+											tag: "column",
+											width: "weighted",
+											elements: [
+												{
+													tag: "markdown",
+													content: `**Status:**\nSuccessful`,
+													text_align: "left",
+													text_size: "normal_v2",
+												},
+											],
+											vertical_align: "top",
+											weight: 1,
+										},
+										{
+											tag: "column",
+											width: "weighted",
+											elements: [
+												{
+													tag: "markdown",
+													content: `**Restart Time:**\n${format(date, "PP pp")}`,
+													text_align: "left",
+													text_size: "normal_v2",
+												},
+											],
+											vertical_align: "top",
+											weight: 1,
+										},
+									],
+								},
+							],
+						},
+					},
 				});
 			} catch (error) {
 				console.log(error);

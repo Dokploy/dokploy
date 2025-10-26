@@ -74,6 +74,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			composeFile: data.composeFile,
+			composePath: "./docker-compose.yml",
 			sourceType: "raw",
 		})
 			.then(async () => {

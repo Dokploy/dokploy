@@ -318,7 +318,7 @@ export const AddVolumes = ({
 											control={form.control}
 											name="content"
 											render={({ field }) => (
-												<FormItem>
+												<FormItem className="max-w-full max-w-[45rem]">
 													<FormLabel>Content</FormLabel>
 													<FormControl>
 														<FormControl>
@@ -327,7 +327,7 @@ export const AddVolumes = ({
 																placeholder={`NODE_ENV=production
 PORT=3000
 `}
-																className="h-96 font-mono"
+																className="h-96 font-mono "
 																{...field}
 															/>
 														</FormControl>

@@ -1,11 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	AlertTriangle,
-	Mail,
-	MessageCircleMore,
-	PenBoxIcon,
-	PlusIcon,
-} from "lucide-react";
+import { AlertTriangle, Mail, PenBoxIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -13,6 +7,7 @@ import { z } from "zod";
 import {
 	DiscordIcon,
 	GotifyIcon,
+	LarkIcon,
 	NtfyIcon,
 	SlackIcon,
 	TelegramIcon,
@@ -112,6 +107,12 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			priority: z.number().min(1).max(5).default(3),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("lark"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -126,6 +127,10 @@ export const notificationsMap = {
 	discord: {
 		icon: <DiscordIcon />,
 		label: "Discord",
+	},
+	lark: {
+		icon: <LarkIcon className="text-muted-foreground" />,
+		label: "Lark",
 	},
 	email: {
 		icon: <Mail size={29} className="text-muted-foreground" />,
@@ -172,6 +177,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
+	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
+		api.notification.testLarkConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -190,6 +197,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const ntfyMutation = notificationId
 		? api.notification.updateNtfy.useMutation()
 		: api.notification.createNtfy.useMutation();
+	const larkMutation = notificationId
+		? api.notification.updateLark.useMutation()
+		: api.notification.createLark.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -208,10 +218,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (type === "email") {
+		if (type === "email" && fields.length === 0) {
 			append("");
 		}
-	}, [type, append]);
+	}, [type, append, fields.length]);
 
 	useEffect(() => {
 		if (notification) {
@@ -299,6 +309,19 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.ntfy?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
+			} else if (notification.notificationType === "lark") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.lark?.webhookUrl,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
 				});
 			}
 		} else {
@@ -313,6 +336,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		email: emailMutation,
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
+		lark: larkMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -416,6 +440,19 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
 			});
+		} else if (data.type === "lark") {
+			promise = larkMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				webhookUrl: data.webhookUrl,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				larkId: notification?.larkId || "",
+				serverThreshold: serverThreshold,
+			});
 		}
 
 		if (promise) {
@@ -504,7 +541,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 															/>
 															<Label
 																htmlFor={key}
-																className="flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+																className="h-24 flex flex-col gap-2 items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
 															>
 																{value.icon}
 																{value.label}
@@ -1002,6 +1039,27 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+
+								{type === "lark" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://open.larksuite.com/open-apis/bot/v2/hook/xxxxxxxxxxxxxxxxxxxxxxxx"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
@@ -1152,7 +1210,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingDiscord ||
 								isLoadingEmail ||
 								isLoadingGotify ||
-								isLoadingNtfy
+								isLoadingNtfy ||
+								isLoadingLark
 							}
 							variant="secondary"
 							onClick={async () => {
@@ -1195,6 +1254,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											topic: form.getValues("topic"),
 											accessToken: form.getValues("accessToken"),
 											priority: form.getValues("priority"),
+										});
+									} else if (type === "lark") {
+										await testLarkConnection({
+											webhookUrl: form.getValues("webhookUrl"),
 										});
 									}
 									toast.success("Connection Success");

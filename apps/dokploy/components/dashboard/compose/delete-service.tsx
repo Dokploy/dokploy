@@ -104,7 +104,7 @@ export const DeleteService = ({ id, type }: Props) => {
 					push(
 						`/dashboard/project/${result?.environment?.projectId}/environment/${result?.environment?.environmentId}`,
 					);
-					toast.success("deleted successfully");
+					toast.success("Service deleted successfully");
 					setIsOpen(false);
 				})
 				.catch(() => {
