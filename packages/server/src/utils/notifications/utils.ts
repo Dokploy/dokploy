@@ -16,14 +16,8 @@ export const sendEmailNotification = async (
 	htmlContent: string,
 ) => {
 	try {
-		const {
-			smtpServer,
-			smtpPort,
-			username,
-			password,
-			fromAddress,
-			toAddress,
-		} = connection;
+		const { smtpServer, smtpPort, username, password, fromAddress, toAddress } =
+			connection;
 		const transporter = nodemailer.createTransport({
 			host: smtpServer,
 			port: smtpPort,
