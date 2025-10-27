@@ -1,5 +1,5 @@
 import { createWriteStream } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
@@ -9,8 +9,18 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
+import { sendDokployBackupNotifications } from "../notifications/dokploy-backup";
 import { execAsync } from "../process/execAsync";
 import { getS3Credentials, normalizeS3Path } from "./utils";
+
+function formatBytes(bytes?: number) {
+	if (bytes === undefined) return "Unknown size";
+	if (bytes === 0) return "0 B";
+	const sizes = ["B", "KB", "MB", "GB", "TB"];
+	const i = Math.floor(Math.log(bytes) / Math.log(1024));
+	const value = bytes / Math.pow(1024, i);
+	return `${value.toFixed(2)} ${sizes[i]} (${bytes} bytes)`;
+}
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
@@ -23,7 +33,7 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 		description: "Web Server Backup",
 	});
 	const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
-
+	let computedBackupSize: number | undefined;
 	try {
 		const destination = await findDestinationById(backup.destinationId);
 		const rcloneFlags = getS3Credentials(destination);
@@ -79,11 +89,24 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			writeStream.write("Zipped database and filesystem\n");
 
-			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
+			const zipPath = join(tempDir, backupFileName);
+			try {
+				const { size } = await stat(zipPath);
+				computedBackupSize = size;
+				writeStream.write(`Backup size: ${size} bytes\n`);
+			} catch {
+				// If stat fails, keep undefined
+			}
+
+			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${zipPath}" "${s3Path}"`;
 			writeStream.write("Running command to upload backup to S3\n");
 			await execAsync(uploadCommand);
 			writeStream.write("Uploaded backup to S3 ✅\n");
 			writeStream.end();
+			await sendDokployBackupNotifications({
+				type: "success",
+				backupSize: formatBytes(computedBackupSize),
+			});
 			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;
 		} finally {
@@ -100,6 +123,12 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			error instanceof Error ? error.message : "Unknown error\n",
 		);
 		writeStream.end();
+		await sendDokployBackupNotifications({
+					type: "error",
+					// @ts-ignore
+					errorMessage: error?.message || "Error message not provided",
+					backupSize: formatBytes(computedBackupSize),
+				});
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		throw error;
 	}
