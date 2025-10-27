@@ -25,6 +25,7 @@ export const notifications = pgTable("notification", {
 	appBuildError: boolean("appBuildError").notNull().default(false),
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
+	dokployBackup: boolean("dokployBackup").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
 	notificationType: notificationType("notificationType").notNull(),
@@ -169,6 +170,7 @@ export const apiCreateSlack = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -196,6 +198,7 @@ export const apiCreateTelegram = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -225,6 +228,7 @@ export const apiCreateDiscord = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -255,6 +259,7 @@ export const apiCreateEmail = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -290,6 +295,7 @@ export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -323,6 +329,7 @@ export const apiCreateNtfy = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -359,6 +366,7 @@ export const apiCreateLark = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		dokployBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
