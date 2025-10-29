@@ -270,7 +270,9 @@
 	right: 0px !important;
 	width: 100px !important;
 	height: 100% !important;
-	box-shadow: 0 0 10px hsl(var(--primary)), 0 0 5px hsl(var(--primary)) !important;
+	box-shadow:
+		0 0 10px hsl(var(--primary)),
+		0 0 5px hsl(var(--primary)) !important;
 	opacity: 1 !important;
 	transform: rotate(3deg) translate(0px, -4px) !important;
 }
