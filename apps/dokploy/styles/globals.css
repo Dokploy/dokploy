@@ -247,3 +247,35 @@
 .cm-lineWrapping {
 	@apply font-mono;
 }
+
+/* NProgress Top Loader Styles */
+#nprogress {
+	pointer-events: none;
+}
+
+#nprogress .bar {
+	background: hsl(var(--primary)) !important;
+	position: fixed !important;
+	z-index: 9999 !important;
+	top: 0 !important;
+	left: 0 !important;
+	width: 100% !important;
+	height: 2px !important;
+	transition: opacity 300ms ease-in-out;
+}
+
+#nprogress .peg {
+	display: block !important;
+	position: absolute !important;
+	right: 0px !important;
+	width: 100px !important;
+	height: 100% !important;
+	box-shadow: 0 0 10px hsl(var(--primary)), 0 0 5px hsl(var(--primary)) !important;
+	opacity: 1 !important;
+	transform: rotate(3deg) translate(0px, -4px) !important;
+}
+
+/* Remove spinner if it exists */
+#nprogress .spinner {
+	display: none !important;
+}
