@@ -2,6 +2,7 @@ import {
 	addNewEnvironment,
 	addNewProject,
 	checkProjectAccess,
+	calculateProjectDiskUsage,
 	createApplication,
 	createBackup,
 	createCompose,
@@ -202,7 +203,7 @@ export const projectRouter = createTRPCRouter({
 							sql`, `,
 						)})`;
 
-			return await db.query.projects.findMany({
+			const projectsData = await db.query.projects.findMany({
 				where: and(
 					sql`${projects.projectId} IN (${sql.join(
 						accessedProjects.map((projectId) => sql`${projectId}`),
@@ -219,54 +220,95 @@ export const projectRouter = createTRPCRouter({
 									applications.applicationId,
 									accessedServices,
 								),
-								with: { domains: true },
+								with: { domains: true, mounts: true },
 							},
 							mariadb: {
 								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
+								with: { mounts: true },
 							},
 							mongo: {
 								where: buildServiceFilter(mongo.mongoId, accessedServices),
+								with: { mounts: true },
 							},
 							mysql: {
 								where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								with: { mounts: true },
 							},
 							postgres: {
 								where: buildServiceFilter(
 									postgres.postgresId,
 									accessedServices,
 								),
+								with: { mounts: true },
 							},
 							redis: {
 								where: buildServiceFilter(redis.redisId, accessedServices),
+								with: { mounts: true },
 							},
 							compose: {
 								where: buildServiceFilter(compose.composeId, accessedServices),
-								with: { domains: true },
+								with: { domains: true, mounts: true },
 							},
 						},
 					},
 				},
 				orderBy: desc(projects.createdAt),
 			});
+
+			// Calculate disk usage for each project
+			const projectsWithDiskUsage = await Promise.all(
+				projectsData.map(async (project) => {
+					try {
+						const diskUsageBytes = await calculateProjectDiskUsage(project);
+						return {
+							...project,
+							diskUsageBytes,
+						};
+					} catch (error) {
+						console.error(
+							`Error calculating disk usage for project ${project.projectId}:`,
+							error,
+						);
+						return {
+							...project,
+							diskUsageBytes: 0,
+						};
+					}
+				}),
+			);
+
+			return projectsWithDiskUsage;
 		}
 
-		return await db.query.projects.findMany({
+		const projectsData = await db.query.projects.findMany({
 			with: {
 				environments: {
 					with: {
 						applications: {
 							with: {
 								domains: true,
+								mounts: true,
 							},
 						},
-						mariadb: true,
-						mongo: true,
-						mysql: true,
-						postgres: true,
-						redis: true,
+						mariadb: {
+							with: { mounts: true },
+						},
+						mongo: {
+							with: { mounts: true },
+						},
+						mysql: {
+							with: { mounts: true },
+						},
+						postgres: {
+							with: { mounts: true },
+						},
+						redis: {
+							with: { mounts: true },
+						},
 						compose: {
 							with: {
 								domains: true,
+								mounts: true,
 							},
 						},
 					},
@@ -275,6 +317,30 @@ export const projectRouter = createTRPCRouter({
 			where: eq(projects.organizationId, ctx.session.activeOrganizationId),
 			orderBy: desc(projects.createdAt),
 		});
+
+		// Calculate disk usage for each project (in parallel for better performance)
+		const projectsWithDiskUsage = await Promise.all(
+			projectsData.map(async (project) => {
+				try {
+					const diskUsageBytes = await calculateProjectDiskUsage(project);
+					return {
+						...project,
+						diskUsageBytes,
+					};
+				} catch (error) {
+					console.error(
+						`Error calculating disk usage for project ${project.projectId}:`,
+						error,
+					);
+					return {
+						...project,
+						diskUsageBytes: 0,
+					};
+				}
+			}),
+		);
+
+		return projectsWithDiskUsage;
 	}),
 
 	remove: protectedProcedure
@@ -734,3 +800,4 @@ function buildServiceFilter(
 				sql`, `,
 			)})`;
 }
+
