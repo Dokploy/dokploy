@@ -1,4 +1,7 @@
-import { execAsync, execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 
 interface VolumeInfo {
 	volumeName: string;
@@ -295,10 +298,7 @@ const getVolumeSizesBatch = async (
 						Size?: string;
 					};
 					if (data.Type === "Local Volume" && data.Name && data.Size) {
-						volumeSizeMap.set(
-							data.Name,
-							parseSizeToBytes(data.Size),
-						);
+						volumeSizeMap.set(data.Name, parseSizeToBytes(data.Size));
 					}
 				} catch {
 					// Skip invalid JSON lines
@@ -374,4 +374,3 @@ export const calculateProjectDiskUsage = async (
 		return 0;
 	}
 };
-
