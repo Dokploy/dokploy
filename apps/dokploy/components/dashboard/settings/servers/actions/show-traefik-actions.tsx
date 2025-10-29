@@ -135,7 +135,8 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							className="w-full cursor-pointer space-x-3"
 						>
 							<span>
-								{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"} Dashboard
+								{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"}{" "}
+								Dashboard
 							</span>
 						</DropdownMenuItem>
 						<ManageTraefikPorts serverId={serverId}>
@@ -143,7 +144,9 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 								onSelect={(e) => e.preventDefault()}
 								className="cursor-pointer"
 							>
-								<span>{t("settings.server.webServer.traefik.managePorts")}</span>
+								<span>
+									{t("settings.server.webServer.traefik.managePorts")}
+								</span>
 							</DropdownMenuItem>
 						</ManageTraefikPorts>
 					</DropdownMenuGroup>
@@ -159,11 +162,12 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 						<AlertDialogDescription className="space-y-2">
 							<p>
 								Enabling the Traefik dashboard will expose it on port 8080. This
-								may conflict with other services already using port 8080 and could
-								cause your server to become unreachable.
+								may conflict with other services already using port 8080 and
+								could cause your server to become unreachable.
 							</p>
 							<p className="font-medium text-destructive mt-4">
-								Please ensure no other service is using port 8080 before proceeding.
+								Please ensure no other service is using port 8080 before
+								proceeding.
 							</p>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
