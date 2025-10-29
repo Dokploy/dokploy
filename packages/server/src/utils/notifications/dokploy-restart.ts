@@ -9,6 +9,7 @@ import {
 	sendEmailNotification,
 	sendLarkNotification,
 	sendGotifyNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -26,12 +27,13 @@ export const sendDokployRestartNotifications = async () => {
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } =
 			notification;
 
 		if (email) {
@@ -133,6 +135,18 @@ export const sendDokployRestartNotifications = async () => {
 							],
 						},
 					],
+				});
+			} catch (error) {
+				console.log(error);
+			}
+		}
+
+		if (mattermost) {
+			try {
+				await sendMattermostNotification(mattermost, {
+					text: `**✅ Dokploy Server Restarted**\n\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+					channel: mattermost.channel,
+					username: mattermost.username || "Dokploy",
 				});
 			} catch (error) {
 				console.log(error);
