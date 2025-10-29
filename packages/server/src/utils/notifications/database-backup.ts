@@ -52,7 +52,8 @@ export const sendDatabaseBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -357,7 +358,7 @@ export const sendDatabaseBackupNotifications = async ({
 				},
 			});
 		}
-		
+
 		if (mattermost) {
 			const statusEmoji = type === "success" ? "✅" : "❌";
 			const typeStatus = type === "success" ? "Successful" : "Failed";

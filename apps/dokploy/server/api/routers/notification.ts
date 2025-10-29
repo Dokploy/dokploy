@@ -581,7 +581,7 @@ export const notificationRouter = createTRPCRouter({
 				});
 			}
 		}),
-		createLark: adminProcedure
+	createLark: adminProcedure
 		.input(apiCreateLark)
 		.mutation(async ({ input, ctx }) => {
 			try {

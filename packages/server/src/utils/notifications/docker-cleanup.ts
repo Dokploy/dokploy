@@ -39,7 +39,8 @@ export const sendDockerCleanupNotifications = async (
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -147,8 +148,8 @@ export const sendDockerCleanupNotifications = async (
 				username: mattermost.username || "Dokploy",
 			});
 		}
-		
-				if (lark) {
+
+		if (lark) {
 			await sendLarkNotification(lark, {
 				msg_type: "interactive",
 				card: {

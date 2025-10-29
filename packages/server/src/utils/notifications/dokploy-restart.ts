@@ -33,7 +33,8 @@ export const sendDokployRestartNotifications = async () => {
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -151,7 +152,7 @@ export const sendDokployRestartNotifications = async () => {
 				console.log(error);
 			}
 		}
-		
+
 		if (lark) {
 			try {
 				await sendLarkNotification(lark, {

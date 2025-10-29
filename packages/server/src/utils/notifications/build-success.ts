@@ -53,7 +53,8 @@ export const sendBuildSuccessNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -318,7 +319,7 @@ export const sendBuildSuccessNotifications = async ({
 				},
 			});
 		}
-		
+
 		if (mattermost) {
 			await sendMattermostNotification(mattermost, {
 				text: `**✅ Build Success**\n\n**Project:** ${projectName}\n**Application:** ${applicationName}\n**Type:** ${applicationType}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}\n\n[View Build Details](${buildLink})`,

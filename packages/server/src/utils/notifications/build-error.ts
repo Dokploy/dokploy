@@ -52,7 +52,8 @@ export const sendBuildErrorNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } =
+			notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -235,7 +236,7 @@ ${errorMessage}
 				username: mattermost.username || "Dokploy Bot",
 			});
 		}
-		
+
 		if (lark) {
 			const limitCharacter = 800;
 			const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);

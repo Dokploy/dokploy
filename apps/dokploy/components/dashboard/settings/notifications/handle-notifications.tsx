@@ -116,7 +116,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			username: z.string().optional(),
 		})
 		.merge(notificationBaseSchema),
-    z
+	z
 		.object({
 			type: z.literal("lark"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
@@ -190,8 +190,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testGotifyConnection.useMutation();
 	const { mutateAsync: testNtfyConnection, isLoading: isLoadingNtfy } =
 		api.notification.testNtfyConnection.useMutation();
-	const { mutateAsync: testMattermostConnection, isLoading: isLoadingMattermost } =
-		api.notification.testMattermostConnection.useMutation();
+	const {
+		mutateAsync: testMattermostConnection,
+		isLoading: isLoadingMattermost,
+	} = api.notification.testMattermostConnection.useMutation();
 	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
 	const slackMutation = notificationId
@@ -499,7 +501,6 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
-
 
 				serverThreshold: serverThreshold,
 			});

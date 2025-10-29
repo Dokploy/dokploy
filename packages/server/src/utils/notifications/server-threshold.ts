@@ -163,8 +163,8 @@ export const sendServerThresholdNotifications = async (
 				username: mattermost.username || "Dokploy",
 			});
 		}
-		
-				if (lark) {
+
+		if (lark) {
 			await sendLarkNotification(lark, {
 				msg_type: "interactive",
 				card: {
