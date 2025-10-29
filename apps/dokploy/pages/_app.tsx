@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import "nprogress/nprogress.css";
 
 import type { NextPage } from "next";
 import type { AppProps } from "next/app";
@@ -9,6 +10,7 @@ import { appWithTranslation } from "next-i18next";
 import { ThemeProvider } from "next-themes";
 import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
+import { TopLoader } from "@/components/shared/top-loader";
 import { Toaster } from "@/components/ui/sonner";
 import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
@@ -57,6 +59,7 @@ const MyApp = ({
 				disableTransitionOnChange
 				forcedTheme={Component.theme}
 			>
+				<TopLoader />
 				<Toaster richColors />
 				<SearchCommand />
 				{getLayout(<Component {...pageProps} />)}
