@@ -265,17 +265,22 @@ export const ShowPaidMonitoring = ({
 
 			{/* Charts Grid */}
 			<div className="grid gap-4 grid-cols-1 md:grid-cols-1 xl:grid-cols-2">
-                <CPUChart data={historicalData} />
-                <MemoryChart data={historicalData} />
-                <DiskSpacePie
-                    usedGB={
-                        Number.isFinite(Number(metrics.diskUsed)) && Number.isFinite(Number(metrics.totalDisk))
-                            ? (Number(metrics.diskUsed) / 100) * Number(metrics.totalDisk)
-                            : 0
-                    }
-                    totalGB={Number.isFinite(Number(metrics.totalDisk)) ? Number(metrics.totalDisk) : 0}
-                />
-                <NetworkChart data={historicalData} />
+				<CPUChart data={historicalData} />
+				<MemoryChart data={historicalData} />
+				<DiskSpacePie
+					usedGB={
+						Number.isFinite(Number(metrics.diskUsed)) &&
+						Number.isFinite(Number(metrics.totalDisk))
+							? (Number(metrics.diskUsed) / 100) * Number(metrics.totalDisk)
+							: 0
+					}
+					totalGB={
+						Number.isFinite(Number(metrics.totalDisk))
+							? Number(metrics.totalDisk)
+							: 0
+					}
+				/>
+				<NetworkChart data={historicalData} />
 			</div>
 		</div>
 	);

@@ -17,38 +17,38 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 
 export const dockerRouter = createTRPCRouter({
-  getDiskUsage: protectedProcedure
-    .input(
-      z.object({
-        serverId: z.string().optional(),
-      }),
-    )
-    .query(async ({ input, ctx }) => {
-      if (input.serverId) {
-        const server = await findServerById(input.serverId);
-        if (server.organizationId !== ctx.session?.activeOrganizationId) {
-          throw new TRPCError({ code: "UNAUTHORIZED" });
-        }
-      }
-      return await getDockerDiskUsageSummary(input.serverId);
-    }),
+	getDiskUsage: protectedProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getDockerDiskUsageSummary(input.serverId);
+		}),
 
-  getDiskUsageBreakdown: protectedProcedure
-    .input(
-      z.object({
-        mode: z.enum(["all", "projects", "services"]),
-        serverId: z.string().optional(),
-      }),
-    )
-    .query(async ({ input, ctx }) => {
-      if (input.serverId) {
-        const server = await findServerById(input.serverId);
-        if (server.organizationId !== ctx.session?.activeOrganizationId) {
-          throw new TRPCError({ code: "UNAUTHORIZED" });
-        }
-      }
-      return await getDockerDiskUsageBreakdown(input.mode, input.serverId);
-    }),
+	getDiskUsageBreakdown: protectedProcedure
+		.input(
+			z.object({
+				mode: z.enum(["all", "projects", "services"]),
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input, ctx }) => {
+			if (input.serverId) {
+				const server = await findServerById(input.serverId);
+				if (server.organizationId !== ctx.session?.activeOrganizationId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+			}
+			return await getDockerDiskUsageBreakdown(input.mode, input.serverId);
+		}),
 	getContainers: protectedProcedure
 		.input(
 			z.object({

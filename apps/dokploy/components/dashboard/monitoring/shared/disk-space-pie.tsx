@@ -1,5 +1,12 @@
 import React from "react";
-import { Pie, PieChart, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+	Pie,
+	PieChart,
+	Cell,
+	Tooltip,
+	Legend,
+	ResponsiveContainer,
+} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface DiskSpacePieProps {
@@ -13,9 +20,14 @@ interface DiskSpacePieProps {
 
 const COLORS = ["hsl(var(--chart-1))", "hsl(var(--muted))"];
 
-export const DiskSpacePie: React.FC<DiskSpacePieProps> = ({ usedGB, totalGB, title = "Disk Space Distribution" }) => {
+export const DiskSpacePie: React.FC<DiskSpacePieProps> = ({
+	usedGB,
+	totalGB,
+	title = "Disk Space Distribution",
+}) => {
 	const safeTotal = Number.isFinite(totalGB) && totalGB > 0 ? totalGB : 0;
-	const safeUsed = Number.isFinite(usedGB) && usedGB > 0 ? Math.min(usedGB, safeTotal) : 0;
+	const safeUsed =
+		Number.isFinite(usedGB) && usedGB > 0 ? Math.min(usedGB, safeTotal) : 0;
 	const freeGB = Math.max(safeTotal - safeUsed, 0);
 
 	const data = [
@@ -32,9 +44,20 @@ export const DiskSpacePie: React.FC<DiskSpacePieProps> = ({ usedGB, totalGB, tit
 				<div className="w-full h-64">
 					<ResponsiveContainer width="100%" height="100%">
 						<PieChart>
-							<Pie data={data} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={2} stroke="transparent">
+							<Pie
+								data={data}
+								dataKey="value"
+								nameKey="name"
+								innerRadius={60}
+								outerRadius={90}
+								paddingAngle={2}
+								stroke="transparent"
+							>
 								{data.map((entry, index) => (
-									<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+									<Cell
+										key={`cell-${index}`}
+										fill={COLORS[index % COLORS.length]}
+									/>
 								))}
 							</Pie>
 							<Tooltip formatter={(value) => `${value} GB`} />
@@ -51,5 +74,3 @@ export const DiskSpacePie: React.FC<DiskSpacePieProps> = ({ usedGB, totalGB, tit
 };
 
 export default DiskSpacePie;
-
-
