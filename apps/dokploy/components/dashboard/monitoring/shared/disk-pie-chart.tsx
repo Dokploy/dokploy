@@ -1,10 +1,5 @@
-import { Pie, PieChart, Cell, Tooltip, Legend, Label } from "recharts";
-import {
-	type ChartConfig,
-	ChartContainer,
-	ChartTooltip,
-	ChartTooltipContent,
-} from "@/components/ui/chart";
+import { Pie, PieChart, Cell, Tooltip, Legend } from "recharts";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 type DiskSlice = {
 	type: string;
@@ -36,66 +31,27 @@ export function DiskPieChart({ data }: Props) {
 		.filter((d) => d.sizeBytes > 0)
 		.map((d) => ({ ...d, percent: (d.sizeBytes / total) * 100 }));
 
-	return (
-		<ChartContainer
-			config={chartConfig}
-			className="w-full max-w-full h-[220px]"
-		>
-			<PieChart>
-				<Pie
-					data={formatted}
-					dataKey="sizeBytes"
-					nameKey="type"
-					outerRadius={80}
-					innerRadius={50}
-					stroke="transparent"
-				>
-					{formatted.map((entry, index) => (
-						<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-					))}
-					<Label
-						position="center"
-						content={({ viewBox }) => {
-							if (
-								!viewBox ||
-								typeof viewBox.cx !== "number" ||
-								typeof viewBox.cy !== "number"
-							)
-								return null;
-							return (
-								<text
-									x={viewBox.cx}
-									y={viewBox.cy}
-									textAnchor="middle"
-									dominantBaseline="middle"
-									className="fill-foreground"
-								>
-									<tspan className="text-xs">Total</tspan>
-									<tspan
-										x={viewBox.cx}
-										y={(viewBox.cy || 0) + 14}
-										className="text-sm font-medium"
-									>
-										{formatBytes(total)}
-									</tspan>
-								</text>
-							);
-						}}
-					/>
-				</Pie>
-				<Legend />
-				<ChartTooltip
-					cursor={false}
-					content={
-						<ChartTooltipContent
-							nameKey="type"
-							valueFormatter={(v) => formatBytes(Number(v))}
-						/>
-					}
-				/>
-			</PieChart>
-		</ChartContainer>
-	);
+  return (
+    <div className="relative">
+      <ChartContainer config={chartConfig} className="w-full max-w-full h-[220px]">
+        <PieChart>
+          <Pie data={formatted} dataKey="sizeBytes" nameKey="type" outerRadius={80} innerRadius={50} stroke="transparent">
+            {formatted.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Legend />
+          <ChartTooltip cursor={false} content={<ChartTooltipContent nameKey="type" formatter={(value) => [formatBytes(Number(value))]} />} />
+        </PieChart>
+      </ChartContainer>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="text-center">
+          <div className="text-xs text-muted-foreground">Total</div>
+          <div className="text-sm font-medium">{formatBytes(total)}</div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function formatBytes(bytes: number): string {

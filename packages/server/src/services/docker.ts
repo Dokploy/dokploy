@@ -97,23 +97,23 @@ export const getDockerDiskUsageBreakdown = async (
 			return await getDockerDiskUsageSummary(serverId);
 		}
 
-		// Build volume size map from df -v
-		const volumeSizeByName: Record<string, number> = {};
-		for (const line of dfLines) {
-			try {
-				const obj = JSON.parse(line);
-				const typeVal = String(obj.Type || obj.Resource || "");
-				const nameVal = obj.Name || obj.Volume || obj.ID || obj.Ref || "";
-				const sizeVal =
-					obj.Size || obj.UsedSize || obj.Used || obj.Reclaimable || "0B";
-				if (typeVal.toLowerCase().includes("volume") && nameVal) {
-					const size = parseDockerHumanSizeToBytes(
-						String(sizeVal).split("(")[0].trim(),
-					);
-					volumeSizeByName[String(nameVal)] = size;
-				}
-			} catch {}
-		}
+        // Build volume size map from df -v
+        const volumeSizeByName: Record<string, number> = {};
+        for (const line of dfLines) {
+            try {
+                const raw = JSON.parse(line) as Record<string, unknown> | null;
+                if (!raw || typeof raw !== "object") continue;
+                const typeVal = String((raw["Type"] ?? raw["Resource"] ?? ""));
+                const nameVal = (raw["Name"] ?? raw["Volume"] ?? raw["ID"] ?? raw["Ref"] ?? "") as string;
+                const sizeVal = (raw["Size"] ?? raw["UsedSize"] ?? raw["Used"] ?? raw["Reclaimable"] ?? "0B") as string;
+                if (typeVal.toLowerCase().includes("volume") && nameVal) {
+                    const sizeStr = String(sizeVal);
+                    const beforeParen = sizeStr.includes("(") ? sizeStr.slice(0, sizeStr.indexOf("(")) : sizeStr;
+                    const size = parseDockerHumanSizeToBytes(beforeParen.trim());
+                    volumeSizeByName[String(nameVal)] = size;
+                }
+            } catch {}
+        }
 
 		// 2) Inspect all volumes to get labels for attribution (compose project/service or stack namespace)
 		// This is done in a single command to avoid multiple execs
@@ -164,22 +164,21 @@ export const getDockerDiskUsageBreakdown = async (
 			.split("\n")
 			.filter(Boolean);
 
-		const containerIds: string[] = [];
-		const containerSizes: Record<string, number> = {};
-		for (const line of containerLines) {
-			try {
-				const obj = JSON.parse(line);
-				const id = obj.ID || obj.Id || obj.Container || "";
-				const sizeStr = (obj.Size as string) || ""; // e.g., "10.5MB (virtual 120MB)"
-				const sizeParsed = parseDockerHumanSizeToBytes(
-					sizeStr.split("(")[0].trim(),
-				);
-				if (id) {
-					containerIds.push(id);
-					containerSizes[id] = sizeParsed;
-				}
-			} catch {}
-		}
+        const containerIds: string[] = [];
+        const containerSizes: Record<string, number> = {};
+        for (const line of containerLines) {
+            try {
+                const obj = JSON.parse(line);
+                const id = obj.ID || obj.Id || obj.Container || "";
+                const sizeStr = ((obj.Size as string) || "").toString();
+                const beforeParen = sizeStr.includes("(") ? sizeStr.slice(0, sizeStr.indexOf("(")) : sizeStr;
+                const sizeParsed = parseDockerHumanSizeToBytes(beforeParen.trim());
+                if (id) {
+                    containerIds.push(id);
+                    containerSizes[id] = sizeParsed;
+                }
+            } catch {}
+        }
 
 		if (containerIds.length > 0) {
 			const inspectContainersCmd = `docker inspect ${containerIds.join(" ")}`;
@@ -195,17 +194,17 @@ export const getDockerDiskUsageBreakdown = async (
 				}
 			})();
 
-			for (const c of containers) {
-				const id: string = c?.Id || c?.ID || "";
-				const labels = c?.Config?.Labels || {};
-				const size = containerSizes[id] || 0;
-				if (size <= 0) continue;
-				const composeProject: string | undefined =
-					labels["com.docker.compose.project"];
-				const composeService: string | undefined =
-					labels["com.docker.compose.service"];
-				const stackNs: string | undefined =
-					labels["com.docker.stack.namespace"];
+            for (const c of containers) {
+                const id: string = (c && (c.Id || c.ID)) || "";
+                const labels: Record<string, string> =
+                    c && c.Config && c.Config.Labels
+                        ? (c.Config.Labels as Record<string, string>)
+                        : {};
+                const size = containerSizes[id] || 0;
+                if (size <= 0) continue;
+                const composeProject: string | undefined = labels["com.docker.compose.project"];
+                const composeService: string | undefined = labels["com.docker.compose.service"];
+                const stackNs: string | undefined = labels["com.docker.stack.namespace"];
 
 				let key = "Unattributed";
 				if (mode === "projects") {
