@@ -5,8 +5,10 @@ import { api } from "@/utils/api";
 import { DockerBlockChart } from "./docker-block-chart";
 import { DockerCpuChart } from "./docker-cpu-chart";
 import { DockerDiskChart } from "./docker-disk-chart";
+import { DiskUsageBreakdownCard } from "@/components/dashboard/monitoring/shared/disk-usage-breakdown-card";
 import { DockerMemoryChart } from "./docker-memory-chart";
 import { DockerNetworkChart } from "./docker-network-chart";
+import { DiskPieChart } from "@/components/dashboard/monitoring/shared/disk-pie-chart";
 
 const defaultData = {
 	cpu: {
@@ -124,6 +126,10 @@ export const ContainerFreeMonitoring = ({
 			refetchOnWindowFocus: false,
 		},
 	);
+    const { data: diskBreakdown } = api.docker.getDiskUsage.useQuery(
+        {},
+        { refetchOnWindowFocus: false },
+    );
 	const [acummulativeData, setAcummulativeData] = useState<DockerStatsJSON>({
 		cpu: [],
 		memory: [],
@@ -269,16 +275,17 @@ export const ContainerFreeMonitoring = ({
 									value={currentData.disk.value.diskUsedPercentage}
 									className="w-[100%]"
 								/>
-								<DockerDiskChart
-									acummulativeData={acummulativeData.disk}
-									diskTotal={currentData.disk.value.diskTotal}
-								/>
+                                <DockerDiskChart
+                                    acummulativeData={acummulativeData.disk}
+                                    diskTotal={currentData.disk.value.diskTotal}
+                                />
 							</div>
 						</CardContent>
 					</Card>
 				)}
 
-				<Card className="bg-background">
+                {appName === "dokploy" && <DiskUsageBreakdownCard />}
+                <Card className="bg-background">
 					<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
 						<CardTitle className="text-sm font-medium">Block I/O</CardTitle>
 					</CardHeader>
