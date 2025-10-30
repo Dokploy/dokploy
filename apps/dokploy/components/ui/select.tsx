@@ -4,7 +4,61 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Select = SelectPrimitive.Root;
+// Traverse children to find all Select items and collect their values
+function collectSelectItemValues(children: React.ReactNode): string[] {
+	const values: string[] = [];
+	React.Children.forEach(children, (child) => {
+		if (!React.isValidElement(child)) return;
+		// Identify Radix Select Item wrappers by displayName
+		// We compare against the underlying Radix Item display name to support both
+		// our wrapped SelectItem and any direct SelectPrimitive.Item usages.
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const typeAny = child.type as any;
+		const displayName: string | undefined = typeAny?.displayName;
+		if (displayName === SelectPrimitive.Item.displayName) {
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+			const valueProp = (child.props as { value?: unknown }).value;
+			if (valueProp !== undefined && valueProp !== null && valueProp !== "") {
+				values.push(String(valueProp));
+			}
+		} else if (child.props && child.props.children) {
+			values.push(...collectSelectItemValues(child.props.children));
+		}
+	});
+	return values;
+}
+
+const Select = ({ children, defaultValue, value, onValueChange, ...props }: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>) => {
+	// Auto-select a single option only when the Select is uncontrolled and has no defaultValue
+	const computedDefaultValue = React.useMemo(() => {
+		if (value !== undefined) return undefined; // controlled
+		if (defaultValue !== undefined && defaultValue !== null && defaultValue !== "") return undefined; // user provided meaningful value
+		const itemValues = collectSelectItemValues(children);
+		return itemValues.length === 1 ? itemValues[0] : undefined;
+	}, [children, value, defaultValue]);
+
+	// Auto-select the only option after async children load for both controlled and uncontrolled usages
+	React.useEffect(() => {
+		if (defaultValue !== undefined && defaultValue !== null && defaultValue !== "") return; // respect explicit non-empty default
+		const itemValues = collectSelectItemValues(children);
+		const hasSingleOption = itemValues.length === 1;
+		const hasNoValue = value === undefined || value === null || value === "";
+		if (hasSingleOption && hasNoValue) {
+			onValueChange?.(itemValues[0]!);
+		}
+	}, [children, defaultValue, value, onValueChange]);
+
+	return (
+		<SelectPrimitive.Root
+			defaultValue={defaultValue ?? computedDefaultValue}
+			value={value}
+			onValueChange={onValueChange}
+			{...props}
+		>
+			{children}
+		</SelectPrimitive.Root>
+	);
+};
 
 const SelectGroup = SelectPrimitive.Group;
 
