@@ -28,18 +28,34 @@ function collectSelectItemValues(children: React.ReactNode): string[] {
 	return values;
 }
 
-const Select = ({ children, defaultValue, value, onValueChange, ...props }: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>) => {
+const Select = ({
+	children,
+	defaultValue,
+	value,
+	onValueChange,
+	...props
+}: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>) => {
 	// Auto-select a single option only when the Select is uncontrolled and has no defaultValue
 	const computedDefaultValue = React.useMemo(() => {
 		if (value !== undefined) return undefined; // controlled
-		if (defaultValue !== undefined && defaultValue !== null && defaultValue !== "") return undefined; // user provided meaningful value
+		if (
+			defaultValue !== undefined &&
+			defaultValue !== null &&
+			defaultValue !== ""
+		)
+			return undefined; // user provided meaningful value
 		const itemValues = collectSelectItemValues(children);
 		return itemValues.length === 1 ? itemValues[0] : undefined;
 	}, [children, value, defaultValue]);
 
 	// Auto-select the only option after async children load for both controlled and uncontrolled usages
 	React.useEffect(() => {
-		if (defaultValue !== undefined && defaultValue !== null && defaultValue !== "") return; // respect explicit non-empty default
+		if (
+			defaultValue !== undefined &&
+			defaultValue !== null &&
+			defaultValue !== ""
+		)
+			return; // respect explicit non-empty default
 		const itemValues = collectSelectItemValues(children);
 		const hasSingleOption = itemValues.length === 1;
 		const hasNoValue = value === undefined || value === null || value === "";
