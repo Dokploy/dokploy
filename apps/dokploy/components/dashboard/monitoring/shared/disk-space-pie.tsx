@@ -74,4 +74,3 @@ export const DiskSpacePie: React.FC<DiskSpacePieProps> = ({
 };
 
 export default DiskSpacePie;
-
