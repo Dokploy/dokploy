@@ -47,7 +47,13 @@ const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
 		cronExpression: z.string().min(1, "Cron expression is required"),
-		volumeName: z.string().min(1, "Volume name is required"),
+		volumeName: z
+			.string()
+			.min(1, "Volume name is required")
+			.regex(
+				/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+				"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+			),
 		prefix: z.string(),
 		keepLatestCount: z.coerce
 			.number()
