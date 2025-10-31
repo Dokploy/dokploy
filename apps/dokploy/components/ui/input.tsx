@@ -5,13 +5,15 @@ import { cn } from "@/lib/utils";
 export interface InputProps
 	extends React.InputHTMLAttributes<HTMLInputElement> {
 	errorMessage?: string;
+	disablePasswordToggle?: boolean;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-	({ className, errorMessage, type, ...props }, ref) => {
+	({ className, errorMessage, type, disablePasswordToggle, ...props }, ref) => {
 		const [showPassword, setShowPassword] = React.useState(false);
 		const isPassword = type === "password";
 		const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+		const showToggle = isPassword && !disablePasswordToggle;
 
 		return (
 			<>
@@ -21,13 +23,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 						className={cn(
 							// bg-gray
 							"flex h-10 w-full rounded-md bg-input px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-50",
-							isPassword && "pr-10", // Add padding for the eye icon
+							showToggle && "pr-10", // Add padding for the eye icon
 							className,
 						)}
 						ref={ref}
 						{...props}
 					/>
-					{isPassword && (
+					{showToggle && (
 						<button
 							type="button"
 							className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground focus:outline-none"
