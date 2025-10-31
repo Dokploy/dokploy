@@ -1,4 +1,5 @@
 import type {
+	custom,
 	discord,
 	email,
 	lark,
@@ -151,6 +152,45 @@ export const sendNtfyNotification = async (
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
+	}
+};
+
+export const sendCustomNotification = async (
+	connection: typeof custom.$inferInsert,
+	payload: Record<string, any>,
+) => {
+	try {
+		// Parse headers if provided
+		let headers: Record<string, string> = {
+			"Content-Type": "application/json",
+		};
+		if (connection.headers) {
+			try {
+				headers = { ...headers, ...JSON.parse(connection.headers) };
+			} catch (error) {
+				console.error("Error parsing headers:", error);
+			}
+		}
+
+		// Default body with payload
+		const body = JSON.stringify(payload);
+
+		const response = await fetch(connection.endpoint, {
+			method: "POST",
+			headers,
+			body,
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`Failed to send custom notification: ${response.statusText}`,
+			);
+		}
+
+		return response;
+	} catch (error) {
+		console.error("Error sending custom notification:", error);
+		throw error;
 	}
 };
 

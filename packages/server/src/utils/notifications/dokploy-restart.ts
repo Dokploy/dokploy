@@ -5,6 +5,7 @@ import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendLarkNotification,
@@ -26,12 +27,13 @@ export const sendDokployRestartNotifications = async () => {
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			custom: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
 			notification;
 
 		if (email) {
@@ -133,6 +135,21 @@ export const sendDokployRestartNotifications = async () => {
 							],
 						},
 					],
+				});
+			} catch (error) {
+				console.log(error);
+			}
+		}
+
+		if (custom) {
+			try {
+				await sendCustomNotification(custom, {
+					title: "Dokploy Server Restarted",
+					message: "Dokploy server has been restarted successfully",
+					timestamp: date.toISOString(),
+					date: date.toLocaleString(),
+					status: "success",
+					type: "dokploy-restart",
 				});
 			} catch (error) {
 				console.log(error);
