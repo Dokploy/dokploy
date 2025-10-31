@@ -5,7 +5,13 @@ import { Check, Moon, Palette, Sun } from "lucide-react";
 import { useTheme } from "@/lib/hooks/use-theme";
 import { getAvailableColorSchemes, type ColorScheme } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import {
 	Select,
 	SelectContent,
@@ -37,7 +43,8 @@ const colorSchemeMap: Record<ColorScheme, { name: string; color: string }> = {
 
 export function AppearanceForm() {
 	const { t } = useTranslation("settings");
-	const { theme, setTheme, colorScheme, setColorScheme, resolvedTheme } = useTheme();
+	const { theme, setTheme, colorScheme, setColorScheme, resolvedTheme } =
+		useTheme();
 	const schemes = getAvailableColorSchemes();
 
 	const isDark = resolvedTheme === "dark";
@@ -80,9 +87,7 @@ export function AppearanceForm() {
 									{t("settings.appearance.themes.light")}
 								</span>
 							</div>
-							{theme === "light" && (
-								<Check className="ml-auto h-4 w-4" />
-							)}
+							{theme === "light" && <Check className="ml-auto h-4 w-4" />}
 						</Button>
 						<Button
 							variant={theme === "dark" ? "default" : "outline"}
@@ -95,9 +100,7 @@ export function AppearanceForm() {
 									{t("settings.appearance.themes.dark")}
 								</span>
 							</div>
-							{theme === "dark" && (
-								<Check className="ml-auto h-4 w-4" />
-							)}
+							{theme === "dark" && <Check className="ml-auto h-4 w-4" />}
 						</Button>
 						<Button
 							variant={theme === "system" ? "default" : "outline"}
@@ -113,9 +116,7 @@ export function AppearanceForm() {
 									{t("settings.appearance.themes.system")}
 								</span>
 							</div>
-							{theme === "system" && (
-								<Check className="ml-auto h-4 w-4" />
-							)}
+							{theme === "system" && <Check className="ml-auto h-4 w-4" />}
 						</Button>
 					</div>
 				</div>
@@ -155,9 +156,7 @@ export function AppearanceForm() {
 										/>
 										{isSelected && <Check className="h-4 w-4" />}
 									</div>
-									<span className="text-sm font-medium">
-										{schemeInfo.name}
-									</span>
+									<span className="text-sm font-medium">{schemeInfo.name}</span>
 								</Button>
 							);
 						})}
@@ -167,4 +166,3 @@ export function AppearanceForm() {
 		</Card>
 	);
 }
-

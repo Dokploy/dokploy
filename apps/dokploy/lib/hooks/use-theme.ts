@@ -27,14 +27,15 @@ export function useTheme() {
 		if (typeof window === "undefined") return;
 		localStorage.setItem(COLOR_SCHEME_STORAGE_KEY, scheme);
 		setColorSchemeState(scheme);
-		
+
 		// Apply color scheme to document
 		const root = document.documentElement;
 		root.setAttribute("data-color-scheme", scheme);
 	};
 
 	// Get current theme mode
-	const currentMode: ThemeMode = theme === "system" ? (systemTheme || "light") : (theme as ThemeMode);
+	const currentMode: ThemeMode =
+		theme === "system" ? systemTheme || "light" : (theme as ThemeMode);
 
 	return {
 		theme: theme as ThemeMode,
@@ -46,4 +47,3 @@ export function useTheme() {
 		currentMode,
 	};
 }
-

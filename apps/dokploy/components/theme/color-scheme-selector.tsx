@@ -56,7 +56,7 @@ export function ColorSchemeSelector() {
 				{schemes.map((scheme) => {
 					const schemeInfo = colorSchemeMap[scheme.value];
 					const isSelected = colorScheme === scheme.value;
-					
+
 					return (
 						<DropdownMenuItem
 							key={scheme.value}
@@ -80,4 +80,3 @@ export function ColorSchemeSelector() {
 		</DropdownMenu>
 	);
 }
-

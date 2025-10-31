@@ -3,13 +3,13 @@
  * Provides theme definitions and utilities for managing custom color schemes
  */
 
-export type ColorScheme = 
-	| "zinc" 
-	| "blue" 
-	| "green" 
-	| "purple" 
-	| "orange" 
-	| "red" 
+export type ColorScheme =
+	| "zinc"
+	| "blue"
+	| "green"
+	| "purple"
+	| "orange"
+	| "red"
 	| "pink"
 	| "cyan"
 	| "sky"
@@ -420,13 +420,20 @@ export function applyColorScheme(scheme: ColorScheme, isDark: boolean) {
 /**
  * Get theme class name for applying theme
  */
-export function getThemeClassName(scheme: ColorScheme, mode: ThemeMode): string {
+export function getThemeClassName(
+	scheme: ColorScheme,
+	mode: ThemeMode,
+): string {
 	const classes: string[] = [];
-	
-	if (mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+
+	if (
+		mode === "dark" ||
+		(mode === "system" &&
+			window.matchMedia("(prefers-color-scheme: dark)").matches)
+	) {
 		classes.push("dark");
 	}
-	
+
 	classes.push(`theme-${scheme}`);
 	return classes.join(" ");
 }
@@ -441,4 +448,3 @@ export function getAvailableColorSchemes() {
 		description: value.description,
 	}));
 }
-
