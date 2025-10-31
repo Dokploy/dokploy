@@ -123,7 +123,8 @@ export const destinationRouter = createTRPCRouter({
 			// CryptoJS encrypted strings ALWAYS start with "U2FsdGVkX1" (Salted__ in base64)
 			// If decryption failed, the value will still have this prefix
 			const isAccessKeyStillEncrypted = accessKey?.startsWith("U2FsdGVkX1");
-			const isSecretKeyStillEncrypted = secretAccessKey?.startsWith("U2FsdGVkX1");
+			const isSecretKeyStillEncrypted =
+				secretAccessKey?.startsWith("U2FsdGVkX1");
 
 			if (isAccessKeyStillEncrypted || isSecretKeyStillEncrypted) {
 				throw new TRPCError({
