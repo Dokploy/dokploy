@@ -22,6 +22,7 @@ import { Languages } from "@/lib/languages";
 import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
+import { ColorSchemeSelector } from "../theme/color-scheme-selector";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
@@ -72,7 +73,10 @@ export const UserNav = () => {
 							{data?.user?.email}
 						</span>
 					</DropdownMenuLabel>
-					<ModeToggle />
+					<div className="flex items-center gap-1">
+						<ColorSchemeSelector />
+						<ModeToggle />
+					</div>
 				</div>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>

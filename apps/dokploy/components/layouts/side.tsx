@@ -22,6 +22,7 @@ import {
 	KeyRound,
 	Loader2,
 	type LucideIcon,
+	Moon,
 	Package,
 	PieChart,
 	Server,
@@ -269,6 +270,12 @@ const MENU: Menu = {
 			title: "Profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
+		},
+		{
+			isSingle: true,
+			title: "Appearance",
+			url: "/dashboard/settings/appearance",
+			icon: Moon,
 		},
 		{
 			isSingle: true,
