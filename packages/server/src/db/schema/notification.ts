@@ -13,6 +13,7 @@ export const notificationType = pgEnum("notificationType", [
 	"gotify",
 	"ntfy",
 	"custom",
+	"lark",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -50,6 +51,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	customId: text("customId").references(() => custom.customId, {
+		onDelete: "cascade",
+	}),
+	larkId: text("larkId").references(() => lark.larkId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -129,6 +133,14 @@ export const custom = pgTable("custom", {
 	headers: text("headers"), // JSON string
 });
 
+export const lark = pgTable("lark", {
+	larkId: text("larkId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -157,6 +169,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	custom: one(custom, {
 		fields: [notifications.customId],
 		references: [custom.customId],
+	}),
+	lark: one(lark, {
+		fields: [notifications.larkId],
+		references: [lark.larkId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -380,6 +396,31 @@ export const apiUpdateCustom = apiCreateCustom.partial().extend({
 export const apiTestCustomConnection = z.object({
 	endpoint: z.string().min(1),
 	headers: z.string().optional(),
+});
+
+export const apiCreateLark = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateLark = apiCreateLark.partial().extend({
+	notificationId: z.string().min(1),
+	larkId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestLarkConnection = apiCreateLark.pick({
+	webhookUrl: true,
 });
 
 export const apiSendTest = notificationsSchema

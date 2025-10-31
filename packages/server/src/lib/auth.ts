@@ -10,6 +10,7 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
 import { updateUser } from "../services/user";
+import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
@@ -115,7 +116,7 @@ const { handler, api } = betterAuth({
 						}
 					}
 				},
-				after: async (user) => {
+				after: async (user, context) => {
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
@@ -124,6 +125,27 @@ const { handler, api } = betterAuth({
 						await updateUser(user.id, {
 							serverIp: await getPublicIpWithFallback(),
 						});
+					}
+
+					if (IS_CLOUD) {
+						try {
+							const hutk = getHubSpotUTK(
+								context?.request?.headers?.get("cookie") || undefined,
+							);
+							const hubspotSuccess = await submitToHubSpot(
+								{
+									email: user.email,
+									firstName: user.name,
+									lastName: user.name,
+								},
+								hutk,
+							);
+							if (!hubspotSuccess) {
+								console.error("Failed to submit to HubSpot");
+							}
+						} catch (error) {
+							console.error("Error submitting to HubSpot", error);
+						}
 					}
 
 					if (IS_CLOUD || !isAdminPresent) {

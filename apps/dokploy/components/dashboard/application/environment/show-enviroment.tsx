@@ -108,6 +108,21 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 		});
 	};
 
+	// Add keyboard shortcut for Ctrl+S/Cmd+S
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading) {
+				e.preventDefault();
+				form.handleSubmit(onSubmit)();
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [form, onSubmit, isLoading]);
+
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">

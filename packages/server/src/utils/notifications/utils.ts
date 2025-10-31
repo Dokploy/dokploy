@@ -2,6 +2,7 @@ import type {
 	custom,
 	discord,
 	email,
+	lark,
 	gotify,
 	ntfy,
 	slack,
@@ -190,5 +191,20 @@ export const sendCustomNotification = async (
 	} catch (error) {
 		console.error("Error sending custom notification:", error);
 		throw error;
+	}
+};
+
+export const sendLarkNotification = async (
+	connection: typeof lark.$inferInsert,
+	message: any,
+) => {
+	try {
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
 	}
 };

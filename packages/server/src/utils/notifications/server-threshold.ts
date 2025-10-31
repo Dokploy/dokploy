@@ -4,6 +4,7 @@ import { notifications } from "../../db/schema";
 import {
 	sendCustomNotification,
 	sendDiscordNotification,
+	sendLarkNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -36,6 +37,7 @@ export const sendServerThresholdNotifications = async (
 			telegram: true,
 			slack: true,
 			custom: true,
+			lark: true,
 		},
 	});
 
@@ -43,7 +45,7 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, custom } = notification;
+		const { discord, telegram, slack, custom, lark } = notification;
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -166,6 +168,102 @@ export const sendServerThresholdNotifications = async (
 				date: date.toLocaleString(),
 				status: "alert",
 				alertType: "server-threshold",
+			});
+		}
+
+		if (lark) {
+			await sendLarkNotification(lark, {
+				msg_type: "interactive",
+				card: {
+					schema: "2.0",
+					config: {
+						update_multi: true,
+						style: {
+							text_size: {
+								normal_v2: {
+									default: "normal",
+									pc: "normal",
+									mobile: "heading",
+								},
+							},
+						},
+					},
+					header: {
+						title: {
+							tag: "plain_text",
+							content: `⚠️ Server ${payload.Type} Alert`,
+						},
+						subtitle: {
+							tag: "plain_text",
+							content: "",
+						},
+						template: "red",
+						padding: "12px 12px 12px 12px",
+					},
+					body: {
+						direction: "vertical",
+						padding: "12px 12px 12px 12px",
+						elements: [
+							{
+								tag: "column_set",
+								columns: [
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Server Name:**\n${payload.ServerName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Current Value:**\n${payload.Value.toFixed(2)}%`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Alert Message:**\n${payload.Message}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Type:**\n${payload.Type === "CPU" ? "🔲" : "💾"} ${payload.Type}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Threshold:**\n${payload.Threshold.toFixed(2)}%`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Alert Time:**\n${date.toLocaleString()}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+								],
+							},
+						],
+					},
+				},
 			});
 		}
 	}

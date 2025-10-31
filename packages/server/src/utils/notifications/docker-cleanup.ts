@@ -8,6 +8,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
@@ -33,11 +34,12 @@ export const sendDockerCleanupNotifications = async (
 			gotify: true,
 			ntfy: true,
 			custom: true,
+			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom } =
+		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
 			notification;
 
 		if (email) {
@@ -148,6 +150,84 @@ export const sendDockerCleanupNotifications = async (
 				date: date.toLocaleString(),
 				status: "success",
 				type: "docker-cleanup",
+			});
+		}
+
+		if (lark) {
+			await sendLarkNotification(lark, {
+				msg_type: "interactive",
+				card: {
+					schema: "2.0",
+					config: {
+						update_multi: true,
+						style: {
+							text_size: {
+								normal_v2: {
+									default: "normal",
+									pc: "normal",
+									mobile: "heading",
+								},
+							},
+						},
+					},
+					header: {
+						title: {
+							tag: "plain_text",
+							content: "✅ Docker Cleanup",
+						},
+						subtitle: {
+							tag: "plain_text",
+							content: "",
+						},
+						template: "green",
+						padding: "12px 12px 12px 12px",
+					},
+					body: {
+						direction: "vertical",
+						padding: "12px 12px 12px 12px",
+						elements: [
+							{
+								tag: "column_set",
+								columns: [
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Status:**\nSuccessful`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Cleanup Details:**\n${message}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Date:**\n${format(date, "PP pp")}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+								],
+							},
+						],
+					},
+				},
 			});
 		}
 	}
