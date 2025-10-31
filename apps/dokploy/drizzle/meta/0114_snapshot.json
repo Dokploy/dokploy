@@ -1,5 +1,5 @@
 {
-  "id": "70e92aa8-56d1-4842-b844-775cb8198849",
+  "id": "c615c052-2494-4e3c-9fc2-14f26fc65160",
   "prevId": "8310936d-e9ff-408b-ae6d-2292aac02523",
   "version": "7",
   "dialect": "postgresql",
@@ -420,6 +420,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "canCreateProjects": {
           "name": "canCreateProjects",
