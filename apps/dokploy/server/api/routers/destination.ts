@@ -26,7 +26,10 @@ import {
 
 // Encryption utilities for server-side use
 const getEncryptionKey = (): string => {
-	return process.env.DOKPLOY_ENCRYPTION_KEY || "dokploy-s3-backup-encryption-key-2024";
+	return (
+		process.env.DOKPLOY_ENCRYPTION_KEY ||
+		"dokploy-s3-backup-encryption-key-2024"
+	);
 };
 
 const encryptValue = (text: string): string => {
@@ -41,21 +44,21 @@ const encryptValue = (text: string): string => {
 
 const decryptValue = (encryptedText: string): string => {
 	if (!encryptedText) return encryptedText;
-	
+
 	// Check if the value is encrypted (CryptoJS encrypted strings ALWAYS start with "U2FsdGVkX1")
 	// This is "Salted__" in base64, which CryptoJS uses as a prefix
-	const isEncrypted = encryptedText.startsWith('U2FsdGVkX1');
-	
+	const isEncrypted = encryptedText.startsWith("U2FsdGVkX1");
+
 	// If it's not encrypted, return as-is (already plain text)
 	if (!isEncrypted) {
 		return encryptedText;
 	}
-	
+
 	// Try to decrypt the encrypted value
 	try {
 		const decrypted = CryptoJS.AES.decrypt(encryptedText, getEncryptionKey());
 		const plainText = decrypted.toString(CryptoJS.enc.Utf8);
-		
+
 		// Check if decryption was successful
 		// CryptoJS will return an empty string if decryption fails (wrong key or corrupted)
 		// We need both sigBytes > 0 (got some data) AND plainText.length > 0 (valid UTF-8 result)
@@ -63,11 +66,16 @@ const decryptValue = (encryptedText: string): string => {
 			// Decryption successful - return plain text
 			return plainText;
 		}
-		
+
 		// Decryption failed - the value was encrypted but couldn't be decrypted
 		// This might indicate wrong key or corrupted data
-		console.warn("Decryption failed for encrypted value. sigBytes:", decrypted.sigBytes, "plainText length:", plainText.length);
-		
+		console.warn(
+			"Decryption failed for encrypted value. sigBytes:",
+			decrypted.sigBytes,
+			"plainText length:",
+			plainText.length,
+		);
+
 		// Return original encrypted value - this will be caught by validation in testConnection
 		// and will prevent using encrypted values as credentials
 		return encryptedText;
@@ -110,27 +118,30 @@ export const destinationRouter = createTRPCRouter({
 			let accessKey = decryptValue(input.accessKey);
 			let secretAccessKey = decryptValue(input.secretAccessKey);
 			const { bucket, region, endpoint, provider } = input;
-			
+
 			// Validate that decryption was successful - only check for CryptoJS prefix
 			// CryptoJS encrypted strings ALWAYS start with "U2FsdGVkX1" (Salted__ in base64)
 			// If decryption failed, the value will still have this prefix
-			const isAccessKeyStillEncrypted = accessKey && accessKey.startsWith('U2FsdGVkX1');
-			const isSecretKeyStillEncrypted = secretAccessKey && secretAccessKey.startsWith('U2FsdGVkX1');
-			
+			const isAccessKeyStillEncrypted =
+				accessKey && accessKey.startsWith("U2FsdGVkX1");
+			const isSecretKeyStillEncrypted =
+				secretAccessKey && secretAccessKey.startsWith("U2FsdGVkX1");
+
 			if (isAccessKeyStillEncrypted || isSecretKeyStillEncrypted) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Failed to decrypt credentials. The encryption key might be incorrect or the data might be corrupted. Please re-enter your credentials.",
+					message:
+						"Failed to decrypt credentials. The encryption key might be incorrect or the data might be corrupted. Please re-enter your credentials.",
 				});
 			}
-			
+
 			if (!accessKey || !secretAccessKey || !bucket || !endpoint) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Missing required fields for connection test",
 				});
 			}
-			
+
 			// Ensure we're using plain text (not encrypted) values
 			// At this point, accessKey and secretAccessKey should be plain text
 			// If they still look encrypted (have the prefix), decryption failed
@@ -167,29 +178,51 @@ export const destinationRouter = createTRPCRouter({
 				let errorMessage = "Error connecting to bucket";
 				if (error instanceof Error) {
 					errorMessage = error.message;
-					
+
 					// Try to extract stderr from error if available
-					const errorWithStderr = error as Error & { stderr?: string; stdout?: string };
+					const errorWithStderr = error as Error & {
+						stderr?: string;
+						stdout?: string;
+					};
 					if (errorWithStderr.stderr) {
 						errorMessage = errorWithStderr.stderr.trim();
 					}
-					
+
 					// Check for common rclone/S3 errors in the message
 					const errorText = errorMessage.toLowerCase();
-					if (errorText.includes("accessdenied") || errorText.includes("invalidaccesskeyid") || errorText.includes("signaturedoesnotmatch")) {
-						errorMessage = "Invalid access key or secret key. Please check your credentials.";
-					} else if (errorText.includes("nosuchbucket") || errorText.includes("bucket does not exist")) {
-						errorMessage = "Bucket does not exist or is not accessible. Please check your bucket name.";
-					} else if (errorText.includes("exited with code") || errorText.includes("command failed")) {
-						errorMessage = "Failed to connect to S3 bucket. Please verify your credentials, bucket name, endpoint, and region.";
-					} else if (errorText.includes("connection") || errorText.includes("network")) {
-						errorMessage = "Network error. Please check your endpoint URL and network connectivity.";
+					if (
+						errorText.includes("accessdenied") ||
+						errorText.includes("invalidaccesskeyid") ||
+						errorText.includes("signaturedoesnotmatch")
+					) {
+						errorMessage =
+							"Invalid access key or secret key. Please check your credentials.";
+					} else if (
+						errorText.includes("nosuchbucket") ||
+						errorText.includes("bucket does not exist")
+					) {
+						errorMessage =
+							"Bucket does not exist or is not accessible. Please check your bucket name.";
+					} else if (
+						errorText.includes("exited with code") ||
+						errorText.includes("command failed")
+					) {
+						errorMessage =
+							"Failed to connect to S3 bucket. Please verify your credentials, bucket name, endpoint, and region.";
+					} else if (
+						errorText.includes("connection") ||
+						errorText.includes("network")
+					) {
+						errorMessage =
+							"Network error. Please check your endpoint URL and network connectivity.";
 					}
-					
+
 					// Clean up the error message (remove command details if present)
-					errorMessage = errorMessage.split("command:")[0].trim() || "Error connecting to bucket";
+					errorMessage =
+						errorMessage.split("command:")[0].trim() ||
+						"Error connecting to bucket";
 				}
-				
+
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: errorMessage,

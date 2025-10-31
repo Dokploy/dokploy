@@ -7,7 +7,10 @@ import CryptoJS from "crypto-js";
 const getEncryptionKey = (): string => {
 	// In production, this should come from environment variable
 	// For now, use a fixed key that can be configured
-	return process.env.DOKPLOY_ENCRYPTION_KEY || "dokploy-s3-backup-encryption-key-2024";
+	return (
+		process.env.DOKPLOY_ENCRYPTION_KEY ||
+		"dokploy-s3-backup-encryption-key-2024"
+	);
 };
 
 /**
