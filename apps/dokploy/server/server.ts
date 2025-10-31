@@ -4,11 +4,11 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	IS_CLOUD,
+	initCancelDeployments,
 	initCronJobs,
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
-	initCancelDeployments,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
