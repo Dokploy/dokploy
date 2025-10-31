@@ -287,7 +287,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 									<FormItem>
 										<FormLabel>Access Key Id</FormLabel>
 										<FormControl>
-											<Input placeholder={"xcas41dasde"} {...field} />
+											<Input
+												type={destinationId ? "password" : "text"}
+												disablePasswordToggle={!!destinationId}
+												placeholder={"xcas41dasde"}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -303,7 +308,12 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 										<FormLabel>Secret Access Key</FormLabel>
 									</div>
 									<FormControl>
-										<Input placeholder={"asd123asdasw"} {...field} />
+										<Input
+											type="password"
+											disablePasswordToggle={true}
+											placeholder={"asd123asdasw"}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
