@@ -26,6 +26,7 @@ import {
 	PieChart,
 	Server,
 	ShieldCheck,
+	Star,
 	Trash2,
 	User,
 	Users,
@@ -505,6 +506,8 @@ function SidebarLogo() {
 	} = api.organization.all.useQuery();
 	const { mutateAsync: deleteOrganization, isLoading: isRemoving } =
 		api.organization.delete.useMutation();
+	const { mutateAsync: setDefaultOrganization, isLoading: isSettingDefault } =
+		api.organization.setDefault.useMutation();
 	const { isMobile } = useSidebar();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const _utils = api.useUtils();
@@ -605,7 +608,11 @@ function SidebarLogo() {
 											}}
 											className="w-full gap-2 p-2"
 										>
-											<div className="flex flex-col gap-4">{org.name}</div>
+											<div className="flex flex-col gap-1">
+												<div className="flex items-center gap-2">
+													{org.name}
+												</div>
+											</div>
 											<div className="flex size-6 items-center justify-center rounded-sm border">
 												<Logo
 													className={cn(
@@ -618,6 +625,52 @@ function SidebarLogo() {
 										</DropdownMenuItem>
 										{org.ownerId === session?.user?.id && (
 											<div className="flex items-center gap-2">
+												<Button
+													variant="ghost"
+													size="icon"
+													className={cn(
+														"group",
+														org.isDefault
+															? "hover:bg-yellow-500/10"
+															: "hover:bg-blue-500/10",
+													)}
+													isLoading={isSettingDefault && !org.isDefault}
+													disabled={org.isDefault}
+													onClick={async (e) => {
+														if (org.isDefault) return;
+														e.stopPropagation();
+														await setDefaultOrganization({
+															organizationId: org.id,
+														})
+															.then(() => {
+																refetch();
+																toast.success(
+																	"Default organization updated",
+																);
+															})
+															.catch((error) => {
+																toast.error(
+																	error?.message ||
+																		"Error setting default organization",
+																);
+															});
+													}}
+													title={org.isDefault ? "Default organization" : "Set as default"}
+												>
+												{org.isDefault ? (
+													<Star
+														fill="#eab308"
+														stroke="#eab308"
+														className="size-4 text-yellow-500"
+													/>
+												) : (
+													<Star
+														fill="none"
+														stroke="currentColor"
+														className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+													/>
+												)}
+												</Button>
 												<AddOrganization organizationId={org.id} />
 												<DialogAction
 													title="Delete Organization"
