@@ -644,9 +644,7 @@ function SidebarLogo() {
 														})
 															.then(() => {
 																refetch();
-																toast.success(
-																	"Default organization updated",
-																);
+																toast.success("Default organization updated");
 															})
 															.catch((error) => {
 																toast.error(
@@ -655,21 +653,25 @@ function SidebarLogo() {
 																);
 															});
 													}}
-													title={org.isDefault ? "Default organization" : "Set as default"}
+													title={
+														org.isDefault
+															? "Default organization"
+															: "Set as default"
+													}
 												>
-												{org.isDefault ? (
-													<Star
-														fill="#eab308"
-														stroke="#eab308"
-														className="size-4 text-yellow-500"
-													/>
-												) : (
-													<Star
-														fill="none"
-														stroke="currentColor"
-														className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
-													/>
-												)}
+													{org.isDefault ? (
+														<Star
+															fill="#eab308"
+															stroke="#eab308"
+															className="size-4 text-yellow-500"
+														/>
+													) : (
+														<Star
+															fill="none"
+															stroke="currentColor"
+															className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+														/>
+													)}
 												</Button>
 												<AddOrganization organizationId={org.id} />
 												<DialogAction
