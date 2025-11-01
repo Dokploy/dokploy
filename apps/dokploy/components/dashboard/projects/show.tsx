@@ -55,6 +55,7 @@ import {
 import { api } from "@/utils/api";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+import { TimeBadge } from "@/components/ui/time-badge";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -135,6 +136,9 @@ export const ShowProjects = () => {
 			<BreadcrumbSidebar
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
+			<div className="absolute top-5 right-5">
+				<TimeBadge />
+			</div>
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
@@ -148,7 +152,6 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-
 							{(auth?.role === "owner" || auth?.canCreateProjects) && (
 								<div className="">
 									<HandleProject />
@@ -298,7 +301,13 @@ export const ShowProjects = () => {
 																										<Link
 																											className="space-x-4 text-xs cursor-pointer justify-between"
 																											target="_blank"
-																											href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																											href={`${
+																												domain.https
+																													? "https"
+																													: "http"
+																											}://${domain.host}${
+																												domain.path
+																											}`}
 																										>
 																											<span className="truncate">
 																												{domain.host}
@@ -340,7 +349,13 @@ export const ShowProjects = () => {
 																										<Link
 																											className="space-x-4 text-xs cursor-pointer justify-between"
 																											target="_blank"
-																											href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																											href={`${
+																												domain.https
+																													? "https"
+																													: "http"
+																											}://${domain.host}${
+																												domain.path
+																											}`}
 																										>
 																											<span className="truncate">
 																												{domain.host}
