@@ -1,5 +1,6 @@
 import {
 	BookText,
+	Bookmark,
 	CheckIcon,
 	ChevronsUpDown,
 	Globe,
@@ -82,6 +83,7 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+	const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
 		// Try to get from props first, then localStorage
 		if (baseUrl) return baseUrl;
@@ -122,7 +124,44 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 			enabled: open,
 		},
 	);
+
+	const { data: favoriteIds = [], isLoading: isLoadingFavorites } =
+		api.user.getBookmarkedTemplates.useQuery(undefined, {
+			enabled: open,
+		});
+
 	const utils = api.useUtils();
+
+	const { mutateAsync: toggleFavorite } =
+		api.user.toggleTemplateBookmark.useMutation({
+			onMutate: async ({ templateId }) => {
+				await utils.user.getBookmarkedTemplates.cancel();
+				const previousFavorites = utils.user.getBookmarkedTemplates.getData();
+
+				utils.user.getBookmarkedTemplates.setData(undefined, (old = []) => {
+					if (old.includes(templateId)) {
+						return old.filter((id) => id !== templateId);
+					}
+					return [...old, templateId];
+				});
+
+				return { previousFavorites };
+			},
+			onError: (err, variables, context) => {
+				if (context?.previousFavorites) {
+					utils.user.getBookmarkedTemplates.setData(
+						undefined,
+						context.previousFavorites,
+					);
+				}
+				toast.error("Failed to update favorite");
+			},
+			onSuccess: (data) => {
+				toast.success(
+					data.isBookmarked ? "Added to favorites" : "Removed from favorites",
+				);
+			},
+		});
 
 	const [serverId, setServerId] = useState<string | undefined>(undefined);
 	const { mutateAsync, isLoading, error, isError } =
@@ -137,7 +176,9 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 				query === "" ||
 				template.name.toLowerCase().includes(query.toLowerCase()) ||
 				template.description.toLowerCase().includes(query.toLowerCase());
-			return matchesTags && matchesQuery;
+			const matchesFavorites =
+				!showFavoritesOnly || favoriteIds.includes(template.id);
+			return matchesTags && matchesQuery && matchesFavorites;
 		}) || [];
 
 	const hasServers = servers && servers.length > 0;
@@ -145,6 +186,14 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	// Cloud: show only if there are remote servers (no Dokploy option)
 	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
 	const shouldShowServerDropdown = hasServers;
+
+	const handleToggleFavorite = async (
+		e: React.MouseEvent,
+		templateId: string,
+	) => {
+		e.stopPropagation();
+		await toggleFavorite({ templateId });
+	};
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -244,6 +293,20 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									</PopoverContent>
 								</Popover>
 								<Button
+									variant={showFavoritesOnly ? "default" : "outline"}
+									size="icon"
+									onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+									className="h-9 w-9 flex-shrink-0"
+									disabled={isLoadingFavorites}
+								>
+									<Bookmark
+										className={cn(
+											"size-4",
+											showFavoritesOnly && "fill-current",
+										)}
+									/>
+								</Button>
+								<Button
 									size="icon"
 									onClick={() =>
 										setViewMode(viewMode === "detailed" ? "icon" : "detailed")
@@ -299,11 +362,19 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 								</div>
 							</div>
 						) : templates.length === 0 ? (
-							<div className="flex justify-center items-center w-full gap-2 min-h-[50vh]">
+							<div className="flex flex-col justify-center items-center w-full gap-2 min-h-[50vh]">
 								<SearchIcon className="text-muted-foreground size-6" />
 								<div className="text-xl font-medium text-muted-foreground">
-									No templates found
+									{showFavoritesOnly
+										? "No favorite templates found"
+										: "No templates found"}
 								</div>
+								{showFavoritesOnly && (
+									<p className="text-sm text-muted-foreground">
+										Click the bookmark icon on templates to add them to
+										favorites
+									</p>
+								)}
 							</div>
 						) : (
 							<div
@@ -323,9 +394,25 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 											viewMode === "detailed" && "h-[400px]",
 										)}
 									>
-										<Badge className="absolute top-2 right-2" variant="blue">
-											{template?.version}
-										</Badge>
+										<div className="absolute top-2 left-2 z-10">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background"
+												onClick={(e) => handleToggleFavorite(e, template.id)}
+											>
+												<Bookmark
+													className={cn(
+														"size-4",
+														favoriteIds.includes(template.id) &&
+															"fill-yellow-400 text-yellow-400",
+													)}
+												/>
+											</Button>
+										</div>
+										<div className="absolute top-2 right-2">
+											<Badge variant="blue">{template?.version}</Badge>
+										</div>
 										<div
 											className={cn(
 												"flex-none p-6 pb-3 flex flex-col items-center gap-4 bg-muted/30",
