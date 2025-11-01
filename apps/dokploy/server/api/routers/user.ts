@@ -19,6 +19,7 @@ import {
 	apiUpdateUser,
 	invitation,
 	member,
+	userTemplateBookmarks,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import * as bcrypt from "bcrypt";
@@ -446,5 +447,42 @@ export const userRouter = createTRPCRouter({
 				throw error;
 			}
 			return inviteLink;
+		}),
+
+	getBookmarkedTemplates: protectedProcedure.query(async ({ ctx }) => {
+		const bookmarked = await db.query.userTemplateBookmarks.findMany({
+			where: eq(userTemplateBookmarks.userId, ctx.user.id),
+			orderBy: [asc(userTemplateBookmarks.createdAt)],
+		});
+
+		return bookmarked.map((b) => b.templateId);
+	}),
+
+	toggleTemplateBookmark: protectedProcedure
+		.input(
+			z.object({
+				templateId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const existing = await db.query.userTemplateBookmarks.findFirst({
+				where: and(
+					eq(userTemplateBookmarks.userId, ctx.user.id),
+					eq(userTemplateBookmarks.templateId, input.templateId),
+				),
+			});
+
+			if (existing) {
+				await db
+					.delete(userTemplateBookmarks)
+					.where(eq(userTemplateBookmarks.id, existing.id));
+				return { isBookmarked: false };
+			}
+
+			await db.insert(userTemplateBookmarks).values({
+				userId: ctx.user.id,
+				templateId: input.templateId,
+			});
+			return { isBookmarked: true };
 		}),
 });
