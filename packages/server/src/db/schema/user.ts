@@ -7,6 +7,7 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
@@ -122,6 +123,24 @@ export const users_temp = pgTable("user_temp", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 });
 
+export const userTemplateBookmarks = pgTable(
+	"user_template_bookmarks",
+	{
+		id: text("id")
+			.notNull()
+			.primaryKey()
+			.$defaultFn(() => nanoid()),
+		userId: text("userId")
+			.notNull()
+			.references(() => users_temp.id, { onDelete: "cascade" }),
+		templateId: text("templateId").notNull(),
+		createdAt: timestamp("createdAt").notNull().defaultNow(),
+	},
+	(table) => ({
+		uniqueUserTemplate: unique().on(table.userId, table.templateId),
+	}),
+);
+
 export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	account: one(account, {
 		fields: [users_temp.id],
@@ -132,7 +151,18 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	apiKeys: many(apikey),
 	backups: many(backups),
 	schedules: many(schedules),
+	templateBookmarks: many(userTemplateBookmarks),
 }));
+
+export const userTemplateBookmarksRelations = relations(
+	userTemplateBookmarks,
+	({ one }) => ({
+		user: one(users_temp, {
+			fields: [userTemplateBookmarks.userId],
+			references: [users_temp.id],
+		}),
+	}),
+);
 
 const createSchema = createInsertSchema(users_temp, {
 	id: z.string().min(1),
