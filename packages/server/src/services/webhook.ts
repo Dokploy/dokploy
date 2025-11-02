@@ -12,11 +12,7 @@ import {
 
 // Types
 export interface WebhookEvent {
-	event:
-		| "deployment.started"
-		| "deployment.success"
-		| "deployment.failed"
-		| "deployment.cancelled";
+	event: "deployment.started" | "deployment.success" | "deployment.failed";
 	timestamp: string;
 	deployment: {
 		id: string;
@@ -248,21 +244,18 @@ const formatSlackPayload = (event: WebhookEvent): any => {
 		"deployment.started": "🚀",
 		"deployment.success": "✅",
 		"deployment.failed": "❌",
-		"deployment.cancelled": "⚠️",
 	}[event.event];
 
 	const color = {
 		"deployment.started": "#0088cc",
 		"deployment.success": "#00cc00",
 		"deployment.failed": "#cc0000",
-		"deployment.cancelled": "#ffaa00",
 	}[event.event];
 
 	const title = {
 		"deployment.started": "Deployment Started",
 		"deployment.success": "Deployment Successful",
 		"deployment.failed": "Deployment Failed",
-		"deployment.cancelled": "Deployment Cancelled",
 	}[event.event];
 
 	const fields: any[] = [

@@ -1,26 +1,26 @@
+import {
+	clearWebhookDeliveries,
+	createWebhook,
+	deleteWebhook,
+	findAllWebhooksByApplication,
+	findAllWebhooksByCompose,
+	findWebhookById,
+	getWebhookDeliveries,
+	testWebhook,
+	updateWebhook,
+} from "@dokploy/server/services/webhook";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	apiCreateWebhook,
-	apiUpdateWebhook,
+	apiDeleteWebhook,
 	apiFindWebhookById,
 	apiFindWebhooksByApplication,
 	apiFindWebhooksByCompose,
 	apiTestWebhook,
-	apiDeleteWebhook,
+	apiUpdateWebhook,
 } from "@/server/db/schema";
-import {
-	createWebhook,
-	updateWebhook,
-	deleteWebhook,
-	findWebhookById,
-	findAllWebhooksByApplication,
-	findAllWebhooksByCompose,
-	testWebhook,
-	getWebhookDeliveries,
-	clearWebhookDeliveries,
-} from "@dokploy/server/services/webhook";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 export const webhookRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -214,19 +214,19 @@ export const webhookRouter = createTRPCRouter({
 					successful: deliveries.filter(
 						(d) =>
 							d.statusCode &&
-							parseInt(d.statusCode) >= 200 &&
-							parseInt(d.statusCode) < 300,
+							Number.parseInt(d.statusCode) >= 200 &&
+							Number.parseInt(d.statusCode) < 300,
 					).length,
 					failed: deliveries.filter(
 						(d) =>
 							!d.statusCode ||
 							d.statusCode === "0" ||
-							parseInt(d.statusCode) >= 400,
+							Number.parseInt(d.statusCode) >= 400,
 					).length,
 					avgResponseTime:
 						deliveries.length > 0
 							? deliveries.reduce(
-									(acc, d) => acc + parseInt(d.responseTime || "0"),
+									(acc, d) => acc + Number.parseInt(d.responseTime || "0"),
 									0,
 								) / deliveries.length
 							: 0,

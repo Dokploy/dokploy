@@ -85,12 +85,6 @@ const WEBHOOK_EVENTS = [
 		description: "Triggered when a deployment fails",
 		color: "destructive",
 	},
-	{
-		value: "deployment.cancelled",
-		label: "Deployment Cancelled",
-		description: "Triggered when a deployment is cancelled",
-		color: "secondary",
-	},
 ] as const;
 
 const TEMPLATE_TYPES = [
@@ -178,10 +172,18 @@ export const HandleWebhook = ({
 				name: existingWebhook.name,
 				url: existingWebhook.url,
 				secret: existingWebhook.secret || undefined,
-				templateType: existingWebhook.templateType as any,
+				templateType: existingWebhook.templateType as
+					| "slack"
+					| "n8n"
+					| "generic",
 				customTemplate: existingWebhook.customTemplate || "",
-				events: existingWebhook.events as any,
-				headers: existingWebhook.headers as any,
+				events: existingWebhook.events as (
+					| "deployment.started"
+					| "deployment.success"
+					| "deployment.failed"
+					| "deployment.cancelled"
+				)[],
+				headers: existingWebhook.headers as Record<string, string>,
 				enabled: existingWebhook.enabled,
 			});
 
@@ -364,11 +366,13 @@ export const HandleWebhook = ({
 																key={template.value}
 																value={template.value}
 															>
-																<div>
-																	<div>{template.label}</div>
-																	<div className="text-xs text-muted-foreground">
+																<div className="flex flex-col items-start	">
+																	<span className="text-sm font-medium">
+																		{template.label}
+																	</span>
+																	<span className="text-xs text-muted-foreground">
 																		{template.description}
-																	</div>
+																	</span>
 																</div>
 															</SelectItem>
 														))}
