@@ -82,12 +82,7 @@ const createWebhookSchema = createInsertSchema(webhooks, {
 	url: z.string().url("Must be a valid HTTPS URL").startsWith("https://"),
 	events: z
 		.array(
-			z.enum([
-				"deployment.started",
-				"deployment.success",
-				"deployment.failed",
-				"deployment.cancelled",
-			]),
+			z.enum(["deployment.started", "deployment.success", "deployment.failed"]),
 		)
 		.min(1, "At least one event must be selected"),
 	templateType: z.enum(["slack", "n8n", "generic"]).default("generic"),

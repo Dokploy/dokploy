@@ -229,7 +229,6 @@ const formatPayload = (webhook: Webhook, event: WebhookEvent): any => {
 			return formatSlackPayload(event);
 		case "n8n":
 			return formatN8nPayload(event);
-		case "generic":
 		default:
 			if (webhook.customTemplate) {
 				return processCustomTemplate(webhook.customTemplate, event);

@@ -864,18 +864,13 @@ export const updateDeploymentStatus = async (
 
 	// Only trigger webhooks for final states
 	if (deploymentStatus === "done" || deploymentStatus === "error") {
-		let webhookEventType:
-			| "deployment.success"
-			| "deployment.failed"
-			| "deployment.cancelled";
+		let webhookEventType: "deployment.success" | "deployment.failed";
 
 		if (deploymentStatus === "done") {
 			webhookEventType = "deployment.success";
 		} else if (deploymentStatus === "error") {
 			// Check if it was cancelled (you might want to add a cancelled status)
-			webhookEventType = errorMessage?.includes("cancelled")
-				? "deployment.cancelled"
-				: "deployment.failed";
+			webhookEventType = "deployment.failed";
 		} else {
 			return deployment; // Should not reach here
 		}
