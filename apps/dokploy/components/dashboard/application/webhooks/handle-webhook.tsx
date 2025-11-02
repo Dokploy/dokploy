@@ -52,12 +52,7 @@ const webhookFormSchema = z.object({
 	customTemplate: z.string().optional(),
 	events: z
 		.array(
-			z.enum([
-				"deployment.started",
-				"deployment.success",
-				"deployment.failed",
-				"deployment.cancelled",
-			]),
+			z.enum(["deployment.started", "deployment.success", "deployment.failed"]),
 		)
 		.min(1, "At least one event must be selected"),
 	headers: z.record(z.string()).optional(),
@@ -181,7 +176,6 @@ export const HandleWebhook = ({
 					| "deployment.started"
 					| "deployment.success"
 					| "deployment.failed"
-					| "deployment.cancelled"
 				)[],
 				headers: existingWebhook.headers as Record<string, string>,
 				enabled: existingWebhook.enabled,
