@@ -89,7 +89,6 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Projects"}>
 						<CommandList>
 							{data?.map((project) => {
-								console.log("project", project);
 								const productionEnvironment = project.environments.find(
 									(environment) => environment.name === "production",
 								);

@@ -29,6 +29,7 @@ import {
 	startCompose,
 	stopCompose,
 	updateCompose,
+	updateDeploymentStatus,
 } from "@dokploy/server";
 import {
 	type CompleteTemplate,
@@ -38,10 +39,10 @@ import {
 import { processTemplate } from "@dokploy/server/templates/processors";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { dump } from "js-yaml";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
+import { stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import { db } from "@/server/db";
@@ -58,7 +59,7 @@ import {
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
+import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 
@@ -363,7 +364,7 @@ export const composeRouter = createTRPCRouter({
 			}
 			const domains = await findDomainsByComposeId(input.composeId);
 			const composeFile = await addDomainToCompose(compose, domains);
-			return dump(composeFile, {
+			return stringify(composeFile, {
 				lineWidth: 1000,
 			});
 		}),
@@ -927,5 +928,58 @@ export const composeRouter = createTRPCRouter({
 					message: `Error importing template: ${error instanceof Error ? error.message : error}`,
 				});
 			}
+		}),
+
+	cancelDeployment: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to cancel this deployment",
+				});
+			}
+
+			if (IS_CLOUD && compose.serverId) {
+				try {
+					await updateCompose(input.composeId, {
+						composeStatus: "idle",
+					});
+
+					if (compose.deployments[0]) {
+						await updateDeploymentStatus(
+							compose.deployments[0].deploymentId,
+							"done",
+						);
+					}
+
+					await cancelDeployment({
+						composeId: input.composeId,
+						applicationType: "compose",
+					});
+
+					return {
+						success: true,
+						message: "Deployment cancellation requested",
+					};
+				} catch (error) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message:
+							error instanceof Error
+								? error.message
+								: "Failed to cancel deployment",
+					});
+				}
+			}
+
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Deployment cancellation only available in cloud version",
+			});
 		}),
 });

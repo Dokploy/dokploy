@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -76,6 +77,9 @@ export const WebDomain = () => {
 		resolver: zodResolver(addServerDomain),
 	});
 	const https = form.watch("https");
+	const domain = form.watch("domain") || "";
+	const host = data?.user?.host || "";
+	const hasChanged = domain !== host;
 	useEffect(() => {
 		if (data) {
 			form.reset({
@@ -119,6 +123,19 @@ export const WebDomain = () => {
 						</div>
 					</CardHeader>
 					<CardContent className="space-y-2 py-6 border-t">
+						{/* Warning for GitHub webhook URL changes */}
+						{hasChanged && (
+							<AlertBlock type="warning">
+								<div className="space-y-2">
+									<p className="font-medium">⚠️ Important: URL Change Impact</p>
+									<p>
+										If you change the Dokploy Server URL make sure to update
+										your Github Apps to keep the auto-deploy working and preview
+										deployments working.
+									</p>
+								</div>
+							</AlertBlock>
+						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}

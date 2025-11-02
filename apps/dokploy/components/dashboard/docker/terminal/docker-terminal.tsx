@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
 	id: string;
-	containerId: string;
+	containerId?: string;
 	serverId?: string;
 }
 
@@ -36,7 +36,6 @@ export const DockerTerminal: React.FC<Props> = ({
 			},
 		});
 		const addonFit = new FitAddon();
-
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
 		const wsUrl = `${protocol}//${window.location.host}/docker-container-terminal?containerId=${containerId}&activeWay=${activeWay}${serverId ? `&serverId=${serverId}` : ""}`;
@@ -57,7 +56,7 @@ export const DockerTerminal: React.FC<Props> = ({
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex flex-col gap-2">
+			<div className="flex flex-col gap-2  mt-4">
 				<span>
 					Select way to connect to <b>{containerId}</b>
 				</span>

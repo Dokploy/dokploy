@@ -32,3 +32,16 @@ export const deployJobSchema = z.discriminatedUnion("applicationType", [
 ]);
 
 export type DeployJob = z.infer<typeof deployJobSchema>;
+
+export const cancelDeploymentSchema = z.discriminatedUnion("applicationType", [
+	z.object({
+		applicationId: z.string(),
+		applicationType: z.literal("application"),
+	}),
+	z.object({
+		composeId: z.string(),
+		applicationType: z.literal("compose"),
+	}),
+]);
+
+export type CancelDeploymentJob = z.infer<typeof cancelDeploymentSchema>;

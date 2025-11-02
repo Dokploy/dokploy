@@ -22,8 +22,8 @@ export const uploadImage = async (
 	// For ghcr.io: ghcr.io/username/image:tag
 	// For docker.io: docker.io/username/image:tag
 	const registryTag = imagePrefix
-		? `${registryUrl}/${imagePrefix}/${imageName}`
-		: `${registryUrl}/${username}/${imageName}`;
+		? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
+		: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
 
 	try {
 		writeStream.write(

@@ -1,5 +1,5 @@
 import { findComposeById } from "@dokploy/server/services/compose";
-import { dump } from "js-yaml";
+import { stringify } from "yaml";
 import { addAppNameToAllServiceNames } from "./collision/root-network";
 import { generateRandomHash } from "./compose";
 import { addSuffixToAllVolumes } from "./compose/volume";
@@ -59,7 +59,7 @@ export const randomizeIsolatedDeploymentComposeFile = async (
 			)
 		: composeData;
 
-	return dump(newComposeFile);
+	return stringify(newComposeFile);
 };
 
 export const randomizeDeployableSpecificationFile = (
