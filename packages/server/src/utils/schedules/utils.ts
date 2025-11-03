@@ -41,14 +41,24 @@ const parseCronToRule = (cronExpression: string): RecurrenceRule => {
 		if (minutePart.includes("*/")) {
 			const splitResult = minutePart.split("*/");
 			const interval = splitResult[1] ? Number.parseInt(splitResult[1], 10) : 1;
-			rule.minute = Array.from({ length: Math.floor(60 / interval) }, (_, i) => i * interval);
+			rule.minute = Array.from(
+				{ length: Math.floor(60 / interval) },
+				(_, i) => i * interval,
+			);
 		} else if (minutePart.includes(",")) {
-			rule.minute = minutePart.split(",").map((v) => Number.parseInt(v.trim(), 10));
+			rule.minute = minutePart
+				.split(",")
+				.map((v) => Number.parseInt(v.trim(), 10));
 		} else if (minutePart.includes("-")) {
-			const range = minutePart.split("-").map((v) => Number.parseInt(v.trim(), 10));
+			const range = minutePart
+				.split("-")
+				.map((v) => Number.parseInt(v.trim(), 10));
 			const start = range[0] ?? 0;
 			const end = range[1] ?? 59;
-			rule.minute = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+			rule.minute = Array.from(
+				{ length: end - start + 1 },
+				(_, i) => start + i,
+			);
 		} else {
 			rule.minute = Number.parseInt(minutePart, 10);
 		}
@@ -59,11 +69,16 @@ const parseCronToRule = (cronExpression: string): RecurrenceRule => {
 		if (hourPart.includes("*/")) {
 			const splitResult = hourPart.split("*/");
 			const interval = splitResult[1] ? Number.parseInt(splitResult[1], 10) : 1;
-			rule.hour = Array.from({ length: Math.floor(24 / interval) }, (_, i) => i * interval);
+			rule.hour = Array.from(
+				{ length: Math.floor(24 / interval) },
+				(_, i) => i * interval,
+			);
 		} else if (hourPart.includes(",")) {
 			rule.hour = hourPart.split(",").map((v) => Number.parseInt(v.trim(), 10));
 		} else if (hourPart.includes("-")) {
-			const range = hourPart.split("-").map((v) => Number.parseInt(v.trim(), 10));
+			const range = hourPart
+				.split("-")
+				.map((v) => Number.parseInt(v.trim(), 10));
 			const start = range[0] ?? 0;
 			const end = range[1] ?? 23;
 			rule.hour = Array.from({ length: end - start + 1 }, (_, i) => start + i);
@@ -77,11 +92,16 @@ const parseCronToRule = (cronExpression: string): RecurrenceRule => {
 		if (datePart.includes("*/")) {
 			const splitResult = datePart.split("*/");
 			const interval = splitResult[1] ? Number.parseInt(splitResult[1], 10) : 1;
-			rule.date = Array.from({ length: Math.floor(31 / interval) }, (_, i) => (i + 1) * interval);
+			rule.date = Array.from(
+				{ length: Math.floor(31 / interval) },
+				(_, i) => (i + 1) * interval,
+			);
 		} else if (datePart.includes(",")) {
 			rule.date = datePart.split(",").map((v) => Number.parseInt(v.trim(), 10));
 		} else if (datePart.includes("-")) {
-			const range = datePart.split("-").map((v) => Number.parseInt(v.trim(), 10));
+			const range = datePart
+				.split("-")
+				.map((v) => Number.parseInt(v.trim(), 10));
 			const start = range[0] ?? 1;
 			const end = range[1] ?? 31;
 			rule.date = Array.from({ length: end - start + 1 }, (_, i) => start + i);
@@ -95,14 +115,24 @@ const parseCronToRule = (cronExpression: string): RecurrenceRule => {
 		if (monthPart.includes("*/")) {
 			const splitResult = monthPart.split("*/");
 			const interval = splitResult[1] ? Number.parseInt(splitResult[1], 10) : 1;
-			rule.month = Array.from({ length: Math.floor(12 / interval) }, (_, i) => i * interval);
+			rule.month = Array.from(
+				{ length: Math.floor(12 / interval) },
+				(_, i) => i * interval,
+			);
 		} else if (monthPart.includes(",")) {
-			rule.month = monthPart.split(",").map((v) => Number.parseInt(v.trim(), 10) - 1);
+			rule.month = monthPart
+				.split(",")
+				.map((v) => Number.parseInt(v.trim(), 10) - 1);
 		} else if (monthPart.includes("-")) {
-			const range = monthPart.split("-").map((v) => Number.parseInt(v.trim(), 10));
+			const range = monthPart
+				.split("-")
+				.map((v) => Number.parseInt(v.trim(), 10));
 			const start = range[0] ?? 1;
 			const end = range[1] ?? 12;
-			rule.month = Array.from({ length: end - start + 1 }, (_, i) => start + i - 1);
+			rule.month = Array.from(
+				{ length: end - start + 1 },
+				(_, i) => start + i - 1,
+			);
 		} else {
 			rule.month = Number.parseInt(monthPart, 10) - 1;
 		}
@@ -113,14 +143,24 @@ const parseCronToRule = (cronExpression: string): RecurrenceRule => {
 		if (dayOfWeekPart.includes("*/")) {
 			const splitResult = dayOfWeekPart.split("*/");
 			const interval = splitResult[1] ? Number.parseInt(splitResult[1], 10) : 1;
-			rule.dayOfWeek = Array.from({ length: Math.floor(7 / interval) }, (_, i) => i * interval);
+			rule.dayOfWeek = Array.from(
+				{ length: Math.floor(7 / interval) },
+				(_, i) => i * interval,
+			);
 		} else if (dayOfWeekPart.includes(",")) {
-			rule.dayOfWeek = dayOfWeekPart.split(",").map((v) => Number.parseInt(v.trim(), 10));
+			rule.dayOfWeek = dayOfWeekPart
+				.split(",")
+				.map((v) => Number.parseInt(v.trim(), 10));
 		} else if (dayOfWeekPart.includes("-")) {
-			const range = dayOfWeekPart.split("-").map((v) => Number.parseInt(v.trim(), 10));
+			const range = dayOfWeekPart
+				.split("-")
+				.map((v) => Number.parseInt(v.trim(), 10));
 			const start = range[0] ?? 0;
 			const end = range[1] ?? 6;
-			rule.dayOfWeek = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+			rule.dayOfWeek = Array.from(
+				{ length: end - start + 1 },
+				(_, i) => start + i,
+			);
 		} else {
 			rule.dayOfWeek = Number.parseInt(dayOfWeekPart, 10);
 		}
@@ -157,9 +197,9 @@ export const scheduleJob = (schedule: Schedule) => {
 		}
 	} else {
 		// No timezone - use string cron (UTC default)
-	scheduleJobNode(scheduleId, cronExpression, async () => {
-		await runCommand(scheduleId);
-	});
+		scheduleJobNode(scheduleId, cronExpression, async () => {
+			await runCommand(scheduleId);
+		});
 	}
 };
 
