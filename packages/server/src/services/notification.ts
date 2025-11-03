@@ -4,6 +4,7 @@ import {
 	type apiCreateEmail,
 	type apiCreateLark,
 	type apiCreateGotify,
+	type apiCreateMattermost,
 	type apiCreateNtfy,
 	type apiCreateSlack,
 	type apiCreateTelegram,
@@ -11,6 +12,7 @@ import {
 	type apiUpdateEmail,
 	type apiUpdateLark,
 	type apiUpdateGotify,
+	type apiUpdateMattermost,
 	type apiUpdateNtfy,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
@@ -18,6 +20,7 @@ import {
 	email,
 	lark,
 	gotify,
+	mattermost,
 	notifications,
 	ntfy,
 	slack,
@@ -588,6 +591,7 @@ export const findNotificationById = async (notificationId: string) => {
 			email: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			lark: true,
 		},
 	});
@@ -710,4 +714,96 @@ export const updateNotificationById = async (
 		.returning();
 
 	return result[0];
+};
+
+export const createMattermostNotification = async (
+	input: typeof apiCreateMattermost._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newMattermost = await tx
+			.insert(mattermost)
+			.values({
+				webhookUrl: input.webhookUrl,
+				channel: input.channel,
+				username: input.username,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newMattermost) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting mattermost",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				mattermostId: newMattermost.mattermostId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "mattermost",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateMattermostNotification = async (
+	input: typeof apiUpdateMattermost._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(mattermost)
+			.set({
+				webhookUrl: input.webhookUrl,
+				channel: input.channel,
+				username: input.username,
+			})
+			.where(eq(mattermost.mattermostId, input.mattermostId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
 };

@@ -9,6 +9,7 @@ import {
 	sendEmailNotification,
 	sendLarkNotification,
 	sendGotifyNotification,
+	sendMattermostNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -32,12 +33,13 @@ export const sendDockerCleanupNotifications = async (
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			mattermost: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, mattermost, lark } =
 			notification;
 
 		if (email) {
@@ -136,6 +138,14 @@ export const sendDockerCleanupNotifications = async (
 						],
 					},
 				],
+			});
+		}
+
+		if (mattermost) {
+			await sendMattermostNotification(mattermost, {
+				text: `**✅ Docker Cleanup**\n\n**Message:** ${message}\n**Date:** ${format(date, "PP")}\n**Time:** ${format(date, "pp")}`,
+				channel: mattermost.channel,
+				username: mattermost.username || "Dokploy",
 			});
 		}
 
