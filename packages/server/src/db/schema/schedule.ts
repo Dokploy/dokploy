@@ -94,7 +94,8 @@ export const createScheduleSchema = createInsertSchema(schedules).extend({
 				}
 			},
 			{
-				message: "Invalid timezone. Must be a valid IANA timezone identifier (e.g., America/Los_Angeles, Europe/London)",
+				message:
+					"Invalid timezone. Must be a valid IANA timezone identifier (e.g., America/Los_Angeles, Europe/London)",
 			},
 		),
 });

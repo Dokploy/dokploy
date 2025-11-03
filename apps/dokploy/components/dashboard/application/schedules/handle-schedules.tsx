@@ -498,10 +498,12 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
-														Select the timezone for this schedule. If not specified, UTC will be used.
+														Select the timezone for this schedule. If not
+														specified, UTC will be used.
 													</p>
 													<p className="mt-1">
-														Example: Setting "9:00 AM" with "America/Los_Angeles" will run at 9 AM Pacific Time.
+														Example: Setting "9:00 AM" with
+														"America/Los_Angeles" will run at 9 AM Pacific Time.
 													</p>
 												</TooltipContent>
 											</Tooltip>

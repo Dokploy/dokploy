@@ -26,7 +26,7 @@ export const scheduleJob = (schedule: Schedule) => {
 		scheduleId,
 		cronExpression,
 		async () => {
-		await runCommand(scheduleId);
+			await runCommand(scheduleId);
 		},
 		scheduleOptions,
 	);
