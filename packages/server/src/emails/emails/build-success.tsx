@@ -19,6 +19,7 @@ export type TemplateProps = {
 	applicationType: string;
 	buildLink: string;
 	date: string;
+	environmentName: string;
 };
 
 export const BuildSuccessEmail = ({
@@ -27,6 +28,7 @@ export const BuildSuccessEmail = ({
 	applicationType = "application",
 	buildLink = "https://dokploy.com/projects/dokploy-test/applications/dokploy-test",
 	date = "2023-05-01T00:00:00.000Z",
+	environmentName = "production",
 }: TemplateProps) => {
 	const previewText = `Build success for ${applicationName}`;
 	return (
@@ -73,6 +75,9 @@ export const BuildSuccessEmail = ({
 							</Text>
 							<Text className="!leading-3">
 								Application Name: <strong>{applicationName}</strong>
+							</Text>
+							<Text className="!leading-3">
+								Environment: <strong>{environmentName}</strong>
 							</Text>
 							<Text className="!leading-3">
 								Application Type: <strong>{applicationType}</strong>

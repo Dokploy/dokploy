@@ -237,6 +237,7 @@ export const deployApplication = async ({
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
+			environmentName: application.environment.name,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -373,6 +374,7 @@ export const deployRemoteApplication = async ({
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
+			environmentName: application.environment.name,
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
