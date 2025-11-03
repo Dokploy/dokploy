@@ -10,6 +10,7 @@ import {
 	sendLarkNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
+	sendReSmsNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -46,11 +47,12 @@ export const sendDatabaseBackupNotifications = async ({
 			gotify: true,
 			ntfy: true,
 			lark: true,
+			resms: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark, resms } =
 			notification;
 
 		if (email) {
@@ -355,6 +357,14 @@ export const sendDatabaseBackupNotifications = async ({
 					},
 				},
 			});
+		}
+
+		if (resms) {
+			const status = type === "success" ? "✅ Success" : "❌ Failed";
+			await sendReSmsNotification(
+				resms,
+				`${status} Database Backup\n\nProject: ${projectName}\nApp: ${applicationName}\nDB: ${databaseName}\nType: ${databaseType}`,
+			);
 		}
 	}
 };

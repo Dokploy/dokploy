@@ -9,6 +9,7 @@ import {
 	GotifyIcon,
 	LarkIcon,
 	NtfyIcon,
+	ReSmsIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -113,6 +114,14 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("resms"),
+			apiKey: z.string().min(1, { message: "API Key is required" }),
+			phoneNumber: z.string().min(1, { message: "Phone Number is required" }),
+			senderId: z.string().optional(),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -143,6 +152,10 @@ export const notificationsMap = {
 	ntfy: {
 		icon: <NtfyIcon />,
 		label: "ntfy",
+	},
+	resms: {
+		icon: <ReSmsIcon />,
+		label: "ReSMS",
 	},
 };
 
@@ -179,6 +192,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testNtfyConnection.useMutation();
 	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
+	const { mutateAsync: testResmsConnection, isLoading: isLoadingResms } =
+		api.notification.testResmsConnection.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -200,6 +215,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
+	const resmsMutation = notificationId
+		? api.notification.updateResms.useMutation()
+		: api.notification.createResms.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -323,6 +341,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "resms") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					apiKey: notification.resms?.apiKey || "",
+					phoneNumber: notification.resms?.phoneNumber || "",
+					senderId: notification.resms?.senderId || "",
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -337,6 +369,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
 		lark: larkMutation,
+		resms: resmsMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -451,6 +484,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
+				serverThreshold: serverThreshold,
+			});
+		} else if (data.type === "resms") {
+			promise = resmsMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				apiKey: data.apiKey,
+				phoneNumber: data.phoneNumber,
+				senderId: data.senderId || "",
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				resmsId: notification?.resmsId || "",
 				serverThreshold: serverThreshold,
 			});
 		}
@@ -1060,6 +1108,56 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+
+								{type === "resms" && (
+									<>
+										<FormField
+											control={form.control}
+											name="apiKey"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>API Key</FormLabel>
+													<FormControl>
+														<Input placeholder="re_12345..." {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="phoneNumber"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Phone Number</FormLabel>
+													<FormControl>
+														<Input placeholder="+33612345678" {...field} />
+													</FormControl>
+													<FormDescription>
+														Phone number in international format (E.164)
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="senderId"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Sender ID (Optional)</FormLabel>
+													<FormControl>
+														<Input placeholder="DOKPLOY" {...field} />
+													</FormControl>
+													<FormDescription>
+														Alphanumeric sender name displayed
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
@@ -1211,7 +1309,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingEmail ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
-								isLoadingLark
+								isLoadingLark ||
+								isLoadingResms
 							}
 							variant="secondary"
 							onClick={async () => {
@@ -1258,6 +1357,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									} else if (type === "lark") {
 										await testLarkConnection({
 											webhookUrl: form.getValues("webhookUrl"),
+										});
+									} else if (type === "resms") {
+										await testResmsConnection({
+											apiKey: form.getValues("apiKey"),
+											phoneNumber: form.getValues("phoneNumber"),
+											senderId: form.getValues("senderId") || "",
 										});
 									}
 									toast.success("Connection Success");

@@ -4,9 +4,11 @@ import type {
 	lark,
 	gotify,
 	ntfy,
+	resms,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
+import { ReSMS } from "@resms/sdk";
 import nodemailer from "nodemailer";
 
 export const sendEmailNotification = async (
@@ -163,6 +165,22 @@ export const sendLarkNotification = async (
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
+	}
+};
+
+export const sendReSmsNotification = async (
+	connection: typeof resms.$inferInsert,
+	message: string,
+) => {
+	try {
+		const resmsClient = new ReSMS(connection.apiKey);
+		await resmsClient.sms.send({
+			to: connection.phoneNumber,
+			message: message,
+			senderId: connection.senderId || undefined,
 		});
 	} catch (err) {
 		console.log(err);
