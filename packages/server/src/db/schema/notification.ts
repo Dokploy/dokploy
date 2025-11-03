@@ -116,7 +116,7 @@ export const ntfy = pgTable("ntfy", {
 		.$defaultFn(() => nanoid()),
 	serverUrl: text("serverUrl").notNull(),
 	topic: text("topic").notNull(),
-	accessToken: text("accessToken").notNull(),
+	accessToken: text("accessToken"),
 	priority: integer("priority").notNull().default(3),
 });
 
@@ -319,7 +319,7 @@ export const apiTestGotifyConnection = apiCreateGotify
 		decoration: z.boolean().optional(),
 	});
 
-export const apiCreateNtfy = notificationsSchema
+const apiCreateNtfyBase = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
@@ -331,10 +331,13 @@ export const apiCreateNtfy = notificationsSchema
 	.extend({
 		serverUrl: z.string().min(1),
 		topic: z.string().min(1),
-		accessToken: z.string().min(1),
-		priority: z.number().min(1),
+		priority: z.number().min(1).default(3),
 	})
 	.required();
+
+export const apiCreateNtfy = apiCreateNtfyBase.extend({
+	accessToken: z.string().nullish(),
+});
 
 export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
 	notificationId: z.string().min(1),
@@ -342,11 +345,11 @@ export const apiUpdateNtfy = apiCreateNtfy.partial().extend({
 	organizationId: z.string().optional(),
 });
 
-export const apiTestNtfyConnection = apiCreateNtfy.pick({
-	serverUrl: true,
-	topic: true,
-	accessToken: true,
-	priority: true,
+export const apiTestNtfyConnection = z.object({
+	serverUrl: z.string().min(1),
+	topic: z.string().min(1),
+	accessToken: z.string().nullish(),
+	priority: z.number().min(1).default(3),
 });
 
 export const apiFindOneNotification = notificationsSchema

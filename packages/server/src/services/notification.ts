@@ -492,15 +492,17 @@ export const createNtfyNotification = async (
 	input: typeof apiCreateNtfy._type,
 	organizationId: string,
 ) => {
-	await db.transaction(async (tx) => {
+	return await db.transaction(async (tx) => {
+		const ntfyValues = {
+			serverUrl: input.serverUrl,
+			topic: input.topic,
+			accessToken: input.accessToken || null,
+			priority: input.priority ?? 3,
+		};
+
 		const newNtfy = await tx
 			.insert(ntfy)
-			.values({
-				serverUrl: input.serverUrl,
-				topic: input.topic,
-				accessToken: input.accessToken,
-				priority: input.priority,
-			})
+			.values(ntfyValues)
 			.returning()
 			.then((value) => value[0]);
 
@@ -564,15 +566,32 @@ export const updateNtfyNotification = async (
 			});
 		}
 
-		await tx
-			.update(ntfy)
-			.set({
-				serverUrl: input.serverUrl,
-				topic: input.topic,
-				accessToken: input.accessToken,
-				priority: input.priority,
-			})
-			.where(eq(ntfy.ntfyId, input.ntfyId));
+		const updateData: {
+			serverUrl?: string;
+			topic?: string;
+			accessToken?: string | null;
+			priority?: number;
+		} = {};
+		
+		if (input.serverUrl !== undefined) {
+			updateData.serverUrl = input.serverUrl;
+		}
+		if (input.topic !== undefined) {
+			updateData.topic = input.topic;
+		}
+		if (input.accessToken !== undefined) {
+			updateData.accessToken = input.accessToken || null;
+		}
+		if (input.priority !== undefined) {
+			updateData.priority = input.priority;
+		}
+
+		if (Object.keys(updateData).length > 0) {
+			await tx
+				.update(ntfy)
+				.set(updateData)
+				.where(eq(ntfy.ntfyId, input.ntfyId));
+		}
 
 		return newDestination;
 	});

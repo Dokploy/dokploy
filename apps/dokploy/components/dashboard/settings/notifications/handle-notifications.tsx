@@ -103,7 +103,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("ntfy"),
 			serverUrl: z.string().min(1, { message: "Server URL is required" }),
 			topic: z.string().min(1, { message: "Topic is required" }),
-			accessToken: z.string().min(1, { message: "Access Token is required" }),
+			accessToken: z.string().nullish().transform((val) => val === "" ? undefined : val),
 			priority: z.number().min(1).max(5).default(3),
 		})
 		.merge(notificationBaseSchema),
@@ -432,7 +432,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				serverUrl: data.serverUrl,
-				accessToken: data.accessToken,
+				accessToken: data.accessToken || undefined,
 				topic: data.topic,
 				priority: data.priority,
 				name: data.name,
@@ -996,13 +996,16 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											name="accessToken"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Access Token</FormLabel>
+													<FormLabel>Access Token (Optional)</FormLabel>
 													<FormControl>
 														<Input
 															placeholder="AzxcvbnmKjhgfdsa..."
 															{...field}
 														/>
 													</FormControl>
+													<FormDescription>
+														Optional: Only required if your ntfy server requires authentication.
+													</FormDescription>
 													<FormMessage />
 												</FormItem>
 											)}

@@ -469,9 +469,11 @@ export const notificationRouter = createTRPCRouter({
 					ctx.session.activeOrganizationId,
 				);
 			} catch (error) {
+				const errorMessage =
+					error instanceof Error ? error.message : "Error creating the notification";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error creating the notification",
+					message: errorMessage,
 					cause: error,
 				});
 			}
