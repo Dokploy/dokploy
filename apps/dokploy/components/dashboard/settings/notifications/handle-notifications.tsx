@@ -1004,6 +1004,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														<Input
 															placeholder="AzxcvbnmKjhgfdsa..."
 															{...field}
+															value={field.value ?? ""}
 														/>
 													</FormControl>
 													<FormDescription>
