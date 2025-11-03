@@ -49,6 +49,7 @@ export const schedules = pgTable("schedule", {
 		onDelete: "cascade",
 	}),
 	enabled: boolean("enabled").notNull().default(true),
+	timezone: text("timezone"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -76,7 +77,27 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 	deployments: many(deployments),
 }));
 
-export const createScheduleSchema = createInsertSchema(schedules);
+export const createScheduleSchema = createInsertSchema(schedules).extend({
+	timezone: z
+		.string()
+		.nullable()
+		.optional()
+		.refine(
+			(val) => {
+				if (!val || val === "") return true;
+				try {
+					// Validate IANA timezone string
+					Intl.DateTimeFormat(undefined, { timeZone: val });
+					return true;
+				} catch {
+					return false;
+				}
+			},
+			{
+				message: "Invalid timezone. Must be a valid IANA timezone identifier (e.g., America/Los_Angeles, Europe/London)",
+			},
+		),
+});
 
 export const updateScheduleSchema = createScheduleSchema.extend({
 	scheduleId: z.string().min(1),

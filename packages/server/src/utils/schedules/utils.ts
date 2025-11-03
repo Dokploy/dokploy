@@ -14,11 +14,22 @@ import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export const scheduleJob = (schedule: Schedule) => {
-	const { cronExpression, scheduleId } = schedule;
+	const { cronExpression, scheduleId, timezone } = schedule;
 
-	scheduleJobNode(scheduleId, cronExpression, async () => {
+	const scheduleOptions = timezone ? { tz: timezone } : undefined;
+
+	console.log(
+		`[Schedule] Scheduling job: ${scheduleId}, cron: ${cronExpression}, timezone: ${timezone || "UTC (default)"}`,
+	);
+
+	scheduleJobNode(
+		scheduleId,
+		cronExpression,
+		async () => {
 		await runCommand(scheduleId);
-	});
+		},
+		scheduleOptions,
+	);
 };
 
 export const removeScheduleJob = (scheduleId: string) => {

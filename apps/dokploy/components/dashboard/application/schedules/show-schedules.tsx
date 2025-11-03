@@ -132,6 +132,19 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 												>
 													Cron: {schedule.cronExpression}
 												</Badge>
+												{schedule.timezone && (
+													<>
+														<span className="text-xs text-muted-foreground/50">
+															•
+														</span>
+														<Badge
+															variant="outline"
+															className="text-[10px] bg-transparent"
+														>
+															TZ: {schedule.timezone}
+														</Badge>
+													</>
+												)}
 												{schedule.scheduleType !== "server" &&
 													schedule.scheduleType !== "dokploy-server" && (
 														<>

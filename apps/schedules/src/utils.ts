@@ -191,6 +191,7 @@ export const initializeJobs = async () => {
 			scheduleId: schedule.scheduleId,
 			type: "schedule",
 			cronSchedule: schedule.cronExpression,
+			timezone: schedule.timezone,
 		});
 	}
 	logger.info(

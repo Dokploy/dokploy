@@ -60,6 +60,23 @@ export const commonCronExpressions = [
 	{ label: "Custom", value: "custom" },
 ];
 
+const commonTimezones = [
+	{ label: "UTC (Default)", value: "__UTC__" },
+	{ label: "America/Los_Angeles (PST/PDT)", value: "America/Los_Angeles" },
+	{ label: "America/New_York (EST/EDT)", value: "America/New_York" },
+	{ label: "America/Chicago (CST/CDT)", value: "America/Chicago" },
+	{ label: "America/Denver (MST/MDT)", value: "America/Denver" },
+	{ label: "Europe/London (GMT/BST)", value: "Europe/London" },
+	{ label: "Europe/Paris (CET/CEST)", value: "Europe/Paris" },
+	{ label: "Europe/Berlin (CET/CEST)", value: "Europe/Berlin" },
+	{ label: "Asia/Tokyo (JST)", value: "Asia/Tokyo" },
+	{ label: "Asia/Shanghai (CST)", value: "Asia/Shanghai" },
+	{ label: "Asia/Kolkata (IST)", value: "Asia/Kolkata" },
+	{ label: "Asia/Dubai (GST)", value: "Asia/Dubai" },
+	{ label: "Australia/Sydney (AEST/AEDT)", value: "Australia/Sydney" },
+	{ label: "Australia/Melbourne (AEST/AEDT)", value: "Australia/Melbourne" },
+];
+
 const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
@@ -75,6 +92,7 @@ const formSchema = z
 			"dokploy-server",
 		]),
 		script: z.string(),
+		timezone: z.string().nullable().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.scheduleType === "compose" && !data.serviceName) {
@@ -213,6 +231,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			serviceName: "",
 			scheduleType: scheduleType || "application",
 			script: "",
+			timezone: null,
 		},
 	});
 
@@ -251,6 +270,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 				serviceName: schedule.serviceName || "",
 				scheduleType: schedule.scheduleType,
 				script: schedule.script || "",
+				timezone: schedule.timezone || null,
 			});
 		}
 	}, [form, schedule, scheduleId]);
@@ -462,6 +482,56 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 						<ScheduleFormField
 							name="cronExpression"
 							formControl={form.control}
+						/>
+
+						<FormField
+							control={form.control}
+							name="timezone"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										Timezone
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Info className="w-4 h-4 text-muted-foreground cursor-help" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Select the timezone for this schedule. If not specified, UTC will be used.
+													</p>
+													<p className="mt-1">
+														Example: Setting "9:00 AM" with "America/Los_Angeles" will run at 9 AM Pacific Time.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</FormLabel>
+									<Select
+										value={field.value || "__UTC__"}
+										onValueChange={(value) => {
+											field.onChange(value === "__UTC__" ? null : value);
+										}}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="UTC (Default)" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{commonTimezones.map((tz) => (
+												<SelectItem key={tz.value} value={tz.value}>
+													{tz.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormDescription>
+										The timezone for the cron schedule. Leave as UTC if unsure.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
 						/>
 
 						{(scheduleTypeForm === "application" ||
