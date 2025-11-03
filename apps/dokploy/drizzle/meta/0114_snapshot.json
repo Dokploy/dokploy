@@ -421,13 +421,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "is_default": {
-          "name": "is_default",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "canCreateProjects": {
           "name": "canCreateProjects",
           "type": "boolean",
