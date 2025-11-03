@@ -8,8 +8,8 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -195,7 +195,7 @@ export const sendDockerCleanupNotifications = async (
 										elements: [
 											{
 												tag: "markdown",
-												content: `**Status:**\nSuccessful`,
+												content: "**Status:**\nSuccessful",
 												text_align: "left",
 												text_size: "normal_v2",
 											},

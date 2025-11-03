@@ -1,10 +1,4 @@
-import {
-	Bell,
-	Loader2,
-	Mail,
-	PenBoxIcon,
-	Trash2,
-} from "lucide-react";
+import { Bell, Loader2, Mail, PenBoxIcon, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
