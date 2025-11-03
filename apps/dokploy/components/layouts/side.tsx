@@ -498,7 +498,6 @@ function SidebarLogo() {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
 	const { data: session } = authClient.useSession();
-
 	const {
 		data: organizations,
 		refetch,
@@ -597,118 +596,124 @@ function SidebarLogo() {
 								<DropdownMenuLabel className="text-xs text-muted-foreground">
 									Organizations
 								</DropdownMenuLabel>
-								{organizations?.map((org) => (
-									<div className="flex flex-row justify-between" key={org.name}>
-										<DropdownMenuItem
-											onClick={async () => {
-												await authClient.organization.setActive({
-													organizationId: org.id,
-												});
-												window.location.reload();
-											}}
-											className="w-full gap-2 p-2"
+								{organizations?.map((org) => {
+									const isDefault = org.members?.[0]?.isDefault ?? false;
+									return (
+										<div
+											className="flex flex-row justify-between"
+											key={org.name}
 										>
-											<div className="flex flex-col gap-1">
-												<div className="flex items-center gap-2">
-													{org.name}
+											<DropdownMenuItem
+												onClick={async () => {
+													await authClient.organization.setActive({
+														organizationId: org.id,
+													});
+													window.location.reload();
+												}}
+												className="w-full gap-2 p-2"
+											>
+												<div className="flex flex-col gap-1">
+													<div className="flex items-center gap-2">
+														{org.name}
+													</div>
 												</div>
-											</div>
-											<div className="flex size-6 items-center justify-center rounded-sm border">
-												<Logo
-													className={cn(
-														"transition-all",
-														state === "collapsed" ? "size-6" : "size-10",
-													)}
-													logoUrl={org.logo ?? undefined}
-												/>
-											</div>
-										</DropdownMenuItem>
-										{org.ownerId === session?.user?.id && (
-											<div className="flex items-center gap-2">
-												<Button
-													variant="ghost"
-													size="icon"
-													className={cn(
-														"group",
-														org.isDefault
-															? "hover:bg-yellow-500/10"
-															: "hover:bg-blue-500/10",
-													)}
-													isLoading={isSettingDefault && !org.isDefault}
-													disabled={org.isDefault}
-													onClick={async (e) => {
-														if (org.isDefault) return;
-														e.stopPropagation();
-														await setDefaultOrganization({
-															organizationId: org.id,
-														})
-															.then(() => {
-																refetch();
-																toast.success("Default organization updated");
-															})
-															.catch((error) => {
-																toast.error(
-																	error?.message ||
-																		"Error setting default organization",
-																);
-															});
-													}}
-													title={
-														org.isDefault
-															? "Default organization"
-															: "Set as default"
-													}
-												>
-													{org.isDefault ? (
-														<Star
-															fill="#eab308"
-															stroke="#eab308"
-															className="size-4 text-yellow-500"
-														/>
-													) : (
-														<Star
-															fill="none"
-															stroke="currentColor"
-															className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
-														/>
-													)}
-												</Button>
-												<AddOrganization organizationId={org.id} />
-												<DialogAction
-													title="Delete Organization"
-													description="Are you sure you want to delete this organization?"
-													type="destructive"
-													onClick={async () => {
-														await deleteOrganization({
-															organizationId: org.id,
-														})
-															.then(() => {
-																refetch();
-																toast.success(
-																	"Organization deleted successfully",
-																);
-															})
-															.catch((error) => {
-																toast.error(
-																	error?.message ||
-																		"Error deleting organization",
-																);
-															});
-													}}
-												>
+												<div className="flex size-6 items-center justify-center rounded-sm border">
+													<Logo
+														className={cn(
+															"transition-all",
+															state === "collapsed" ? "size-6" : "size-10",
+														)}
+														logoUrl={org.logo ?? undefined}
+													/>
+												</div>
+											</DropdownMenuItem>
+											{org.ownerId === session?.user?.id && (
+												<div className="flex items-center gap-2">
 													<Button
 														variant="ghost"
 														size="icon"
-														className="group hover:bg-red-500/10"
-														isLoading={isRemoving}
+														className={cn(
+															"group",
+															isDefault
+																? "hover:bg-yellow-500/10"
+																: "hover:bg-blue-500/10",
+														)}
+														isLoading={isSettingDefault && !isDefault}
+														disabled={isDefault}
+														onClick={async (e) => {
+															if (isDefault) return;
+															e.stopPropagation();
+															await setDefaultOrganization({
+																organizationId: org.id,
+															})
+																.then(() => {
+																	refetch();
+																	toast.success("Default organization updated");
+																})
+																.catch((error) => {
+																	toast.error(
+																		error?.message ||
+																			"Error setting default organization",
+																	);
+																});
+														}}
+														title={
+															isDefault
+																? "Default organization"
+																: "Set as default"
+														}
 													>
-														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+														{isDefault ? (
+															<Star
+																fill="#eab308"
+																stroke="#eab308"
+																className="size-4 text-yellow-500"
+															/>
+														) : (
+															<Star
+																fill="none"
+																stroke="currentColor"
+																className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+															/>
+														)}
 													</Button>
-												</DialogAction>
-											</div>
-										)}
-									</div>
-								))}
+													<AddOrganization organizationId={org.id} />
+													<DialogAction
+														title="Delete Organization"
+														description="Are you sure you want to delete this organization?"
+														type="destructive"
+														onClick={async () => {
+															await deleteOrganization({
+																organizationId: org.id,
+															})
+																.then(() => {
+																	refetch();
+																	toast.success(
+																		"Organization deleted successfully",
+																	);
+																})
+																.catch((error) => {
+																	toast.error(
+																		error?.message ||
+																			"Error deleting organization",
+																	);
+																});
+														}}
+													>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="group hover:bg-red-500/10"
+															isLoading={isRemoving}
+														>
+															<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+														</Button>
+													</DialogAction>
+												</div>
+											)}
+										</div>
+									);
+								})}
 								{(user?.role === "owner" || isCloud) && (
 									<>
 										<DropdownMenuSeparator />

@@ -46,85 +46,16 @@ export const organizationRouter = createTRPCRouter({
 				where: eq(member.userId, ctx.user.id),
 			});
 
-			const isFirstOrganization = existingMemberships.length === 0;
-
 			await db.insert(member).values({
 				organizationId: result.id,
 				role: "owner",
 				createdAt: new Date(),
 				userId: ctx.user.id,
-				isDefault: isFirstOrganization, // Mark as default if it's the first organization
 			});
 			return result;
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
-		// Get all memberships for the user with organization info
-		// Query memberships first to get the isDefault value correctly
-		const memberships = await db
-			.select({
-				organizationId: member.organizationId,
-				isDefault: member.isDefault,
-				createdAt: member.createdAt,
-			})
-			.from(member)
-			.where(eq(member.userId, ctx.user.id));
-
-		// If no default is set, set the oldest organization as default
-		const hasDefault = memberships.some((m) => m.isDefault === true);
-		if (!hasDefault && memberships.length > 0) {
-			// Find the oldest membership (first created)
-			const oldestMembership = memberships.reduce((oldest, current) =>
-				current.createdAt < oldest.createdAt ? current : oldest,
-			);
-
-			// Set it as default
-			await db
-				.update(member)
-				.set({ isDefault: true })
-				.where(
-					and(
-						eq(member.organizationId, oldestMembership.organizationId),
-						eq(member.userId, ctx.user.id),
-					),
-				);
-
-			// Update the memberships array
-			const updatedMemberships = memberships.map((m) =>
-				m.organizationId === oldestMembership.organizationId
-					? { ...m, isDefault: true }
-					: m,
-			);
-
-			// Get all organizations for the user
-			const organizations = await db.query.organization.findMany({
-				where: (organization) =>
-					exists(
-						db
-							.select()
-							.from(member)
-							.where(
-								and(
-									eq(member.organizationId, organization.id),
-									eq(member.userId, ctx.user.id),
-								),
-							),
-					),
-			});
-
-			// Create a map of organizationId to isDefault
-			const defaultMap = new Map(
-				updatedMemberships.map((m) => [m.organizationId, Boolean(m.isDefault)]),
-			);
-
-			// Map organizations with their isDefault flag
-			return organizations.map((org) => ({
-				...org,
-				isDefault: defaultMap.get(org.id) ?? false,
-			}));
-		}
-
-		// Get all organizations for the user
-		const organizations = await db.query.organization.findMany({
+		const memberResult = await db.query.organization.findMany({
 			where: (organization) =>
 				exists(
 					db
@@ -137,18 +68,13 @@ export const organizationRouter = createTRPCRouter({
 							),
 						),
 				),
+			with: {
+				members: {
+					where: eq(member.userId, ctx.user.id),
+				},
+			},
 		});
-
-		// Create a map of organizationId to isDefault
-		const defaultMap = new Map(
-			memberships.map((m) => [m.organizationId, Boolean(m.isDefault)]),
-		);
-
-		// Map organizations with their isDefault flag
-		return organizations.map((org) => ({
-			...org,
-			isDefault: defaultMap.get(org.id) ?? false,
-		}));
+		return memberResult;
 	}),
 	one: protectedProcedure
 		.input(
@@ -271,7 +197,7 @@ export const organizationRouter = createTRPCRouter({
 	setDefault: protectedProcedure
 		.input(
 			z.object({
-				organizationId: z.string(),
+				organizationId: z.string().min(1),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
