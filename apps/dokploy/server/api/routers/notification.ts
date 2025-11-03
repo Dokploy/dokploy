@@ -470,7 +470,9 @@ export const notificationRouter = createTRPCRouter({
 				);
 			} catch (error) {
 				const errorMessage =
-					error instanceof Error ? error.message : "Error creating the notification";
+					error instanceof Error
+						? error.message
+						: "Error creating the notification";
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: errorMessage,

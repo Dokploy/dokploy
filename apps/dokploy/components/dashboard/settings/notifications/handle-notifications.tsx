@@ -103,7 +103,10 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("ntfy"),
 			serverUrl: z.string().min(1, { message: "Server URL is required" }),
 			topic: z.string().min(1, { message: "Topic is required" }),
-			accessToken: z.string().nullish().transform((val) => val === "" ? undefined : val),
+			accessToken: z
+				.string()
+				.nullish()
+				.transform((val) => (val === "" ? undefined : val)),
 			priority: z.number().min(1).max(5).default(3),
 		})
 		.merge(notificationBaseSchema),
@@ -1004,7 +1007,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														/>
 													</FormControl>
 													<FormDescription>
-														Optional: Only required if your ntfy server requires authentication.
+														Optional: Only required if your ntfy server requires
+														authentication.
 													</FormDescription>
 													<FormMessage />
 												</FormItem>

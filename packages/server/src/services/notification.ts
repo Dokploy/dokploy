@@ -572,7 +572,7 @@ export const updateNtfyNotification = async (
 			accessToken?: string | null;
 			priority?: number;
 		} = {};
-		
+
 		if (input.serverUrl !== undefined) {
 			updateData.serverUrl = input.serverUrl;
 		}
