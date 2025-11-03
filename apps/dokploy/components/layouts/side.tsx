@@ -627,90 +627,93 @@ function SidebarLogo() {
 													/>
 												</div>
 											</DropdownMenuItem>
-											{org.ownerId === session?.user?.id && (
-												<div className="flex items-center gap-2">
-													<Button
-														variant="ghost"
-														size="icon"
-														className={cn(
-															"group",
-															isDefault
-																? "hover:bg-yellow-500/10"
-																: "hover:bg-blue-500/10",
-														)}
-														isLoading={isSettingDefault && !isDefault}
-														disabled={isDefault}
-														onClick={async (e) => {
-															if (isDefault) return;
-															e.stopPropagation();
-															await setDefaultOrganization({
-																organizationId: org.id,
+
+											<div className="flex items-center gap-2">
+												<Button
+													variant="ghost"
+													size="icon"
+													className={cn(
+														"group",
+														isDefault
+															? "hover:bg-yellow-500/10"
+															: "hover:bg-blue-500/10",
+													)}
+													isLoading={isSettingDefault && !isDefault}
+													disabled={isDefault}
+													onClick={async (e) => {
+														if (isDefault) return;
+														e.stopPropagation();
+														await setDefaultOrganization({
+															organizationId: org.id,
+														})
+															.then(() => {
+																refetch();
+																toast.success("Default organization updated");
 															})
-																.then(() => {
-																	refetch();
-																	toast.success("Default organization updated");
+															.catch((error) => {
+																toast.error(
+																	error?.message ||
+																		"Error setting default organization",
+																);
+															});
+													}}
+													title={
+														isDefault
+															? "Default organization"
+															: "Set as default"
+													}
+												>
+													{isDefault ? (
+														<Star
+															fill="#eab308"
+															stroke="#eab308"
+															className="size-4 text-yellow-500"
+														/>
+													) : (
+														<Star
+															fill="none"
+															stroke="currentColor"
+															className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+														/>
+													)}
+												</Button>
+												{org.ownerId === session?.user?.id && (
+													<>
+														<AddOrganization organizationId={org.id} />
+														<DialogAction
+															title="Delete Organization"
+															description="Are you sure you want to delete this organization?"
+															type="destructive"
+															onClick={async () => {
+																await deleteOrganization({
+																	organizationId: org.id,
 																})
-																.catch((error) => {
-																	toast.error(
-																		error?.message ||
-																			"Error setting default organization",
-																	);
-																});
-														}}
-														title={
-															isDefault
-																? "Default organization"
-																: "Set as default"
-														}
-													>
-														{isDefault ? (
-															<Star
-																fill="#eab308"
-																stroke="#eab308"
-																className="size-4 text-yellow-500"
-															/>
-														) : (
-															<Star
-																fill="none"
-																stroke="currentColor"
-																className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
-															/>
-														)}
-													</Button>
-													<AddOrganization organizationId={org.id} />
-													<DialogAction
-														title="Delete Organization"
-														description="Are you sure you want to delete this organization?"
-														type="destructive"
-														onClick={async () => {
-															await deleteOrganization({
-																organizationId: org.id,
-															})
-																.then(() => {
-																	refetch();
-																	toast.success(
-																		"Organization deleted successfully",
-																	);
-																})
-																.catch((error) => {
-																	toast.error(
-																		error?.message ||
-																			"Error deleting organization",
-																	);
-																});
-														}}
-													>
-														<Button
-															variant="ghost"
-															size="icon"
-															className="group hover:bg-red-500/10"
-															isLoading={isRemoving}
+																	.then(() => {
+																		refetch();
+																		toast.success(
+																			"Organization deleted successfully",
+																		);
+																	})
+																	.catch((error) => {
+																		toast.error(
+																			error?.message ||
+																				"Error deleting organization",
+																		);
+																	});
+															}}
 														>
-															<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-														</Button>
-													</DialogAction>
-												</div>
-											)}
+															<Button
+																variant="ghost"
+																size="icon"
+																className="group hover:bg-red-500/10"
+																isLoading={isRemoving}
+															>
+																<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+															</Button>
+														</DialogAction>
+													</>
+												)}
+											</div>
 										</div>
 									);
 								})}
