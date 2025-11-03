@@ -175,27 +175,18 @@ const { handler, api } = betterAuth({
 		session: {
 			create: {
 				before: async (session) => {
-					// First try to find the default organization for this user
-					let member = await db.query.member.findFirst({
-						where: and(
-							eq(schema.member.userId, session.userId),
-							eq(schema.member.isDefault, true),
-						),
+					// Find the default organization for this user
+					// Priority: 1) isDefault=true, 2) most recently created
+					const member = await db.query.member.findFirst({
+						where: eq(schema.member.userId, session.userId),
+						orderBy: [
+							desc(schema.member.isDefault),
+							desc(schema.member.createdAt),
+						],
 						with: {
 							organization: true,
 						},
 					});
-
-					// If no default is set, fallback to the most recently created organization
-					if (!member) {
-						member = await db.query.member.findFirst({
-							where: eq(schema.member.userId, session.userId),
-							orderBy: desc(schema.member.createdAt),
-							with: {
-								organization: true,
-							},
-						});
-					}
 
 					return {
 						data: {
