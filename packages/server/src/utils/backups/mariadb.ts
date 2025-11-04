@@ -19,7 +19,11 @@ export const runMariadbBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const timestamp = new Date().toISOString().replace('T', '_').replace(/:/g, '-').replace('.', '_');
+	const timestamp = new Date()
+		.toISOString()
+		.replace("T", "_")
+		.replace(/:/g, "-")
+		.replace(".", "_");
 	const backupFileName = `${timestamp}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
