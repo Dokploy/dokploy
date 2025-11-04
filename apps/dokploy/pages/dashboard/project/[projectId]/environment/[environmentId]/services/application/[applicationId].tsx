@@ -130,7 +130,9 @@ const Service = (
 									<span className="truncate">{data?.name}</span>
 								</CardTitle>
 								{data?.description && (
-									<CardDescription className="truncate">{data?.description}</CardDescription>
+									<CardDescription className="truncate">
+										{data?.description}
+									</CardDescription>
 								)}
 
 								<span className="text-sm text-muted-foreground truncate">
@@ -138,7 +140,11 @@ const Service = (
 								</span>
 								{/* Domain Links */}
 								<div className="mt-1.5 flex-wrap">
-									<ServiceDomainLinks id={applicationId} type="application" maxVisible={5} />
+									<ServiceDomainLinks
+										id={applicationId}
+										type="application"
+										maxVisible={5}
+									/>
 								</div>
 							</div>
 							<div className="flex flex-col h-fit w-fit gap-2 shrink-0">

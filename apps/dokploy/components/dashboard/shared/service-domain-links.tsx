@@ -69,26 +69,24 @@ export const ServiceDomainLinks = ({
 		return () => window.removeEventListener("resize", updateMaxVisible);
 	}, [maxVisible]);
 
-	const {
-		data: domains,
-		isLoading,
-	} = type === "application"
-		? api.domain.byApplicationId.useQuery(
-				{
-					applicationId: id,
-				},
-				{
-					enabled: !!id,
-				},
-			)
-		: api.domain.byComposeId.useQuery(
-				{
-					composeId: id,
-				},
-				{
-					enabled: !!id,
-				},
-			);
+	const { data: domains, isLoading } =
+		type === "application"
+			? api.domain.byApplicationId.useQuery(
+					{
+						applicationId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				)
+			: api.domain.byComposeId.useQuery(
+					{
+						composeId: id,
+					},
+					{
+						enabled: !!id,
+					},
+				);
 
 	// Get service data for navigation
 	const { data: service } =
@@ -171,7 +169,9 @@ export const ServiceDomainLinks = ({
 						variant="outline"
 						className="cursor-pointer hover:bg-primary/10 transition-colors gap-1.5 px-2 py-0.5 text-xs max-w-full"
 					>
-						<span className="truncate max-w-[200px] sm:max-w-none">{domain.label}</span>
+						<span className="truncate max-w-[200px] sm:max-w-none">
+							{domain.label}
+						</span>
 						<ExternalLinkIcon className="size-3 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
 					</Badge>
 				</Link>
@@ -213,7 +213,9 @@ export const ServiceDomainLinks = ({
 										setIsOverflowOpen(false);
 									}}
 								>
-									<span className="whitespace-nowrap flex-1">{domain.label}</span>
+									<span className="whitespace-nowrap flex-1">
+										{domain.label}
+									</span>
 									<ExternalLinkIcon className="size-3 shrink-0" />
 								</Link>
 							</DropdownMenuItem>
@@ -243,4 +245,3 @@ export const ServiceDomainLinks = ({
 		</div>
 	);
 };
-
