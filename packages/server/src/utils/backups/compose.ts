@@ -19,7 +19,8 @@ export const runComposeBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix, databaseType } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+	const timestamp = new Date().toISOString().replace('T', '_').replace(/:/g, '-').replace('.', '_');
+	const backupFileName = `${timestamp}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
