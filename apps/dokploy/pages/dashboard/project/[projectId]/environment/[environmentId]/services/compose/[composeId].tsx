@@ -31,6 +31,7 @@ import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/co
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
+import { ServiceDomainLinks } from "@/components/dashboard/shared/service-domain-links";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -108,27 +109,31 @@ const Service = (
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl w-full">
 					<div className="rounded-xl bg-background shadow-md ">
 						<div className="flex flex-col gap-4">
-							<CardHeader className="flex flex-row justify-between items-center">
-								<div className="flex flex-col">
+							<CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+								<div className="flex flex-col flex-1 min-w-0">
 									<CardTitle className="text-xl flex flex-row gap-2">
 										<div className="relative flex flex-row gap-4">
 											<div className="absolute -right-1 -top-2">
 												<StatusTooltip status={data?.composeStatus} />
 											</div>
 
-											<CircuitBoard className="h-6 w-6 text-muted-foreground" />
+											<CircuitBoard className="h-6 w-6 text-muted-foreground shrink-0" />
 										</div>
-										{data?.name}
+										<span className="truncate">{data?.name}</span>
 									</CardTitle>
 									{data?.description && (
-										<CardDescription>{data?.description}</CardDescription>
+										<CardDescription className="truncate">{data?.description}</CardDescription>
 									)}
 
-									<span className="text-sm text-muted-foreground">
+									<span className="text-sm text-muted-foreground truncate">
 										{data?.appName}
 									</span>
+									{/* Domain Links */}
+									<div className="mt-1.5 flex-wrap">
+										<ServiceDomainLinks id={composeId} type="compose" maxVisible={5} />
+									</div>
 								</div>
-								<div className="flex flex-col h-fit w-fit gap-2">
+								<div className="flex flex-col h-fit w-fit gap-2 shrink-0">
 									<div className="flex flex-row h-fit w-fit gap-2">
 										<Badge
 											className="cursor-pointer"

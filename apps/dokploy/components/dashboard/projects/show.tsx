@@ -246,14 +246,12 @@ export const ShowProjects = () => {
 												.some(Boolean);
 
 											return (
-												<div
+												<Link
 													key={project.projectId}
+													href={`/dashboard/project/${project.projectId}/environment/${project?.environments?.[0]?.environmentId}`}
 													className="w-full lg:max-w-md"
 												>
-													<Link
-														href={`/dashboard/project/${project.projectId}/environment/${project?.environments?.[0]?.environmentId}`}
-													>
-														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
+													<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border cursor-pointer">
 															{haveServicesWithDomains ? (
 																<DropdownMenu>
 																	<DropdownMenuTrigger asChild>
@@ -359,18 +357,20 @@ export const ShowProjects = () => {
 																</DropdownMenu>
 															) : null}
 															<CardHeader>
-																<CardTitle className="flex items-center justify-between gap-2">
-																	<span className="flex flex-col gap-1.5">
+																<CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+																	<span className="flex flex-col gap-1.5 flex-1 min-w-0">
 																		<div className="flex items-center gap-2">
-																			<BookIcon className="size-4 text-muted-foreground" />
-																			<span className="text-base font-medium leading-none">
+																			<BookIcon className="size-4 text-muted-foreground shrink-0" />
+																			<span className="text-base font-medium leading-none truncate">
 																				{project.name}
 																			</span>
 																		</div>
 
-																		<span className="text-sm font-medium text-muted-foreground">
-																			{project.description}
-																		</span>
+																		{project.description && (
+																			<span className="text-sm font-medium text-muted-foreground truncate">
+																				{project.description}
+																			</span>
+																		)}
 																	</span>
 																	<div className="flex self-start space-x-1">
 																		<DropdownMenu>
@@ -497,7 +497,6 @@ export const ShowProjects = () => {
 															</CardFooter>
 														</Card>
 													</Link>
-												</div>
 											);
 										})}
 									</div>
