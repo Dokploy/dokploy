@@ -58,22 +58,38 @@ export const ShowBackups = ({
 					postgres: () =>
 						api.postgres.one.useQuery(
 							{ postgresId: id },
-							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+							{
+								enabled: !!id,
+								refetchInterval: 3000,
+								refetchOnWindowFocus: false,
+							},
 						),
 					mysql: () =>
 						api.mysql.one.useQuery(
 							{ mysqlId: id },
-							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+							{
+								enabled: !!id,
+								refetchInterval: 3000,
+								refetchOnWindowFocus: false,
+							},
 						),
 					mariadb: () =>
 						api.mariadb.one.useQuery(
 							{ mariadbId: id },
-							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+							{
+								enabled: !!id,
+								refetchInterval: 3000,
+								refetchOnWindowFocus: false,
+							},
 						),
 					mongo: () =>
 						api.mongo.one.useQuery(
 							{ mongoId: id },
-							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+							{
+								enabled: !!id,
+								refetchInterval: 3000,
+								refetchOnWindowFocus: false,
+							},
 						),
 					"web-server": () => api.user.getBackups.useQuery(),
 				}
@@ -81,7 +97,11 @@ export const ShowBackups = ({
 					compose: () =>
 						api.compose.one.useQuery(
 							{ composeId: id },
-							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+							{
+								enabled: !!id,
+								refetchInterval: 3000,
+								refetchOnWindowFocus: false,
+							},
 						),
 				};
 	const { data } = api.destination.all.useQuery();
@@ -342,7 +362,9 @@ export const ShowBackups = ({
 																					await stopBackup({
 																						backupId: backup.backupId,
 																					});
-																					toast.success("Backup stopped successfully");
+																					toast.success(
+																						"Backup stopped successfully",
+																					);
 																					refetch();
 																				} catch (error) {
 																					toast.error(

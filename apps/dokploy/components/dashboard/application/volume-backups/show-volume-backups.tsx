@@ -204,10 +204,12 @@ export const ShowVolumeBackups = ({
 																		"Volume backup stopped successfully",
 																	);
 																	refetchVolumeBackups();
-																	utils.volumeBackups.list.invalidate({
-																		id,
-																		volumeBackupType: type,
-																	}).catch(() => {});
+																	utils.volumeBackups.list
+																		.invalidate({
+																			id,
+																			volumeBackupType: type,
+																		})
+																		.catch(() => {});
 																} catch (error) {
 																	setStoppingVolumeBackupId(null);
 																	toast.error(
@@ -255,18 +257,19 @@ export const ShowVolumeBackups = ({
 																);
 																try {
 																	await runManually({
-																		volumeBackupId:
-																			volumeBackup.volumeBackupId,
+																		volumeBackupId: volumeBackup.volumeBackupId,
 																	});
 																	setRunningVolumeBackupId(null);
 																	toast.success(
 																		"Volume backup run successfully",
 																	);
 																	refetchVolumeBackups();
-																	utils.volumeBackups.list.invalidate({
-																		id,
-																		volumeBackupType: type,
-																	}).catch(() => {});
+																	utils.volumeBackups.list
+																		.invalidate({
+																			id,
+																			volumeBackupType: type,
+																		})
+																		.catch(() => {});
 																} catch (error) {
 																	setRunningVolumeBackupId(null);
 																	toast.error(
