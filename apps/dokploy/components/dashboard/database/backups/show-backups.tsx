@@ -344,7 +344,6 @@ export const ShowBackups = ({
 																					});
 																					toast.success("Backup stopped successfully");
 																					refetch();
-																					utils.backup.stop.invalidate();
 																				} catch (error) {
 																					toast.error(
 																						error instanceof Error

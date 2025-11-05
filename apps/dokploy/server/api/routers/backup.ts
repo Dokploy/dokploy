@@ -477,13 +477,19 @@ export const backupRouter = createTRPCRouter({
 			const backup = runningDeployment.backup;
 			let serverId: string | undefined;
 			if (backup?.backupType === "database") {
+				const postgresId = backup.postgres?.serverId;
+				const mysqlId = backup.mysql?.serverId;
+				const mariadbId = backup.mariadb?.serverId;
+				const mongoId = backup.mongo?.serverId;
 				serverId =
-					backup.postgres?.serverId ||
-					backup.mysql?.serverId ||
-					backup.mariadb?.serverId ||
-					backup.mongo?.serverId;
+					(postgresId && postgresId) ||
+					(mysqlId && mysqlId) ||
+					(mariadbId && mariadbId) ||
+					(mongoId && mongoId) ||
+					undefined;
 			} else if (backup?.backupType === "compose") {
-				serverId = backup.compose?.serverId;
+				const composeId = backup.compose?.serverId;
+				serverId = (composeId && composeId) || undefined;
 			}
 
 			// Kill the process
