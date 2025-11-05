@@ -6,6 +6,11 @@ import {
 	schedules,
 	updateScheduleSchema,
 } from "@dokploy/server/db/schema/schedule";
+import {
+	execAsync,
+	execAsyncRemote,
+	updateDeploymentStatus,
+} from "@dokploy/server";
 import { runCommand } from "@dokploy/server/index";
 import {
 	createSchedule,
@@ -14,7 +19,7 @@ import {
 	updateSchedule,
 } from "@dokploy/server/services/schedule";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { removeJob, schedule } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -137,5 +142,76 @@ export const scheduleRouter = createTRPCRouter({
 						error instanceof Error ? error.message : "Error running schedule",
 				});
 			}
+		}),
+
+	stop: protectedProcedure
+		.input(z.object({ scheduleId: z.string().min(1) }))
+		.mutation(async ({ input }) => {
+			// Find the running deployment for this schedule
+			const runningDeployment = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.scheduleId, input.scheduleId),
+					eq(deployments.status, "running"),
+				),
+				with: {
+					schedule: {
+						with: {
+							application: true,
+							compose: true,
+							server: true,
+						},
+					},
+				},
+				orderBy: [desc(deployments.createdAt)],
+			});
+
+			if (!runningDeployment) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No running schedule found",
+				});
+			}
+
+			if (!runningDeployment.pid) {
+				// If no PID, just mark as cancelled
+				await updateDeploymentStatus(
+					runningDeployment.deploymentId,
+					"cancelled",
+				);
+				return {
+					success: true,
+					message: "Schedule stopped successfully",
+				};
+			}
+
+			// Determine server ID for remote execution
+			const serverId =
+				runningDeployment.schedule?.serverId ||
+				runningDeployment.schedule?.application?.serverId ||
+				runningDeployment.schedule?.compose?.serverId;
+
+			// Kill the process
+			const command = `kill -9 ${runningDeployment.pid}`;
+			try {
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command);
+				}
+			} catch (error) {
+				// If kill fails, still mark as cancelled
+				console.error("Error killing process:", error);
+			}
+
+			// Update deployment status to cancelled
+			await updateDeploymentStatus(
+				runningDeployment.deploymentId,
+				"cancelled",
+			);
+
+			return {
+				success: true,
+				message: "Schedule stopped successfully",
+			};
 		}),
 });

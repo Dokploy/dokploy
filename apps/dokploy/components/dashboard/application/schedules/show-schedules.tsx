@@ -3,6 +3,7 @@ import {
 	Clock,
 	Loader2,
 	Play,
+	Square,
 	Terminal,
 	Trash2,
 } from "lucide-react";
@@ -34,13 +35,18 @@ interface Props {
 }
 
 export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
-	const [runningSchedules, setRunningSchedules] = useState<Set<string>>(
-		new Set(),
+	const [stoppingScheduleId, setStoppingScheduleId] = useState<string | null>(
+		null,
 	);
+	const [runningScheduleId, setRunningScheduleId] = useState<string | null>(
+		null,
+	);
+
+	const utils = api.useUtils();
+
 	const {
 		data: schedules,
 		isLoading: isLoadingSchedules,
-		refetch: refetchSchedules,
 	} = api.schedule.list.useQuery(
 		{
 			id: id || "",
@@ -48,29 +54,17 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 		},
 		{
 			enabled: !!id,
+			refetchInterval: 3000, // Poll every 3 seconds to check for running status
+			refetchOnWindowFocus: false,
 		},
 	);
-	const utils = api.useUtils();
+
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
 		api.schedule.delete.useMutation();
+
 	const { mutateAsync: runManually } = api.schedule.runManually.useMutation();
 
-	const handleRunManually = async (scheduleId: string) => {
-		setRunningSchedules((prev) => new Set(prev).add(scheduleId));
-		try {
-			await runManually({ scheduleId });
-			toast.success("Schedule run successfully");
-			await refetchSchedules();
-		} catch {
-			toast.error("Error running schedule");
-		} finally {
-			setRunningSchedules((prev) => {
-				const newSet = new Set(prev);
-				newSet.delete(scheduleId);
-				return newSet;
-			});
-		}
-	};
+	const { mutateAsync: stopSchedule } = api.schedule.stop.useMutation();
 
 	return (
 		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
@@ -104,6 +98,13 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 								schedule.serverId ||
 								schedule.application?.serverId ||
 								schedule.compose?.serverId;
+
+							// Check if schedule has a running deployment
+							const runningDeployment = schedule.deployments?.find(
+								(deployment) => deployment.status === "running",
+							);
+							const isRunning = !!runningDeployment;
+
 							return (
 								<div
 									key={schedule.scheduleId}
@@ -124,6 +125,14 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 												>
 													{schedule.enabled ? "Enabled" : "Disabled"}
 												</Badge>
+												{isRunning && (
+													<Badge
+														variant="default"
+														className="text-[10px] px-1 py-0 bg-green-500 hover:bg-green-600"
+													>
+														Running
+													</Badge>
+												)}
 											</div>
 											<div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
 												<Badge
@@ -167,28 +176,102 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 												<ClipboardList className="size-4 transition-colors" />
 											</Button>
 										</ShowDeploymentsModal>
-										<TooltipProvider delayDuration={0}>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														disabled={runningSchedules.has(schedule.scheduleId)}
-														onClick={() =>
-															handleRunManually(schedule.scheduleId)
-														}
-													>
-														{runningSchedules.has(schedule.scheduleId) ? (
-															<Loader2 className="size-4 animate-spin" />
-														) : (
-															<Play className="size-4 transition-colors" />
-														)}
-													</Button>
-												</TooltipTrigger>
-												<TooltipContent>Run Manual Schedule</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
+
+										{isRunning || stoppingScheduleId === schedule.scheduleId ? (
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<DialogAction
+															title="Stop Running Schedule"
+															description="Are you sure you want to stop this running schedule? The current execution will be interrupted."
+															type="default"
+															onClick={async () => {
+																const scheduleId = schedule.scheduleId;
+																setStoppingScheduleId(scheduleId);
+																try {
+																	await stopSchedule({
+																		scheduleId,
+																	});
+																	// Clear loading state immediately - this triggers a re-render
+																	setStoppingScheduleId(null);
+																	toast.success("Schedule stopped successfully");
+																	// Invalidate in background without awaiting
+																	utils.schedule.list.invalidate({
+																		id,
+																		scheduleType,
+																	}).catch(() => {
+																		// Silently handle background refetch errors
+																	});
+																} catch (error) {
+																	// Clear loading on error too
+																	setStoppingScheduleId(null);
+																	toast.error(
+																		error instanceof Error
+																			? error.message
+																			: "Error stopping schedule",
+																	);
+																}
+															}}
+														>
+															<Button
+																type="button"
+																variant="destructive"
+																size="icon"
+																isLoading={
+																	stoppingScheduleId === schedule.scheduleId
+																}
+															>
+																<Square className="size-4" />
+															</Button>
+														</DialogAction>
+													</TooltipTrigger>
+													<TooltipContent>Stop Running Schedule</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										) : (
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															isLoading={
+																runningScheduleId === schedule.scheduleId
+															}
+															onClick={async () => {
+																setRunningScheduleId(schedule.scheduleId);
+																try {
+																	await runManually({
+																		scheduleId: schedule.scheduleId,
+																	});
+																	// Clear loading immediately
+																	setRunningScheduleId(null);
+																	toast.success("Schedule run successfully");
+																	// Invalidate in background without awaiting
+																	utils.schedule.list.invalidate({
+																		id,
+																		scheduleType,
+																	}).catch(() => {
+																		// Silently handle background refetch errors
+																	});
+																} catch (error) {
+																	setRunningScheduleId(null);
+																	toast.error(
+																		error instanceof Error
+																			? error.message
+																			: "Error running schedule",
+																	);
+																}
+															}}
+														>
+															<Play className="size-4  transition-colors" />
+														</Button>
+													</TooltipTrigger>
+													<TooltipContent>Run Manual Schedule</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										)}
 										<HandleSchedules
 											scheduleId={schedule.scheduleId}
 											id={id}
