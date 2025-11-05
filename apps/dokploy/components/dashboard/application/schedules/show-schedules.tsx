@@ -44,20 +44,18 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 
 	const utils = api.useUtils();
 
-	const {
-		data: schedules,
-		isLoading: isLoadingSchedules,
-	} = api.schedule.list.useQuery(
-		{
-			id: id || "",
-			scheduleType,
-		},
-		{
-			enabled: !!id,
-			refetchInterval: 3000, // Poll every 3 seconds to check for running status
-			refetchOnWindowFocus: false,
-		},
-	);
+	const { data: schedules, isLoading: isLoadingSchedules } =
+		api.schedule.list.useQuery(
+			{
+				id: id || "",
+				scheduleType,
+			},
+			{
+				enabled: !!id,
+				refetchInterval: 3000, // Poll every 3 seconds to check for running status
+				refetchOnWindowFocus: false,
+			},
+		);
 
 	const { mutateAsync: deleteSchedule, isLoading: isDeleting } =
 		api.schedule.delete.useMutation();
@@ -194,14 +192,18 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 																	});
 																	// Clear loading state immediately - this triggers a re-render
 																	setStoppingScheduleId(null);
-																	toast.success("Schedule stopped successfully");
+																	toast.success(
+																		"Schedule stopped successfully",
+																	);
 																	// Invalidate in background without awaiting
-																	utils.schedule.list.invalidate({
-																		id,
-																		scheduleType,
-																	}).catch(() => {
-																		// Silently handle background refetch errors
-																	});
+																	utils.schedule.list
+																		.invalidate({
+																			id,
+																			scheduleType,
+																		})
+																		.catch(() => {
+																			// Silently handle background refetch errors
+																		});
 																} catch (error) {
 																	// Clear loading on error too
 																	setStoppingScheduleId(null);
@@ -249,12 +251,14 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 																	setRunningScheduleId(null);
 																	toast.success("Schedule run successfully");
 																	// Invalidate in background without awaiting
-																	utils.schedule.list.invalidate({
-																		id,
-																		scheduleType,
-																	}).catch(() => {
-																		// Silently handle background refetch errors
-																	});
+																	utils.schedule.list
+																		.invalidate({
+																			id,
+																			scheduleType,
+																		})
+																		.catch(() => {
+																			// Silently handle background refetch errors
+																		});
 																} catch (error) {
 																	setRunningScheduleId(null);
 																	toast.error(

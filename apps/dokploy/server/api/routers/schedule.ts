@@ -204,10 +204,7 @@ export const scheduleRouter = createTRPCRouter({
 			}
 
 			// Update deployment status to cancelled
-			await updateDeploymentStatus(
-				runningDeployment.deploymentId,
-				"cancelled",
-			);
+			await updateDeploymentStatus(runningDeployment.deploymentId, "cancelled");
 
 			return {
 				success: true,
