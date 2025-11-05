@@ -36,11 +36,7 @@ interface Props {
 	children?: React.ReactNode;
 }
 
-export const UploadFileModal = ({
-	children,
-	containerId,
-	serverId,
-}: Props) => {
+export const UploadFileModal = ({ children, containerId, serverId }: Props) => {
 	const [open, setOpen] = useState(false);
 
 	const { mutateAsync: uploadFile, isLoading } =
@@ -51,9 +47,7 @@ export const UploadFileModal = ({
 				form.reset();
 			},
 			onError: (error) => {
-				toast.error(
-					error.message || "Failed to upload file to container",
-				);
+				toast.error(error.message || "Failed to upload file to container");
 			},
 		});
 
@@ -107,10 +101,7 @@ export const UploadFileModal = ({
 				</DialogHeader>
 
 				<Form {...form}>
-					<form
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="space-y-4"
-					>
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 						<FormField
 							control={form.control}
 							name="destinationPath"
@@ -126,8 +117,8 @@ export const UploadFileModal = ({
 									</FormControl>
 									<FormMessage />
 									<p className="text-xs text-muted-foreground">
-										Enter the full path where the file should be
-										uploaded in the container (e.g., /app/config.json)
+										Enter the full path where the file should be uploaded in the
+										container (e.g., /app/config.json)
 									</p>
 								</FormItem>
 							)}
@@ -194,4 +185,3 @@ export const UploadFileModal = ({
 		</Dialog>
 	);
 };
-
