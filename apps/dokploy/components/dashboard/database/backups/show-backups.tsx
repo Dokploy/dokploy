@@ -3,11 +3,13 @@ import {
 	Database,
 	DatabaseBackup,
 	Play,
+	Square,
 	Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -54,25 +56,43 @@ export const ShowBackups = ({
 		backupType === "database"
 			? {
 					postgres: () =>
-						api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+						api.postgres.one.useQuery(
+							{ postgresId: id },
+							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+						),
 					mysql: () =>
-						api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+						api.mysql.one.useQuery(
+							{ mysqlId: id },
+							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+						),
 					mariadb: () =>
-						api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+						api.mariadb.one.useQuery(
+							{ mariadbId: id },
+							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+						),
 					mongo: () =>
-						api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+						api.mongo.one.useQuery(
+							{ mongoId: id },
+							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+						),
 					"web-server": () => api.user.getBackups.useQuery(),
 				}
 			: {
 					compose: () =>
-						api.compose.one.useQuery({ composeId: id }, { enabled: !!id }),
+						api.compose.one.useQuery(
+							{ composeId: id },
+							{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+						),
 				};
 	const { data } = api.destination.all.useQuery();
 	const key = backupType === "database" ? databaseType : "compose";
 	const query = queryMap[key as keyof typeof queryMap];
 	const { data: postgres, refetch } = query
 		? query()
-		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
+		: api.mongo.one.useQuery(
+				{ mongoId: id },
+				{ enabled: !!id, refetchInterval: 3000, refetchOnWindowFocus: false },
+			);
 
 	const mutationMap =
 		backupType === "database"
@@ -95,6 +115,9 @@ export const ShowBackups = ({
 
 	const { mutateAsync: deleteBackup, isLoading: isRemoving } =
 		api.backup.remove.useMutation();
+
+	const { mutateAsync: stopBackup } = api.backup.stop.useMutation();
+	const utils = api.useUtils();
 
 	return (
 		<Card className="bg-background">
@@ -182,6 +205,12 @@ export const ShowBackups = ({
 										const serverId =
 											"serverId" in postgres ? postgres.serverId : undefined;
 
+										// Check if backup has a running deployment
+										const runningDeployment = backup.deployments?.find(
+											(deployment) => deployment.status === "running",
+										);
+										const isRunning = !!runningDeployment;
+
 										return (
 											<div key={backup.backupId}>
 												<div className="flex w-full flex-col md:flex-row md:items-start justify-between gap-4 border rounded-lg p-4 hover:bg-muted/50 transition-colors">
@@ -226,6 +255,14 @@ export const ShowBackups = ({
 																	<span className="text-xs text-muted-foreground">
 																		{backup.enabled ? "Active" : "Inactive"}
 																	</span>
+																	{isRunning && (
+																		<Badge
+																			variant="default"
+																			className="text-[10px] px-1 py-0 bg-green-500 hover:bg-green-600"
+																		>
+																			Running
+																		</Badge>
+																	)}
 																</div>
 															</div>
 														</div>
@@ -292,44 +329,87 @@ export const ShowBackups = ({
 																<ClipboardList className="size-4  transition-colors " />
 															</Button>
 														</ShowDeploymentsModal>
-														<TooltipProvider delayDuration={0}>
-															<Tooltip>
-																<TooltipTrigger asChild>
-																	<Button
-																		type="button"
-																		variant="ghost"
-																		size="icon"
-																		className="size-8"
-																		isLoading={
-																			isManualBackup &&
-																			activeManualBackup === backup.backupId
-																		}
-																		onClick={async () => {
-																			setActiveManualBackup(backup.backupId);
-																			await manualBackup({
-																				backupId: backup.backupId as string,
-																			})
-																				.then(async () => {
-																					toast.success(
-																						"Manual Backup Successful",
-																					);
-																				})
-																				.catch(() => {
+														{isRunning ? (
+															<TooltipProvider delayDuration={0}>
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<DialogAction
+																			title="Stop Running Backup"
+																			description="Are you sure you want to stop this running backup? The current execution will be interrupted."
+																			type="default"
+																			onClick={async () => {
+																				try {
+																					await stopBackup({
+																						backupId: backup.backupId,
+																					});
+																					toast.success("Backup stopped successfully");
+																					refetch();
+																					utils.backup.stop.invalidate();
+																				} catch (error) {
 																					toast.error(
-																						"Error creating the manual backup",
+																						error instanceof Error
+																							? error.message
+																							: "Error stopping backup",
 																					);
-																				});
-																			setActiveManualBackup(undefined);
-																		}}
-																	>
-																		<Play className="size-4 " />
-																	</Button>
-																</TooltipTrigger>
-																<TooltipContent>
-																	Run Manual Backup
-																</TooltipContent>
-															</Tooltip>
-														</TooltipProvider>
+																				}
+																			}}
+																		>
+																			<Button
+																				type="button"
+																				variant="destructive"
+																				size="icon"
+																				className="size-8"
+																			>
+																				<Square className="size-4" />
+																			</Button>
+																		</DialogAction>
+																	</TooltipTrigger>
+																	<TooltipContent>
+																		Stop Running Backup
+																	</TooltipContent>
+																</Tooltip>
+															</TooltipProvider>
+														) : (
+															<TooltipProvider delayDuration={0}>
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<Button
+																			type="button"
+																			variant="ghost"
+																			size="icon"
+																			className="size-8"
+																			isLoading={
+																				isManualBackup &&
+																				activeManualBackup === backup.backupId
+																			}
+																			onClick={async () => {
+																				setActiveManualBackup(backup.backupId);
+																				await manualBackup({
+																					backupId: backup.backupId as string,
+																				})
+																					.then(async () => {
+																						toast.success(
+																							"Manual Backup Successful",
+																						);
+																						refetch();
+																					})
+																					.catch(() => {
+																						toast.error(
+																							"Error creating the manual backup",
+																						);
+																					});
+																				setActiveManualBackup(undefined);
+																			}}
+																		>
+																			<Play className="size-4 " />
+																		</Button>
+																	</TooltipTrigger>
+																	<TooltipContent>
+																		Run Manual Backup
+																	</TooltipContent>
+																</Tooltip>
+															</TooltipProvider>
+														)}
 
 														<HandleBackup
 															backupType={backup.backupType}
