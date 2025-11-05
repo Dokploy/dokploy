@@ -17,3 +17,12 @@ export const uploadFileSchema = zfd.formData({
 });
 
 export type UploadFile = z.infer<typeof uploadFileSchema>;
+
+export const uploadFileToContainerSchema = zfd.formData({
+	containerId: z.string().min(1).regex(/^[a-zA-Z0-9.\-_]+$/, "Invalid container ID"),
+	file: zfd.file(),
+	destinationPath: z.string().min(1),
+	serverId: z.string().optional(),
+});
+
+export type UploadFileToContainer = z.infer<typeof uploadFileToContainerSchema>;
