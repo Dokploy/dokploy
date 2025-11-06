@@ -47,6 +47,7 @@ const notificationBaseSchema = z.object({
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
 	serverThreshold: z.boolean().default(false),
+	dokployUpdate: z.boolean().default(false),
 });
 
 export const notificationSchema = z.discriminatedUnion("type", [
@@ -237,6 +238,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					type: notification.notificationType,
 					serverThreshold: notification.serverThreshold,
+					dokployUpdate: notification.dokployUpdate,
 				});
 			} else if (notification.notificationType === "telegram") {
 				form.reset({
@@ -251,6 +253,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					dokployUpdate: notification.dokployUpdate,
 				});
 			} else if (notification.notificationType === "discord") {
 				form.reset({
@@ -264,6 +267,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					dokployUpdate: notification.dokployUpdate,
 				});
 			} else if (notification.notificationType === "email") {
 				form.reset({
@@ -281,6 +285,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					dokployUpdate: notification.dokployUpdate,
 				});
 			} else if (notification.notificationType === "gotify") {
 				form.reset({
@@ -295,6 +300,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					serverUrl: notification.gotify?.serverUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					dokployUpdate: notification.dokployUpdate,
 				});
 			} else if (notification.notificationType === "ntfy") {
 				form.reset({
@@ -310,6 +316,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					dokployUpdate: notification.dokployUpdate,
 				});
 			} else if (notification.notificationType === "lark") {
 				form.reset({
@@ -322,6 +329,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
+					dokployUpdate: notification.dokployUpdate,
 				});
 			}
 		} else {
@@ -347,6 +355,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			databaseBackup,
 			dockerCleanup,
 			serverThreshold,
+			dokployUpdate,
 		} = data;
 		let promise: Promise<unknown> | null = null;
 		if (data.type === "slack") {
@@ -362,6 +371,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				slackId: notification?.slackId || "",
 				notificationId: notificationId || "",
 				serverThreshold: serverThreshold,
+				dokployUpdate: dokployUpdate,
 			});
 		} else if (data.type === "telegram") {
 			promise = telegramMutation.mutateAsync({
@@ -377,6 +387,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				telegramId: notification?.telegramId || "",
 				serverThreshold: serverThreshold,
+				dokployUpdate: dokployUpdate,
 			});
 		} else if (data.type === "discord") {
 			promise = discordMutation.mutateAsync({
@@ -391,6 +402,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				discordId: notification?.discordId || "",
 				serverThreshold: serverThreshold,
+				dokployUpdate: dokployUpdate,
 			});
 		} else if (data.type === "email") {
 			promise = emailMutation.mutateAsync({
@@ -409,6 +421,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				emailId: notification?.emailId || "",
 				serverThreshold: serverThreshold,
+				dokployUpdate: dokployUpdate,
 			});
 		} else if (data.type === "gotify") {
 			promise = gotifyMutation.mutateAsync({
@@ -424,6 +437,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				decoration: data.decoration,
 				notificationId: notificationId || "",
 				gotifyId: notification?.gotifyId || "",
+				dokployUpdate: dokployUpdate,
 			});
 		} else if (data.type === "ntfy") {
 			promise = ntfyMutation.mutateAsync({
@@ -439,6 +453,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dockerCleanup: dockerCleanup,
 				notificationId: notificationId || "",
 				ntfyId: notification?.ntfyId || "",
+				dokployUpdate: dokployUpdate,
 			});
 		} else if (data.type === "lark") {
 			promise = larkMutation.mutateAsync({
@@ -452,6 +467,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
 				serverThreshold: serverThreshold,
+				dokployUpdate: dokployUpdate,
 			});
 		}
 
@@ -1186,6 +1202,30 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 													<FormDescription>
 														Trigger the action when the server threshold is
 														reached.
+													</FormDescription>
+												</div>
+												<FormControl>
+													<Switch
+														checked={field.value}
+														onCheckedChange={field.onChange}
+													/>
+												</FormControl>
+											</FormItem>
+										)}
+									/>
+								)}
+
+								{!isCloud && (
+									<FormField
+										control={form.control}
+										name="dokployUpdate"
+										render={({ field }) => (
+											<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+												<div className="">
+													<FormLabel>Dokploy Updates</FormLabel>
+													<FormDescription>
+														Get notified when a new Dokploy version is
+														available.
 													</FormDescription>
 												</div>
 												<FormControl>
