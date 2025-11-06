@@ -349,6 +349,11 @@ const validatePorts = () => `
 	if ss -tulnp | grep ':443 ' >/dev/null; then
 		echo "Something is already running on port 443" >&2
 	fi
+
+	# check if something is running on port 3000
+	if ss -tulnp | grep ':3000 ' >/dev/null; then
+		echo "Something is already running on port 3000" >&2
+	fi
 `;
 
 const installUtilities = () => `
