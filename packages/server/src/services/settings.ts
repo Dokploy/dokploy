@@ -1,10 +1,14 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { docker } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
+import { notifications, organization } from "@dokploy/server/db/schema";
+import { sendUpdateNotifications } from "@dokploy/server/utils/notifications/dokploy-update";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { eq } from "drizzle-orm";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
@@ -414,5 +418,56 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 		});
 	} else {
 		throw new Error("Traefik resource type not found");
+	}
+};
+
+export const checkAndNotifyUpdates = async () => {
+	try {
+		const updateData = await getUpdateData();
+
+		if (!updateData.updateAvailable || !updateData.latestVersion) {
+			console.log("[Cron] No updates available");
+			return;
+		}
+
+		console.log(`[Cron] Update available: ${updateData.latestVersion}`);
+
+		const organizations = await db.query.organization.findMany();
+
+		for (const org of organizations) {
+			const { id: organizationId, lastNotifiedUpdateVersion } = org;
+			if (lastNotifiedUpdateVersion === updateData.latestVersion) {
+				continue;
+			}
+
+			const activeNotifications = await db.query.notifications.findMany({
+				where: eq(notifications.organizationId, organizationId),
+				columns: {
+					dokployUpdate: true,
+				},
+			});
+
+			const hasActiveNotification = activeNotifications.some(
+				(n) => n.dokployUpdate,
+			);
+			if (!hasActiveNotification) {
+				continue;
+			}
+
+			await sendUpdateNotifications({
+				currentVersion: getDokployImageTag(),
+				latestVersion: updateData.latestVersion,
+				organizationId,
+			});
+
+			await db
+				.update(organization)
+				.set({ lastNotifiedUpdateVersion: updateData.latestVersion })
+				.where(eq(organization.id, organizationId));
+		}
+
+		console.log("[Cron] Update check completed");
+	} catch (error) {
+		console.error("[Cron] Error checking updates:", error);
 	}
 };
