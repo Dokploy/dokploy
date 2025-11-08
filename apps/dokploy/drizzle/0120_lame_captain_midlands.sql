@@ -20,6 +20,7 @@ ALTER TABLE "schedule" DROP CONSTRAINT "schedule_userId_user_temp_id_fk";
 --> statement-breakpoint
 ALTER TABLE "session_temp" DROP CONSTRAINT "session_temp_user_id_user_temp_id_fk";
 --> statement-breakpoint
+ALTER TABLE "application" ADD COLUMN "endpointSpecSwarm" json;--> statement-breakpoint
 ALTER TABLE "mariadb" ADD COLUMN "endpointSpecSwarm" json;--> statement-breakpoint
 ALTER TABLE "mongo" ADD COLUMN "endpointSpecSwarm" json;--> statement-breakpoint
 ALTER TABLE "mysql" ADD COLUMN "endpointSpecSwarm" json;--> statement-breakpoint

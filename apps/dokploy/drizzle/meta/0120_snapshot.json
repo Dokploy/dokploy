@@ -1,5 +1,5 @@
 {
-  "id": "9c8296a5-d294-41bc-bd12-4148f8404483",
+  "id": "bbe005b3-d5e0-4e93-8305-ba3b9a2e3f3d",
   "prevId": "fb4a3ed9-c58b-4a79-a4ee-2a7a4d3914a7",
   "version": "7",
   "dialect": "postgresql",
@@ -1285,6 +1285,12 @@
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endpointSpecSwarm": {
+          "name": "endpointSpecSwarm",
+          "type": "json",
           "primaryKey": false,
           "notNull": false
         },
