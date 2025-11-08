@@ -4,6 +4,7 @@ import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
+	generateEndpointSpec,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -89,19 +90,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 3306,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: generateEndpointSpec(mariadb, 3306),
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),

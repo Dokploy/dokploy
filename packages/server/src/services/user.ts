@@ -1,10 +1,10 @@
 import { db } from "@dokploy/server/db";
-import { apikey, member, users_temp } from "@dokploy/server/db/schema";
+import { apikey, member, user } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
 
-export type User = typeof users_temp.$inferSelect;
+export type User = typeof user.$inferSelect;
 
 export const addNewProject = async (
 	userId: string,
@@ -403,16 +403,16 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 		}
 	}
 
-	const user = await db
-		.update(users_temp)
+	const userResult = await db
+		.update(user)
 		.set({
 			...userData,
 		})
-		.where(eq(users_temp.id, userId))
+		.where(eq(user.id, userId))
 		.returning()
 		.then((res) => res[0]);
 
-	return user;
+	return userResult;
 };
 
 export const createApiKey = async (

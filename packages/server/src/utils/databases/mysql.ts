@@ -4,6 +4,7 @@ import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
+	generateEndpointSpec,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -95,19 +96,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 3306,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: generateEndpointSpec(mysql, 3306),
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),

@@ -4,6 +4,7 @@ import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
+	generateEndpointSpec,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -88,19 +89,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 5432,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: generateEndpointSpec(postgres, 5432),
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),

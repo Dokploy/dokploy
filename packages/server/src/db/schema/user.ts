@@ -26,7 +26,7 @@ import { certificateType } from "./shared";
 // OLD TABLE
 
 // TEMP
-export const users_temp = pgTable("user_temp", {
+export const user = pgTable("users", {
 	id: text("id")
 		.notNull()
 		.primaryKey()
@@ -122,9 +122,9 @@ export const users_temp = pgTable("user_temp", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 });
 
-export const usersRelations = relations(users_temp, ({ one, many }) => ({
+export const usersRelations = relations(user, ({ one, many }) => ({
 	account: one(account, {
-		fields: [users_temp.id],
+		fields: [user.id],
 		references: [account.userId],
 	}),
 	organizations: many(organization),
@@ -134,7 +134,7 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	schedules: many(schedules),
 }));
 
-const createSchema = createInsertSchema(users_temp, {
+const createSchema = createInsertSchema(user, {
 	id: z.string().min(1),
 	isRegistered: z.boolean().optional(),
 }).omit({

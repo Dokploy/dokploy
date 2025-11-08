@@ -464,6 +464,42 @@ export const generateConfigContainer = (
 	};
 };
 
+export const generateEndpointSpec = (
+	database: Partial<
+		PostgresNested | MysqlNested | MariadbNested | MongoNested | RedisNested
+	>,
+	defaultTargetPort: number,
+) => {
+	const { endpointSpecSwarm, externalPort } = database;
+
+	if (endpointSpecSwarm) {
+		return {
+			...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
+			Ports:
+				endpointSpecSwarm.Ports?.map((port) => ({
+					Protocol: (port.Protocol || "tcp") as "tcp" | "udp" | "sctp",
+					TargetPort: port.TargetPort,
+					PublishedPort: port.PublishedPort || 0,
+					PublishMode: (port.PublishMode || "host") as "ingress" | "host",
+				})) || [],
+		};
+	}
+
+	return {
+		Mode: "dnsrr" as const,
+		Ports: externalPort
+			? [
+					{
+						Protocol: "tcp" as const,
+						TargetPort: defaultTargetPort,
+						PublishedPort: externalPort,
+						PublishMode: "host" as const,
+					},
+				]
+			: [],
+	};
+};
+
 export const generateBindMounts = (mounts: ApplicationNested["mounts"]) => {
 	if (!mounts || mounts.length === 0) {
 		return [];
