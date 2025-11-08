@@ -26,7 +26,7 @@ import { certificateType } from "./shared";
 // OLD TABLE
 
 // TEMP
-export const user = pgTable("users", {
+export const user = pgTable("user", {
 	id: text("id")
 		.notNull()
 		.primaryKey()

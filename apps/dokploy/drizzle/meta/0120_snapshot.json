@@ -1,5 +1,5 @@
 {
-  "id": "9c35d9ab-5fe1-46b0-9b5a-a1910ba17ac0",
+  "id": "9c8296a5-d294-41bc-bd12-4148f8404483",
   "prevId": "fb4a3ed9-c58b-4a79-a4ee-2a7a4d3914a7",
   "version": "7",
   "dialect": "postgresql",
@@ -120,10 +120,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "account_user_id_users_id_fk": {
-          "name": "account_user_id_users_id_fk",
+        "account_user_id_user_id_fk": {
+          "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
@@ -273,10 +273,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "apikey_user_id_users_id_fk": {
-          "name": "apikey_user_id_users_id_fk",
+        "apikey_user_id_user_id_fk": {
+          "name": "apikey_user_id_user_id_fk",
           "tableFrom": "apikey",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
@@ -361,10 +361,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "invitation_inviter_id_users_id_fk": {
-          "name": "invitation_inviter_id_users_id_fk",
+        "invitation_inviter_id_user_id_fk": {
+          "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "inviter_id"
           ],
@@ -542,10 +542,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "member_user_id_users_id_fk": {
-          "name": "member_user_id_users_id_fk",
+        "member_user_id_user_id_fk": {
+          "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
@@ -611,10 +611,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "organization_owner_id_users_id_fk": {
-          "name": "organization_owner_id_users_id_fk",
+        "organization_owner_id_user_id_fk": {
+          "name": "organization_owner_id_user_id_fk",
           "tableFrom": "organization",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "owner_id"
           ],
@@ -670,10 +670,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "two_factor_user_id_users_id_fk": {
-          "name": "two_factor_user_id_users_id_fk",
+        "two_factor_user_id_user_id_fk": {
+          "name": "two_factor_user_id_user_id_fk",
           "tableFrom": "two_factor",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
@@ -1703,10 +1703,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "backup_userId_users_id_fk": {
-          "name": "backup_userId_users_id_fk",
+        "backup_userId_user_id_fk": {
+          "name": "backup_userId_user_id_fk",
           "tableFrom": "backup",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
@@ -2884,10 +2884,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "git_provider_userId_users_id_fk": {
-          "name": "git_provider_userId_users_id_fk",
+        "git_provider_userId_user_id_fk": {
+          "name": "git_provider_userId_user_id_fk",
           "tableFrom": "git_provider",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
@@ -5638,10 +5638,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "schedule_userId_users_id_fk": {
-          "name": "schedule_userId_users_id_fk",
+        "schedule_userId_user_id_fk": {
+          "name": "schedule_userId_user_id_fk",
           "tableFrom": "schedule",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "userId"
           ],
@@ -5921,10 +5921,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "session_temp_user_id_users_id_fk": {
-          "name": "session_temp_user_id_users_id_fk",
+        "session_temp_user_id_user_id_fk": {
+          "name": "session_temp_user_id_user_id_fk",
           "tableFrom": "session_temp",
-          "tableTo": "users",
+          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
@@ -6025,8 +6025,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users": {
-      "name": "users",
+    "public.user": {
+      "name": "user",
       "schema": "",
       "columns": {
         "id": {
@@ -6242,8 +6242,8 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_email_unique": {
-          "name": "users_email_unique",
+        "user_email_unique": {
+          "name": "user_email_unique",
           "nullsNotDistinct": false,
           "columns": [
             "email"
