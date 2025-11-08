@@ -252,10 +252,10 @@ const disableServers = async (userId: string) => {
 };
 
 const findUserByStripeCustomerId = async (stripeCustomerId: string) => {
-	const user = db.query.user.findFirst({
+	const userResult = await db.query.user.findFirst({
 		where: eq(user.stripeCustomerId, stripeCustomerId),
 	});
-	return user;
+	return userResult;
 };
 
 const activateServer = async (serverId: string) => {

@@ -15,6 +15,7 @@ const baseApp: ApplicationNested = {
 	giteaId: "",
 	cleanCache: false,
 	applicationStatus: "done",
+	endpointSpecSwarm: null,
 	appName: "",
 	autoDeploy: true,
 	enableSubmodules: false,
