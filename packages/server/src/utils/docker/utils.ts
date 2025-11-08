@@ -2,9 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Readable } from "node:stream";
 import { docker, paths } from "@dokploy/server/constants";
+import { db } from "@dokploy/server/db";
+import { networks } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
+import { inArray } from "drizzle-orm";
 import type { ApplicationNested } from "../builders";
 import type { MariadbNested } from "../databases/mariadb";
 import type { MongoNested } from "../databases/mongo";
@@ -380,7 +383,220 @@ export const calculateResources = ({
 	};
 };
 
-export const generateConfigContainer = (
+const resolveTraefikNetwork = async (
+	customNetworkIds: string[] | null | undefined,
+): Promise<string> => {
+	if (!customNetworkIds || customNetworkIds.length === 0) {
+		return "dokploy-network";
+	}
+
+	const customNetworks = await db.query.networks.findMany({
+		where: inArray(networks.networkId, customNetworkIds),
+	});
+
+	return customNetworks[0]?.networkName ?? "dokploy-network";
+};
+
+/**
+ * Resolve Traefik network with priority system:
+ * 1. First non-null, non-internal domain.networkId (highest priority)
+ * 2. First non-internal custom network from customNetworkIds
+ * 3. dokploy-network (fallback)
+ */
+const resolveTraefikNetworkWithDomains = async (
+	domains: Array<{ networkId: string | null }>,
+	customNetworkIds: string[] | null | undefined,
+): Promise<string> => {
+	// Priority 1: Check if any domain has a specific network selected
+	const domainNetworkIds = domains
+		.map((d) => d.networkId)
+		.filter((id): id is string => id !== null);
+
+	if (domainNetworkIds.length > 0) {
+		// Find the first valid, non-internal network from domain selections
+		const domainNetworks = await db.query.networks.findMany({
+			where: inArray(networks.networkId, domainNetworkIds),
+		});
+
+		const nonInternalDomainNetwork = domainNetworks.find((n) => !n.internal);
+		if (nonInternalDomainNetwork) {
+			console.log(
+				`Using domain-specific network: ${nonInternalDomainNetwork.networkName}`,
+			);
+			return nonInternalDomainNetwork.networkName;
+		}
+	}
+
+	// Priority 2: Fall back to first non-internal custom network
+	if (customNetworkIds && customNetworkIds.length > 0) {
+		const customNetworks = await db.query.networks.findMany({
+			where: inArray(networks.networkId, customNetworkIds),
+		});
+
+		const nonInternalCustomNetwork = customNetworks.find((n) => !n.internal);
+		if (nonInternalCustomNetwork) {
+			console.log(
+				`Using custom network: ${nonInternalCustomNetwork.networkName}`,
+			);
+			return nonInternalCustomNetwork.networkName;
+		}
+	}
+
+	// Priority 3: Final fallback to dokploy-network
+	console.log("Using default network: dokploy-network");
+	return "dokploy-network";
+};
+
+const buildRouterRule = (host: string, domainPath?: string | null): string => {
+	const pathRule =
+		domainPath && domainPath !== "/" ? ` && PathPrefix(\`${domainPath}\`)` : "";
+	return `Host(\`${host}\`)${pathRule}`;
+};
+
+const collectMiddlewares = (
+	appName: string,
+	uniqueConfigKey: string,
+	domainPath: string | null | undefined,
+	stripPath: boolean | null,
+	internalPath: string | null | undefined,
+	includeHttpsRedirect: boolean,
+): string[] => {
+	const middlewares: string[] = [];
+
+	if (includeHttpsRedirect) {
+		middlewares.push("redirect-to-https@file");
+	}
+
+	if (stripPath && domainPath && domainPath !== "/") {
+		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+		middlewares.push(middlewareName);
+	}
+
+	if (internalPath && internalPath !== "/" && internalPath.startsWith("/")) {
+		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+		middlewares.push(middlewareName);
+	}
+
+	return middlewares;
+};
+
+const generateDomainLabels = async (
+	applicationId: string,
+	appName: string,
+	customNetworkIds: string[] | null | undefined,
+): Promise<Record<string, string>> => {
+	const application = await db.query.applications.findFirst({
+		where: (applications, { eq }) =>
+			eq(applications.applicationId, applicationId),
+		with: {
+			domains: true,
+		},
+	});
+
+	if (!application?.domains || application.domains.length === 0) {
+		return {};
+	}
+
+	const labels: Record<string, string> = {
+		"traefik.enable": "true",
+		"traefik.docker.network": await resolveTraefikNetworkWithDomains(
+			application.domains,
+			customNetworkIds,
+		),
+	};
+
+	for (const domain of application.domains) {
+		const {
+			host,
+			port,
+			https,
+			uniqueConfigKey,
+			certificateType,
+			path: domainPath,
+			customCertResolver,
+			stripPath,
+			internalPath,
+		} = domain;
+
+		if (!port) {
+			continue;
+		}
+
+		const routerName = `${appName}-${uniqueConfigKey}`;
+		const serviceName = `${appName}-service-${uniqueConfigKey}`;
+		const webRouterName = `${routerName}-web`;
+		const routerRule = buildRouterRule(host, domainPath);
+
+		labels[`traefik.http.routers.${webRouterName}.rule`] = routerRule;
+		labels[`traefik.http.routers.${webRouterName}.entrypoints`] = "web";
+		labels[`traefik.http.routers.${webRouterName}.service`] = serviceName;
+		labels[`traefik.http.services.${serviceName}.loadbalancer.server.port`] =
+			port.toString();
+
+		const webMiddlewares = collectMiddlewares(
+			appName,
+			uniqueConfigKey.toString(),
+			domainPath,
+			stripPath,
+			internalPath,
+			https ?? false,
+		);
+
+		if (webMiddlewares.length > 0) {
+			labels[`traefik.http.routers.${webRouterName}.middlewares`] =
+				webMiddlewares.join(",");
+		}
+
+		if (stripPath && domainPath && domainPath !== "/") {
+			const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+			labels[
+				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes`
+			] = domainPath;
+		}
+
+		if (internalPath && internalPath !== "/" && internalPath.startsWith("/")) {
+			const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+			labels[`traefik.http.middlewares.${middlewareName}.addprefix.prefix`] =
+				internalPath;
+		}
+
+		if (https) {
+			const websecureRouterName = `${routerName}-websecure`;
+
+			labels[`traefik.http.routers.${websecureRouterName}.rule`] = routerRule;
+			labels[`traefik.http.routers.${websecureRouterName}.entrypoints`] =
+				"websecure";
+			labels[`traefik.http.routers.${websecureRouterName}.service`] =
+				serviceName;
+
+			const websecureMiddlewares = collectMiddlewares(
+				appName,
+				uniqueConfigKey.toString(),
+				domainPath,
+				stripPath,
+				internalPath,
+				false,
+			);
+
+			if (websecureMiddlewares.length > 0) {
+				labels[`traefik.http.routers.${websecureRouterName}.middlewares`] =
+					websecureMiddlewares.join(",");
+			}
+
+			if (certificateType === "letsencrypt") {
+				labels[`traefik.http.routers.${websecureRouterName}.tls.certresolver`] =
+					"letsencrypt";
+			} else if (certificateType === "custom" && customCertResolver) {
+				labels[`traefik.http.routers.${websecureRouterName}.tls.certresolver`] =
+					customCertResolver;
+			}
+		}
+	}
+
+	return labels;
+};
+
+export const generateConfigContainer = async (
 	application: Partial<ApplicationNested>,
 ) => {
 	const {
@@ -394,7 +610,10 @@ export const generateConfigContainer = (
 		replicas,
 		mounts,
 		networkSwarm,
+		customNetworkIds,
 		stopGracePeriodSwarm,
+		applicationId,
+		appName,
 	} = application;
 
 	const sanitizedStopGracePeriodSwarm =
@@ -403,6 +622,29 @@ export const generateConfigContainer = (
 			: stopGracePeriodSwarm;
 
 	const haveMounts = mounts && mounts.length > 0;
+
+	let networksToUse: Array<{ Target?: string }>;
+
+	if (networkSwarm) {
+		networksToUse = networkSwarm;
+	} else if (customNetworkIds && customNetworkIds.length > 0) {
+		const customNetworks = await db.query.networks.findMany({
+			where: inArray(networks.networkId, customNetworkIds),
+		});
+		networksToUse = customNetworks.map((net) => ({ Target: net.networkName }));
+	} else {
+		networksToUse = [{ Target: "dokploy-network" }];
+	}
+
+	const generatedLabels =
+		applicationId && appName
+			? await generateDomainLabels(applicationId, appName, customNetworkIds)
+			: {};
+
+	const finalLabels = {
+		...labelsSwarm,
+		...generatedLabels,
+	};
 
 	return {
 		...(healthCheckSwarm && {
@@ -418,20 +660,18 @@ export const generateConfigContainer = (
 					Placement: placementSwarm,
 				}
 			: {
-					// if app have mounts keep manager as constraint
 					Placement: {
 						Constraints: haveMounts ? ["node.role==manager"] : [],
 					},
 				}),
-		...(labelsSwarm && {
-			Labels: labelsSwarm,
+		...(Object.keys(finalLabels).length > 0 && {
+			Labels: finalLabels,
 		}),
 		...(modeSwarm
 			? {
 					Mode: modeSwarm,
 				}
 			: {
-					// use replicas value if no modeSwarm provided
 					Mode: {
 						Replicated: {
 							Replicas: replicas,
@@ -444,7 +684,6 @@ export const generateConfigContainer = (
 		...(updateConfigSwarm
 			? { UpdateConfig: updateConfigSwarm }
 			: {
-					// default config if no updateConfigSwarm provided
 					UpdateConfig: {
 						Parallelism: 1,
 						Order: "start-first",
@@ -454,13 +693,7 @@ export const generateConfigContainer = (
 			sanitizedStopGracePeriodSwarm !== undefined && {
 				StopGracePeriod: sanitizedStopGracePeriodSwarm,
 			}),
-		...(networkSwarm
-			? {
-					Networks: networkSwarm,
-				}
-			: {
-					Networks: [{ Target: "dokploy-network" }],
-				}),
+		Networks: networksToUse,
 	};
 };
 
@@ -581,14 +814,11 @@ export const getComposeContainer = async (
 ) => {
 	try {
 		const { appName, composeType, serverId } = compose;
-		// 1. Determine the correct labels based on composeType
 		const labels: string[] = [];
 		if (composeType === "stack") {
-			// Labels for Docker Swarm stack services
 			labels.push(`com.docker.stack.namespace=${appName}`);
 			labels.push(`com.docker.swarm.service.name=${appName}_${serviceName}`);
 		} else {
-			// Labels for Docker Compose projects (default)
 			labels.push(`com.docker.compose.project=${appName}`);
 			labels.push(`com.docker.compose.service=${serviceName}`);
 		}

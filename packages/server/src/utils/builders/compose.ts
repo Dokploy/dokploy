@@ -12,12 +12,13 @@ import {
 	writeDomainsToCompose,
 	writeDomainsToComposeRemote,
 } from "../docker/domain";
+import { ensureTraefikConnectedToNetwork } from "../docker/network-utils";
 import {
 	encodeBase64,
 	getEnviromentVariablesObject,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -32,12 +33,6 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 		const command = createCommand(compose);
 		await writeDomainsToCompose(compose, domains);
 		createEnvFile(compose);
-
-		if (compose.isolatedDeployment) {
-			await execAsync(
-				`docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create ${composeType === "stack" ? "--driver overlay" : ""} --attachable ${compose.appName}`,
-			);
-		}
 
 		const logContent = `
     App Name: ${appName}
@@ -80,12 +75,6 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 				},
 			},
 		);
-
-		if (compose.isolatedDeployment) {
-			await execAsync(
-				`docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1`,
-			).catch(() => {});
-		}
 
 		writeStream.write("Docker Compose Deployed: ✅");
 	} catch (error) {
@@ -142,10 +131,8 @@ Compose Type: ${composeType} ✅`;
 		cd "${projectPath}";
 
         ${exportEnvCommand}
-		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
 		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
-		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
-	
+
 		echo "Docker Compose Deployed: ✅" >> "${logPath}"
 	} || {
 		echo "Error: ❌ Script execution failed" >> "${logPath}"

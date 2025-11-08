@@ -30,7 +30,10 @@ import {
 	createComposeFileRaw,
 	createComposeFileRawRemote,
 } from "../providers/raw";
-import { randomizeDeployableSpecificationFile } from "./collision";
+import {
+	addCustomNetworksToCompose,
+	randomizeDeployableSpecificationFile,
+} from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
 	ComposeSpecification,
@@ -135,10 +138,11 @@ export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
-	if (!domains.length) {
+	const composeConverted = await addDomainToCompose(compose, domains);
+
+	if (!composeConverted) {
 		return;
 	}
-	const composeConverted = await addDomainToCompose(compose, domains);
 
 	const path = getComposePath(compose);
 	const composeString = stringify(composeConverted, { lineWidth: 1000 });
@@ -154,10 +158,6 @@ export const writeDomainsToComposeRemote = async (
 	domains: Domain[],
 	logPath: string,
 ) => {
-	if (!domains.length) {
-		return "";
-	}
-
 	try {
 		const composeConverted = await addDomainToCompose(compose, domains);
 		const path = getComposePath(compose);
@@ -195,20 +195,33 @@ export const addDomainToCompose = async (
 		result = await loadDockerCompose(compose);
 	}
 
-	if (!result || domains.length === 0) {
+	if (!result) {
 		return null;
 	}
 
-	if (compose.isolatedDeployment) {
-		const randomized = randomizeDeployableSpecificationFile(
-			result,
-			compose.isolatedDeploymentsVolume,
-			compose.suffix || compose.appName,
-		);
-		result = randomized;
-	} else if (compose.randomize) {
+	if (compose.randomize) {
 		const randomized = randomizeSpecificationFile(result, compose.suffix);
 		result = randomized;
+	}
+
+	if (compose.customNetworkIds && compose.customNetworkIds.length > 0) {
+		result = await addCustomNetworksToCompose(result, compose.customNetworkIds);
+	}
+
+	// Ensure all composes without customNetworkIds use dokploy-network to prevent conflicts
+	// with unmanaged network {stack}_default networks
+	if (
+		(!compose.customNetworkIds || compose.customNetworkIds.length === 0) &&
+		result.services
+	) {
+		for (const serviceName in result.services) {
+			const service = result.services[serviceName];
+			if (service) {
+				service.networks = addDokployNetworkToService(service.networks);
+			}
+		}
+
+		result.networks = addDokployNetworkToRoot(result.networks);
 	}
 
 	for (const domain of domains) {
@@ -250,31 +263,54 @@ export const addDomainToCompose = async (
 				labels.unshift("traefik.enable=true");
 			}
 			labels.unshift(...httpLabels);
-			if (!compose.isolatedDeployment) {
-				if (compose.composeType === "docker-compose") {
-					if (!labels.includes("traefik.docker.network=dokploy-network")) {
-						labels.unshift("traefik.docker.network=dokploy-network");
-					}
-				} else {
-					// Stack Case
-					if (!labels.includes("traefik.swarm.network=dokploy-network")) {
-						labels.unshift("traefik.swarm.network=dokploy-network");
-					}
+
+			// Determine which network Traefik should use to reach this service
+			let traefikNetwork = "dokploy-network"; // Default
+
+			// If custom networks exist in the compose file, use one of them
+			// (Traefik will be connected to all custom networks, so any will work)
+			if (result.networks && Object.keys(result.networks).length > 0) {
+				// Find the first non-dokploy-network network
+				const networkNames = Object.keys(result.networks);
+				const customNetwork = networkNames.find(
+					(name) => name !== "dokploy-network",
+				);
+				if (customNetwork) {
+					traefikNetwork = customNetwork;
+				}
+			}
+
+			// Add the appropriate network label for Traefik
+			if (compose.composeType === "docker-compose") {
+				const networkLabel = `traefik.docker.network=${traefikNetwork}`;
+				if (
+					!labels.some(
+						(l) =>
+							typeof l === "string" && l.startsWith("traefik.docker.network="),
+					)
+				) {
+					labels.unshift(networkLabel);
+				}
+			} else {
+				// Stack Case (Swarm)
+				const networkLabel = `traefik.swarm.network=${traefikNetwork}`;
+				if (
+					!labels.some(
+						(l) =>
+							typeof l === "string" && l.startsWith("traefik.swarm.network="),
+					)
+				) {
+					labels.unshift(networkLabel);
 				}
 			}
 		}
 
-		if (!compose.isolatedDeployment) {
-			// Add the dokploy-network to the service
+		// Redundant safety check for services added after initial network setup
+		if (!compose.customNetworkIds || compose.customNetworkIds.length === 0) {
 			result.services[serviceName].networks = addDokployNetworkToService(
 				result.services[serviceName].networks,
 			);
 		}
-	}
-
-	// Add dokploy-network to the root of the compose file
-	if (!compose.isolatedDeployment) {
-		result.networks = addDokployNetworkToRoot(result.networks);
 	}
 
 	return result;

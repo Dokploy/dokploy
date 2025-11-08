@@ -133,7 +133,11 @@ export const findComposeById = async (composeId: string) => {
 			},
 			deployments: true,
 			mounts: true,
-			domains: true,
+			domains: {
+				with: {
+					network: true,
+				},
+			},
 			github: true,
 			gitlab: true,
 			bitbucket: true,

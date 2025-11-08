@@ -1,6 +1,9 @@
 import { findComposeById } from "@dokploy/server/services/compose";
 import { stringify } from "yaml";
-import { addAppNameToAllServiceNames } from "./collision/root-network";
+import {
+	addAppNameToAllServiceNames,
+	addCustomNetworksToCompose,
+} from "./collision/root-network";
 import { generateRandomHash } from "./compose";
 import { addSuffixToAllVolumes } from "./compose/volume";
 import {
@@ -10,6 +13,9 @@ import {
 	loadDockerComposeRemote,
 } from "./domain";
 import type { ComposeSpecification } from "./types";
+
+// Re-export functions from collision/root-network
+export { addCustomNetworksToCompose } from "./collision/root-network";
 
 export const addAppNameToPreventCollision = (
 	composeData: ComposeSpecification,
@@ -49,17 +55,7 @@ export const randomizeIsolatedDeploymentComposeFile = async (
 		throw new Error("Compose data not found");
 	}
 
-	const randomSuffix = suffix || compose.appName || generateRandomHash();
-
-	const newComposeFile = compose.isolatedDeployment
-		? addAppNameToPreventCollision(
-				composeData,
-				randomSuffix,
-				compose.isolatedDeploymentsVolume,
-			)
-		: composeData;
-
-	return stringify(newComposeFile);
+	return stringify(composeData);
 };
 
 export const randomizeDeployableSpecificationFile = (
@@ -76,4 +72,41 @@ export const randomizeDeployableSpecificationFile = (
 		isolatedDeploymentsVolume,
 	);
 	return newComposeFile;
+};
+
+export const generateFullComposePreview = async (
+	composeId: string,
+	suffix?: string,
+) => {
+	const compose = await findComposeById(composeId);
+
+	if (compose.serverId) {
+		await cloneComposeRemote(compose);
+	} else {
+		await cloneCompose(compose);
+	}
+
+	let composeData: ComposeSpecification | null;
+
+	if (compose.serverId) {
+		composeData = await loadDockerComposeRemote(compose);
+	} else {
+		composeData = await loadDockerCompose(compose);
+	}
+
+	if (!composeData) {
+		throw new Error("Compose data not found");
+	}
+
+	let newComposeFile = composeData;
+
+	// Add custom networks from customNetworkIds
+	if (compose.customNetworkIds && compose.customNetworkIds.length > 0) {
+		newComposeFile = await addCustomNetworksToCompose(
+			newComposeFile,
+			compose.customNetworkIds,
+		);
+	}
+
+	return stringify(newComposeFile);
 };

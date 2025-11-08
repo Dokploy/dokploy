@@ -1,5 +1,6 @@
 import {
 	createDomain,
+	disconnectTraefikFromResourceNetworks,
 	findApplicationById,
 	findComposeById,
 	findDomainById,
@@ -10,9 +11,10 @@ import {
 	findServerById,
 	generateTraefikMeDomain,
 	manageDomain,
+	mechanizeDockerContainer,
 	removeDomain,
 	removeDomainById,
-	updateDomainById,
+	updateDomain,
 	validateDomain,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -25,6 +27,53 @@ import {
 	apiFindOneApplication,
 	apiUpdateDomain,
 } from "@/server/db/schema";
+
+type AuthorizationContext = {
+	activeOrganizationId: string;
+};
+
+const validateDomainAccess = async (
+	domainId: string,
+	ctx: AuthorizationContext,
+): Promise<void> => {
+	const domain = await findDomainById(domainId);
+
+	if (domain.applicationId) {
+		const application = await findApplicationById(domain.applicationId);
+		if (
+			application.environment.project.organizationId !==
+			ctx.activeOrganizationId
+		) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not authorized to access this application",
+			});
+		}
+	} else if (domain.composeId) {
+		const compose = await findComposeById(domain.composeId);
+		if (
+			compose.environment.project.organizationId !== ctx.activeOrganizationId
+		) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not authorized to access this compose",
+			});
+		}
+	} else if (domain.previewDeploymentId) {
+		const previewDeployment = await findPreviewDeploymentById(
+			domain.previewDeploymentId,
+		);
+		if (
+			previewDeployment.application.environment.project.organizationId !==
+			ctx.activeOrganizationId
+		) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "You are not authorized to access this preview deployment",
+			});
+		}
+	}
+};
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -122,46 +171,11 @@ export const domainRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(apiUpdateDomain)
 		.mutation(async ({ input, ctx }) => {
-			const currentDomain = await findDomainById(input.domainId);
+			await validateDomainAccess(input.domainId, ctx.session);
 
-			if (currentDomain.applicationId) {
-				const newApp = await findApplicationById(currentDomain.applicationId);
-				if (
-					newApp.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
-			} else if (currentDomain.composeId) {
-				const newCompose = await findComposeById(currentDomain.composeId);
-				if (
-					newCompose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
-			} else if (currentDomain.previewDeploymentId) {
-				const newPreviewDeployment = await findPreviewDeploymentById(
-					currentDomain.previewDeploymentId,
-				);
-				if (
-					newPreviewDeployment.application.environment.project
-						.organizationId !== ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this preview deployment",
-					});
-				}
-			}
-			const result = await updateDomainById(input.domainId, input);
+			const result = await updateDomain(input.domainId, input);
 			const domain = await findDomainById(input.domainId);
+
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await manageDomain(application, domain);
@@ -175,67 +189,41 @@ export const domainRouter = createTRPCRouter({
 				application.appName = previewDeployment.appName;
 				await manageDomain(application, domain);
 			}
+
 			return result;
 		}),
 	one: protectedProcedure.input(apiFindDomain).query(async ({ input, ctx }) => {
-		const domain = await findDomainById(input.domainId);
-		if (domain.applicationId) {
-			const application = await findApplicationById(domain.applicationId);
-			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this application",
-				});
-			}
-		} else if (domain.composeId) {
-			const compose = await findComposeById(domain.composeId);
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to access this compose",
-				});
-			}
-		}
+		await validateDomainAccess(input.domainId, ctx.session);
 		return await findDomainById(input.domainId);
 	}),
 	delete: protectedProcedure
 		.input(apiFindDomain)
 		.mutation(async ({ input, ctx }) => {
+			await validateDomainAccess(input.domainId, ctx.session);
+
 			const domain = await findDomainById(input.domainId);
-			if (domain.applicationId) {
-				const application = await findApplicationById(domain.applicationId);
-				if (
-					application.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this application",
-					});
-				}
-			} else if (domain.composeId) {
-				const compose = await findComposeById(domain.composeId);
-				if (
-					compose.environment.project.organizationId !==
-					ctx.session.activeOrganizationId
-				) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "You are not authorized to access this compose",
-					});
-				}
-			}
 			const result = await removeDomainById(input.domainId);
 
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
+				await mechanizeDockerContainer(application);
+
+				await disconnectTraefikFromResourceNetworks(
+					domain.applicationId,
+					"application",
+					application.serverId,
+					domain.networkId,
+				);
+			} else if (domain.composeId) {
+				const compose = await findComposeById(domain.composeId);
+
+				await disconnectTraefikFromResourceNetworks(
+					domain.composeId,
+					"compose",
+					compose.serverId,
+					domain.networkId,
+				);
 			}
 
 			return result;

@@ -18,6 +18,7 @@ import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
+import { connectTraefikToResourceNetworks } from "./network";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 
@@ -135,6 +136,11 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
+	const previewNetworkIds =
+		application.previewNetworkIds || application.customNetworkIds || [];
+	const defaultNetworkId =
+		previewNetworkIds.length > 0 ? previewNetworkIds[0] : null;
+
 	const org = await db.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
@@ -186,11 +192,19 @@ export const createPreviewDeployment = async (
 		customCertResolver: application.previewCustomCertResolver,
 		domainType: "preview",
 		previewDeploymentId: previewDeployment.previewDeploymentId,
+		networkId: defaultNetworkId,
 	});
 
 	application.appName = appName;
 
 	await manageDomain(application, newDomain);
+
+	await connectTraefikToResourceNetworks(
+		previewDeployment.previewDeploymentId,
+		"preview",
+		application.serverId,
+		newDomain.networkId,
+	);
 
 	await db
 		.update(previewDeployments)

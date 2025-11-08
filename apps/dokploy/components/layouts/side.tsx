@@ -22,6 +22,7 @@ import {
 	KeyRound,
 	Loader2,
 	type LucideIcon,
+	Network,
 	Package,
 	PieChart,
 	Server,
@@ -142,6 +143,12 @@ const MENU: Menu = {
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
+		},
+		{
+			isSingle: true,
+			title: "Networks",
+			url: "/dashboard/networks",
+			icon: Network,
 		},
 		{
 			isSingle: true,

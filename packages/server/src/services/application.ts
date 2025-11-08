@@ -110,7 +110,11 @@ export const findApplicationById = async (applicationId: string) => {
 					project: true,
 				},
 			},
-			domains: true,
+			domains: {
+				with: {
+					network: true,
+				},
+			},
 			deployments: true,
 			mounts: true,
 			redirects: true,
@@ -289,6 +293,7 @@ export const rebuildApplication = async ({
 		} else if (application.sourceType === "drop") {
 			await buildApplication(application, deployment.logPath);
 		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
 	} catch (error) {
@@ -474,6 +479,8 @@ export const deployPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.customNetworkIds =
+			application.previewNetworkIds || application.customNetworkIds;
 
 		if (application.sourceType === "github") {
 			await cloneGithubRepository({
@@ -582,6 +589,8 @@ export const deployRemotePreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.customNetworkIds =
+			application.previewNetworkIds || application.customNetworkIds;
 
 		if (application.serverId) {
 			let command = "set -e;";

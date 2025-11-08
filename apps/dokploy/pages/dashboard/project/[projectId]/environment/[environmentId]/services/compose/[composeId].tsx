@@ -20,7 +20,6 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { AddCommandCompose } from "@/components/dashboard/compose/advanced/add-command";
-import { IsolatedDeploymentTab } from "@/components/dashboard/compose/advanced/add-isolation";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowGeneralCompose } from "@/components/dashboard/compose/general/show";
 import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show";
@@ -29,6 +28,7 @@ import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
+import { AssignNetworkToResource } from "@/components/dashboard/network/assign-network-to-resource";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
@@ -355,7 +355,12 @@ const Service = (
 											<AddCommandCompose composeId={composeId} />
 											<ShowVolumes id={composeId} type="compose" />
 											<ShowImport composeId={composeId} />
-											<IsolatedDeploymentTab composeId={composeId} />
+											<AssignNetworkToResource
+												resourceId={composeId}
+												resourceType="compose"
+												composeType={data?.composeType}
+												showCard
+											/>
 										</div>
 									</TabsContent>
 								</Tabs>

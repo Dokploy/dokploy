@@ -77,13 +77,13 @@ export const compose = pgTable("compose", {
 	composePath: text("composePath").notNull().default("./docker-compose.yml"),
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
-	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
 	// Keep this for backward compatibility since we will not add the prefix anymore to volumes
 	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
 		.notNull()
 		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
+	customNetworkIds: text("customNetworkIds").array(),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -155,6 +155,7 @@ const createSchema = createInsertSchema(compose, {
 	composePath: z.string().min(1),
 	composeType: z.enum(["docker-compose", "stack"]).optional(),
 	watchPaths: z.array(z.string()).optional(),
+	customNetworkIds: z.array(z.string()).nullable(),
 });
 
 export const apiCreateCompose = createSchema.pick({

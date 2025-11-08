@@ -90,6 +90,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("none"),
 	previewCustomCertResolver: text("previewCustomCertResolver"),
+	previewNetworkIds: text("previewNetworkIds").array(),
 	previewLimit: integer("previewLimit").default(3),
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
@@ -167,6 +168,7 @@ export const applications = pgTable("application", {
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	customNetworkIds: text("customNetworkIds").array(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -316,8 +318,10 @@ const createSchema = createInsertSchema(applications, {
 	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
 	previewLabels: z.array(z.string()).optional(),
+	previewNetworkIds: z.array(z.string()).nullable().optional(),
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
+	customNetworkIds: z.array(z.string()).nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
