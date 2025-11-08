@@ -4,7 +4,6 @@ import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
-	generateEndpointSpec,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -93,6 +92,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(mongo);
 
 	const resources = calculateResources({
@@ -143,7 +143,21 @@ ${command ?? "wait $MONGOD_PID"}`;
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: generateEndpointSpec(mongo, 27017),
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 27017,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),

@@ -395,6 +395,7 @@ export const generateConfigContainer = (
 		mounts,
 		networkSwarm,
 		stopGracePeriodSwarm,
+		endpointSpecSwarm,
 	} = application;
 
 	const sanitizedStopGracePeriodSwarm =
@@ -408,11 +409,9 @@ export const generateConfigContainer = (
 		...(healthCheckSwarm && {
 			HealthCheck: healthCheckSwarm,
 		}),
-		...(restartPolicySwarm
-			? {
-					RestartPolicy: restartPolicySwarm,
-				}
-			: {}),
+		...(restartPolicySwarm && {
+			RestartPolicy: restartPolicySwarm,
+		}),
 		...(placementSwarm
 			? {
 					Placement: placementSwarm,
@@ -461,42 +460,18 @@ export const generateConfigContainer = (
 			: {
 					Networks: [{ Target: "dokploy-network" }],
 				}),
-	};
-};
-
-export const generateEndpointSpec = (
-	database: Partial<
-		PostgresNested | MysqlNested | MariadbNested | MongoNested | RedisNested
-	>,
-	defaultTargetPort: number,
-) => {
-	const { endpointSpecSwarm, externalPort } = database;
-
-	if (endpointSpecSwarm) {
-		return {
-			...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
-			Ports:
-				endpointSpecSwarm.Ports?.map((port) => ({
-					Protocol: (port.Protocol || "tcp") as "tcp" | "udp" | "sctp",
-					TargetPort: port.TargetPort,
-					PublishedPort: port.PublishedPort || 0,
-					PublishMode: (port.PublishMode || "host") as "ingress" | "host",
-				})) || [],
-		};
-	}
-
-	return {
-		Mode: "dnsrr" as const,
-		Ports: externalPort
-			? [
-					{
-						Protocol: "tcp" as const,
-						TargetPort: defaultTargetPort,
-						PublishedPort: externalPort,
-						PublishMode: "host" as const,
-					},
-				]
-			: [],
+		...(endpointSpecSwarm && {
+			EndpointSpec: {
+				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
+				Ports:
+					endpointSpecSwarm.Ports?.map((port) => ({
+						Protocol: (port.Protocol || "tcp") as "tcp" | "udp" | "sctp",
+						TargetPort: port.TargetPort || 0,
+						PublishedPort: port.PublishedPort || 0,
+						PublishMode: (port.PublishMode || "host") as "ingress" | "host",
+					})) || [],
+			},
+		}),
 	};
 };
 

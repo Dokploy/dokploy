@@ -4,7 +4,6 @@ import {
 	calculateResources,
 	generateBindMounts,
 	generateConfigContainer,
-	generateEndpointSpec,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -53,6 +52,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(mysql);
 	const resources = calculateResources({
 		memoryLimit,
@@ -96,7 +96,21 @@ export const buildMysql = async (mysql: MysqlNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: generateEndpointSpec(mysql, 3306),
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 3306,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),
