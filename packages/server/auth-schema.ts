@@ -6,7 +6,7 @@
 // 	boolean,
 // } from "drizzle-orm/pg-core";
 
-// export const users_temp = pgTable("users_temp", {
+// export const user = pgTable("user", {
 // 	id: text("id").primaryKey(),
 // 	name: text("name").notNull(),
 // 	email: text("email").notNull().unique(),
@@ -29,7 +29,7 @@
 // 	userAgent: text("user_agent"),
 // 	userId: text("user_id")
 // 		.notNull()
-// 		.references(() => users_temp.id, { onDelete: "cascade" }),
+// 		.references(() => user.id, { onDelete: "cascade" }),
 // 	activeOrganizationId: text("active_organization_id"),
 // });
 
@@ -39,7 +39,7 @@
 // 	providerId: text("provider_id").notNull(),
 // 	userId: text("user_id")
 // 		.notNull()
-// 		.references(() => users_temp.id, { onDelete: "cascade" }),
+// 		.references(() => user.id, { onDelete: "cascade" }),
 // 	accessToken: text("access_token"),
 // 	refreshToken: text("refresh_token"),
 // 	idToken: text("id_token"),

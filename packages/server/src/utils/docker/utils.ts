@@ -395,6 +395,7 @@ export const generateConfigContainer = (
 		mounts,
 		networkSwarm,
 		stopGracePeriodSwarm,
+		endpointSpecSwarm,
 	} = application;
 
 	const sanitizedStopGracePeriodSwarm =
@@ -408,11 +409,9 @@ export const generateConfigContainer = (
 		...(healthCheckSwarm && {
 			HealthCheck: healthCheckSwarm,
 		}),
-		...(restartPolicySwarm
-			? {
-					RestartPolicy: restartPolicySwarm,
-				}
-			: {}),
+		...(restartPolicySwarm && {
+			RestartPolicy: restartPolicySwarm,
+		}),
 		...(placementSwarm
 			? {
 					Placement: placementSwarm,
@@ -461,6 +460,18 @@ export const generateConfigContainer = (
 			: {
 					Networks: [{ Target: "dokploy-network" }],
 				}),
+		...(endpointSpecSwarm && {
+			EndpointSpec: {
+				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
+				Ports:
+					endpointSpecSwarm.Ports?.map((port) => ({
+						Protocol: (port.Protocol || "tcp") as "tcp" | "udp" | "sctp",
+						TargetPort: port.TargetPort || 0,
+						PublishedPort: port.PublishedPort || 0,
+						PublishMode: (port.PublishMode || "host") as "ingress" | "host",
+					})) || [],
+			},
+		}),
 	};
 };
 

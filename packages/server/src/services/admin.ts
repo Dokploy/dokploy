@@ -3,26 +3,26 @@ import {
 	invitation,
 	member,
 	organization,
-	users_temp,
+	user,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 
 export const findUserById = async (userId: string) => {
-	const user = await db.query.users_temp.findFirst({
-		where: eq(users_temp.id, userId),
+	const userResult = await db.query.user.findFirst({
+		where: eq(user.id, userId),
 		// with: {
 		// 	account: true,
 		// },
 	});
-	if (!user) {
+	if (!userResult) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "User not found",
 		});
 	}
-	return user;
+	return userResult;
 };
 
 export const findOrganizationById = async (organizationId: string) => {
@@ -64,7 +64,7 @@ export const findAdmin = async () => {
 };
 
 export const getUserByToken = async (token: string) => {
-	const user = await db.query.invitation.findFirst({
+	const userResult = await db.query.invitation.findFirst({
 		where: eq(invitation.id, token),
 		columns: {
 			id: true,
@@ -76,29 +76,29 @@ export const getUserByToken = async (token: string) => {
 		},
 	});
 
-	if (!user) {
+	if (!userResult) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Invitation not found",
 		});
 	}
 
-	const userAlreadyExists = await db.query.users_temp.findFirst({
-		where: eq(users_temp.email, user?.email || ""),
+	const userAlreadyExists = await db.query.user.findFirst({
+		where: eq(user.email, userResult?.email || ""),
 	});
 
-	const { expiresAt, ...rest } = user;
+	const { expiresAt, ...rest } = userResult;
 	return {
 		...rest,
-		isExpired: user.expiresAt < new Date(),
+		isExpired: userResult.expiresAt < new Date(),
 		userAlreadyExists: !!userAlreadyExists,
 	};
 };
 
 export const removeUserById = async (userId: string) => {
 	await db
-		.delete(users_temp)
-		.where(eq(users_temp.id, userId))
+		.delete(user)
+		.where(eq(user.id, userId))
 		.returning()
 		.then((res) => res[0]);
 };

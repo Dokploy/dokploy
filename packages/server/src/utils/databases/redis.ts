@@ -43,6 +43,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(redis);
 	const resources = calculateResources({
 		memoryLimit,
@@ -85,19 +86,21 @@ export const buildRedis = async (redis: RedisNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 6379,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 6379,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),
