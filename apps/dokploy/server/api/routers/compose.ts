@@ -246,6 +246,7 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			await cleanQueuesByCompose(input.composeId);
+			return { success: true, message: "Queues cleaned successfully" };
 		}),
 
 	loadServices: protectedProcedure
@@ -388,6 +389,7 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+			return { success: true, message: "Deployment queued" };
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -423,6 +425,7 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+			return { success: true, message: "Redeployment queued" };
 		}),
 	stop: protectedProcedure
 		.input(apiFindCompose)

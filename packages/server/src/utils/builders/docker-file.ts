@@ -1,5 +1,8 @@
 import type { WriteStream } from "node:fs";
-import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
+import {
+	getEnviromentVariablesObject,
+	prepareEnvironmentVariables,
+} from "@dokploy/server/utils/docker/utils";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
@@ -17,6 +20,7 @@ export const buildCustomDocker = async (
 		env,
 		publishDirectory,
 		buildArgs,
+		buildSecrets,
 		dockerBuildStage,
 		cleanCache,
 	} = application;
@@ -26,11 +30,6 @@ export const buildCustomDocker = async (
 
 		const defaultContextPath =
 			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
-		const args = prepareEnvironmentVariables(
-			buildArgs,
-			application.environment.project.env,
-			application.environment.env,
-		);
 
 		const dockerContextPath = getDockerContextPath(application);
 
@@ -44,9 +43,29 @@ export const buildCustomDocker = async (
 			commandArgs.push("--target", dockerBuildStage);
 		}
 
+		const args = prepareEnvironmentVariables(
+			buildArgs,
+			application.environment.project.env,
+			application.environment.env,
+		);
+
 		for (const arg of args) {
 			commandArgs.push("--build-arg", arg);
 		}
+
+		const secrets = getEnviromentVariablesObject(
+			buildSecrets,
+			application.environment.project.env,
+			application.environment.env,
+		);
+
+		for (const key in secrets) {
+			// Although buildx is smart enough to know we may be referring to an environment variable name,
+			// we still make sure it doesn't fall back to type=file.
+			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
+			commandArgs.push("--secret", `type=env,id=${key}`);
+		}
+
 		/*
 			Do not generate an environment file when publishDirectory is specified,
 			as it could be publicly exposed.
@@ -70,6 +89,10 @@ export const buildCustomDocker = async (
 			},
 			{
 				cwd: dockerContextPath || defaultContextPath,
+				env: {
+					...process.env,
+					...secrets,
+				},
 			},
 		);
 	} catch (error) {
@@ -86,6 +109,7 @@ export const getDockerCommand = (
 		env,
 		publishDirectory,
 		buildArgs,
+		buildSecrets,
 		dockerBuildStage,
 		cleanCache,
 	} = application;
@@ -96,11 +120,6 @@ export const getDockerCommand = (
 
 		const defaultContextPath =
 			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
-		const args = prepareEnvironmentVariables(
-			buildArgs,
-			application.environment.project.env,
-			application.environment.env,
-		);
 
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
@@ -115,8 +134,31 @@ export const getDockerCommand = (
 			commandArgs.push("--no-cache");
 		}
 
+		const args = prepareEnvironmentVariables(
+			buildArgs,
+			application.environment.project.env,
+			application.environment.env,
+		);
+
 		for (const arg of args) {
 			commandArgs.push("--build-arg", `'${arg}'`);
+		}
+
+		const secrets = getEnviromentVariablesObject(
+			buildSecrets,
+			application.environment.project.env,
+			application.environment.env,
+		);
+
+		const joinedSecrets = Object.entries(secrets)
+			.map(([key, value]) => `${key}='${value.replace(/'/g, "'\"'\"'")}'`)
+			.join(" ");
+
+		for (const key in secrets) {
+			// Although buildx is smart enough to know we may be referring to an environment variable name,
+			// we still make sure it doesn't fall back to `type=file`.
+			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
+			commandArgs.push("--secret", `type=env,id=${key}`);
 		}
 
 		/*
@@ -140,7 +182,7 @@ cd ${dockerContextPath} >> ${logPath} 2>> ${logPath} || {
   exit 1;
 }
 
-docker ${commandArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
+${joinedSecrets} docker ${commandArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
   echo "❌ Docker build failed" >> ${logPath};
   exit 1;
 }

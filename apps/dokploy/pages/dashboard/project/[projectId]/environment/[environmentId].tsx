@@ -14,6 +14,7 @@ import {
 	PlusIcon,
 	Search,
 	ServerIcon,
+	SquareTerminal,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
+import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
@@ -776,6 +778,11 @@ const EnvironmentPage = (
 										projectId={projectId}
 										currentEnvironmentId={environmentId}
 									/>
+									<EnvironmentVariables environmentId={environmentId}>
+										<Button variant="ghost" size="icon">
+											<SquareTerminal className="size-5 text-muted-foreground cursor-pointer" />
+										</Button>
+									</EnvironmentVariables>
 								</CardTitle>
 								<CardDescription>
 									{currentEnvironment.description || "No description provided"}

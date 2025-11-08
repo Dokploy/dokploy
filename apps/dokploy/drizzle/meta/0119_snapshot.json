@@ -1,6 +1,6 @@
 {
-  "id": "f9a4b3c2-d1e0-4f5a-8b7c-9d6e5f4a3b2c",
-  "prevId": "8d7f3e45-a19c-4f2b-9e81-c6b2d4f5e890",
+  "id": "fb4a3ed9-c58b-4a79-a4ee-2a7a4d3914a7",
+  "prevId": "e7d24dad-8dc2-4c17-b27a-1f5240b8ffeb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -420,6 +420,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "canCreateProjects": {
           "name": "canCreateProjects",
@@ -860,6 +867,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "previewBuildSecrets": {
+          "name": "previewBuildSecrets",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "previewLabels": {
           "name": "previewLabels",
           "type": "text[]",
@@ -937,6 +950,12 @@
         },
         "buildArgs": {
           "name": "buildArgs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildSecrets": {
+          "name": "buildSecrets",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1266,12 +1285,6 @@
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customNetworkIds": {
-          "name": "customNetworkIds",
-          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -2089,6 +2102,13 @@
           "notNull": true,
           "default": false
         },
+        "isolatedDeployment": {
+          "name": "isolatedDeployment",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "isolatedDeploymentsVolume": {
           "name": "isolatedDeploymentsVolume",
           "type": "boolean",
@@ -2111,12 +2131,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'idle'"
-        },
-        "customNetworkIds": {
-          "name": "customNetworkIds",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false
         },
         "environmentId": {
           "name": "environmentId",
@@ -3316,12 +3330,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "customNetworkIds": {
-          "name": "customNetworkIds",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false
-        },
         "replicas": {
           "name": "replicas",
           "type": "integer",
@@ -3538,12 +3546,6 @@
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customNetworkIds": {
-          "name": "customNetworkIds",
-          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -3983,12 +3985,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "customNetworkIds": {
-          "name": "customNetworkIds",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false
-        },
         "replicas": {
           "name": "replicas",
           "type": "integer",
@@ -4054,153 +4050,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.network": {
-      "name": "network",
-      "schema": "",
-      "columns": {
-        "networkId": {
-          "name": "networkId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "networkName": {
-          "name": "networkName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "driver": {
-          "name": "driver",
-          "type": "networkDriver",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'bridge'"
-        },
-        "subnet": {
-          "name": "subnet",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "gateway": {
-          "name": "gateway",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ipRange": {
-          "name": "ipRange",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "encrypted": {
-          "name": "encrypted",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "internal": {
-          "name": "internal",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "dockerNetworkId": {
-          "name": "dockerNetworkId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "projectId": {
-          "name": "projectId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "organizationId": {
-          "name": "organizationId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "serverId": {
-          "name": "serverId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "network_projectId_project_projectId_fk": {
-          "name": "network_projectId_project_projectId_fk",
-          "tableFrom": "network",
-          "tableTo": "project",
-          "columnsFrom": [
-            "projectId"
-          ],
-          "columnsTo": [
-            "projectId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "network_organizationId_organization_id_fk": {
-          "name": "network_organizationId_organization_id_fk",
-          "tableFrom": "network",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organizationId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "network_serverId_server_serverId_fk": {
-          "name": "network_serverId_server_serverId_fk",
-          "tableFrom": "network",
-          "tableTo": "server",
-          "columnsFrom": [
-            "serverId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -4335,6 +4184,31 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.lark": {
+      "name": "lark",
+      "schema": "",
+      "columns": {
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookUrl": {
+          "name": "webhookUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.notification": {
       "name": "notification",
       "schema": "",
@@ -4442,6 +4316,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4525,6 +4405,19 @@
           ],
           "columnsTo": [
             "ntfyId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_larkId_lark_larkId_fk": {
+          "name": "notification_larkId_lark_larkId_fk",
+          "tableFrom": "notification",
+          "tableTo": "lark",
+          "columnsFrom": [
+            "larkId"
+          ],
+          "columnsTo": [
+            "larkId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4880,12 +4773,6 @@
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customNetworkIds": {
-          "name": "customNetworkIds",
-          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -5367,12 +5254,6 @@
         "stopGracePeriodSwarm": {
           "name": "stopGracePeriodSwarm",
           "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customNetworkIds": {
-          "name": "customNetworkIds",
-          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -6701,14 +6582,6 @@
         "compose"
       ]
     },
-    "public.networkDriver": {
-      "name": "networkDriver",
-      "schema": "public",
-      "values": [
-        "bridge",
-        "overlay"
-      ]
-    },
     "public.notificationType": {
       "name": "notificationType",
       "schema": "public",
@@ -6718,7 +6591,8 @@
         "discord",
         "email",
         "gotify",
-        "ntfy"
+        "ntfy",
+        "lark"
       ]
     },
     "public.protocolType": {

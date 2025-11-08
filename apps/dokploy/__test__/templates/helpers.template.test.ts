@@ -228,5 +228,58 @@ describe("helpers functions", () => {
 				"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MzU2ODk2MDAsImV4cCI6MTczNTY5MzIwMCwiaXNzIjoidGVzdC1pc3N1ZXIiLCJjdXN0b21wcm9wIjoiY3VzdG9tdmFsdWUifQ.m42U7PZSUSCf7gBOJrxJir0rQmyPq4rA59Dydr_QahI",
 			);
 		});
+
+		it("should handle JWT payload with newlines and whitespace by trimming them", () => {
+			const iat = Math.floor(new Date("2025-01-01T00:00:00Z").getTime() / 1000);
+			const expiry = iat + 3600;
+			const payloadWithNewlines = `{
+  "role": "anon",
+  "iss": "supabase",
+  "exp": ${expiry}
+}
+`;
+			const jwt = processValue(
+				"${jwt:secret:payload}",
+				{
+					secret: "mysecret",
+					payload: payloadWithNewlines,
+				},
+				mockSchema,
+			);
+			expect(jwt).toMatch(jwtMatchExp);
+			const parts = jwt.split(".") as JWTParts;
+			jwtCheckHeader(parts[0]);
+			const decodedPayload = jwtBase64Decode(parts[1]);
+			expect(decodedPayload).toHaveProperty("role");
+			expect(decodedPayload.role).toEqual("anon");
+			expect(decodedPayload).toHaveProperty("iss");
+			expect(decodedPayload.iss).toEqual("supabase");
+			expect(decodedPayload).toHaveProperty("exp");
+			expect(decodedPayload.exp).toEqual(expiry);
+		});
+
+		it("should handle JWT payload with leading and trailing whitespace", () => {
+			const iat = Math.floor(new Date("2025-01-01T00:00:00Z").getTime() / 1000);
+			const expiry = iat + 3600;
+			const payloadWithWhitespace = `   {"role": "service_role", "iss": "supabase", "exp": ${expiry}}   `;
+			const jwt = processValue(
+				"${jwt:secret:payload}",
+				{
+					secret: "mysecret",
+					payload: payloadWithWhitespace,
+				},
+				mockSchema,
+			);
+			expect(jwt).toMatch(jwtMatchExp);
+			const parts = jwt.split(".") as JWTParts;
+			jwtCheckHeader(parts[0]);
+			const decodedPayload = jwtBase64Decode(parts[1]);
+			expect(decodedPayload).toHaveProperty("role");
+			expect(decodedPayload.role).toEqual("service_role");
+			expect(decodedPayload).toHaveProperty("iss");
+			expect(decodedPayload.iss).toEqual("supabase");
+			expect(decodedPayload).toHaveProperty("exp");
+			expect(decodedPayload.exp).toEqual(expiry);
+		});
 	});
 });

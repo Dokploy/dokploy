@@ -477,7 +477,8 @@ export const deployPreviewApplication = async ({
 		});
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = application.previewBuildArgs;
+		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.customNetworkIds =
 			application.previewNetworkIds || application.customNetworkIds;
 
@@ -586,7 +587,8 @@ export const deployRemotePreviewApplication = async ({
 		});
 		application.appName = previewDeployment.appName;
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.buildArgs = application.previewBuildArgs;
+		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.customNetworkIds =
 			application.previewNetworkIds || application.customNetworkIds;
 
@@ -675,7 +677,6 @@ export const rebuildRemoteApplication = async ({
 			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
 			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
 		);
-
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;

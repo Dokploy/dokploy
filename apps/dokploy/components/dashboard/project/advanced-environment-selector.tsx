@@ -248,7 +248,7 @@ export const AdvancedEnvironmentSelector = ({
 								</DropdownMenuItem>
 
 								{/* Action buttons for non-production environments */}
-								<EnvironmentVariables environmentId={environment.environmentId}>
+								{/* <EnvironmentVariables environmentId={environment.environmentId}>
 									<Button
 										variant="ghost"
 										size="sm"
@@ -259,7 +259,7 @@ export const AdvancedEnvironmentSelector = ({
 									>
 										<Terminal className="h-3 w-3" />
 									</Button>
-								</EnvironmentVariables>
+								</EnvironmentVariables> */}
 								{environment.name !== "production" && (
 									<div className="flex items-center gap-1 px-2">
 										<Button
