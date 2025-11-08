@@ -1,6 +1,6 @@
 {
-  "id": "9b416983-90cd-4e45-b703-c34b714815da",
-  "prevId": "f9a4b3c2-d1e0-4f5a-8b7c-9d6e5f4a3b2c",
+  "id": "9ab4b5b3-6380-4bd3-b6a3-b50ba02547a2",
+  "prevId": "fb4a3ed9-c58b-4a79-a4ee-2a7a4d3914a7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -420,6 +420,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "canCreateProjects": {
           "name": "canCreateProjects",
@@ -860,6 +867,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "previewBuildSecrets": {
+          "name": "previewBuildSecrets",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "previewLabels": {
           "name": "previewLabels",
           "type": "text[]",
@@ -943,6 +956,12 @@
         },
         "buildArgs": {
           "name": "buildArgs",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buildSecrets": {
+          "name": "buildSecrets",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4360,6 +4379,31 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.lark": {
+      "name": "lark",
+      "schema": "",
+      "columns": {
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookUrl": {
+          "name": "webhookUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.notification": {
       "name": "notification",
       "schema": "",
@@ -4467,6 +4511,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "larkId": {
+          "name": "larkId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4550,6 +4600,19 @@
           ],
           "columnsTo": [
             "ntfyId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_larkId_lark_larkId_fk": {
+          "name": "notification_larkId_lark_larkId_fk",
+          "tableFrom": "notification",
+          "tableTo": "lark",
+          "columnsFrom": [
+            "larkId"
+          ],
+          "columnsTo": [
+            "larkId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -6743,7 +6806,8 @@
         "discord",
         "email",
         "gotify",
-        "ntfy"
+        "ntfy",
+        "lark"
       ]
     },
     "public.protocolType": {
