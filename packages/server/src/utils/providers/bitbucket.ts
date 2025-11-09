@@ -76,11 +76,6 @@ export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 	};
 };
 
-type BitbucketClone = (ApplicationWithBitbucket | ComposeWithBitbucket) & {
-	serverId: string | null;
-	type?: "application" | "compose";
-};
-
 interface CloneBitbucketRepository {
 	appName: string;
 	bitbucketRepository: string | null;
