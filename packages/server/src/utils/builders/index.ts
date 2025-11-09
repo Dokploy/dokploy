@@ -76,34 +76,31 @@ export const buildApplication = async (
 	}
 };
 
-export const getBuildCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getBuildCommand = (application: ApplicationNested) => {
 	let command = "";
 	const { buildType, registry } = application;
 	switch (buildType) {
 		case "nixpacks":
-			command = getNixpacksCommand(application, logPath);
+			command = getNixpacksCommand(application);
 			break;
 		case "heroku_buildpacks":
-			command = getHerokuCommand(application, logPath);
+			command = getHerokuCommand(application);
 			break;
 		case "paketo_buildpacks":
-			command = getPaketoCommand(application, logPath);
+			command = getPaketoCommand(application);
 			break;
 		case "static":
-			command = getStaticCommand(application, logPath);
+			command = getStaticCommand(application);
 			break;
 		case "dockerfile":
-			command = getDockerCommand(application, logPath);
+			command = getDockerCommand(application);
 			break;
 		case "railpack":
-			command = getRailpackCommand(application, logPath);
+			command = getRailpackCommand(application);
 			break;
 	}
 	if (registry) {
-		command += uploadImageRemoteCommand(application, logPath);
+		command += uploadImageRemoteCommand(application);
 	}
 
 	return command;

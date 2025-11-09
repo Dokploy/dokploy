@@ -83,10 +83,7 @@ export const buildStatic = async (
 	}
 };
 
-export const getStaticCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getStaticCommand = (application: ApplicationNested) => {
 	const { publishDirectory } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 
@@ -100,13 +97,10 @@ export const getStaticCommand = (
 		].join("\n"),
 	);
 
-	command += getDockerCommand(
-		{
-			...application,
-			buildType: "dockerfile",
-			dockerfile: "Dockerfile",
-		},
-		logPath,
-	);
+	command += getDockerCommand({
+		...application,
+		buildType: "dockerfile",
+		dockerfile: "Dockerfile",
+	});
 	return command;
 };

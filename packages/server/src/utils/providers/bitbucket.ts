@@ -1,4 +1,3 @@
-import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type {
@@ -9,12 +8,8 @@ import {
 	type Bitbucket,
 	findBitbucketById,
 } from "@dokploy/server/services/bitbucket";
-import type { Compose } from "@dokploy/server/services/compose";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
-import { recreateDirectory } from "../filesystem/directory";
-import { execAsyncRemote } from "../process/execAsync";
-import { spawnAsync } from "../process/spawnAsync";
 
 export type ApplicationWithBitbucket = InferResultType<
 	"applications",
@@ -81,13 +76,16 @@ export const getBitbucketHeaders = (bitbucketProvider: Bitbucket) => {
 	};
 };
 
-export const cloneBitbucketRepository = async (
-	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
-	logPath: string,
-	isCompose = false,
-) => {
-	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths();
-	const writeStream = createWriteStream(logPath, { flags: "a" });
+type BitbucketClone = (ApplicationWithBitbucket | ComposeWithBitbucket) & {
+	serverId: string | null;
+	type?: "application" | "compose";
+};
+
+export const cloneBitbucketRepository = async ({
+	type = "application",
+	...entity
+}: BitbucketClone) => {
+	let command = "set -e;";
 	const {
 		appName,
 		bitbucketRepository,
@@ -96,187 +94,24 @@ export const cloneBitbucketRepository = async (
 		bitbucketId,
 		bitbucket,
 		enableSubmodules,
+		serverId,
 	} = entity;
+	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
 	if (!bitbucketId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
+		command += `echo "Error: ❌ Bitbucket Provider not found"; exit 1;`;
+		return command;
 	}
 
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
+	command += `rm -rf ${outputPath};`;
+	command += `mkdir -p ${outputPath};`;
 	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
 	const cloneUrl = getBitbucketCloneUrl(bitbucket, repoclone);
-	try {
-		writeStream.write(`\nCloning Repo ${repoclone} to ${outputPath}: ✅\n`);
-		const cloneArgs = [
-			"clone",
-			"--branch",
-			bitbucketBranch!,
-			"--depth",
-			"1",
-			...(enableSubmodules ? ["--recurse-submodules"] : []),
-			cloneUrl,
-			outputPath,
-			"--progress",
-		];
-
-		await spawnAsync("git", cloneArgs, (data) => {
-			if (writeStream.writable) {
-				writeStream.write(data);
-			}
-		});
-		writeStream.write(`\nCloned ${repoclone} to ${outputPath}: ✅\n`);
-	} catch (error) {
-		writeStream.write(`ERROR Cloning: ${error}: ❌`);
-		throw error;
-	} finally {
-		writeStream.end();
-	}
-};
-
-export const cloneRawBitbucketRepository = async (entity: Compose) => {
-	const { COMPOSE_PATH } = paths();
-	const {
-		appName,
-		bitbucketRepository,
-		bitbucketOwner,
-		bitbucketBranch,
-		bitbucketId,
-		enableSubmodules,
-	} = entity;
-
-	if (!bitbucketId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
-	}
-
-	const bitbucketProvider = await findBitbucketById(bitbucketId);
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
-
-	try {
-		const cloneArgs = [
-			"clone",
-			"--branch",
-			bitbucketBranch!,
-			"--depth",
-			"1",
-			...(enableSubmodules ? ["--recurse-submodules"] : []),
-			cloneUrl,
-			outputPath,
-			"--progress",
-		];
-
-		await spawnAsync("git", cloneArgs);
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const cloneRawBitbucketRepositoryRemote = async (compose: Compose) => {
-	const { COMPOSE_PATH } = paths(true);
-	const {
-		appName,
-		bitbucketRepository,
-		bitbucketOwner,
-		bitbucketBranch,
-		bitbucketId,
-		serverId,
-		enableSubmodules,
-	} = compose;
-
-	if (!serverId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Server not found",
-		});
-	}
-	if (!bitbucketId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
-	}
-
-	const bitbucketProvider = await findBitbucketById(bitbucketId);
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
-
-	try {
-		const cloneCommand = `
-			rm -rf ${outputPath};
-			git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
-		`;
-		await execAsyncRemote(serverId, cloneCommand);
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const getBitbucketCloneCommand = async (
-	entity: ApplicationWithBitbucket | ComposeWithBitbucket,
-	logPath: string,
-	isCompose = false,
-) => {
-	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
-	const {
-		appName,
-		bitbucketRepository,
-		bitbucketOwner,
-		bitbucketBranch,
-		bitbucketId,
-		serverId,
-		enableSubmodules,
-	} = entity;
-
-	if (!serverId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Server not found",
-		});
-	}
-
-	if (!bitbucketId) {
-		const command = `
-			echo  "Error: ❌ Bitbucket Provider not found" >> ${logPath};
-			exit 1;
-		`;
-		await execAsyncRemote(serverId, command);
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Bitbucket Provider not found",
-		});
-	}
-
-	const bitbucketProvider = await findBitbucketById(bitbucketId);
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
-	const repoclone = `bitbucket.org/${bitbucketOwner}/${bitbucketRepository}.git`;
-	const cloneUrl = getBitbucketCloneUrl(bitbucketProvider, repoclone);
-
-	const cloneCommand = `
-rm -rf ${outputPath};
-mkdir -p ${outputPath};
-if ! git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-	echo "❌ [ERROR] Fail to clone the repository ${repoclone}" >> ${logPath};
-	exit 1;
-fi
-echo "Cloned ${repoclone} to ${outputPath}: ✅" >> ${logPath};
-	`;
-
-	return cloneCommand;
+	command += `echo "Cloning Repo ${repoclone} to ${outputPath}: ✅";`;
+	command += `git clone --branch ${bitbucketBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	return command;
 };
 
 export const getBitbucketRepositories = async (bitbucketId?: string) => {

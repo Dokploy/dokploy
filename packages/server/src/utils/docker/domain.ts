@@ -6,30 +6,12 @@ import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
-import {
-	cloneRawBitbucketRepository,
-	cloneRawBitbucketRepositoryRemote,
-} from "../providers/bitbucket";
-import {
-	cloneGitRawRepository,
-	cloneRawGitRepositoryRemote,
-} from "../providers/git";
-import {
-	cloneRawGiteaRepository,
-	cloneRawGiteaRepositoryRemote,
-} from "../providers/gitea";
-import {
-	cloneRawGithubRepository,
-	cloneRawGithubRepositoryRemote,
-} from "../providers/github";
-import {
-	cloneRawGitlabRepository,
-	cloneRawGitlabRepositoryRemote,
-} from "../providers/gitlab";
-import {
-	createComposeFileRaw,
-	createComposeFileRawRemote,
-} from "../providers/raw";
+import { cloneBitbucketRepository } from "../providers/bitbucket";
+import { cloneGitRepository } from "../providers/git";
+import { cloneGiteaRepository } from "../providers/gitea";
+import { cloneGithubRepository } from "../providers/github";
+import { cloneGitlabRepository } from "../providers/gitlab";
+import { getCreateComposeFileCommand } from "../providers/raw";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
@@ -40,35 +22,25 @@ import type {
 import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
+	let command = "set -e;";
+	const entity = {
+		...compose,
+		type: "compose" as const,
+	};
 	if (compose.sourceType === "github") {
-		await cloneRawGithubRepository(compose);
+		command += await cloneGithubRepository(entity);
 	} else if (compose.sourceType === "gitlab") {
-		await cloneRawGitlabRepository(compose);
+		command += await cloneGitlabRepository(entity);
 	} else if (compose.sourceType === "bitbucket") {
-		await cloneRawBitbucketRepository(compose);
+		command += await cloneBitbucketRepository(entity);
 	} else if (compose.sourceType === "git") {
-		await cloneGitRawRepository(compose);
+		command += await cloneGitRepository(entity);
 	} else if (compose.sourceType === "gitea") {
-		await cloneRawGiteaRepository(compose);
+		command += await cloneGiteaRepository(entity);
 	} else if (compose.sourceType === "raw") {
-		await createComposeFileRaw(compose);
+		command += getCreateComposeFileCommand(compose);
 	}
-};
-
-export const cloneComposeRemote = async (compose: Compose) => {
-	if (compose.sourceType === "github") {
-		await cloneRawGithubRepositoryRemote(compose);
-	} else if (compose.sourceType === "gitlab") {
-		await cloneRawGitlabRepositoryRemote(compose);
-	} else if (compose.sourceType === "bitbucket") {
-		await cloneRawBitbucketRepositoryRemote(compose);
-	} else if (compose.sourceType === "git") {
-		await cloneRawGitRepositoryRemote(compose);
-	} else if (compose.sourceType === "gitea") {
-		await cloneRawGiteaRepositoryRemote(compose);
-	} else if (compose.sourceType === "raw") {
-		await createComposeFileRawRemote(compose);
-	}
+	return command;
 };
 
 export const getComposePath = (compose: Compose) => {
@@ -152,7 +124,6 @@ export const writeDomainsToCompose = async (
 export const writeDomainsToComposeRemote = async (
 	compose: Compose,
 	domains: Domain[],
-	logPath: string,
 ) => {
 	if (!domains.length) {
 		return "";
@@ -164,7 +135,7 @@ export const writeDomainsToComposeRemote = async (
 
 		if (!composeConverted) {
 			return `
-echo "❌ Error: Compose file not found" >> ${logPath};
+echo "❌ Error: Compose file not found";
 exit 1;
 			`;
 		}
@@ -175,7 +146,7 @@ exit 1;
 		}
 	} catch (error) {
 		// @ts-ignore
-		return `echo "❌ Has occured an error: ${error?.message || error}" >> ${logPath};
+		return `echo "❌ Has occured an error: ${error?.message || error}";
 exit 1;
 		`;
 	}

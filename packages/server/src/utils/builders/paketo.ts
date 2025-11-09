@@ -44,10 +44,7 @@ export const buildPaketo = async (
 	}
 };
 
-export const getPaketoCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getPaketoCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
@@ -76,12 +73,12 @@ export const getPaketoCommand = (
 
 	const command = `pack ${args.join(" ")}`;
 	const bashCommand = `
-echo "Starting Paketo build..." >> ${logPath};
-${command} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ Paketo build failed" >> ${logPath};
+echo "Starting Paketo build..." ;
+${command} || { 
+  echo "❌ Paketo build failed" ;
   exit 1;
 }
-echo "✅ Paketo build completed." >> ${logPath};
+echo "✅ Paketo build completed." ;
 		`;
 
 	return bashCommand;

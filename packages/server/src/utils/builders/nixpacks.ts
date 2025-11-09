@@ -92,10 +92,7 @@ export const buildNixpacks = async (
 	}
 };
 
-export const getNixpacksCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getNixpacksCommand = (application: ApplicationNested) => {
 	const { env, appName, publishDirectory, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
@@ -121,13 +118,13 @@ export const getNixpacksCommand = (
 		args.push("--no-error-without-start");
 	}
 	const command = `nixpacks ${args.join(" ")}`;
-	let bashCommand = `
-echo "Starting nixpacks build..." >> ${logPath};
-${command} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ Nixpacks build failed" >> ${logPath};
-  exit 1;
-}
-echo "✅ Nixpacks build completed." >> ${logPath};
+	const bashCommand = `
+		echo "Starting nixpacks build..." ;
+		${command} || {
+			echo "❌ Nixpacks build failed" ;
+			exit 1;
+		}
+		echo "✅ Nixpacks build completed." ;
 		`;
 
 	/*
@@ -135,23 +132,23 @@ echo "✅ Nixpacks build completed." >> ${logPath};
 		and copy the artifacts on the host filesystem.
 		Then, remove the container and create a static build.
 	 */
-	if (publishDirectory) {
-		const localPath = path.join(buildAppDirectory, publishDirectory);
-		const isDirectory =
-			publishDirectory.endsWith("/") || !path.extname(publishDirectory);
+	// 	if (publishDirectory) {
+	// 		const localPath = path.join(buildAppDirectory, publishDirectory);
+	// 		const isDirectory =
+	// 			publishDirectory.endsWith("/") || !path.extname(publishDirectory);
 
-		bashCommand += `
-docker create --name ${buildContainerId} ${appName}
-mkdir -p ${localPath}
-docker cp ${buildContainerId}:/app/${publishDirectory}${isDirectory ? "/." : ""} ${path.join(buildAppDirectory, publishDirectory)} >> ${logPath} 2>> ${logPath} || { 
-	docker rm ${buildContainerId}
-	echo "❌ Copying ${publishDirectory} to ${path.join(buildAppDirectory, publishDirectory)} failed" >> ${logPath};
-	exit 1;
-}
-docker rm ${buildContainerId}
-${getStaticCommand(application, logPath)}
-			`;
-	}
+	// 		bashCommand += `
+	// docker create --name ${buildContainerId} ${appName}
+	// mkdir -p ${localPath}
+	// docker cp ${buildContainerId}:/app/${publishDirectory}${isDirectory ? "/." : ""} ${path.join(buildAppDirectory, publishDirectory)} || {
+	// 	docker rm ${buildContainerId}
+	// 	echo "❌ Copying ${publishDirectory} to ${path.join(buildAppDirectory, publishDirectory)} failed" ;
+	// 	exit 1;
+	// }
+	// docker rm ${buildContainerId}
+	// ${getStaticCommand(application)}
+	// 			`;
+	// 	}
 
 	return bashCommand;
 };

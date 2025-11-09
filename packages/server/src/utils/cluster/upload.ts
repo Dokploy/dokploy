@@ -59,10 +59,7 @@ export const uploadImage = async (
 	}
 };
 
-export const uploadImageRemoteCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const uploadImageRemoteCommand = (application: ApplicationNested) => {
 	const registry = application.registry;
 
 	if (!registry) {
@@ -82,22 +79,22 @@ export const uploadImageRemoteCommand = (
 
 	try {
 		const command = `
-		echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" >> ${logPath};
-		echo "${registry.password}" | docker login ${finalURL} -u ${registry.username} --password-stdin >> ${logPath} 2>> ${logPath} || { 
-			echo "❌ DockerHub Failed" >> ${logPath};
+		echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
+		echo "${registry.password}" | docker login ${finalURL} -u ${registry.username} --password-stdin || { 
+			echo "❌ DockerHub Failed" ;
 			exit 1;
 		}
-		echo "✅ Registry Login Success" >> ${logPath};
-		docker tag ${imageName} ${registryTag} >> ${logPath} 2>> ${logPath} || { 
-			echo "❌ Error tagging image" >> ${logPath};
+		echo "✅ Registry Login Success" ;
+		docker tag ${imageName} ${registryTag} || { 
+			echo "❌ Error tagging image" ;
 			exit 1;
 		}
-		echo "✅ Image Tagged" >> ${logPath};
-		docker push ${registryTag} 2>> ${logPath} || { 
-			echo "❌ Error pushing image" >> ${logPath};
+		echo "✅ Image Tagged" ;
+		docker push ${registryTag} || { 
+			echo "❌ Error pushing image" ;
 			exit 1;
 		}
-			echo "✅ Image Pushed" >> ${logPath};
+			echo "✅ Image Pushed" ;
 		`;
 		return command;
 	} catch (error) {

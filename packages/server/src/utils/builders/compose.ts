@@ -17,7 +17,7 @@ import {
 	getEnviromentVariablesObject,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
+import { execAsync } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
 
 export type ComposeNested = InferResultType<
@@ -96,22 +96,15 @@ export const buildCompose = async (compose: ComposeNested, logPath: string) => {
 	}
 };
 
-export const getBuildComposeCommand = async (
-	compose: ComposeNested,
-	logPath: string,
-) => {
-	const { COMPOSE_PATH } = paths(true);
+export const getBuildComposeCommand = async (compose: ComposeNested) => {
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { sourceType, appName, mounts, composeType, domains } = compose;
 	const command = createCommand(compose);
 	const envCommand = getCreateEnvFileCommand(compose);
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 	const exportEnvCommand = getExportEnvCommand(compose);
 
-	const newCompose = await writeDomainsToComposeRemote(
-		compose,
-		domains,
-		logPath,
-	);
+	const newCompose = await writeDomainsToComposeRemote(compose, domains);
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
@@ -133,7 +126,7 @@ Compose Type: ${composeType} ✅`;
 	const bashCommand = `
 	set -e
 	{
-		echo "${logBox}" >> "${logPath}"
+		echo "${logBox}";
 	
 		${newCompose}
 	
@@ -143,17 +136,18 @@ Compose Type: ${composeType} ✅`;
 
         ${exportEnvCommand}
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
-		docker ${command.split(" ").join(" ")} >> "${logPath}" 2>&1 || { echo "Error: ❌ Docker command failed" >> "${logPath}"; exit 1; }
+		docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 	
-		echo "Docker Compose Deployed: ✅" >> "${logPath}"
+		echo "Docker Compose Deployed: ✅";
 	} || {
-		echo "Error: ❌ Script execution failed" >> "${logPath}"
+		echo "Error: ❌ Script execution failed";
 		exit 1
 	}
 	`;
 
-	return await execAsyncRemote(compose.serverId, bashCommand);
+	return bashCommand;
+	// return await execAsyncRemote(compose.serverId, bashCommand);
 };
 
 const sanitizeCommand = (command: string) => {
@@ -216,7 +210,7 @@ const createEnvFile = (compose: ComposeNested) => {
 };
 
 export const getCreateEnvFileCommand = (compose: ComposeNested) => {
-	const { COMPOSE_PATH } = paths(true);
+	const { COMPOSE_PATH } = paths(!!compose.serverId);
 	const { env, composePath, appName } = compose;
 	const composeFilePath =
 		join(COMPOSE_PATH, appName, "code", composePath) ||

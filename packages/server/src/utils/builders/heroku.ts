@@ -45,10 +45,7 @@ export const buildHeroku = async (
 	}
 };
 
-export const getHerokuCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getHerokuCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
@@ -77,12 +74,12 @@ export const getHerokuCommand = (
 
 	const command = `pack ${args.join(" ")}`;
 	const bashCommand = `
-echo "Starting heroku build..." >> ${logPath};
-${command} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ Heroku build failed" >> ${logPath};
+echo "Starting heroku build..." ;
+${command} || { 
+  echo "❌ Heroku build failed" ;
   exit 1;
 }
-echo "✅ Heroku build completed." >> ${logPath};
+echo "✅ Heroku build completed." ;
 		`;
 
 	return bashCommand;

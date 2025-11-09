@@ -34,6 +34,12 @@ export const deployments = pgTable("deployment", {
 	status: deploymentStatus("status").default("running"),
 	logPath: text("logPath").notNull(),
 	pid: text("pid"),
+	applicationBuildServerId: text("applicationBuildServerId").references(
+		() => server.serverId,
+		{
+			onDelete: "cascade",
+		},
+	),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
 		{ onDelete: "cascade" },

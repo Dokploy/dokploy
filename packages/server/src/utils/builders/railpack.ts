@@ -116,10 +116,7 @@ export const buildRailpack = async (
 	}
 };
 
-export const getRailpackCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getRailpackCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const envVariables = prepareEnvironmentVariables(
@@ -183,21 +180,21 @@ export const getRailpackCommand = (
 docker buildx create --use --name builder-containerd --driver docker-container || true
 docker buildx use builder-containerd
 
-echo "Preparing Railpack build plan..." >> "${logPath}";
-railpack ${prepareArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
-	echo "❌ Railpack prepare failed" >> ${logPath};
+echo "Preparing Railpack build plan..." ;
+railpack ${prepareArgs.join(" ")} || { 
+	echo "❌ Railpack prepare failed" ;
 	exit 1;
 }
-echo "✅ Railpack prepare completed." >> ${logPath};
+echo "✅ Railpack prepare completed." ;
 
-echo "Building with Railpack frontend..." >> "${logPath}";
+echo "Building with Railpack frontend..." ;
 # Export environment variables for secrets
 ${exportEnvs.join("\n")}
-docker ${buildArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
-	echo "❌ Railpack build failed" >> ${logPath};
+docker ${buildArgs.join(" ")} || { 
+	echo "❌ Railpack build failed" ;
 	exit 1;
 }
-echo "✅ Railpack build completed." >> ${logPath};
+echo "✅ Railpack build completed." ;
 docker buildx rm builder-containerd
 `;
 

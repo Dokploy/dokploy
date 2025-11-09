@@ -100,10 +100,7 @@ export const buildCustomDocker = async (
 	}
 };
 
-export const getDockerCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getDockerCommand = (application: ApplicationNested) => {
 	const {
 		appName,
 		env,
@@ -176,17 +173,17 @@ export const getDockerCommand = (
 		}
 
 		command += `
-echo "Building ${appName}" >> ${logPath};
-cd ${dockerContextPath} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ The path ${dockerContextPath} does not exist" >> ${logPath};
+echo "Building ${appName}" ;
+cd ${dockerContextPath} || { 
+  echo "❌ The path ${dockerContextPath} does not exist" ;
   exit 1;
 }
 
-${joinedSecrets} docker ${commandArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ Docker build failed" >> ${logPath};
+${joinedSecrets} docker ${commandArgs.join(" ")} || { 
+  echo "❌ Docker build failed" ;
   exit 1;
 }
-echo "✅ Docker build completed." >> ${logPath};
+echo "✅ Docker build completed." ;
 		`;
 
 		return command;
