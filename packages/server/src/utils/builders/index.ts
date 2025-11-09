@@ -11,12 +11,12 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
-import { buildCustomDocker, getDockerCommand } from "./docker-file";
-import { buildHeroku, getHerokuCommand } from "./heroku";
-import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
-import { buildPaketo, getPaketoCommand } from "./paketo";
-import { buildRailpack, getRailpackCommand } from "./railpack";
-import { buildStatic, getStaticCommand } from "./static";
+import { getDockerCommand } from "./docker-file";
+import { getHerokuCommand } from "./heroku";
+import { getNixpacksCommand } from "./nixpacks";
+import { getPaketoCommand } from "./paketo";
+import { getRailpackCommand } from "./railpack";
+import { getStaticCommand } from "./static";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -45,19 +45,19 @@ export const buildApplication = async (
 			`\nBuild ${buildType}: ✅\nSource Type: ${sourceType}: ✅\n`,
 		);
 		console.log(`Build ${buildType}: ✅`);
-		if (buildType === "nixpacks") {
-			await buildNixpacks(application, writeStream);
-		} else if (buildType === "heroku_buildpacks") {
-			await buildHeroku(application, writeStream);
-		} else if (buildType === "paketo_buildpacks") {
-			await buildPaketo(application, writeStream);
-		} else if (buildType === "dockerfile") {
-			await buildCustomDocker(application, writeStream);
-		} else if (buildType === "static") {
-			await buildStatic(application, writeStream);
-		} else if (buildType === "railpack") {
-			await buildRailpack(application, writeStream);
-		}
+		// if (buildType === "nixpacks") {
+		// 	await buildNixpacks(application, writeStream);
+		// } else if (buildType === "heroku_buildpacks") {
+		// 	await buildHeroku(application, writeStream);
+		// } else if (buildType === "paketo_buildpacks") {
+		// 	await buildPaketo(application, writeStream);
+		// } else if (buildType === "dockerfile") {
+		// 	await buildCustomDocker(application, writeStream);
+		// } else if (buildType === "static") {
+		// 	await buildStatic(application, writeStream);
+		// } else if (buildType === "railpack") {
+		// 	await buildRailpack(application, writeStream);
+		// }
 
 		if (application.registryId) {
 			await uploadImage(application, writeStream);
