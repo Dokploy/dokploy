@@ -1,9 +1,5 @@
-import type { WriteStream } from "node:fs";
-import {
-	buildCustomDocker,
-	getDockerCommand,
-} from "@dokploy/server/utils/builders/docker-file";
-import { createFile, getCreateFileCommand } from "../docker/utils";
+import { getDockerCommand } from "@dokploy/server/utils/builders/docker-file";
+import { getCreateFileCommand } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
 
@@ -31,57 +27,6 @@ http {
   }
 }
 `;
-
-export const buildStatic = async (
-	application: ApplicationNested,
-	writeStream: WriteStream,
-) => {
-	const { publishDirectory, isStaticSpa } = application;
-	const buildAppDirectory = getBuildAppDirectory(application);
-
-	try {
-		if (isStaticSpa) {
-			createFile(buildAppDirectory, "nginx.conf", nginxSpaConfig);
-		}
-
-		createFile(
-			buildAppDirectory,
-			".dockerignore",
-			[".git", ".env", "Dockerfile", ".dockerignore"].join("\n"),
-		);
-
-		createFile(
-			buildAppDirectory,
-			"Dockerfile",
-			[
-				"FROM nginx:alpine",
-				"WORKDIR /usr/share/nginx/html/",
-				isStaticSpa ? "COPY nginx.conf /etc/nginx/nginx.conf" : "",
-				`COPY ${publishDirectory || "."} .`,
-				'CMD ["nginx", "-g", "daemon off;"]',
-			].join("\n"),
-		);
-
-		createFile(
-			buildAppDirectory,
-			".dockerignore",
-			[".git", ".env", "Dockerfile", ".dockerignore"].join("\n"),
-		);
-
-		await buildCustomDocker(
-			{
-				...application,
-				buildType: "dockerfile",
-				dockerfile: "Dockerfile",
-			},
-			writeStream,
-		);
-
-		return true;
-	} catch (e) {
-		throw e;
-	}
-};
 
 export const getStaticCommand = (application: ApplicationNested) => {
 	const { publishDirectory } = application;
