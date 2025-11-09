@@ -121,6 +121,7 @@ export const applications = pgTable("application", {
 	buildPath: text("buildPath").default("/"),
 	triggerType: triggerType("triggerType").default("push"),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
+	webhookSecret: text("webhookSecret"),
 	// Gitlab
 	gitlabProjectId: integer("gitlabProjectId"),
 	gitlabRepository: text("gitlabRepository"),
@@ -388,6 +389,7 @@ export const apiSaveGithubProvider = createSchema
 		githubId: true,
 		watchPaths: true,
 		enableSubmodules: true,
+		webhookSecret: true,
 	})
 	.required()
 	.extend({

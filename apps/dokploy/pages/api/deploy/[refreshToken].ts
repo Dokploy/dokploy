@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import {
 	type Bitbucket,
 	getBitbucketHeaders,
@@ -11,6 +12,13 @@ import { applications } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
+import { buffer } from "micro";
+
+export const config = {
+	api: {
+		bodyParser: false,
+	},
+};
 
 export default async function handler(
 	req: NextApiRequest,
@@ -18,6 +26,9 @@ export default async function handler(
 ) {
 	const { refreshToken } = req.query;
 	try {
+		const rawBody = await buffer(req);
+		const body = JSON.parse(rawBody.toString());
+
 		if (req.headers["x-github-event"] === "ping") {
 			res.status(200).json({ message: "Ping received, webhook is active" });
 			return;
@@ -38,6 +49,24 @@ export default async function handler(
 			res.status(404).json({ message: "Application Not Found" });
 			return;
 		}
+		if (
+			application.webhookSecret &&
+			req.headers["x-github-event"] &&
+			req.headers["x-hub-signature-256"]
+		) {
+			const signature = crypto
+				.createHmac("sha256", application.webhookSecret)
+				.update(rawBody)
+				.digest("hex");
+
+			if (
+				`sha256=${signature}` !==
+				(req.headers["x-hub-signature-256"] as string)
+			) {
+				res.status(401).json({ message: "Unauthorized" });
+				return;
+			}
+		}
 		if (!application?.autoDeploy) {
 			res.status(400).json({
 				message: "Automatic deployments are disabled for this application",
@@ -45,8 +74,8 @@ export default async function handler(
 			return;
 		}
 
-		const deploymentTitle = extractCommitMessage(req.headers, req.body);
-		const deploymentHash = extractHash(req.headers, req.body);
+		const deploymentTitle = extractCommitMessage(req.headers, body);
+		const deploymentHash = extractHash(req.headers, body);
 
 		const sourceType = application.sourceType;
 
@@ -54,7 +83,7 @@ export default async function handler(
 			const applicationDockerTag = extractImageTag(application.dockerImage);
 			const webhookDockerTag = extractImageTagFromRequest(
 				req.headers,
-				req.body,
+				body,
 			);
 			if (
 				applicationDockerTag &&
@@ -67,7 +96,7 @@ export default async function handler(
 				return;
 			}
 		} else if (sourceType === "github") {
-			const normalizedCommits = req.body?.commits?.flatMap(
+			const normalizedCommits = body?.commits?.flatMap(
 				(commit: any) => commit.modified,
 			);
 
@@ -81,13 +110,13 @@ export default async function handler(
 				return;
 			}
 
-			const branchName = extractBranchName(req.headers, req.body);
+			const branchName = extractBranchName(req.headers, body);
 			if (!branchName || branchName !== application.branch) {
 				res.status(301).json({ message: "Branch Not Match" });
 				return;
 			}
 		} else if (sourceType === "git") {
-			const branchName = extractBranchName(req.headers, req.body);
+			const branchName = extractBranchName(req.headers, body);
 
 			if (!branchName || branchName !== application.customGitBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
@@ -98,15 +127,15 @@ export default async function handler(
 			let normalizedCommits: string[] = [];
 
 			if (provider === "github") {
-				normalizedCommits = req.body?.commits?.flatMap(
+				normalizedCommits = body?.commits?.flatMap(
 					(commit: any) => commit.modified,
 				);
 			} else if (provider === "gitlab") {
-				normalizedCommits = req.body?.commits?.flatMap(
+				normalizedCommits = body?.commits?.flatMap(
 					(commit: any) => commit.modified,
 				);
 			} else if (provider === "gitea") {
-				normalizedCommits = req.body?.commits?.flatMap(
+				normalizedCommits = body?.commits?.flatMap(
 					(commit: any) => commit.modified,
 				);
 			}
@@ -121,9 +150,9 @@ export default async function handler(
 				return;
 			}
 		} else if (sourceType === "gitlab") {
-			const branchName = extractBranchName(req.headers, req.body);
+			const branchName = extractBranchName(req.headers, body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
+			const normalizedCommits = body?.commits?.flatMap(
 				(commit: any) => commit.modified,
 			);
 
@@ -142,7 +171,7 @@ export default async function handler(
 				return;
 			}
 		} else if (sourceType === "bitbucket") {
-			const branchName = extractBranchName(req.headers, req.body);
+			const branchName = extractBranchName(req.headers, body);
 
 			if (!branchName || branchName !== application.bitbucketBranch) {
 				res.status(301).json({ message: "Branch Not Match" });
@@ -150,7 +179,7 @@ export default async function handler(
 			}
 
 			const commitedPaths = await extractCommitedPaths(
-				req.body,
+				body,
 				application.bitbucket,
 				application.bitbucketRepository || "",
 			);
@@ -165,9 +194,9 @@ export default async function handler(
 				return;
 			}
 		} else if (sourceType === "gitea") {
-			const branchName = extractBranchName(req.headers, req.body);
+			const branchName = extractBranchName(req.headers, body);
 
-			const normalizedCommits = req.body?.commits?.flatMap(
+			const normalizedCommits = body?.commits?.flatMap(
 				(commit: any) => commit.modified,
 			);
 

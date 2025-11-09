@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -60,6 +60,7 @@ const GithubProviderSchema = z.object({
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
 	enableSubmodules: z.boolean().default(false),
+	webhookSecret: z.string().optional(),
 });
 
 type GithubProvider = z.infer<typeof GithubProviderSchema>;
@@ -86,6 +87,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			branch: "",
 			triggerType: "push",
 			enableSubmodules: false,
+			webhookSecret: "",
 		},
 		resolver: zodResolver(GithubProviderSchema),
 	});
@@ -132,6 +134,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
 				enableSubmodules: data.enableSubmodules ?? false,
+				webhookSecret: data.webhookSecret || "",
 			});
 		}
 	}, [form.reset, data?.applicationId, form]);
@@ -147,6 +150,7 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 			watchPaths: data.watchPaths || [],
 			triggerType: data.triggerType,
 			enableSubmodules: data.enableSubmodules,
+			webhookSecret: data.webhookSecret,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -385,6 +389,56 @@ export const SaveGithubProvider = ({ applicationId }: Props) => {
 									<FormControl>
 										<Input placeholder="/" {...field} />
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="webhookSecret"
+							render={({ field }) => (
+								<FormItem className="md:col-span-2">
+									<div className="flex items-center gap-2">
+										<FormLabel>Webhook Secret</FormLabel>
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														The secret to verify webhooks from GitHub.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</div>
+									<div className="flex w-full items-center gap-2">
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="Enter webhook secret"
+												{...field}
+												value={field.value ?? ""}
+											/>
+										</FormControl>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											onClick={() => {
+												const secret =
+													Math.random().toString(36).substring(2) +
+													Math.random().toString(36).substring(2);
+												form.setValue("webhookSecret", secret, {
+													shouldValidate: true,
+												});
+												toast.success("Webhook secret generated");
+											}}
+										>
+											<RefreshCw className="size-4" />
+										</Button>
+									</div>
 									<FormMessage />
 								</FormItem>
 							)}
