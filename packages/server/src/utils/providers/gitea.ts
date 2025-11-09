@@ -119,10 +119,21 @@ type GiteaClone = (ApplicationWithGitea | ComposeWithGitea) & {
 	type?: "application" | "compose";
 };
 
+interface CloneGiteaRepository {
+	appName: string;
+	giteaBranch: string | null;
+	giteaId: string | null;
+	giteaOwner: string | null;
+	giteaRepository: string | null;
+	enableSubmodules: boolean;
+	serverId: string | null;
+	type?: "application" | "compose";
+}
+
 export const cloneGiteaRepository = async ({
 	type = "application",
 	...entity
-}: GiteaClone) => {
+}: CloneGiteaRepository) => {
 	let command = "set -e;";
 	const {
 		appName,

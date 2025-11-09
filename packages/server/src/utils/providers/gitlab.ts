@@ -97,15 +97,20 @@ const getGitlabCloneUrl = (gitlab: GitlabInfo, repoClone: string) => {
 	return cloneUrl;
 };
 
-type GitlabClone = (ApplicationWithGitlab | ComposeWithGitlab) & {
+interface CloneGitlabRepository {
+	appName: string;
+	gitlabBranch: string | null;
+	gitlabId: string | null;
+	gitlabPathNamespace: string | null;
+	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
-};
+}
 
 export const cloneGitlabRepository = async ({
 	type = "application",
 	...entity
-}: GitlabClone) => {
+}: CloneGitlabRepository) => {
 	let command = "set -e;";
 	const {
 		appName,

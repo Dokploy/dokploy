@@ -81,10 +81,22 @@ type BitbucketClone = (ApplicationWithBitbucket | ComposeWithBitbucket) & {
 	type?: "application" | "compose";
 };
 
+interface CloneBitbucketRepository {
+	appName: string;
+	bitbucketRepository: string | null;
+	bitbucketOwner: string | null;
+	bitbucketBranch: string | null;
+	bitbucketId: string | null;
+	bitbucket: Bitbucket | null;
+	enableSubmodules: boolean;
+	serverId: string | null;
+	type?: "application" | "compose";
+}
+
 export const cloneBitbucketRepository = async ({
 	type = "application",
 	...entity
-}: BitbucketClone) => {
+}: CloneBitbucketRepository) => {
 	let command = "set -e;";
 	const {
 		appName,
