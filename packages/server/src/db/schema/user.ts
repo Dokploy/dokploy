@@ -155,13 +155,13 @@ export const usersRelations = relations(user, ({ one, many }) => ({
 }));
 
 export const userTemplateBookmarksRelations = relations(
-    userTemplateBookmarks,
-    ({ one }) => ({
-        user: one(user, {
-            fields: [userTemplateBookmarks.userId],
-            references: [user.id],
-        }),
-    }),
+	userTemplateBookmarks,
+	({ one }) => ({
+		user: one(user, {
+			fields: [userTemplateBookmarks.userId],
+			references: [user.id],
+		}),
+	}),
 );
 
 const createSchema = createInsertSchema(user, {
