@@ -143,6 +143,7 @@ export const mechanizeDockerContainer = async (
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
@@ -183,14 +184,16 @@ export const mechanizeDockerContainer = async (
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Ports: ports.map((port) => ({
-				PublishMode: port.publishMode,
-				Protocol: port.protocol,
-				TargetPort: port.targetPort,
-				PublishedPort: port.publishedPort,
-			})),
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Ports: ports.map((port) => ({
+						PublishMode: port.publishMode,
+						Protocol: port.protocol,
+						TargetPort: port.targetPort,
+						PublishedPort: port.publishedPort,
+					})),
+				},
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),

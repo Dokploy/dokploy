@@ -1,6 +1,6 @@
 import { findAdmin } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
-import { users_temp } from "@dokploy/server/db/schema";
+import { user } from "@dokploy/server/db/schema";
 import { eq } from "drizzle-orm";
 
 (async () => {
@@ -8,11 +8,11 @@ import { eq } from "drizzle-orm";
 		const result = await findAdmin();
 
 		const update = await db
-			.update(users_temp)
+			.update(user)
 			.set({
 				twoFactorEnabled: false,
 			})
-			.where(eq(users_temp.id, result.userId));
+			.where(eq(user.id, result.userId));
 
 		if (update) {
 			console.log("2FA reset successful");

@@ -616,6 +616,7 @@ const ARVANCLOUD_IP_RANGES = [
 	"37.32.18.0/27",
 	"37.32.19.0/27",
 	"185.215.232.0/22",
+	"178.131.120.48/28",
 ];
 
 const CDN_PROVIDERS: CDNProvider[] = [

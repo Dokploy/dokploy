@@ -122,6 +122,22 @@ const NetworkSwarmSchema = z.array(
 
 const LabelsSwarmSchema = z.record(z.string());
 
+const EndpointPortConfigSwarmSchema = z
+	.object({
+		Protocol: z.string().optional(),
+		TargetPort: z.number().optional(),
+		PublishedPort: z.number().optional(),
+		PublishMode: z.string().optional(),
+	})
+	.strict();
+
+const EndpointSpecSwarmSchema = z
+	.object({
+		Mode: z.string().optional(),
+		Ports: z.array(EndpointPortConfigSwarmSchema).optional(),
+	})
+	.strict();
+
 const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
 	return z
 		.string()
@@ -178,6 +194,9 @@ const addSwarmSettings = z.object({
 	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
 	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: createStringToJSONSchema(
+		EndpointSpecSwarmSchema,
+	).nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
@@ -234,6 +253,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			labelsSwarm: null,
 			networkSwarm: null,
 			stopGracePeriodSwarm: null,
+			endpointSpecSwarm: null,
 		},
 		resolver: zodResolver(addSwarmSettings),
 	});
@@ -275,6 +295,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
 				stopGracePeriodSwarm: normalizedStopGracePeriod,
+				endpointSpecSwarm: data.endpointSpecSwarm
+					? JSON.stringify(data.endpointSpecSwarm, null, 2)
+					: null,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -296,6 +319,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			labelsSwarm: data.labelsSwarm,
 			networkSwarm: data.networkSwarm,
 			stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
+			endpointSpecSwarm: data.endpointSpecSwarm,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -838,6 +862,67 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 													e.target.value ? BigInt(e.target.value) : null,
 												)
 											}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="endpointSpecSwarm"
+							render={({ field }) => (
+								<FormItem className="relative ">
+									<FormLabel>Endpoint Spec</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Mode?: string | undefined;
+	Ports?: Array<{
+		Protocol?: string | undefined;
+		TargetPort?: number | undefined;
+		PublishedPort?: number | undefined;
+		PublishMode?: string | undefined;
+	}> | undefined;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+
+									<FormControl>
+										<CodeEditor
+											language="json"
+											placeholder={`{
+	"Mode": "dnsrr",
+	"Ports": [
+		{
+			"Protocol": "tcp",
+			"TargetPort": 5432,
+			"PublishedPort": 5432,
+			"PublishMode": "host"
+		}
+	]
+}`}
+											className="h-[17rem] font-mono"
+											{...field}
+											value={field?.value || ""}
 										/>
 									</FormControl>
 									<pre>
