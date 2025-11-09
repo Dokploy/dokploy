@@ -1,5 +1,4 @@
 import fs, { existsSync, readFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
@@ -101,24 +100,6 @@ export const readComposeFile = async (compose: Compose) => {
 		return yamlStr;
 	}
 	return null;
-};
-
-export const writeDomainsToCompose = async (
-	compose: Compose,
-	domains: Domain[],
-) => {
-	if (!domains.length) {
-		return;
-	}
-	const composeConverted = await addDomainToCompose(compose, domains);
-
-	const path = getComposePath(compose);
-	const composeString = stringify(composeConverted, { lineWidth: 1000 });
-	try {
-		await writeFile(path, composeString, "utf8");
-	} catch (error) {
-		throw error;
-	}
 };
 
 export const writeDomainsToComposeRemote = async (
