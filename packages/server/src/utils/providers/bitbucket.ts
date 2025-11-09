@@ -87,7 +87,6 @@ interface CloneBitbucketRepository {
 	bitbucketOwner: string | null;
 	bitbucketBranch: string | null;
 	bitbucketId: string | null;
-	bitbucket: Bitbucket | null;
 	enableSubmodules: boolean;
 	serverId: string | null;
 	type?: "application" | "compose";
@@ -104,7 +103,6 @@ export const cloneBitbucketRepository = async ({
 		bitbucketOwner,
 		bitbucketBranch,
 		bitbucketId,
-		bitbucket,
 		enableSubmodules,
 		serverId,
 	} = entity;
@@ -114,7 +112,12 @@ export const cloneBitbucketRepository = async ({
 		command += `echo "Error: ❌ Bitbucket Provider not found"; exit 1;`;
 		return command;
 	}
+	const bitbucket = await findBitbucketById(bitbucketId);
 
+	if (!bitbucket) {
+		command += `echo "Error: ❌ Bitbucket Provider not found"; exit 1;`;
+		return command;
+	}
 	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	command += `rm -rf ${outputPath};`;
