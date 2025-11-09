@@ -2,7 +2,6 @@ import {
 	deployApplication,
 	deployCompose,
 	deployPreviewApplication,
-	deployRemotePreviewApplication,
 	rebuildApplication,
 	rebuildCompose,
 	updateApplicationStatus,
@@ -54,24 +53,14 @@ export const deploymentWorker = new Worker(
 				await updatePreviewDeployment(job.data.previewDeploymentId, {
 					previewStatus: "running",
 				});
-				if (job.data.server) {
-					if (job.data.type === "deploy") {
-						await deployRemotePreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
-						});
-					}
-				} else {
-					if (job.data.type === "deploy") {
-						await deployPreviewApplication({
-							applicationId: job.data.applicationId,
-							titleLog: job.data.titleLog,
-							descriptionLog: job.data.descriptionLog,
-							previewDeploymentId: job.data.previewDeploymentId,
-						});
-					}
+
+				if (job.data.type === "deploy") {
+					await deployPreviewApplication({
+						applicationId: job.data.applicationId,
+						titleLog: job.data.titleLog,
+						descriptionLog: job.data.descriptionLog,
+						previewDeploymentId: job.data.previewDeploymentId,
+					});
 				}
 			}
 		} catch (error) {

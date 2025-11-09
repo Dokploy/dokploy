@@ -79,6 +79,10 @@ export const buildApplication = async (
 export const getBuildCommand = (application: ApplicationNested) => {
 	let command = "";
 	const { buildType, registry } = application;
+
+	if (application.sourceType === "docker") {
+		return "";
+	}
 	switch (buildType) {
 		case "nixpacks":
 			command = getNixpacksCommand(application);
