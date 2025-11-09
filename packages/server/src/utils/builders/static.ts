@@ -29,16 +29,32 @@ http {
 `;
 
 export const getStaticCommand = (application: ApplicationNested) => {
-	const { publishDirectory } = application;
+	const { publishDirectory, isStaticSpa } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
+	let command = "";
+	if (isStaticSpa) {
+		command += getCreateFileCommand(
+			buildAppDirectory,
+			"nginx.conf",
+			nginxSpaConfig,
+		);
+	}
 
-	let command = getCreateFileCommand(
+	command += getCreateFileCommand(
+		buildAppDirectory,
+		".dockerignore",
+		[".git", ".env", "Dockerfile", ".dockerignore"].join("\n"),
+	);
+
+	command += getCreateFileCommand(
 		buildAppDirectory,
 		"Dockerfile",
 		[
 			"FROM nginx:alpine",
 			"WORKDIR /usr/share/nginx/html/",
+			isStaticSpa ? "COPY nginx.conf /etc/nginx/nginx.conf" : "",
 			`COPY ${publishDirectory || "."} .`,
+			'CMD ["nginx", "-g", "daemon off;"]',
 		].join("\n"),
 	);
 

@@ -232,8 +232,15 @@ export const deployCompose = async ({
 			command += getCreateComposeFileCommand(entity);
 		}
 
+		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, commandWithLog);
+		} else {
+			await execAsync(commandWithLog);
+		}
+
 		command += await getBuildComposeCommand(entity);
-		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
 		} else {
@@ -293,8 +300,15 @@ export const rebuildCompose = async ({
 		if (compose.sourceType === "raw") {
 			command += getCreateComposeFileCommand(compose);
 		}
+
+		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, commandWithLog);
+		} else {
+			await execAsync(commandWithLog);
+		}
 		command += await getBuildComposeCommand(compose);
-		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, commandWithLog);
 		} else {

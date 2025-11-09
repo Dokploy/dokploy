@@ -132,7 +132,6 @@ exit 1;
 		`;
 	}
 };
-// (node:59875) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. Use emitter.setMaxListeners() to increase limit
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
@@ -142,7 +141,7 @@ export const addDomainToCompose = async (
 	let result: ComposeSpecification | null;
 
 	if (compose.serverId) {
-		result = await loadDockerComposeRemote(compose); // aca hay que ir al servidor e ir a traer el compose file al servidor
+		result = await loadDockerComposeRemote(compose);
 	} else {
 		result = await loadDockerCompose(compose);
 	}

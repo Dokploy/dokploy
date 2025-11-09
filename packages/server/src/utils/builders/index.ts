@@ -1,7 +1,6 @@
-import { createWriteStream } from "node:fs";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
+import { uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -33,48 +32,6 @@ export type ApplicationNested = InferResultType<
 		environment: { with: { project: true } };
 	}
 >;
-
-export const buildApplication = async (
-	application: ApplicationNested,
-	logPath: string,
-) => {
-	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { buildType, sourceType } = application;
-	try {
-		writeStream.write(
-			`\nBuild ${buildType}: ✅\nSource Type: ${sourceType}: ✅\n`,
-		);
-		console.log(`Build ${buildType}: ✅`);
-		// if (buildType === "nixpacks") {
-		// 	await buildNixpacks(application, writeStream);
-		// } else if (buildType === "heroku_buildpacks") {
-		// 	await buildHeroku(application, writeStream);
-		// } else if (buildType === "paketo_buildpacks") {
-		// 	await buildPaketo(application, writeStream);
-		// } else if (buildType === "dockerfile") {
-		// 	await buildCustomDocker(application, writeStream);
-		// } else if (buildType === "static") {
-		// 	await buildStatic(application, writeStream);
-		// } else if (buildType === "railpack") {
-		// 	await buildRailpack(application, writeStream);
-		// }
-
-		if (application.registryId) {
-			await uploadImage(application, writeStream);
-		}
-		await mechanizeDockerContainer(application);
-		writeStream.write("Docker Deployed: ✅");
-	} catch (error) {
-		if (error instanceof Error) {
-			writeStream.write(`Error ❌\n${error?.message}`);
-		} else {
-			writeStream.write("Error ❌");
-		}
-		throw error;
-	} finally {
-		writeStream.end();
-	}
-};
 
 export const getBuildCommand = (application: ApplicationNested) => {
 	let command = "";

@@ -7,7 +7,6 @@ import {
 } from "@dokploy/server/db/schema";
 import { getAdvancedStats } from "@dokploy/server/monitoring/utils";
 import {
-	buildApplication,
 	getBuildCommand,
 	mechanizeDockerContainer,
 } from "@dokploy/server/utils/builders";
@@ -187,8 +186,6 @@ export const deployApplication = async ({
 			command += await cloneBitbucketRepository(application);
 		} else if (application.sourceType === "git") {
 			command += await cloneGitRepository(application);
-		} else if (application.sourceType === "drop") {
-			await buildApplication(application, deployment.logPath);
 		} else if (application.sourceType === "docker") {
 			command += await buildRemoteDocker(application);
 		}
