@@ -4,6 +4,29 @@ import { findServerById, validateRequest } from "@dokploy/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 
+/**
+ * Filter stderr messages from tail to only show actual errors
+ * Common informational messages that should be ignored:
+ * - "No such file or directory" (file being created)
+ * - "has been replaced" (file rotation)
+ * - "inotify cannot be used" (too many open files, tail falls back to polling)
+ * - "reverting to polling" (tail fallback mechanism)
+ * - "too many open files" (system limit reached, but tail still works)
+ */
+const isInformationalStderr = (message: string): boolean => {
+	const lowerMessage = message.toLowerCase();
+	const informationalPatterns = [
+		"no such file or directory",
+		"has been replaced",
+		"has appeared",
+		"file truncated",
+		"inotify cannot be used",
+		"reverting to polling",
+		"too many open files",
+	];
+	return informationalPatterns.some((pattern) => lowerMessage.includes(pattern));
+};
+
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
 ) => {
@@ -68,7 +91,11 @@ export const setupDeploymentLogsWebSocketServer = (
 									ws.send(data.toString());
 								})
 								.stderr.on("data", (data) => {
-									ws.send(data.toString());
+									const message = data.toString();
+									// Only send actual errors, filter out informational messages
+									if (!isInformationalStderr(message)) {
+										ws.send(message);
+									}
 								});
 						});
 					})
@@ -95,7 +122,11 @@ export const setupDeploymentLogsWebSocketServer = (
 				});
 
 				tail.stderr.on("data", (data) => {
-					ws.send(new Error(`tail error: ${data.toString()}`).message);
+					const message = data.toString();
+					// Only send actual errors, filter out informational messages
+					if (!isInformationalStderr(message)) {
+						ws.send(`tail error: ${message}`);
+					}
 				});
 				tail.on("close", () => {
 					ws.close();
