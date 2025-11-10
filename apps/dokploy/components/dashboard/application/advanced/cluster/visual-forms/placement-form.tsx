@@ -206,7 +206,9 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 										/>
 										<Input
 											value={platform.OS || ""}
-											onChange={(e) => updatePlatform(index, "OS", e.target.value)}
+											onChange={(e) =>
+												updatePlatform(index, "OS", e.target.value)
+											}
 											placeholder="linux"
 										/>
 										<Button
