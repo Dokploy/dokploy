@@ -89,7 +89,13 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 		value: string,
 	) => {
 		const platforms = [...(parsed.Platforms || [])];
-		platforms[index] = { ...platforms[index], [field]: value };
+		const platform = platforms[index];
+		if (!platform) return;
+		platforms[index] = {
+			Architecture: platform.Architecture || "",
+			OS: platform.OS || "",
+			[field]: value,
+		};
 		updatePlacement("Platforms", platforms);
 	};
 
@@ -192,17 +198,15 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 								{(parsed.Platforms || []).map((platform, index) => (
 									<div key={index} className="flex gap-2">
 										<Input
-											value={platform.Architecture}
+											value={platform.Architecture || ""}
 											onChange={(e) =>
 												updatePlatform(index, "Architecture", e.target.value)
 											}
 											placeholder="amd64"
 										/>
 										<Input
-											value={platform.OS}
-											onChange={(e) =>
-												updatePlatform(index, "OS", e.target.value)
-											}
+											value={platform.OS || ""}
+											onChange={(e) => updatePlatform(index, "OS", e.target.value)}
 											placeholder="linux"
 										/>
 										<Button

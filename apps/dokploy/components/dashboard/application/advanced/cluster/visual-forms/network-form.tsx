@@ -57,8 +57,10 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 
 	const addAlias = (networkIndex: number) => {
 		const networks = [...parsed];
-		const aliases = networks[networkIndex].Aliases || [];
-		networks[networkIndex].Aliases = [...aliases, ""];
+		const network = networks[networkIndex];
+		if (!network) return;
+		const aliases = network.Aliases || [];
+		network.Aliases = [...aliases, ""];
 		updateNetwork(networks);
 	};
 
@@ -68,24 +70,30 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 		value: string,
 	) => {
 		const networks = [...parsed];
-		const aliases = [...(networks[networkIndex].Aliases || [])];
+		const network = networks[networkIndex];
+		if (!network) return;
+		const aliases = [...(network.Aliases || [])];
 		aliases[aliasIndex] = value;
-		networks[networkIndex].Aliases = aliases;
+		network.Aliases = aliases;
 		updateNetwork(networks);
 	};
 
 	const removeAlias = (networkIndex: number, aliasIndex: number) => {
 		const networks = [...parsed];
-		const aliases = [...(networks[networkIndex].Aliases || [])];
+		const network = networks[networkIndex];
+		if (!network) return;
+		const aliases = [...(network.Aliases || [])];
 		aliases.splice(aliasIndex, 1);
-		networks[networkIndex].Aliases = aliases;
+		network.Aliases = aliases;
 		updateNetwork(networks);
 	};
 
 	const addDriverOpt = (networkIndex: number) => {
 		const networks = [...parsed];
-		const driverOpts = networks[networkIndex].DriverOpts || {};
-		networks[networkIndex].DriverOpts = { ...driverOpts, "": "" };
+		const network = networks[networkIndex];
+		if (!network) return;
+		const driverOpts = network.DriverOpts || {};
+		network.DriverOpts = { ...driverOpts, "": "" };
 		updateNetwork(networks);
 	};
 
@@ -96,7 +104,9 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 		isKey: boolean,
 	) => {
 		const networks = [...parsed];
-		const driverOpts = { ...(networks[networkIndex].DriverOpts || {}) };
+		const network = networks[networkIndex];
+		if (!network) return;
+		const driverOpts = { ...(network.DriverOpts || {}) };
 		if (isKey) {
 			// Update key
 			const oldValue = driverOpts[key];
@@ -106,15 +116,17 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 			// Update value
 			driverOpts[key] = value;
 		}
-		networks[networkIndex].DriverOpts = driverOpts;
+		network.DriverOpts = driverOpts;
 		updateNetwork(networks);
 	};
 
 	const removeDriverOpt = (networkIndex: number, key: string) => {
 		const networks = [...parsed];
-		const driverOpts = { ...(networks[networkIndex].DriverOpts || {}) };
+		const network = networks[networkIndex];
+		if (!network) return;
+		const driverOpts = { ...(network.DriverOpts || {}) };
 		delete driverOpts[key];
-		networks[networkIndex].DriverOpts = driverOpts;
+		network.DriverOpts = driverOpts;
 		updateNetwork(networks);
 	};
 
