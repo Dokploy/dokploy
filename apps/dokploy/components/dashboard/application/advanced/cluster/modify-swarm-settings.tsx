@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Settings } from "lucide-react";
-import { useEffect } from "react";
+import { Code2, HelpCircle, Settings, ToggleRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -33,6 +33,14 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+import { ServiceModeForm } from "./visual-forms/service-mode-form";
+import { HealthCheckForm } from "./visual-forms/health-check-form";
+import { RestartPolicyForm } from "./visual-forms/restart-policy-form";
+import { PlacementForm } from "./visual-forms/placement-form";
+import { UpdateConfigForm } from "./visual-forms/update-config-form";
+import { NetworkForm } from "./visual-forms/network-form";
+import { LabelsForm } from "./visual-forms/labels-form";
+import { SwarmTemplates } from "./visual-forms/swarm-templates";
 
 const HealthCheckSwarmSchema = z
 	.object({
@@ -214,6 +222,7 @@ interface Props {
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {
+	const [useVisualMode, setUseVisualMode] = useState(false);
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -337,12 +346,40 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-5xl">
+			<DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Swarm Settings</DialogTitle>
-					<DialogDescription>
-						Update certain settings using a json object.
-					</DialogDescription>
+					<div className="flex items-center justify-between pr-8">
+						<div>
+							<DialogTitle>Swarm Settings</DialogTitle>
+							<DialogDescription>
+								{useVisualMode
+									? "Configure Docker Swarm settings using visual forms"
+									: "Update certain settings using a json object."}
+							</DialogDescription>
+						</div>
+						<div className="flex gap-2">
+							{useVisualMode && <SwarmTemplates form={form} />}
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => setUseVisualMode(!useVisualMode)}
+								className="gap-2"
+							>
+								{useVisualMode ? (
+									<>
+										<Code2 className="h-4 w-4" />
+										JSON Mode
+									</>
+								) : (
+									<>
+										<ToggleRight className="h-4 w-4" />
+										Visual Mode
+									</>
+								)}
+							</Button>
+						</div>
+					</div>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<div>
@@ -356,63 +393,82 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative mt-4"
+						className={`grid w-full gap-4 relative mt-4 ${
+							useVisualMode ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+						}`}
 					>
-						<FormField
-							control={form.control}
-							name="healthCheckSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Health Check</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+						{useVisualMode ? (
+							<>
+								<ServiceModeForm form={form} />
+								<HealthCheckForm form={form} />
+								<RestartPolicyForm form={form} />
+								<PlacementForm form={form} />
+								<UpdateConfigForm form={form} fieldName="updateConfigSwarm" label="Update Config" />
+								<UpdateConfigForm
+									form={form}
+									fieldName="rollbackConfigSwarm"
+									label="Rollback Config"
+								/>
+								<NetworkForm form={form} />
+								<LabelsForm form={form} />
+							</>
+						) : (
+							<>
+								<FormField
+									control={form.control}
+									name="healthCheckSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Health Check</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	Test?: string[] | undefined;
 	Interval?: number | undefined;
 	Timeout?: number | undefined;
 	StartPeriod?: number | undefined;
 	Retries?: number | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
 	"Interval" : 10000000000,
 	"Timeout" : 10000000000,
 	"StartPeriod" : 10000000000,
 	"Retries" : 10
 }`}
-											className="h-[12rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+													className="h-[12rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
 
 						<FormField
 							control={form.control}
@@ -931,11 +987,17 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
+							</>
+						)}
+
+						<DialogFooter className={`flex w-full flex-row !justify-end !items-center m-0 pt-4 ${
+							!useVisualMode ? "md:col-span-2" : ""
+						}`}>
 							<Button
 								isLoading={isLoading}
 								form="hook-form-add-permissions"
 								type="submit"
+								className="ml-auto"
 							>
 								Update
 							</Button>
