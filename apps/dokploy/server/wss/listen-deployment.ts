@@ -24,7 +24,9 @@ const isInformationalStderr = (message: string): boolean => {
 		"reverting to polling",
 		"too many open files",
 	];
-	return informationalPatterns.some((pattern) => lowerMessage.includes(pattern));
+	return informationalPatterns.some((pattern) =>
+		lowerMessage.includes(pattern),
+	);
 };
 
 export const setupDeploymentLogsWebSocketServer = (
