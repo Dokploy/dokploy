@@ -180,7 +180,8 @@ export const SwarmTemplates = ({ form }: SwarmTemplatesProps) => {
 				<DialogHeader>
 					<DialogTitle>Swarm Configuration Templates</DialogTitle>
 					<DialogDescription>
-						Select a template to quickly apply common Docker Swarm configurations
+						Select a template to quickly apply common Docker Swarm
+						configurations
 					</DialogDescription>
 				</DialogHeader>
 				<div className="grid gap-4 py-4">
@@ -210,4 +211,3 @@ export const SwarmTemplates = ({ form }: SwarmTemplatesProps) => {
 		</Dialog>
 	);
 };
-

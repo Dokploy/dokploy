@@ -33,9 +33,13 @@ export const ServiceModeForm = ({ form }: ServiceModeFormProps) => {
 
 	if (modeValue) {
 		try {
-			const parsed = typeof modeValue === "string" ? JSON.parse(modeValue) : modeValue;
+			const parsed =
+				typeof modeValue === "string" ? JSON.parse(modeValue) : modeValue;
 			if (parsed.Replicated) {
-				parsedMode = { type: "Replicated", replicas: parsed.Replicated.Replicas };
+				parsedMode = {
+					type: "Replicated",
+					replicas: parsed.Replicated.Replicas,
+				};
 			} else if (parsed.Global) {
 				parsedMode = { type: "Global" };
 			} else if (parsed.ReplicatedJob) {
@@ -78,13 +82,19 @@ export const ServiceModeForm = ({ form }: ServiceModeFormProps) => {
 		}
 	};
 
-	const handleJobConfigChange = (field: "maxConcurrent" | "totalCompletions", value: number) => {
+	const handleJobConfigChange = (
+		field: "maxConcurrent" | "totalCompletions",
+		value: number,
+	) => {
 		if (parsedMode.type === "ReplicatedJob") {
 			const newValue = {
 				ReplicatedJob: {
-					MaxConcurrent: field === "maxConcurrent" ? value : parsedMode.maxConcurrent || 1,
+					MaxConcurrent:
+						field === "maxConcurrent" ? value : parsedMode.maxConcurrent || 1,
 					TotalCompletions:
-						field === "totalCompletions" ? value : parsedMode.totalCompletions || 1,
+						field === "totalCompletions"
+							? value
+							: parsedMode.totalCompletions || 1,
 				},
 			};
 			form.setValue("modeSwarm", JSON.stringify(newValue, null, 2));
@@ -105,7 +115,9 @@ export const ServiceModeForm = ({ form }: ServiceModeFormProps) => {
 						<div className="space-y-4">
 							<Select
 								value={parsedMode.type || "Replicated"}
-								onValueChange={(value) => handleModeChange(value as ServiceModeType)}
+								onValueChange={(value) =>
+									handleModeChange(value as ServiceModeType)
+								}
 							>
 								<SelectTrigger>
 									<SelectValue placeholder="Select service mode" />
@@ -174,4 +186,3 @@ export const ServiceModeForm = ({ form }: ServiceModeFormProps) => {
 		/>
 	);
 };
-

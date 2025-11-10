@@ -28,7 +28,9 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 	if (placementValue) {
 		try {
 			parsed =
-				typeof placementValue === "string" ? JSON.parse(placementValue) : placementValue;
+				typeof placementValue === "string"
+					? JSON.parse(placementValue)
+					: placementValue;
 		} catch {
 			// Invalid JSON, ignore
 		}
@@ -81,7 +83,11 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 		updatePlacement("Platforms", [...platforms, { Architecture: "", OS: "" }]);
 	};
 
-	const updatePlatform = (index: number, field: "Architecture" | "OS", value: string) => {
+	const updatePlatform = (
+		index: number,
+		field: "Architecture" | "OS",
+		value: string,
+	) => {
 		const platforms = [...(parsed.Platforms || [])];
 		platforms[index] = { ...platforms[index], [field]: value };
 		updatePlacement("Platforms", platforms);
@@ -172,7 +178,9 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 									onChange={(e) =>
 										updatePlacement(
 											"MaxReplicas",
-											e.target.value === "" ? undefined : Number(e.target.value),
+											e.target.value === ""
+												? undefined
+												: Number(e.target.value),
 										)
 									}
 									placeholder="10"
@@ -192,7 +200,9 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 										/>
 										<Input
 											value={platform.OS}
-											onChange={(e) => updatePlatform(index, "OS", e.target.value)}
+											onChange={(e) =>
+												updatePlatform(index, "OS", e.target.value)
+											}
 											placeholder="linux"
 										/>
 										<Button
@@ -223,4 +233,3 @@ export const PlacementForm = ({ form }: PlacementFormProps) => {
 		/>
 	);
 };
-

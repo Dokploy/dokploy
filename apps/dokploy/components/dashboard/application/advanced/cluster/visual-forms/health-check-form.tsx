@@ -109,7 +109,9 @@ export const HealthCheckForm = ({ form }: HealthCheckFormProps) => {
 										onChange={(e) =>
 											updateHealthCheck(
 												"Interval",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10000"
@@ -122,7 +124,9 @@ export const HealthCheckForm = ({ form }: HealthCheckFormProps) => {
 										onChange={(e) =>
 											updateHealthCheck(
 												"Timeout",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10000"
@@ -135,7 +139,9 @@ export const HealthCheckForm = ({ form }: HealthCheckFormProps) => {
 										onChange={(e) =>
 											updateHealthCheck(
 												"StartPeriod",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10000"
@@ -148,7 +154,9 @@ export const HealthCheckForm = ({ form }: HealthCheckFormProps) => {
 										onChange={(e) =>
 											updateHealthCheck(
 												"Retries",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10"
@@ -163,4 +171,3 @@ export const HealthCheckForm = ({ form }: HealthCheckFormProps) => {
 		/>
 	);
 };
-

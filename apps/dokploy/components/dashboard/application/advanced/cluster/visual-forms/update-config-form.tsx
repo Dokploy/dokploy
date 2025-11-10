@@ -39,7 +39,8 @@ export const UpdateConfigForm = ({
 
 	if (configValue) {
 		try {
-			parsed = typeof configValue === "string" ? JSON.parse(configValue) : configValue;
+			parsed =
+				typeof configValue === "string" ? JSON.parse(configValue) : configValue;
 		} catch {
 			// Invalid JSON, ignore
 		}
@@ -84,7 +85,9 @@ export const UpdateConfigForm = ({
 										onChange={(e) =>
 											updateConfig(
 												"Delay",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10000"
@@ -95,7 +98,10 @@ export const UpdateConfigForm = ({
 									<Select
 										value={parsed.FailureAction || "pause"}
 										onValueChange={(value) =>
-											updateConfig("FailureAction", value === "pause" ? undefined : value)
+											updateConfig(
+												"FailureAction",
+												value === "pause" ? undefined : value,
+											)
 										}
 									>
 										<SelectTrigger>
@@ -115,14 +121,18 @@ export const UpdateConfigForm = ({
 										onChange={(e) =>
 											updateConfig(
 												"Monitor",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10000"
 									/>
 								</div>
 								<div className="space-y-2">
-									<FormLabel className="text-sm">Max Failure Ratio (%)</FormLabel>
+									<FormLabel className="text-sm">
+										Max Failure Ratio (%)
+									</FormLabel>
 									<NumberInput
 										min={0}
 										max={100}
@@ -130,7 +140,9 @@ export const UpdateConfigForm = ({
 										onChange={(e) =>
 											updateConfig(
 												"MaxFailureRatio",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10"
@@ -160,4 +172,3 @@ export const UpdateConfigForm = ({
 		/>
 	);
 };
-

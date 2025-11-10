@@ -25,7 +25,10 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 
 	if (networkValue) {
 		try {
-			parsed = typeof networkValue === "string" ? JSON.parse(networkValue) : networkValue;
+			parsed =
+				typeof networkValue === "string"
+					? JSON.parse(networkValue)
+					: networkValue;
 			if (!Array.isArray(parsed)) {
 				parsed = [];
 			}
@@ -59,7 +62,11 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 		updateNetwork(networks);
 	};
 
-	const updateAlias = (networkIndex: number, aliasIndex: number, value: string) => {
+	const updateAlias = (
+		networkIndex: number,
+		aliasIndex: number,
+		value: string,
+	) => {
 		const networks = [...parsed];
 		const aliases = [...(networks[networkIndex].Aliases || [])];
 		aliases[aliasIndex] = value;
@@ -135,7 +142,9 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 									className="border rounded-lg p-4 space-y-4"
 								>
 									<div className="flex justify-between items-center">
-										<FormLabel className="text-sm">Network {networkIndex + 1}</FormLabel>
+										<FormLabel className="text-sm">
+											Network {networkIndex + 1}
+										</FormLabel>
 										<Button
 											type="button"
 											variant="ghost"
@@ -151,7 +160,11 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 										<Input
 											value={network.Target || ""}
 											onChange={(e) =>
-												updateNetworkField(networkIndex, "Target", e.target.value)
+												updateNetworkField(
+													networkIndex,
+													"Target",
+													e.target.value,
+												)
 											}
 											placeholder="dokploy-network"
 										/>
@@ -164,7 +177,11 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 												<Input
 													value={alias}
 													onChange={(e) =>
-														updateAlias(networkIndex, aliasIndex, e.target.value)
+														updateAlias(
+															networkIndex,
+															aliasIndex,
+															e.target.value,
+														)
 													}
 													placeholder="alias-name"
 												/>
@@ -191,32 +208,44 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 
 									<div className="space-y-2">
 										<FormLabel className="text-sm">Driver Options</FormLabel>
-										{Object.entries(network.DriverOpts || {}).map(([key, value], optIndex) => (
-											<div key={optIndex} className="flex gap-2">
-												<Input
-													value={key}
-													onChange={(e) =>
-														updateDriverOpt(networkIndex, key, e.target.value, true)
-													}
-													placeholder="Option key"
-												/>
-												<Input
-													value={value}
-													onChange={(e) =>
-														updateDriverOpt(networkIndex, key, e.target.value, false)
-													}
-													placeholder="Option value"
-												/>
-												<Button
-													type="button"
-													variant="ghost"
-													size="icon"
-													onClick={() => removeDriverOpt(networkIndex, key)}
-												>
-													<X className="h-4 w-4" />
-												</Button>
-											</div>
-										))}
+										{Object.entries(network.DriverOpts || {}).map(
+											([key, value], optIndex) => (
+												<div key={optIndex} className="flex gap-2">
+													<Input
+														value={key}
+														onChange={(e) =>
+															updateDriverOpt(
+																networkIndex,
+																key,
+																e.target.value,
+																true,
+															)
+														}
+														placeholder="Option key"
+													/>
+													<Input
+														value={value}
+														onChange={(e) =>
+															updateDriverOpt(
+																networkIndex,
+																key,
+																e.target.value,
+																false,
+															)
+														}
+														placeholder="Option value"
+													/>
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														onClick={() => removeDriverOpt(networkIndex, key)}
+													>
+														<X className="h-4 w-4" />
+													</Button>
+												</div>
+											),
+										)}
 										<Button
 											type="button"
 											variant="outline"
@@ -230,7 +259,12 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 								</div>
 							))}
 
-							<Button type="button" variant="outline" size="sm" onClick={addNetwork}>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={addNetwork}
+							>
 								<PlusIcon className="h-4 w-4 mr-2" />
 								Add Network
 							</Button>
@@ -242,4 +276,3 @@ export const NetworkForm = ({ form }: NetworkFormProps) => {
 		/>
 	);
 };
-

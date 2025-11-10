@@ -403,7 +403,11 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								<HealthCheckForm form={form} />
 								<RestartPolicyForm form={form} />
 								<PlacementForm form={form} />
-								<UpdateConfigForm form={form} fieldName="updateConfigSwarm" label="Update Config" />
+								<UpdateConfigForm
+									form={form}
+									fieldName="updateConfigSwarm"
+									label="Update Config"
+								/>
 								<UpdateConfigForm
 									form={form}
 									fieldName="rollbackConfigSwarm"
@@ -470,82 +474,82 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 									)}
 								/>
 
-						<FormField
-							control={form.control}
-							name="restartPolicySwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Restart Policy</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+								<FormField
+									control={form.control}
+									name="restartPolicySwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Restart Policy</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	Condition?: string | undefined;
 	Delay?: number | undefined;
 	MaxAttempts?: number | undefined;
 	Window?: number | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"Condition" : "on-failure",
 	"Delay" : 10000000000,
 	"MaxAttempts" : 10,
 	"Window" : 10000000000
 }                                                  `}
-											className="h-[12rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+													className="h-[12rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="placementSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Placement</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+								<FormField
+									control={form.control}
+									name="placementSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Placement</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	Constraints?: string[] | undefined;
 	Preferences?: Array<{ Spread: { SpreadDescriptor: string } }> | undefined;
 	MaxReplicas?: number | undefined;
@@ -556,16 +560,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		  }>
 		| undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"Constraints" : ["node.role==manager"],
 	"Preferences" : [{
 		"Spread" : {
@@ -578,40 +582,40 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		"OS" : "linux"
 	}]
 }                                                `}
-											className="h-[21rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+													className="h-[21rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="updateConfigSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Update Config</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+								<FormField
+									control={form.control}
+									name="updateConfigSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Update Config</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	Parallelism?: number;
 	Delay?: number | undefined;
 	FailureAction?: string | undefined;
@@ -619,16 +623,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	MaxFailureRatio?: number | undefined;
 	Order: string;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"Parallelism" : 1,
 	"Delay" : 10000000000,
 	"FailureAction" : "continue",
@@ -636,40 +640,40 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
-											className="h-[21rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+													className="h-[21rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="rollbackConfigSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Rollback Config</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+								<FormField
+									control={form.control}
+									name="rollbackConfigSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Rollback Config</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	Parallelism?: number;
 	Delay?: number | undefined;
 	FailureAction?: string | undefined;
@@ -677,16 +681,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	MaxFailureRatio?: number | undefined;
 	Order: string;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"Parallelism" : 1,
 	"Delay" : 10000000000,
 	"FailureAction" : "continue",
@@ -694,40 +698,40 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+													className="h-[17rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="modeSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Mode</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="center"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+								<FormField
+									control={form.control}
+									name="modeSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Mode</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="center"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	Replicated?: { Replicas?: number | undefined } | undefined;
 	Global?: {} | undefined;
 	ReplicatedJob?:
@@ -738,16 +742,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		| undefined;
 	GlobalJob?: {} | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"Replicated" : {
 		"Replicas" : 1
 	},
@@ -758,54 +762,54 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	},
 	"GlobalJob" : {}
 }`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="networkSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Network</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`[
+													className="h-[17rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="networkSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Network</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`[
   {
 	"Target" : string | undefined;
 	"Aliases" : string[] | undefined;
 	"DriverOpts" : { [key: string]: string } | undefined;
   }
 ]`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`[
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`[
  {
 	"Target" : "dokploy-network",
 	"Aliases" : ["dokploy-network"],
@@ -817,137 +821,137 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	}
  }
 ]`}
-											className="h-[20rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="labelsSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Labels</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+													className="h-[20rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="labelsSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Labels</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	[name: string]: string;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"com.example.app.name" : "my-app",
 	"com.example.app.version" : "1.0.0"
 }`}
-											className="h-[20rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="stopGracePeriodSwarm"
-							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
-									<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Duration in nanoseconds
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`Enter duration in nanoseconds:
+													className="h-[20rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="stopGracePeriodSwarm"
+									render={({ field }) => (
+										<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+											<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Duration in nanoseconds
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`Enter duration in nanoseconds:
 														• 30000000000 - 30 seconds
 														• 120000000000 - 2 minutes  
 														• 3600000000000 - 1 hour
 														• 0 - no grace period`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
-									<FormControl>
-										<Input
-											type="number"
-											placeholder="30000000000"
-											className="font-mono"
-											{...field}
-											value={field?.value?.toString() || ""}
-											onChange={(e) =>
-												field.onChange(
-													e.target.value ? BigInt(e.target.value) : null,
-												)
-											}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="endpointSpecSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Endpoint Spec</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="30000000000"
+													className="font-mono"
+													{...field}
+													value={field?.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value ? BigInt(e.target.value) : null,
+														)
+													}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="endpointSpecSwarm"
+									render={({ field }) => (
+										<FormItem className="relative ">
+											<FormLabel>Endpoint Spec</FormLabel>
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+															Check the interface
+															<HelpCircle className="size-4 text-muted-foreground" />
+														</FormDescription>
+													</TooltipTrigger>
+													<TooltipContent
+														className="w-full z-[999]"
+														align="start"
+														side="bottom"
+													>
+														<code>
+															<pre>
+																{`{
 	Mode?: string | undefined;
 	Ports?: Array<{
 		Protocol?: string | undefined;
@@ -956,16 +960,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		PublishMode?: string | undefined;
 	}> | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+															</pre>
+														</code>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
+											<FormControl>
+												<CodeEditor
+													language="json"
+													placeholder={`{
 	"Mode": "dnsrr",
 	"Ports": [
 		{
@@ -976,23 +980,25 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		}
 	]
 }`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+													className="h-[17rem] font-mono"
+													{...field}
+													value={field?.value || ""}
+												/>
+											</FormControl>
+											<pre>
+												<FormMessage />
+											</pre>
+										</FormItem>
+									)}
+								/>
 							</>
 						)}
 
-						<DialogFooter className={`flex w-full flex-row !justify-end !items-center m-0 pt-4 ${
-							!useVisualMode ? "md:col-span-2" : ""
-						}`}>
+						<DialogFooter
+							className={`flex w-full flex-row !justify-end !items-center m-0 pt-4 ${
+								!useVisualMode ? "md:col-span-2" : ""
+							}`}
+						>
 							<Button
 								isLoading={isLoading}
 								form="hook-form-add-permissions"

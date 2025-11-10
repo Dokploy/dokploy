@@ -62,7 +62,10 @@ export const RestartPolicyForm = ({ form }: RestartPolicyFormProps) => {
 								<Select
 									value={parsed.Condition || "none"}
 									onValueChange={(value) =>
-										updateRestartPolicy("Condition", value === "none" ? undefined : value)
+										updateRestartPolicy(
+											"Condition",
+											value === "none" ? undefined : value,
+										)
 									}
 								>
 									<SelectTrigger>
@@ -84,7 +87,9 @@ export const RestartPolicyForm = ({ form }: RestartPolicyFormProps) => {
 										onChange={(e) =>
 											updateRestartPolicy(
 												"Delay",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10000"
@@ -97,7 +102,9 @@ export const RestartPolicyForm = ({ form }: RestartPolicyFormProps) => {
 										onChange={(e) =>
 											updateRestartPolicy(
 												"MaxAttempts",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10"
@@ -110,7 +117,9 @@ export const RestartPolicyForm = ({ form }: RestartPolicyFormProps) => {
 										onChange={(e) =>
 											updateRestartPolicy(
 												"Window",
-												e.target.value === "" ? undefined : Number(e.target.value),
+												e.target.value === ""
+													? undefined
+													: Number(e.target.value),
 											)
 										}
 										placeholder="10000"
@@ -125,4 +134,3 @@ export const RestartPolicyForm = ({ form }: RestartPolicyFormProps) => {
 		/>
 	);
 };
-

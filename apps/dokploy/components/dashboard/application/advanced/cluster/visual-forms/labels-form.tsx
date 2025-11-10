@@ -21,7 +21,8 @@ export const LabelsForm = ({ form }: LabelsFormProps) => {
 
 	if (labelsValue) {
 		try {
-			parsed = typeof labelsValue === "string" ? JSON.parse(labelsValue) : labelsValue;
+			parsed =
+				typeof labelsValue === "string" ? JSON.parse(labelsValue) : labelsValue;
 			if (typeof parsed !== "object" || Array.isArray(parsed)) {
 				parsed = {};
 			}
@@ -38,7 +39,12 @@ export const LabelsForm = ({ form }: LabelsFormProps) => {
 		updateLabels({ ...parsed, "": "" });
 	};
 
-	const updateLabel = (oldKey: string, newKey: string, value: string, isKey: boolean) => {
+	const updateLabel = (
+		oldKey: string,
+		newKey: string,
+		value: string,
+		isKey: boolean,
+	) => {
 		const labels = { ...parsed };
 		if (isKey) {
 			// Update key
@@ -74,12 +80,16 @@ export const LabelsForm = ({ form }: LabelsFormProps) => {
 								<div key={key} className="flex gap-2">
 									<Input
 										value={key}
-										onChange={(e) => updateLabel(key, e.target.value, value, true)}
+										onChange={(e) =>
+											updateLabel(key, e.target.value, value, true)
+										}
 										placeholder="com.example.app.name"
 									/>
 									<Input
 										value={value}
-										onChange={(e) => updateLabel(key, key, e.target.value, false)}
+										onChange={(e) =>
+											updateLabel(key, key, e.target.value, false)
+										}
 										placeholder="my-app"
 									/>
 									<Button
@@ -92,7 +102,12 @@ export const LabelsForm = ({ form }: LabelsFormProps) => {
 									</Button>
 								</div>
 							))}
-							<Button type="button" variant="outline" size="sm" onClick={addLabel}>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={addLabel}
+							>
 								<PlusIcon className="h-4 w-4 mr-2" />
 								Add Label
 							</Button>
@@ -104,4 +119,3 @@ export const LabelsForm = ({ form }: LabelsFormProps) => {
 		/>
 	);
 };
-
