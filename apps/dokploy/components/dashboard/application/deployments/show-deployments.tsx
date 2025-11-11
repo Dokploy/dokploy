@@ -1,4 +1,4 @@
-import { Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -80,6 +80,52 @@ export const ShowDeployments = ({
 	} = api.compose.cancelDeployment.useMutation();
 
 	const [url, setUrl] = React.useState("");
+	const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(
+		new Set(),
+	);
+
+	// Maximum character length before truncating commit messages
+	const MAX_DESCRIPTION_LENGTH = 150;
+
+	// Helper function to truncate description intelligently
+	const truncateDescription = (description: string, maxLength: number): string => {
+		if (maxLength <= 0) {
+			return description; // Don't truncate if maxLength is 0 or negative
+		}
+		if (description.length <= maxLength) {
+			return description;
+		}
+		// Try to truncate at a word boundary if possible
+		const truncated = description.slice(0, maxLength);
+		const lastSpace = truncated.lastIndexOf(" ");
+		// If we find a space near the end (within last 20 chars), use it for cleaner truncation
+		if (lastSpace > maxLength - 20 && lastSpace > 0) {
+			return `${truncated.slice(0, lastSpace)}...`;
+		}
+		return `${truncated}...`;
+	};
+
+	// Check if description should be truncated
+	const shouldTruncate = (description: string): boolean => {
+		// Only truncate if MAX_DESCRIPTION_LENGTH is greater than 0
+		if (MAX_DESCRIPTION_LENGTH <= 0) {
+			return false;
+		}
+		return description.length > MAX_DESCRIPTION_LENGTH;
+	};
+
+	// Toggle expand/collapse state for a specific deployment
+	const toggleDescription = (deploymentId: string) => {
+		setExpandedDescriptions((prev) => {
+			const next = new Set(prev);
+			if (next.has(deploymentId)) {
+				next.delete(deploymentId);
+			} else {
+				next.add(deploymentId);
+			}
+			return next;
+		});
+	};
 
 	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
 	const stuckDeployment = useMemo(() => {
@@ -230,14 +276,56 @@ export const ShowDeployments = ({
 											className="size-2.5"
 										/>
 									</span>
-									<span className="text-sm text-muted-foreground">
-										{deployment.title}
-									</span>
-									{deployment.description && (
-										<span className="break-all text-sm text-muted-foreground">
-											{deployment.description}
-										</span>
-									)}
+									{(() => {
+										// The commit message is in the title field, so we truncate that
+										const titleText = deployment.title.trim();
+										const needsTruncation = shouldTruncate(titleText);
+										const isExpanded = expandedDescriptions.has(deployment.deploymentId);
+										
+										return (
+											<div className="flex flex-col gap-1">
+												{/* Commit message (from title) - truncated */}
+												<span className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
+													{isExpanded || !needsTruncation
+														? titleText
+														: truncateDescription(
+																titleText,
+																MAX_DESCRIPTION_LENGTH,
+															)}
+												</span>
+												{needsTruncation && (
+													<button
+														type="button"
+														onClick={() => toggleDescription(deployment.deploymentId)}
+														className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mt-1 cursor-pointer"
+														aria-label={
+															isExpanded
+																? "Collapse commit message"
+																: "Expand commit message"
+														}
+													>
+														{isExpanded ? (
+															<>
+																<ChevronUp className="size-3" />
+																Show less
+															</>
+														) : (
+															<>
+																<ChevronDown className="size-3" />
+																Show more
+															</>
+														)}
+													</button>
+												)}
+												{/* Hash (from description) - shown in compact form */}
+												{deployment.description && deployment.description.trim() && (
+													<span className="text-xs text-muted-foreground font-mono">
+														{deployment.description}
+													</span>
+												)}
+											</div>
+										);
+									})()}
 								</div>
 								<div className="flex flex-col items-end gap-2">
 									<div className="text-sm capitalize text-muted-foreground flex items-center gap-2">
