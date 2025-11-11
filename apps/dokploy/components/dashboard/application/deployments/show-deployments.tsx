@@ -1,4 +1,12 @@
-import { ChevronDown, ChevronUp, Clock, Loader2, RefreshCcw, RocketIcon, Settings } from "lucide-react";
+import {
+	ChevronDown,
+	ChevronUp,
+	Clock,
+	Loader2,
+	RefreshCcw,
+	RocketIcon,
+	Settings,
+} from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -88,7 +96,10 @@ export const ShowDeployments = ({
 	const MAX_DESCRIPTION_LENGTH = 150;
 
 	// Helper function to truncate description intelligently
-	const truncateDescription = (description: string, maxLength: number): string => {
+	const truncateDescription = (
+		description: string,
+		maxLength: number,
+	): string => {
 		if (maxLength <= 0) {
 			return description; // Don't truncate if maxLength is 0 or negative
 		}
@@ -280,8 +291,10 @@ export const ShowDeployments = ({
 										// The commit message is in the title field, so we truncate that
 										const titleText = deployment.title.trim();
 										const needsTruncation = shouldTruncate(titleText);
-										const isExpanded = expandedDescriptions.has(deployment.deploymentId);
-										
+										const isExpanded = expandedDescriptions.has(
+											deployment.deploymentId,
+										);
+
 										return (
 											<div className="flex flex-col gap-1">
 												{/* Commit message (from title) - truncated */}
@@ -296,7 +309,9 @@ export const ShowDeployments = ({
 												{needsTruncation && (
 													<button
 														type="button"
-														onClick={() => toggleDescription(deployment.deploymentId)}
+														onClick={() =>
+															toggleDescription(deployment.deploymentId)
+														}
 														className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mt-1 cursor-pointer"
 														aria-label={
 															isExpanded
@@ -318,11 +333,12 @@ export const ShowDeployments = ({
 													</button>
 												)}
 												{/* Hash (from description) - shown in compact form */}
-												{deployment.description && deployment.description.trim() && (
-													<span className="text-xs text-muted-foreground font-mono">
-														{deployment.description}
-													</span>
-												)}
+												{deployment.description &&
+													deployment.description.trim() && (
+														<span className="text-xs text-muted-foreground font-mono">
+															{deployment.description}
+														</span>
+													)}
 											</div>
 										);
 									})()}
