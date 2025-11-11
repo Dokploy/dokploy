@@ -42,6 +42,7 @@ const baseApp: ApplicationNested = {
 	triggerType: "push",
 	appName: "",
 	autoDeploy: true,
+	endpointSpecSwarm: null,
 	serverId: "",
 	registryUrl: "",
 	branch: null,
