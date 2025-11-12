@@ -38,6 +38,7 @@ export const sendEmailNotification = async (
 		});
 	} catch (err) {
 		console.log(err);
+		throw err;
 	}
 };
 
@@ -82,6 +83,7 @@ export const sendTelegramNotification = async (
 		});
 	} catch (err) {
 		console.log(err);
+		throw err;
 	}
 };
 
@@ -97,6 +99,7 @@ export const sendSlackNotification = async (
 		});
 	} catch (err) {
 		console.log(err);
+		throw err;
 	}
 };
 
