@@ -313,9 +313,15 @@ export const mongoRouter = createTRPCRouter({
 			}
 			const backups = await findBackupsByDbId(input.mongoId, "mongo");
 
+			// Cancel backups FIRST (sequentially) before deleting the database
+			// This prevents scheduled backups from running for a deleted database
+			if (backups.length > 0) {
+				await cancelJobs(backups);
+			}
+
+			// Then remove the service and database
 			const cleanupOperations = [
 				async () => await removeService(mongo?.appName, mongo.serverId),
-				async () => await cancelJobs(backups),
 				async () => await removeMongoById(input.mongoId),
 			];
 

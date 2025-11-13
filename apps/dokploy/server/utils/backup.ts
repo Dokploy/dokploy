@@ -2,6 +2,7 @@ import {
 	type BackupScheduleList,
 	IS_CLOUD,
 	removeScheduleBackup,
+	updateBackupById,
 } from "@dokploy/server/index";
 
 type QueueJob =
@@ -79,14 +80,28 @@ export const updateJob = async (job: QueueJob) => {
 export const cancelJobs = async (backups: BackupScheduleList) => {
 	for (const backup of backups) {
 		if (backup.enabled) {
-			if (IS_CLOUD) {
-				await removeJob({
-					cronSchedule: backup.schedule,
-					backupId: backup.backupId,
-					type: "backup",
-				});
-			} else {
-				removeScheduleBackup(backup.backupId);
+			// First disable the backup to prevent rescheduling
+			try {
+				await updateBackupById(backup.backupId, { enabled: false });
+			} catch (error) {
+				// If backup is already deleted (cascade), ignore the error
+				console.error(`Failed to disable backup ${backup.backupId}:`, error);
+			}
+
+			// Then cancel the scheduled job
+			try {
+				if (IS_CLOUD) {
+					await removeJob({
+						cronSchedule: backup.schedule,
+						backupId: backup.backupId,
+						type: "backup",
+					});
+				} else {
+					removeScheduleBackup(backup.backupId);
+				}
+			} catch (error) {
+				// Log but don't fail if job cancellation fails
+				console.error(`Failed to cancel backup job ${backup.backupId}:`, error);
 			}
 		}
 	}
