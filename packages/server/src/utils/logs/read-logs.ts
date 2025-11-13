@@ -295,7 +295,8 @@ export const streamContainerLogs = async (
 			onData(data);
 		});
 
-		ptyProcess.on("exit", () => {
+		// Handle process exit using onExit callback
+		ptyProcess.onExit(() => {
 			onClose();
 		});
 
