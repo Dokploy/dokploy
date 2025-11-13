@@ -97,7 +97,12 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 									);
 									refetchDashboard();
 								})
-								.catch(() => {});
+								.catch((error) => {
+									const errorMessage =
+										error?.message ||
+										"Failed to toggle dashboard. Please check if port 8080 is available.";
+									toast.error(errorMessage);
+								});
 						}}
 						className="w-full cursor-pointer space-x-3"
 					>

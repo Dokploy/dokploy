@@ -394,6 +394,78 @@ export const readPorts = async (
 	);
 };
 
+/**
+ * Check if a port is already in use by another container
+ * @param port - The port number to check
+ * @param serverId - Optional server ID for remote Docker
+ * @returns Object with isInUse boolean and conflictingContainer name if found
+ */
+export const checkPortInUse = async (
+	port: number,
+	serverId?: string,
+): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
+	try {
+		// Method 1: Check all containers and inspect their port bindings
+		const listContainersCommand = `docker ps -a --format '{{.Names}}'`;
+		let containersList = "";
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, listContainersCommand);
+			containersList = result.stdout.trim();
+		} else {
+			const result = await execAsync(listContainersCommand);
+			containersList = result.stdout.trim();
+		}
+
+		const containerNames = containersList
+			.split("\n")
+			.filter((name) => name && name !== "dokploy-traefik");
+
+		// Check each container's port bindings
+		for (const containerName of containerNames) {
+			const portCheckCommand = `docker port ${containerName} 2>/dev/null | grep ':${port}' || true`;
+			let portOutput = "";
+			if (serverId) {
+				const result = await execAsyncRemote(serverId, portCheckCommand);
+				portOutput = result.stdout.trim();
+			} else {
+				const result = await execAsync(portCheckCommand);
+				portOutput = result.stdout.trim();
+			}
+
+			if (portOutput) {
+				return {
+					isInUse: true,
+					conflictingContainer: containerName,
+				};
+			}
+		}
+
+		// Method 2: Check using ss/netstat for any process using the port
+		const portCheckCommand = `ss -tuln 2>/dev/null | grep ':${port} ' || netstat -tuln 2>/dev/null | grep ':${port} ' || true`;
+		let portCheckOutput = "";
+		if (serverId) {
+			const result = await execAsyncRemote(serverId, portCheckCommand);
+			portCheckOutput = result.stdout.trim();
+		} else {
+			const result = await execAsync(portCheckCommand);
+			portCheckOutput = result.stdout.trim();
+		}
+
+		if (portCheckOutput) {
+			// Port is in use but we couldn't identify the container
+			// This could be a non-Docker process or a container we couldn't detect
+			return { isInUse: true };
+		}
+
+		return { isInUse: false };
+	} catch (error) {
+		// If check fails, log error but don't block the operation
+		// The actual Docker bind will fail if port is truly in use
+		console.error("Error checking port availability:", error);
+		return { isInUse: false };
+	}
+};
+
 export const writeTraefikSetup = async (input: TraefikOptions) => {
 	const resourceType = await getDockerResourceType(
 		"dokploy-traefik",
