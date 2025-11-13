@@ -2,13 +2,14 @@ import dns from "node:dns";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { generateRandomDomain } from "@dokploy/server/templates";
-import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import { manageDomain, manageDomainForCompose } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import { findComposeById } from "./compose";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
@@ -33,6 +34,9 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
 			await manageDomain(application, domain);
+		} else if (domain.composeId) {
+			const compose = await findComposeById(domain.composeId);
+			await manageDomainForCompose(compose, domain);
 		}
 
 		return domain;
