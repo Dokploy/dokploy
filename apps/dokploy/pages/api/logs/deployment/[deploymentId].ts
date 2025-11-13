@@ -31,9 +31,9 @@ export default async function handler(
 		// Determine serverId based on deployment type
 		let serverId: string | null = null;
 		if (deployment.applicationId) {
-			const application = await import("@dokploy/server/services/application").then(
-				(m) => m.findApplicationById(deployment.applicationId!),
-			);
+			const application = await import(
+				"@dokploy/server/services/application"
+			).then((m) => m.findApplicationById(deployment.applicationId!));
 			if (
 				application.environment.project.organizationId !==
 				session.activeOrganizationId
@@ -53,7 +53,9 @@ export default async function handler(
 			}
 			serverId = compose.serverId;
 		} else if (deployment.serverId) {
-			const { findServerById: findServer } = await import("@dokploy/server/services/server");
+			const { findServerById: findServer } = await import(
+				"@dokploy/server/services/server"
+			);
 			const server = await findServer(deployment.serverId);
 			if (server.organizationId !== session.activeOrganizationId) {
 				return res.status(403).json({ message: "Forbidden" });
@@ -62,7 +64,9 @@ export default async function handler(
 		} else if (deployment.previewDeploymentId) {
 			const previewDeployment = await import(
 				"@dokploy/server/services/preview-deployment"
-			).then((m) => m.findPreviewDeploymentById(deployment.previewDeploymentId!));
+			).then((m) =>
+				m.findPreviewDeploymentById(deployment.previewDeploymentId!),
+			);
 			if (
 				previewDeployment.application?.environment.project.organizationId !==
 				session.activeOrganizationId
@@ -114,8 +118,9 @@ export default async function handler(
 		console.error("Error reading deployment logs:", error);
 		return res.status(500).json({
 			message:
-				error instanceof Error ? error.message : "Failed to read deployment logs",
+				error instanceof Error
+					? error.message
+					: "Failed to read deployment logs",
 		});
 	}
 }
-

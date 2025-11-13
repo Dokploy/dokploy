@@ -91,8 +91,9 @@ export default async function handler(
 		console.error("Error reading container logs:", error);
 		return res.status(500).json({
 			message:
-				error instanceof Error ? error.message : "Failed to read container logs",
+				error instanceof Error
+					? error.message
+					: "Failed to read container logs",
 		});
 	}
 }
-

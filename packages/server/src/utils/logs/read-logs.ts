@@ -31,9 +31,7 @@ export const readDeploymentLogs = async (
 			throw new Error("Follow mode not supported via SSH in this endpoint");
 		}
 
-		const tailCommand = tail
-			? `tail -n ${tail} ${logPath}`
-			: `cat ${logPath}`;
+		const tailCommand = tail ? `tail -n ${tail} ${logPath}` : `cat ${logPath}`;
 
 		const { stdout } = await execAsyncRemote(serverId, tailCommand);
 		return stdout;
@@ -270,8 +268,13 @@ export const streamContainerLogs = async (
 		// Local server
 		const { spawn } = await import("node-pty");
 		const os = await import("node:os");
-		
-		const shell = os.platform() === "win32" ? "powershell.exe" : os.platform() === "darwin" ? "zsh" : "bash";
+
+		const shell =
+			os.platform() === "win32"
+				? "powershell.exe"
+				: os.platform() === "darwin"
+					? "zsh"
+					: "bash";
 
 		const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
 			runType === "swarm" ? "--raw" : ""
@@ -303,4 +306,3 @@ export const streamContainerLogs = async (
 
 	return cleanup;
 };
-

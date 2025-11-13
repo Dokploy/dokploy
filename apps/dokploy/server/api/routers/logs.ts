@@ -1,7 +1,4 @@
-import {
-	findDeploymentById,
-	findServerById,
-} from "@dokploy/server";
+import { findDeploymentById, findServerById } from "@dokploy/server";
 import {
 	readDeploymentLogs,
 	readContainerLogs,
@@ -25,9 +22,9 @@ export const logsRouter = createTRPCRouter({
 			// Check authorization based on deployment type
 			let serverId: string | null = null;
 			if (deployment.applicationId) {
-				const application = await import("@dokploy/server/services/application").then(
-					(m) => m.findApplicationById(deployment.applicationId!),
-				);
+				const application = await import(
+					"@dokploy/server/services/application"
+				).then((m) => m.findApplicationById(deployment.applicationId!));
 				if (
 					application.environment.project.organizationId !==
 					ctx.session.activeOrganizationId
@@ -64,7 +61,9 @@ export const logsRouter = createTRPCRouter({
 			} else if (deployment.previewDeploymentId) {
 				const previewDeployment = await import(
 					"@dokploy/server/services/preview-deployment"
-				).then((m) => m.findPreviewDeploymentById(deployment.previewDeploymentId!));
+				).then((m) =>
+					m.findPreviewDeploymentById(deployment.previewDeploymentId!),
+				);
 				if (
 					previewDeployment.application?.environment.project.organizationId !==
 					ctx.session.activeOrganizationId
@@ -78,14 +77,10 @@ export const logsRouter = createTRPCRouter({
 			}
 
 			try {
-				const logs = await readDeploymentLogs(
-					deployment.logPath,
-					serverId,
-					{
-						tail: input.tail,
-						follow: input.follow,
-					},
-				);
+				const logs = await readDeploymentLogs(deployment.logPath, serverId, {
+					tail: input.tail,
+					follow: input.follow,
+				});
 				return logs;
 			} catch (error) {
 				throw new TRPCError({
@@ -143,4 +138,3 @@ export const logsRouter = createTRPCRouter({
 			}
 		}),
 });
-
