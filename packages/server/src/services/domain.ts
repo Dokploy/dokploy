@@ -2,7 +2,10 @@ import dns from "node:dns";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { generateRandomDomain } from "@dokploy/server/templates";
-import { manageDomain, manageDomainForCompose } from "@dokploy/server/utils/traefik/domain";
+import {
+	manageDomain,
+	manageDomainForCompose,
+} from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";

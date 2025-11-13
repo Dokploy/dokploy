@@ -10,7 +10,11 @@ import {
 	writeTraefikConfig,
 	writeTraefikConfigRemote,
 } from "./application";
-import type { FileConfig, HttpLoadBalancerService, HttpRouter } from "./file-types";
+import type {
+	FileConfig,
+	HttpLoadBalancerService,
+	HttpRouter,
+} from "./file-types";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
@@ -185,7 +189,7 @@ export const manageDomainForCompose = async (
 	domain: Domain,
 ) => {
 	const { appName, serverId } = compose;
-	
+
 	if (!domain.serviceName) {
 		throw new Error("Service name is required for compose domains");
 	}
@@ -297,8 +301,15 @@ export const createRouterConfigForCompose = async (
 	entryPoint: "web" | "websecure",
 ): Promise<HttpRouter> => {
 	const { appName } = compose;
-	const { certificateType, host, path, https, uniqueConfigKey, internalPath, stripPath } =
-		domain;
+	const {
+		certificateType,
+		host,
+		path,
+		https,
+		uniqueConfigKey,
+		internalPath,
+		stripPath,
+	} = domain;
 
 	const routerConfig: HttpRouter = {
 		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
