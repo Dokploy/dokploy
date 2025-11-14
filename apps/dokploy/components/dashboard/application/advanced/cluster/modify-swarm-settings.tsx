@@ -1,11 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Settings } from "lucide-react";
+import { HelpCircle, Plus, Settings, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
-import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -26,6 +25,14 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Tooltip,
 	TooltipContent,
@@ -138,65 +145,17 @@ const EndpointSpecSwarmSchema = z
 	})
 	.strict();
 
-const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
-	return z
-		.string()
-		.transform((str, ctx) => {
-			if (str === null || str === "") {
-				return null;
-			}
-			try {
-				return JSON.parse(str);
-			} catch {
-				ctx.addIssue({ code: "custom", message: "Invalid JSON format" });
-				return z.NEVER;
-			}
-		})
-		.superRefine((data, ctx) => {
-			if (data === null) {
-				return;
-			}
-
-			if (Object.keys(data).length === 0) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "Object cannot be empty",
-				});
-				return;
-			}
-
-			const parseResult = schema.safeParse(data);
-			if (!parseResult.success) {
-				for (const error of parseResult.error.issues) {
-					const path = error.path.join(".");
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: `${path} ${error.message}`,
-					});
-				}
-			}
-		});
-};
-
 const addSwarmSettings = z.object({
-	healthCheckSwarm: createStringToJSONSchema(HealthCheckSwarmSchema).nullable(),
-	restartPolicySwarm: createStringToJSONSchema(
-		RestartPolicySwarmSchema,
-	).nullable(),
-	placementSwarm: createStringToJSONSchema(PlacementSwarmSchema).nullable(),
-	updateConfigSwarm: createStringToJSONSchema(
-		UpdateConfigSwarmSchema,
-	).nullable(),
-	rollbackConfigSwarm: createStringToJSONSchema(
-		UpdateConfigSwarmSchema,
-	).nullable(),
-	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
-	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
-	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
+	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
+	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
+	placementSwarm: PlacementSwarmSchema.nullable(),
+	updateConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	rollbackConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	modeSwarm: ServiceModeSwarmSchema.nullable(),
+	labelsSwarm: LabelsSwarmSchema.nullable(),
+	networkSwarm: NetworkSwarmSchema.nullable(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
-	endpointSpecSwarm: createStringToJSONSchema(
-		EndpointSpecSwarmSchema,
-	).nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
@@ -270,34 +229,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 						? stopGracePeriodValue
 						: BigInt(stopGracePeriodValue);
 			form.reset({
-				healthCheckSwarm: data.healthCheckSwarm
-					? JSON.stringify(data.healthCheckSwarm, null, 2)
-					: null,
-				restartPolicySwarm: data.restartPolicySwarm
-					? JSON.stringify(data.restartPolicySwarm, null, 2)
-					: null,
-				placementSwarm: data.placementSwarm
-					? JSON.stringify(data.placementSwarm, null, 2)
-					: null,
-				updateConfigSwarm: data.updateConfigSwarm
-					? JSON.stringify(data.updateConfigSwarm, null, 2)
-					: null,
-				rollbackConfigSwarm: data.rollbackConfigSwarm
-					? JSON.stringify(data.rollbackConfigSwarm, null, 2)
-					: null,
-				modeSwarm: data.modeSwarm
-					? JSON.stringify(data.modeSwarm, null, 2)
-					: null,
-				labelsSwarm: data.labelsSwarm
-					? JSON.stringify(data.labelsSwarm, null, 2)
-					: null,
-				networkSwarm: data.networkSwarm
-					? JSON.stringify(data.networkSwarm, null, 2)
-					: null,
+				healthCheckSwarm: data.healthCheckSwarm || null,
+				restartPolicySwarm: data.restartPolicySwarm || null,
+				placementSwarm: data.placementSwarm || null,
+				updateConfigSwarm: data.updateConfigSwarm || null,
+				rollbackConfigSwarm: data.rollbackConfigSwarm || null,
+				modeSwarm: data.modeSwarm || null,
+				labelsSwarm: data.labelsSwarm || null,
+				networkSwarm: data.networkSwarm || null,
 				stopGracePeriodSwarm: normalizedStopGracePeriod,
-				endpointSpecSwarm: data.endpointSpecSwarm
-					? JSON.stringify(data.endpointSpecSwarm, null, 2)
-					: null,
+				endpointSpecSwarm: data.endpointSpecSwarm || null,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -341,7 +282,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
-						Update certain settings using a json object.
+						Configure swarm settings using form fields.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -358,204 +299,512 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 						onSubmit={form.handleSubmit(onSubmit)}
 						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative mt-4"
 					>
-						<FormField
-							control={form.control}
-							name="healthCheckSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Health Check</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+						<div className="md:col-span-2 space-y-4 border rounded-md p-4">
+							<FormLabel>Health Check</FormLabel>
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+											Health check configuration
+											<HelpCircle className="size-4 text-muted-foreground" />
+										</FormDescription>
+									</TooltipTrigger>
+									<TooltipContent
+										className="w-full z-[999]"
+										align="start"
+										side="bottom"
+									>
+										<code>
+											<pre>
+												{`{
 	Test?: string[] | undefined;
 	Interval?: number | undefined;
 	Timeout?: number | undefined;
 	StartPeriod?: number | undefined;
 	Retries?: number | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+											</pre>
+										</code>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
-	"Interval" : 10000000000,
-	"Timeout" : 10000000000,
-	"StartPeriod" : 10000000000,
-	"Retries" : 10
-}`}
-											className="h-[12rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+							<FormField
+								control={form.control}
+								name="healthCheckSwarm"
+								render={() => {
+									const testArray = form.watch("healthCheckSwarm.Test") || [];
+									return (
+										<>
+											<div>
+												<FormLabel className="text-sm">Test Commands</FormLabel>
+												<div className="space-y-2 mt-2">
+													{testArray.map((_, index) => (
+														<div key={index} className="flex gap-2">
+															<FormControl>
+																<Input
+																	placeholder="e.g., CMD-SHELL, curl -f http://localhost:3000/health"
+																	value={testArray[index] || ""}
+																	onChange={(e) => {
+																		const newArray = [...testArray];
+																		newArray[index] = e.target.value;
+																		form.setValue("healthCheckSwarm", {
+																			...form.getValues("healthCheckSwarm"),
+																			Test: newArray,
+																		});
+																	}}
+																/>
+															</FormControl>
+															<Button
+																type="button"
+																variant="outline"
+																size="icon"
+																onClick={() => {
+																	const newArray = testArray.filter(
+																		(_, i) => i !== index,
+																	);
+																	form.setValue("healthCheckSwarm", {
+																		...form.getValues("healthCheckSwarm"),
+																		Test:
+																			newArray.length > 0
+																				? newArray
+																				: undefined,
+																	});
+																}}
+															>
+																<Trash2 className="h-4 w-4" />
+															</Button>
+														</div>
+													))}
+													<Button
+														type="button"
+														variant="outline"
+														size="sm"
+														onClick={() => {
+															const current =
+																form.getValues("healthCheckSwarm") || {};
+															form.setValue("healthCheckSwarm", {
+																...current,
+																Test: [...(current.Test || []), ""],
+															});
+														}}
+													>
+														<Plus className="h-4 w-4 mr-2" />
+														Add Test Command
+													</Button>
+												</div>
+											</div>
 
-						<FormField
-							control={form.control}
-							name="restartPolicySwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Restart Policy</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+											<div className="grid grid-cols-2 gap-4">
+												<FormField
+													control={form.control}
+													name="healthCheckSwarm.Interval"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Interval (nanoseconds)</FormLabel>
+															<FormControl>
+																<Input
+																	type="number"
+																	placeholder="10000000000"
+																	{...field}
+																	value={field.value?.toString() || ""}
+																	onChange={(e) =>
+																		field.onChange(
+																			e.target.value
+																				? Number(e.target.value)
+																				: undefined,
+																		)
+																	}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="healthCheckSwarm.Timeout"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Timeout (nanoseconds)</FormLabel>
+															<FormControl>
+																<Input
+																	type="number"
+																	placeholder="10000000000"
+																	{...field}
+																	value={field.value?.toString() || ""}
+																	onChange={(e) =>
+																		field.onChange(
+																			e.target.value
+																				? Number(e.target.value)
+																				: undefined,
+																		)
+																	}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="healthCheckSwarm.StartPeriod"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Start Period (nanoseconds)</FormLabel>
+															<FormControl>
+																<Input
+																	type="number"
+																	placeholder="10000000000"
+																	{...field}
+																	value={field.value?.toString() || ""}
+																	onChange={(e) =>
+																		field.onChange(
+																			e.target.value
+																				? Number(e.target.value)
+																				: undefined,
+																		)
+																	}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="healthCheckSwarm.Retries"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Retries</FormLabel>
+															<FormControl>
+																<Input
+																	type="number"
+																	placeholder="10"
+																	{...field}
+																	value={field.value?.toString() || ""}
+																	onChange={(e) =>
+																		field.onChange(
+																			e.target.value
+																				? Number(e.target.value)
+																				: undefined,
+																		)
+																	}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											</div>
+										</>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="healthCheckSwarm"
+								render={() => <FormMessage />}
+							/>
+						</div>
+
+						<div className="space-y-4 border rounded-md p-4">
+							<FormLabel>Restart Policy</FormLabel>
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+											Restart policy configuration
+											<HelpCircle className="size-4 text-muted-foreground" />
+										</FormDescription>
+									</TooltipTrigger>
+									<TooltipContent
+										className="w-full z-[999]"
+										align="start"
+										side="bottom"
+									>
+										<code>
+											<pre>
+												{`{
 	Condition?: string | undefined;
 	Delay?: number | undefined;
 	MaxAttempts?: number | undefined;
 	Window?: number | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+											</pre>
+										</code>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Condition" : "on-failure",
-	"Delay" : 10000000000,
-	"MaxAttempts" : 10,
-	"Window" : 10000000000
-}                                                  `}
-											className="h-[12rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="placementSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Placement</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
+							<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name="restartPolicySwarm.Condition"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Condition</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || ""}
 											>
-												<code>
-													<pre>
-														{`{
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select condition" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="none">none</SelectItem>
+													<SelectItem value="on-failure">on-failure</SelectItem>
+													<SelectItem value="any">any</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="restartPolicySwarm.Delay"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Delay (nanoseconds)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000000000"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="restartPolicySwarm.MaxAttempts"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Max Attempts</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="restartPolicySwarm.Window"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Window (nanoseconds)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000000000"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<FormField
+								control={form.control}
+								name="restartPolicySwarm"
+								render={() => <FormMessage />}
+							/>
+						</div>
+
+						<div className="md:col-span-2 space-y-4 border rounded-md p-4">
+							<FormLabel>Placement</FormLabel>
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+											Placement configuration
+											<HelpCircle className="size-4 text-muted-foreground" />
+										</FormDescription>
+									</TooltipTrigger>
+									<TooltipContent
+										className="w-full z-[999]"
+										align="start"
+										side="bottom"
+									>
+										<code>
+											<pre>
+												{`{
 	Constraints?: string[] | undefined;
 	Preferences?: Array<{ Spread: { SpreadDescriptor: string } }> | undefined;
 	MaxReplicas?: number | undefined;
-	Platforms?:
-		| Array<{
-				Architecture: string;
-				OS: string;
-		  }>
-		| undefined;
+	Platforms?: Array<{ Architecture: string; OS: string }> | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+											</pre>
+										</code>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Constraints" : ["node.role==manager"],
-	"Preferences" : [{
-		"Spread" : {
-			"SpreadDescriptor" : "node.labels.region"
-		}
-	}],
-	"MaxReplicas" : 10,
-	"Platforms" : [{
-		"Architecture" : "amd64",
-		"OS" : "linux"
-	}]
-}                                                `}
-											className="h-[21rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+							<FormField
+								control={form.control}
+								name="placementSwarm"
+								render={() => {
+									const constraints =
+										form.watch("placementSwarm.Constraints") || [];
+									const preferences =
+										form.watch("placementSwarm.Preferences") || [];
+									const platforms =
+										form.watch("placementSwarm.Platforms") || [];
+									return (
+										<>
+											<div>
+												<FormLabel className="text-sm">Constraints</FormLabel>
+												<div className="space-y-2 mt-2">
+													{constraints.map((_, index) => (
+														<div key={index} className="flex gap-2">
+															<FormControl>
+																<Input
+																	placeholder="e.g., node.role==manager"
+																	value={constraints[index] || ""}
+																	onChange={(e) => {
+																		const newArray = [...constraints];
+																		newArray[index] = e.target.value;
+																		form.setValue("placementSwarm", {
+																			...form.getValues("placementSwarm"),
+																			Constraints: newArray,
+																		});
+																	}}
+																/>
+															</FormControl>
+															<Button
+																type="button"
+																variant="outline"
+																size="icon"
+																onClick={() => {
+																	const newArray = constraints.filter(
+																		(_, i) => i !== index,
+																	);
+																	form.setValue("placementSwarm", {
+																		...form.getValues("placementSwarm"),
+																		Constraints:
+																			newArray.length > 0
+																				? newArray
+																				: undefined,
+																	});
+																}}
+															>
+																<Trash2 className="h-4 w-4" />
+															</Button>
+														</div>
+													))}
+													<Button
+														type="button"
+														variant="outline"
+														size="sm"
+														onClick={() => {
+															const current =
+																form.getValues("placementSwarm") || {};
+															form.setValue("placementSwarm", {
+																...current,
+																Constraints: [
+																	...(current.Constraints || []),
+																	"",
+																],
+															});
+														}}
+													>
+														<Plus className="h-4 w-4 mr-2" />
+														Add Constraint
+													</Button>
+												</div>
+											</div>
 
-						<FormField
-							control={form.control}
-							name="updateConfigSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Update Config</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+											<div>
+												<FormLabel className="text-sm">Max Replicas</FormLabel>
+												<FormField
+													control={form.control}
+													name="placementSwarm.MaxReplicas"
+													render={({ field }) => (
+														<FormItem>
+															<FormControl>
+																<Input
+																	type="number"
+																	placeholder="10"
+																	{...field}
+																	value={field.value?.toString() || ""}
+																	onChange={(e) =>
+																		field.onChange(
+																			e.target.value
+																				? Number(e.target.value)
+																				: undefined,
+																		)
+																	}
+																/>
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											</div>
+										</>
+									);
+								}}
+							/>
+							<FormField
+								control={form.control}
+								name="placementSwarm"
+								render={() => <FormMessage />}
+							/>
+						</div>
+
+						<div className="md:col-span-2 space-y-4 border rounded-md p-4">
+							<FormLabel>Update Config</FormLabel>
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+											Update configuration
+											<HelpCircle className="size-4 text-muted-foreground" />
+										</FormDescription>
+									</TooltipTrigger>
+									<TooltipContent
+										className="w-full z-[999]"
+										align="start"
+										side="bottom"
+									>
+										<code>
+											<pre>
+												{`{
 	Parallelism?: number;
 	Delay?: number | undefined;
 	FailureAction?: string | undefined;
@@ -563,57 +812,186 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	MaxFailureRatio?: number | undefined;
 	Order: string;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+											</pre>
+										</code>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Parallelism" : 1,
-	"Delay" : 10000000000,
-	"FailureAction" : "continue",
-	"Monitor" : 10000000000,
-	"MaxFailureRatio" : 10,
-	"Order" : "start-first"
-}`}
-											className="h-[21rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="rollbackConfigSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Rollback Config</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
+							<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name="updateConfigSwarm.Parallelism"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Parallelism *</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="1"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(Number(e.target.value))
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="updateConfigSwarm.Order"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Order *</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || ""}
 											>
-												<code>
-													<pre>
-														{`{
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select order" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="start-first">
+														start-first
+													</SelectItem>
+													<SelectItem value="stop-first">stop-first</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="updateConfigSwarm.Delay"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Delay (nanoseconds)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000000000"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="updateConfigSwarm.FailureAction"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Failure Action</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || ""}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select action" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="continue">continue</SelectItem>
+													<SelectItem value="pause">pause</SelectItem>
+													<SelectItem value="rollback">rollback</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="updateConfigSwarm.Monitor"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Monitor (nanoseconds)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000000000"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="updateConfigSwarm.MaxFailureRatio"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Max Failure Ratio</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<FormField
+								control={form.control}
+								name="updateConfigSwarm"
+								render={() => <FormMessage />}
+							/>
+						</div>
+
+						<div className="md:col-span-2 space-y-4 border rounded-md p-4">
+							<FormLabel>Rollback Config</FormLabel>
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+											Rollback configuration
+											<HelpCircle className="size-4 text-muted-foreground" />
+										</FormDescription>
+									</TooltipTrigger>
+									<TooltipContent
+										className="w-full z-[999]"
+										align="start"
+										side="bottom"
+									>
+										<code>
+											<pre>
+												{`{
 	Parallelism?: number;
 	Delay?: number | undefined;
 	FailureAction?: string | undefined;
@@ -621,109 +999,303 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 	MaxFailureRatio?: number | undefined;
 	Order: string;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+											</pre>
+										</code>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Parallelism" : 1,
-	"Delay" : 10000000000,
-	"FailureAction" : "continue",
-	"Monitor" : 10000000000,
-	"MaxFailureRatio" : 10,
-	"Order" : "start-first"
-}`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="modeSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Mode</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="center"
-												side="bottom"
+							<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name="rollbackConfigSwarm.Parallelism"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Parallelism *</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="1"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(Number(e.target.value))
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rollbackConfigSwarm.Order"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Order *</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || ""}
 											>
-												<code>
-													<pre>
-														{`{
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select order" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="start-first">
+														start-first
+													</SelectItem>
+													<SelectItem value="stop-first">stop-first</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rollbackConfigSwarm.Delay"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Delay (nanoseconds)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000000000"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rollbackConfigSwarm.FailureAction"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Failure Action</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || ""}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select action" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="continue">continue</SelectItem>
+													<SelectItem value="pause">pause</SelectItem>
+													<SelectItem value="rollback">rollback</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rollbackConfigSwarm.Monitor"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Monitor (nanoseconds)</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10000000000"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="rollbackConfigSwarm.MaxFailureRatio"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Max Failure Ratio</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="10"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<FormField
+								control={form.control}
+								name="rollbackConfigSwarm"
+								render={() => <FormMessage />}
+							/>
+						</div>
+
+						<div className="space-y-4 border rounded-md p-4">
+							<FormLabel>Mode</FormLabel>
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+											Service mode configuration
+											<HelpCircle className="size-4 text-muted-foreground" />
+										</FormDescription>
+									</TooltipTrigger>
+									<TooltipContent
+										className="w-full z-[999]"
+										align="center"
+										side="bottom"
+									>
+										<code>
+											<pre>
+												{`{
 	Replicated?: { Replicas?: number | undefined } | undefined;
 	Global?: {} | undefined;
-	ReplicatedJob?:
-		| {
-				MaxConcurrent?: number | undefined;
-				TotalCompletions?: number | undefined;
-		  }
-		| undefined;
+	ReplicatedJob?: { MaxConcurrent?: number | undefined; TotalCompletions?: number | undefined } | undefined;
 	GlobalJob?: {} | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+											</pre>
+										</code>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Replicated" : {
-		"Replicas" : 1
-	},
-	"Global" : {},
-	"ReplicatedJob" : {
-		"MaxConcurrent" : 1,
-		"TotalCompletions" : 1
-	},
-	"GlobalJob" : {}
-}`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+							<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name="modeSwarm.Replicated.Replicas"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Replicated - Replicas</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="1"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) => {
+														const current = form.getValues("modeSwarm") || {};
+														form.setValue("modeSwarm", {
+															...current,
+															Replicated: e.target.value
+																? { Replicas: Number(e.target.value) }
+																: undefined,
+														});
+													}}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="modeSwarm.ReplicatedJob.MaxConcurrent"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>ReplicatedJob - Max Concurrent</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="1"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) => {
+														const current = form.getValues("modeSwarm") || {};
+														form.setValue("modeSwarm", {
+															...current,
+															ReplicatedJob: e.target.value
+																? {
+																		...current.ReplicatedJob,
+																		MaxConcurrent: Number(e.target.value),
+																	}
+																: undefined,
+														});
+													}}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="modeSwarm.ReplicatedJob.TotalCompletions"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>ReplicatedJob - Total Completions</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="1"
+													{...field}
+													value={field.value?.toString() || ""}
+													onChange={(e) => {
+														const current = form.getValues("modeSwarm") || {};
+														form.setValue("modeSwarm", {
+															...current,
+															ReplicatedJob: e.target.value
+																? {
+																		...current.ReplicatedJob,
+																		TotalCompletions: Number(e.target.value),
+																	}
+																: undefined,
+														});
+													}}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<FormField
+								control={form.control}
+								name="modeSwarm"
+								render={() => <FormMessage />}
+							/>
+						</div>
 						<FormField
 							control={form.control}
 							name="networkSwarm"
 							render={({ field }) => (
-								<FormItem className="relative ">
+								<FormItem className="md:col-span-2">
 									<FormLabel>Network</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													Network configuration (JSON array)
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -747,28 +1319,29 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 										</Tooltip>
 									</TooltipProvider>
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`[
- {
-	"Target" : "dokploy-network",
-	"Aliases" : ["dokploy-network"],
-	"DriverOpts" : {
-		"com.docker.network.driver.mtu" : "1500",
-		"com.docker.network.driver.host_binding" : "true",
-		"com.docker.network.driver.mtu" : "1500",
-		"com.docker.network.driver.host_binding" : "true"
-	}
- }
-]`}
-											className="h-[20rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+										<Textarea
+											placeholder={`[\n  {\n    "Target": "dokploy-network",\n    "Aliases": ["dokploy-network"],\n    "DriverOpts": {}\n  }\n]`}
+											className="h-[12rem] font-mono"
+											value={
+												field.value ? JSON.stringify(field.value, null, 2) : ""
+											}
+											onChange={(e) => {
+												try {
+													const value = e.target.value.trim();
+													if (!value) {
+														field.onChange(null);
+														return;
+													}
+													const parsed = JSON.parse(value);
+													field.onChange(parsed);
+												} catch {
+													// Invalid JSON, but let validation handle it
+													field.onChange(e.target.value as any);
+												}
+											}}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
@@ -776,13 +1349,13 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							control={form.control}
 							name="labelsSwarm"
 							render={({ field }) => (
-								<FormItem className="relative ">
+								<FormItem className="md:col-span-2">
 									<FormLabel>Labels</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													Labels as key-value pairs (JSON object)
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -802,20 +1375,29 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 										</Tooltip>
 									</TooltipProvider>
 									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"com.example.app.name" : "my-app",
-	"com.example.app.version" : "1.0.0"
-}`}
-											className="h-[20rem] font-mono"
-											{...field}
-											value={field?.value || ""}
+										<Textarea
+											placeholder={`{\n  "com.example.app.name": "my-app",\n  "com.example.app.version": "1.0.0"\n}`}
+											className="h-[12rem] font-mono"
+											value={
+												field.value ? JSON.stringify(field.value, null, 2) : ""
+											}
+											onChange={(e) => {
+												try {
+													const value = e.target.value.trim();
+													if (!value) {
+														field.onChange(null);
+														return;
+													}
+													const parsed = JSON.parse(value);
+													field.onChange(parsed);
+												} catch {
+													// Invalid JSON, but let validation handle it
+													field.onChange(e.target.value as any);
+												}
+											}}
 										/>
 									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
@@ -870,28 +1452,24 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="endpointSpecSwarm"
-							render={({ field }) => (
-								<FormItem className="relative ">
-									<FormLabel>Endpoint Spec</FormLabel>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormDescription>
-											</TooltipTrigger>
-											<TooltipContent
-												className="w-full z-[999]"
-												align="start"
-												side="bottom"
-											>
-												<code>
-													<pre>
-														{`{
+						<div className="md:col-span-2 space-y-4 border rounded-md p-4">
+							<FormLabel>Endpoint Spec</FormLabel>
+							<TooltipProvider delayDuration={0}>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+											Endpoint specification
+											<HelpCircle className="size-4 text-muted-foreground" />
+										</FormDescription>
+									</TooltipTrigger>
+									<TooltipContent
+										className="w-full z-[999]"
+										align="start"
+										side="bottom"
+									>
+										<code>
+											<pre>
+												{`{
 	Mode?: string | undefined;
 	Ports?: Array<{
 		Protocol?: string | undefined;
@@ -900,37 +1478,86 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		PublishMode?: string | undefined;
 	}> | undefined;
 }`}
-													</pre>
-												</code>
-											</TooltipContent>
-										</Tooltip>
-									</TooltipProvider>
+											</pre>
+										</code>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
 
-									<FormControl>
-										<CodeEditor
-											language="json"
-											placeholder={`{
-	"Mode": "dnsrr",
-	"Ports": [
-		{
-			"Protocol": "tcp",
-			"TargetPort": 5432,
-			"PublishedPort": 5432,
-			"PublishMode": "host"
-		}
-	]
-}`}
-											className="h-[17rem] font-mono"
-											{...field}
-											value={field?.value || ""}
-										/>
-									</FormControl>
-									<pre>
-										<FormMessage />
-									</pre>
-								</FormItem>
-							)}
-						/>
+							<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name="endpointSpecSwarm.Mode"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Mode</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || ""}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select mode" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="vip">vip</SelectItem>
+													<SelectItem value="dnsrr">dnsrr</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<div>
+								<FormLabel className="text-sm">Ports (JSON array)</FormLabel>
+								<FormField
+									control={form.control}
+									name="endpointSpecSwarm"
+									render={({ field }) => (
+										<FormItem>
+											<FormControl>
+												<Textarea
+													placeholder={`[\n  {\n    "Protocol": "tcp",\n    "TargetPort": 5432,\n    "PublishedPort": 5432,\n    "PublishMode": "host"\n  }\n]`}
+													className="h-[12rem] font-mono"
+													value={
+														field.value?.Ports
+															? JSON.stringify(field.value.Ports, null, 2)
+															: ""
+													}
+													onChange={(e) => {
+														try {
+															const value = e.target.value.trim();
+															if (!value) {
+																field.onChange({
+																	...field.value,
+																	Ports: undefined,
+																});
+																return;
+															}
+															const parsed = JSON.parse(value);
+															field.onChange({
+																...field.value,
+																Ports: parsed,
+															});
+														} catch {
+															// Invalid JSON, but let validation handle it
+														}
+													}}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+							<FormField
+								control={form.control}
+								name="endpointSpecSwarm"
+								render={() => <FormMessage />}
+							/>
+						</div>
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
 								isLoading={isLoading}
