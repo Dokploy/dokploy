@@ -12,7 +12,6 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";
@@ -179,6 +178,18 @@ export const apiCreateComposeByTemplate = createSchema
 
 export const apiFindCompose = z.object({
 	composeId: z.string().min(1),
+});
+
+export const apiDeployCompose = z.object({
+	composeId: z.string().min(1),
+	title: z.string().optional(),
+	description: z.string().optional(),
+});
+
+export const apiRedeployCompose = z.object({
+	composeId: z.string().min(1),
+	title: z.string().optional(),
+	description: z.string().optional(),
 });
 
 export const apiDeleteCompose = z.object({

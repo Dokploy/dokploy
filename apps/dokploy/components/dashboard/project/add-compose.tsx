@@ -82,6 +82,10 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const form = useForm<AddCompose>({
 		defaultValues: {
@@ -104,7 +108,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 			environmentId,
 			composeType: data.composeType,
 			appName: data.appName,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 		})
 			.then(async () => {
 				toast.success("Compose Created");
@@ -169,7 +173,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 								)}
 							/>
 						</div>
-						{hasServers && (
+						{shouldShowServerDropdown && (
 							<FormField
 								control={form.control}
 								name="serverId"
@@ -198,13 +202,27 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 
 										<Select
 											onValueChange={field.onChange}
-											defaultValue={field.value}
+											defaultValue={
+												field.value || (!isCloud ? "dokploy" : undefined)
+											}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Server" />
+												<SelectValue
+													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
+													{!isCloud && (
+														<SelectItem value="dokploy">
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>Dokploy</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	Default
+																</span>
+															</span>
+														</SelectItem>
+													)}
 													{servers?.map((server) => (
 														<SelectItem
 															key={server.serverId}
@@ -218,7 +236,9 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 															</span>
 														</SelectItem>
 													))}
-													<SelectLabel>Servers ({servers?.length})</SelectLabel>
+													<SelectLabel>
+														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>

@@ -44,7 +44,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import {
 	Select,
 	SelectContent,
@@ -96,8 +96,30 @@ export const ShowProjects = () => {
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
 				case "services": {
-					const aTotalServices = a.environments.length;
-					const bTotalServices = b.environments.length;
+					const aTotalServices = a.environments.reduce((total, env) => {
+						return (
+							total +
+							(env.applications?.length || 0) +
+							(env.mariadb?.length || 0) +
+							(env.mongo?.length || 0) +
+							(env.mysql?.length || 0) +
+							(env.postgres?.length || 0) +
+							(env.redis?.length || 0) +
+							(env.compose?.length || 0)
+						);
+					}, 0);
+					const bTotalServices = b.environments.reduce((total, env) => {
+						return (
+							total +
+							(env.applications?.length || 0) +
+							(env.mariadb?.length || 0) +
+							(env.mongo?.length || 0) +
+							(env.mysql?.length || 0) +
+							(env.postgres?.length || 0) +
+							(env.redis?.length || 0) +
+							(env.compose?.length || 0)
+						);
+					}, 0);
 					comparison = aTotalServices - bTotalServices;
 					break;
 				}
@@ -144,12 +166,13 @@ export const ShowProjects = () => {
 								<>
 									<div className="flex max-sm:flex-col gap-4 items-center w-full">
 										<div className="flex-1 relative max-sm:w-full">
-											<Input
+											<FocusShortcutInput
 												placeholder="Filter projects..."
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
 												className="pr-10"
 											/>
+
 											<Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
 										</div>
 										<div className="flex items-center gap-2 min-w-48 max-sm:w-full">
@@ -290,45 +313,48 @@ export const ShowProjects = () => {
 																				)}
 																			</DropdownMenuGroup>
 																		)}
-																		{/* 
-																		{project.compose.length > 0 && (
+																		{project.environments.some(
+																			(env) => env.compose.length > 0,
+																		) && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
 																					Compose
 																				</DropdownMenuLabel>
-																				{project.compose.map((comp) => (
-																					<div key={comp.composeId}>
-																						<DropdownMenuSeparator />
-																						<DropdownMenuGroup>
-																							<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
-																								{comp.name}
-																								<StatusTooltip
-																									status={comp.composeStatus}
-																								/>
-																							</DropdownMenuLabel>
+																				{project.environments.map((env) =>
+																					env.compose.map((comp) => (
+																						<div key={comp.composeId}>
 																							<DropdownMenuSeparator />
-																							{comp.domains.map((domain) => (
-																								<DropdownMenuItem
-																									key={domain.domainId}
-																									asChild
-																								>
-																									<Link
-																										className="space-x-4 text-xs cursor-pointer justify-between"
-																										target="_blank"
-																										href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																							<DropdownMenuGroup>
+																								<DropdownMenuLabel className="font-normal capitalize text-xs flex items-center justify-between">
+																									{comp.name}
+																									<StatusTooltip
+																										status={comp.composeStatus}
+																									/>
+																								</DropdownMenuLabel>
+																								<DropdownMenuSeparator />
+																								{comp.domains.map((domain) => (
+																									<DropdownMenuItem
+																										key={domain.domainId}
+																										asChild
 																									>
-																										<span className="truncate">
-																											{domain.host}
-																										</span>
-																										<ExternalLinkIcon className="size-4 shrink-0" />
-																									</Link>
-																								</DropdownMenuItem>
-																							))}
-																						</DropdownMenuGroup>
-																					</div>
-																				))}
+																										<Link
+																											className="space-x-4 text-xs cursor-pointer justify-between"
+																											target="_blank"
+																											href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																										>
+																											<span className="truncate">
+																												{domain.host}
+																											</span>
+																											<ExternalLinkIcon className="size-4 shrink-0" />
+																										</Link>
+																									</DropdownMenuItem>
+																								))}
+																							</DropdownMenuGroup>
+																						</div>
+																					)),
+																				)}
 																			</DropdownMenuGroup>
-																		)} */}
+																		)}
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															) : null}

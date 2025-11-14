@@ -16,6 +16,7 @@ export function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.mistral.ai")) return "mistral";
 	if (apiUrl.includes(":11434") || apiUrl.includes("ollama")) return "ollama";
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
+	if (apiUrl.includes("generativelanguage.googleapis.com")) return "gemini";
 	return "custom";
 }
 
@@ -65,6 +66,13 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createDeepInfra({
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
+			});
+		case "gemini":
+			return createOpenAICompatible({
+				name: "gemini",
+				baseURL: config.apiUrl,
+				queryParams: { key: config.apiKey },
+				headers: {},
 			});
 		case "custom":
 			return createOpenAICompatible({

@@ -55,6 +55,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 		ref,
 	) => {
 		const Comp = asChild ? Slot : "button";
+		const type = props.type ?? undefined;
+
 		return (
 			<>
 				<Comp
@@ -65,6 +67,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 					ref={ref}
 					{...props}
 					disabled={isLoading || props.disabled}
+					type={type}
 				>
 					{isLoading && <Loader2 className="animate-spin" />}
 					<Slottable>{children}</Slottable>

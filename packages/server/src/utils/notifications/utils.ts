@@ -1,7 +1,9 @@
 import type {
 	discord,
 	email,
+	lark,
 	gotify,
+	ntfy,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -32,6 +34,7 @@ export const sendEmailNotification = async (
 			to: toAddresses.join(", "),
 			subject,
 			html: htmlContent,
+			textEncoding: "base64",
 		});
 	} catch (err) {
 		console.log(err);
@@ -124,5 +127,44 @@ export const sendGotifyNotification = async (
 		throw new Error(
 			`Failed to send Gotify notification: ${response.statusText}`,
 		);
+	}
+};
+
+export const sendNtfyNotification = async (
+	connection: typeof ntfy.$inferInsert,
+	title: string,
+	tags: string,
+	actions: string,
+	message: string,
+) => {
+	const response = await fetch(`${connection.serverUrl}/${connection.topic}`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${connection.accessToken}`,
+			"X-Priority": connection.priority?.toString() || "3",
+			"X-Title": title,
+			"X-Tags": tags,
+			"X-Actions": actions,
+		},
+		body: message,
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
+	}
+};
+
+export const sendLarkNotification = async (
+	connection: typeof lark.$inferInsert,
+	message: any,
+) => {
+	try {
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
 	}
 };

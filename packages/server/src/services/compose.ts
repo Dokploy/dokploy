@@ -7,14 +7,10 @@ import {
 	cleanAppName,
 	compose,
 } from "@dokploy/server/db/schema";
-import {
-	buildCompose,
-	getBuildComposeCommand,
-} from "@dokploy/server/utils/builders/compose";
+import { getBuildComposeCommand } from "@dokploy/server/utils/builders/compose";
 import { randomizeSpecificationFile } from "@dokploy/server/utils/docker/compose";
 import {
 	cloneCompose,
-	cloneComposeRemote,
 	loadDockerCompose,
 	loadDockerComposeRemote,
 } from "@dokploy/server/utils/docker/domain";
@@ -25,33 +21,14 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import {
-	cloneBitbucketRepository,
-	getBitbucketCloneCommand,
-} from "@dokploy/server/utils/providers/bitbucket";
-import {
-	cloneGitRepository,
-	getCustomGitCloneCommand,
-} from "@dokploy/server/utils/providers/git";
-import {
-	cloneGiteaRepository,
-	getGiteaCloneCommand,
-} from "@dokploy/server/utils/providers/gitea";
-import {
-	cloneGithubRepository,
-	getGithubCloneCommand,
-} from "@dokploy/server/utils/providers/github";
-import {
-	cloneGitlabRepository,
-	getGitlabCloneCommand,
-} from "@dokploy/server/utils/providers/gitlab";
-import {
-	createComposeFile,
-	getCreateComposeFileCommand,
-} from "@dokploy/server/utils/providers/raw";
+import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
+import { cloneGitRepository } from "@dokploy/server/utils/providers/git";
+import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
+import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
+import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
+import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
 import { validUniqueServerAppName } from "./project";
@@ -163,10 +140,11 @@ export const loadServices = async (
 	const compose = await findComposeById(composeId);
 
 	if (type === "fetch") {
+		const command = await cloneCompose(compose);
 		if (compose.serverId) {
-			await cloneComposeRemote(compose);
+			await execAsyncRemote(compose.serverId, command);
 		} else {
-			await cloneCompose(compose);
+			await execAsync(command);
 		}
 	}
 
@@ -227,7 +205,7 @@ export const deployCompose = async ({
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${
 		compose.environment.projectId
-	}/services/compose/${compose.composeId}?tab=deployments`;
+	}/environment/${compose.environmentId}/services/compose/${compose.composeId}?tab=deployments`;
 	const deployment = await createDeploymentCompose({
 		composeId: composeId,
 		title: titleLog,
@@ -235,24 +213,40 @@ export const deployCompose = async ({
 	});
 
 	try {
+		const entity = {
+			...compose,
+			type: "compose" as const,
+		};
+		let command = "set -e;";
 		if (compose.sourceType === "github") {
-			await cloneGithubRepository({
-				...compose,
-				logPath: deployment.logPath,
-				type: "compose",
-			});
+			command += await cloneGithubRepository(entity);
 		} else if (compose.sourceType === "gitlab") {
-			await cloneGitlabRepository(compose, deployment.logPath, true);
+			command += await cloneGitlabRepository(entity);
 		} else if (compose.sourceType === "bitbucket") {
-			await cloneBitbucketRepository(compose, deployment.logPath, true);
+			command += await cloneBitbucketRepository(entity);
 		} else if (compose.sourceType === "git") {
-			await cloneGitRepository(compose, deployment.logPath, true);
+			command += await cloneGitRepository(entity);
 		} else if (compose.sourceType === "gitea") {
-			await cloneGiteaRepository(compose, deployment.logPath, true);
+			command += await cloneGiteaRepository(entity);
 		} else if (compose.sourceType === "raw") {
-			await createComposeFile(compose, deployment.logPath);
+			command += getCreateComposeFileCommand(entity);
 		}
-		await buildCompose(compose, deployment.logPath);
+
+		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, commandWithLog);
+		} else {
+			await execAsync(commandWithLog);
+		}
+
+		command += await getBuildComposeCommand(entity);
+		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, commandWithLog);
+		} else {
+			await execAsync(commandWithLog);
+		}
+
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateCompose(composeId, {
 			composeStatus: "done",
@@ -302,154 +296,23 @@ export const rebuildCompose = async ({
 	});
 
 	try {
+		let command = "set -e;";
 		if (compose.sourceType === "raw") {
-			await createComposeFile(compose, deployment.logPath);
+			command += getCreateComposeFileCommand(compose);
 		}
-		await buildCompose(compose, deployment.logPath);
 
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateCompose(composeId, {
-			composeStatus: "done",
-		});
-	} catch (error) {
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateCompose(composeId, {
-			composeStatus: "error",
-		});
-		throw error;
-	}
-
-	return true;
-};
-
-export const deployRemoteCompose = async ({
-	composeId,
-	titleLog = "Manual deployment",
-	descriptionLog = "",
-}: {
-	composeId: string;
-	titleLog: string;
-	descriptionLog: string;
-}) => {
-	const compose = await findComposeById(composeId);
-
-	const buildLink = `${await getDokployUrl()}/dashboard/project/${
-		compose.environment.projectId
-	}/services/compose/${compose.composeId}?tab=deployments`;
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
-	try {
+		let commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
-			let command = "set -e;";
-
-			if (compose.sourceType === "github") {
-				command += await getGithubCloneCommand({
-					...compose,
-					logPath: deployment.logPath,
-					type: "compose",
-					serverId: compose.serverId,
-				});
-			} else if (compose.sourceType === "gitlab") {
-				command += await getGitlabCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-			} else if (compose.sourceType === "bitbucket") {
-				command += await getBitbucketCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-			} else if (compose.sourceType === "git") {
-				command += await getCustomGitCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-				console.log(command);
-			} else if (compose.sourceType === "raw") {
-				command += getCreateComposeFileCommand(compose, deployment.logPath);
-			} else if (compose.sourceType === "gitea") {
-				command += await getGiteaCloneCommand(
-					compose,
-					deployment.logPath,
-					true,
-				);
-			}
-
-			await execAsyncRemote(compose.serverId, command);
-			await getBuildComposeCommand(compose, deployment.logPath);
+			await execAsyncRemote(compose.serverId, commandWithLog);
+		} else {
+			await execAsync(commandWithLog);
 		}
-
-		await updateDeploymentStatus(deployment.deploymentId, "done");
-		await updateCompose(composeId, {
-			composeStatus: "done",
-		});
-
-		await sendBuildSuccessNotifications({
-			projectName: compose.environment.project.name,
-			applicationName: compose.name,
-			applicationType: "compose",
-			buildLink,
-			organizationId: compose.environment.project.organizationId,
-			domains: compose.domains,
-		});
-	} catch (error) {
-		// @ts-ignore
-		const encodedContent = encodeBase64(error?.message);
-
-		await execAsyncRemote(
-			compose.serverId,
-			`
-			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
-			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
-			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
-		);
-		await updateDeploymentStatus(deployment.deploymentId, "error");
-		await updateCompose(composeId, {
-			composeStatus: "error",
-		});
-		await sendBuildErrorNotifications({
-			projectName: compose.environment.project.name,
-			applicationName: compose.name,
-			applicationType: "compose",
-			// @ts-ignore
-			errorMessage: error?.message || "Error building",
-			buildLink,
-			organizationId: compose.environment.project.organizationId,
-		});
-		throw error;
-	}
-};
-
-export const rebuildRemoteCompose = async ({
-	composeId,
-	titleLog = "Rebuild deployment",
-	descriptionLog = "",
-}: {
-	composeId: string;
-	titleLog: string;
-	descriptionLog: string;
-}) => {
-	const compose = await findComposeById(composeId);
-
-	const deployment = await createDeploymentCompose({
-		composeId: composeId,
-		title: titleLog,
-		description: descriptionLog,
-	});
-
-	try {
-		if (compose.sourceType === "raw") {
-			const command = getCreateComposeFileCommand(compose, deployment.logPath);
-			await execAsyncRemote(compose.serverId, command);
-		}
+		command += await getBuildComposeCommand(compose);
+		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
-			await getBuildComposeCommand(compose, deployment.logPath);
+			await execAsyncRemote(compose.serverId, commandWithLog);
+		} else {
+			await execAsync(commandWithLog);
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -457,16 +320,6 @@ export const rebuildRemoteCompose = async ({
 			composeStatus: "done",
 		});
 	} catch (error) {
-		// @ts-ignore
-		const encodedContent = encodeBase64(error?.message);
-
-		await execAsyncRemote(
-			compose.serverId,
-			`
-			echo "\n\n===================================EXTRA LOGS============================================" >> ${deployment.logPath};
-			echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};
-			echo "${encodedContent}" | base64 -d >> "${deployment.logPath}";`,
-		);
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateCompose(composeId, {
 			composeStatus: "error",

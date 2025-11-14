@@ -83,7 +83,13 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("volume"),
-			volumeName: z.string().min(1, "Volume name required"),
+			volumeName: z
+				.string()
+				.min(1, "Volume name required")
+				.regex(
+					/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+					"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+				),
 		})
 		.merge(mountSchema)
 		.merge(ownershipSchema),
@@ -356,7 +362,7 @@ export const AddVolumes = ({
 											control={form.control}
 											name="content"
 											render={({ field }) => (
-												<FormItem>
+												<FormItem className="max-w-full max-w-[45rem]">
 													<FormLabel>Content</FormLabel>
 													<FormControl>
 														<FormControl>
@@ -365,7 +371,7 @@ export const AddVolumes = ({
 																placeholder={`NODE_ENV=production
 PORT=3000
 `}
-																className="h-96 font-mono"
+																className="h-96 font-mono "
 																{...field}
 															/>
 														</FormControl>

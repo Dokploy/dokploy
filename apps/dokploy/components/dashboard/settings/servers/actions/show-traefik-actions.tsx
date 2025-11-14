@@ -97,11 +97,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 									);
 									refetchDashboard();
 								})
-								.catch(() => {
-									toast.error(
-										`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
-									);
-								});
+								.catch(() => {});
 						}}
 						className="w-full cursor-pointer space-x-3"
 					>
