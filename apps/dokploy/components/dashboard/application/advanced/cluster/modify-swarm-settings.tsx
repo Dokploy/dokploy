@@ -1,12 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Plus, Settings, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Plus, Settings, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -35,13 +34,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 // Form-based schemas for better UX
@@ -117,6 +109,26 @@ const LabelFormSchema = z.object({
 		.default([]),
 });
 
+const EndpointPortConfigFormSchema = z.object({
+	protocol: z.string().optional(),
+	targetPort: z.number().optional(),
+	publishedPort: z.number().optional(),
+	publishMode: z.string().optional(),
+});
+
+const EndpointSpecFormSchema = z.object({
+	mode: z.string().optional(),
+	ports: z.array(EndpointPortConfigFormSchema).default([]),
+});
+
+// API format schemas (for validation)
+
+const StopGracePeriodSwarmSchema = z
+	.object({
+		Seconds: z.number().optional(),
+	})
+	.strict();
+
 const SwarmSettingsFormSchema = z.object({
 	healthCheck: HealthCheckFormSchema,
 	restartPolicy: RestartPolicyFormSchema,
@@ -126,6 +138,8 @@ const SwarmSettingsFormSchema = z.object({
 	mode: ServiceModeFormSchema,
 	network: NetworkFormSchema,
 	labels: LabelFormSchema,
+	stopGracePeriod: StopGracePeriodSwarmSchema,
+	endpointSpec: EndpointSpecFormSchema,
 });
 
 type SwarmSettingsForm = z.infer<typeof SwarmSettingsFormSchema>;
@@ -1054,6 +1068,175 @@ const NetworkDriverOptsForm = ({
 	);
 };
 
+const EndpointSpecForm = ({ form }: { form: any }) => {
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "endpointSpec.ports",
+	});
+
+	return (
+		<div className="space-y-4">
+			<FormField
+				control={form.control}
+				name="endpointSpec.mode"
+				render={({ field }) => (
+					<FormItem>
+						<FormLabel>Mode</FormLabel>
+						<FormControl>
+							<Input placeholder="e.g., vip, dnsrr" {...field} />
+						</FormControl>
+						<FormDescription>
+							Endpoint mode (vip for virtual IP, dnsrr for DNS round-robin)
+						</FormDescription>
+						<FormMessage />
+					</FormItem>
+				)}
+			/>
+
+			<div>
+				<FormLabel>Ports</FormLabel>
+				<FormDescription>Configure endpoint ports</FormDescription>
+				<div className="space-y-4 mt-2">
+					{fields.map((field, index) => (
+						<div key={field.id} className="p-4 border rounded-lg space-y-4">
+							<div className="flex justify-between items-center">
+								<FormLabel>Port {index + 1}</FormLabel>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() => remove(index)}
+								>
+									<Trash2 className="h-4 w-4" />
+								</Button>
+							</div>
+
+							<div className="grid grid-cols-2 gap-4">
+								<FormField
+									control={form.control}
+									name={`endpointSpec.ports.${index}.protocol`}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Protocol</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select protocol" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="tcp">TCP</SelectItem>
+													<SelectItem value="udp">UDP</SelectItem>
+													<SelectItem value="sctp">SCTP</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name={`endpointSpec.ports.${index}.publishMode`}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Publish Mode</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select publish mode" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="ingress">Ingress</SelectItem>
+													<SelectItem value="host">Host</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name={`endpointSpec.ports.${index}.targetPort`}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Target Port</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="e.g., 8080"
+													{...field}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name={`endpointSpec.ports.${index}.publishedPort`}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Published Port</FormLabel>
+											<FormControl>
+												<Input
+													type="number"
+													placeholder="e.g., 80"
+													{...field}
+													onChange={(e) =>
+														field.onChange(
+															e.target.value
+																? Number(e.target.value)
+																: undefined,
+														)
+													}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</div>
+					))}
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() =>
+							append({
+								protocol: undefined,
+								targetPort: undefined,
+								publishedPort: undefined,
+								publishMode: undefined,
+							})
+						}
+					>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Port
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+};
+
 const LabelsForm = ({ form }: { form: any }) => {
 	const { fields, append, remove } = useFieldArray({
 		control: form.control,
@@ -1197,6 +1380,10 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			},
 			labels: {
 				labels: [],
+			},
+			endpointSpec: {
+				mode: undefined,
+				ports: [],
 			},
 		},
 		resolver: zodResolver(SwarmSettingsFormSchema),
@@ -1377,6 +1564,25 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			);
 		}
 
+		// Endpoint Spec
+		if (formData.endpointSpec.mode || formData.endpointSpec.ports.length > 0) {
+			result.endpointSpecSwarm = {
+				...(formData.endpointSpec.mode && { Mode: formData.endpointSpec.mode }),
+				...(formData.endpointSpec.ports.length > 0 && {
+					Ports: formData.endpointSpec.ports.map((port) => ({
+						...(port.protocol && { Protocol: port.protocol }),
+						...(port.targetPort !== undefined && {
+							TargetPort: port.targetPort,
+						}),
+						...(port.publishedPort !== undefined && {
+							PublishedPort: port.publishedPort,
+						}),
+						...(port.publishMode && { PublishMode: port.publishMode }),
+					})),
+				}),
+			};
+		}
+
 		return result;
 	};
 
@@ -1455,6 +1661,21 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 						}))
 					: [],
 			},
+			endpointSpec: {
+				mode: apiData.endpointSpecSwarm?.Mode,
+				ports:
+					apiData.endpointSpecSwarm?.Ports?.map((p: any) => ({
+						protocol: p.Protocol,
+						targetPort: p.TargetPort,
+						publishedPort: p.PublishedPort,
+						publishMode: p.PublishMode,
+					})) || [],
+			},
+			stopGracePeriod: {
+				Seconds: apiData.stopGracePeriodSwarm
+					? Number(apiData.stopGracePeriodSwarm)
+					: undefined,
+			},
 		};
 	};
 
@@ -1516,7 +1737,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 						className="mt-4"
 					>
 						<Tabs defaultValue="health-check" className="w-full">
-							<TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+							<TabsList className="grid w-full grid-cols-4 lg:grid-cols-9">
 								<TabsTrigger value="health-check">Health Check</TabsTrigger>
 								<TabsTrigger value="restart-policy">Restart Policy</TabsTrigger>
 								<TabsTrigger value="placement">Placement</TabsTrigger>
@@ -1527,6 +1748,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								<TabsTrigger value="mode">Service Mode</TabsTrigger>
 								<TabsTrigger value="network">Network</TabsTrigger>
 								<TabsTrigger value="labels">Labels</TabsTrigger>
+								<TabsTrigger value="endpoint-spec">Endpoint Spec</TabsTrigger>
 							</TabsList>
 
 							<TabsContent value="health-check" className="space-y-4">
@@ -1638,6 +1860,21 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 										</FormDescription>
 									</div>
 									<LabelsForm form={form} />
+								</div>
+							</TabsContent>
+
+							<TabsContent value="endpoint-spec" className="space-y-4">
+								<div className="space-y-4 p-4 border rounded-lg">
+									<div className="space-y-1">
+										<FormLabel className="text-base font-medium">
+											Endpoint Spec
+										</FormLabel>
+										<FormDescription>
+											Configure endpoint specifications and port mappings for
+											the service
+										</FormDescription>
+									</div>
+									<EndpointSpecForm form={form} />
 								</div>
 							</TabsContent>
 						</Tabs>
