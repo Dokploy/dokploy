@@ -116,7 +116,6 @@ export default async function handler(
 				});
 				return;
 			}
-			console.log("[END] Docker Deploy Validation");
 		} else if (sourceType === "github") {
 			const normalizedCommits = req.body?.commits?.flatMap(
 				(commit: any) => commit.modified,
