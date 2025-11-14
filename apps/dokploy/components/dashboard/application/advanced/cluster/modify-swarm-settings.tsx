@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Settings, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -1083,7 +1084,12 @@ const EndpointSpecForm = ({ form }: { form: any }) => {
 					<FormItem>
 						<FormLabel>Mode</FormLabel>
 						<FormControl>
-							<Input placeholder="e.g., vip, dnsrr" {...field} />
+							<Input
+								placeholder="e.g., vip, dnsrr"
+								{...field}
+								value={field.value || ""}
+								onChange={(e) => field.onChange(e.target.value || undefined)}
+							/>
 						</FormControl>
 						<FormDescription>
 							Endpoint mode (vip for virtual IP, dnsrr for DNS round-robin)
@@ -1332,60 +1338,67 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
-	const form = useForm<SwarmSettingsForm>({
-		defaultValues: {
-			healthCheck: {
-				test: [],
-				interval: undefined,
-				timeout: undefined,
-				startPeriod: undefined,
-				retries: undefined,
-			},
-			restartPolicy: {
-				condition: undefined,
-				delay: undefined,
-				maxAttempts: undefined,
-				window: undefined,
-			},
-			placement: {
-				constraints: [],
-				preferences: [],
-				maxReplicas: undefined,
-				platforms: [],
-			},
-			updateConfig: {
-				parallelism: 1,
-				delay: undefined,
-				failureAction: undefined,
-				monitor: undefined,
-				maxFailureRatio: undefined,
-				order: "start-first",
-			},
-			rollbackConfig: {
-				parallelism: 1,
-				delay: undefined,
-				failureAction: undefined,
-				monitor: undefined,
-				maxFailureRatio: undefined,
-				order: "start-first",
-			},
-			mode: {
-				mode: "replicated",
-				replicas: undefined,
-				maxConcurrent: undefined,
-				totalCompletions: undefined,
-			},
-			network: {
-				networks: [],
-			},
-			labels: {
-				labels: [],
-			},
-			endpointSpec: {
-				mode: undefined,
-				ports: [],
-			},
+	const [isClearing, setIsClearing] = useState(false);
+
+	const defaultValues: SwarmSettingsForm = {
+		healthCheck: {
+			test: [],
+			interval: undefined,
+			timeout: undefined,
+			startPeriod: undefined,
+			retries: undefined,
 		},
+		restartPolicy: {
+			condition: undefined,
+			delay: undefined,
+			maxAttempts: undefined,
+			window: undefined,
+		},
+		placement: {
+			constraints: [],
+			preferences: [],
+			maxReplicas: undefined,
+			platforms: [],
+		},
+		updateConfig: {
+			parallelism: 1,
+			delay: undefined,
+			failureAction: undefined,
+			monitor: undefined,
+			maxFailureRatio: undefined,
+			order: "start-first",
+		},
+		rollbackConfig: {
+			parallelism: 1,
+			delay: undefined,
+			failureAction: undefined,
+			monitor: undefined,
+			maxFailureRatio: undefined,
+			order: "start-first",
+		},
+		mode: {
+			mode: "replicated",
+			replicas: undefined,
+			maxConcurrent: undefined,
+			totalCompletions: undefined,
+		},
+		network: {
+			networks: [],
+		},
+		labels: {
+			labels: [],
+		},
+		endpointSpec: {
+			mode: undefined,
+			ports: [],
+		},
+		stopGracePeriod: {
+			Seconds: undefined,
+		},
+	};
+
+	const form = useForm<SwarmSettingsForm>({
+		defaultValues,
 		resolver: zodResolver(SwarmSettingsFormSchema),
 	});
 
@@ -1662,7 +1675,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 					: [],
 			},
 			endpointSpec: {
-				mode: apiData.endpointSpecSwarm?.Mode,
+				mode: apiData.endpointSpecSwarm?.Mode || undefined,
 				ports:
 					apiData.endpointSpecSwarm?.Ports?.map((p: any) => ({
 						protocol: p.Protocol,
@@ -1684,7 +1697,10 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			const formData = convertApiToFormFormat(data);
 			form.reset(formData);
 		}
-	}, [form, data]);
+	}, [form, data, form.reset]);
+
+	console.log(form.formState.errors);
+	console.log(form.getValues());
 
 	const onSubmit = async (formData: SwarmSettingsForm) => {
 		const apiData = convertFormToApiFormat(formData);
@@ -1705,6 +1721,58 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			.catch(() => {
 				toast.error("Error updating the swarm settings");
 			});
+	};
+
+	const handleClearSettings = async () => {
+		setIsClearing(true);
+		const clearData = {
+			healthCheckSwarm: null,
+			restartPolicySwarm: null,
+			placementSwarm: null,
+			updateConfigSwarm: null,
+			rollbackConfigSwarm: null,
+			modeSwarm: null,
+			networkSwarm: null,
+			labelsSwarm: null,
+			endpointSpecSwarm: null,
+			stopGracePeriodSwarm: null,
+		};
+
+		try {
+			await mutateAsync({
+				applicationId: id || "",
+				postgresId: id || "",
+				redisId: id || "",
+				mysqlId: id || "",
+				mariadbId: id || "",
+				mongoId: id || "",
+				...clearData,
+			});
+
+			// Reset form immediately with default values
+			form.reset(defaultValues);
+
+			// Refetch to update the data state
+			const result = await refetch();
+
+			// Force reset again after refetch to ensure UI is cleared
+			// This handles the case where the input might retain the old value
+			if (result.data) {
+				const formData = convertApiToFormFormat(result.data);
+				form.reset(formData);
+			} else {
+				form.reset(defaultValues);
+			}
+
+			// Additional reset after a small delay to ensure input fields are cleared
+			setTimeout(() => {
+				form.reset(defaultValues);
+			}, 50);
+		} catch (error) {
+			toast.error("Error clearing the swarm settings");
+		} finally {
+			setIsClearing(false);
+		}
 	};
 	return (
 		<Dialog>
@@ -1879,11 +1947,28 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							</TabsContent>
 						</Tabs>
 
-						<DialogFooter className="flex w-full flex-row justify-end">
+						<DialogFooter className="flex w-full flex-row justify-between">
+							<DialogAction
+								title="Clear All Swarm Settings?"
+								description="This action will permanently clear all Swarm settings from the database. All fields including health checks, restart policies, placement, update configs, rollback configs, service mode, networks, labels, endpoint specifications, and stop grace period will be removed."
+								onClick={handleClearSettings}
+								disabled={isLoading || isClearing}
+								type="destructive"
+							>
+								<Button
+									type="button"
+									variant="outline"
+									isLoading={isClearing}
+									disabled={isLoading || isClearing}
+								>
+									Clear Settings
+								</Button>
+							</DialogAction>
 							<Button
 								isLoading={isLoading}
 								form="swarm-settings-form"
 								type="submit"
+								disabled={isClearing}
 							>
 								Update Settings
 							</Button>
