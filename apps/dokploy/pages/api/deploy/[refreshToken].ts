@@ -12,6 +12,17 @@ import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
 
+/**
+ * Helper function to get package_version from registry_package events
+ */
+const getPackageVersion = (headers: any, body: any) => {
+	const event = headers["x-github-event"];
+	if (event === "registry_package") {
+		return body.registry_package?.package_version;
+	}
+	return null;
+};
+
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
@@ -46,28 +57,66 @@ export default async function handler(
 		}
 
 		const deploymentTitle = extractCommitMessage(req.headers, req.body);
-		const deploymentHash = extractHash(req.headers, req.body);
 
+		const deploymentHash = extractHash(req.headers, req.body);
 		const sourceType = application.sourceType;
 
 		if (sourceType === "docker") {
+			const applicationImageName = extractImageName(application.dockerImage);
 			const applicationDockerTag = extractImageTag(application.dockerImage);
-			const webhookDockerTags = extractImageTagFromRequest(
+
+			const webhookImageName = extractImageNameFromRequest(
 				req.headers,
 				req.body,
 			);
-			const isMismatch =
-				applicationDockerTag &&
-				webhookDockerTags &&
-				webhookDockerTags.length > 0 &&
-				!webhookDockerTags.includes(applicationDockerTag);
+			const webhookDockerTag = extractImageTagFromRequest(
+				req.headers,
+				req.body,
+			);
 
-			if (isMismatch) {
+			if (!applicationImageName) {
 				res.status(301).json({
-					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag(s) (${webhookDockerTags.join(", ")}).`,
+					message: "Application Docker Image Name Not Found",
 				});
 				return;
 			}
+
+			if (!webhookImageName) {
+				res.status(301).json({
+					message: "Webhook Docker Image Name Not Found",
+				});
+				return;
+			}
+
+			// Validate image name matches
+			if (webhookImageName !== applicationImageName) {
+				res.status(301).json({
+					message: `Application Image Name (${applicationImageName}) doesn't match request event payload Image Name (${webhookImageName}).`,
+				});
+				return;
+			}
+
+			if (!applicationDockerTag) {
+				res.status(301).json({
+					message: "Application Docker Tag Not Found",
+				});
+				return;
+			}
+
+			if (!webhookDockerTag) {
+				res.status(301).json({
+					message: "Webhook Docker Tag Not Found",
+				});
+				return;
+			}
+
+			if (webhookDockerTag !== applicationDockerTag) {
+				res.status(301).json({
+					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
+				});
+				return;
+			}
+			console.log("[END] Docker Deploy Validation");
 		} else if (sourceType === "github") {
 			const normalizedCommits = req.body?.commits?.flatMap(
 				(commit: any) => commit.modified,
@@ -225,6 +274,39 @@ export default async function handler(
 }
 
 /**
+ * Return the image name without the tag
+ * Example: "my-image" => "my-image"
+ * Example: "my-image:latest" => "my-image"
+ * Example: "my-image:1.0.0" => "my-image"
+ * Example: "myregistryhost:5000/fedora/httpd:version1.0" => "myregistryhost:5000/fedora/httpd"
+ * @link https://docs.docker.com/reference/cli/docker/image/tag/
+ */
+export function extractImageName(dockerImage: string | null): string | null {
+	if (!dockerImage || typeof dockerImage !== "string") {
+		return null;
+	}
+
+	// Handle case where there's no tag (no colon or colon is part of port number)
+	const lastColonIndex = dockerImage.lastIndexOf(":");
+	if (lastColonIndex === -1) {
+		return dockerImage;
+	}
+
+	// Check if the part after the last colon looks like a tag (not a port number)
+	// Port numbers are typically 1-5 digits, tags are usually longer or contain letters
+	const afterColon = dockerImage.substring(lastColonIndex + 1);
+	const isPortNumber = /^\d{1,5}$/.test(afterColon);
+
+	// If it's a port number (like registry:5000/image), don't split
+	if (isPortNumber) {
+		return dockerImage;
+	}
+
+	// Otherwise, split at the last colon to get image name
+	return dockerImage.substring(0, lastColonIndex);
+}
+
+/**
  * Return the last part of the image name, which is the tag
  * Example: "my-image" => null
  * Example: "my-image:latest" => "latest"
@@ -232,7 +314,7 @@ export default async function handler(
  * Example: "myregistryhost:5000/fedora/httpd:version1.0" => "version1.0"
  * @link https://docs.docker.com/reference/cli/docker/image/tag/
  */
-function extractImageTag(dockerImage: string | null) {
+export function extractImageTag(dockerImage: string | null) {
 	if (!dockerImage || typeof dockerImage !== "string") {
 		return null;
 	}
@@ -242,49 +324,99 @@ function extractImageTag(dockerImage: string | null) {
 }
 
 /**
+ * Extract the image name (without tag) from webhook request
  * @link https://docs.docker.com/docker-hub/webhooks/#example-webhook-payload
+ * @link https://docs.github.com/en/webhooks/webhook-events-and-payloads#registry_package
+ */
+export const extractImageNameFromRequest = (
+	headers: any,
+	body: any,
+): string | null => {
+	// GitHub Packages: registry_package events (container registry)
+	const packageVersion = getPackageVersion(headers, body);
+	if (packageVersion?.package_url) {
+		const packageUrl = packageVersion.package_url;
+		// Remove tag if present (everything after the last colon)
+		if (packageUrl.includes(":")) {
+			const lastColonIndex = packageUrl.lastIndexOf(":");
+			// Check if it's a port number (like registry:5000/image)
+			const afterColon = packageUrl.substring(lastColonIndex + 1);
+			const isPortNumber = /^\d{1,5}$/.test(afterColon);
+			if (isPortNumber) {
+				return packageUrl;
+			}
+			return packageUrl.substring(0, lastColonIndex);
+		}
+		return packageUrl;
+	}
+
+	// Docker Hub
+	if (headers["user-agent"]?.includes("Go-http-client")) {
+		if (body.repository) {
+			const repoName = body.repository.repo_name;
+			return `${repoName}`;
+		}
+	}
+	return null;
+};
+
+/**
+ * @link https://docs.docker.com/docker-hub/webhooks/#example-webhook-payload
+ * @link https://docs.github.com/en/webhooks/webhook-events-and-payloads#registry_package
  */
 export const extractImageTagFromRequest = (
 	headers: any,
 	body: any,
-): string[] | null => {
-	if (headers["user-agent"]?.includes("Go-http-client")) {
-		if (body.push_data && body.repository) {
-			return [body.push_data.tag] as string[];
+): string | null => {
+	// GitHub Packages: registry_package events (container registry)
+	const packageVersion = getPackageVersion(headers, body);
+	if (packageVersion) {
+		// Try to get tag from container_metadata first (most reliable)
+		// Only use it if it's not empty and not the same as the version (digest)
+		const tagName = packageVersion.container_metadata?.tag?.name?.trim() || "";
+		if (
+			tagName &&
+			tagName !== packageVersion.version &&
+			!tagName.startsWith("sha256:")
+		) {
+			return tagName;
+		}
+		// Fallback: extract tag from package_url (e.g., "ghcr.io/owner/repo:tag")
+		if (packageVersion.package_url) {
+			const packageUrl = packageVersion.package_url;
+			// Handle case where package_url ends with colon (no tag)
+			if (packageUrl.endsWith(":")) {
+				return null;
+			}
+			const tagMatch = packageUrl.match(/:([^:]+)$/);
+			if (tagMatch?.[1]?.trim()) {
+				return tagMatch[1].trim();
+			}
 		}
 	}
-	// GitHub Packages: package or registry_package events (container tags)
-	// See: https://docs.github.com/en/webhooks/webhook-events-and-payloads#package
-	const githubEvent = headers["x-github-event"];
 
-	if (githubEvent === "package" || githubEvent === "registry_package") {
-		const pkg = body?.package ?? body?.registry_package?.package ?? null;
-		const packageVersion =
-			body?.package_version ?? body?.registry_package?.package_version ?? null;
-		const packageType = pkg?.package_type;
-
-		if (packageType === "container" && packageVersion) {
-			const tags =
-				packageVersion?.metadata?.container?.tags ??
-				packageVersion?.container?.tags ??
-				null;
-			if (Array.isArray(tags) && tags.length > 0) {
-				return tags as string[];
-			}
-			const singleTag =
-				packageVersion?.metadata?.container?.tag ??
-				packageVersion?.metadata?.tag ??
-				packageVersion?.tag ??
-				null;
-			if (typeof singleTag === "string") {
-				return [singleTag] as string[];
-			}
+	// Docker Hub
+	if (headers["user-agent"]?.includes("Go-http-client")) {
+		if (body.push_data && body.repository) {
+			return body.push_data.tag;
 		}
 	}
 	return null;
 };
 
 export const extractCommitMessage = (headers: any, body: any) => {
+	// GitHub Packages: registry_package events (container tags)
+	const githubEvent = headers["x-github-event"];
+	if (githubEvent === "registry_package") {
+		const packageVersion = getPackageVersion(headers, body);
+		if (packageVersion) {
+			if (packageVersion.package_url) {
+				return `Docker GHCR image pushed: ${packageVersion.package_url}`;
+			}
+			return "Docker GHCR image pushed";
+		}
+		// If package_version is missing, fall through to default behavior
+	}
 	// GitHub
 	if (headers["x-github-event"]) {
 		return body.head_commit ? body.head_commit.message : "NEW COMMIT";
@@ -313,7 +445,7 @@ export const extractCommitMessage = (headers: any, body: any) => {
 
 	if (headers["user-agent"]?.includes("Go-http-client")) {
 		if (body.push_data && body.repository) {
-			return `Docker image pushed: ${body.repository.repo_name}:${body.push_data.tag} by ${body.push_data.pusher}`;
+			return `DockerHub image pushed: ${body.repository.repo_name}:${body.push_data.tag} by ${body.push_data.pusher}`;
 		}
 	}
 
