@@ -64,11 +64,11 @@ const AddTemplateSchema = z.object({
 type AddTemplate = z.infer<typeof AddTemplateSchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddApplication = ({ projectId, projectName }: Props) => {
+export const AddApplication = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const [visible, setVisible] = useState(false);
@@ -76,6 +76,10 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 	const { data: servers } = api.server.withSSHKey.useQuery();
 
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const { mutateAsync, isLoading, error, isError } =
 		api.application.create.useMutation();
@@ -94,15 +98,15 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 			name: data.name,
 			appName: data.appName,
 			description: data.description,
-			projectId,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+			environmentId,
 		})
 			.then(async () => {
 				toast.success("Service Created");
 				form.reset();
 				setVisible(false);
-				await utils.project.one.invalidate({
-					projectId,
+				await utils.environment.one.invalidate({
+					environmentId,
 				});
 			})
 			.catch(() => {
@@ -157,7 +161,7 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 								</FormItem>
 							)}
 						/>
-						{hasServers && (
+						{shouldShowServerDropdown && (
 							<FormField
 								control={form.control}
 								name="serverId"
@@ -186,13 +190,27 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 
 										<Select
 											onValueChange={field.onChange}
-											defaultValue={field.value}
+											defaultValue={
+												field.value || (!isCloud ? "dokploy" : undefined)
+											}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Server" />
+												<SelectValue
+													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
+													{!isCloud && (
+														<SelectItem value="dokploy">
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>Dokploy</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	Default
+																</span>
+															</span>
+														</SelectItem>
+													)}
 													{servers?.map((server) => (
 														<SelectItem
 															key={server.serverId}
@@ -206,7 +224,9 @@ export const AddApplication = ({ projectId, projectName }: Props) => {
 															</span>
 														</SelectItem>
 													))}
-													<SelectLabel>Servers ({servers?.length})</SelectLabel>
+													<SelectLabel>
+														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>

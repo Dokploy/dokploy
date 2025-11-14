@@ -25,6 +25,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Tooltip,
 	TooltipContent,
@@ -121,6 +122,22 @@ const NetworkSwarmSchema = z.array(
 
 const LabelsSwarmSchema = z.record(z.string());
 
+const EndpointPortConfigSwarmSchema = z
+	.object({
+		Protocol: z.string().optional(),
+		TargetPort: z.number().optional(),
+		PublishedPort: z.number().optional(),
+		PublishMode: z.string().optional(),
+	})
+	.strict();
+
+const EndpointSpecSwarmSchema = z
+	.object({
+		Mode: z.string().optional(),
+		Ports: z.array(EndpointPortConfigSwarmSchema).optional(),
+	})
+	.strict();
+
 const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
 	return z
 		.string()
@@ -176,9 +193,20 @@ const addSwarmSettings = z.object({
 	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
 	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
 	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: createStringToJSONSchema(
+		EndpointSpecSwarmSchema,
+	).nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
+
+const hasStopGracePeriodSwarm = (
+	value: unknown,
+): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
+	typeof value === "object" &&
+	value !== null &&
+	"stopGracePeriodSwarm" in value;
 
 interface Props {
 	id: string;
@@ -224,12 +252,23 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			modeSwarm: null,
 			labelsSwarm: null,
 			networkSwarm: null,
+			stopGracePeriodSwarm: null,
+			endpointSpecSwarm: null,
 		},
 		resolver: zodResolver(addSwarmSettings),
 	});
 
 	useEffect(() => {
 		if (data) {
+			const stopGracePeriodValue = hasStopGracePeriodSwarm(data)
+				? data.stopGracePeriodSwarm
+				: null;
+			const normalizedStopGracePeriod =
+				stopGracePeriodValue === null || stopGracePeriodValue === undefined
+					? null
+					: typeof stopGracePeriodValue === "bigint"
+						? stopGracePeriodValue
+						: BigInt(stopGracePeriodValue);
 			form.reset({
 				healthCheckSwarm: data.healthCheckSwarm
 					? JSON.stringify(data.healthCheckSwarm, null, 2)
@@ -255,6 +294,10 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 				networkSwarm: data.networkSwarm
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
+				stopGracePeriodSwarm: normalizedStopGracePeriod,
+				endpointSpecSwarm: data.endpointSpecSwarm
+					? JSON.stringify(data.endpointSpecSwarm, null, 2)
+					: null,
 			});
 		}
 	}, [form, form.reset, data]);
@@ -275,6 +318,8 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			modeSwarm: data.modeSwarm,
 			labelsSwarm: data.labelsSwarm,
 			networkSwarm: data.networkSwarm,
+			stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
+			endpointSpecSwarm: data.endpointSpecSwarm,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -352,9 +397,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
-	"Interval" : 10000,
-	"Timeout" : 10000,
-	"StartPeriod" : 10000,
+	"Interval" : 10000000000,
+	"Timeout" : 10000000000,
+	"StartPeriod" : 10000000000,
 	"Retries" : 10
 }`}
 											className="h-[12rem] font-mono"
@@ -407,9 +452,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Condition" : "on-failure",
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"MaxAttempts" : 10,
-	"Window" : 10000
+	"Window" : 10000000000
 }                                                  `}
 											className="h-[12rem] font-mono"
 											{...field}
@@ -529,9 +574,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"FailureAction" : "continue",
-	"Monitor" : 10000,
+	"Monitor" : 10000000000,
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
@@ -587,9 +632,9 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"FailureAction" : "continue",
-	"Monitor" : 10000,
+	"Monitor" : 10000000000,
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
@@ -774,7 +819,118 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								</FormItem>
 							)}
 						/>
+						<FormField
+							control={form.control}
+							name="stopGracePeriodSwarm"
+							render={({ field }) => (
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+									<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Duration in nanoseconds
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`Enter duration in nanoseconds:
+														• 30000000000 - 30 seconds
+														• 120000000000 - 2 minutes  
+														• 3600000000000 - 1 hour
+														• 0 - no grace period`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+									<FormControl>
+										<Input
+											type="number"
+											placeholder="30000000000"
+											className="font-mono"
+											{...field}
+											value={field?.value?.toString() || ""}
+											onChange={(e) =>
+												field.onChange(
+													e.target.value ? BigInt(e.target.value) : null,
+												)
+											}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="endpointSpecSwarm"
+							render={({ field }) => (
+								<FormItem className="relative ">
+									<FormLabel>Endpoint Spec</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Mode?: string | undefined;
+	Ports?: Array<{
+		Protocol?: string | undefined;
+		TargetPort?: number | undefined;
+		PublishedPort?: number | undefined;
+		PublishMode?: string | undefined;
+	}> | undefined;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
 
+									<FormControl>
+										<CodeEditor
+											language="json"
+											placeholder={`{
+	"Mode": "dnsrr",
+	"Ports": [
+		{
+			"Protocol": "tcp",
+			"TargetPort": 5432,
+			"PublishedPort": 5432,
+			"PublishMode": "host"
+		}
+	]
+}`}
+											className="h-[17rem] font-mono"
+											{...field}
+											value={field?.value || ""}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
 						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
 								isLoading={isLoading}

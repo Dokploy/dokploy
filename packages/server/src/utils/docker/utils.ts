@@ -259,21 +259,44 @@ export const removeService = async (
 export const prepareEnvironmentVariables = (
 	serviceEnv: string | null,
 	projectEnv?: string | null,
+	environmentEnv?: string | null,
 ) => {
 	const projectVars = parse(projectEnv ?? "");
+	const environmentVars = parse(environmentEnv ?? "");
 	const serviceVars = parse(serviceEnv ?? "");
 
 	const resolvedVars = Object.entries(serviceVars).map(([key, value]) => {
 		let resolvedValue = value;
+
+		// Replace project variables
 		if (projectVars) {
-			resolvedValue = value.replace(/\$\{\{project\.(.*?)\}\}/g, (_, ref) => {
-				if (projectVars[ref] !== undefined) {
-					return projectVars[ref];
-				}
-				throw new Error(`Invalid project environment variable: project.${ref}`);
-			});
+			resolvedValue = resolvedValue.replace(
+				/\$\{\{project\.(.*?)\}\}/g,
+				(_, ref) => {
+					if (projectVars[ref] !== undefined) {
+						return projectVars[ref];
+					}
+					throw new Error(
+						`Invalid project environment variable: project.${ref}`,
+					);
+				},
+			);
 		}
 
+		// Replace environment variables
+		if (environmentVars) {
+			resolvedValue = resolvedValue.replace(
+				/\$\{\{environment\.(.*?)\}\}/g,
+				(_, ref) => {
+					if (environmentVars[ref] !== undefined) {
+						return environmentVars[ref];
+					}
+					throw new Error(`Invalid environment variable: environment.${ref}`);
+				},
+			);
+		}
+
+		// Replace self-references (service variables)
 		resolvedValue = resolvedValue.replace(/\$\{\{(.*?)\}\}/g, (_, ref) => {
 			if (serviceVars[ref] !== undefined) {
 				return serviceVars[ref];
@@ -301,8 +324,9 @@ export const parseEnvironmentKeyValuePair = (
 export const getEnviromentVariablesObject = (
 	input: string | null,
 	projectEnv?: string | null,
+	environmentEnv?: string | null,
 ) => {
-	const envs = prepareEnvironmentVariables(input, projectEnv);
+	const envs = prepareEnvironmentVariables(input, projectEnv, environmentEnv);
 
 	const jsonObject: Record<string, string> = {};
 
@@ -370,7 +394,14 @@ export const generateConfigContainer = (
 		replicas,
 		mounts,
 		networkSwarm,
+		stopGracePeriodSwarm,
+		endpointSpecSwarm,
 	} = application;
+
+	const sanitizedStopGracePeriodSwarm =
+		typeof stopGracePeriodSwarm === "bigint"
+			? Number(stopGracePeriodSwarm)
+			: stopGracePeriodSwarm;
 
 	const haveMounts = mounts && mounts.length > 0;
 
@@ -378,11 +409,9 @@ export const generateConfigContainer = (
 		...(healthCheckSwarm && {
 			HealthCheck: healthCheckSwarm,
 		}),
-		...(restartPolicySwarm
-			? {
-					RestartPolicy: restartPolicySwarm,
-				}
-			: {}),
+		...(restartPolicySwarm && {
+			RestartPolicy: restartPolicySwarm,
+		}),
 		...(placementSwarm
 			? {
 					Placement: placementSwarm,
@@ -420,6 +449,10 @@ export const generateConfigContainer = (
 						Order: "start-first",
 					},
 				}),
+		...(sanitizedStopGracePeriodSwarm !== null &&
+			sanitizedStopGracePeriodSwarm !== undefined && {
+				StopGracePeriod: sanitizedStopGracePeriodSwarm,
+			}),
 		...(networkSwarm
 			? {
 					Networks: networkSwarm,
@@ -427,6 +460,18 @@ export const generateConfigContainer = (
 			: {
 					Networks: [{ Target: "dokploy-network" }],
 				}),
+		...(endpointSpecSwarm && {
+			EndpointSpec: {
+				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
+				Ports:
+					endpointSpecSwarm.Ports?.map((port) => ({
+						Protocol: (port.Protocol || "tcp") as "tcp" | "udp" | "sctp",
+						TargetPort: port.TargetPort || 0,
+						PublishedPort: port.PublishedPort || 0,
+						PublishMode: (port.PublishMode || "host") as "ingress" | "host",
+					})) || [],
+			},
+		}),
 	};
 };
 

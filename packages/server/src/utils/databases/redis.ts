@@ -12,7 +12,7 @@ import { getRemoteDocker } from "../servers/remote-docker";
 
 export type RedisNested = InferResultType<
 	"redis",
-	{ mounts: true; project: true }
+	{ mounts: true; environment: { with: { project: true } } }
 >;
 export const buildRedis = async (redis: RedisNested) => {
 	const {
@@ -42,6 +42,8 @@ export const buildRedis = async (redis: RedisNested) => {
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(redis);
 	const resources = calculateResources({
 		memoryLimit,
@@ -51,7 +53,8 @@ export const buildRedis = async (redis: RedisNested) => {
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultRedisEnv,
-		redis.project.env,
+		redis.environment.project.env,
+		redis.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
@@ -83,20 +86,24 @@ export const buildRedis = async (redis: RedisNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 6379,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 6379,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {

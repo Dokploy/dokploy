@@ -11,7 +11,24 @@
 </div>
 <br />
 
+
+
+<div align="center" markdown="1">
+   <sup>Special thanks to:</sup>
+   <br>
+   <br>
+   <a href="https://tuple.app/dokploy">
+     <img src=".github/sponsors/tuple.png" alt="Tuple's sponsorship image" width="400"/>
+   </a>
+
+### [Tuple, the premier screen sharing app for developers](https://tuple.app/dokploy)
+[Available for MacOS & Windows](https://tuple.app/dokploy)<br>
+
+</div>
+
+
 Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
+
 
 ## ✨ Features
 
@@ -60,6 +77,10 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
 <div>
   <a href="https://www.hostinger.com/vps-hosting?ref=dokploy"><img src=".github/sponsors/hostinger.jpg" alt="Hostinger" width="300"/></a>
   <a href="https://www.lxaer.com/?ref=dokploy"><img src=".github/sponsors/lxaer.png" alt="LX Aer" width="100"/></a>
+        <a href="https://www.lambdatest.com/?utm_source=dokploy&utm_medium=sponsor" target="_blank">
+            <img src="https://www.lambdatest.com/blue-logo.png"  width="450" height="100" />
+        </a>
+
 </div>
 
 <!-- Premium Supporters 🥇 -->

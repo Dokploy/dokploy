@@ -1,35 +1,16 @@
 import fs, { existsSync, readFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
-import { dump, load } from "js-yaml";
+import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
-import {
-	cloneRawBitbucketRepository,
-	cloneRawBitbucketRepositoryRemote,
-} from "../providers/bitbucket";
-import {
-	cloneGitRawRepository,
-	cloneRawGitRepositoryRemote,
-} from "../providers/git";
-import {
-	cloneRawGiteaRepository,
-	cloneRawGiteaRepositoryRemote,
-} from "../providers/gitea";
-import {
-	cloneRawGithubRepository,
-	cloneRawGithubRepositoryRemote,
-} from "../providers/github";
-import {
-	cloneRawGitlabRepository,
-	cloneRawGitlabRepositoryRemote,
-} from "../providers/gitlab";
-import {
-	createComposeFileRaw,
-	createComposeFileRawRemote,
-} from "../providers/raw";
+import { cloneBitbucketRepository } from "../providers/bitbucket";
+import { cloneGitRepository } from "../providers/git";
+import { cloneGiteaRepository } from "../providers/gitea";
+import { cloneGithubRepository } from "../providers/github";
+import { cloneGitlabRepository } from "../providers/gitlab";
+import { getCreateComposeFileCommand } from "../providers/raw";
 import { randomizeDeployableSpecificationFile } from "./collision";
 import { randomizeSpecificationFile } from "./compose";
 import type {
@@ -40,35 +21,25 @@ import type {
 import { encodeBase64 } from "./utils";
 
 export const cloneCompose = async (compose: Compose) => {
+	let command = "set -e;";
+	const entity = {
+		...compose,
+		type: "compose" as const,
+	};
 	if (compose.sourceType === "github") {
-		await cloneRawGithubRepository(compose);
+		command += await cloneGithubRepository(entity);
 	} else if (compose.sourceType === "gitlab") {
-		await cloneRawGitlabRepository(compose);
+		command += await cloneGitlabRepository(entity);
 	} else if (compose.sourceType === "bitbucket") {
-		await cloneRawBitbucketRepository(compose);
+		command += await cloneBitbucketRepository(entity);
 	} else if (compose.sourceType === "git") {
-		await cloneGitRawRepository(compose);
+		command += await cloneGitRepository(entity);
 	} else if (compose.sourceType === "gitea") {
-		await cloneRawGiteaRepository(compose);
+		command += await cloneGiteaRepository(entity);
 	} else if (compose.sourceType === "raw") {
-		await createComposeFileRaw(compose);
+		command += getCreateComposeFileCommand(compose);
 	}
-};
-
-export const cloneComposeRemote = async (compose: Compose) => {
-	if (compose.sourceType === "github") {
-		await cloneRawGithubRepositoryRemote(compose);
-	} else if (compose.sourceType === "gitlab") {
-		await cloneRawGitlabRepositoryRemote(compose);
-	} else if (compose.sourceType === "bitbucket") {
-		await cloneRawBitbucketRepositoryRemote(compose);
-	} else if (compose.sourceType === "git") {
-		await cloneRawGitRepositoryRemote(compose);
-	} else if (compose.sourceType === "gitea") {
-		await cloneRawGiteaRepositoryRemote(compose);
-	} else if (compose.sourceType === "raw") {
-		await createComposeFileRawRemote(compose);
-	}
+	return command;
 };
 
 export const getComposePath = (compose: Compose) => {
@@ -92,7 +63,7 @@ export const loadDockerCompose = async (
 
 	if (existsSync(path)) {
 		const yamlStr = readFileSync(path, "utf8");
-		const parsedConfig = load(yamlStr) as ComposeSpecification;
+		const parsedConfig = parse(yamlStr) as ComposeSpecification;
 		return parsedConfig;
 	}
 	return null;
@@ -115,7 +86,7 @@ export const loadDockerComposeRemote = async (
 			return null;
 		}
 		if (!stdout) return null;
-		const parsedConfig = load(stdout) as ComposeSpecification;
+		const parsedConfig = parse(stdout) as ComposeSpecification;
 		return parsedConfig;
 	} catch {
 		return null;
@@ -131,28 +102,9 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
-export const writeDomainsToCompose = async (
-	compose: Compose,
-	domains: Domain[],
-) => {
-	if (!domains.length) {
-		return;
-	}
-	const composeConverted = await addDomainToCompose(compose, domains);
-
-	const path = getComposePath(compose);
-	const composeString = dump(composeConverted, { lineWidth: 1000 });
-	try {
-		await writeFile(path, composeString, "utf8");
-	} catch (error) {
-		throw error;
-	}
-};
-
 export const writeDomainsToComposeRemote = async (
 	compose: Compose,
 	domains: Domain[],
-	logPath: string,
 ) => {
 	if (!domains.length) {
 		return "";
@@ -164,23 +116,22 @@ export const writeDomainsToComposeRemote = async (
 
 		if (!composeConverted) {
 			return `
-echo "❌ Error: Compose file not found" >> ${logPath};
+echo "❌ Error: Compose file not found";
 exit 1;
 			`;
 		}
 		if (compose.serverId) {
-			const composeString = dump(composeConverted, { lineWidth: 1000 });
+			const composeString = stringify(composeConverted, { lineWidth: 1000 });
 			const encodedContent = encodeBase64(composeString);
 			return `echo "${encodedContent}" | base64 -d > "${path}";`;
 		}
 	} catch (error) {
 		// @ts-ignore
-		return `echo "❌ Has occured an error: ${error?.message || error}" >> ${logPath};
+		return `echo "❌ Has occured an error: ${error?.message || error}";
 exit 1;
 		`;
 	}
 };
-// (node:59875) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. Use emitter.setMaxListeners() to increase limit
 export const addDomainToCompose = async (
 	compose: Compose,
 	domains: Domain[],
@@ -190,7 +141,7 @@ export const addDomainToCompose = async (
 	let result: ComposeSpecification | null;
 
 	if (compose.serverId) {
-		result = await loadDockerComposeRemote(compose); // aca hay que ir al servidor e ir a traer el compose file al servidor
+		result = await loadDockerComposeRemote(compose);
 	} else {
 		result = await loadDockerCompose(compose);
 	}
@@ -251,11 +202,15 @@ export const addDomainToCompose = async (
 			}
 			labels.unshift(...httpLabels);
 			if (!compose.isolatedDeployment) {
-				if (!labels.includes("traefik.docker.network=dokploy-network")) {
-					labels.unshift("traefik.docker.network=dokploy-network");
-				}
-				if (!labels.includes("traefik.swarm.network=dokploy-network")) {
-					labels.unshift("traefik.swarm.network=dokploy-network");
+				if (compose.composeType === "docker-compose") {
+					if (!labels.includes("traefik.docker.network=dokploy-network")) {
+						labels.unshift("traefik.docker.network=dokploy-network");
+					}
+				} else {
+					// Stack Case
+					if (!labels.includes("traefik.swarm.network=dokploy-network")) {
+						labels.unshift("traefik.swarm.network=dokploy-network");
+					}
 				}
 			}
 		}
@@ -283,7 +238,7 @@ export const writeComposeFile = async (
 	const path = getComposePath(compose);
 
 	try {
-		const composeFile = dump(composeSpec, {
+		const composeFile = stringify(composeSpec, {
 			lineWidth: 1000,
 		});
 		fs.writeFileSync(path, composeFile, "utf8");

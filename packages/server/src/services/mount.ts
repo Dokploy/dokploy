@@ -105,13 +105,69 @@ export const findMountById = async (mountId: string) => {
 	const mount = await db.query.mounts.findFirst({
 		where: eq(mounts.mountId, mountId),
 		with: {
-			application: true,
-			postgres: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			redis: true,
-			compose: true,
+			application: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			postgres: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mariadb: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mongo: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			mysql: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			redis: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
+			compose: {
+				with: {
+					environment: {
+						with: {
+							project: true,
+						},
+					},
+				},
+			},
 		},
 	});
 	if (!mount) {
@@ -121,6 +177,34 @@ export const findMountById = async (mountId: string) => {
 		});
 	}
 	return mount;
+};
+
+export const findMountOrganizationId = async (mountId: string) => {
+	const mount = await findMountById(mountId);
+
+	if (mount.application) {
+		return mount.application.environment.project.organizationId;
+	}
+	if (mount.postgres) {
+		return mount.postgres.environment.project.organizationId;
+	}
+	if (mount.mariadb) {
+		return mount.mariadb.environment.project.organizationId;
+	}
+	if (mount.mongo) {
+		return mount.mongo.environment.project.organizationId;
+	}
+	if (mount.mysql) {
+		return mount.mysql.environment.project.organizationId;
+	}
+	if (mount.redis) {
+		return mount.redis.environment.project.organizationId;
+	}
+
+	if (mount.compose) {
+		return mount.compose.environment.project.organizationId;
+	}
+	return null;
 };
 
 export const updateMount = async (

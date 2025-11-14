@@ -4,6 +4,7 @@ import {
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
+	getDokployUrl,
 	getUserByToken,
 	IS_CLOUD,
 	removeUserById,
@@ -196,7 +197,16 @@ export const userRouter = createTRPCRouter({
 					})
 					.where(eq(account.userId, ctx.user.id));
 			}
-			return await updateUser(ctx.user.id, input);
+
+			try {
+				return await updateUser(ctx.user.id, input);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error ? error.message : "Failed to update user",
+				});
+			}
 		}),
 	getUserByToken: publicProcedure
 		.input(apiFindOneToken)
@@ -455,11 +465,10 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			const admin = await findAdmin();
 			const host =
 				process.env.NODE_ENV === "development"
 					? "http://localhost:3000"
-					: admin.user.host;
+					: await getDokployUrl();
 			const inviteLink = `${host}/invitation?token=${input.invitationId}`;
 
 			const organization = await findOrganizationById(

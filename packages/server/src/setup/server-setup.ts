@@ -578,8 +578,7 @@ export const createTraefikInstance = () => {
 			TRAEFIK_VERSION=${TRAEFIK_VERSION}
 			docker run -d \
 				--name dokploy-traefik \
-				--network dokploy-network \
-				--restart unless-stopped \
+				--restart always \
 				-v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
 				-v /etc/dokploy/traefik/dynamic:/etc/dokploy/traefik/dynamic \
 				-v /var/run/docker.sock:/var/run/docker.sock \
@@ -587,6 +586,8 @@ export const createTraefikInstance = () => {
 				-p ${TRAEFIK_PORT}:${TRAEFIK_PORT} \
 				-p ${TRAEFIK_HTTP3_PORT}:${TRAEFIK_HTTP3_PORT}/udp \
 				traefik:v$TRAEFIK_VERSION
+
+			docker network connect dokploy-network dokploy-traefik;
 			echo "Traefik version $TRAEFIK_VERSION installed ✅"
 		fi
 	`;

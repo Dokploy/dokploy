@@ -7,7 +7,9 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendLarkNotification,
 	sendGotifyNotification,
+	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -42,11 +44,14 @@ export const sendDatabaseBackupNotifications = async ({
 			telegram: true,
 			slack: true,
 			gotify: true,
+			ntfy: true,
+			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 
 		if (email) {
 			const template = await renderAsync(
@@ -149,6 +154,21 @@ export const sendDatabaseBackupNotifications = async ({
 			);
 		}
 
+		if (ntfy) {
+			await sendNtfyNotification(
+				ntfy,
+				`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+				`${type === "success" ? "white_check_mark" : "x"}`,
+				"",
+				`🛠Project: ${projectName}\n` +
+					`⚙️Application: ${applicationName}\n` +
+					`❔Type: ${databaseType}\n` +
+					`📂Database Name: ${databaseName}` +
+					`🕒Date: ${date.toLocaleString()}\n` +
+					`${type === "error" && errorMessage ? `❌Error:\n${errorMessage}` : ""}`,
+			);
+		}
+
 		if (telegram) {
 			const isError = type === "error" && errorMessage;
 
@@ -219,6 +239,121 @@ export const sendDatabaseBackupNotifications = async ({
 						],
 					},
 				],
+			});
+		}
+
+		if (lark) {
+			const limitCharacter = 800;
+			const truncatedErrorMessage =
+				errorMessage && errorMessage.length > limitCharacter
+					? errorMessage.substring(0, limitCharacter)
+					: errorMessage;
+
+			await sendLarkNotification(lark, {
+				msg_type: "interactive",
+				card: {
+					schema: "2.0",
+					config: {
+						update_multi: true,
+						style: {
+							text_size: {
+								normal_v2: {
+									default: "normal",
+									pc: "normal",
+									mobile: "heading",
+								},
+							},
+						},
+					},
+					header: {
+						title: {
+							tag: "plain_text",
+							content:
+								type === "success"
+									? "✅ Database Backup Successful"
+									: "❌ Database Backup Failed",
+						},
+						subtitle: {
+							tag: "plain_text",
+							content: "",
+						},
+						template: type === "success" ? "green" : "red",
+						padding: "12px 12px 12px 12px",
+					},
+					body: {
+						direction: "vertical",
+						padding: "12px 12px 12px 12px",
+						elements: [
+							{
+								tag: "column_set",
+								columns: [
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Project:**\n${projectName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Database Type:**\n${databaseType}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Status:**\n${type === "success" ? "Successful" : "Failed"}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Application:**\n${applicationName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Database Name:**\n${databaseName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Date:**\n${format(date, "PP pp")}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+								],
+							},
+							...(type === "error" && truncatedErrorMessage
+								? [
+										{
+											tag: "markdown",
+											content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
+											text_align: "left",
+											text_size: "normal_v2",
+										},
+									]
+								: []),
+						],
+					},
+				},
 			});
 		}
 	}

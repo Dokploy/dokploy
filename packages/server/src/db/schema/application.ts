@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	bigint,
 	boolean,
 	integer,
 	json,
@@ -13,13 +14,13 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { environments } from "./environment";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
-import { projects } from "./project";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
@@ -27,6 +28,8 @@ import { server } from "./server";
 import {
 	applicationStatus,
 	certificateType,
+	type EndpointSpecSwarm,
+	EndpointSpecSwarmSchema,
 	type HealthCheckSwarm,
 	HealthCheckSwarmSchema,
 	type LabelsSwarm,
@@ -79,6 +82,7 @@ export const applications = pgTable("application", {
 	previewEnv: text("previewEnv"),
 	watchPaths: text("watchPaths").array(),
 	previewBuildArgs: text("previewBuildArgs"),
+	previewBuildSecrets: text("previewBuildSecrets"),
 	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
@@ -98,6 +102,7 @@ export const applications = pgTable("application", {
 	).default(true),
 	rollbackActive: boolean("rollbackActive").default(false),
 	buildArgs: text("buildArgs"),
+	buildSecrets: text("buildSecrets"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -163,6 +168,8 @@ export const applications = pgTable("application", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -179,9 +186,9 @@ export const applications = pgTable("application", {
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
-	projectId: text("projectId")
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -202,9 +209,9 @@ export const applications = pgTable("application", {
 export const applicationsRelations = relations(
 	applications,
 	({ one, many }) => ({
-		project: one(projects, {
-			fields: [applications.projectId],
-			references: [projects.projectId],
+		environment: one(environments, {
+			fields: [applications.environmentId],
+			references: [environments.environmentId],
 		}),
 		deployments: many(deployments),
 		customGitSSHKey: one(sshKeys, {
@@ -251,6 +258,7 @@ const createSchema = createInsertSchema(applications, {
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
 	buildArgs: z.string().optional(),
+	buildSecrets: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
 	memoryReservation: z.string().optional(),
@@ -273,7 +281,7 @@ const createSchema = createInsertSchema(applications, {
 	customGitBuildPath: z.string().optional(),
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
@@ -302,6 +310,7 @@ const createSchema = createInsertSchema(applications, {
 	previewPort: z.number().optional(),
 	previewEnv: z.string().optional(),
 	previewBuildArgs: z.string().optional(),
+	previewBuildSecrets: z.string().optional(),
 	previewWildcard: z.string().optional(),
 	previewLimit: z.number().optional(),
 	previewHttps: z.boolean().optional(),
@@ -311,13 +320,15 @@ const createSchema = createInsertSchema(applications, {
 	watchPaths: z.array(z.string()).optional(),
 	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
 	name: true,
 	appName: true,
 	description: true,
-	projectId: true,
+	environmentId: true,
 	serverId: true,
 });
 
@@ -326,6 +337,26 @@ export const apiFindOneApplication = createSchema
 		applicationId: true,
 	})
 	.required();
+
+export const apiDeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
+
+export const apiRedeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
 
 export const apiReloadApplication = createSchema
 	.pick({
@@ -435,6 +466,7 @@ export const apiSaveEnvironmentVariables = createSchema
 		applicationId: true,
 		env: true,
 		buildArgs: true,
+		buildSecrets: true,
 	})
 	.required();
 

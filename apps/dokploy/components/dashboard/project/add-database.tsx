@@ -55,7 +55,7 @@ import { api } from "@/utils/api";
 type DbType = typeof mySchema._type.type;
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
-	mongo: "mongo:6",
+	mongo: "mongo:7",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
 	postgres: "postgres:15",
@@ -85,7 +85,6 @@ const baseDatabaseSchema = z.object({
 		}),
 	databasePassword: z
 		.string()
-		.min(1, "Password is required")
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 			message:
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
@@ -123,7 +122,8 @@ const mySchema = z.discriminatedUnion("type", [
 				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 					message:
 						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				}),
+				})
+				.optional(),
 			databaseUser: z.string().default("mysql"),
 			databaseName: z.string().default("mysql"),
 		})
@@ -137,7 +137,8 @@ const mySchema = z.discriminatedUnion("type", [
 				.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 					message:
 						"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
-				}),
+				})
+				.optional(),
 			databaseUser: z.string().default("mariadb"),
 			databaseName: z.string().default("mariadb"),
 		})
@@ -170,14 +171,15 @@ const databasesMap = {
 type AddDatabase = z.infer<typeof mySchema>;
 
 interface Props {
-	projectId: string;
+	environmentId: string;
 	projectName?: string;
 }
 
-export const AddDatabase = ({ projectId, projectName }: Props) => {
+export const AddDatabase = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const postgresMutation = api.postgres.create.useMutation();
 	const mongoMutation = api.mongo.create.useMutation();
@@ -185,7 +187,14 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 	const mariadbMutation = api.mariadb.create.useMutation();
 	const mysqlMutation = api.mysql.create.useMutation();
 
+	// Get environment data to extract projectId
+	const { data: environment } = api.environment.one.useQuery({ environmentId });
+
 	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const form = useForm<AddDatabase>({
 		defaultValues: {
@@ -219,8 +228,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 			name: data.name,
 			appName: data.appName,
 			dockerImage: defaultDockerImage,
-			projectId,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
+			environmentId,
 			description: data.description,
 		};
 
@@ -232,7 +241,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		} else if (data.type === "mongo") {
 			promise = mongoMutation.mutateAsync({
@@ -240,25 +249,24 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databasePassword: data.databasePassword,
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 				replicaSets: data.replicaSets,
 			});
 		} else if (data.type === "redis") {
 			promise = redisMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				serverId: data.serverId,
-				projectId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		} else if (data.type === "mariadb") {
 			promise = mariadbMutation.mutateAsync({
 				...commonParams,
 				databasePassword: data.databasePassword,
-				databaseRootPassword: data.databaseRootPassword,
+				databaseRootPassword: data.databaseRootPassword || "",
 				databaseName: data.databaseName || "mariadb",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
 			});
 		} else if (data.type === "mysql") {
 			promise = mysqlMutation.mutateAsync({
@@ -267,8 +275,8 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 				databaseName: data.databaseName || "mysql",
 				databaseUser:
 					data.databaseUser || databasesUserDefaultPlaceholder[data.type],
-				databaseRootPassword: data.databaseRootPassword,
-				serverId: data.serverId,
+				serverId: data.serverId === "dokploy" ? null : data.serverId,
+				databaseRootPassword: data.databaseRootPassword || "",
 			});
 		}
 
@@ -287,8 +295,9 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 						databaseUser: "",
 					});
 					setVisible(false);
-					await utils.project.one.invalidate({
-						projectId,
+					// Invalidate the project query to refresh the environment data
+					await utils.environment.one.invalidate({
+						environmentId,
 					});
 				})
 				.catch(() => {
@@ -398,7 +407,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 										</FormItem>
 									)}
 								/>
-								{hasServers && (
+								{shouldShowServerDropdown && (
 									<FormField
 										control={form.control}
 										name="serverId"
@@ -407,13 +416,29 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 												<FormLabel>Select a Server</FormLabel>
 												<Select
 													onValueChange={field.onChange}
-													defaultValue={field.value || ""}
+													defaultValue={
+														field.value || (!isCloud ? "dokploy" : undefined)
+													}
 												>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a Server" />
+														<SelectValue
+															placeholder={
+																!isCloud ? "Dokploy" : "Select a Server"
+															}
+														/>
 													</SelectTrigger>
 													<SelectContent>
 														<SelectGroup>
+															{!isCloud && (
+																<SelectItem value="dokploy">
+																	<span className="flex items-center gap-2 justify-between w-full">
+																		<span>Dokploy</span>
+																		<span className="text-muted-foreground text-xs self-center">
+																			Default
+																		</span>
+																	</span>
+																</SelectItem>
+															)}
 															{servers?.map((server) => (
 																<SelectItem
 																	key={server.serverId}
@@ -423,7 +448,7 @@ export const AddDatabase = ({ projectId, projectName }: Props) => {
 																</SelectItem>
 															))}
 															<SelectLabel>
-																Servers ({servers?.length})
+																Servers ({servers?.length + (!isCloud ? 1 : 0)})
 															</SelectLabel>
 														</SelectGroup>
 													</SelectContent>

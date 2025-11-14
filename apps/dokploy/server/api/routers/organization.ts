@@ -41,6 +41,11 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			// Check if this is the user's first organization
+			const existingMemberships = await db.query.member.findMany({
+				where: eq(member.userId, ctx.user.id),
+			});
+
 			await db.insert(member).values({
 				organizationId: result.id,
 				role: "owner",
@@ -63,6 +68,11 @@ export const organizationRouter = createTRPCRouter({
 							),
 						),
 				),
+			with: {
+				members: {
+					where: eq(member.userId, ctx.user.id),
+				},
+			},
 		});
 		return memberResult;
 	}),
@@ -223,5 +233,46 @@ export const organizationRouter = createTRPCRouter({
 
 			await db.delete(member).where(eq(member.id, input.memberId));
 			return true;
+		}),
+	setDefault: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			// Verify user is a member of this organization
+			const userMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (!userMember) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			// First, unset all defaults for this user
+			await db
+				.update(member)
+				.set({ isDefault: false })
+				.where(eq(member.userId, ctx.user.id));
+
+			// Then set this organization as default
+			await db
+				.update(member)
+				.set({ isDefault: true })
+				.where(
+					and(
+						eq(member.organizationId, input.organizationId),
+						eq(member.userId, ctx.user.id),
+					),
+				);
+
+			return { success: true };
 		}),
 });

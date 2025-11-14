@@ -27,22 +27,44 @@ export const portRouter = createTRPCRouter({
 				});
 			}
 		}),
-	one: protectedProcedure.input(apiFindOnePort).query(async ({ input }) => {
-		try {
-			return await finPortById(input.portId);
-		} catch (error) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Port not found",
-				cause: error,
-			});
-		}
-	}),
+	one: protectedProcedure
+		.input(apiFindOnePort)
+		.query(async ({ input, ctx }) => {
+			try {
+				const port = await finPortById(input.portId);
+				if (
+					port.application.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to access this port",
+					});
+				}
+				return port;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Port not found",
+					cause: error,
+				});
+			}
+		}),
 	delete: protectedProcedure
 		.input(apiFindOnePort)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const port = await finPortById(input.portId);
+			if (
+				port.application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to delete this port",
+				});
+			}
 			try {
-				return removePortById(input.portId);
+				return await removePortById(input.portId);
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Error input: Deleting port";
@@ -54,9 +76,19 @@ export const portRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdatePort)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
+			const port = await finPortById(input.portId);
+			if (
+				port.application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this port",
+				});
+			}
 			try {
-				return updatePortById(input.portId, input);
+				return await updatePortById(input.portId, input);
 			} catch (error) {
 				const message =
 					error instanceof Error ? error.message : "Error updating the port";
