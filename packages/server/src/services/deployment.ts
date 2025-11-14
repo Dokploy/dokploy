@@ -112,7 +112,6 @@ export const createDeployment = async (
 				logPath: logFilePath,
 				description: deployment.description || "",
 				startedAt: new Date().toISOString(),
-				// applicationBuildServerId: application.serverBuildId,
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
