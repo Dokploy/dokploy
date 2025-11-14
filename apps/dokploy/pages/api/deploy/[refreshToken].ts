@@ -241,7 +241,7 @@ export default async function handler(
 			const jobData: DeploymentJob = {
 				applicationId: application.applicationId as string,
 				titleLog: deploymentTitle,
-				descriptionLog: `Hash: ${deploymentHash}`,
+				...(deploymentHash && { descriptionLog: `Hash: ${deploymentHash}` }),
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
