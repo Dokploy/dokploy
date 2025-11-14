@@ -1,14 +1,23 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, json, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	bigint,
+	boolean,
+	integer,
+	json,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { backups } from "./backups";
+import { environments } from "./environment";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { server } from "./server";
 import {
 	applicationStatus,
+	type EndpointSpecSwarm,
+	EndpointSpecSwarmSchema,
 	type HealthCheckSwarm,
 	HealthCheckSwarmSchema,
 	type LabelsSwarm,
@@ -58,13 +67,16 @@ export const mongo = pgTable("mongo", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
+
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
@@ -72,9 +84,9 @@ export const mongo = pgTable("mongo", {
 });
 
 export const mongoRelations = relations(mongo, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [mongo.projectId],
-		references: [projects.projectId],
+	environment: one(environments, {
+		fields: [mongo.environmentId],
+		references: [environments.environmentId],
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
@@ -91,7 +103,6 @@ const createSchema = createInsertSchema(mongo, {
 	name: z.string().min(1),
 	databasePassword: z
 		.string()
-		.min(1, "Password is required")
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 			message:
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
@@ -104,7 +115,7 @@ const createSchema = createInsertSchema(mongo, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
@@ -118,6 +129,8 @@ const createSchema = createInsertSchema(mongo, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
 export const apiCreateMongo = createSchema
@@ -125,7 +138,7 @@ export const apiCreateMongo = createSchema
 		name: true,
 		appName: true,
 		dockerImage: true,
-		projectId: true,
+		environmentId: true,
 		description: true,
 		databaseUser: true,
 		databasePassword: true,

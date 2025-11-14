@@ -30,6 +30,9 @@ const Schema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
 	}),
+	appName: z.string().min(1, {
+		message: "App Name is required",
+	}),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -55,6 +58,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 	const form = useForm<Schema>({
 		defaultValues: {
 			name: "",
+			appName: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -62,6 +66,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 	useEffect(() => {
 		form.reset({
 			name: github?.gitProvider.name || "",
+			appName: github?.githubAppName || "",
 		});
 	}, [form, isOpen]);
 
@@ -70,6 +75,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 			githubId,
 			name: data.name || "",
 			gitProviderId: github?.gitProviderId || "",
+			githubAppName: data.appName || "",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -117,6 +123,22 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 											<FormControl>
 												<Input
 													placeholder="Random Name eg(my-personal-account)"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="appName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>App Name</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="pp Name eg(my-personal)"
 													{...field}
 												/>
 											</FormControl>

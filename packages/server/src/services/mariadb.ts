@@ -56,7 +56,11 @@ export const findMariadbById = async (mariadbId: string) => {
 	const result = await db.query.mariadb.findFirst({
 		where: eq(mariadb.mariadbId, mariadbId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			mounts: true,
 			server: true,
 			backups: {

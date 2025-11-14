@@ -12,7 +12,7 @@ import { getRemoteDocker } from "../servers/remote-docker";
 
 export type PostgresNested = InferResultType<
 	"postgres",
-	{ mounts: true; project: true }
+	{ mounts: true; environment: { with: { project: true } } }
 >;
 export const buildPostgres = async (postgres: PostgresNested) => {
 	const {
@@ -44,6 +44,8 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(postgres);
 	const resources = calculateResources({
 		memoryLimit,
@@ -53,7 +55,8 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 	});
 	const envVariables = prepareEnvironmentVariables(
 		defaultPostgresEnv,
-		postgres.project.env,
+		postgres.environment.project.env,
+		postgres.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
@@ -86,20 +89,24 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 5432,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 5432,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 	try {
 		const service = docker.getService(appName);

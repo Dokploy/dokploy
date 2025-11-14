@@ -47,7 +47,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 								toast.success("Compose deployed successfully");
 								refetch();
 								router.push(
-									`/dashboard/project/${data?.project.projectId}/services/compose/${composeId}?tab=deployments`,
+									`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
 								);
 							})
 							.catch(() => {
@@ -195,6 +195,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 			<DockerTerminalModal
 				appName={data?.appName || ""}
 				serverId={data?.serverId || ""}
+				appType={data?.composeType || "docker-compose"}
 			>
 				<Button
 					variant="outline"

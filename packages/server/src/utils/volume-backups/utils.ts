@@ -1,15 +1,17 @@
-import { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { scheduledJobs, scheduleJob } from "node-schedule";
+import path from "node:path";
+import { paths } from "@dokploy/server/constants";
 import {
 	createDeploymentVolumeBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
+import { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
-import { backupVolume } from "./backup";
+import { scheduledJobs, scheduleJob } from "node-schedule";
 import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import { backupVolume } from "./backup";
 
 export const scheduleVolumeBackup = async (volumeBackupId: string) => {
 	const volumeBackup = await findVolumeBackupById(volumeBackupId);
@@ -76,7 +78,20 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 	} catch (error) {
+		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
+		const volumeBackupPath = path.join(
+			VOLUME_BACKUPS_PATH,
+			volumeBackup.appName,
+		);
+		// delete all the .tar files
+		const command = `rm -rf ${volumeBackupPath}/*.tar`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
+
 		console.error(error);
 	}
 };

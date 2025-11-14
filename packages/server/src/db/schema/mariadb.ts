@@ -1,14 +1,16 @@
 import { relations } from "drizzle-orm";
-import { integer, json, pgTable, text } from "drizzle-orm/pg-core";
+import { bigint, integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { backups } from "./backups";
+import { environments } from "./environment";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { server } from "./server";
 import {
 	applicationStatus,
+	type EndpointSpecSwarm,
+	EndpointSpecSwarmSchema,
 	type HealthCheckSwarm,
 	HealthCheckSwarmSchema,
 	type LabelsSwarm,
@@ -62,22 +64,25 @@ export const mariadb = pgTable("mariadb", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
+
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
 });
 
 export const mariadbRelations = relations(mariadb, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [mariadb.projectId],
-		references: [projects.projectId],
+	environment: one(environments, {
+		fields: [mariadb.environmentId],
+		references: [environments.environmentId],
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
@@ -96,7 +101,6 @@ const createSchema = createInsertSchema(mariadb, {
 	databaseUser: z.string().min(1),
 	databasePassword: z
 		.string()
-		.min(1, "Password is required")
 		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
 			message:
 				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
@@ -115,7 +119,7 @@ const createSchema = createInsertSchema(mariadb, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
@@ -128,6 +132,8 @@ const createSchema = createInsertSchema(mariadb, {
 	modeSwarm: ServiceModeSwarmSchema.nullable(),
 	labelsSwarm: LabelsSwarmSchema.nullable(),
 	networkSwarm: NetworkSwarmSchema.nullable(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
 export const apiCreateMariaDB = createSchema
@@ -136,7 +142,7 @@ export const apiCreateMariaDB = createSchema
 		appName: true,
 		dockerImage: true,
 		databaseRootPassword: true,
-		projectId: true,
+		environmentId: true,
 		description: true,
 		databaseName: true,
 		databaseUser: true,

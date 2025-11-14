@@ -92,31 +92,48 @@ export const suggestVariants = async ({
 
 		const { object } = await generateObject({
 			model,
-			output: "array",
+			output: "object",
 			schema: z.object({
-				id: z.string(),
-				name: z.string(),
-				shortDescription: z.string(),
-				description: z.string(),
+				suggestions: z.array(
+					z.object({
+						id: z.string(),
+						name: z.string(),
+						shortDescription: z.string(),
+						description: z.string(),
+					}),
+				),
 			}),
 			prompt: `
-        Act as advanced DevOps engineer and generate a list of open source projects what can cover users needs(up to 3 items), the suggestion 
-        should include id, name, shortDescription, and description. Use slug of title for id. 
+        Act as advanced DevOps engineer and generate a list of open source projects what can cover users needs(up to 3 items).
+        
+        Return your response as a JSON object with the following structure:
+        {
+          "suggestions": [
+            {
+              "id": "project-slug",
+              "name": "Project Name",
+              "shortDescription": "Brief one-line description",
+              "description": "Detailed description"
+            }
+          ]
+        }
         
         Important rules for the response:
-        1. The description field should ONLY contain a plain text description of the project, its features, and use cases
-        2. Do NOT include any code snippets, configuration examples, or installation instructions in the description
-        3. The shortDescription should be a single-line summary focusing on the main technologies
+        1. Use slug format for the id field (lowercase, hyphenated)
+        2. The description field should ONLY contain a plain text description of the project, its features, and use cases
+        3. Do NOT include any code snippets, configuration examples, or installation instructions in the description
+        4. The shortDescription should be a single-line summary focusing on the main technologies
+        5. All projects should be installable in docker and have docker compose support
         
-        User wants to create a new project with the following details, it should be installable in docker and can be docker compose generated for it:
+        User wants to create a new project with the following details:
         
         ${input}
       `,
 		});
 
-		if (object?.length) {
+		if (object?.suggestions?.length) {
 			const result = [];
-			for (const suggestion of object) {
+			for (const suggestion of object.suggestions) {
 				try {
 					const { object: docker } = await generateObject({
 						model,
@@ -136,16 +153,29 @@ export const suggestVariants = async ({
 									serviceName: z.string(),
 								}),
 							),
-							configFiles: z.array(
-								z.object({
-									content: z.string(),
-									filePath: z.string(),
-								}),
-							),
+							configFiles: z
+								.array(
+									z.object({
+										content: z.string(),
+										filePath: z.string(),
+									}),
+								)
+								.optional(),
 						}),
 						prompt: `
               Act as advanced DevOps engineer and generate docker compose with environment variables and domain configurations needed to install the following project.
-              Return the docker compose as a YAML string and environment variables configuration. Follow these rules:
+              
+              Return your response as a JSON object with this structure:
+              {
+                "dockerCompose": "yaml string here",
+                "envVariables": [{"name": "VAR_NAME", "value": "example_value"}],
+                "domains": [{"host": "domain.com", "port": 3000, "serviceName": "service"}],
+                "configFiles": [{"content": "file content", "filePath": "path/to/file"}]
+              }
+              
+              Note: configFiles is optional - only include it if configuration files are absolutely required.
+              
+              Follow these rules:
 
               Docker Compose Rules:
               1. Use placeholder like \${VARIABLE_NAME-default} for generated variables in the docker-compose.yml
@@ -198,6 +228,7 @@ export const suggestVariants = async ({
 					console.error("Error in docker compose generation:", error);
 				}
 			}
+
 			return result;
 		}
 

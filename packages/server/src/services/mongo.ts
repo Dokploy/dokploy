@@ -53,7 +53,11 @@ export const findMongoById = async (mongoId: string) => {
 	const result = await db.query.mongo.findFirst({
 		where: eq(mongo.mongoId, mongoId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			mounts: true,
 			server: true,
 			backups: {
