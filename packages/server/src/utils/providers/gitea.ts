@@ -1,7 +1,5 @@
-import { createWriteStream } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import type { Compose } from "@dokploy/server/services/compose";
 import {
 	findGiteaById,
 	type Gitea,
@@ -9,9 +7,6 @@ import {
 } from "@dokploy/server/services/gitea";
 import type { InferResultType } from "@dokploy/server/types/with";
 import { TRPCError } from "@trpc/server";
-import { recreateDirectory } from "../filesystem/directory";
-import { execAsyncRemote } from "../process/execAsync";
-import { spawnAsync } from "../process/spawnAsync";
 
 export const getErrorCloneRequirements = (entity: {
 	giteaRepository?: string | null;
@@ -119,79 +114,27 @@ export type ApplicationWithGitea = InferResultType<
 
 export type ComposeWithGitea = InferResultType<"compose", { gitea: true }>;
 
-export const getGiteaCloneCommand = async (
-	entity: ApplicationWithGitea | ComposeWithGitea,
-	logPath: string,
-	isCompose = false,
-) => {
-	const {
-		appName,
-		giteaBranch,
-		giteaId,
-		giteaOwner,
-		giteaRepository,
-		serverId,
-		enableSubmodules,
-	} = entity;
-
-	if (!serverId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Server not found",
-		});
-	}
-
-	if (!giteaId) {
-		const command = `
-		echo  "Error: ❌ Gitlab Provider not found" >> ${logPath};
-		exit 1;
-	`;
-
-		await execAsyncRemote(serverId, command);
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Gitea Provider not found",
-		});
-	}
-
-	// Use paths(true) for remote operations
-	const { COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
-	await refreshGiteaToken(giteaId);
-	const gitea = await findGiteaById(giteaId);
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
-
-	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
-	const cloneUrl = buildGiteaCloneUrl(
-		gitea?.giteaUrl!,
-		gitea?.accessToken!,
-		giteaOwner!,
-		giteaRepository!,
-	);
-
-	const cloneCommand = `
-    rm -rf ${outputPath};
-    mkdir -p ${outputPath};
-
-    if ! git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} >> ${logPath} 2>&1; then
-      echo "❌ [ERROR] Failed to clone the repository ${repoClone}" >> ${logPath};
-      exit 1;
-    fi
-
-    echo "Cloned ${repoClone} to ${outputPath}: ✅" >> ${logPath};
-  `;
-
-	return cloneCommand;
+type GiteaClone = (ApplicationWithGitea | ComposeWithGitea) & {
+	serverId: string | null;
+	type?: "application" | "compose";
 };
 
-export const cloneGiteaRepository = async (
-	entity: ApplicationWithGitea | ComposeWithGitea,
-	logPath: string,
-	isCompose = false,
-) => {
-	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths();
+interface CloneGiteaRepository {
+	appName: string;
+	giteaBranch: string | null;
+	giteaId: string | null;
+	giteaOwner: string | null;
+	giteaRepository: string | null;
+	enableSubmodules: boolean;
+	serverId: string | null;
+	type?: "application" | "compose";
+}
 
-	const writeStream = createWriteStream(logPath, { flags: "a" });
+export const cloneGiteaRepository = async ({
+	type = "application",
+	...entity
+}: CloneGiteaRepository) => {
+	let command = "set -e;";
 	const {
 		appName,
 		giteaBranch,
@@ -199,27 +142,27 @@ export const cloneGiteaRepository = async (
 		giteaOwner,
 		giteaRepository,
 		enableSubmodules,
+		serverId,
 	} = entity;
+	const { APPLICATIONS_PATH, COMPOSE_PATH } = paths(!!serverId);
 
 	if (!giteaId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Gitea Provider not found",
-		});
+		command += `echo "Error: ❌ Gitea Provider not found"; exit 1;`;
+		return command;
 	}
 
 	await refreshGiteaToken(giteaId);
 	const giteaProvider = await findGiteaById(giteaId);
+
 	if (!giteaProvider) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Gitea provider not found in the database",
-		});
+		command += `echo "❌ [ERROR] Gitea provider not found in the database"; exit 1;`;
+		return command;
 	}
 
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
+	command += `rm -rf ${outputPath};`;
+	command += `mkdir -p ${outputPath};`;
 
 	const repoClone = `${giteaOwner}/${giteaRepository}.git`;
 	const cloneUrl = buildGiteaCloneUrl(
@@ -229,134 +172,9 @@ export const cloneGiteaRepository = async (
 		giteaRepository!,
 	);
 
-	writeStream.write(`\nCloning Repo ${repoClone} to ${outputPath}...\n`);
-
-	try {
-		await spawnAsync(
-			"git",
-			[
-				"clone",
-				"--branch",
-				giteaBranch!,
-				"--depth",
-				"1",
-				...(enableSubmodules ? ["--recurse-submodules"] : []),
-				cloneUrl,
-				outputPath,
-				"--progress",
-			],
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-		);
-		writeStream.write(`\nCloned ${repoClone}: ✅\n`);
-	} catch (error) {
-		writeStream.write(`ERROR Cloning: ${error}: ❌`);
-		throw error;
-	} finally {
-		writeStream.end();
-	}
-};
-
-export const cloneRawGiteaRepository = async (entity: Compose) => {
-	const {
-		appName,
-		giteaRepository,
-		giteaOwner,
-		giteaBranch,
-		giteaId,
-		enableSubmodules,
-	} = entity;
-	const { COMPOSE_PATH } = paths();
-
-	if (!giteaId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Gitea Provider not found",
-		});
-	}
-	await refreshGiteaToken(giteaId);
-	const giteaProvider = await findGiteaById(giteaId);
-	if (!giteaProvider) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Gitea provider not found in the database",
-		});
-	}
-
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	await recreateDirectory(outputPath);
-
-	const cloneUrl = buildGiteaCloneUrl(
-		giteaProvider.giteaUrl,
-		giteaProvider.accessToken!,
-		giteaOwner!,
-		giteaRepository!,
-	);
-
-	try {
-		await spawnAsync("git", [
-			"clone",
-			"--branch",
-			giteaBranch!,
-			"--depth",
-			"1",
-			...(enableSubmodules ? ["--recurse-submodules"] : []),
-			cloneUrl,
-			outputPath,
-			"--progress",
-		]);
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const cloneRawGiteaRepositoryRemote = async (compose: Compose) => {
-	const {
-		appName,
-		giteaRepository,
-		giteaOwner,
-		giteaBranch,
-		giteaId,
-		serverId,
-		enableSubmodules,
-	} = compose;
-
-	if (!serverId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Server not found",
-		});
-	}
-	if (!giteaId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Gitea Provider not found",
-		});
-	}
-	const { COMPOSE_PATH } = paths(true);
-	const giteaProvider = await findGiteaById(giteaId);
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	const cloneUrl = buildGiteaCloneUrl(
-		giteaProvider.giteaUrl,
-		giteaProvider.accessToken!,
-		giteaOwner!,
-		giteaRepository!,
-	);
-
-	try {
-		const command = `
-			rm -rf ${outputPath};
-			git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath}
-		`;
-		await execAsyncRemote(serverId, command);
-	} catch (error) {
-		throw error;
-	}
+	command += `echo "Cloning Repo ${repoClone} to ${outputPath}: ✅";`;
+	command += `git clone --branch ${giteaBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} ${cloneUrl} ${outputPath} --progress;`;
+	return command;
 };
 
 export const haveGiteaRequirements = (giteaProvider: Gitea) => {

@@ -3,13 +3,14 @@ import {
 	addNewService,
 	checkServiceAccess,
 	cloneCompose,
-	cloneComposeRemote,
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
 	createDomain,
 	createMount,
 	deleteMount,
+	execAsync,
+	execAsyncRemote,
 	findComposeById,
 	findDomainsByComposeId,
 	findEnvironmentById,
@@ -302,10 +303,12 @@ export const composeRouter = createTRPCRouter({
 						message: "You are not authorized to fetch this compose",
 					});
 				}
+
+				const command = await cloneCompose(compose);
 				if (compose.serverId) {
-					await cloneComposeRemote(compose);
+					await execAsyncRemote(compose.serverId, command);
 				} else {
-					await cloneCompose(compose);
+					await execAsync(command);
 				}
 				return compose.sourceType;
 			} catch (err) {

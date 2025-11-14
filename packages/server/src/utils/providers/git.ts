@@ -1,159 +1,64 @@
-import { createWriteStream } from "node:fs";
 import path, { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import type { Compose } from "@dokploy/server/services/compose";
 import {
 	findSSHKeyById,
 	updateSSHKeyById,
 } from "@dokploy/server/services/ssh-key";
-import { TRPCError } from "@trpc/server";
-import { recreateDirectory } from "../filesystem/directory";
-import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { spawnAsync } from "../process/spawnAsync";
 
-export const cloneGitRepository = async (
-	entity: {
-		appName: string;
-		customGitUrl?: string | null;
-		customGitBranch?: string | null;
-		customGitSSHKeyId?: string | null;
-		enableSubmodules?: boolean;
-	},
-	logPath: string,
-	isCompose = false,
-) => {
-	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths();
+interface CloneGitRepository {
+	appName: string;
+	customGitUrl?: string | null;
+	customGitBranch?: string | null;
+	customGitSSHKeyId?: string | null;
+	enableSubmodules?: boolean;
+	serverId: string | null;
+	type?: "application" | "compose";
+}
+
+export const cloneGitRepository = async ({
+	type = "application",
+	...entity
+}: CloneGitRepository) => {
+	let command = "set -e;";
 	const {
 		appName,
 		customGitUrl,
 		customGitBranch,
 		customGitSSHKeyId,
 		enableSubmodules,
+		serverId,
 	} = entity;
+	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths(!!serverId);
 
 	if (!customGitUrl || !customGitBranch) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error: Repository not found",
-		});
+		command += `echo "Error: ❌ Repository not found"; exit 1;`;
+		return command;
 	}
 
-	const writeStream = createWriteStream(logPath, { flags: "a" });
 	const temporalKeyPath = path.join("/tmp", "id_rsa");
 
 	if (customGitSSHKeyId) {
 		const sshKey = await findSSHKeyById(customGitSSHKeyId);
 
-		await execAsync(`
+		command += `
 			echo "${sshKey.privateKey}" > ${temporalKeyPath}
-			chmod 600 ${temporalKeyPath}
-			`);
+			chmod 600 ${temporalKeyPath};
+			`;
 	}
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
+	const basePath = type === "compose" ? COMPOSE_PATH : APPLICATIONS_PATH;
 	const outputPath = join(basePath, appName, "code");
 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
-	try {
-		if (!isHttpOrHttps(customGitUrl)) {
-			if (!customGitSSHKeyId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key",
-				});
-			}
-			await addHostToKnownHosts(customGitUrl);
+	if (!isHttpOrHttps(customGitUrl)) {
+		if (!customGitSSHKeyId) {
+			command += `echo "Error: ❌ You are trying to clone a ssh repository without a ssh key, please set a ssh key"; exit 1;`;
+			return command;
 		}
-		await recreateDirectory(outputPath);
-		writeStream.write(
-			`\nCloning Repo Custom ${customGitUrl} to ${outputPath}: ✅\n`,
-		);
-
-		if (customGitSSHKeyId) {
-			await updateSSHKeyById({
-				sshKeyId: customGitSSHKeyId,
-				lastUsedAt: new Date().toISOString(),
-			});
-		}
-
-		const { port } = sanitizeRepoPathSSH(customGitUrl);
-		const cloneArgs = [
-			"clone",
-			"--branch",
-			customGitBranch,
-			"--depth",
-			"1",
-			...(enableSubmodules ? ["--recurse-submodules"] : []),
-			customGitUrl,
-			outputPath,
-			"--progress",
-		];
-
-		await spawnAsync(
-			"git",
-			cloneArgs,
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-			{
-				env: {
-					...process.env,
-					...(customGitSSHKeyId && {
-						GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
-					}),
-				},
-			},
-		);
-
-		writeStream.write(`\nCloned Custom Git ${customGitUrl}: ✅\n`);
-	} catch (error) {
-		writeStream.write(`\nERROR Cloning Custom Git: ${error}: ❌\n`);
-		throw error;
-	} finally {
-		writeStream.end();
+		command += addHostToKnownHostsCommand(customGitUrl);
 	}
-};
-
-export const getCustomGitCloneCommand = async (
-	entity: {
-		appName: string;
-		customGitUrl?: string | null;
-		customGitBranch?: string | null;
-		customGitSSHKeyId?: string | null;
-		serverId: string | null;
-		enableSubmodules: boolean;
-	},
-	logPath: string,
-	isCompose = false,
-) => {
-	const { SSH_PATH, COMPOSE_PATH, APPLICATIONS_PATH } = paths(true);
-	const {
-		appName,
-		customGitUrl,
-		customGitBranch,
-		customGitSSHKeyId,
-		serverId,
-		enableSubmodules,
-	} = entity;
-
-	if (!customGitUrl || !customGitBranch) {
-		const command = `
-			echo  "Error: ❌ Repository not found" >> ${logPath};
-			exit 1;
-		`;
-
-		await execAsyncRemote(serverId, command);
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error: Repository not found",
-		});
-	}
-
-	const basePath = isCompose ? COMPOSE_PATH : APPLICATIONS_PATH;
-	const outputPath = join(basePath, appName, "code");
-	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
+	command += `rm -rf ${outputPath};`;
+	command += `mkdir -p ${outputPath};`;
+	command += `echo "Cloning Repo Custom ${customGitUrl} to ${outputPath}: ✅";`;
 
 	if (customGitSSHKeyId) {
 		await updateSSHKeyById({
@@ -161,48 +66,22 @@ export const getCustomGitCloneCommand = async (
 			lastUsedAt: new Date().toISOString(),
 		});
 	}
-	try {
-		const command = [];
-		if (!isHttpOrHttps(customGitUrl)) {
-			if (!customGitSSHKeyId) {
-				command.push(
-					`echo "Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key ❌" >> ${logPath};
-					 exit 1;
-					`,
-				);
-			}
-			command.push(addHostToKnownHostsCommand(customGitUrl));
-		}
-		command.push(`rm -rf ${outputPath};`);
-		command.push(`mkdir -p ${outputPath};`);
-		command.push(
-			`echo "Cloning Custom Git ${customGitUrl}" to ${outputPath}: ✅ >> ${logPath};`,
-		);
-		if (customGitSSHKeyId) {
-			const sshKey = await findSSHKeyById(customGitSSHKeyId);
-			const { port } = sanitizeRepoPathSSH(customGitUrl);
-			const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`;
-			command.push(
-				`
-				echo "${sshKey.privateKey}" > /tmp/id_rsa
-				chmod 600 /tmp/id_rsa
-				export GIT_SSH_COMMAND="${gitSshCommand}"
-				`,
-			);
-		}
 
-		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} >> ${logPath} 2>&1; then
-				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}" >> ${logPath};
+	if (customGitSSHKeyId) {
+		const sshKey = await findSSHKeyById(customGitSSHKeyId);
+		const { port } = sanitizeRepoPathSSH(customGitUrl);
+		const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`;
+		command += `echo "${sshKey.privateKey}" > /tmp/id_rsa;`;
+		command += "chmod 600 /tmp/id_rsa;";
+		command += `export GIT_SSH_COMMAND="${gitSshCommand}";`;
+	}
+	command += `if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath}; then
+				echo "❌ [ERROR] Fail to clone the repository ${customGitUrl}";
 				exit 1;
 			fi
-			`,
-		);
-		command.push(`echo "Cloned Custom Git ${customGitUrl}: ✅" >> ${logPath};`);
-		return command.join("\n");
-	} catch (error) {
-		throw error;
-	}
+			`;
+
+	return command;
 };
 
 const isHttpOrHttps = (url: string): boolean => {
@@ -210,19 +89,19 @@ const isHttpOrHttps = (url: string): boolean => {
 	return regex.test(url);
 };
 
-const addHostToKnownHosts = async (repositoryURL: string) => {
-	const { SSH_PATH } = paths();
-	const { domain, port } = sanitizeRepoPathSSH(repositoryURL);
-	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
+// const addHostToKnownHosts = async (repositoryURL: string) => {
+// 	const { SSH_PATH } = paths();
+// 	const { domain, port } = sanitizeRepoPathSSH(repositoryURL);
+// 	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
 
-	const command = `ssh-keyscan -p ${port} ${domain} >> ${knownHostsPath}`;
-	try {
-		await execAsync(command);
-	} catch (error) {
-		console.error(`Error adding host to known_hosts: ${error}`);
-		throw error;
-	}
-};
+// 	const command = `ssh-keyscan -p ${port} ${domain} >> ${knownHostsPath}`;
+// 	try {
+// 		await execAsync(command);
+// 	} catch (error) {
+// 		console.error(`Error adding host to known_hosts: ${error}`);
+// 		throw error;
+// 	}
+// };
 
 const addHostToKnownHostsCommand = (repositoryURL: string) => {
 	const { SSH_PATH } = paths(true);
@@ -265,162 +144,4 @@ const sanitizeRepoPathSSH = (input: string) => {
 			}${this.repo}.git`;
 		},
 	};
-};
-
-export const cloneGitRawRepository = async (entity: {
-	appName: string;
-	customGitUrl?: string | null;
-	customGitBranch?: string | null;
-	customGitSSHKeyId?: string | null;
-	enableSubmodules?: boolean;
-}) => {
-	const {
-		appName,
-		customGitUrl,
-		customGitBranch,
-		customGitSSHKeyId,
-		enableSubmodules,
-	} = entity;
-
-	if (!customGitUrl || !customGitBranch) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error: Repository not found",
-		});
-	}
-
-	const { SSH_PATH, COMPOSE_PATH } = paths();
-	const temporalKeyPath = path.join("/tmp", "id_rsa");
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
-
-	if (customGitSSHKeyId) {
-		const sshKey = await findSSHKeyById(customGitSSHKeyId);
-
-		await execAsync(`
-			echo "${sshKey.privateKey}" > ${temporalKeyPath}
-			chmod 600 ${temporalKeyPath}
-			`);
-	}
-
-	try {
-		if (!isHttpOrHttps(customGitUrl)) {
-			if (!customGitSSHKeyId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key",
-				});
-			}
-			await addHostToKnownHosts(customGitUrl);
-		}
-		await recreateDirectory(outputPath);
-
-		if (customGitSSHKeyId) {
-			await updateSSHKeyById({
-				sshKeyId: customGitSSHKeyId,
-				lastUsedAt: new Date().toISOString(),
-			});
-		}
-
-		const { port } = sanitizeRepoPathSSH(customGitUrl);
-		const cloneArgs = [
-			"clone",
-			"--branch",
-			customGitBranch,
-			"--depth",
-			"1",
-			...(enableSubmodules ? ["--recurse-submodules"] : []),
-			customGitUrl,
-			outputPath,
-			"--progress",
-		];
-
-		await spawnAsync("git", cloneArgs, (_data) => {}, {
-			env: {
-				...process.env,
-				...(customGitSSHKeyId && {
-					GIT_SSH_COMMAND: `ssh -i ${temporalKeyPath}${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`,
-				}),
-			},
-		});
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const cloneRawGitRepositoryRemote = async (compose: Compose) => {
-	const {
-		appName,
-		customGitBranch,
-		customGitUrl,
-		customGitSSHKeyId,
-		serverId,
-		enableSubmodules,
-	} = compose;
-
-	if (!serverId) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Server not found",
-		});
-	}
-	if (!customGitUrl) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Git Provider not found",
-		});
-	}
-
-	const { SSH_PATH, COMPOSE_PATH } = paths(true);
-	const basePath = COMPOSE_PATH;
-	const outputPath = join(basePath, appName, "code");
-	const knownHostsPath = path.join(SSH_PATH, "known_hosts");
-
-	if (customGitSSHKeyId) {
-		await updateSSHKeyById({
-			sshKeyId: customGitSSHKeyId,
-			lastUsedAt: new Date().toISOString(),
-		});
-	}
-	try {
-		const command = [];
-		if (!isHttpOrHttps(customGitUrl)) {
-			if (!customGitSSHKeyId) {
-				command.push(
-					`echo "Error: you are trying to clone a ssh repository without a ssh key, please set a ssh key ❌" ;
-					 exit 1;
-					`,
-				);
-			}
-			command.push(addHostToKnownHostsCommand(customGitUrl));
-		}
-		command.push(`rm -rf ${outputPath};`);
-		command.push(`mkdir -p ${outputPath};`);
-		if (customGitSSHKeyId) {
-			const sshKey = await findSSHKeyById(customGitSSHKeyId);
-			const { port } = sanitizeRepoPathSSH(customGitUrl);
-			const gitSshCommand = `ssh -i /tmp/id_rsa${port ? ` -p ${port}` : ""} -o UserKnownHostsFile=${knownHostsPath}`;
-			command.push(
-				`
-				echo "${sshKey.privateKey}" > /tmp/id_rsa
-				chmod 600 /tmp/id_rsa
-				export GIT_SSH_COMMAND="${gitSshCommand}"
-				`,
-			);
-		}
-
-		command.push(
-			`if ! git clone --branch ${customGitBranch} --depth 1 ${enableSubmodules ? "--recurse-submodules" : ""} --progress ${customGitUrl} ${outputPath} ; then
-				echo "[ERROR] Fail to clone the repository ";
-				exit 1;
-			fi
-			`,
-		);
-
-		await execAsyncRemote(serverId, command.join("\n"));
-	} catch (error) {
-		throw error;
-	}
 };
