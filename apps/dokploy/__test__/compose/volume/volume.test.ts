@@ -1,7 +1,7 @@
 import type { ComposeSpecification } from "@dokploy/server";
 import { addSuffixToAllVolumes } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFileTypeVolume = `
 version: "3.8"
@@ -23,7 +23,7 @@ volumes:
     driver: local
 `;
 
-const expectedComposeFileTypeVolume = load(`
+const expectedComposeFileTypeVolume = parse(`
 version: "3.8"
 
 services:
@@ -44,7 +44,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Add suffix to volumes with type: volume in services", () => {
-	const composeData = load(composeFileTypeVolume) as ComposeSpecification;
+	const composeData = parse(composeFileTypeVolume) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -73,7 +73,7 @@ volumes:
     driver: local
 `;
 
-const expectedComposeFileTypeVolume1 = load(`
+const expectedComposeFileTypeVolume1 = parse(`
 version: "3.8"
 
 services:
@@ -93,7 +93,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Add suffix to mixed volumes in services", () => {
-	const composeData = load(composeFileTypeVolume1) as ComposeSpecification;
+	const composeData = parse(composeFileTypeVolume1) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -128,7 +128,7 @@ volumes:
       device: /path/to/app/logs
 `;
 
-const expectedComposeFileTypeVolume2 = load(`
+const expectedComposeFileTypeVolume2 = parse(`
 version: "3.8"
 
 services:
@@ -154,7 +154,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Add suffix to complex volume configurations in services", () => {
-	const composeData = load(composeFileTypeVolume2) as ComposeSpecification;
+	const composeData = parse(composeFileTypeVolume2) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -218,7 +218,7 @@ volumes:
       device: /path/to/shared/logs
 `;
 
-const expectedComposeFileTypeVolume3 = load(`
+const expectedComposeFileTypeVolume3 = parse(`
 version: "3.8"
 
 services:
@@ -273,7 +273,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Add suffix to complex nested volumes configuration in services", () => {
-	const composeData = load(composeFileTypeVolume3) as ComposeSpecification;
+	const composeData = parse(composeFileTypeVolume3) as ComposeSpecification;
 
 	const suffix = "testhash";
 

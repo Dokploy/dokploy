@@ -15,6 +15,7 @@ const baseApp: ApplicationNested = {
 	giteaId: "",
 	cleanCache: false,
 	applicationStatus: "done",
+	endpointSpecSwarm: null,
 	appName: "",
 	autoDeploy: true,
 	enableSubmodules: false,
@@ -25,8 +26,10 @@ const baseApp: ApplicationNested = {
 	registryUrl: "",
 	watchPaths: [],
 	buildArgs: null,
+	buildSecrets: null,
 	isPreviewDeploymentsActive: false,
 	previewBuildArgs: null,
+	previewBuildSecrets: null,
 	triggerType: "push",
 	previewCertificateType: "none",
 	previewEnv: null,
@@ -111,6 +114,7 @@ const baseApp: ApplicationNested = {
 	updateConfigSwarm: null,
 	username: null,
 	dockerContextPath: null,
+	stopGracePeriodSwarm: null,
 };
 
 const baseDomain: Domain = {

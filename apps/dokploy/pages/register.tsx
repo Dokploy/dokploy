@@ -101,7 +101,7 @@ const Register = ({ isCloud }: Props) => {
 			setIsError(true);
 			setError(error.message || "An error occurred");
 		} else {
-			toast.success("User registered successfuly", {
+			toast.success("User registered successfully", {
 				duration: 2000,
 			});
 			if (!isCloud) {

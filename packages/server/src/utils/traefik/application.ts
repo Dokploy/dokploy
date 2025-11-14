@@ -3,7 +3,7 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
-import { dump, load } from "js-yaml";
+import { parse, stringify } from "yaml";
 import { encodeBase64 } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
@@ -40,7 +40,7 @@ export const createTraefikConfig = (appName: string) => {
 			},
 		},
 	};
-	const yamlStr = dump(config);
+	const yamlStr = stringify(config);
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	fs.mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(
@@ -87,7 +87,7 @@ export const loadOrCreateConfig = (appName: string): FileConfig => {
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 	if (fs.existsSync(configPath)) {
 		const yamlStr = fs.readFileSync(configPath, "utf8");
-		const parsedConfig = (load(yamlStr) as FileConfig) || {
+		const parsedConfig = (parse(yamlStr) as FileConfig) || {
 			http: { routers: {}, services: {} },
 		};
 		return parsedConfig;
@@ -107,7 +107,7 @@ export const loadOrCreateConfigRemote = async (
 
 		if (!stdout) return fileConfig;
 
-		const parsedConfig = (load(stdout) as FileConfig) || {
+		const parsedConfig = (parse(stdout) as FileConfig) || {
 			http: { routers: {}, services: {} },
 		};
 		return parsedConfig;
@@ -248,7 +248,7 @@ export const writeTraefikConfig = (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths();
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const yamlStr = dump(traefikConfig);
+		const yamlStr = stringify(traefikConfig);
 		fs.writeFileSync(configPath, yamlStr, "utf8");
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
@@ -263,7 +263,7 @@ export const writeTraefikConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const yamlStr = dump(traefikConfig);
+		const yamlStr = stringify(traefikConfig);
 		await execAsyncRemote(serverId, `echo '${yamlStr}' > ${configPath}`);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);

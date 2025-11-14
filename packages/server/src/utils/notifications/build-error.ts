@@ -7,7 +7,9 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendLarkNotification,
 	sendGotifyNotification,
+	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -42,11 +44,14 @@ export const sendBuildErrorNotifications = async ({
 			telegram: true,
 			slack: true,
 			gotify: true,
+			ntfy: true,
+			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+			notification;
 		if (email) {
 			const template = await renderAsync(
 				BuildFailedEmail({
@@ -132,6 +137,20 @@ export const sendBuildErrorNotifications = async ({
 			);
 		}
 
+		if (ntfy) {
+			await sendNtfyNotification(
+				ntfy,
+				"Build Failed",
+				"warning",
+				`view, Build details, ${buildLink}, clear=true;`,
+				`🛠️Project: ${projectName}\n` +
+					`⚙️Application: ${applicationName}\n` +
+					`❔Type: ${applicationType}\n` +
+					`🕒Date: ${date.toLocaleString()}\n` +
+					`⚠️Error:\n${errorMessage}`,
+			);
+		}
+
 		if (telegram) {
 			const inlineButton = [
 				[
@@ -193,6 +212,118 @@ export const sendBuildErrorNotifications = async ({
 						],
 					},
 				],
+			});
+		}
+
+		if (lark) {
+			const limitCharacter = 800;
+			const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+			await sendLarkNotification(lark, {
+				msg_type: "interactive",
+				card: {
+					schema: "2.0",
+					config: {
+						update_multi: true,
+						style: {
+							text_size: {
+								normal_v2: {
+									default: "normal",
+									pc: "normal",
+									mobile: "heading",
+								},
+							},
+						},
+					},
+					header: {
+						title: {
+							tag: "plain_text",
+							content: "⚠️ Build Failed",
+						},
+						subtitle: {
+							tag: "plain_text",
+							content: "",
+						},
+						template: "red",
+						padding: "12px 12px 12px 12px",
+					},
+					body: {
+						direction: "vertical",
+						padding: "12px 12px 12px 12px",
+						elements: [
+							{
+								tag: "column_set",
+								columns: [
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Project:**\n${projectName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Type:**\n${applicationType}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+									{
+										tag: "column",
+										width: "weighted",
+										elements: [
+											{
+												tag: "markdown",
+												content: `**Application:**\n${applicationName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Date:**\n${format(date, "PP pp")}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+										],
+										vertical_align: "top",
+										weight: 1,
+									},
+								],
+							},
+							{
+								tag: "button",
+								text: {
+									tag: "plain_text",
+									content: "View Build Details",
+								},
+								type: "danger",
+								width: "default",
+								size: "medium",
+								behaviors: [
+									{
+										type: "open_url",
+										default_url: buildLink,
+										pc_url: "",
+										ios_url: "",
+										android_url: "",
+									},
+								],
+								margin: "0px 0px 0px 0px",
+							},
+						],
+					},
+				},
 			});
 		}
 	}

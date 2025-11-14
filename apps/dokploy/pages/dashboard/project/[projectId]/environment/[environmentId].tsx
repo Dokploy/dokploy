@@ -14,6 +14,7 @@ import {
 	PlusIcon,
 	Search,
 	ServerIcon,
+	SquareTerminal,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import { AddDatabase } from "@/components/dashboard/project/add-database";
 import { AddTemplate } from "@/components/dashboard/project/add-template";
 import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/advanced-environment-selector";
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
+import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
 import {
 	MariadbIcon,
@@ -46,6 +48,7 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,7 +83,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
@@ -113,6 +115,7 @@ export type Services = {
 	id: string;
 	createdAt: string;
 	status?: "idle" | "running" | "done" | "error";
+	lastDeployDate?: Date | null;
 };
 
 type Project = Awaited<ReturnType<typeof findProjectById>>;
@@ -126,16 +129,34 @@ export const extractServicesFromEnvironment = (
 	const allServices: Services[] = [];
 
 	const applications: Services[] =
-		environment.applications?.map((item) => ({
-			appName: item.appName,
-			name: item.name,
-			type: "application",
-			id: item.applicationId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-		})) || [];
+		environment.applications?.map((item) => {
+			// Get the most recent deployment date
+			let lastDeployDate: Date | null = null;
+			const deployments = (item as any).deployments;
+			if (deployments && deployments.length > 0) {
+				for (const deployment of deployments) {
+					const deployDate = new Date(
+						deployment.finishedAt ||
+							deployment.startedAt ||
+							deployment.createdAt,
+					);
+					if (!lastDeployDate || deployDate > lastDeployDate) {
+						lastDeployDate = deployDate;
+					}
+				}
+			}
+			return {
+				appName: item.appName,
+				name: item.name,
+				type: "application",
+				id: item.applicationId,
+				createdAt: item.createdAt,
+				status: item.applicationStatus,
+				description: item.description,
+				serverId: item.serverId,
+				lastDeployDate,
+			};
+		}) || [];
 
 	const mariadb: Services[] =
 		environment.mariadb?.map((item) => ({
@@ -198,16 +219,34 @@ export const extractServicesFromEnvironment = (
 		})) || [];
 
 	const compose: Services[] =
-		environment.compose?.map((item) => ({
-			appName: item.appName,
-			name: item.name,
-			type: "compose",
-			id: item.composeId,
-			createdAt: item.createdAt,
-			status: item.composeStatus,
-			description: item.description,
-			serverId: item.serverId,
-		})) || [];
+		environment.compose?.map((item) => {
+			// Get the most recent deployment date
+			let lastDeployDate: Date | null = null;
+			const deployments = (item as any).deployments;
+			if (deployments && deployments.length > 0) {
+				for (const deployment of deployments) {
+					const deployDate = new Date(
+						deployment.finishedAt ||
+							deployment.startedAt ||
+							deployment.createdAt,
+					);
+					if (!lastDeployDate || deployDate > lastDeployDate) {
+						lastDeployDate = deployDate;
+					}
+				}
+			}
+			return {
+				appName: item.appName,
+				name: item.name,
+				type: "compose",
+				id: item.composeId,
+				createdAt: item.createdAt,
+				status: item.composeStatus,
+				description: item.description,
+				serverId: item.serverId,
+				lastDeployDate,
+			};
+		}) || [];
 
 	allServices.push(
 		...applications,
@@ -235,9 +274,9 @@ const EnvironmentPage = (
 	const { data: auth } = api.user.get.useQuery();
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
-			return localStorage.getItem("servicesSort") || "createdAt-desc";
+			return localStorage.getItem("servicesSort") || "lastDeploy-desc";
 		}
-		return "createdAt-desc";
+		return "lastDeploy-desc";
 	});
 
 	useEffect(() => {
@@ -259,10 +298,45 @@ const EnvironmentPage = (
 					comparison =
 						new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 					break;
+				case "lastDeploy": {
+					const aLastDeploy = a.lastDeployDate;
+					const bLastDeploy = b.lastDeployDate;
+
+					if (direction === "desc") {
+						// For "desc" (newest first): services with deployments first, then those without
+						if (!aLastDeploy && !bLastDeploy) {
+							comparison = 0;
+						} else if (!aLastDeploy) {
+							comparison = 1; // a (no deploy) goes after b (has deploy)
+						} else if (!bLastDeploy) {
+							comparison = -1; // a (has deploy) goes before b (no deploy)
+						} else {
+							// Both have deployments: newest first (negative if a is newer)
+							comparison = bLastDeploy.getTime() - aLastDeploy.getTime();
+						}
+					} else {
+						// For "asc" (oldest first): services with deployments first, then those without
+						if (!aLastDeploy && !bLastDeploy) {
+							comparison = 0;
+						} else if (!aLastDeploy) {
+							comparison = 1; // a (no deploy) goes after b (has deploy)
+						} else if (!bLastDeploy) {
+							comparison = -1; // a (has deploy) goes before b (no deploy)
+						} else {
+							// Both have deployments: oldest first
+							comparison = aLastDeploy.getTime() - bLastDeploy.getTime();
+						}
+					}
+					break;
+				}
 				default:
 					comparison = 0;
 			}
-			return direction === "asc" ? comparison : -comparison;
+			// For other fields, apply direction normally
+			if (field !== "lastDeploy") {
+				return direction === "asc" ? comparison : -comparison;
+			}
+			return comparison;
 		});
 	};
 
@@ -776,6 +850,11 @@ const EnvironmentPage = (
 										projectId={projectId}
 										currentEnvironmentId={environmentId}
 									/>
+									<EnvironmentVariables environmentId={environmentId}>
+										<Button variant="ghost" size="icon">
+											<SquareTerminal className="size-5 text-muted-foreground cursor-pointer" />
+										</Button>
+									</EnvironmentVariables>
 								</CardTitle>
 								<CardDescription>
 									{currentEnvironment.description || "No description provided"}
@@ -1197,7 +1276,7 @@ const EnvironmentPage = (
 
 									<div className="flex flex-col gap-2 lg:flex-row lg:gap-4 lg:items-center">
 										<div className="w-full relative">
-											<Input
+											<FocusShortcutInput
 												placeholder="Filter services..."
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
@@ -1210,6 +1289,9 @@ const EnvironmentPage = (
 												<SelectValue placeholder="Sort by..." />
 											</SelectTrigger>
 											<SelectContent>
+												<SelectItem value="lastDeploy-desc">
+													Recently deployed
+												</SelectItem>
 												<SelectItem value="createdAt-desc">
 													Newest first
 												</SelectItem>

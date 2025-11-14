@@ -89,7 +89,7 @@ export const getMariadbBackupCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --databases ${database} | gzip"`;
+	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; mariadb-dump --user='${databaseUser}' --password='${databasePassword}' --single-transaction --quick --databases ${database} | gzip"`;
 };
 
 export const getMysqlBackupCommand = (

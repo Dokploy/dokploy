@@ -4,8 +4,8 @@ import {
 	addSuffixToVolumesRoot,
 	generateRandomHash,
 } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile = `
 services:
@@ -70,7 +70,7 @@ volumes:
     driver: local
 `;
 
-const expectedDockerCompose = load(`
+const expectedDockerCompose = parse(`
 services:
   mail:
     image: bytemark/smtp
@@ -143,7 +143,7 @@ test("Generate random hash with 8 characters", () => {
 // Docker compose needs unique names for services, volumes, networks and containers
 // So base on a input which is a dockercompose file, it should replace the name with a hash and return a new dockercompose file
 test("Add suffix to volumes root property", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -165,7 +165,7 @@ test("Add suffix to volumes root property", () => {
 });
 
 test("Expect to change the suffix in all the possible places", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -195,7 +195,7 @@ volumes:
   mongo-data:
 `;
 
-const expectedDockerCompose2 = load(`
+const expectedDockerCompose2 = parse(`
 version: '3.8'
 services:
   app:
@@ -218,7 +218,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Expect to change the suffix in all the possible places (2 Try)", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -248,7 +248,7 @@ volumes:
   mongo-data:
 `;
 
-const expectedDockerCompose3 = load(`
+const expectedDockerCompose3 = parse(`
 version: '3.8'
 services:
   app:
@@ -271,7 +271,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Expect to change the suffix in all the possible places (3 Try)", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -645,7 +645,7 @@ volumes:
   db-config:
 `;
 
-const expectedDockerComposeComplex = load(`
+const expectedDockerComposeComplex = parse(`
 version: "3.8"
 services:
   studio:
@@ -1012,7 +1012,7 @@ volumes:
 `);
 
 test("Expect to change the suffix in all the possible places (4 Try)", () => {
-	const composeData = load(composeFileComplex) as ComposeSpecification;
+	const composeData = parse(composeFileComplex) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -1065,7 +1065,7 @@ volumes:
   db-data:
 `;
 
-const expectedDockerComposeExample1 = load(`
+const expectedDockerComposeExample1 = parse(`
 version: "3.8"
 services:
   web:
@@ -1111,7 +1111,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Expect to change the suffix in all the possible places (5 Try)", () => {
-	const composeData = load(composeFileExample1) as ComposeSpecification;
+	const composeData = parse(composeFileExample1) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);
@@ -1143,7 +1143,7 @@ volumes:
   backrest-cache:
 `;
 
-const expectedDockerComposeBackrest = load(`
+const expectedDockerComposeBackrest = parse(`
 services:
   backrest:
     image: garethgeorge/backrest:v1.7.3
@@ -1168,7 +1168,7 @@ volumes:
 `) as ComposeSpecification;
 
 test("Should handle volume paths with subdirectories correctly", () => {
-	const composeData = load(composeFileBackrest) as ComposeSpecification;
+	const composeData = parse(composeFileBackrest) as ComposeSpecification;
 	const suffix = "testhash";
 
 	const updatedComposeData = addSuffixToAllVolumes(composeData, suffix);

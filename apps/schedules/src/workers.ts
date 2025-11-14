@@ -7,22 +7,34 @@ import { runJobs } from "./utils.js";
 export const firstWorker = new Worker(
 	"backupQueue",
 	async (job: Job<QueueJob>) => {
-		logger.info({ data: job.data }, "Running job");
+		logger.info({ data: job.data }, "Running job first worker");
 		await runJobs(job.data);
 	},
 	{
-		concurrency: 50,
+		concurrency: 100,
 		connection,
 	},
 );
 export const secondWorker = new Worker(
 	"backupQueue",
 	async (job: Job<QueueJob>) => {
-		logger.info({ data: job.data }, "Running job");
+		logger.info({ data: job.data }, "Running job second worker");
 		await runJobs(job.data);
 	},
 	{
-		concurrency: 50,
+		concurrency: 100,
+		connection,
+	},
+);
+
+export const thirdWorker = new Worker(
+	"backupQueue",
+	async (job: Job<QueueJob>) => {
+		logger.info({ data: job.data }, "Running job third worker");
+		await runJobs(job.data);
+	},
+	{
+		concurrency: 100,
 		connection,
 	},
 );

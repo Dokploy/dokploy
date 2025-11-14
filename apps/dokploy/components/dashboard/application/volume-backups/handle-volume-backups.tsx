@@ -1,11 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	DatabaseZap,
-	Info,
-	PenBoxIcon,
-	PlusCircle,
-	RefreshCw,
-} from "lucide-react";
+import { DatabaseZap, PenBoxIcon, PlusCircle, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -47,13 +41,19 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
-import { commonCronExpressions } from "../schedules/handle-schedules";
+import { ScheduleFormField } from "../schedules/handle-schedules";
 
 const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
 		cronExpression: z.string().min(1, "Cron expression is required"),
-		volumeName: z.string().min(1, "Volume name is required"),
+		volumeName: z
+			.string()
+			.min(1, "Volume name is required")
+			.regex(
+				/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+				"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+			),
 		prefix: z.string(),
 		keepLatestCount: z.coerce
 			.number()
@@ -306,64 +306,9 @@ export const HandleVolumeBackups = ({
 								</FormItem>
 							)}
 						/>
-
-						<FormField
-							control={form.control}
+						<ScheduleFormField
 							name="cronExpression"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel className="flex items-center gap-2">
-										Schedule
-										<TooltipProvider>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<Info className="w-4 h-4 text-muted-foreground cursor-help" />
-												</TooltipTrigger>
-												<TooltipContent>
-													<p>
-														Cron expression format: minute hour day month
-														weekday
-													</p>
-													<p>Example: 0 0 * * * (daily at midnight)</p>
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
-									</FormLabel>
-									<div className="flex flex-col gap-2">
-										<Select
-											onValueChange={(value) => {
-												field.onChange(value);
-											}}
-										>
-											<FormControl>
-												<SelectTrigger>
-													<SelectValue placeholder="Select a predefined schedule" />
-												</SelectTrigger>
-											</FormControl>
-											<SelectContent>
-												{commonCronExpressions.map((expr) => (
-													<SelectItem key={expr.value} value={expr.value}>
-														{expr.label} ({expr.value})
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										<div className="relative">
-											<FormControl>
-												<Input
-													placeholder="Custom cron expression (e.g., 0 0 * * *)"
-													{...field}
-												/>
-											</FormControl>
-										</div>
-									</div>
-									<FormDescription>
-										Choose a predefined schedule or enter a custom cron
-										expression
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
+							formControl={form.control}
 						/>
 
 						<FormField
