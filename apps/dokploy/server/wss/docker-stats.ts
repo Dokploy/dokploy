@@ -53,7 +53,11 @@ export const setupDockerStatsMonitoringSocketServer = (
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
 				if (appName === "dokploy") {
-					const osutils = new OSUtils();
+					const osutils = new OSUtils({
+						disk: {
+							includeStats: true, // Enable disk I/O statistics
+						},
+					});
 
 					// Get CPU usage
 					const cpuResult = await osutils.cpu.usage();
@@ -85,7 +89,17 @@ export const setupDockerStatsMonitoringSocketServer = (
 					let blockWriteBytes = 0;
 					const diskStats = await osutils.disk.stats();
 					if (diskStats.success && diskStats.data.length > 0) {
+						// Filter out virtual devices (loop, ram, sr, etc.) - only include real disk devices
+						const excludePatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
 						for (const stat of diskStats.data) {
+							// Skip virtual devices
+							if (
+								stat.device &&
+								excludePatterns.some((pattern) => pattern.test(stat.device))
+							) {
+								continue;
+							}
+							// readBytes and writeBytes are DataSize objects with .toBytes() method
 							blockReadBytes += stat.readBytes.toBytes();
 							blockWriteBytes += stat.writeBytes.toBytes();
 						}
