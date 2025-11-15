@@ -75,6 +75,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	buildArgs.push(buildAppDirectory);
 
 	const bashCommand = `
+
 # Ensure we have a builder with containerd
 docker buildx create --use --name builder-containerd --driver docker-container || true
 docker buildx use builder-containerd
@@ -82,6 +83,7 @@ docker buildx use builder-containerd
 echo "Preparing Railpack build plan..." ;
 railpack ${prepareArgs.join(" ")} || { 
 	echo "❌ Railpack prepare failed" ;
+	docker buildx rm builder-containerd || true
 	exit 1;
 }
 echo "✅ Railpack prepare completed." ;
@@ -91,6 +93,7 @@ echo "Building with Railpack frontend..." ;
 ${exportEnvs.join("\n")}
 docker ${buildArgs.join(" ")} || { 
 	echo "❌ Railpack build failed" ;
+	docker buildx rm builder-containerd || true
 	exit 1;
 }
 echo "✅ Railpack build completed." ;
