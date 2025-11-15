@@ -862,4 +862,49 @@ export const settingsRouter = createTRPCRouter({
 		const ips = process.env.DOKPLOY_CLOUD_IPS?.split(",");
 		return ips;
 	}),
+	getDeploymentConcurrency: adminProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+			}),
+		)
+		.query(async ({ input }) => {
+			// For now, remote servers use the same queue as dokploy server
+			// In the future, we could implement per-server queues
+			const { getConcurrency } = await import("@/server/queues/queueSetup");
+			return {
+				concurrency: getConcurrency(),
+				serverId: input.serverId,
+			};
+		}),
+	setDeploymentConcurrency: adminProcedure
+		.input(
+			z.object({
+				concurrency: z.number().int().min(1).max(20),
+				serverId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			// For now, remote servers use the same queue as dokploy server
+			// In the future, we could implement per-server queues
+			const { setConcurrency, getConcurrency } = await import(
+				"@/server/queues/queueSetup"
+			);
+			const currentConcurrency = getConcurrency();
+			const clearedCount = setConcurrency(input.concurrency);
+			const serverType = input.serverId ? "remote server" : "Dokploy server";
+
+			let message = `${serverType} deployment concurrency updated from ${currentConcurrency} to ${input.concurrency}. Changes take effect immediately.`;
+			if (clearedCount > 0) {
+				message += ` ${clearedCount} pending build${clearedCount > 1 ? "s were" : " was"} cancelled due to concurrency change.`;
+			}
+
+			return {
+				success: true,
+				message,
+				concurrency: input.concurrency,
+				serverId: input.serverId,
+				clearedBuilds: clearedCount,
+			};
+		}),
 });

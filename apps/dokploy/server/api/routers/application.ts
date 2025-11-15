@@ -58,7 +58,10 @@ import {
 	applications,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import {
+	addJobAsync,
+	cleanQueuesByApplication,
+} from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
@@ -335,14 +338,9 @@ export const applicationRouter = createTRPCRouter({
 				await deploy(jobData);
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			// Fire and forget - UI doesn't wait for deployment to complete
+			addJobAsync(`application:${jobData.applicationId}`, jobData);
+			return { success: true, message: "Deployment queued" };
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
@@ -700,14 +698,8 @@ export const applicationRouter = createTRPCRouter({
 
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			addJobAsync(`application:${jobData.applicationId}`, jobData);
+			return { success: true, message: "Deployment queued" };
 		}),
 
 	cleanQueues: protectedProcedure
@@ -798,14 +790,8 @@ export const applicationRouter = createTRPCRouter({
 				return true;
 			}
 
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			// Fire and forget - UI doesn't wait for deployment to complete
+			addJobAsync(`application:${jobData.applicationId}`, jobData);
 			return true;
 		}),
 	updateTraefikConfig: protectedProcedure

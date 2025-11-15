@@ -4,11 +4,11 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	IS_CLOUD,
+	initCancelDeployments,
 	initCronJobs,
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
-	initCancelDeployments,
 	sendDokployRestartNotifications,
 	setupDirectories,
 } from "@dokploy/server";
@@ -66,6 +66,8 @@ void app.prepare().then(async () => {
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
+			// Import the handler module to ensure it's initialized
+			await import("./queues/deployments-queue");
 			const { deploymentWorker } = await import("./queues/deployments-queue");
 			await deploymentWorker.run();
 		}

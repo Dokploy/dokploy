@@ -132,12 +132,8 @@ export default async function handler(
 					continue;
 				}
 				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
+					`application:${jobData.applicationId}`,
+					jobData,
 				);
 			}
 
@@ -170,12 +166,8 @@ export default async function handler(
 				}
 
 				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
+					`compose:${jobData.composeId}`,
+					jobData,
 				);
 			}
 
@@ -250,12 +242,8 @@ export default async function handler(
 					continue;
 				}
 				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
+					`application:${jobData.applicationId}`,
+					jobData,
 				);
 			}
 
@@ -296,12 +284,8 @@ export default async function handler(
 				}
 
 				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
+					`compose:${jobData.composeId}`,
+					jobData,
 				);
 			}
 
@@ -495,12 +479,8 @@ export default async function handler(
 					continue;
 				}
 				await myQueue.add(
-					"deployments",
-					{ ...jobData },
-					{
-						removeOnComplete: true,
-						removeOnFail: true,
-					},
+					`preview:${jobData.previewDeploymentId}`,
+					jobData,
 				);
 			}
 			return res.status(200).json({ message: "Apps Deployed" });

@@ -8,67 +8,77 @@ import {
 	updateCompose,
 	updatePreviewDeployment,
 } from "@dokploy/server";
-import { type Job, Worker } from "bullmq";
 import type { DeploymentJob } from "./queue-types";
-import { redisConfig } from "./redis-connection";
+import { myQueue } from "./queueSetup";
 
-export const deploymentWorker = new Worker(
-	"deployments",
-	async (job: Job<DeploymentJob>) => {
-		try {
-			if (job.data.applicationType === "application") {
-				await updateApplicationStatus(job.data.applicationId, "running");
+// Set the handler for processing deployment jobs
+console.log("Setting deployment queue handler");
+myQueue.setHandler(async (job: DeploymentJob) => {
+	const jobId =
+		job.applicationType === "application"
+			? job.applicationId
+			: job.applicationType === "compose"
+				? job.composeId
+				: job.previewDeploymentId;
+	console.log("Handler called with job:", job.applicationType, jobId);
+	try {
+		if (job.applicationType === "application") {
+			await updateApplicationStatus(job.applicationId, "running");
 
-				if (job.data.type === "redeploy") {
-					await rebuildApplication({
-						applicationId: job.data.applicationId,
-						titleLog: job.data.titleLog,
-						descriptionLog: job.data.descriptionLog,
-					});
-				} else if (job.data.type === "deploy") {
-					await deployApplication({
-						applicationId: job.data.applicationId,
-						titleLog: job.data.titleLog,
-						descriptionLog: job.data.descriptionLog,
-					});
-				}
-			} else if (job.data.applicationType === "compose") {
-				await updateCompose(job.data.composeId, {
-					composeStatus: "running",
+			if (job.type === "redeploy") {
+				await rebuildApplication({
+					applicationId: job.applicationId,
+					titleLog: job.titleLog,
+					descriptionLog: job.descriptionLog,
 				});
-				if (job.data.type === "deploy") {
-					await deployCompose({
-						composeId: job.data.composeId,
-						titleLog: job.data.titleLog,
-						descriptionLog: job.data.descriptionLog,
-					});
-				} else if (job.data.type === "redeploy") {
-					await rebuildCompose({
-						composeId: job.data.composeId,
-						titleLog: job.data.titleLog,
-						descriptionLog: job.data.descriptionLog,
-					});
-				}
-			} else if (job.data.applicationType === "application-preview") {
-				await updatePreviewDeployment(job.data.previewDeploymentId, {
-					previewStatus: "running",
+			} else if (job.type === "deploy") {
+				await deployApplication({
+					applicationId: job.applicationId,
+					titleLog: job.titleLog,
+					descriptionLog: job.descriptionLog,
 				});
-
-				if (job.data.type === "deploy") {
-					await deployPreviewApplication({
-						applicationId: job.data.applicationId,
-						titleLog: job.data.titleLog,
-						descriptionLog: job.data.descriptionLog,
-						previewDeploymentId: job.data.previewDeploymentId,
-					});
-				}
 			}
-		} catch (error) {
-			console.log("Error", error);
+		} else if (job.applicationType === "compose") {
+			await updateCompose(job.composeId, {
+				composeStatus: "running",
+			});
+			if (job.type === "deploy") {
+				await deployCompose({
+					composeId: job.composeId,
+					titleLog: job.titleLog,
+					descriptionLog: job.descriptionLog,
+				});
+			} else if (job.type === "redeploy") {
+				await rebuildCompose({
+					composeId: job.composeId,
+					titleLog: job.titleLog,
+					descriptionLog: job.descriptionLog,
+				});
+			}
+		} else if (job.applicationType === "application-preview") {
+			await updatePreviewDeployment(job.previewDeploymentId, {
+				previewStatus: "running",
+			});
+
+			if (job.type === "deploy") {
+				await deployPreviewApplication({
+					applicationId: job.applicationId,
+					titleLog: job.titleLog,
+					descriptionLog: job.descriptionLog,
+					previewDeploymentId: job.previewDeploymentId,
+				});
+			}
 		}
+	} catch (error) {
+		console.log("Error processing deployment job", error);
+		throw error; // Re-throw to let the queue handle retries if needed
+	}
+});
+
+// Export for compatibility (no longer needed but kept for imports)
+export const deploymentWorker = {
+	run: () => {
+		// Queue starts processing automatically when jobs are added
+		console.log("Deployment queue handler initialized");
 	},
-	{
-		autorun: false,
-		connection: redisConfig,
-	},
-);
+};

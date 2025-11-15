@@ -253,12 +253,8 @@ export default async function handler(
 				return true;
 			}
 			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
+				`application:${jobData.applicationId}`,
+				jobData,
 			);
 		} catch (error) {
 			res.status(400).json({ message: "Error deploying Application", error });

@@ -97,7 +97,7 @@ docker ${buildArgs.join(" ")} || {
 	exit 1;
 }
 echo "✅ Railpack build completed." ;
-docker buildx rm builder-containerd
+docker buildx rm builder-containerd || true
 `;
 
 	return bashCommand;

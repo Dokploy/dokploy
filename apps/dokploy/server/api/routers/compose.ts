@@ -59,7 +59,7 @@ import {
 	compose as composeTable,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
+import { addJobAsync, cleanQueuesByCompose } from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
@@ -401,14 +401,7 @@ export const composeRouter = createTRPCRouter({
 				await deploy(jobData);
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			addJobAsync(`compose:${jobData.composeId}`, jobData);
 			return { success: true, message: "Deployment queued" };
 		}),
 	redeploy: protectedProcedure
@@ -437,14 +430,7 @@ export const composeRouter = createTRPCRouter({
 				await deploy(jobData);
 				return true;
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
+			addJobAsync(`compose:${jobData.composeId}`, jobData);
 			return { success: true, message: "Redeployment queued" };
 		}),
 	stop: protectedProcedure

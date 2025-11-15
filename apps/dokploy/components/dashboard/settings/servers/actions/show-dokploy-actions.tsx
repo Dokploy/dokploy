@@ -15,6 +15,7 @@ import { api } from "@/utils/api";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
+import { ChangeConcurrencyModal } from "../change-concurrency-modal";
 
 export const ShowDokployActions = () => {
 	const { t } = useTranslation("settings");
@@ -101,6 +102,14 @@ export const ShowDokployActions = () => {
 					>
 						Reload Redis
 					</DropdownMenuItem>
+					<ChangeConcurrencyModal>
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onSelect={(e) => e.preventDefault()}
+						>
+							Change Concurrency
+						</DropdownMenuItem>
+					</ChangeConcurrencyModal>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>

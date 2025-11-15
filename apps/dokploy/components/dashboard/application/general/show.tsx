@@ -79,7 +79,7 @@ export const ShowGeneralApplication = ({ applicationId }: Props) => {
 						>
 							<Button
 								variant="default"
-								isLoading={data?.applicationStatus === "running"}
+								// isLoading={data?.applicationStatus === "running"}
 								className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 							>
 								<Tooltip>
