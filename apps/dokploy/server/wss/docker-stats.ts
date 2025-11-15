@@ -2,13 +2,12 @@ import type http from "node:http";
 import {
 	docker,
 	execAsync,
+	getHostSystemStats,
 	getLastAdvancedStatsFile,
 	recordAdvancedStats,
 	validateRequest,
 } from "@dokploy/server";
-import { OSUtils } from "node-os-utils";
 import { WebSocketServer } from "ws";
-import { formatBytes } from "@/components/dashboard/database/backups/restore-backup";
 
 export const setupDockerStatsMonitoringSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -53,82 +52,7 @@ export const setupDockerStatsMonitoringSocketServer = (
 			try {
 				// Special case: when monitoring "dokploy", get host system stats instead of container stats
 				if (appName === "dokploy") {
-					const osutils = new OSUtils({
-						disk: {
-							includeStats: true, // Enable disk I/O statistics
-						},
-					});
-
-					// Get CPU usage
-					const cpuResult = await osutils.cpu.usage();
-					const cpuUsage = cpuResult.success ? cpuResult.data : 0;
-
-					// Get memory info
-					const memResult = await osutils.memory.info();
-					let memUsedGB = 0;
-					let memTotalGB = 0;
-					let memUsedPercent = 0;
-					if (memResult.success) {
-						memTotalGB = memResult.data.total.toGB();
-						memUsedGB = memResult.data.used.toGB();
-						memUsedPercent = memResult.data.usagePercentage;
-					}
-
-					// Get network stats from network.overview() or network.statsAsync()
-					let netInputBytes = 0;
-					let netOutputBytes = 0;
-					const networkOverview = await osutils.network.overview();
-					if (networkOverview.success) {
-						netInputBytes = networkOverview.data.totalRxBytes.toBytes();
-						netOutputBytes = networkOverview.data.totalTxBytes.toBytes();
-					}
-
-					// Get Block I/O from disk.stats() (available in v2.0!)
-					// If disk.stats() doesn't work in container, fallback to /proc/diskstats
-					let blockReadBytes = 0;
-					let blockWriteBytes = 0;
-					const diskStats = await osutils.disk.stats();
-					if (diskStats.success && diskStats.data.length > 0) {
-						// Filter out virtual devices (loop, ram, sr, etc.) - only include real disk devices
-						const excludePatterns = [/^loop/, /^ram/, /^sr\d+$/, /^fd\d+$/];
-						for (const stat of diskStats.data) {
-							// Skip virtual devices
-							if (
-								stat.device &&
-								excludePatterns.some((pattern) => pattern.test(stat.device))
-							) {
-								continue;
-							}
-							// readBytes and writeBytes are DataSize objects with .toBytes() method
-							blockReadBytes += stat.readBytes.toBytes();
-							blockWriteBytes += stat.writeBytes.toBytes();
-						}
-					}
-
-					// Format memory usage similar to docker stats format: "used / total"
-					const memUsedFormatted = `${memUsedGB.toFixed(2)}GiB`;
-					const memTotalFormatted = `${memTotalGB.toFixed(2)}GiB`;
-					const memUsageFormatted = `${memUsedFormatted} / ${memTotalFormatted}`;
-
-					// Format network I/O
-					const netInputMb = netInputBytes / (1024 * 1024);
-					const netOutputMb = netOutputBytes / (1024 * 1024);
-					const netIOFormatted = `${netInputMb.toFixed(2)}MB / ${netOutputMb.toFixed(2)}MB`;
-
-					// Format Block I/O
-					const blockIOFormatted = `${formatBytes(blockReadBytes)} / ${formatBytes(blockWriteBytes)}`;
-
-					// Create a stat object compatible with recordAdvancedStats
-					const stat = {
-						CPUPerc: `${cpuUsage.toFixed(2)}%`,
-						MemPerc: `${memUsedPercent.toFixed(2)}%`,
-						MemUsage: memUsageFormatted,
-						BlockIO: blockIOFormatted,
-						NetIO: netIOFormatted,
-						Container: "dokploy",
-						ID: "host-system",
-						Name: "dokploy",
-					};
+					const stat = await getHostSystemStats();
 
 					await recordAdvancedStats(stat, appName);
 					const data = await getLastAdvancedStatsFile(appName);
