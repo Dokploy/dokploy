@@ -18,7 +18,10 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
 import { buildRemoteDocker } from "@dokploy/server/utils/providers/docker";
-import { cloneGitRepository } from "@dokploy/server/utils/providers/git";
+import {
+	cloneGitRepository,
+	getGitCommitInfo,
+} from "@dokploy/server/utils/providers/git";
 import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
 import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
@@ -29,6 +32,7 @@ import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
 	createDeploymentPreview,
+	updateDeployment,
 	updateDeploymentStatus,
 } from "./deployment";
 import { type Domain, getDomainHost } from "./domain";
@@ -243,6 +247,18 @@ export const deployApplication = async ({
 		});
 
 		throw error;
+	} finally {
+		// Only extract commit info for non-docker sources
+		if (application.sourceType !== "docker") {
+			const commitInfo = await getGitCommitInfo(application);
+
+			if (commitInfo) {
+				await updateDeployment(deployment.deploymentId, {
+					title: commitInfo.message,
+					description: `Commit: ${commitInfo.hash}`,
+				});
+			}
+		}
 	}
 	return true;
 };

@@ -22,7 +22,10 @@ import {
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
 import { cloneBitbucketRepository } from "@dokploy/server/utils/providers/bitbucket";
-import { cloneGitRepository } from "@dokploy/server/utils/providers/git";
+import {
+	cloneGitRepository,
+	getGitCommitInfo,
+} from "@dokploy/server/utils/providers/git";
 import { cloneGiteaRepository } from "@dokploy/server/utils/providers/gitea";
 import { cloneGithubRepository } from "@dokploy/server/utils/providers/github";
 import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
@@ -30,7 +33,11 @@ import { getCreateComposeFileCommand } from "@dokploy/server/utils/providers/raw
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { getDokployUrl } from "./admin";
-import { createDeploymentCompose, updateDeploymentStatus } from "./deployment";
+import {
+	createDeploymentCompose,
+	updateDeployment,
+	updateDeploymentStatus,
+} from "./deployment";
 import { validUniqueServerAppName } from "./project";
 
 export type Compose = typeof compose.$inferSelect;
@@ -239,6 +246,7 @@ export const deployCompose = async ({
 			await execAsync(commandWithLog);
 		}
 
+		command = "set -e;";
 		command += await getBuildComposeCommand(entity);
 		commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (compose.serverId) {
@@ -275,6 +283,19 @@ export const deployCompose = async ({
 			organizationId: compose.environment.project.organizationId,
 		});
 		throw error;
+	} finally {
+		if (compose.sourceType !== "raw") {
+			const commitInfo = await getGitCommitInfo({
+				...compose,
+				type: "compose",
+			});
+			if (commitInfo) {
+				await updateDeployment(deployment.deploymentId, {
+					title: commitInfo.message,
+					description: `Commit: ${commitInfo.hash}`,
+				});
+			}
+		}
 	}
 };
 

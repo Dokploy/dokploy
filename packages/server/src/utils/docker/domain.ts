@@ -131,6 +131,8 @@ exit 1;
 exit 1;
 		`;
 	}
+
+	return "";
 };
 export const addDomainToCompose = async (
 	compose: Compose,
