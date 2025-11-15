@@ -100,24 +100,10 @@ export const ShowDeployments = ({
 		}
 		const truncated = description.slice(0, MAX_DESCRIPTION_LENGTH);
 		const lastSpace = truncated.lastIndexOf(" ");
-		// Truncate at word boundary if found near the end
 		if (lastSpace > MAX_DESCRIPTION_LENGTH - 20 && lastSpace > 0) {
 			return `${truncated.slice(0, lastSpace)}...`;
 		}
 		return `${truncated}...`;
-	};
-
-	// Toggle expand/collapse state for a specific deployment
-	const toggleDescription = (deploymentId: string) => {
-		setExpandedDescriptions((prev) => {
-			const next = new Set(prev);
-			if (next.has(deploymentId)) {
-				next.delete(deploymentId);
-			} else {
-				next.add(deploymentId);
-			}
-			return next;
-		});
 	};
 
 	// Check for stuck deployment (more than 9 minutes) - only for the most recent deployment
@@ -286,9 +272,15 @@ export const ShowDeployments = ({
 											{needsTruncation && (
 												<button
 													type="button"
-													onClick={() =>
-														toggleDescription(deployment.deploymentId)
-													}
+													onClick={() => {
+														const next = new Set(expandedDescriptions);
+														if (next.has(deployment.deploymentId)) {
+															next.delete(deployment.deploymentId);
+														} else {
+															next.add(deployment.deploymentId);
+														}
+														setExpandedDescriptions(next);
+													}}
 													className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mt-1 cursor-pointer"
 													aria-label={
 														isExpanded
