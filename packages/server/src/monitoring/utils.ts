@@ -1,7 +1,6 @@
 import { promises } from "node:fs";
-import osUtils from "node-os-utils";
+import { OSUtils } from "node-os-utils";
 import { paths } from "../constants";
-
 export interface Container {
 	BlockIO: string;
 	CPUPerc: string;
@@ -38,19 +37,23 @@ export const recordAdvancedStats = async (
 	});
 
 	if (appName === "dokploy") {
-		const disk = await osUtils.drive.info("/");
+		const osutils = new OSUtils();
+		const diskResult = await osutils.disk.usageByMountPoint("/");
 
-		const diskUsage = disk.usedGb;
-		const diskTotal = disk.totalGb;
-		const diskUsedPercentage = disk.usedPercentage;
-		const diskFree = disk.freeGb;
+		if (diskResult.success && diskResult.data) {
+			const disk = diskResult.data;
+			const diskUsage = disk.used.toGB().toFixed(2);
+			const diskTotal = disk.total.toGB().toFixed(2);
+			const diskUsedPercentage = disk.usagePercentage;
+			const diskFree = disk.available.toGB().toFixed(2);
 
-		await updateStatsFile(appName, "disk", {
-			diskTotal: +diskTotal,
-			diskUsedPercentage: +diskUsedPercentage,
-			diskUsage: +diskUsage,
-			diskFree: +diskFree,
-		});
+			await updateStatsFile(appName, "disk", {
+				diskTotal: +diskTotal,
+				diskUsedPercentage: +diskUsedPercentage,
+				diskUsage: +diskUsage,
+				diskFree: +diskFree,
+			});
+		}
 	}
 };
 

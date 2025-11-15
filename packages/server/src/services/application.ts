@@ -419,6 +419,9 @@ export const deployPreviewApplication = async ({
 };
 
 export const getApplicationStats = async (appName: string) => {
+	if (appName === "dokploy") {
+		return await getAdvancedStats(appName);
+	}
 	const filter = {
 		status: ["running"],
 		label: [`com.docker.swarm.service.name=${appName}`],
