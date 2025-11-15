@@ -92,37 +92,19 @@ export const ShowDeployments = ({
 		new Set(),
 	);
 
-	// Maximum character length before truncating commit messages
-	const MAX_DESCRIPTION_LENGTH = 150;
+	const MAX_DESCRIPTION_LENGTH = 200;
 
-	// Helper function to truncate description intelligently
-	const truncateDescription = (
-		description: string,
-		maxLength: number,
-	): string => {
-		if (maxLength <= 0) {
-			return description; // Don't truncate if maxLength is 0 or negative
-		}
-		if (description.length <= maxLength) {
+	const truncateDescription = (description: string): string => {
+		if (description.length <= MAX_DESCRIPTION_LENGTH) {
 			return description;
 		}
-		// Try to truncate at a word boundary if possible
-		const truncated = description.slice(0, maxLength);
+		const truncated = description.slice(0, MAX_DESCRIPTION_LENGTH);
 		const lastSpace = truncated.lastIndexOf(" ");
-		// If we find a space near the end (within last 20 chars), use it for cleaner truncation
-		if (lastSpace > maxLength - 20 && lastSpace > 0) {
+		// Truncate at word boundary if found near the end
+		if (lastSpace > MAX_DESCRIPTION_LENGTH - 20 && lastSpace > 0) {
 			return `${truncated.slice(0, lastSpace)}...`;
 		}
 		return `${truncated}...`;
-	};
-
-	// Check if description should be truncated
-	const shouldTruncate = (description: string): boolean => {
-		// Only truncate if MAX_DESCRIPTION_LENGTH is greater than 0
-		if (MAX_DESCRIPTION_LENGTH <= 0) {
-			return false;
-		}
-		return description.length > MAX_DESCRIPTION_LENGTH;
 	};
 
 	// Toggle expand/collapse state for a specific deployment
@@ -274,165 +256,158 @@ export const ShowDeployments = ({
 					</div>
 				) : (
 					<div className="flex flex-col gap-4">
-						{deployments?.map((deployment, index) => (
-							<div
-								key={deployment.deploymentId}
-								className="flex items-center justify-between rounded-lg border p-4 gap-2"
-							>
-								<div className="flex flex-col">
-									<span className="flex items-center gap-4 font-medium capitalize text-foreground">
-										{index + 1}. {deployment.status}
-										<StatusTooltip
-											status={deployment?.status}
-											className="size-2.5"
-										/>
-									</span>
-									{(() => {
-										// The commit message is in the title field, so we truncate that
-										const titleText = deployment.title.trim();
-										const needsTruncation = shouldTruncate(titleText);
-										const isExpanded = expandedDescriptions.has(
-											deployment.deploymentId,
-										);
+						{deployments?.map((deployment, index) => {
+							const titleText = deployment?.title?.trim() || "";
+							const needsTruncation = titleText.length > MAX_DESCRIPTION_LENGTH;
+							const isExpanded = expandedDescriptions.has(
+								deployment.deploymentId,
+							);
 
-										return (
-											<div className="flex flex-col gap-1">
-												{/* Commit message (from title) - truncated */}
-												<span className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
-													{isExpanded || !needsTruncation
-														? titleText
-														: truncateDescription(
-																titleText,
-																MAX_DESCRIPTION_LENGTH,
-															)}
-												</span>
-												{needsTruncation && (
-													<button
-														type="button"
-														onClick={() =>
-															toggleDescription(deployment.deploymentId)
-														}
-														className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mt-1 cursor-pointer"
-														aria-label={
-															isExpanded
-																? "Collapse commit message"
-																: "Expand commit message"
-														}
-													>
-														{isExpanded ? (
-															<>
-																<ChevronUp className="size-3" />
-																Show less
-															</>
-														) : (
-															<>
-																<ChevronDown className="size-3" />
-																Show more
-															</>
-														)}
-													</button>
-												)}
-												{/* Hash (from description) - shown in compact form */}
-												{deployment.description &&
-													deployment.description.trim() && (
-														<span className="text-xs text-muted-foreground font-mono">
-															{deployment.description}
-														</span>
-													)}
-											</div>
-										);
-									})()}
-								</div>
-								<div className="flex flex-col items-end gap-2">
-									<div className="text-sm capitalize text-muted-foreground flex items-center gap-2">
-										<DateTooltip date={deployment.createdAt} />
-										{deployment.startedAt && deployment.finishedAt && (
-											<Badge
-												variant="outline"
-												className="text-[10px] gap-1 flex items-center"
-											>
-												<Clock className="size-3" />
-												{formatDuration(
-													Math.floor(
-														(new Date(deployment.finishedAt).getTime() -
-															new Date(deployment.startedAt).getTime()) /
-															1000,
-													),
-												)}
-											</Badge>
-										)}
-									</div>
+							return (
+								<div
+									key={deployment.deploymentId}
+									className="flex items-center justify-between rounded-lg border p-4 gap-2"
+								>
+									<div className="flex flex-col">
+										<span className="flex items-center gap-4 font-medium capitalize text-foreground">
+											{index + 1}. {deployment.status}
+											<StatusTooltip
+												status={deployment?.status}
+												className="size-2.5"
+											/>
+										</span>
 
-									<div className="flex flex-row items-center gap-2">
-										{deployment.pid && deployment.status === "running" && (
-											<DialogAction
-												title="Kill Process"
-												description="Are you sure you want to kill the process?"
-												type="default"
-												onClick={async () => {
-													await killProcess({
-														deploymentId: deployment.deploymentId,
-													})
-														.then(() => {
-															toast.success("Process killed successfully");
-														})
-														.catch(() => {
-															toast.error("Error killing process");
-														});
-												}}
-											>
-												<Button
-													variant="destructive"
-													size="sm"
-													isLoading={isKillingProcess}
+										<div className="flex flex-col gap-1">
+											<span className="break-words text-sm text-muted-foreground whitespace-pre-wrap">
+												{isExpanded || !needsTruncation
+													? titleText
+													: truncateDescription(titleText)}
+											</span>
+											{needsTruncation && (
+												<button
+													type="button"
+													onClick={() =>
+														toggleDescription(deployment.deploymentId)
+													}
+													className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit mt-1 cursor-pointer"
+													aria-label={
+														isExpanded
+															? "Collapse commit message"
+															: "Expand commit message"
+													}
 												>
-													Kill Process
-												</Button>
-											</DialogAction>
-										)}
-										<Button
-											onClick={() => {
-												setActiveLog(deployment);
-											}}
-										>
-											View
-										</Button>
+													{isExpanded ? (
+														<>
+															<ChevronUp className="size-3" />
+															Show less
+														</>
+													) : (
+														<>
+															<ChevronDown className="size-3" />
+															Show more
+														</>
+													)}
+												</button>
+											)}
+											{/* Hash (from description) - shown in compact form */}
+											{deployment.description?.trim() && (
+												<span className="text-xs text-muted-foreground font-mono">
+													{deployment.description}
+												</span>
+											)}
+										</div>
+									</div>
+									<div className="flex flex-col items-end gap-2 max-w-[300px] w-full justify-start">
+										<div className="text-sm capitalize text-muted-foreground flex items-center gap-2">
+											<DateTooltip date={deployment.createdAt} />
+											{deployment.startedAt && deployment.finishedAt && (
+												<Badge
+													variant="outline"
+													className="text-[10px] gap-1 flex items-center"
+												>
+													<Clock className="size-3" />
+													{formatDuration(
+														Math.floor(
+															(new Date(deployment.finishedAt).getTime() -
+																new Date(deployment.startedAt).getTime()) /
+																1000,
+														),
+													)}
+												</Badge>
+											)}
+										</div>
 
-										{deployment?.rollback &&
-											deployment.status === "done" &&
-											type === "application" && (
+										<div className="flex flex-row items-center gap-2">
+											{deployment.pid && deployment.status === "running" && (
 												<DialogAction
-													title="Rollback to this deployment"
-													description="Are you sure you want to rollback to this deployment?"
+													title="Kill Process"
+													description="Are you sure you want to kill the process?"
 													type="default"
 													onClick={async () => {
-														await rollback({
-															rollbackId: deployment.rollback.rollbackId,
+														await killProcess({
+															deploymentId: deployment.deploymentId,
 														})
 															.then(() => {
-																toast.success(
-																	"Rollback initiated successfully",
-																);
+																toast.success("Process killed successfully");
 															})
 															.catch(() => {
-																toast.error("Error initiating rollback");
+																toast.error("Error killing process");
 															});
 													}}
 												>
 													<Button
-														variant="secondary"
+														variant="destructive"
 														size="sm"
-														isLoading={isRollingBack}
+														isLoading={isKillingProcess}
 													>
-														<RefreshCcw className="size-4 text-primary group-hover:text-red-500" />
-														Rollback
+														Kill Process
 													</Button>
 												</DialogAction>
 											)}
+											<Button
+												onClick={() => {
+													setActiveLog(deployment);
+												}}
+											>
+												View
+											</Button>
+
+											{deployment?.rollback &&
+												deployment.status === "done" &&
+												type === "application" && (
+													<DialogAction
+														title="Rollback to this deployment"
+														description="Are you sure you want to rollback to this deployment?"
+														type="default"
+														onClick={async () => {
+															await rollback({
+																rollbackId: deployment.rollback.rollbackId,
+															})
+																.then(() => {
+																	toast.success(
+																		"Rollback initiated successfully",
+																	);
+																})
+																.catch(() => {
+																	toast.error("Error initiating rollback");
+																});
+														}}
+													>
+														<Button
+															variant="secondary"
+															size="sm"
+															isLoading={isRollingBack}
+														>
+															<RefreshCcw className="size-4 text-primary group-hover:text-red-500" />
+															Rollback
+														</Button>
+													</DialogAction>
+												)}
+										</div>
 									</div>
 								</div>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				)}
 				<ShowDeployment
