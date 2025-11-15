@@ -56,7 +56,6 @@ export const setupDockerStatsMonitoringSocketServer = (
 
 					await recordAdvancedStats(stat, appName);
 					const data = await getLastAdvancedStatsFile(appName);
-					console.log(data);
 
 					ws.send(
 						JSON.stringify({
