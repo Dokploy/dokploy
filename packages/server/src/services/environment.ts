@@ -37,16 +37,38 @@ export const findEnvironmentById = async (environmentId: string) => {
 			applications: {
 				with: {
 					deployments: true,
+					server: true,
 				},
 			},
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
+			mariadb: {
+				with: {
+					server: true,
+				},
+			},
+			mongo: {
+				with: {
+					server: true,
+				},
+			},
+			mysql: {
+				with: {
+					server: true,
+				},
+			},
+			postgres: {
+				with: {
+					server: true,
+				},
+			},
+			redis: {
+				with: {
+					server: true,
+				},
+			},
 			compose: {
 				with: {
 					deployments: true,
+					server: true,
 				},
 			},
 			project: true,
