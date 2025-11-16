@@ -102,7 +102,7 @@ export const readComposeFile = async (compose: Compose) => {
 	return null;
 };
 
-export const writeDomainsToComposeRemote = async (
+export const writeDomainsToCompose = async (
 	compose: Compose,
 	domains: Domain[],
 ) => {
@@ -120,19 +120,16 @@ echo "❌ Error: Compose file not found";
 exit 1;
 			`;
 		}
-		if (compose.serverId) {
-			const composeString = stringify(composeConverted, { lineWidth: 1000 });
-			const encodedContent = encodeBase64(composeString);
-			return `echo "${encodedContent}" | base64 -d > "${path}";`;
-		}
+
+		const composeString = stringify(composeConverted, { lineWidth: 1000 });
+		const encodedContent = encodeBase64(composeString);
+		return `echo "${encodedContent}" | base64 -d > "${path}";`;
 	} catch (error) {
 		// @ts-ignore
-		return `echo "❌ Has occured an error: ${error?.message || error}";
+		return `echo "❌ Has occurred an error: ${error?.message || error}";
 exit 1;
 		`;
 	}
-
-	return "";
 };
 export const addDomainToCompose = async (
 	compose: Compose,
