@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/utils/api";
 
 export function TimeBadge() {
-	const { data: serverTime } = api.server.getServerTime.useQuery(undefined, {
-		refetchInterval: 60000, // Refetch every 60 seconds
-	});
+	const { data: serverTime } = api.server.getServerTime.useQuery(undefined);
 	const [time, setTime] = useState<Date | null>(null);
 
 	useEffect(() => {

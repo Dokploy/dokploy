@@ -384,6 +384,9 @@ export const serverRouter = createTRPCRouter({
 		return ip;
 	}),
 	getServerTime: protectedProcedure.query(() => {
+		if (IS_CLOUD) {
+			return null;
+		}
 		return {
 			time: new Date(),
 			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

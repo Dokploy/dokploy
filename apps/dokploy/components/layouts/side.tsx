@@ -1126,7 +1126,7 @@ export default function Page({ children }: Props) {
 									</BreadcrumbList>
 								</Breadcrumb>
 							</div>
-							<TimeBadge />
+							{!isCloud && <TimeBadge />}
 						</div>
 					</header>
 				)}
