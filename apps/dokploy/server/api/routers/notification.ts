@@ -1,8 +1,8 @@
 import {
 	createDiscordNotification,
 	createEmailNotification,
-	createLarkNotification,
 	createGotifyNotification,
+	createLarkNotification,
 	createNtfyNotification,
 	createSlackNotification,
 	createTelegramNotification,
@@ -11,16 +11,16 @@ import {
 	removeNotificationById,
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendServerThresholdNotifications,
 	sendSlackNotification,
 	sendTelegramNotification,
 	updateDiscordNotification,
 	updateEmailNotification,
-	updateLarkNotification,
 	updateGotifyNotification,
+	updateLarkNotification,
 	updateNtfyNotification,
 	updateSlackNotification,
 	updateTelegramNotification,
@@ -38,29 +38,29 @@ import { db } from "@/server/db";
 import {
 	apiCreateDiscord,
 	apiCreateEmail,
-	apiCreateLark,
 	apiCreateGotify,
+	apiCreateLark,
 	apiCreateNtfy,
 	apiCreateSlack,
 	apiCreateTelegram,
 	apiFindOneNotification,
 	apiTestDiscordConnection,
 	apiTestEmailConnection,
-	apiTestLarkConnection,
 	apiTestGotifyConnection,
+	apiTestLarkConnection,
 	apiTestNtfyConnection,
 	apiTestSlackConnection,
 	apiTestTelegramConnection,
 	apiUpdateDiscord,
 	apiUpdateEmail,
-	apiUpdateLark,
 	apiUpdateGotify,
+	apiUpdateLark,
 	apiUpdateNtfy,
 	apiUpdateSlack,
 	apiUpdateTelegram,
 	notifications,
 	server,
-	users_temp,
+	user,
 } from "@/server/db/schema";
 
 export const notificationRouter = createTRPCRouter({
@@ -359,9 +359,9 @@ export const notificationRouter = createTRPCRouter({
 				if (input.ServerType === "Dokploy") {
 					const result = await db
 						.select()
-						.from(users_temp)
+						.from(user)
 						.where(
-							sql`${users_temp.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
+							sql`${user.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
 						);
 
 					if (!result?.[0]?.id) {

@@ -1,9 +1,9 @@
 import {
-	deployRemoteApplication,
-	deployRemoteCompose,
-	deployRemotePreviewApplication,
-	rebuildRemoteApplication,
-	rebuildRemoteCompose,
+	deployApplication,
+	deployCompose,
+	deployPreviewApplication,
+	rebuildApplication,
+	rebuildCompose,
 	updateApplicationStatus,
 	updateCompose,
 	updatePreviewDeployment,
@@ -16,13 +16,13 @@ export const deploy = async (job: DeployJob) => {
 			await updateApplicationStatus(job.applicationId, "running");
 			if (job.server) {
 				if (job.type === "redeploy") {
-					await rebuildRemoteApplication({
+					await rebuildApplication({
 						applicationId: job.applicationId,
 						titleLog: job.titleLog || "Rebuild deployment",
 						descriptionLog: job.descriptionLog || "",
 					});
 				} else if (job.type === "deploy") {
-					await deployRemoteApplication({
+					await deployApplication({
 						applicationId: job.applicationId,
 						titleLog: job.titleLog || "Manual deployment",
 						descriptionLog: job.descriptionLog || "",
@@ -36,13 +36,13 @@ export const deploy = async (job: DeployJob) => {
 
 			if (job.server) {
 				if (job.type === "redeploy") {
-					await rebuildRemoteCompose({
+					await rebuildCompose({
 						composeId: job.composeId,
 						titleLog: job.titleLog || "Rebuild deployment",
 						descriptionLog: job.descriptionLog || "",
 					});
 				} else if (job.type === "deploy") {
-					await deployRemoteCompose({
+					await deployCompose({
 						composeId: job.composeId,
 						titleLog: job.titleLog || "Manual deployment",
 						descriptionLog: job.descriptionLog || "",
@@ -55,7 +55,7 @@ export const deploy = async (job: DeployJob) => {
 			});
 			if (job.server) {
 				if (job.type === "deploy") {
-					await deployRemotePreviewApplication({
+					await deployPreviewApplication({
 						applicationId: job.applicationId,
 						titleLog: job.titleLog || "Preview Deployment",
 						descriptionLog: job.descriptionLog || "",

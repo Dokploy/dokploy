@@ -26,6 +26,7 @@ import {
 	PieChart,
 	Server,
 	ShieldCheck,
+	Star,
 	Trash2,
 	User,
 	Users,
@@ -498,7 +499,6 @@ function SidebarLogo() {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
 	const { data: session } = authClient.useSession();
-
 	const {
 		data: organizations,
 		refetch,
@@ -506,6 +506,8 @@ function SidebarLogo() {
 	} = api.organization.all.useQuery();
 	const { mutateAsync: deleteOrganization, isLoading: isRemoving } =
 		api.organization.delete.useMutation();
+	const { mutateAsync: setDefaultOrganization, isLoading: isSettingDefault } =
+		api.organization.setDefault.useMutation();
 	const { isMobile } = useSidebar();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const _utils = api.useUtils();
@@ -595,66 +597,127 @@ function SidebarLogo() {
 								<DropdownMenuLabel className="text-xs text-muted-foreground">
 									Organizations
 								</DropdownMenuLabel>
-								{organizations?.map((org) => (
-									<div className="flex flex-row justify-between" key={org.name}>
-										<DropdownMenuItem
-											onClick={async () => {
-												await authClient.organization.setActive({
-													organizationId: org.id,
-												});
-												window.location.reload();
-											}}
-											className="w-full gap-2 p-2"
+								{organizations?.map((org) => {
+									const isDefault = org.members?.[0]?.isDefault ?? false;
+									return (
+										<div
+											className="flex flex-row justify-between"
+											key={org.name}
 										>
-											<div className="flex flex-col gap-4">{org.name}</div>
-											<div className="flex size-6 items-center justify-center rounded-sm border">
-												<Logo
-													className={cn(
-														"transition-all",
-														state === "collapsed" ? "size-6" : "size-10",
-													)}
-													logoUrl={org.logo ?? undefined}
-												/>
-											</div>
-										</DropdownMenuItem>
-										{org.ownerId === session?.user?.id && (
+											<DropdownMenuItem
+												onClick={async () => {
+													await authClient.organization.setActive({
+														organizationId: org.id,
+													});
+													window.location.reload();
+												}}
+												className="w-full gap-2 p-2"
+											>
+												<div className="flex flex-col gap-1">
+													<div className="flex items-center gap-2">
+														{org.name}
+													</div>
+												</div>
+												<div className="flex size-6 items-center justify-center rounded-sm border">
+													<Logo
+														className={cn(
+															"transition-all",
+															state === "collapsed" ? "size-6" : "size-10",
+														)}
+														logoUrl={org.logo ?? undefined}
+													/>
+												</div>
+											</DropdownMenuItem>
+
 											<div className="flex items-center gap-2">
-												<AddOrganization organizationId={org.id} />
-												<DialogAction
-													title="Delete Organization"
-													description="Are you sure you want to delete this organization?"
-													type="destructive"
-													onClick={async () => {
-														await deleteOrganization({
+												<Button
+													variant="ghost"
+													size="icon"
+													className={cn(
+														"group",
+														isDefault
+															? "hover:bg-yellow-500/10"
+															: "hover:bg-blue-500/10",
+													)}
+													isLoading={isSettingDefault && !isDefault}
+													disabled={isDefault}
+													onClick={async (e) => {
+														if (isDefault) return;
+														e.stopPropagation();
+														await setDefaultOrganization({
 															organizationId: org.id,
 														})
 															.then(() => {
 																refetch();
-																toast.success(
-																	"Organization deleted successfully",
-																);
+																toast.success("Default organization updated");
 															})
 															.catch((error) => {
 																toast.error(
 																	error?.message ||
-																		"Error deleting organization",
+																		"Error setting default organization",
 																);
 															});
 													}}
+													title={
+														isDefault
+															? "Default organization"
+															: "Set as default"
+													}
 												>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="group hover:bg-red-500/10"
-														isLoading={isRemoving}
-													>
-														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-													</Button>
-												</DialogAction>
+													{isDefault ? (
+														<Star
+															fill="#eab308"
+															stroke="#eab308"
+															className="size-4 text-yellow-500"
+														/>
+													) : (
+														<Star
+															fill="none"
+															stroke="currentColor"
+															className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+														/>
+													)}
+												</Button>
+												{org.ownerId === session?.user?.id && (
+													<>
+														<AddOrganization organizationId={org.id} />
+														<DialogAction
+															title="Delete Organization"
+															description="Are you sure you want to delete this organization?"
+															type="destructive"
+															onClick={async () => {
+																await deleteOrganization({
+																	organizationId: org.id,
+																})
+																	.then(() => {
+																		refetch();
+																		toast.success(
+																			"Organization deleted successfully",
+																		);
+																	})
+																	.catch((error) => {
+																		toast.error(
+																			error?.message ||
+																				"Error deleting organization",
+																		);
+																	});
+															}}
+														>
+															<Button
+																variant="ghost"
+																size="icon"
+																className="group hover:bg-red-500/10"
+																isLoading={isRemoving}
+															>
+																<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+															</Button>
+														</DialogAction>
+													</>
+												)}
 											</div>
-										)}
-									</div>
-								))}
+										</div>
+									);
+								})}
 								{(user?.role === "owner" || isCloud) && (
 									<>
 										<DropdownMenuSeparator />

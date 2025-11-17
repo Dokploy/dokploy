@@ -4,6 +4,7 @@ import {
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
+	getDokployUrl,
 	getUserByToken,
 	IS_CLOUD,
 	removeUserById,
@@ -419,11 +420,10 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			const admin = await findAdmin();
 			const host =
 				process.env.NODE_ENV === "development"
 					? "http://localhost:3000"
-					: admin.user.host;
+					: await getDokployUrl();
 			const inviteLink = `${host}/invitation?token=${input.invitationId}`;
 
 			const organization = await findOrganizationById(
