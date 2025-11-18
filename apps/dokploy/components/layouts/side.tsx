@@ -83,6 +83,7 @@ import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
+import { TimeBadge } from "../ui/time-badge";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
@@ -1125,6 +1126,7 @@ export default function Page({ children }: Props) {
 									</BreadcrumbList>
 								</Breadcrumb>
 							</div>
+							{!isCloud && <TimeBadge />}
 						</div>
 					</header>
 				)}
