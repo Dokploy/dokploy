@@ -42,9 +42,7 @@ import { cancelJobs } from "@/server/utils/backup";
 
 function getMountPath(dockerImage: string): string {
 	const versionMatch = dockerImage.match(/postgres:(\d+)/);
-	const version = versionMatch?.[1]
-		? Number.parseInt(versionMatch[1], 10)
-		: 18;
+	const version = versionMatch?.[1] ? Number.parseInt(versionMatch[1], 10) : 18;
 
 	return `/var/lib/postgresql/${version}/data`;
 }
@@ -388,9 +386,11 @@ export const postgresRouter = createTRPCRouter({
 					});
 				}
 				for (const mount of mounts) {
-					await updateMount(mount.mountId, {
-						mountPath: mountPath,
-					});
+					if (mount.mountPath.startsWith("/var/lib/postgresql")) {
+						await updateMount(mount.mountId, {
+							mountPath: mountPath,
+						});
+					}
 				}
 			}
 
