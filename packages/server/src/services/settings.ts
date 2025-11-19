@@ -42,14 +42,10 @@ export const pullLatestRelease = async () => {
 /** Returns Dokploy docker service image digest */
 export const getServiceImageDigest = async () => {
 	const { stdout } = await execAsync(
-		`docker image ls --digests --format '{{.Repository}}:{{.Tag}} {{.Digest}}' | \
-		grep "$(docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}')" | \
-		awk '{print $2}' | \
-		awk -F':' '{print $2}'`,
+		"docker service inspect dokploy --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}'",
 	);
 
 	const currentDigest = stdout.trim().split("@")[1];
-	console.log("currentDigest: ", currentDigest);
 
 	if (!currentDigest) {
 		throw new Error("Could not get current service image digest");
