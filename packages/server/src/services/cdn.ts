@@ -75,7 +75,7 @@ const FASTLY_IP_RANGES = [
 // Bunny CDN IP addresses
 // https://bunnycdn.com/api/system/edgeserverlist
 const BUNNY_CDN_IPS = new Set([
-    "89.187.188.227",
+	"89.187.188.227",
 	"89.187.188.228",
 	"139.180.134.196",
 	"89.187.162.249",
