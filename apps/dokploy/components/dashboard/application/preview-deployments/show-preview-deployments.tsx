@@ -182,7 +182,16 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															id={deployment.previewDeploymentId}
 															type="previewDeployment"
 															serverId={data?.serverId || ""}
-														/>
+														>
+															<Button
+																variant="outline"
+																size="sm"
+																className="gap-2"
+															>
+																<RocketIcon className="size-4" />
+																Deployments
+															</Button>
+														</ShowDeploymentsModal>
 
 														<AddPreviewDomain
 															previewDeploymentId={`${deployment.previewDeploymentId}`}
