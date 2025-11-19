@@ -14,7 +14,7 @@ export const initializeRedis = async () => {
 				Mounts: [
 					{
 						Type: "volume",
-						Source: "dokploy-redis",
+						Source: "redis-data-volume",
 						Target: "/data",
 					},
 				],
