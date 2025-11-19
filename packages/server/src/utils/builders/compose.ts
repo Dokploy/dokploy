@@ -2,7 +2,7 @@ import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
-import { writeDomainsToComposeRemote } from "../docker/domain";
+import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
 	getEnviromentVariablesObject,
@@ -22,7 +22,7 @@ export const getBuildComposeCommand = async (compose: ComposeNested) => {
 	const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 	const exportEnvCommand = getExportEnvCommand(compose);
 
-	const newCompose = await writeDomainsToComposeRemote(compose, domains);
+	const newCompose = await writeDomainsToCompose(compose, domains);
 	const logContent = `
 App Name: ${appName}
 Build Compose 🐳
