@@ -44,17 +44,21 @@ export function TimeBadge() {
 			.padStart(2, "0")}`;
 	};
 
-	const formattedTime = new Intl.DateTimeFormat("en-US", {timeZone: serverTime.timezone, timeStyle: "medium", hour12:false}).format(time)
+	const formattedTime = new Intl.DateTimeFormat("en-US", {
+		timeZone: serverTime.timezone,
+		timeStyle: "medium",
+		hour12: false,
+	}).format(time);
 
 	return (
 		<div className="inline-flex items-center rounded-full border p-1 text-xs whitespace-nowrap max-w-full overflow-hidden gap-1">
-          <div className="inline-flex items-center px-1 gap-1">
-            <span className="hidden sm:inline">Server Time:</span>
-            <span className="font-medium tabular-nums">{formattedTime}</span>
-          </div>
-          <span className="hidden sm:inline text-primary/70 border rounded-full bg-foreground/5 px-1.5 py-0.5">
-		  {serverTime.timezone} | {getUtcOffset(serverTime.timezone)}
-          </span>
-        </div>
+			<div className="inline-flex items-center px-1 gap-1">
+				<span className="hidden sm:inline">Server Time:</span>
+				<span className="font-medium tabular-nums">{formattedTime}</span>
+			</div>
+			<span className="hidden sm:inline text-primary/70 border rounded-full bg-foreground/5 px-1.5 py-0.5">
+				{serverTime.timezone} | {getUtcOffset(serverTime.timezone)}
+			</span>
+		</div>
 	);
 }
