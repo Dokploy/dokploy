@@ -59,7 +59,11 @@ import {
 	compose as composeTable,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByCompose, myQueue } from "@/server/queues/queueSetup";
+import {
+	cleanQueuesByCompose,
+	killDockerBuild,
+	myQueue,
+} from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { generatePassword } from "@/templates/utils";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
@@ -247,6 +251,21 @@ export const composeRouter = createTRPCRouter({
 			}
 			await cleanQueuesByCompose(input.composeId);
 			return { success: true, message: "Queues cleaned successfully" };
+		}),
+	killBuild: protectedProcedure
+		.input(apiFindCompose)
+		.mutation(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to kill this build",
+				});
+			}
+			await killDockerBuild("compose", compose.serverId);
 		}),
 
 	loadServices: protectedProcedure
