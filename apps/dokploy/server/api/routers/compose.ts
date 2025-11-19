@@ -3,13 +3,14 @@ import {
 	addNewService,
 	checkServiceAccess,
 	cloneCompose,
-	cloneComposeRemote,
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
 	createDomain,
 	createMount,
 	deleteMount,
+	execAsync,
+	execAsyncRemote,
 	findComposeById,
 	findDomainsByComposeId,
 	findEnvironmentById,
@@ -245,6 +246,7 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 			await cleanQueuesByCompose(input.composeId);
+			return { success: true, message: "Queues cleaned successfully" };
 		}),
 
 	loadServices: protectedProcedure
@@ -301,10 +303,12 @@ export const composeRouter = createTRPCRouter({
 						message: "You are not authorized to fetch this compose",
 					});
 				}
+
+				const command = await cloneCompose(compose);
 				if (compose.serverId) {
-					await cloneComposeRemote(compose);
+					await execAsyncRemote(compose.serverId, command);
 				} else {
-					await cloneCompose(compose);
+					await execAsync(command);
 				}
 				return compose.sourceType;
 			} catch (err) {
@@ -405,6 +409,7 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+			return { success: true, message: "Deployment queued" };
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -440,6 +445,7 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+			return { success: true, message: "Redeployment queued" };
 		}),
 	stop: protectedProcedure
 		.input(apiFindCompose)

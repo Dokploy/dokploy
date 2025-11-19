@@ -28,6 +28,8 @@ import { server } from "./server";
 import {
 	applicationStatus,
 	certificateType,
+	type EndpointSpecSwarm,
+	EndpointSpecSwarmSchema,
 	type HealthCheckSwarm,
 	HealthCheckSwarmSchema,
 	type LabelsSwarm,
@@ -167,6 +169,7 @@ export const applications = pgTable("application", {
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -318,6 +321,7 @@ const createSchema = createInsertSchema(applications, {
 	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
 	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
