@@ -17,7 +17,7 @@ export const initializePostgres = async () => {
 				Mounts: [
 					{
 						Type: "volume",
-						Source: "dokploy-postgres",
+						Source: "dokploy-postgres-database",
 						Target: "/var/lib/postgresql/data",
 					},
 				],
