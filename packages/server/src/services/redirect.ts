@@ -28,7 +28,7 @@ export const createRedirect = async (
 	redirectData: z.infer<typeof apiCreateRedirect>,
 ) => {
 	try {
-		await db.transaction(async (tx) => {
+		return await db.transaction(async (tx) => {
 			const redirect = await tx
 				.insert(redirects)
 				.values({
@@ -47,9 +47,9 @@ export const createRedirect = async (
 			const application = await findApplicationById(redirect.applicationId);
 
 			createRedirectMiddleware(application, redirect);
-		});
 
-		return true;
+			return redirect;
+		});
 	} catch (error) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",

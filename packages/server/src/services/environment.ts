@@ -115,6 +115,13 @@ export const deleteEnvironment = async (environmentId: string) => {
 		.returning()
 		.then((value) => value[0]);
 
+	if (!deletedEnvironment) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Environment not found",
+		});
+	}
+
 	return deletedEnvironment;
 };
 
@@ -130,6 +137,13 @@ export const updateEnvironmentById = async (
 		.where(eq(environments.environmentId, environmentId))
 		.returning()
 		.then((res) => res[0]);
+
+	if (!result) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Environment not found",
+		});
+	}
 
 	return result;
 };
