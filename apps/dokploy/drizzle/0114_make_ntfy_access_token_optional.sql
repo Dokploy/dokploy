@@ -1,0 +1,2 @@
+ALTER TABLE "ntfy" ALTER COLUMN "accessToken" DROP NOT NULL;--> statement-breakpoint
+

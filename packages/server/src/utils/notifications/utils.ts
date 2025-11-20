@@ -137,15 +137,20 @@ export const sendNtfyNotification = async (
 	actions: string,
 	message: string,
 ) => {
+	const headers: Record<string, string> = {
+		"X-Priority": connection.priority?.toString() || "3",
+		"X-Title": title,
+		"X-Tags": tags,
+		"X-Actions": actions,
+	};
+
+	if (connection.accessToken) {
+		headers.Authorization = `Bearer ${connection.accessToken}`;
+	}
+
 	const response = await fetch(`${connection.serverUrl}/${connection.topic}`, {
 		method: "POST",
-		headers: {
-			Authorization: `Bearer ${connection.accessToken}`,
-			"X-Priority": connection.priority?.toString() || "3",
-			"X-Title": title,
-			"X-Tags": tags,
-			"X-Actions": actions,
-		},
+		headers,
 		body: message,
 	});
 
