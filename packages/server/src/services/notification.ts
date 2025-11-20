@@ -2,22 +2,22 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
-	type apiCreateLark,
 	type apiCreateGotify,
+	type apiCreateLark,
 	type apiCreateNtfy,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
-	type apiUpdateLark,
 	type apiUpdateGotify,
+	type apiUpdateLark,
 	type apiUpdateNtfy,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	discord,
 	email,
-	lark,
 	gotify,
+	lark,
 	notifications,
 	ntfy,
 	slack,
@@ -59,6 +59,7 @@ export const createSlackNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "slack",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -90,6 +91,7 @@ export const updateSlackNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -150,6 +152,7 @@ export const createTelegramNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "telegram",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -181,6 +184,7 @@ export const updateTelegramNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -241,6 +245,7 @@ export const createDiscordNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "discord",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -272,6 +277,7 @@ export const updateDiscordNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -335,6 +341,7 @@ export const createEmailNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "email",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -366,6 +373,7 @@ export const updateEmailNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
@@ -431,6 +439,7 @@ export const createGotifyNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "gotify",
 				organizationId: organizationId,
 			})
@@ -461,6 +470,7 @@ export const updateGotifyNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
@@ -521,6 +531,7 @@ export const createNtfyNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "ntfy",
 				organizationId: organizationId,
 			})
@@ -551,6 +562,7 @@ export const updateNtfyNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 			})
 			.where(eq(notifications.notificationId, input.notificationId))
@@ -639,6 +651,7 @@ export const createLarkNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				notificationType: "lark",
 				organizationId: organizationId,
 				serverThreshold: input.serverThreshold,
@@ -670,6 +683,7 @@ export const updateLarkNotification = async (
 				databaseBackup: input.databaseBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
+				dokployUpdate: input.dokployUpdate,
 				organizationId: input.organizationId,
 				serverThreshold: input.serverThreshold,
 			})
