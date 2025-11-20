@@ -1,6 +1,6 @@
 {
-  "id": "b3bfd4b0-5ad1-4a76-8858-1e585c3ef9dc",
-  "prevId": "70e92aa8-56d1-4842-b844-775cb8198849",
+  "id": "c2a17f9b-9d92-40c3-992c-9488f4b3c1bd",
+  "prevId": "def4c7aa-bf14-4060-8f54-60ef3a79a5ea",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -479,6 +479,13 @@
         },
         "canAccessToTraefikFiles": {
           "name": "canAccessToTraefikFiles",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "canDeleteEnvironments": {
+          "name": "canDeleteEnvironments",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -2686,6 +2693,37 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "isValidated": {
+          "name": "isValidated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "validatedAt": {
+          "name": "validatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "validationError": {
+          "name": "validationError",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolvedIp": {
+          "name": "resolvedIp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cdnProvider": {
+          "name": "cdnProvider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
