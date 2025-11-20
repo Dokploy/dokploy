@@ -76,7 +76,6 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 		const [key, value] = parseEnvironmentKeyValuePair(pair);
 		if (key && value) {
 			buildArgs.push("--secret", `id=${key},env=${key}`);
-			// Use shell-quote to properly escape the export statement
 			exportEnvs.push(`export ${key}=${quote([value])}`);
 		}
 	}
