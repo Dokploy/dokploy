@@ -22,6 +22,7 @@ interface Props {
 	buildLink: string;
 	organizationId: string;
 	domains: Domain[];
+	environmentName: string;
 }
 
 export const sendBuildSuccessNotifications = async ({
@@ -31,6 +32,7 @@ export const sendBuildSuccessNotifications = async ({
 	buildLink,
 	organizationId,
 	domains,
+	environmentName,
 }: Props) => {
 	const date = new Date();
 	const unixDate = ~~(Number(date) / 1000);
@@ -62,6 +64,7 @@ export const sendBuildSuccessNotifications = async ({
 					applicationType,
 					buildLink,
 					date: date.toLocaleString(),
+					environmentName,
 				}),
 			).catch();
 			await sendEmailNotification(email, "Build success for dokploy", template);
@@ -72,7 +75,7 @@ export const sendBuildSuccessNotifications = async ({
 				`${discord.decoration ? decoration : ""} ${text}`.trim();
 
 			await sendDiscordNotification(discord, {
-				title: decorate(">", "`✅` Build Success"),
+				title: decorate(">", "`✅` Build Successes"),
 				color: 0x57f287,
 				fields: [
 					{
@@ -83,6 +86,11 @@ export const sendBuildSuccessNotifications = async ({
 					{
 						name: decorate("`⚙️`", "Application"),
 						value: applicationName,
+						inline: true,
+					},
+					{
+						name: decorate("`🌍`", "Environment"),
+						value: environmentName,
 						inline: true,
 					},
 					{
@@ -125,6 +133,7 @@ export const sendBuildSuccessNotifications = async ({
 				decorate("✅", "Build Success"),
 				`${decorate("🛠️", `Project: ${projectName}`)}` +
 					`${decorate("⚙️", `Application: ${applicationName}`)}` +
+					`${decorate("🌍", `Environment: ${environmentName}`)}` +
 					`${decorate("❔", `Type: ${applicationType}`)}` +
 					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
 					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
@@ -139,6 +148,7 @@ export const sendBuildSuccessNotifications = async ({
 				`view, Build details, ${buildLink}, clear=true;`,
 				`🛠Project: ${projectName}\n` +
 					`⚙️Application: ${applicationName}\n` +
+					`🌍Environment: ${environmentName}\n` +
 					`❔Type: ${applicationType}\n` +
 					`🕒Date: ${date.toLocaleString()}`,
 			);
@@ -167,7 +177,7 @@ export const sendBuildSuccessNotifications = async ({
 
 			await sendTelegramNotification(
 				telegram,
-				`<b>✅ Build Success</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
+				`<b>✅ Build Success</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Environment:</b> ${environmentName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 				inlineButton,
 			);
 		}
@@ -189,6 +199,11 @@ export const sendBuildSuccessNotifications = async ({
 							{
 								title: "Application",
 								value: applicationName,
+								short: true,
+							},
+							{
+								title: "Environment",
+								value: environmentName,
 								short: true,
 							},
 							{
@@ -257,6 +272,12 @@ export const sendBuildSuccessNotifications = async ({
 											{
 												tag: "markdown",
 												content: `**Project:**\n${projectName}`,
+												text_align: "left",
+												text_size: "normal_v2",
+											},
+											{
+												tag: "markdown",
+												content: `**Environment:**\n${environmentName}`,
 												text_align: "left",
 												text_size: "normal_v2",
 											},

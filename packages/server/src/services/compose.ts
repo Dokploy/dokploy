@@ -267,6 +267,7 @@ export const deployCompose = async ({
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
 			domains: compose.domains,
+			environmentName: compose.environment.name,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
