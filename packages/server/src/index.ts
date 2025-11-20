@@ -10,6 +10,8 @@ export * from "./services/application";
 export * from "./services/backup";
 export * from "./services/bitbucket";
 export * from "./services/certificate";
+export * from "./services/cloud-provider";
+export * from "./providers/types";
 export * from "./services/cluster";
 export * from "./services/compose";
 export * from "./services/deployment";

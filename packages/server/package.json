@@ -16,6 +16,10 @@
     "./constants": {
       "import": "./src/constants/index.ts",
       "require": "./dist/constants.cjs.js"
+    },
+    "./providers/types-client": {
+      "import": "./src/providers/types-client.ts",
+      "require": "./dist/providers/types-client.cjs.js"
     }
   },
   "scripts": {

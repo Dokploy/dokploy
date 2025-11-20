@@ -48,6 +48,14 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
+	// Cloud provider information (if provisioned via provider)
+	cloudProvider: text("cloudProvider"), // e.g., "hetzner", "digitalocean"
+	providerServerId: text("providerServerId"), // Provider's server ID for cleanup
+	providerMetadata: jsonb("providerMetadata").$type<{
+		location?: string;
+		serverType?: string;
+		image?: string;
+	}>(),
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {

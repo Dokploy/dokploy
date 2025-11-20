@@ -37,9 +37,11 @@ import { ShowNodesModal } from "../cluster/nodes/show-nodes-modal";
 import { TerminalModal } from "../web-server/terminal-modal";
 import { ShowServerActions } from "./actions/show-server-actions";
 import { HandleServers } from "./handle-servers";
+import { ProvisionServerWizard } from "./provision-server-wizard";
 import { SetupServer } from "./setup-server";
 import { ShowDockerContainersModal } from "./show-docker-containers-modal";
 import { ShowMonitoringModal } from "./show-monitoring-modal";
+import { ShowProvisioningJobs } from "./show-provisioning-jobs";
 import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
@@ -104,6 +106,7 @@ export const ShowServers = () => {
 									</div>
 								) : (
 									<>
+										<ShowProvisioningJobs />
 										{data?.length === 0 ? (
 											<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 												<ServerIcon className="size-8 self-center text-muted-foreground" />
@@ -111,10 +114,17 @@ export const ShowServers = () => {
 													Start adding servers to deploy your applications
 													remotely.
 												</span>
-												<HandleServers />
+												<div className="flex gap-2">
+													<HandleServers />
+													<ProvisionServerWizard />
+												</div>
 											</div>
 										) : (
 											<div className="flex flex-col gap-4  min-h-[25vh]">
+												<div className="flex justify-end gap-2">
+													<HandleServers />
+													<ProvisionServerWizard />
+												</div>
 												<Table>
 													<TableCaption>
 														<div className="flex flex-col  gap-4">
@@ -156,7 +166,17 @@ export const ShowServers = () => {
 															return (
 																<TableRow key={server.serverId}>
 																	<TableCell className="text-left">
-																		{server.name}
+																		<div className="flex items-center gap-2">
+																			<span>{server.name}</span>
+																			{server.cloudProvider && (
+																				<Badge
+																					variant="secondary"
+																					className="text-xs"
+																				>
+																					{server.cloudProvider}
+																				</Badge>
+																			)}
+																		</div>
 																	</TableCell>
 																	{isCloud && (
 																		<TableHead className="text-center">

@@ -27,6 +27,10 @@ pkg.exports = {
 		import: "./src/constants/index.ts",
 		require: "./dist/constants.cjs.js",
 	},
+	"./providers/types-client": {
+		import: "./src/providers/types-client.ts",
+		require: "./dist/providers/types-client.cjs.js",
+	},
 };
 
 // Guardar los cambios en package.json

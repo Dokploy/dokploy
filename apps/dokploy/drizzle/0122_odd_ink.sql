@@ -1,0 +1,1 @@
+ALTER TYPE "public"."provisioningStatus" ADD VALUE 'running_setup' BEFORE 'completed';
