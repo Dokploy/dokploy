@@ -1,7 +1,6 @@
-import { createWriteStream } from "node:fs";
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { uploadImage, uploadImageRemoteCommand } from "../cluster/upload";
+import { uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -11,12 +10,12 @@ import {
 	prepareEnvironmentVariables,
 } from "../docker/utils";
 import { getRemoteDocker } from "../servers/remote-docker";
-import { buildCustomDocker, getDockerCommand } from "./docker-file";
-import { buildHeroku, getHerokuCommand } from "./heroku";
-import { buildNixpacks, getNixpacksCommand } from "./nixpacks";
-import { buildPaketo, getPaketoCommand } from "./paketo";
-import { buildRailpack, getRailpackCommand } from "./railpack";
-import { buildStatic, getStaticCommand } from "./static";
+import { getDockerCommand } from "./docker-file";
+import { getHerokuCommand } from "./heroku";
+import { getNixpacksCommand } from "./nixpacks";
+import { getPaketoCommand } from "./paketo";
+import { getRailpackCommand } from "./railpack";
+import { getStaticCommand } from "./static";
 
 // NIXPACKS codeDirectory = where is the path of the code directory
 // HEROKU codeDirectory = where is the path of the code directory
@@ -34,76 +33,35 @@ export type ApplicationNested = InferResultType<
 	}
 >;
 
-export const buildApplication = async (
-	application: ApplicationNested,
-	logPath: string,
-) => {
-	const writeStream = createWriteStream(logPath, { flags: "a" });
-	const { buildType, sourceType } = application;
-	try {
-		writeStream.write(
-			`\nBuild ${buildType}: ✅\nSource Type: ${sourceType}: ✅\n`,
-		);
-		console.log(`Build ${buildType}: ✅`);
-		if (buildType === "nixpacks") {
-			await buildNixpacks(application, writeStream);
-		} else if (buildType === "heroku_buildpacks") {
-			await buildHeroku(application, writeStream);
-		} else if (buildType === "paketo_buildpacks") {
-			await buildPaketo(application, writeStream);
-		} else if (buildType === "dockerfile") {
-			await buildCustomDocker(application, writeStream);
-		} else if (buildType === "static") {
-			await buildStatic(application, writeStream);
-		} else if (buildType === "railpack") {
-			await buildRailpack(application, writeStream);
-		}
-
-		if (application.registryId) {
-			await uploadImage(application, writeStream);
-		}
-		await mechanizeDockerContainer(application);
-		writeStream.write("Docker Deployed: ✅");
-	} catch (error) {
-		if (error instanceof Error) {
-			writeStream.write(`Error ❌\n${error?.message}`);
-		} else {
-			writeStream.write("Error ❌");
-		}
-		throw error;
-	} finally {
-		writeStream.end();
-	}
-};
-
-export const getBuildCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getBuildCommand = (application: ApplicationNested) => {
 	let command = "";
 	const { buildType, registry } = application;
+
+	if (application.sourceType === "docker") {
+		return "";
+	}
 	switch (buildType) {
 		case "nixpacks":
-			command = getNixpacksCommand(application, logPath);
+			command = getNixpacksCommand(application);
 			break;
 		case "heroku_buildpacks":
-			command = getHerokuCommand(application, logPath);
+			command = getHerokuCommand(application);
 			break;
 		case "paketo_buildpacks":
-			command = getPaketoCommand(application, logPath);
+			command = getPaketoCommand(application);
 			break;
 		case "static":
-			command = getStaticCommand(application, logPath);
+			command = getStaticCommand(application);
 			break;
 		case "dockerfile":
-			command = getDockerCommand(application, logPath);
+			command = getDockerCommand(application);
 			break;
 		case "railpack":
-			command = getRailpackCommand(application, logPath);
+			command = getRailpackCommand(application);
 			break;
 	}
 	if (registry) {
-		command += uploadImageRemoteCommand(application, logPath);
+		command += uploadImageRemoteCommand(application);
 	}
 
 	return command;
@@ -143,6 +101,7 @@ export const mechanizeDockerContainer = async (
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(application);
 
 	const bindsMount = generateBindMounts(mounts);
@@ -183,14 +142,16 @@ export const mechanizeDockerContainer = async (
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Ports: ports.map((port) => ({
-				PublishMode: port.publishMode,
-				Protocol: port.protocol,
-				TargetPort: port.targetPort,
-				PublishedPort: port.publishedPort,
-			})),
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Ports: ports.map((port) => ({
+						PublishMode: port.publishMode,
+						Protocol: port.protocol,
+						TargetPort: port.targetPort,
+						PublishedPort: port.publishedPort,
+					})),
+				},
 		UpdateConfig,
 		...(StopGracePeriod !== undefined &&
 			StopGracePeriod !== null && { StopGracePeriod }),

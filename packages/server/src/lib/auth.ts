@@ -203,7 +203,7 @@ const { handler, api } = betterAuth({
 		updateAge: 60 * 60 * 24,
 	},
 	user: {
-		modelName: "users_temp",
+		modelName: "user",
 		additionalFields: {
 			role: {
 				type: "string",

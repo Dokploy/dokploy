@@ -5,6 +5,7 @@ import { docker, paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
+import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 import type { MariadbNested } from "../databases/mariadb";
 import type { MongoNested } from "../databases/mongo";
@@ -310,6 +311,21 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export const prepareEnvironmentVariablesForShell = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+	environmentEnv?: string | null,
+): string[] => {
+	const envVars = prepareEnvironmentVariables(
+		serviceEnv,
+		projectEnv,
+		environmentEnv,
+	);
+	// Using shell-quote library to properly escape shell arguments
+	// This is the standard way to handle special characters in shell commands
+	return envVars.map((env) => quote([env]));
+};
+
 export const parseEnvironmentKeyValuePair = (
 	pair: string,
 ): [string, string] => {
@@ -395,6 +411,7 @@ export const generateConfigContainer = (
 		mounts,
 		networkSwarm,
 		stopGracePeriodSwarm,
+		endpointSpecSwarm,
 	} = application;
 
 	const sanitizedStopGracePeriodSwarm =
@@ -408,11 +425,9 @@ export const generateConfigContainer = (
 		...(healthCheckSwarm && {
 			HealthCheck: healthCheckSwarm,
 		}),
-		...(restartPolicySwarm
-			? {
-					RestartPolicy: restartPolicySwarm,
-				}
-			: {}),
+		...(restartPolicySwarm && {
+			RestartPolicy: restartPolicySwarm,
+		}),
 		...(placementSwarm
 			? {
 					Placement: placementSwarm,
@@ -461,6 +476,18 @@ export const generateConfigContainer = (
 			: {
 					Networks: [{ Target: "dokploy-network" }],
 				}),
+		...(endpointSpecSwarm && {
+			EndpointSpec: {
+				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
+				Ports:
+					endpointSpecSwarm.Ports?.map((port) => ({
+						Protocol: (port.Protocol || "tcp") as "tcp" | "udp" | "sctp",
+						TargetPort: port.TargetPort || 0,
+						PublishedPort: port.PublishedPort || 0,
+						PublishMode: (port.PublishMode || "host") as "ingress" | "host",
+					})) || [],
+			},
+		}),
 	};
 };
 
