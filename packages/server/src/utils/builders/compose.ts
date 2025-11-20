@@ -53,9 +53,8 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
-        ${exportEnvCommand}
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
-		env -i PATH="$PATH" docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		env -i PATH="$PATH" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 	
 		echo "Docker Compose Deployed: ✅";
@@ -66,7 +65,6 @@ Compose Type: ${composeType} ✅`;
 	`;
 
 	return bashCommand;
-	// return await execAsyncRemote(compose.serverId, bashCommand);
 };
 
 const sanitizeCommand = (command: string) => {
@@ -138,8 +136,8 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 		compose.environment.project.env,
 	);
 	const exports = Object.entries(envVars)
-		.map(([key, value]) => `export ${key}=${quote([value])}`)
-		.join("\n");
+		.map(([key, value]) => `${key}=${quote([value])}`)
+		.join(" ");
 
-	return exports ? `\n# Export environment variables\n${exports}\n` : "";
+	return exports ? `${exports}` : "";
 };
