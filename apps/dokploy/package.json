@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.25.8",
+	"version": "v0.25.9",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -98,6 +98,7 @@
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
 		"bullmq": "5.4.2",
+		"shell-quote": "^1.8.1",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^0.2.1",
@@ -157,6 +158,7 @@
 		"zod-form-data": "^2.0.7"
 	},
 	"devDependencies": {
+		"@types/shell-quote": "^1.7.5",
 		"@types/adm-zip": "^0.5.7",
 		"@types/bcrypt": "5.0.2",
 		"@types/js-cookie": "^3.0.6",
