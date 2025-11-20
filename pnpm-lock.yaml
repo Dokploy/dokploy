@@ -406,6 +406,9 @@ importers:
       rotating-file-stream:
         specifier: 3.2.3
         version: 3.2.3
+      shell-quote:
+        specifier: ^1.8.1
+        version: 1.8.2
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
@@ -488,6 +491,9 @@ importers:
       '@types/react-dom':
         specifier: 18.3.0
         version: 18.3.0
+      '@types/shell-quote':
+        specifier: ^1.7.5
+        version: 1.7.5
       '@types/ssh2':
         specifier: 1.15.1
         version: 1.15.1
