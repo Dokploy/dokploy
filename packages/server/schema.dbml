@@ -42,6 +42,7 @@ enum deploymentStatus {
   running
   done
   error
+  cancelled
 }
 
 enum domainType {
@@ -71,6 +72,7 @@ enum notificationType {
   gotify
   ntfy
   custom
+  lark
 }
 
 enum protocolType {
@@ -204,6 +206,7 @@ table application {
   previewEnv text
   watchPaths text[]
   previewBuildArgs text
+  previewBuildSecrets text
   previewLabels text[]
   previewWildcard text
   previewPort integer [default: 3000]
@@ -216,6 +219,7 @@ table application {
   previewRequireCollaboratorPermissions boolean [default: true]
   rollbackActive boolean [default: false]
   buildArgs text
+  buildSecrets text
   memoryReservation text
   memoryLimit text
   cpuReservation text
@@ -268,6 +272,8 @@ table application {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
+  endpointSpecSwarm json
   replicas integer [not null, default: 1]
   applicationStatus applicationStatus [not null, default: 'idle']
   buildType buildType [not null, default: 'nixpacks']
@@ -526,6 +532,11 @@ table invitation {
   team_id text
 }
 
+table lark {
+  larkId text [pk, not null]
+  webhookUrl text [not null]
+}
+
 table mariadb {
   mariadbId text [pk, not null]
   name text [not null]
@@ -552,6 +563,8 @@ table mariadb {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
+  endpointSpecSwarm json
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -565,6 +578,7 @@ table member {
   role text [not null]
   created_at timestamp [not null]
   team_id text
+  is_default boolean [not null, default: false]
   canCreateProjects boolean [not null, default: false]
   canAccessToSSHKeys boolean [not null, default: false]
   canCreateServices boolean [not null, default: false]
@@ -574,6 +588,8 @@ table member {
   canAccessToAPI boolean [not null, default: false]
   canAccessToGitProviders boolean [not null, default: false]
   canAccessToTraefikFiles boolean [not null, default: false]
+  canDeleteEnvironments boolean [not null, default: false]
+  canCreateEnvironments boolean [not null, default: false]
   accesedProjects text[] [not null, default: `ARRAY[]::text[]`]
   accessedEnvironments text[] [not null, default: `ARRAY[]::text[]`]
   accesedServices text[] [not null, default: `ARRAY[]::text[]`]
@@ -603,6 +619,8 @@ table mongo {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
+  endpointSpecSwarm json
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -654,6 +672,8 @@ table mysql {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
+  endpointSpecSwarm json
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -678,6 +698,7 @@ table notification {
   gotifyId text
   ntfyId text
   customId text
+  larkId text
   organizationId text [not null]
 }
 
@@ -733,6 +754,8 @@ table postgres {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
+  endpointSpecSwarm json
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -798,6 +821,8 @@ table redis {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
+  endpointSpecSwarm json
   replicas integer [not null, default: 1]
   environmentId text [not null]
   serverId text
@@ -915,7 +940,7 @@ table two_factor {
   user_id text [not null]
 }
 
-table user_temp {
+table user {
   id text [pk, not null]
   name text [not null, default: '']
   isRegistered boolean [not null, default: false]
@@ -996,11 +1021,11 @@ ref: mount.redisId > redis.redisId
 
 ref: mount.composeId > compose.composeId
 
-ref: user_temp.id - account.user_id
+ref: user.id - account.user_id
 
 ref: ai.organizationId - organization.id
 
-ref: apikey.user_id > user_temp.id
+ref: apikey.user_id > user.id
 
 ref: application.environmentId > environment.environmentId
 
@@ -1028,7 +1053,7 @@ ref: backup.mysqlId > mysql.mysqlId
 
 ref: backup.mongoId > mongo.mongoId
 
-ref: backup.userId > user_temp.id
+ref: backup.userId > user.id
 
 ref: backup.composeId > compose.composeId
 
@@ -1086,7 +1111,7 @@ ref: gitea.gitProviderId - git_provider.gitProviderId
 
 ref: git_provider.organizationId - organization.id
 
-ref: git_provider.userId - user_temp.id
+ref: git_provider.userId - user.id
 
 ref: invitation.organization_id - organization.id
 
@@ -1096,7 +1121,7 @@ ref: mariadb.serverId > server.serverId
 
 ref: member.organization_id > organization.id
 
-ref: member.user_id - user_temp.id
+ref: member.user_id - user.id
 
 ref: mongo.environmentId > environment.environmentId
 
@@ -1120,9 +1145,11 @@ ref: notification.ntfyId - ntfy.ntfyId
 
 ref: notification.customId - custom.customId
 
+ref: notification.larkId - lark.larkId
+
 ref: notification.organizationId - organization.id
 
-ref: organization.owner_id > user_temp.id
+ref: organization.owner_id > user.id
 
 ref: port.applicationId > application.applicationId
 
@@ -1146,7 +1173,7 @@ ref: schedule.composeId > compose.composeId
 
 ref: schedule.serverId > server.serverId
 
-ref: schedule.userId > user_temp.id
+ref: schedule.userId > user.id
 
 ref: security.applicationId > application.applicationId
 

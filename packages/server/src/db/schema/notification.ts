@@ -12,6 +12,7 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+	"custom",
 	"lark",
 ]);
 
@@ -47,6 +48,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
+		onDelete: "cascade",
+	}),
+	customId: text("customId").references(() => custom.customId, {
 		onDelete: "cascade",
 	}),
 	larkId: text("larkId").references(() => lark.larkId, {
@@ -120,6 +124,15 @@ export const ntfy = pgTable("ntfy", {
 	priority: integer("priority").notNull().default(3),
 });
 
+export const custom = pgTable("custom", {
+	customId: text("customId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	endpoint: text("endpoint").notNull(),
+	headers: text("headers"), // JSON string
+});
+
 export const lark = pgTable("lark", {
 	larkId: text("larkId")
 		.notNull()
@@ -152,6 +165,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	ntfy: one(ntfy, {
 		fields: [notifications.ntfyId],
 		references: [ntfy.ntfyId],
+	}),
+	custom: one(custom, {
+		fields: [notifications.customId],
+		references: [custom.customId],
 	}),
 	lark: one(lark, {
 		fields: [notifications.larkId],
@@ -355,6 +372,32 @@ export const apiFindOneNotification = notificationsSchema
 	})
 	.required();
 
+export const apiCreateCustom = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		endpoint: z.string().min(1),
+		headers: z.string().optional(),
+	});
+
+export const apiUpdateCustom = apiCreateCustom.partial().extend({
+	notificationId: z.string().min(1),
+	customId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestCustomConnection = z.object({
+	endpoint: z.string().min(1),
+	headers: z.string().optional(),
+});
+
 export const apiCreateLark = notificationsSchema
 	.pick({
 		appBuildError: true,
@@ -397,5 +440,7 @@ export const apiSendTest = notificationsSchema
 		appToken: z.string(),
 		accessToken: z.string(),
 		priority: z.number(),
+		endpoint: z.string(),
+		headers: z.string(),
 	})
 	.partial();

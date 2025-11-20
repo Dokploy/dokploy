@@ -42,6 +42,7 @@ enum deploymentStatus {
   running
   done
   error
+  cancelled
 }
 
 enum domainType {
@@ -71,6 +72,7 @@ enum notificationType {
   gotify
   ntfy
   custom
+  lark
 }
 
 enum protocolType {
@@ -204,6 +206,7 @@ table application {
   previewEnv text
   watchPaths text[]
   previewBuildArgs text
+  previewBuildSecrets text
   previewLabels text[]
   previewWildcard text
   previewPort integer [default: 3000]
@@ -216,6 +219,7 @@ table application {
   previewRequireCollaboratorPermissions boolean [default: true]
   rollbackActive boolean [default: false]
   buildArgs text
+  buildSecrets text
   memoryReservation text
   memoryLimit text
   cpuReservation text
@@ -268,6 +272,7 @@ table application {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
   replicas integer [not null, default: 1]
   applicationStatus applicationStatus [not null, default: 'idle']
   buildType buildType [not null, default: 'nixpacks']
@@ -526,6 +531,11 @@ table invitation {
   team_id text
 }
 
+table lark {
+  larkId text [pk, not null]
+  webhookUrl text [not null]
+}
+
 table mariadb {
   mariadbId text [pk, not null]
   name text [not null]
@@ -552,6 +562,7 @@ table mariadb {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -565,6 +576,7 @@ table member {
   role text [not null]
   created_at timestamp [not null]
   team_id text
+  is_default boolean [not null, default: false]
   canCreateProjects boolean [not null, default: false]
   canAccessToSSHKeys boolean [not null, default: false]
   canCreateServices boolean [not null, default: false]
@@ -574,6 +586,8 @@ table member {
   canAccessToAPI boolean [not null, default: false]
   canAccessToGitProviders boolean [not null, default: false]
   canAccessToTraefikFiles boolean [not null, default: false]
+  canDeleteEnvironments boolean [not null, default: false]
+  canCreateEnvironments boolean [not null, default: false]
   accesedProjects text[] [not null, default: `ARRAY[]::text[]`]
   accessedEnvironments text[] [not null, default: `ARRAY[]::text[]`]
   accesedServices text[] [not null, default: `ARRAY[]::text[]`]
@@ -603,6 +617,7 @@ table mongo {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -654,6 +669,7 @@ table mysql {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -678,6 +694,7 @@ table notification {
   gotifyId text
   ntfyId text
   customId text
+  larkId text
   organizationId text [not null]
 }
 
@@ -733,6 +750,7 @@ table postgres {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
   replicas integer [not null, default: 1]
   createdAt text [not null]
   environmentId text [not null]
@@ -798,6 +816,7 @@ table redis {
   modeSwarm json
   labelsSwarm json
   networkSwarm json
+  stopGracePeriodSwarm bigint
   replicas integer [not null, default: 1]
   environmentId text [not null]
   serverId text
@@ -1119,6 +1138,8 @@ ref: notification.gotifyId - gotify.gotifyId
 ref: notification.ntfyId - ntfy.ntfyId
 
 ref: notification.customId - custom.customId
+
+ref: notification.larkId - lark.larkId
 
 ref: notification.organizationId - organization.id
 

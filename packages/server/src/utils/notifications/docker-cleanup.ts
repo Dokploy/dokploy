@@ -5,10 +5,11 @@ import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
-	sendLarkNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -32,12 +33,13 @@ export const sendDockerCleanupNotifications = async (
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			custom: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
 			notification;
 
 		if (email) {
@@ -139,6 +141,18 @@ export const sendDockerCleanupNotifications = async (
 			});
 		}
 
+		if (custom) {
+			await sendCustomNotification(custom, {
+				title: "Docker Cleanup",
+				message: "Docker cleanup completed successfully",
+				cleanupMessage: message,
+				timestamp: date.toISOString(),
+				date: date.toLocaleString(),
+				status: "success",
+				type: "docker-cleanup",
+			});
+		}
+
 		if (lark) {
 			await sendLarkNotification(lark, {
 				msg_type: "interactive",
@@ -181,7 +195,7 @@ export const sendDockerCleanupNotifications = async (
 										elements: [
 											{
 												tag: "markdown",
-												content: `**Status:**\nSuccessful`,
+												content: "**Status:**\nSuccessful",
 												text_align: "left",
 												text_size: "normal_v2",
 											},

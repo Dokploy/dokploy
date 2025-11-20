@@ -25,7 +25,8 @@
     "switch:prod": "node scripts/switchToDist.js",
     "dev": "rm -rf ./dist && pnpm esbuild && tsc --emitDeclarationOnly --outDir dist -p tsconfig.server.json",
     "esbuild": "tsx ./esbuild.config.ts && tsc --project tsconfig.server.json --emitDeclarationOnly ",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dbml:generate": "npx tsx src/db/schema/dbml.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.5",
