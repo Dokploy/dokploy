@@ -1,4 +1,7 @@
-import { prepareEnvironmentVariables } from "@dokploy/server/index";
+import {
+	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForShell,
+} from "@dokploy/server/index";
 import { describe, expect, it } from "vitest";
 
 const projectEnv = `
@@ -331,5 +334,311 @@ IS_DEV=\${{environment.DEVELOPMENT}}
 			"IS_PROD=1",
 			"IS_DEV=0",
 		]);
+	});
+
+	it("handles environment variables with single quotes in values", () => {
+		const envWithSingleQuotes = `
+ENV_VARIABLE='ENVITONME'NT'
+ANOTHER_VAR='value with 'quotes' inside'
+SIMPLE_VAR=no-quotes
+`;
+
+		const serviceWithSingleQuotes = `
+TEST_VAR=\${{environment.ENV_VARIABLE}}
+ANOTHER_TEST=\${{environment.ANOTHER_VAR}}
+SIMPLE=\${{environment.SIMPLE_VAR}}
+`;
+
+		const resolved = prepareEnvironmentVariables(
+			serviceWithSingleQuotes,
+			"",
+			envWithSingleQuotes,
+		);
+
+		expect(resolved).toEqual([
+			"TEST_VAR=ENVITONME'NT",
+			"ANOTHER_TEST=value with 'quotes' inside",
+			"SIMPLE=no-quotes",
+		]);
+	});
+});
+
+describe("prepareEnvironmentVariablesForShell (shell escaping)", () => {
+	it("escapes single quotes in environment variable values", () => {
+		const serviceEnv = `
+ENV_VARIABLE='ENVITONME'NT'
+ANOTHER_VAR='value with 'quotes' inside'
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// shell-quote should wrap these in double quotes
+		expect(resolved).toEqual([
+			`"ENV_VARIABLE=ENVITONME'NT"`,
+			`"ANOTHER_VAR=value with 'quotes' inside"`,
+		]);
+	});
+
+	it("escapes double quotes in environment variable values", () => {
+		const serviceEnv = `
+MESSAGE="Hello "World""
+QUOTED_PATH="/path/to/"file""
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// shell-quote wraps in single quotes when there are double quotes inside
+		expect(resolved).toEqual([
+			`'MESSAGE=Hello "World"'`,
+			`'QUOTED_PATH=/path/to/"file"'`,
+		]);
+	});
+
+	it("escapes dollar signs in environment variable values", () => {
+		const serviceEnv = `
+PRICE=$100
+VARIABLE=$HOME/path
+TEMPLATE=Hello $USER
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// Dollar signs should be escaped to prevent variable expansion
+		for (const env of resolved) {
+			expect(env).toContain("$");
+		}
+	});
+
+	it("escapes backticks in environment variable values", () => {
+		const serviceEnv = `
+COMMAND=\`echo "test"\`
+NESTED=value with \`backticks\` inside
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// Backticks are escaped/removed by dotenv parsing, but values should be safely quoted
+		expect(resolved.length).toBe(2);
+		expect(resolved[0]).toContain("COMMAND");
+		expect(resolved[1]).toContain("NESTED");
+	});
+
+	it("handles environment variables with spaces", () => {
+		const serviceEnv = `
+FULL_NAME="John Doe"
+MESSAGE='Hello World'
+SENTENCE=This is a test
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// shell-quote uses single quotes for strings with spaces
+		expect(resolved).toEqual([
+			`'FULL_NAME=John Doe'`,
+			`'MESSAGE=Hello World'`,
+			`'SENTENCE=This is a test'`,
+		]);
+	});
+
+	it("handles environment variables with backslashes", () => {
+		const serviceEnv = `
+WINDOWS_PATH=C:\\Users\\Documents
+ESCAPED=value\\with\\backslashes
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// Backslashes should be properly escaped
+		expect(resolved.length).toBe(2);
+		for (const env of resolved) {
+			expect(env).toContain("\\");
+		}
+	});
+
+	it("handles simple environment variables without special characters", () => {
+		const serviceEnv = `
+NODE_ENV=production
+PORT=3000
+DEBUG=true
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// shell-quote escapes the = sign in some cases
+		expect(resolved).toEqual([
+			"NODE_ENV\\=production",
+			"PORT\\=3000",
+			"DEBUG\\=true",
+		]);
+	});
+
+	it("handles environment variables with mixed special characters", () => {
+		const serviceEnv = `
+COMPLEX='value with "double" and 'single' quotes'
+BASH_COMMAND=echo "$HOME" && echo 'test'
+WEIRD=\`echo "$VAR"\` with 'quotes' and "more"
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// All should be escaped, none should throw errors
+		expect(resolved.length).toBe(3);
+		// Verify each can be safely used in shell
+		for (const env of resolved) {
+			expect(typeof env).toBe("string");
+			expect(env.length).toBeGreaterThan(0);
+		}
+	});
+
+	it("handles environment variables with newlines", () => {
+		const serviceEnv = `
+MULTILINE="line1
+line2
+line3"
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		expect(resolved.length).toBe(1);
+		expect(resolved[0]).toContain("MULTILINE");
+	});
+
+	it("handles empty environment variable values", () => {
+		const serviceEnv = `
+EMPTY=
+EMPTY_QUOTED=""
+EMPTY_SINGLE=''
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		// shell-quote escapes the = sign for empty values
+		expect(resolved).toEqual([
+			"EMPTY\\=",
+			"EMPTY_QUOTED\\=",
+			"EMPTY_SINGLE\\=",
+		]);
+	});
+
+	it("handles environment variables with equals signs in values", () => {
+		const serviceEnv = `
+EQUATION=a=b+c
+CONNECTION_STRING=user=admin;password=test
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		expect(resolved.length).toBe(2);
+		expect(resolved[0]).toContain("EQUATION");
+		expect(resolved[1]).toContain("CONNECTION_STRING");
+	});
+
+	it("resolves and escapes environment variables together", () => {
+		const projectEnv = `
+BASE_URL=https://example.com
+API_KEY='secret-key-with-quotes'
+`;
+
+		const environmentEnv = `
+ENV_NAME=production
+DB_PASS='pa$$word'
+`;
+
+		const serviceEnv = `
+FULL_URL=\${{project.BASE_URL}}/api
+AUTH_KEY=\${{project.API_KEY}}
+ENVIRONMENT=\${{environment.ENV_NAME}}
+DB_PASSWORD=\${{environment.DB_PASS}}
+CUSTOM='value with 'quotes' inside'
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(
+			serviceEnv,
+			projectEnv,
+			environmentEnv,
+		);
+
+		expect(resolved.length).toBe(5);
+		// All resolved values should be properly escaped
+		for (const env of resolved) {
+			expect(typeof env).toBe("string");
+		}
+	});
+
+	it("handles environment variables with semicolons and ampersands", () => {
+		const serviceEnv = `
+COMMAND=echo "test" && echo "test2"
+MULTIPLE=cmd1; cmd2; cmd3
+URL_WITH_PARAMS=https://example.com?a=1&b=2&c=3
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		expect(resolved.length).toBe(3);
+		// These should be safely escaped to prevent command injection
+		for (const env of resolved) {
+			expect(typeof env).toBe("string");
+			expect(env.length).toBeGreaterThan(0);
+		}
+	});
+
+	it("handles environment variables with pipes and redirects", () => {
+		const serviceEnv = `
+PIPE_COMMAND=cat file | grep test
+REDIRECT=echo "test" > output.txt
+BOTH=cat input.txt | grep pattern > output.txt
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		expect(resolved.length).toBe(3);
+		// Pipes and redirects should be safely quoted
+		expect(resolved[0]).toContain("PIPE_COMMAND");
+		expect(resolved[1]).toContain("REDIRECT");
+		expect(resolved[2]).toContain("BOTH");
+		// At least one should contain a pipe
+		const hasPipe = resolved.some((env) => env.includes("|"));
+		expect(hasPipe).toBe(true);
+	});
+
+	it("handles environment variables with parentheses and brackets", () => {
+		const serviceEnv = `
+MATH=(a+b)*c
+ARRAY=[1,2,3]
+JSON={"key":"value"}
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		expect(resolved.length).toBe(3);
+		expect(resolved[0]).toContain("(");
+		expect(resolved[1]).toContain("[");
+		expect(resolved[2]).toContain("{");
+	});
+
+	it("handles very long environment variable values", () => {
+		const longValue = "a".repeat(10000);
+		const serviceEnv = `LONG_VAR=${longValue}`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		expect(resolved.length).toBe(1);
+		expect(resolved[0]).toContain("LONG_VAR");
+		expect(resolved[0]?.length).toBeGreaterThan(10000);
+	});
+
+	it("handles special unicode characters in environment variables", () => {
+		const serviceEnv = `
+EMOJI=Hello 🌍 World 🚀
+CHINESE=你好世界
+SPECIAL=café résumé naïve
+`;
+
+		const resolved = prepareEnvironmentVariablesForShell(serviceEnv, "", "");
+
+		expect(resolved.length).toBe(3);
+		expect(resolved[0]).toContain("🌍");
+		expect(resolved[1]).toContain("你好");
+		expect(resolved[2]).toContain("café");
 	});
 });

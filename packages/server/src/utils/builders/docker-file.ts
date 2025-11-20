@@ -1,7 +1,8 @@
 import {
 	getEnviromentVariablesObject,
-	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
+import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
@@ -40,14 +41,14 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--no-cache");
 		}
 
-		const args = prepareEnvironmentVariables(
+		const args = prepareEnvironmentVariablesForShell(
 			buildArgs,
 			application.environment.project.env,
 			application.environment.env,
 		);
 
 		for (const arg of args) {
-			commandArgs.push("--build-arg", `'${arg}'`);
+			commandArgs.push("--build-arg", arg);
 		}
 
 		const secrets = getEnviromentVariablesObject(
@@ -57,7 +58,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		);
 
 		const joinedSecrets = Object.entries(secrets)
-			.map(([key, value]) => `${key}='${value.replace(/'/g, "'\"'\"'")}'`)
+			.map(([key, value]) => `${key}=${quote([value])}`)
 			.join(" ");
 
 		for (const key in secrets) {

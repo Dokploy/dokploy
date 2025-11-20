@@ -1,7 +1,7 @@
 import path from "node:path";
 import { getStaticCommand } from "@dokploy/server/utils/builders/static";
 import { nanoid } from "nanoid";
-import { prepareEnvironmentVariables } from "../docker/utils";
+import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
 
@@ -10,7 +10,7 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 
 	const buildAppDirectory = getBuildAppDirectory(application);
 	const buildContainerId = `${appName}-${nanoid(10)}`;
-	const envVariables = prepareEnvironmentVariables(
+	const envVariables = prepareEnvironmentVariablesForShell(
 		env,
 		application.environment.project.env,
 		application.environment.env,
@@ -23,7 +23,7 @@ export const getNixpacksCommand = (application: ApplicationNested) => {
 	}
 
 	for (const env of envVariables) {
-		args.push("--env", `'${env}'`);
+		args.push("--env", env);
 	}
 
 	if (publishDirectory) {
