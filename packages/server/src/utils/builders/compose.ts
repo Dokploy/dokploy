@@ -2,6 +2,7 @@ import { dirname, join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { InferResultType } from "@dokploy/server/types/with";
 import boxen from "boxen";
+import { quote } from "shell-quote";
 import { writeDomainsToCompose } from "../docker/domain";
 import {
 	encodeBase64,
@@ -52,9 +53,8 @@ Compose Type: ${composeType} ✅`;
 	
 		cd "${projectPath}";
 
-        ${exportEnvCommand}
 		${compose.isolatedDeployment ? `docker network inspect ${compose.appName} >/dev/null 2>&1 || docker network create --attachable ${compose.appName}` : ""}
-		docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
+		env -i PATH="$PATH" ${exportEnvCommand} docker ${command.split(" ").join(" ")} 2>&1 || { echo "Error: ❌ Docker command failed"; exit 1; }
 		${compose.isolatedDeployment ? `docker network connect ${compose.appName} $(docker ps --filter "name=dokploy-traefik" -q) >/dev/null 2>&1` : ""}
 	
 		echo "Docker Compose Deployed: ✅";
@@ -65,7 +65,6 @@ Compose Type: ${composeType} ✅`;
 	`;
 
 	return bashCommand;
-	// return await execAsyncRemote(compose.serverId, bashCommand);
 };
 
 const sanitizeCommand = (command: string) => {
@@ -137,8 +136,8 @@ const getExportEnvCommand = (compose: ComposeNested) => {
 		compose.environment.project.env,
 	);
 	const exports = Object.entries(envVars)
-		.map(([key, value]) => `export ${key}=${JSON.stringify(value)}`)
-		.join("\n");
+		.map(([key, value]) => `${key}=${quote([value])}`)
+		.join(" ");
 
-	return exports ? `\n# Export environment variables\n${exports}\n` : "";
+	return exports ? `${exports}` : "";
 };

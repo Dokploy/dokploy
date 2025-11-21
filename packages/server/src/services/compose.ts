@@ -267,6 +267,7 @@ export const deployCompose = async ({
 			buildLink,
 			organizationId: compose.environment.project.organizationId,
 			domains: compose.domains,
+			environmentName: compose.environment.name,
 		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
@@ -375,7 +376,7 @@ export const removeCompose = async (
 		} else {
 			const command = `
 			 docker network disconnect ${compose.appName} dokploy-traefik;
-			cd ${projectPath} && docker compose -p ${compose.appName} down ${
+			cd ${projectPath} && env -i PATH="$PATH" docker compose -p ${compose.appName} down ${
 				deleteVolumes ? "--volumes" : ""
 			} && rm -rf ${projectPath}`;
 
@@ -402,7 +403,7 @@ export const startCompose = async (composeId: string) => {
 		const projectPath = join(COMPOSE_PATH, compose.appName, "code");
 		const path =
 			compose.sourceType === "raw" ? "docker-compose.yml" : compose.composePath;
-		const baseCommand = `docker compose -p ${compose.appName} -f ${path} up -d`;
+		const baseCommand = `env -i PATH="$PATH" docker compose -p ${compose.appName} -f ${path} up -d`;
 		if (compose.composeType === "docker-compose") {
 			if (compose.serverId) {
 				await execAsyncRemote(
@@ -437,14 +438,17 @@ export const stopCompose = async (composeId: string) => {
 			if (compose.serverId) {
 				await execAsyncRemote(
 					compose.serverId,
-					`cd ${join(COMPOSE_PATH, compose.appName)} && docker compose -p ${
+					`cd ${join(COMPOSE_PATH, compose.appName)} && env -i PATH="$PATH" docker compose -p ${
 						compose.appName
 					} stop`,
 				);
 			} else {
-				await execAsync(`docker compose -p ${compose.appName} stop`, {
-					cwd: join(COMPOSE_PATH, compose.appName),
-				});
+				await execAsync(
+					`env -i PATH="$PATH" docker compose -p ${compose.appName} stop`,
+					{
+						cwd: join(COMPOSE_PATH, compose.appName),
+					},
+				);
 			}
 		}
 

@@ -225,6 +225,7 @@ export const deployApplication = async ({
 			buildLink,
 			organizationId: application.environment.project.organizationId,
 			domains: application.domains,
+			environmentName: application.environment.name,
 		});
 	} catch (error) {
 		const command = `echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};`;
@@ -273,6 +274,7 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
 	const deployment = await createDeployment({
 		applicationId: applicationId,
@@ -293,6 +295,27 @@ export const rebuildApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
+			await createRollback({
+				appName: tagImage || "",
+				deploymentId: deployment.deploymentId,
+			});
+		}
+
+		await sendBuildSuccessNotifications({
+			projectName: application.environment.project.name,
+			applicationName: application.name,
+			applicationType: "application",
+			buildLink,
+			organizationId: application.environment.project.organizationId,
+			domains: application.domains,
+			environmentName: application.environment.name,
+		});
 	} catch (error) {
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
