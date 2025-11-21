@@ -3,6 +3,10 @@ import {
 	cleanUpSystemPrune,
 	cleanUpUnusedImages,
 	findBackupById,
+	findMariadbById,
+	findMongoById,
+	findMySqlById,
+	findPostgresById,
 	findScheduleById,
 	findServerById,
 	findVolumeBackupById,
@@ -32,6 +36,13 @@ export const runJobs = async (job: QueueJob) => {
 		if (job.type === "backup") {
 			const { backupId } = job;
 			const backup = await findBackupById(backupId);
+
+			// Check if backup is still enabled before running
+			if (!backup.enabled) {
+				logger.info({ backupId }, "Backup is disabled, skipping execution");
+				return;
+			}
+
 			const {
 				databaseType,
 				postgres,
@@ -44,6 +55,17 @@ export const runJobs = async (job: QueueJob) => {
 
 			if (backupType === "database") {
 				if (databaseType === "postgres" && postgres) {
+					// Validate that the database still exists before running backup
+					try {
+						await findPostgresById(postgres.postgresId);
+					} catch (error) {
+						logger.info(
+							{ backupId, postgresId: postgres.postgresId },
+							"Postgres database not found, skipping backup",
+						);
+						return;
+					}
+
 					const server = await findServerById(postgres.serverId as string);
 					if (server.serverStatus === "inactive") {
 						logger.info("Server is inactive");
@@ -52,6 +74,17 @@ export const runJobs = async (job: QueueJob) => {
 					await runPostgresBackup(postgres, backup);
 					await keepLatestNBackups(backup, server.serverId);
 				} else if (databaseType === "mysql" && mysql) {
+					// Validate that the database still exists before running backup
+					try {
+						await findMySqlById(mysql.mysqlId);
+					} catch (error) {
+						logger.info(
+							{ backupId, mysqlId: mysql.mysqlId },
+							"MySQL database not found, skipping backup",
+						);
+						return;
+					}
+
 					const server = await findServerById(mysql.serverId as string);
 					if (server.serverStatus === "inactive") {
 						logger.info("Server is inactive");
@@ -60,6 +93,17 @@ export const runJobs = async (job: QueueJob) => {
 					await runMySqlBackup(mysql, backup);
 					await keepLatestNBackups(backup, server.serverId);
 				} else if (databaseType === "mongo" && mongo) {
+					// Validate that the database still exists before running backup
+					try {
+						await findMongoById(mongo.mongoId);
+					} catch (error) {
+						logger.info(
+							{ backupId, mongoId: mongo.mongoId },
+							"MongoDB database not found, skipping backup",
+						);
+						return;
+					}
+
 					const server = await findServerById(mongo.serverId as string);
 					if (server.serverStatus === "inactive") {
 						logger.info("Server is inactive");
@@ -68,6 +112,17 @@ export const runJobs = async (job: QueueJob) => {
 					await runMongoBackup(mongo, backup);
 					await keepLatestNBackups(backup, server.serverId);
 				} else if (databaseType === "mariadb" && mariadb) {
+					// Validate that the database still exists before running backup
+					try {
+						await findMariadbById(mariadb.mariadbId);
+					} catch (error) {
+						logger.info(
+							{ backupId, mariadbId: mariadb.mariadbId },
+							"MariaDB database not found, skipping backup",
+						);
+						return;
+					}
+
 					const server = await findServerById(mariadb.serverId as string);
 					if (server.serverStatus === "inactive") {
 						logger.info("Server is inactive");
