@@ -14,6 +14,7 @@ import (
 	"github.com/mauriciogm/dokploy/apps/monitoring/database"
 	"github.com/mauriciogm/dokploy/apps/monitoring/middleware"
 	"github.com/mauriciogm/dokploy/apps/monitoring/monitoring"
+	prometheusExporter "github.com/mauriciogm/dokploy/apps/monitoring/prometheus"
 )
 
 func main() {
@@ -33,6 +34,13 @@ func main() {
 	db, err := database.InitDB()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Initialize Prometheus exporter if enabled
+	var promExporter *prometheusExporter.PrometheusExporter
+	if cfg.Server.Prometheus.Enabled {
+		promExporter = prometheusExporter.NewPrometheusExporter(db)
+		log.Printf("Prometheus metrics exporter enabled")
 	}
 
 	// Iniciar el sistema de limpieza de métricas
@@ -55,8 +63,25 @@ func main() {
 		})
 	})
 
+	// Prometheus metrics endpoint (no authentication required for scraping)
+	if cfg.Server.Prometheus.Enabled {
+		app.Get("/metrics/prometheus", func(c *fiber.Ctx) error {
+			metricsText, err := promExporter.GetMetricsText()
+			if err != nil {
+				return c.Status(500).SendString("Error generating metrics: " + err.Error())
+			}
+
+			c.Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+			return c.SendString(metricsText)
+		})
+		log.Printf("Prometheus metrics endpoint available at /metrics/prometheus")
+	}
+
 	app.Use(func(c *fiber.Ctx) error {
 		if c.Path() == "/health" {
+			return c.Next()
+		}
+		if c.Path() == "/metrics/prometheus" && cfg.Server.Prometheus.Enabled {
 			return c.Next()
 		}
 		return middleware.AuthMiddleware()(c)
@@ -99,6 +124,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create container monitor: %v", err)
 	}
+
+	// Set Prometheus callback for container metrics if enabled
+	if cfg.Server.Prometheus.Enabled && promExporter != nil {
+		containerMonitor.SetMetricsCallback(func(metric *database.ContainerMetric) {
+			promExporter.UpdateContainerMetrics(*metric)
+		})
+	}
+
 	if err := containerMonitor.Start(); err != nil {
 		log.Fatalf("Failed to start container monitor: %v", err)
 	}
@@ -144,12 +177,17 @@ func main() {
 
 		for range ticker.C {
 			metrics := monitoring.GetServerMetrics()
-			if err := db.SaveMetric(metrics); err != nil {
-				log.Printf("Error saving metrics: %v", err)
+			if saveErr := db.SaveMetric(metrics); saveErr != nil {
+				log.Printf("Error saving metrics: %v", saveErr)
 			}
 
-			if err := monitoring.CheckThresholds(metrics); err != nil {
-				log.Printf("Error checking thresholds: %v", err)
+			// Update Prometheus metrics if enabled
+			if cfg.Server.Prometheus.Enabled && promExporter != nil {
+				promExporter.UpdateServerMetrics(metrics, cfg.Server.ServerType)
+			}
+
+			if checkErr := monitoring.CheckThresholds(metrics); checkErr != nil {
+				log.Printf("Error checking thresholds: %v", checkErr)
 			}
 		}
 	}()

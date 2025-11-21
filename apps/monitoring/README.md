@@ -25,6 +25,9 @@ METRICS_CONFIG='{
     "thresholds": {
       "cpu": 0,
       "memory": 0
+    },
+    "prometheus": {
+      "enabled": true
     }
   },
   "containers": {
@@ -36,6 +39,15 @@ METRICS_CONFIG='{
   }
 }'
 ```
+
+### Prometheus Configuration
+
+The `prometheus` section in the server configuration enables the Prometheus metrics endpoint:
+
+- `enabled`: Set to `true` to enable the `/metrics/prometheus` endpoint for external scraping by Prometheus, Grafana Cloud, or other monitoring systems
+- When enabled, metrics are exposed in Prometheus format at the `/metrics/prometheus` endpoint
+- This endpoint does not require authentication to allow Prometheus scrapers to access it
+- All server and container metrics are automatically exposed in Prometheus-compatible format
 
 ## Installation
 
@@ -52,8 +64,9 @@ go run main.go
 ## Endpoints
 
 - `GET /health` - Check service health status (no authentication required)
-- `GET /metrics?limit=<number|all>` - Get server metrics (default limit: 50)
-- `GET /metrics/containers?limit=<number|all>&appName=<name>` - Get container metrics for a specific application (default limit: 50)
+- `GET /metrics?limit=<number|all>` - Get server metrics in JSON format (default limit: 50, requires authentication)
+- `GET /metrics/containers?limit=<number|all>&appName=<name>` - Get container metrics for a specific application in JSON format (default limit: 50, requires authentication)
+- `GET /metrics/prometheus` - Get all metrics in Prometheus format for external scraping (no authentication required, only available when Prometheus is enabled)
 
 ## Features
 
@@ -135,6 +148,73 @@ Metrics JSON:
   "Name": "testing-elasticsearch-14649e-kibana-1"
 }
 ```
+
+## Prometheus Integration
+
+Dokploy Monitoring can expose metrics in Prometheus format for external monitoring systems like Grafana Cloud, standalone Prometheus servers, or other observability platforms.
+
+### Enabling Prometheus Metrics
+
+Set `"prometheus": { "enabled": true }` in your server configuration to enable the `/metrics/prometheus` endpoint.
+
+### Available Prometheus Metrics
+
+**Server Metrics:**
+- `dokploy_server_cpu_usage_percent` - CPU usage percentage with labels: `server_type`, `os`, `arch`
+- `dokploy_server_memory_used_percent` - Memory usage percentage with labels: `server_type`, `os`, `arch`
+- `dokploy_server_memory_used_gb` - Memory used in GB with labels: `server_type`, `os`, `arch`
+- `dokploy_server_memory_total_gb` - Total memory in GB with labels: `server_type`, `os`, `arch`
+- `dokploy_server_disk_used_percent` - Disk usage percentage with labels: `server_type`, `os`, `arch`
+- `dokploy_server_disk_total_gb` - Total disk space in GB with labels: `server_type`, `os`, `arch`
+- `dokploy_server_network_in_mb` - Network traffic received in MB with labels: `server_type`, `os`, `arch`
+- `dokploy_server_network_out_mb` - Network traffic sent in MB with labels: `server_type`, `os`, `arch`
+- `dokploy_server_uptime_seconds` - System uptime in seconds with labels: `server_type`, `os`, `arch`
+- `dokploy_server_cpu_cores` - Number of CPU cores with labels: `server_type`, `os`, `arch`, `cpu_model`
+- `dokploy_server_cpu_speed_mhz` - CPU speed in MHz with labels: `server_type`, `os`, `arch`, `cpu_model`
+
+**Container Metrics:**
+- `dokploy_container_cpu_usage_percent` - Container CPU usage with labels: `container_name`, `container_id`
+- `dokploy_container_memory_used_mb` - Container memory used in MB with labels: `container_name`, `container_id`
+- `dokploy_container_network_bytes` - Container network traffic with labels: `container_name`, `container_id`, `direction` (in/out)
+- `dokploy_container_blockio_bytes` - Container block I/O with labels: `container_name`, `container_id`, `operation` (read/write)
+
+### Scraping Configuration
+
+#### Standalone Prometheus
+
+Add this to your `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: 'dokploy-monitoring'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['<your-monitoring-host>:3001']
+    metrics_path: '/metrics/prometheus'
+```
+
+#### Grafana Cloud
+
+1. Go to your Grafana Cloud instance
+2. Navigate to "Connections" → "Add new connection" → "Prometheus"
+3. Use the Prometheus remote write endpoint or add a scrape job
+4. Configure the target as `<your-monitoring-host>:3001/metrics/prometheus`
+
+#### External Monitoring Systems
+
+Any monitoring system that supports Prometheus format can scrape the `/metrics/prometheus` endpoint:
+- **Datadog**: Use the Prometheus integration
+- **New Relic**: Use Prometheus remote write
+- **AWS CloudWatch**: Use AWS Distro for OpenTelemetry
+- **Azure Monitor**: Use Azure Monitor managed service for Prometheus
+
+### Security Note
+
+The `/metrics/prometheus` endpoint is **intentionally unauthenticated** to allow Prometheus scrapers to access it. If you need to secure this endpoint:
+
+1. Use network-level security (firewall rules, VPN, security groups)
+2. Deploy behind a reverse proxy with authentication
+3. Use mTLS for secure communication
 
 ## Notifications
 
