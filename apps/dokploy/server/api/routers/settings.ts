@@ -1,6 +1,7 @@
 import {
 	canAccessToTraefikFiles,
 	checkGPUStatus,
+	checkPortInUse,
 	cleanStoppedContainers,
 	cleanUpDockerBuilder,
 	cleanUpSystemPrune,
@@ -130,6 +131,17 @@ export const settingsRouter = createTRPCRouter({
 			let newPorts = ports;
 			// If receive true, add 8080 to ports
 			if (input.enableDashboard) {
+				// Check if port 8080 is already in use before enabling dashboard
+				const portCheck = await checkPortInUse(8080, input.serverId);
+				if (portCheck.isInUse) {
+					const conflictingContainer = portCheck.conflictingContainer
+						? ` by container "${portCheck.conflictingContainer}"`
+						: "";
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port 8080 is already in use${conflictingContainer}. Please stop the conflicting service or use a different port for the Traefik dashboard.`,
+					});
+				}
 				newPorts.push({
 					targetPort: 8080,
 					publishedPort: 8080,
