@@ -73,6 +73,8 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				...(StopGracePeriod !== undefined &&
+					StopGracePeriod !== null && { StopGracePeriod }),
 				...(command
 					? {
 							Command: ["/bin/sh"],
@@ -106,8 +108,6 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 						: [],
 				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 	try {
 		const service = docker.getService(appName);
