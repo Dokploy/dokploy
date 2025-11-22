@@ -10,7 +10,9 @@ import {
 	findServerById,
 	generateTraefikMeDomain,
 	manageDomain,
+	manageDomainForCompose,
 	removeDomain,
+	removeDomainForCompose,
 	removeDomainById,
 	updateDomainById,
 	validateDomain,
@@ -165,6 +167,9 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await manageDomain(application, domain);
+			} else if (domain.composeId) {
+				const compose = await findComposeById(domain.composeId);
+				await manageDomainForCompose(compose, domain);
 			} else if (domain.previewDeploymentId) {
 				const previewDeployment = await findPreviewDeploymentById(
 					domain.previewDeploymentId,
@@ -236,6 +241,9 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				await removeDomain(application, domain.uniqueConfigKey);
+			} else if (domain.composeId) {
+				const compose = await findComposeById(domain.composeId);
+				await removeDomainForCompose(compose, domain.uniqueConfigKey);
 			}
 
 			return result;
