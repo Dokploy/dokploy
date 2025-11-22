@@ -47,8 +47,10 @@ import {
 	compose,
 	environments,
 	mariadb,
+	member,
 	mongo,
 	mysql,
+	organization,
 	postgres,
 	projects,
 	redis,
@@ -719,6 +721,70 @@ export const projectRouter = createTRPCRouter({
 					message: `Error duplicating the project: ${error instanceof Error ? error.message : error}`,
 					cause: error,
 				});
+			}
+		}),
+	// TODO: Add ability to copy projects instead of just moving them
+	moveToOrganization: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string(),
+				targetOrganizationId: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				// Only owners can move projects
+				if (ctx.user.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only organization owners can move projects",
+					});
+				}
+
+				// Verify source project belongs to current organization
+				const sourceProject = await findProjectById(input.projectId);
+				if (sourceProject.organizationId !== ctx.session.activeOrganizationId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Project does not belong to your organization",
+					});
+				}
+
+				// Verify target organization exists and user has access
+				const targetOrg = await db.query.organization.findFirst({
+					where: eq(organization.id, input.targetOrganizationId),
+				});
+
+				if (!targetOrg) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Target organization not found",
+					});
+				}
+
+				// Verify user is owner of target organization
+				const targetMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.organizationId, input.targetOrganizationId),
+						eq(member.userId, ctx.user.id),
+						eq(member.role, "owner"),
+					),
+				});
+
+				if (!targetMember) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You must be an owner of the target organization",
+					});
+				}
+
+				// Move: Update project's organization
+				const movedProject = await updateProjectById(input.projectId, {
+					organizationId: input.targetOrganizationId,
+				});
+				return movedProject;
+			} catch (error) {
+				throw error;
 			}
 		}),
 });
