@@ -15,7 +15,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can create an organization",
@@ -96,7 +96,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can update it",
@@ -119,7 +119,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can delete it",
@@ -193,6 +193,46 @@ export const organizationRouter = createTRPCRouter({
 			return await db
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
+		}),
+	removeMember: adminProcedure
+		.input(z.object({ memberId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			// Fetch the target member within the active organization
+			const target = await db.query.member.findFirst({
+				where: eq(member.id, input.memberId),
+				with: { user: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to remove this member",
+				});
+			}
+
+			// Disallow removing the organization owner
+			if (target.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot unlink the organization owner",
+				});
+			}
+
+			// Admin self-protection: an admin cannot unlink themselves
+			if (target.role === "admin" && target.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Admins cannot unlink themselves. Ask the owner or another admin.",
+				});
+			}
+
+			await db.delete(member).where(eq(member.id, input.memberId));
+			return true;
 		}),
 	setDefault: protectedProcedure
 		.input(
