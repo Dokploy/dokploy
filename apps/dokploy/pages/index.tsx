@@ -328,7 +328,6 @@ export default function Home({ IS_CLOUD }: Props) {
 									onChange={setTwoFactorCode}
 									maxLength={6}
 									pattern={REGEXP_ONLY_DIGITS}
-									autoComplete="off"
 									autoFocus
 								>
 									<InputOTPGroup>
