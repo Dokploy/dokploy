@@ -1,6 +1,6 @@
 {
-  "id": "bbe005b3-d5e0-4e93-8305-ba3b9a2e3f3d",
-  "prevId": "fb4a3ed9-c58b-4a79-a4ee-2a7a4d3914a7",
+  "id": "453d2a8f-9be5-4a36-abc9-ef5baea97f12",
+  "prevId": "6d1361fc-3a46-4016-b6db-42351c20393c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2639,6 +2639,12 @@
           "primaryKey": false,
           "notNull": false,
           "default": 3000
+        },
+        "customEntrypoint": {
+          "name": "customEntrypoint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "path": {
           "name": "path",

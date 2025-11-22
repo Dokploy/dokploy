@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
+import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
 import {
 	AlertDialog,
@@ -44,7 +45,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import {
 	Select,
 	SelectContent,
@@ -52,12 +52,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
@@ -135,6 +137,11 @@ export const ShowProjects = () => {
 			<BreadcrumbSidebar
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
+			{!isCloud && (
+				<div className="absolute top-5 right-5">
+					<TimeBadge />
+				</div>
+			)}
 			<div className="w-full">
 				<Card className="h-full bg-sidebar p-2.5 rounded-xl  ">
 					<div className="rounded-xl bg-background shadow-md ">
@@ -148,7 +155,6 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-
 							{(auth?.role === "owner" || auth?.canCreateProjects) && (
 								<div className="">
 									<HandleProject />
@@ -298,7 +304,13 @@ export const ShowProjects = () => {
 																										<Link
 																											className="space-x-4 text-xs cursor-pointer justify-between"
 																											target="_blank"
-																											href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																											href={`${
+																												domain.https
+																													? "https"
+																													: "http"
+																											}://${domain.host}${
+																												domain.path
+																											}`}
 																										>
 																											<span className="truncate">
 																												{domain.host}
@@ -340,7 +352,13 @@ export const ShowProjects = () => {
 																										<Link
 																											className="space-x-4 text-xs cursor-pointer justify-between"
 																											target="_blank"
-																											href={`${domain.https ? "https" : "http"}://${domain.host}${domain.path}`}
+																											href={`${
+																												domain.https
+																													? "https"
+																													: "http"
+																											}://${domain.host}${
+																												domain.path
+																											}`}
 																										>
 																											<span className="truncate">
 																												{domain.host}
