@@ -287,7 +287,7 @@ export const createDomainLabels = (
 	if (stripPath && path && path !== "/") {
 		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
 		// Only define middleware once (on web entrypoint)
-		if (entrypoint === "web") {
+		if (entrypoint === "web" || customEntrypoint != null) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.stripprefix.prefixes=${path}`,
 			);
@@ -299,7 +299,7 @@ export const createDomainLabels = (
 	if (internalPath && internalPath !== "/" && internalPath.startsWith("/")) {
 		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
 		// Only define middleware once (on web entrypoint)
-		if (entrypoint === "web") {
+		if (entrypoint === "web" || customEntrypoint != null) {
 			labels.push(
 				`traefik.http.middlewares.${middlewareName}.addprefix.prefix=${internalPath}`,
 			);
