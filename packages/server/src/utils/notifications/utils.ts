@@ -1,8 +1,8 @@
 import type {
 	discord,
 	email,
-	lark,
 	gotify,
+	lark,
 	ntfy,
 	slack,
 	telegram,

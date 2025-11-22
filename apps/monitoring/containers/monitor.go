@@ -15,10 +15,11 @@ import (
 )
 
 type ContainerMonitor struct {
-	db        *database.DB
-	isRunning bool
-	mu        sync.Mutex
-	stopChan  chan struct{}
+	db              *database.DB
+	isRunning       bool
+	mu              sync.Mutex
+	stopChan        chan struct{}
+	metricsCallback func(metric *database.ContainerMetric)
 }
 
 func NewContainerMonitor(db *database.DB) (*ContainerMonitor, error) {
@@ -30,6 +31,10 @@ func NewContainerMonitor(db *database.DB) (*ContainerMonitor, error) {
 		db:       db,
 		stopChan: make(chan struct{}),
 	}, nil
+}
+
+func (cm *ContainerMonitor) SetMetricsCallback(callback func(metric *database.ContainerMetric)) {
+	cm.metricsCallback = callback
 }
 
 func (cm *ContainerMonitor) Start() error {
@@ -143,6 +148,11 @@ func (cm *ContainerMonitor) collectMetrics() {
 
 		if err := cm.db.SaveContainerMetric(metric); err != nil {
 			log.Printf("Error saving metrics for %s: %v", serviceName, err)
+		}
+
+		// Call metrics callback if set (for Prometheus)
+		if cm.metricsCallback != nil {
+			cm.metricsCallback(metric)
 		}
 	}
 }
