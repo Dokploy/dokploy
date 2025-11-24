@@ -141,7 +141,9 @@ export const getDomainHost = (domain: Domain) => {
 	return `${domain.https ? "https" : "http"}://${domain.host}`;
 };
 
-const resolveDns = promisify(dns.resolve4);
+const externalResolver = new dns.Resolver();
+externalResolver.setServers(["1.1.1.1", "8.8.8.8"]);
+const resolveDns = promisify(externalResolver.resolve4);
 
 export const validateDomain = async (
 	domain: string,
