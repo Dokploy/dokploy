@@ -2,8 +2,43 @@ import { exec, execFile } from "node:child_process";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
+import { ExecError } from "./ExecError";
 
-export const execAsync = util.promisify(exec);
+// Re-export ExecError for easier imports
+export { ExecError } from "./ExecError";
+
+const execAsyncBase = util.promisify(exec);
+
+export const execAsync = async (
+	command: string,
+	options?: { cwd?: string; env?: NodeJS.ProcessEnv },
+): Promise<{ stdout: string; stderr: string }> => {
+	try {
+		const result = await execAsyncBase(command, options);
+		return {
+			stdout: result.stdout.toString(),
+			stderr: result.stderr.toString(),
+		};
+	} catch (error) {
+		if (error instanceof Error) {
+			// @ts-ignore - exec error has these properties
+			const exitCode = error.code;
+			// @ts-ignore
+			const stdout = error.stdout?.toString() || "";
+			// @ts-ignore
+			const stderr = error.stderr?.toString() || "";
+
+			throw new ExecError(`Command execution failed: ${error.message}`, {
+				command,
+				stdout,
+				stderr,
+				exitCode,
+				originalError: error,
+			});
+		}
+		throw error;
+	}
+};
 
 interface ExecOptions {
 	cwd?: string;
@@ -21,7 +56,16 @@ export const execAsyncStream = (
 
 		const childProcess = exec(command, options, (error) => {
 			if (error) {
-				reject(error);
+				reject(
+					new ExecError(`Command execution failed: ${error.message}`, {
+						command,
+						stdout: stdoutComplete,
+						stderr: stderrComplete,
+						// @ts-ignore
+						exitCode: error.code,
+						originalError: error,
+					}),
+				);
 				return;
 			}
 			resolve({ stdout: stdoutComplete, stderr: stderrComplete });
@@ -45,7 +89,14 @@ export const execAsyncStream = (
 
 		childProcess.on("error", (error) => {
 			console.log(error);
-			reject(error);
+			reject(
+				new ExecError(`Command execution error: ${error.message}`, {
+					command,
+					stdout: stdoutComplete,
+					stderr: stderrComplete,
+					originalError: error,
+				}),
+			);
 		});
 	});
 };
@@ -108,7 +159,14 @@ export const execAsyncRemote = async (
 				conn.exec(command, (err, stream) => {
 					if (err) {
 						onData?.(err.message);
-						throw err;
+						reject(
+							new ExecError(`Remote command execution failed: ${err.message}`, {
+								command,
+								serverId,
+								originalError: err,
+							}),
+						);
+						return;
 					}
 					stream
 						.on("close", (code: number, _signal: string) => {
@@ -116,7 +174,18 @@ export const execAsyncRemote = async (
 							if (code === 0) {
 								resolve({ stdout, stderr });
 							} else {
-								reject(new Error(`Error occurred ❌: ${stderr}`));
+								reject(
+									new ExecError(
+										`Remote command failed with exit code ${code}`,
+										{
+											command,
+											stdout,
+											stderr,
+											exitCode: code,
+											serverId,
+										},
+									),
+								);
 							}
 						})
 						.on("data", (data: string) => {
@@ -132,17 +201,25 @@ export const execAsyncRemote = async (
 			.on("error", (err) => {
 				conn.end();
 				if (err.level === "client-authentication") {
-					onData?.(
-						`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
-					);
+					const errorMsg = `Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`;
+					onData?.(errorMsg);
 					reject(
-						new Error(
-							`Authentication failed: Invalid SSH private key. ❌ Error: ${err.message} ${err.level}`,
-						),
+						new ExecError(errorMsg, {
+							command,
+							serverId,
+							originalError: err,
+						}),
 					);
 				} else {
-					onData?.(`SSH connection error: ${err.message}`);
-					reject(new Error(`SSH connection error: ${err.message}`));
+					const errorMsg = `SSH connection error: ${err.message}`;
+					onData?.(errorMsg);
+					reject(
+						new ExecError(errorMsg, {
+							command,
+							serverId,
+							originalError: err,
+						}),
+					);
 				}
 			})
 			.connect({
