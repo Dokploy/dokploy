@@ -282,12 +282,16 @@ export const postgresRouter = createTRPCRouter({
 			const backups = await findBackupsByDbId(input.postgresId, "postgres");
 
 			const cleanupOperations = [
-				removeService(postgres.appName, postgres.serverId),
-				cancelJobs(backups),
-				removePostgresById(input.postgresId),
+				async () => await removeService(postgres?.appName, postgres.serverId),
+				async () => await cancelJobs(backups),
+				async () => await removePostgresById(input.postgresId),
 			];
 
-			await Promise.allSettled(cleanupOperations);
+			for (const operation of cleanupOperations) {
+				try {
+					await operation();
+				} catch (_) {}
+			}
 
 			return postgres;
 		}),
