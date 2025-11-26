@@ -53,6 +53,10 @@ export const destinationRouter = createTRPCRouter({
 					`--s3-endpoint=${endpoint}`,
 					"--s3-no-check-bucket",
 					"--s3-force-path-style",
+					"--retries 1",
+					"--low-level-retries 1",
+					"--timeout 10s",
+					"--contimeout 5s",
 				];
 				if (provider) {
 					rcloneFlags.unshift(`--s3-provider=${provider}`);
