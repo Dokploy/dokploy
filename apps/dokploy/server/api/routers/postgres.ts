@@ -9,6 +9,7 @@ import {
 	findMountsByApplicationId,
 	findPostgresById,
 	findProjectById,
+	getMountPath,
 	IS_CLOUD,
 	rebuildDatabase,
 	removePostgresById,
@@ -39,13 +40,6 @@ import {
 	postgres as postgresTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
-
-function getMountPath(dockerImage: string): string {
-	const versionMatch = dockerImage.match(/postgres:(\d+)/);
-	const version = versionMatch?.[1] ? Number.parseInt(versionMatch[1], 10) : 18;
-
-	return `/var/lib/postgresql/${version}/data`;
-}
 
 export const postgresRouter = createTRPCRouter({
 	create: protectedProcedure
