@@ -6,7 +6,6 @@ import {
 	deployPostgres,
 	findBackupsByDbId,
 	findEnvironmentById,
-	findMountsByApplicationId,
 	findPostgresById,
 	findProjectById,
 	getMountPath,
@@ -18,7 +17,6 @@ import {
 	startServiceRemote,
 	stopService,
 	stopServiceRemote,
-	updateMount,
 	updatePostgresById,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
@@ -368,24 +366,6 @@ export const postgresRouter = createTRPCRouter({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to update this Postgres",
 				});
-			}
-
-			if (rest.dockerImage) {
-				const mountPath = getMountPath(rest.dockerImage);
-				const mounts = await findMountsByApplicationId(postgresId, "postgres");
-				if (!mounts || mounts.length === 0) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Mount not found for this Postgres",
-					});
-				}
-				for (const mount of mounts) {
-					if (mount.mountPath.startsWith("/var/lib/postgresql")) {
-						await updateMount(mount.mountId, {
-							mountPath: mountPath,
-						});
-					}
-				}
 			}
 
 			const service = await updatePostgresById(postgresId, {
