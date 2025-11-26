@@ -587,7 +587,7 @@ export const settingsRouter = createTRPCRouter({
 			return ports.some((port) => port.targetPort === 8080);
 		}),
 
-	readStatsLogs: adminProcedure
+	readStatsLogs: protectedProcedure
 		.meta({
 			openapi: {
 				path: "/read-stats-logs",
@@ -650,7 +650,7 @@ export const settingsRouter = createTRPCRouter({
 			const processedLogs = processLogs(rawConfig as string, input?.dateRange);
 			return processedLogs || [];
 		}),
-	haveActivateRequests: adminProcedure.query(async () => {
+	haveActivateRequests: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
@@ -665,7 +665,7 @@ export const settingsRouter = createTRPCRouter({
 
 		return !!parsedConfig?.accessLog?.filePath;
 	}),
-	toggleRequests: adminProcedure
+	toggleRequests: protectedProcedure
 		.input(
 			z.object({
 				enable: z.boolean(),
@@ -835,7 +835,7 @@ export const settingsRouter = createTRPCRouter({
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 			return ports;
 		}),
-	updateLogCleanup: adminProcedure
+	updateLogCleanup: protectedProcedure
 		.input(
 			z.object({
 				cronExpression: z.string().nullable(),
@@ -851,7 +851,7 @@ export const settingsRouter = createTRPCRouter({
 			return stopLogCleanup();
 		}),
 
-	getLogCleanupStatus: adminProcedure.query(async () => {
+	getLogCleanupStatus: protectedProcedure.query(async () => {
 		return getLogCleanupStatus();
 	}),
 
