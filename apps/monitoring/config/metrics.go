@@ -20,6 +20,9 @@ type Config struct {
 			CPU    int `json:"cpu"`
 			Memory int `json:"memory"`
 		} `json:"thresholds"`
+		Prometheus struct {
+			Enabled bool `json:"enabled"`
+		} `json:"prometheus"`
 	} `json:"server"`
 	Containers struct {
 		RefreshRate int `json:"refreshRate"`

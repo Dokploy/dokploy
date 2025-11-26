@@ -1,6 +1,5 @@
 import {
 	createApiKey,
-	findAdmin,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
