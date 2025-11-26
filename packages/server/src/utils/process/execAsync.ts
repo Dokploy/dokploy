@@ -1,5 +1,4 @@
 import { exec, execFile } from "node:child_process";
-import type { ObjectEncodingOptions } from "node:fs";
 import util from "node:util";
 import { findServerById } from "@dokploy/server/services/server";
 import { Client } from "ssh2";
@@ -12,7 +11,7 @@ const execAsyncBase = util.promisify(exec);
 
 export const execAsync = async (
 	command: string,
-	options?: ObjectEncodingOptions & ExecOptions,
+	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
 		const result = await execAsyncBase(command, options);
