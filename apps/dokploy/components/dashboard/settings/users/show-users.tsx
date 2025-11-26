@@ -21,7 +21,6 @@ import {
 import {
 	Table,
 	TableBody,
-	TableCaption,
 	TableCell,
 	TableHead,
 	TableHeader,
@@ -68,7 +67,6 @@ export const ShowUsers = () => {
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<Table>
-											<TableCaption>See all users</TableCaption>
 											<TableHeader>
 												<TableRow>
 													<TableHead className="w-[100px]">Email</TableHead>
