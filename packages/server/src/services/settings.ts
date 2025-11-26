@@ -216,11 +216,11 @@ echo "$json_output"
 };
 
 export const cleanupFullDocker = async (serverId?: string | null) => {
-	const cleanupImages = "docker image prune --force";
-	const cleanupVolumes = "docker volume prune --force";
+	const cleanupImages = "docker image prune --all --force";
+	const cleanupVolumes = "docker volume prune --all --force";
 	const cleanupContainers = "docker container prune --force";
-	const cleanupSystem = "docker system prune  --force --volumes";
-	const cleanupBuilder = "docker builder prune  --force";
+	const cleanupSystem = "docker system prune --all --volumes --force";
+	const cleanupBuilder = "docker builder prune --all --force";
 
 	try {
 		if (serverId) {
