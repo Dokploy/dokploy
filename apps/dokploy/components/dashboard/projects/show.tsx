@@ -10,7 +10,8 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
@@ -54,16 +55,27 @@ import {
 } from "@/components/ui/select";
 import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
+import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
+	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
-	const [searchQuery, setSearchQuery] = useState("");
+	const [searchQuery, setSearchQuery] = useState(() => {
+		// Initialize from URL query parameter on mount
+		if (typeof window !== "undefined") {
+			const urlQuery = router.query.q;
+			return typeof urlQuery === "string" ? urlQuery : "";
+		}
+		return "";
+	});
+	const debouncedSearchQuery = useDebounce(searchQuery, 500);
+	const isUrlSync = useRef(false);
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
 			return localStorage.getItem("projectsSort") || "createdAt-desc";
@@ -75,14 +87,71 @@ export const ShowProjects = () => {
 		localStorage.setItem("projectsSort", sortBy);
 	}, [sortBy]);
 
+	// Sync URL changes back to state (e.g., browser back/forward)
+	// NOTE: This effect MUST appear before the URL sync effect below
+	// because React executes effects in order. When the back button is pressed,
+	// we need to set isUrlSync.current = true BEFORE the URL sync effect runs.
+	useEffect(() => {
+		if (!router.isReady) return;
+
+		const urlQuery = router.query.q;
+		const urlSearchQuery = typeof urlQuery === "string" ? urlQuery : "";
+
+		// Update local state if URL changed externally (e.g., browser navigation)
+		if (urlSearchQuery !== searchQuery) {
+			isUrlSync.current = true;
+			setSearchQuery(urlSearchQuery);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [router.isReady, router.query.q]);
+
+	// Sync search query to URL when debounced value changes
+	useEffect(() => {
+		if (!router.isReady) return;
+
+		// Skip if this change came from URL navigation (browser back/forward)
+		if (isUrlSync.current) {
+			isUrlSync.current = false;
+			return;
+		}
+
+		const currentQuery = router.query.q;
+		const normalizedCurrentQuery =
+			typeof currentQuery === "string" ? currentQuery : "";
+
+		// Only update URL if the debounced value is different from current URL
+		if (debouncedSearchQuery !== normalizedCurrentQuery) {
+			const newQuery = { ...router.query };
+
+			if (debouncedSearchQuery) {
+				newQuery.q = debouncedSearchQuery;
+			} else {
+				delete newQuery.q;
+			}
+
+			router.push(
+				{
+					pathname: router.pathname,
+					query: newQuery,
+				},
+				undefined,
+				{ shallow: false },
+			);
+		}
+	}, [debouncedSearchQuery, router]);
+
 	const filteredProjects = useMemo(() => {
 		if (!data) return [];
 
 		// First filter by search query
 		const filtered = data.filter(
 			(project) =>
-				project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				project.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+				project.name
+					.toLowerCase()
+					.includes(debouncedSearchQuery.toLowerCase()) ||
+				project.description
+					?.toLowerCase()
+					.includes(debouncedSearchQuery.toLowerCase()),
 		);
 
 		// Then sort the filtered results
@@ -130,7 +199,7 @@ export const ShowProjects = () => {
 			}
 			return direction === "asc" ? comparison : -comparison;
 		});
-	}, [data, searchQuery, sortBy]);
+	}, [data, debouncedSearchQuery, sortBy]);
 
 	return (
 		<>
