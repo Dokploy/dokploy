@@ -125,8 +125,7 @@ export const mechanizeDockerContainer = async (
 				Image: image,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(StopGracePeriod !== undefined &&
-					StopGracePeriod !== null && { StopGracePeriod }),
+				...(StopGracePeriod && { StopGracePeriod }),
 				...(command
 					? {
 							Command: ["/bin/sh"],

@@ -121,8 +121,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(StopGracePeriod !== undefined &&
-					StopGracePeriod !== null && { StopGracePeriod }),
+				...(StopGracePeriod && { StopGracePeriod }),
 				...(replicaSets
 					? {
 							Command: ["/bin/bash"],

@@ -79,8 +79,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(StopGracePeriod !== undefined &&
-					StopGracePeriod !== null && { StopGracePeriod }),
+				...(StopGracePeriod && { StopGracePeriod }),
 				...(command
 					? {
 							Command: ["/bin/sh"],
