@@ -1355,8 +1355,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										});
 									}
 									toast.success("Connection Success");
-								} catch {
-									toast.error("Error testing the provider");
+								} catch (error) {
+									toast.error(
+										`Error testing the provider ${error instanceof Error ? error.message : "Unknown error"}`,
+									);
 								}
 							}}
 						>

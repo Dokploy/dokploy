@@ -117,7 +117,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error testing the notification",
+					message: `${error instanceof Error ? error.message : "Unknown error"}`,
 					cause: error,
 				});
 			}
@@ -234,7 +234,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error testing the notification",
+					message: `${error instanceof Error ? error.message : "Unknown error"}`,
 					cause: error,
 				});
 			}
@@ -291,7 +291,7 @@ export const notificationRouter = createTRPCRouter({
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Error testing the notification",
+					message: `${error instanceof Error ? error.message : "Unknown error"}`,
 					cause: error,
 				});
 			}

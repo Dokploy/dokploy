@@ -383,6 +383,15 @@ export const serverRouter = createTRPCRouter({
 		const ip = await getPublicIpWithFallback();
 		return ip;
 	}),
+	getServerTime: protectedProcedure.query(() => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		return {
+			time: new Date(),
+			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+		};
+	}),
 	getServerMetrics: protectedProcedure
 		.input(
 			z.object({

@@ -59,10 +59,8 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 	let currentDigest: string;
 	try {
 		currentDigest = await getServiceImageDigest();
-	} catch {
-		// Docker service might not exist locally
-		// You can run the # Installation command for docker service create mentioned in the below docs to test it locally:
-		// https://docs.dokploy.com/docs/core/manual-installation
+	} catch (error) {
+		// TODO: Docker versions 29.0.0 change the way to get the service image digest, so we need to update this in the future we upgrade to that version.
 		return DEFAULT_UPDATE_DATA;
 	}
 
