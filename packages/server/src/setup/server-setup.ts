@@ -494,7 +494,7 @@ if ! [ -x "$(command -v docker)" ]; then
                     echo "Please install Docker manually."
                 exit 1
             fi
-            curl -s https://releases.rancher.com/install-docker/$DOCKER_VERSION.sh | sh 2>&1
+						
             if ! [ -x "$(command -v docker)" ]; then
                 curl -s https://get.docker.com | sh -s -- --version $DOCKER_VERSION 2>&1
                 if ! [ -x "$(command -v docker)" ]; then
