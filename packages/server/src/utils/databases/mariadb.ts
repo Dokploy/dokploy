@@ -73,7 +73,8 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(StopGracePeriod && { StopGracePeriod }),
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command
 					? {
 							Command: ["/bin/sh"],
