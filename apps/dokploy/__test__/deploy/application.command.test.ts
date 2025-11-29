@@ -3,19 +3,18 @@ import * as applicationService from "@dokploy/server/services/application";
 import { deployApplication } from "@dokploy/server/services/application";
 import * as deploymentService from "@dokploy/server/services/deployment";
 import * as builders from "@dokploy/server/utils/builders";
-import * as errorNotifications from "@dokploy/server/utils/notifications/build-error";
 import * as notifications from "@dokploy/server/utils/notifications/build-success";
 import * as execProcess from "@dokploy/server/utils/process/execAsync";
 import * as gitProvider from "@dokploy/server/utils/providers/git";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@dokploy/server/db", () => {
-	const createChainableMock = () => {
+	const createChainableMock = (): any => {
 		const chain = {
 			set: vi.fn(() => chain),
 			where: vi.fn(() => chain),
-			returning: vi.fn().mockResolvedValue([{}]),
-		};
+			returning: vi.fn().mockResolvedValue([{}] as any),
+		} as any;
 		return chain;
 	};
 
