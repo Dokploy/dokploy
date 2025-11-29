@@ -70,6 +70,7 @@ export const buildRedis = async (redis: RedisNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				...(StopGracePeriod && { StopGracePeriod }),
 				Command: ["/bin/sh"],
 				Args: [
 					"-c",
@@ -102,8 +103,6 @@ export const buildRedis = async (redis: RedisNested) => {
 						: [],
 				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {
