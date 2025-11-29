@@ -39,6 +39,13 @@ jobs:
         if: matrix.job == 'test'
         run: echo "$HOME/.local/bin" >> $GITHUB_PATH
       
+      - name: Initialize Docker Swarm
+        if: matrix.job == 'test'
+        run: |
+          docker swarm init
+          docker network create --driver overlay dokploy-network || true
+          echo "✅ Docker Swarm initialized"
+      
       - run: pnpm install --frozen-lockfile
       - run: pnpm server:build
       - run: pnpm ${{ matrix.job }}
