@@ -6,9 +6,9 @@ import { execAsync } from "@dokploy/server/utils/process/execAsync";
 import { format } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const REAL_TEST_TIMEOUT = 180000; // 3 minutos
+const REAL_TEST_TIMEOUT = 180000; // 3 minutes
 
-// Mock SOLO la base de datos y notificaciones
+// Mock ONLY database and notifications
 vi.mock("@dokploy/server/db", () => {
 	const createChainableMock = (): any => {
 		const chain: any = {
@@ -67,11 +67,11 @@ vi.mock("@dokploy/server/services/rollbacks", () => ({
 	createRollback: vi.fn(),
 }));
 
-// NO mockeamos:
-// - execAsync (queremos que se ejecute de verdad)
-// - cloneGitRepository (queremos que se ejecute de verdad)
-// - getBuildCommand (queremos que se ejecute de verdad)
-// - mechanizeDockerContainer (queremos que se ejecute de verdad)
+// NOT mocked (executed for real):
+// - execAsync
+// - cloneGitRepository
+// - getBuildCommand
+// - mechanizeDockerContainer (requires Docker Swarm)
 
 import { db } from "@dokploy/server/db";
 import * as adminService from "@dokploy/server/services/admin";
@@ -122,7 +122,7 @@ const createMockDeployment = async (appName: string) => {
 	const fileName = `${appName}-${formattedDateTime}.log`;
 	const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
-	// Crear el directorio de logs REALMENTE
+	// Actually create the log directory
 	await execAsync(`mkdir -p ${path.dirname(logFilePath)}`);
 	await execAsync(`echo "Initializing deployment" > ${logFilePath}`);
 
@@ -146,11 +146,11 @@ async function cleanupFiles(appName: string) {
 	try {
 		const { LOGS_PATH, APPLICATIONS_PATH } = paths(false);
 
-		// Limpiar directorios de código clonado
+		// Clean cloned code directories
 		const appPath = path.join(APPLICATIONS_PATH, appName);
 		await execAsync(`rm -rf ${appPath} 2>/dev/null || true`);
 
-		// Limpiar logs del appName - elimina el folder completo
+		// Clean logs for appName - removes entire folder
 		const logPath = path.join(LOGS_PATH, appName);
 		await execAsync(`rm -rf ${logPath} 2>/dev/null || true`);
 
@@ -199,10 +199,10 @@ describe(
 		});
 
 		afterEach(async () => {
-			// SIEMPRE limpia, incluso si el test falló o pasó
+			// ALWAYS cleanup, even if test failed or passed
 			console.log(`\n🧹 Cleaning up test: ${currentAppName}`);
 
-			// Limpiar el appName actual
+			// Clean current appName
 			try {
 				await cleanupDocker(currentAppName);
 				await cleanupFiles(currentAppName);
@@ -210,7 +210,7 @@ describe(
 				console.error("⚠️ Error cleaning current app:", error);
 			}
 
-			// Limpiar TODOS los folders de test por si acaso
+			// Clean ALL test folders just in case
 			try {
 				const { LOGS_PATH, APPLICATIONS_PATH } = paths(false);
 				await execAsync(`rm -rf ${LOGS_PATH}/real-* 2>/dev/null || true`);
@@ -238,7 +238,7 @@ describe(
 
 				expect(result).toBe(true);
 
-				// Verificar que la imagen Docker fue creada DE VERDAD
+				// Verify that Docker image was actually created
 				const { stdout: dockerImages } = await execAsync(
 					`docker images ${currentAppName} --format "{{.Repository}}"`,
 				);
@@ -246,7 +246,7 @@ describe(
 				expect(dockerImages.trim()).toBe(currentAppName);
 				console.log(`✅ Docker image created: ${currentAppName}`);
 
-				// Verificar que el log existe y tiene contenido
+				// Verify log exists and has content
 				expect(existsSync(currentDeployment.logPath)).toBe(true);
 				const { stdout: logContent } = await execAsync(
 					`cat ${currentDeployment.logPath}`,
@@ -255,7 +255,7 @@ describe(
 				expect(logContent).toContain("nixpacks");
 				console.log(`✅ Build log created with ${logContent.length} chars`);
 
-				// Verificar que las funciones de actualización fueron llamadas
+				// Verify update functions were called
 				expect(deploymentService.updateDeploymentStatus).toHaveBeenCalledWith(
 					"deployment-id",
 					"done",
@@ -337,13 +337,13 @@ describe(
 					}),
 				).rejects.toThrow();
 
-				// Verificar que se llamó con estado de error
+				// Verify error status was called
 				expect(deploymentService.updateDeploymentStatus).toHaveBeenCalledWith(
 					"deployment-id",
 					"error",
 				);
 
-				// Verificar que el log contiene el error
+				// Verify log contains error
 				const { stdout: logContent } = await execAsync(
 					`cat ${currentDeployment.logPath}`,
 				);
@@ -381,7 +381,7 @@ describe(
 
 				expect(result).toBe(true);
 
-				// Verificar que el deployment completó exitosamente
+				// Verify deployment completed successfully
 				const { stdout: logContent } = await execAsync(
 					`cat ${currentDeployment.logPath}`,
 				);
@@ -389,7 +389,7 @@ describe(
 				expect(logContent.length).toBeGreaterThan(100);
 				console.log("✅ Submodules deployment completed");
 
-				// Verificar imagen
+				// Verify image
 				const { stdout: dockerImages } = await execAsync(
 					`docker images ${currentAppName} --format "{{.Repository}}"`,
 				);
@@ -409,12 +409,12 @@ describe(
 					descriptionLog: "",
 				});
 
-				// Verificar que se llamó updateDeployment con info del commit
+				// Verify updateDeployment was called with commit info
 				expect(deploymentService.updateDeployment).toHaveBeenCalled();
 				const updateCall = vi.mocked(deploymentService.updateDeployment).mock
 					.calls[0];
 
-				// El commit info real debería tener título y hash
+				// Real commit info should have title and hash
 				expect(updateCall?.[1]).toHaveProperty("title");
 				expect(updateCall?.[1]).toHaveProperty("description");
 				expect(updateCall?.[1]?.description).toContain("Commit:");
@@ -456,7 +456,7 @@ describe(
 
 				expect(result).toBe(true);
 
-				// Verificar el log
+				// Verify log
 				const { stdout: logContent } = await execAsync(
 					`cat ${currentDeployment.logPath}`,
 				);
@@ -464,7 +464,7 @@ describe(
 				expect(logContent).toContain(dockerfileAppName);
 				console.log("✅ Dockerfile build log verified");
 
-				// Verificar imagen
+				// Verify image
 				const { stdout: dockerImages } = await execAsync(
 					`docker images ${currentAppName} --format "{{.Repository}}"`,
 				);
