@@ -148,13 +148,13 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 /** Docker commands passed through this method are held during Docker's build or pull process. (https://github.com/dokploy/dokploy/pull/3064) */
 export const dockerSafeExec = (exec: string) => `CHECK_INTERVAL=10
 
-echo "Starting Docker cleanup..."
+echo "Preparing for execution..."
 
 while true; do
     PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
 
     if [ -z "$PROCESSES" ]; then
-        echo "Docker is idle. Starting cleanup..."
+        echo "Docker is idle. Starting execution..."
         break
     else
         echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
@@ -164,7 +164,7 @@ done
 
 ${exec}
 
-echo "Docker cleanup completed."`;
+echo "Execution completed."`;
 
 export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
