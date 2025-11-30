@@ -1,0 +1,2 @@
+ALTER TABLE "deployment" ADD COLUMN "buildServerId" text;--> statement-breakpoint
+ALTER TABLE "deployment" ADD CONSTRAINT "deployment_buildServerId_server_serverId_fk" FOREIGN KEY ("buildServerId") REFERENCES "public"."server"("serverId") ON DELETE cascade ON UPDATE no action;

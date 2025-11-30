@@ -235,6 +235,7 @@ export const applicationsRelations = relations(
 		registry: one(registry, {
 			fields: [applications.registryId],
 			references: [registry.registryId],
+			relationName: "applicationRegistry",
 		}),
 		github: one(github, {
 			fields: [applications.githubId],
@@ -255,14 +256,17 @@ export const applicationsRelations = relations(
 		server: one(server, {
 			fields: [applications.serverId],
 			references: [server.serverId],
+			relationName: "applicationServer",
 		}),
 		buildServer: one(server, {
 			fields: [applications.buildServerId],
 			references: [server.serverId],
+			relationName: "applicationBuildServer",
 		}),
 		buildRegistry: one(registry, {
 			fields: [applications.buildRegistryId],
 			references: [registry.registryId],
+			relationName: "applicationBuildRegistry",
 		}),
 		previewDeployments: many(previewDeployments),
 	}),

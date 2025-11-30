@@ -99,12 +99,22 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	deployments: many(deployments),
+	deployments: many(deployments, {
+		relationName: "deploymentServer",
+	}),
+	buildDeployments: many(deployments, {
+		relationName: "deploymentBuildServer",
+	}),
 	sshKey: one(sshKeys, {
 		fields: [server.sshKeyId],
 		references: [sshKeys.sshKeyId],
 	}),
-	applications: many(applications),
+	applications: many(applications, {
+		relationName: "applicationServer",
+	}),
+	buildApplications: many(applications, {
+		relationName: "applicationBuildServer",
+	}),
 	compose: many(compose),
 	redis: many(redis),
 	mariadb: many(mariadb),
