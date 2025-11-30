@@ -47,7 +47,7 @@ export const initCronJobs = async () => {
 					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
 				);
 
-				await cleanupImages(serverId);
+				await cleanupAll(serverId);
 
 				await sendDockerCleanupNotifications(
 					admin.user.id,
