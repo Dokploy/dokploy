@@ -1,11 +1,12 @@
 import {
 	canAccessToTraefikFiles,
 	checkGPUStatus,
-	cleanStoppedContainers,
-	cleanUpDockerBuilder,
-	cleanUpSystemPrune,
-	cleanUpUnusedImages,
-	cleanUpUnusedVolumes,
+	cleanupContainers,
+	cleanupBuilders,
+	cleanupSystem,
+	cleanupImages,
+	cleanupVolumes,
+	cleanupAll,
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
@@ -149,41 +150,38 @@ export const settingsRouter = createTRPCRouter({
 	cleanUnusedImages: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpUnusedImages(input?.serverId);
+			await cleanupImages(input?.serverId);
 			return true;
 		}),
 	cleanUnusedVolumes: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpUnusedVolumes(input?.serverId);
+			await cleanupVolumes(input?.serverId);
 			return true;
 		}),
 	cleanStoppedContainers: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanStoppedContainers(input?.serverId);
+			await cleanupContainers(input?.serverId);
 			return true;
 		}),
 	cleanDockerBuilder: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpDockerBuilder(input?.serverId);
+			await cleanupBuilders(input?.serverId);
 		}),
 	cleanDockerPrune: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpSystemPrune(input?.serverId);
-			await cleanUpDockerBuilder(input?.serverId);
+			await cleanupSystem(input?.serverId);
+			await cleanupBuilders(input?.serverId);
 
 			return true;
 		}),
 	cleanAll: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpUnusedImages(input?.serverId);
-			await cleanStoppedContainers(input?.serverId);
-			await cleanUpDockerBuilder(input?.serverId);
-			await cleanUpSystemPrune(input?.serverId);
+			await cleanupAll(input?.serverId);
 
 			return true;
 		}),
@@ -281,9 +279,9 @@ export const settingsRouter = createTRPCRouter({
 							console.log(
 								`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 							);
-							await cleanUpUnusedImages(server.serverId);
-							await cleanUpDockerBuilder(server.serverId);
-							await cleanUpSystemPrune(server.serverId);
+						
+							await cleanupAll();
+
 							await sendDockerCleanupNotifications(server.organizationId);
 						});
 					}
@@ -309,9 +307,9 @@ export const settingsRouter = createTRPCRouter({
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 						);
-						await cleanUpUnusedImages();
-						await cleanUpDockerBuilder();
-						await cleanUpSystemPrune();
+
+						await cleanupAll();
+
 						await sendDockerCleanupNotifications(
 							ctx.session.activeOrganizationId,
 						);

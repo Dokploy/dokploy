@@ -259,7 +259,8 @@ export const cleanupAll = async (serverId?: string) => {
 	await cleanupVolumes(serverId);
 	await cleanupBuilders(serverId);
 	await cleanupSystem(serverId);
-	await cleanupInactiveContainers();
+
+	// await cleanupInactiveContainers(); <-- This wasn't being used. If it's ready, it should be used here. - https://github.com/fir4tozden
 };
 
 export const startService = async (appName: string) => {
