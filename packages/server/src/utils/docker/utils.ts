@@ -145,7 +145,12 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 	});
 };
 
-/** Docker commands passed through this method are held during Docker's build or pull process. (https://github.com/dokploy/dokploy/pull/3064) */
+/**
+ * Docker commands passed through this method are held during Docker's build or pull process.
+ * 
+ * https://github.com/dokploy/dokploy/pull/3064
+ * https://github.com/fir4tozden
+ */
 export const dockerSafeExec = (exec: string) => `CHECK_INTERVAL=10
 
 echo "Preparing for execution..."
@@ -260,7 +265,13 @@ export const cleanupAll = async (serverId?: string) => {
 	await cleanupBuilders(serverId);
 	await cleanupSystem(serverId);
 
-	// await cleanupInactiveContainers(); <-- This wasn't being used. If it's ready, it should be used here. - https://github.com/fir4tozden
+	/**
+	 * This wasn't being used. If it's ready, it should be used here.
+	 * 
+   * https://github.com/dokploy/dokploy/pull/3064
+	 * https://github.com/fir4tozden
+	 */
+	// await cleanupInactiveContainers();
 };
 
 export const startService = async (appName: string) => {
