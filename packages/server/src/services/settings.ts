@@ -227,20 +227,56 @@ export const cleanupFullDocker = async (serverId?: string | null) => {
 			await execAsyncRemote(
 				serverId,
 				`
-	${cleanupImages}
-	${cleanupVolumes}
-	${cleanupContainers}
-	${cleanupSystem}
-	${cleanupBuilder}
+CHECK_INTERVAL=10
+
+echo "Starting Docker cleanup..."
+
+while true; do
+    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
+
+    if [ -z "$PROCESSES" ]; then
+        echo "Docker is idle. Starting cleanup..."
+        break
+    else
+        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+        sleep $CHECK_INTERVAL
+    fi
+done
+
+${cleanupImages}
+${cleanupVolumes}
+${cleanupContainers}
+${cleanupSystem}
+${cleanupBuilder}
+
+echo "Docker cleanup completed."
 			`,
 			);
 		}
 		await execAsync(`
-			${cleanupImages}
-			${cleanupVolumes}
-			${cleanupContainers}
-			${cleanupSystem}
-			${cleanupBuilder}
+CHECK_INTERVAL=10
+
+echo "Starting Docker cleanup..."
+
+while true; do
+    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
+
+    if [ -z "$PROCESSES" ]; then
+        echo "Docker is idle. Starting cleanup..."
+        break
+    else
+        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+        sleep $CHECK_INTERVAL
+    fi
+done
+
+${cleanupImages}
+${cleanupVolumes}
+${cleanupContainers}
+${cleanupSystem}
+${cleanupBuilder}
+
+echo "Docker cleanup completed."
 					`);
 	} catch (error) {
 		console.log(error);
