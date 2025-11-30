@@ -4,7 +4,7 @@ on:
   # Se ejecuta cuando hay cambios en los routers de la API
   push:
     branches:
-      - canary
+      - feat/sync-open-api-website-docs
     paths:
       - 'apps/dokploy/server/api/routers/**'
       - 'packages/server/src/services/**'
