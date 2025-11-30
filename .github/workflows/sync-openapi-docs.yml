@@ -1,0 +1,93 @@
+name: Generate and Sync OpenAPI
+
+on:
+  # Se ejecuta cuando hay cambios en los routers de la API
+  push:
+    branches:
+      - canary
+    paths:
+      - 'apps/dokploy/server/api/routers/**'
+      - 'packages/server/src/services/**'
+      - 'packages/server/src/db/schema/**'
+  
+  # Permite ejecución manual
+  workflow_dispatch:
+
+jobs:
+  generate-and-commit:
+    name: Generate OpenAPI and commit to Dokploy repo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Dokploy repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate OpenAPI specification
+        run: pnpm generate:openapi
+
+      - name: Commit OpenAPI spec
+        run: |
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          
+          # Verifica si el archivo existe
+          if [ ! -f openapi.json ]; then
+            echo "❌ openapi.json not found"
+            exit 1
+          fi
+          
+          # Usa -f para forzar el add de archivos en .gitignore
+          git add -f openapi.json
+          
+          # Verifica si hay cambios para commitear
+          if git diff --cached --quiet; then
+            echo "📝 No changes detected in OpenAPI spec"
+            echo "HAS_CHANGES=false" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          echo "HAS_CHANGES=true" >> $GITHUB_ENV
+          
+          # Commit los cambios
+          git commit -m "chore: update OpenAPI specification [skip ci]
+
+Generated from commit: ${{ github.sha }}
+Triggered by: ${{ github.event_name }}"
+          
+          git push
+          
+          echo "✅ OpenAPI spec committed successfully"
+
+      - name: Trigger website sync
+        if: env.HAS_CHANGES == 'true'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}
+          repository: dokploy/website  # Cambia por tu repo de docs
+          event-type: openapi-updated
+          client-payload: '{"commit": "${{ github.sha }}", "timestamp": "${{ github.event.head_commit.timestamp }}"}'
+
+      - name: Create summary
+        run: |
+          echo "## 📊 OpenAPI Generation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository:** \`${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Changes:** \`${{ env.HAS_CHANGES }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+
