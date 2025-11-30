@@ -62,10 +62,9 @@ jobs:
           echo "HAS_CHANGES=true" >> $GITHUB_ENV
           
           # Commit los cambios
-          git commit -m "chore: update OpenAPI specification [skip ci]
-
-Generated from commit: ${{ github.sha }}
-Triggered by: ${{ github.event_name }}"
+          git commit -m "chore: update OpenAPI specification [skip ci]" \
+            -m "Generated from commit: ${{ github.sha }}" \
+            -m "Triggered by: ${{ github.event_name }}"
           
           git push
           
@@ -76,9 +75,10 @@ Triggered by: ${{ github.event_name }}"
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}
-          repository: dokploy/website  # Cambia por tu repo de docs
+          repository: dokploy/website
           event-type: openapi-updated
           client-payload: '{"commit": "${{ github.sha }}", "timestamp": "${{ github.event.head_commit.timestamp }}"}'
+        continue-on-error: true
 
       - name: Create summary
         run: |
