@@ -51,13 +51,19 @@ export const ShowRequests = () => {
 	const { mutateAsync: updateLogCleanup } =
 		api.settings.updateLogCleanup.useMutation();
 	const [cronExpression, setCronExpression] = useState<string | null>(null);
+
+	// Set default date range to last 3 days
+	const getDefaultDateRange = () => {
+		const to = new Date();
+		const from = new Date();
+		from.setDate(from.getDate() - 3);
+		return { from, to };
+	};
+
 	const [dateRange, setDateRange] = useState<{
 		from: Date | undefined;
 		to: Date | undefined;
-	}>({
-		from: undefined,
-		to: undefined,
-	});
+	}>(getDefaultDateRange());
 
 	useEffect(() => {
 		if (logCleanupStatus) {
@@ -169,17 +175,13 @@ export const ShowRequests = () => {
 							{isActive ? (
 								<>
 									<div className="flex justify-end mb-4 gap-2">
-										{(dateRange.from || dateRange.to) && (
-											<Button
-												variant="outline"
-												onClick={() =>
-													setDateRange({ from: undefined, to: undefined })
-												}
-												className="px-3"
-											>
-												Clear dates
-											</Button>
-										)}
+										<Button
+											variant="outline"
+											onClick={() => setDateRange(getDefaultDateRange())}
+											className="px-3"
+										>
+											Reset to Last 3 Days
+										</Button>
 										<Popover>
 											<PopoverTrigger asChild>
 												<Button
