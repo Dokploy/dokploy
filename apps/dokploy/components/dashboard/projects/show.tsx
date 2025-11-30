@@ -138,7 +138,7 @@ export const ShowProjects = () => {
 				list={[{ name: "Projects", href: "/dashboard/projects" }]}
 			/>
 			{!isCloud && (
-				<div className="absolute top-5 right-5">
+				<div className="absolute top-4 right-4">
 					<TimeBadge />
 				</div>
 			)}
