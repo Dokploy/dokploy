@@ -146,7 +146,7 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 };
 
 // Commands passed through this method are held during Docker's build or pull process. (https://github.com/dokploy/dokploy/pull/3064)
-export const createDockerSafeExec = (command: string) => (`CHECK_INTERVAL=10
+export const createDockerSafeExec = (command: string) => `CHECK_INTERVAL=10
 
 echo "Starting Docker cleanup..."
 
@@ -164,7 +164,7 @@ done
 
 ${command}
 
-echo "Docker cleanup completed."`)
+echo "Docker cleanup completed."`;
 
 export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
