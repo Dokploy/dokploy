@@ -81,8 +81,10 @@ export const serverRouter = createTRPCRouter({
 		}),
 	getDefaultCommand: protectedProcedure
 		.input(apiFindOneServer)
-		.query(async () => {
-			return defaultCommand();
+		.query(async ({ input }) => {
+			const server = await findServerById(input.serverId);
+			const isBuildServer = server.serverType === "build";
+			return defaultCommand(isBuildServer);
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db
