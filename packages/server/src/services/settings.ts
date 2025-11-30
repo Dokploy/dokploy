@@ -233,7 +233,8 @@ export const cleanupFullDocker = async (serverId?: string | null) => {
 					${cleanupContainers}
 					${cleanupSystem}
 					${cleanupBuilder}
-				`));
+				`),
+			);
 		}
 
 		await execAsync(
@@ -243,7 +244,7 @@ export const cleanupFullDocker = async (serverId?: string | null) => {
 				${cleanupContainers}
 				${cleanupSystem}
 				${cleanupBuilder}
-			`)
+			`),
 		);
 	} catch (error) {
 		console.log(error);
