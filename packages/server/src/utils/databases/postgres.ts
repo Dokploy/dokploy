@@ -28,6 +28,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		databaseUser,
 		databasePassword,
 		command,
+		args,
 		mounts,
 	} = postgres;
 
@@ -74,12 +75,14 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				...(command && {
+					Command: command.split(" "),
+				}),
+				...(args &&
+					args.length > 0 && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,

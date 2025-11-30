@@ -80,6 +80,7 @@ export const mechanizeDockerContainer = async (
 		memoryReservation,
 		cpuReservation,
 		command,
+		args,
 		ports,
 	} = application;
 
@@ -128,12 +129,14 @@ export const mechanizeDockerContainer = async (
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				...(command && {
+					Command: command.split(" "),
+				}),
+				...(args &&
+					args.length > 0 && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,
