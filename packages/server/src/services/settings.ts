@@ -10,7 +10,7 @@ import {
 	initializeTraefikService,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
-import { dockerSafeExec } from "@dokploy/server/utils/docker/utils.ts";
+import { dockerSafeExec } from "@dokploy/server/utils/docker/utils";
 
 export interface IUpdateData {
 	latestVersion: string | null;
