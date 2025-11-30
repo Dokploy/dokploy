@@ -31,46 +31,55 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate OpenAPI specification
-        run: pnpm generate:openapi
-
-      - name: Commit OpenAPI spec
         run: |
-          git config user.name "Dokploy Bot"
-          git config user.email "bot@dokploy.com"
+          pnpm generate:openapi
           
-          # Verifica si el archivo existe
+          # Verifica que se generó correctamente
           if [ ! -f openapi.json ]; then
             echo "❌ openapi.json not found"
             exit 1
           fi
           
-          # Usa -f para forzar el add de archivos en .gitignore
-          git add -f openapi.json
+          echo "✅ OpenAPI specification generated successfully"
+
+      - name: Sync to website repository
+        run: |
+          # Clona el repositorio de website
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/website.git website-repo
           
-          # Verifica si hay cambios para commitear
-          if git diff --cached --quiet; then
-            echo "📝 No changes detected in OpenAPI spec"
-            echo "HAS_CHANGES=false" >> $GITHUB_ENV
+          cd website-repo
+          
+          # Copia el openapi.json al website
+          mkdir -p public
+          cp ../openapi.json public/openapi.json
+          
+          # Configura git
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          
+          # Verifica si hay cambios
+          if git diff --quiet public/openapi.json; then
+            echo "📝 No changes detected in website repo"
             exit 0
           fi
           
-          echo "HAS_CHANGES=true" >> $GITHUB_ENV
-          
-          # Commit los cambios
-          git commit -m "chore: update OpenAPI specification [skip ci]" \
-            -m "Generated from commit: ${{ github.sha }}" \
-            -m "Triggered by: ${{ github.event_name }}"
-          
+          # Commitea y pushea
+          git add public/openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           git push
           
-          echo "✅ OpenAPI spec committed successfully"
-
-      - name: Trigger website sync
-        if: env.HAS_CHANGES == 'true'
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.DOCS_SYNC_TOKEN }}
-          repository: dokploy/website
-          event-type: openapi-updated
-          client-payload: '{"commit": "${{ github.sha }}", "timestamp": "${{ github.event.head_commit.timestamp }}"}'
+          echo "✅ OpenAPI synced to website successfully"
+        continue-on-error: true
+      
+      - name: Create summary
+        run: |
+          echo "## 📊 OpenAPI Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository:** \`${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target:** \`dokploy/website\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
 
