@@ -204,6 +204,15 @@ export const applications = pgTable("application", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	buildServerId: text("buildServerId").references(() => server.serverId, {
+		onDelete: "set null",
+	}),
+	buildRegistryId: text("buildRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
 });
 
 export const applicationsRelations = relations(
@@ -246,6 +255,14 @@ export const applicationsRelations = relations(
 		server: one(server, {
 			fields: [applications.serverId],
 			references: [server.serverId],
+		}),
+		buildServer: one(server, {
+			fields: [applications.buildServerId],
+			references: [server.serverId],
+		}),
+		buildRegistry: one(registry, {
+			fields: [applications.buildRegistryId],
+			references: [registry.registryId],
 		}),
 		previewDeployments: many(previewDeployments),
 	}),

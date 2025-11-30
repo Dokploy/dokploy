@@ -52,6 +52,7 @@ const Schema = z.object({
 	sshKeyId: z.string().min(1, {
 		message: "SSH Key is required",
 	}),
+	serverType: z.enum(["deploy", "build"]).default("deploy"),
 });
 
 type Schema = z.infer<typeof Schema>;
@@ -89,6 +90,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			port: 22,
 			username: "root",
 			sshKeyId: "",
+			serverType: "deploy",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -101,6 +103,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			port: data?.port || 22,
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
+			serverType: data?.serverType || "deploy",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
@@ -116,6 +119,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
+			serverType: data.serverType || "deploy",
 			serverId: serverId || "",
 		})
 			.then(async (_data) => {
@@ -265,6 +269,44 @@ export const HandleServers = ({ serverId }: Props) => {
 									<FormMessage />
 								</FormItem>
 							)}
+						/>
+						<FormField
+							control={form.control}
+							name="serverType"
+							render={({ field }) => {
+								const serverTypeValue = form.watch("serverType");
+								return (
+									<FormItem>
+										<FormLabel>Server Type</FormLabel>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a server type" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													<SelectItem value="deploy">Deploy Server</SelectItem>
+													<SelectItem value="build">Build Server</SelectItem>
+													<SelectLabel>Server Type</SelectLabel>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+										<FormMessage />
+										{serverTypeValue === "deploy" && (
+											<AlertBlock type="info" className="mt-2">
+												Deploy servers are used to run your applications, databases, and services. They handle the deployment and execution of your projects.
+											</AlertBlock>
+										)}
+										{serverTypeValue === "build" && (
+											<AlertBlock type="info" className="mt-2">
+												Build servers are dedicated to building your applications. They handle the compilation and build process, offloading this work from your deployment servers. Build servers won't appear in deployment options.
+											</AlertBlock>
+										)}
+									</FormItem>
+								);
+							}}
 						/>
 						<FormField
 							control={form.control}
