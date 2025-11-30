@@ -145,8 +145,8 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 	});
 };
 
-// Commands passed through this method are held during Docker's build or pull process. (https://github.com/dokploy/dokploy/pull/3064)
-export const dockerSafeExec = (command: string) => `CHECK_INTERVAL=10
+/** Docker commands passed through this method are held during Docker's build or pull process. (https://github.com/dokploy/dokploy/pull/3064) */
+export const dockerSafeExec = (exec: string) => `CHECK_INTERVAL=10
 
 echo "Starting Docker cleanup..."
 
@@ -162,7 +162,7 @@ while true; do
     fi
 done
 
-${command}
+${exec}
 
 echo "Docker cleanup completed."`;
 
