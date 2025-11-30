@@ -166,49 +166,77 @@ ${exec}
 
 echo "Execution completed."`;
 
-export const cleanUpUnusedImages = async (serverId?: string) => {
-	try {
-		const command = "docker image prune --all --force";
-		if (serverId) {
-			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else {
-			await execAsync(dockerSafeExec(command));
-		}
-	} catch (error) {
-		console.error(error);
-		throw error;
-	}
-};
-
-export const cleanStoppedContainers = async (serverId?: string) => {
+export const cleanupContainers = async (serverId?: string) => {
 	try {
 		const command = "docker container prune --force";
+	
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else {
-			await execAsync(dockerSafeExec(command));
-		}
+		} else await execAsync(dockerSafeExec(command));
 	} catch (error) {
 		console.error(error);
+
 		throw error;
 	}
 };
 
-export const cleanUpUnusedVolumes = async (serverId?: string) => {
+export const cleanupImages = async (serverId?: string) => {
+	try {
+		const command = "docker image prune --all --force";
+	
+		if (serverId) {
+			await execAsyncRemote(serverId, dockerSafeExec(command));
+		} else await execAsync(dockerSafeExec(command));
+	} catch (error) {
+		console.error(error);
+
+		throw error;
+	}
+};
+
+export const cleanupVolumes = async (serverId?: string) => {
 	try {
 		const command = "docker volume prune --all --force";
+	
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else {
-			await execAsync(dockerSafeExec(command));
-		}
+		} else await execAsync(dockerSafeExec(command));
 	} catch (error) {
 		console.error(error);
+
 		throw error;
 	}
 };
 
-export const cleanUpInactiveContainers = async () => {
+export const cleanupBuilders = async (serverId?: string) => {
+	try {
+		const command = "docker builder prune --all --force";
+	
+		if (serverId) {
+			await execAsyncRemote(serverId, dockerSafeExec(command));
+		} else await execAsync(dockerSafeExec(command));
+	} catch (error) {
+		console.error(error);
+
+		throw error;
+	}
+};
+
+export const cleanupSystem = async (serverId?: string) => {
+	try {
+		const command = "docker system prune --all --volumes --force";
+	
+		if (serverId) {
+			await execAsyncRemote(serverId, dockerSafeExec(command));
+		} else await execAsync(dockerSafeExec(command));
+	} catch (error) {
+		console.error(error);
+
+		throw error;
+	}
+};
+
+export const cleanupInactiveContainers = async () => {
 	try {
 		const containers = await docker.listContainers({ all: true });
 		const inactiveContainers = containers.filter(
@@ -225,23 +253,14 @@ export const cleanUpInactiveContainers = async () => {
 	}
 };
 
-export const cleanUpDockerBuilder = async (serverId?: string) => {
-	const command = "docker builder prune --all --force";
-	if (serverId) {
-		await execAsyncRemote(serverId, dockerSafeExec(command));
-	} else {
-		await execAsync(dockerSafeExec(command));
-	}
-};
-
-export const cleanUpSystemPrune = async (serverId?: string) => {
-	const command = "docker system prune --all --volumes --force";
-	if (serverId) {
-		await execAsyncRemote(serverId, dockerSafeExec(command));
-	} else {
-		await execAsync(dockerSafeExec(command));
-	}
-};
+export const cleanupAll = async (serverId?: string) => {
+	await cleanupContainers(serverId);
+	await cleanupImages(serverId);
+	await cleanupVolumes(serverId);
+	await cleanupBuilders(serverId);
+	await cleanupSystem(serverId);
+	await cleanupInactiveContainers();
+}
 
 export const startService = async (appName: string) => {
 	try {

@@ -10,7 +10,7 @@ import {
 	initializeTraefikService,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
-import { dockerSafeExec } from "@dokploy/server/utils/docker/utils";
+import { cleanupAll } from "@dokploy/server/utils/docker/utils";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -216,40 +216,7 @@ echo "$json_output"
 	return result;
 };
 
-export const cleanupFullDocker = async (serverId?: string | null) => {
-	const cleanupImages = "docker image prune --all --force";
-	const cleanupVolumes = "docker volume prune --all --force";
-	const cleanupContainers = "docker container prune --force";
-	const cleanupSystem = "docker system prune --all --volumes --force";
-	const cleanupBuilder = "docker builder prune --all --force";
-
-	try {
-		if (serverId) {
-			await execAsyncRemote(
-				serverId,
-				dockerSafeExec(`
-					${cleanupImages}
-					${cleanupVolumes}
-					${cleanupContainers}
-					${cleanupSystem}
-					${cleanupBuilder}
-				`),
-			);
-		}
-
-		await execAsync(
-			dockerSafeExec(`
-				${cleanupImages}
-				${cleanupVolumes}
-				${cleanupContainers}
-				${cleanupSystem}
-				${cleanupBuilder}
-			`),
-		);
-	} catch (error) {
-		console.log(error);
-	}
-};
+export const cleanupFullDocker = async (serverId?: string) => cleanupAll(serverId);
 
 export const getDockerResourceType = async (
 	resourceName: string,
