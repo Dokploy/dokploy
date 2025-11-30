@@ -349,13 +349,13 @@ const Service = (
 									</TabsContent>
 									<TabsContent value="advanced">
 										<div className="flex flex-col gap-4 pt-2.5">
-										<AddCommand applicationId={applicationId} />
-										<ShowClusterSettings
-											id={applicationId}
-											type="application"
-										/>
-										<ShowBuildServer applicationId={applicationId} />
-										<ShowResources id={applicationId} type="application" />
+											<AddCommand applicationId={applicationId} />
+											<ShowClusterSettings
+												id={applicationId}
+												type="application"
+											/>
+											<ShowBuildServer applicationId={applicationId} />
+											<ShowResources id={applicationId} type="application" />
 											<ShowVolumes id={applicationId} type="application" />
 											<ShowRedirects applicationId={applicationId} />
 											<ShowSecurity applicationId={applicationId} />

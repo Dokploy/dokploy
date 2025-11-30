@@ -296,12 +296,18 @@ export const HandleServers = ({ serverId }: Props) => {
 										<FormMessage />
 										{serverTypeValue === "deploy" && (
 											<AlertBlock type="info" className="mt-2">
-												Deploy servers are used to run your applications, databases, and services. They handle the deployment and execution of your projects.
+												Deploy servers are used to run your applications,
+												databases, and services. They handle the deployment and
+												execution of your projects.
 											</AlertBlock>
 										)}
 										{serverTypeValue === "build" && (
 											<AlertBlock type="info" className="mt-2">
-												Build servers are dedicated to building your applications. They handle the compilation and build process, offloading this work from your deployment servers. Build servers won't appear in deployment options.
+												Build servers are dedicated to building your
+												applications. They handle the compilation and build
+												process, offloading this work from your deployment
+												servers. Build servers won't appear in deployment
+												options.
 											</AlertBlock>
 										)}
 									</FormItem>
