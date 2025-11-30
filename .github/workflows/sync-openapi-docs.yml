@@ -1,15 +1,15 @@
 name: Generate and Sync OpenAPI
 
 on:
-  # Se ejecuta cuando hay cambios en los routers de la API
   push:
     branches:
-      - feat/sync-open-api-website-docs
-    # paths:
-    #   - 'apps/dokploy/server/api/routers/**'
-    #   - 'packages/server/src/services/**'
-    #   - 'packages/server/src/db/schema/**'
-  # Permite ejecución manual
+      - canary
+      - main
+    paths:
+      - 'apps/dokploy/server/api/routers/**'
+      - 'packages/server/src/services/**'
+      - 'packages/server/src/db/schema/**'
+
   workflow_dispatch:
 
 jobs:
@@ -67,15 +67,4 @@ jobs:
           git push
           
           echo "✅ OpenAPI synced to website successfully"
-        continue-on-error: true
-      
-      - name: Create summary
-        run: |
-          echo "## 📊 OpenAPI Sync Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Repository:** \`${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target:** \`dokploy/website\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
 
