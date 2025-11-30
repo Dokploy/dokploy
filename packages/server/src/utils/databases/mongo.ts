@@ -28,6 +28,7 @@ export const buildMongo = async (mongo: MongoNested) => {
 		databaseUser,
 		databasePassword,
 		command,
+		args,
 		mounts,
 		replicaSets,
 	} = mongo;
@@ -128,12 +129,17 @@ ${command ?? "wait $MONGOD_PID"}`;
 							Command: ["/bin/bash"],
 							Args: ["-c", startupScript],
 						}
-					: {
-							...(command && {
-								Command: ["/bin/bash"],
-								Args: ["-c", command],
-							}),
-						}),
+					: {}),
+				...(command &&
+					!replicaSets && {
+						Command: command.split(" "),
+					}),
+				...(args &&
+					args.length > 0 &&
+					!replicaSets && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,
