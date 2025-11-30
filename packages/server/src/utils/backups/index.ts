@@ -6,9 +6,7 @@ import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import { startLogCleanup } from "../access-log/handler";
-import {
-	cleanupAll
-} from "../docker/utils";
+import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, scheduleBackup } from "./utils";
@@ -47,7 +45,7 @@ export const initCronJobs = async () => {
 			scheduleJob(serverId, "0 0 * * *", async () => {
 				console.log(
 					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
-				)
+				);
 
 				await cleanupImages(serverId);
 

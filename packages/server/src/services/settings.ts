@@ -216,7 +216,8 @@ echo "$json_output"
 	return result;
 };
 
-export const cleanupFullDocker = async (serverId?: string) => cleanupAll(serverId);
+export const cleanupFullDocker = async (serverId?: string) =>
+	cleanupAll(serverId);
 
 export const getDockerResourceType = async (
 	resourceName: string,
