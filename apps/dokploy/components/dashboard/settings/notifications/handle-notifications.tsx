@@ -1214,56 +1214,62 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingLark
 							}
 							variant="secondary"
+							type="button"
 							onClick={async () => {
+								const isValid = await form.trigger();
+								if (!isValid) return;
+
+								const data = form.getValues();
+
 								try {
-									if (type === "slack") {
+									if (data.type === "slack") {
 										await testSlackConnection({
-											webhookUrl: form.getValues("webhookUrl"),
-											channel: form.getValues("channel"),
+											webhookUrl: data.webhookUrl,
+											channel: data.channel,
 										});
-									} else if (type === "telegram") {
+									} else if (data.type === "telegram") {
 										await testTelegramConnection({
-											botToken: form.getValues("botToken"),
-											chatId: form.getValues("chatId"),
-											messageThreadId: form.getValues("messageThreadId") || "",
+											botToken: data.botToken,
+											chatId: data.chatId,
+											messageThreadId: data.messageThreadId || "",
 										});
-									} else if (type === "discord") {
+									} else if (data.type === "discord") {
 										await testDiscordConnection({
-											webhookUrl: form.getValues("webhookUrl"),
-											decoration: form.getValues("decoration"),
+											webhookUrl: data.webhookUrl,
+											decoration: data.decoration,
 										});
-									} else if (type === "email") {
+									} else if (data.type === "email") {
 										await testEmailConnection({
-											smtpServer: form.getValues("smtpServer"),
-											smtpPort: form.getValues("smtpPort"),
-											username: form.getValues("username"),
-											password: form.getValues("password"),
-											toAddresses: form.getValues("toAddresses"),
-											fromAddress: form.getValues("fromAddress"),
+											smtpServer: data.smtpServer,
+											smtpPort: data.smtpPort,
+											username: data.username,
+											password: data.password,
+											fromAddress: data.fromAddress,
+											toAddresses: data.toAddresses,
 										});
-									} else if (type === "gotify") {
+									} else if (data.type === "gotify") {
 										await testGotifyConnection({
-											serverUrl: form.getValues("serverUrl"),
-											appToken: form.getValues("appToken"),
-											priority: form.getValues("priority"),
-											decoration: form.getValues("decoration"),
+											serverUrl: data.serverUrl,
+											appToken: data.appToken,
+											priority: data.priority,
+											decoration: data.decoration,
 										});
-									} else if (type === "ntfy") {
+									} else if (data.type === "ntfy") {
 										await testNtfyConnection({
-											serverUrl: form.getValues("serverUrl"),
-											topic: form.getValues("topic"),
-											accessToken: form.getValues("accessToken"),
-											priority: form.getValues("priority"),
+											serverUrl: data.serverUrl,
+											topic: data.topic,
+											accessToken: data.accessToken,
+											priority: data.priority,
 										});
-									} else if (type === "lark") {
+									} else if (data.type === "lark") {
 										await testLarkConnection({
-											webhookUrl: form.getValues("webhookUrl"),
+											webhookUrl: data.webhookUrl,
 										});
 									}
 									toast.success("Connection Success");
 								} catch (error) {
 									toast.error(
-										`Error testing the provider ${error instanceof Error ? error.message : "Unknown error"}`,
+										`Error testing the provider: ${error instanceof Error ? error.message : "Unknown error"}`,
 									);
 								}
 							}}
