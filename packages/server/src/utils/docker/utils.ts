@@ -147,7 +147,7 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 
 /**
  * Docker commands passed through this method are held during Docker's build or pull process.
- * 
+ *
  * https://github.com/dokploy/dokploy/pull/3064
  * https://github.com/fir4tozden
  */
@@ -267,8 +267,8 @@ export const cleanupAll = async (serverId?: string) => {
 
 	/**
 	 * This wasn't being used. If it's ready, it should be used here.
-	 * 
-   * https://github.com/dokploy/dokploy/pull/3064
+	 *
+	 * https://github.com/dokploy/dokploy/pull/3064
 	 * https://github.com/fir4tozden
 	 */
 	// await cleanupInactiveContainers();
