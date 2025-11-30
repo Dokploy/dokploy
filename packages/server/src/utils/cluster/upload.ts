@@ -28,7 +28,7 @@ export const uploadImageRemoteCommand = (application: ApplicationNested) => {
 				getRegistryCommands(buildRegistry, imageName, buildRegistryTag),
 			);
 			commands.push(
-				`echo "⚠️  INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
+				`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
 			);
 			commands.push(
 				`echo "📊 Check the Logs tab to see when the container starts running."`,
