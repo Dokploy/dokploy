@@ -51,7 +51,7 @@ jobs:
           
           # Copia el openapi.json al website (sobrescribe)
           mkdir -p public
-          cp -f ../openapi.json public/openapi.json
+          cp -f ../openapi.json apps/docs/public/openapi.json
           
           # Configura git
           git config user.name "Dokploy Bot"
