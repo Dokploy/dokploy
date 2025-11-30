@@ -49,25 +49,21 @@ jobs:
           
           cd website-repo
           
-          # Copia el openapi.json al website
+          # Copia el openapi.json al website (sobrescribe)
           mkdir -p public
-          cp ../openapi.json public/openapi.json
+          cp -f ../openapi.json public/openapi.json
           
           # Configura git
           git config user.name "Dokploy Bot"
           git config user.email "bot@dokploy.com"
           
-          # Verifica si hay cambios
-          if git diff --quiet public/openapi.json; then
-            echo "📝 No changes detected in website repo"
-            exit 0
-          fi
-          
-          # Commitea y pushea
+          # Agrega y commitea siempre
           git add public/openapi.json
           git commit -m "chore: sync OpenAPI specification [skip ci]" \
             -m "Source: ${{ github.repository }}@${{ github.sha }}" \
-            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+          
           git push
           
           echo "✅ OpenAPI synced to website successfully"
