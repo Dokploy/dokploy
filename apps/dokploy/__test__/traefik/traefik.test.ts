@@ -16,6 +16,7 @@ const baseApp: ApplicationNested = {
 	buildRegistry: null,
 	giteaBuildPath: "",
 	giteaId: "",
+	args: [],
 	cleanCache: false,
 	applicationStatus: "done",
 	endpointSpecSwarm: null,
