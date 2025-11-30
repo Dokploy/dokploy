@@ -299,6 +299,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
+				{type === "compose" && (
+					<AlertBlock type="info" className="mb-4">
+						Whenever you make changes to domains, remember to redeploy your
+						compose to apply the changes.
+					</AlertBlock>
+				)}
+
 				<Form {...form}>
 					<form
 						id="hook-form"
