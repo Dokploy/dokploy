@@ -10,6 +10,7 @@ import {
 	initializeTraefikService,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
+import { dockerSafeExec } from "@dokploy/server/utils/docker/utils.ts";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -226,58 +227,24 @@ export const cleanupFullDocker = async (serverId?: string | null) => {
 		if (serverId) {
 			await execAsyncRemote(
 				serverId,
-				`
-CHECK_INTERVAL=10
-
-echo "Starting Docker cleanup..."
-
-while true; do
-    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
-
-    if [ -z "$PROCESSES" ]; then
-        echo "Docker is idle. Starting cleanup..."
-        break
-    else
-        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
-        sleep $CHECK_INTERVAL
-    fi
-done
-
-${cleanupImages}
-${cleanupVolumes}
-${cleanupContainers}
-${cleanupSystem}
-${cleanupBuilder}
-
-echo "Docker cleanup completed."
-			`,
-			);
+				dockerSafeExec(`
+					${cleanupImages}
+					${cleanupVolumes}
+					${cleanupContainers}
+					${cleanupSystem}
+					${cleanupBuilder}
+				`));
 		}
-		await execAsync(`
-CHECK_INTERVAL=10
 
-echo "Starting Docker cleanup..."
-
-while true; do
-    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
-
-    if [ -z "$PROCESSES" ]; then
-        echo "Docker is idle. Starting cleanup..."
-        break
-    else
-        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
-        sleep $CHECK_INTERVAL
-    fi
-done
-
-${cleanupImages}
-${cleanupVolumes}
-${cleanupContainers}
-${cleanupSystem}
-${cleanupBuilder}
-
-echo "Docker cleanup completed."
-					`);
+		await execAsync(
+			dockerSafeExec(`
+				${cleanupImages}
+				${cleanupVolumes}
+				${cleanupContainers}
+				${cleanupSystem}
+				${cleanupBuilder}
+			`)
+		);
 	} catch (error) {
 		console.log(error);
 	}
