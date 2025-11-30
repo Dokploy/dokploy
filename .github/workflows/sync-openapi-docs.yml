@@ -73,15 +73,4 @@ jobs:
           repository: dokploy/website
           event-type: openapi-updated
           client-payload: '{"commit": "${{ github.sha }}", "timestamp": "${{ github.event.head_commit.timestamp }}"}'
-        continue-on-error: true
-
-      - name: Create summary
-        run: |
-          echo "## 📊 OpenAPI Generation Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Repository:** \`${{ github.repository }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trigger:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Changes:** \`${{ env.HAS_CHANGES }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
 
