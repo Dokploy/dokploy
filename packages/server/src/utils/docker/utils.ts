@@ -144,13 +144,35 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 		});
 	});
 };
+
+// Commands passed through this method are held during Docker's build or pull process. (https://github.com/dokploy/dokploy/pull/3064)
+export const createDockerSafeExec = (command: string) => (`CHECK_INTERVAL=10
+
+echo "Starting Docker cleanup..."
+
+while true; do
+    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
+
+    if [ -z "$PROCESSES" ]; then
+        echo "Docker is idle. Starting cleanup..."
+        break
+    else
+        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+        sleep $CHECK_INTERVAL
+    fi
+done
+
+${command}
+
+echo "Docker cleanup completed."`)
+
 export const cleanUpUnusedImages = async (serverId?: string) => {
 	try {
-		const command = "docker image prune --force";
+		const command = "docker image prune --all --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, createDockerSafeExec(command));
 		} else {
-			await execAsync(command);
+			await execAsync(createDockerSafeExec(command));
 		}
 	} catch (error) {
 		console.error(error);
@@ -162,9 +184,9 @@ export const cleanStoppedContainers = async (serverId?: string) => {
 	try {
 		const command = "docker container prune --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, createDockerSafeExec(command));
 		} else {
-			await execAsync(command);
+			await execAsync(createDockerSafeExec(command));
 		}
 	} catch (error) {
 		console.error(error);
@@ -174,11 +196,11 @@ export const cleanStoppedContainers = async (serverId?: string) => {
 
 export const cleanUpUnusedVolumes = async (serverId?: string) => {
 	try {
-		const command = "docker volume prune --force";
+		const command = "docker volume prune --all --force";
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, createDockerSafeExec(command));
 		} else {
-			await execAsync(command);
+			await execAsync(createDockerSafeExec(command));
 		}
 	} catch (error) {
 		console.error(error);
@@ -206,18 +228,18 @@ export const cleanUpInactiveContainers = async () => {
 export const cleanUpDockerBuilder = async (serverId?: string) => {
 	const command = "docker builder prune --all --force";
 	if (serverId) {
-		await execAsyncRemote(serverId, command);
+		await execAsyncRemote(serverId, createDockerSafeExec(command));
 	} else {
-		await execAsync(command);
+		await execAsync(createDockerSafeExec(command));
 	}
 };
 
 export const cleanUpSystemPrune = async (serverId?: string) => {
-	const command = "docker system prune --force --volumes";
+	const command = "docker system prune --all --volumes --force";
 	if (serverId) {
-		await execAsyncRemote(serverId, command);
+		await execAsyncRemote(serverId, createDockerSafeExec(command));
 	} else {
-		await execAsync(command);
+		await execAsync(createDockerSafeExec(command));
 	}
 };
 
