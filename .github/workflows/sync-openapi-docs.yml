@@ -50,7 +50,7 @@ jobs:
           cd website-repo
           
           # Copia el openapi.json al website (sobrescribe)
-          mkdir -p public
+          mkdir -p apps/docs/public
           cp -f ../openapi.json apps/docs/public/openapi.json
           
           # Configura git
@@ -58,7 +58,7 @@ jobs:
           git config user.email "bot@dokploy.com"
           
           # Agrega y commitea siempre
-          git add public/openapi.json
+          git add apps/docs/public/openapi.json
           git commit -m "chore: sync OpenAPI specification [skip ci]" \
             -m "Source: ${{ github.repository }}@${{ github.sha }}" \
             -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
