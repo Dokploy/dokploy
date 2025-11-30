@@ -5,10 +5,10 @@ on:
   push:
     branches:
       - feat/sync-open-api-website-docs
-    paths:
-      - 'apps/dokploy/server/api/routers/**'
-      - 'packages/server/src/services/**'
-      - 'packages/server/src/db/schema/**'
+    # paths:
+    #   - 'apps/dokploy/server/api/routers/**'
+    #   - 'packages/server/src/services/**'
+    #   - 'packages/server/src/db/schema/**'
   
   # Permite ejecución manual
   workflow_dispatch:
