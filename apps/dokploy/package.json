@@ -34,7 +34,8 @@
 		"docker:build:canary": "./docker/build.sh canary",
 		"docker:push:canary": "./docker/push.sh canary",
 		"version": "echo $(node -p \"require('./package.json').version\")",
-		"test": "vitest --config __test__/vitest.config.ts"
+		"test": "vitest --config __test__/vitest.config.ts",
+		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^2.0.5",
