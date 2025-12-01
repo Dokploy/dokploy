@@ -10,7 +10,7 @@ import { DockerNetworkChart } from "./docker-network-chart";
 
 const defaultData = {
 	cpu: {
-		value: 0,
+		value: '0%',
 		time: "",
 	},
 	memory: {
@@ -46,7 +46,7 @@ interface Props {
 }
 export interface DockerStats {
 	cpu: {
-		value: number;
+		value: string;
 		time: string;
 	};
 	memory: {
