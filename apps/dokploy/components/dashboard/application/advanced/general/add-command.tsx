@@ -66,19 +66,13 @@ export const AddCommand = ({ applicationId }: Props) => {
 	});
 
 	useEffect(() => {
-		if (data?.command) {
+		if (data) {
 			form.reset({
 				command: data?.command || "",
 				args: data?.args?.map((arg) => ({ value: arg })) || [],
 			});
 		}
-	}, [
-		form,
-		form.reset,
-		form.formState.isSubmitSuccessful,
-		data?.command,
-		data?.args,
-	]);
+	}, [data, form]);
 
 	const onSubmit = async (data: AddCommand) => {
 		await mutateAsync({

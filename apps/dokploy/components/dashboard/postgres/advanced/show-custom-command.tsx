@@ -87,7 +87,7 @@ export const ShowCustomCommand = ({ id, type }: Props) => {
 				args: data.args?.map((arg) => ({ value: arg })) || [],
 			});
 		}
-	}, [data, form, form.reset]);
+	}, [data, form]);
 
 	const onSubmit = async (formData: AddDockerImage) => {
 		await mutateAsync({
