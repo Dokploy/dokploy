@@ -151,7 +151,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			triggerType: data.triggerType,
 		})
 			.then(async () => {
-				toast.success("Service Provided Saved");
+				toast.success("Service Provider Saved");
 				await refetch();
 			})
 			.catch(() => {

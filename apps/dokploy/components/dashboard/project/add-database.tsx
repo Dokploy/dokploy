@@ -55,7 +55,7 @@ import { api } from "@/utils/api";
 type DbType = typeof mySchema._type.type;
 
 const dockerImageDefaultPlaceholder: Record<DbType, string> = {
-	mongo: "mongo:6",
+	mongo: "mongo:7",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
 	postgres: "postgres:15",
@@ -395,8 +395,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													placeholder="Name"
 													{...field}
 													onChange={(e) => {
-														const val = e.target.value?.trim() || "";
-														const serviceName = slugify(val);
+														const val = e.target.value || "";
+														const serviceName = slugify(val.trim());
 														form.setValue("appName", `${slug}-${serviceName}`);
 														field.onChange(val);
 													}}

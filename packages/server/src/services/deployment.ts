@@ -74,24 +74,26 @@ export const createDeployment = async (
 	>,
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
-
 	try {
 		await removeLastTenDeployments(
 			deployment.applicationId,
 			"application",
 			application.serverId,
 		);
-		const { LOGS_PATH } = paths(!!application.serverId);
+		const serverId = application.buildServerId || application.serverId;
+
+		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${application.appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, application.appName, fileName);
 
-		if (application.serverId) {
-			const server = await findServerById(application.serverId);
+		if (serverId) {
+			const server = await findServerById(serverId);
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${application.appName};
             	echo "Initializing deployment" >> ${logFilePath};
+			    echo "Building on ${serverId ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -99,7 +101,7 @@ export const createDeployment = async (
 			await fsPromises.mkdir(path.join(LOGS_PATH, application.appName), {
 				recursive: true,
 			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+			await fsPromises.writeFile(logFilePath, "Initializing deployment\n");
 		}
 
 		const deploymentCreate = await db
@@ -111,6 +113,9 @@ export const createDeployment = async (
 				logPath: logFilePath,
 				description: deployment.description || "",
 				startedAt: new Date().toISOString(),
+				...(application.buildServerId && {
+					buildServerId: application.buildServerId,
+				}),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {
@@ -249,7 +254,7 @@ export const createDeploymentCompose = async (
 
 			const command = `
 mkdir -p ${LOGS_PATH}/${compose.appName};
-echo "Initializing deployment" >> ${logFilePath};
+echo "Initializing deployment\n" >> ${logFilePath};
 `;
 
 			await execAsyncRemote(server.serverId, command);
@@ -257,7 +262,7 @@ echo "Initializing deployment" >> ${logFilePath};
 			await fsPromises.mkdir(path.join(LOGS_PATH, compose.appName), {
 				recursive: true,
 			});
-			await fsPromises.writeFile(logFilePath, "Initializing deployment");
+			await fsPromises.writeFile(logFilePath, "Initializing deployment\n");
 		}
 
 		const deploymentCreate = await db
