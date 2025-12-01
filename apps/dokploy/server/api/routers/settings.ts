@@ -280,7 +280,7 @@ export const settingsRouter = createTRPCRouter({
 								`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 							);
 
-							await cleanupAll();
+							await cleanupAll(server.serverId);
 
 							await sendDockerCleanupNotifications(server.organizationId);
 						});
