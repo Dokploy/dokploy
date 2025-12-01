@@ -4,6 +4,7 @@ import {
 	boolean,
 	integer,
 	json,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -65,6 +66,14 @@ export const buildType = pgEnum("buildType", [
 	"nixpacks",
 	"static",
 	"railpack",
+]);
+
+// NEW: Kubernetes deployment strategy enum
+export const k8sDeploymentStrategy = pgEnum("k8sDeploymentStrategy", [
+	"rolling", // K8s RollingUpdate (default)
+	"recreate", // K8s Recreate
+	"blue-green", // Custom via Argo Rollouts
+	"canary", // Custom via Argo Rollouts
 ]);
 
 export const applications = pgTable("application", {
@@ -171,6 +180,91 @@ export const applications = pgTable("application", {
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+
+	// NEW: Kubernetes-specific configuration
+	k8sDeploymentName: text("k8sDeploymentName"), // Generated: app-{applicationId}
+	k8sNamespace: text("k8sNamespace"), // Inherited from server or custom
+	k8sDeploymentStrategy: k8sDeploymentStrategy("k8sDeploymentStrategy").default(
+		"rolling",
+	),
+
+	// Kubernetes HPA (Horizontal Pod Autoscaler) Configuration
+	k8sHpaEnabled: boolean("k8sHpaEnabled").default(false),
+	k8sHpaMinReplicas: integer("k8sHpaMinReplicas").default(1),
+	k8sHpaMaxReplicas: integer("k8sHpaMaxReplicas").default(10),
+	k8sHpaTargetCPU: integer("k8sHpaTargetCPU").default(80), // Percentage
+	k8sHpaTargetMemory: integer("k8sHpaTargetMemory"), // Percentage (optional)
+	k8sHpaScaleDownStabilization: integer("k8sHpaScaleDownStabilization").default(
+		300,
+	), // seconds
+
+	// Kubernetes Network Policies
+	k8sNetworkPolicyEnabled: boolean("k8sNetworkPolicyEnabled").default(false),
+	k8sAllowedNamespaces: text("k8sAllowedNamespaces").array(), // ["default", "staging"]
+
+	// Kubernetes Resource Requests/Limits
+	k8sResourceConfig: jsonb("k8sResourceConfig")
+		.$type<{
+			requests: {
+				cpu: string; // e.g., "100m"
+				memory: string; // e.g., "128Mi"
+			};
+			limits: {
+				cpu: string; // e.g., "500m"
+				memory: string; // e.g., "512Mi"
+			};
+		}>()
+		.default({
+			requests: { cpu: "100m", memory: "128Mi" },
+			limits: { cpu: "500m", memory: "512Mi" },
+		}),
+
+	// Kubernetes Probes
+	k8sProbes: jsonb("k8sProbes")
+		.$type<{
+			liveness?: {
+				httpGet?: { path: string; port: number };
+				tcpSocket?: { port: number };
+				exec?: { command: string[] };
+				initialDelaySeconds: number;
+				periodSeconds: number;
+				timeoutSeconds: number;
+				failureThreshold: number;
+			};
+			readiness?: {
+				httpGet?: { path: string; port: number };
+				tcpSocket?: { port: number };
+				exec?: { command: string[] };
+				initialDelaySeconds: number;
+				periodSeconds: number;
+				timeoutSeconds: number;
+				failureThreshold: number;
+			};
+			startup?: {
+				httpGet?: { path: string; port: number };
+				tcpSocket?: { port: number };
+				exec?: { command: string[] };
+				initialDelaySeconds: number;
+				periodSeconds: number;
+				timeoutSeconds: number;
+				failureThreshold: number;
+			};
+		}>()
+		.default({}),
+
+	// Kubernetes Labels & Annotations
+	k8sLabels: jsonb("k8sLabels").$type<Record<string, string>>().default({}),
+	k8sAnnotations: jsonb("k8sAnnotations")
+		.$type<Record<string, string>>()
+		.default({}),
+
+	// Kubernetes Service Account
+	k8sServiceAccount: text("k8sServiceAccount"),
+
+	// Pod Disruption Budget
+	k8sPdbMinAvailable: integer("k8sPdbMinAvailable"),
+	k8sPdbMaxUnavailable: integer("k8sPdbMaxUnavailable"),
+
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
@@ -505,3 +599,111 @@ export const apiUpdateApplication = createSchema
 		applicationId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+// NEW: Kubernetes-specific API schemas
+export const k8sResourceConfigSchema = z.object({
+	requests: z.object({
+		cpu: z.string().default("100m"),
+		memory: z.string().default("128Mi"),
+	}),
+	limits: z.object({
+		cpu: z.string().default("500m"),
+		memory: z.string().default("512Mi"),
+	}),
+});
+
+export const k8sProbeSchema = z
+	.object({
+		httpGet: z
+			.object({
+				path: z.string(),
+				port: z.number(),
+			})
+			.optional(),
+		tcpSocket: z
+			.object({
+				port: z.number(),
+			})
+			.optional(),
+		exec: z
+			.object({
+				command: z.array(z.string()),
+			})
+			.optional(),
+		initialDelaySeconds: z.number().default(0),
+		periodSeconds: z.number().default(10),
+		timeoutSeconds: z.number().default(1),
+		failureThreshold: z.number().default(3),
+	})
+	.optional();
+
+export const k8sProbesSchema = z.object({
+	liveness: k8sProbeSchema,
+	readiness: k8sProbeSchema,
+	startup: k8sProbeSchema,
+});
+
+export const apiUpdateK8sHpa = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.required()
+	.extend({
+		k8sHpaEnabled: z.boolean(),
+		k8sHpaMinReplicas: z.number().min(1).default(1),
+		k8sHpaMaxReplicas: z.number().min(1).default(10),
+		k8sHpaTargetCPU: z.number().min(1).max(100).default(80),
+		k8sHpaTargetMemory: z.number().min(1).max(100).optional(),
+		k8sHpaScaleDownStabilization: z.number().min(0).default(300),
+	});
+
+export const apiUpdateK8sNetworkPolicy = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.required()
+	.extend({
+		k8sNetworkPolicyEnabled: z.boolean(),
+		k8sAllowedNamespaces: z.array(z.string()).optional(),
+	});
+
+export const apiUpdateK8sResources = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.required()
+	.extend({
+		k8sResourceConfig: k8sResourceConfigSchema,
+	});
+
+export const apiUpdateK8sProbes = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.required()
+	.extend({
+		k8sProbes: k8sProbesSchema,
+	});
+
+export const apiUpdateK8sDeploymentStrategy = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.required()
+	.extend({
+		k8sDeploymentStrategy: z.enum(["rolling", "recreate", "blue-green", "canary"]),
+		k8sNamespace: z.string().optional(),
+		k8sLabels: z.record(z.string()).optional(),
+		k8sAnnotations: z.record(z.string()).optional(),
+		k8sServiceAccount: z.string().optional(),
+	});
+
+export const apiUpdateK8sPdb = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.required()
+	.extend({
+		k8sPdbMinAvailable: z.number().min(0).optional(),
+		k8sPdbMaxUnavailable: z.number().min(0).optional(),
+	});
