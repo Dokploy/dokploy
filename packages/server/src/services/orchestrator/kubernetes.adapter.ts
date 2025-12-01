@@ -1012,7 +1012,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 					from: rule.from?.map(peer => ({
 						podSelector: peer.podSelector?.matchLabels,
 						namespaceSelector: peer.namespaceSelector?.matchLabels,
-						ipBlock: peer.ipBlock as NetworkPolicyConfig["ingress"]?.[0]["from"]?.[0]["ipBlock"],
+						ipBlock: peer.ipBlock as { cidr: string; except?: string[] } | undefined,
 					})),
 					ports: rule.ports?.map(p => ({
 						protocol: p.protocol as "TCP" | "UDP",
@@ -1023,7 +1023,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 					to: rule.to?.map(peer => ({
 						podSelector: peer.podSelector?.matchLabels,
 						namespaceSelector: peer.namespaceSelector?.matchLabels,
-						ipBlock: peer.ipBlock as NetworkPolicyConfig["egress"]?.[0]["to"]?.[0]["ipBlock"],
+						ipBlock: peer.ipBlock as { cidr: string; except?: string[] } | undefined,
 					})),
 					ports: rule.ports?.map(p => ({
 						protocol: p.protocol as "TCP" | "UDP",
