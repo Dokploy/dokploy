@@ -103,7 +103,7 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			type: z.literal("ntfy"),
 			serverUrl: z.string().min(1, { message: "Server URL is required" }),
 			topic: z.string().min(1, { message: "Topic is required" }),
-			accessToken: z.string().min(1, { message: "Access Token is required" }),
+			accessToken: z.string().optional(),
 			priority: z.number().min(1).max(5).default(3),
 		})
 		.merge(notificationBaseSchema),
@@ -303,7 +303,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
 					type: notification.notificationType,
-					accessToken: notification.ntfy?.accessToken,
+					accessToken: notification.ntfy?.accessToken || "",
 					topic: notification.ntfy?.topic,
 					priority: notification.ntfy?.priority,
 					serverUrl: notification.ntfy?.serverUrl,
@@ -432,7 +432,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				serverUrl: data.serverUrl,
-				accessToken: data.accessToken,
+				accessToken: data.accessToken || "",
 				topic: data.topic,
 				priority: data.priority,
 				name: data.name,
@@ -1001,8 +1001,12 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 														<Input
 															placeholder="AzxcvbnmKjhgfdsa..."
 															{...field}
+															value={field.value ?? ""}
 														/>
 													</FormControl>
+													<FormDescription>
+														Optional. Leave blank for public topics.
+													</FormDescription>
 													<FormMessage />
 												</FormItem>
 											)}
@@ -1258,7 +1262,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testNtfyConnection({
 											serverUrl: data.serverUrl,
 											topic: data.topic,
-											accessToken: data.accessToken,
+											accessToken: data.accessToken || "",
 											priority: data.priority,
 										});
 									} else if (data.type === "lark") {
