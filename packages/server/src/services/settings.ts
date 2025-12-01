@@ -218,7 +218,7 @@ echo "$json_output"
 
 /**
  * This function is not currently used anywhere, but it remains here because removing it would be risky.
- * 
+ *
  * https://github.com/Dokploy/dokploy/pull/3064
  * https://github.com/fir4tozden
  */
