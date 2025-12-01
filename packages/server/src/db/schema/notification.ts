@@ -120,7 +120,7 @@ export const ntfy = pgTable("ntfy", {
 		.$defaultFn(() => nanoid()),
 	serverUrl: text("serverUrl").notNull(),
 	topic: text("topic").notNull(),
-	accessToken: text("accessToken").notNull(),
+	accessToken: text("accessToken"),
 	priority: integer("priority").notNull().default(3),
 });
 
@@ -348,7 +348,7 @@ export const apiCreateNtfy = notificationsSchema
 	.extend({
 		serverUrl: z.string().min(1),
 		topic: z.string().min(1),
-		accessToken: z.string().min(1),
+		accessToken: z.string().optional(),
 		priority: z.number().min(1),
 	})
 	.required();
@@ -438,7 +438,7 @@ export const apiSendTest = notificationsSchema
 		serverUrl: z.string(),
 		topic: z.string(),
 		appToken: z.string(),
-		accessToken: z.string(),
+		accessToken: z.string().optional(),
 		priority: z.number(),
 		endpoint: z.string(),
 		headers: z.string(),

@@ -3,7 +3,11 @@ import { mechanizeDockerContainer } from "@dokploy/server/utils/builders";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type MockCreateServiceOptions = {
-	StopGracePeriod?: number;
+	TaskTemplate?: {
+		ContainerSpec?: {
+			StopGracePeriod?: number;
+		};
+	};
 	[key: string]: unknown;
 };
 
@@ -81,8 +85,10 @@ describe("mechanizeDockerContainer", () => {
 			throw new Error("createServiceMock should have been called once");
 		}
 		const [settings] = call;
-		expect(settings.StopGracePeriod).toBe(0);
-		expect(typeof settings.StopGracePeriod).toBe("number");
+		expect(settings.TaskTemplate?.ContainerSpec?.StopGracePeriod).toBe(0);
+		expect(typeof settings.TaskTemplate?.ContainerSpec?.StopGracePeriod).toBe(
+			"number",
+		);
 	});
 
 	it("omits StopGracePeriod when stopGracePeriodSwarm is null", async () => {
@@ -96,6 +102,8 @@ describe("mechanizeDockerContainer", () => {
 			throw new Error("createServiceMock should have been called once");
 		}
 		const [settings] = call;
-		expect(settings).not.toHaveProperty("StopGracePeriod");
+		expect(settings.TaskTemplate?.ContainerSpec).not.toHaveProperty(
+			"StopGracePeriod",
+		);
 	});
 });

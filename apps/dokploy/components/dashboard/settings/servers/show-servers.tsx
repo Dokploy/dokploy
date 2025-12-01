@@ -130,6 +130,9 @@ export const ShowServers = () => {
 																</TableHead>
 															)}
 															<TableHead className="text-center">
+																Type
+															</TableHead>
+															<TableHead className="text-center">
 																IP Address
 															</TableHead>
 															<TableHead className="text-center">
@@ -153,6 +156,8 @@ export const ShowServers = () => {
 														{data?.map((server) => {
 															const canDelete = server.totalSum === 0;
 															const isActive = server.serverStatus === "active";
+															const isBuildServer =
+																server.serverType === "build";
 															return (
 																<TableRow key={server.serverId}>
 																	<TableCell className="text-left">
@@ -171,6 +176,15 @@ export const ShowServers = () => {
 																			</Badge>
 																		</TableHead>
 																	)}
+																	<TableCell className="text-center">
+																		<Badge
+																			variant={
+																				isBuildServer ? "secondary" : "default"
+																			}
+																		>
+																			{server.serverType}
+																		</Badge>
+																	</TableCell>
 																	<TableCell className="text-center">
 																		<Badge>{server.ipAddress}</Badge>
 																	</TableCell>
@@ -233,11 +247,12 @@ export const ShowServers = () => {
 																							serverId={server.serverId}
 																						/>
 
-																						{server.sshKeyId && (
-																							<ShowServerActions
-																								serverId={server.serverId}
-																							/>
-																						)}
+																						{server.sshKeyId &&
+																							!isBuildServer && (
+																								<ShowServerActions
+																									serverId={server.serverId}
+																								/>
+																							)}
 																					</>
 																				)}
 
@@ -286,41 +301,43 @@ export const ShowServers = () => {
 																					</DropdownMenuItem>
 																				</DialogAction>
 
-																				{isActive && server.sshKeyId && (
-																					<>
-																						<DropdownMenuSeparator />
-																						<DropdownMenuLabel>
-																							Extra
-																						</DropdownMenuLabel>
+																				{isActive &&
+																					server.sshKeyId &&
+																					!isBuildServer && (
+																						<>
+																							<DropdownMenuSeparator />
+																							<DropdownMenuLabel>
+																								Extra
+																							</DropdownMenuLabel>
 
-																						<ShowTraefikFileSystemModal
-																							serverId={server.serverId}
-																						/>
-																						<ShowDockerContainersModal
-																							serverId={server.serverId}
-																						/>
-																						{isCloud && (
-																							<ShowMonitoringModal
-																								url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
-																								token={
-																									server?.metricsConfig?.server
-																										?.token
-																								}
+																							<ShowTraefikFileSystemModal
+																								serverId={server.serverId}
 																							/>
-																						)}
+																							<ShowDockerContainersModal
+																								serverId={server.serverId}
+																							/>
+																							{isCloud && (
+																								<ShowMonitoringModal
+																									url={`http://${server.ipAddress}:${server?.metricsConfig?.server?.port}/metrics`}
+																									token={
+																										server?.metricsConfig
+																											?.server?.token
+																									}
+																								/>
+																							)}
 
-																						<ShowSwarmOverviewModal
-																							serverId={server.serverId}
-																						/>
-																						<ShowNodesModal
-																							serverId={server.serverId}
-																						/>
+																							<ShowSwarmOverviewModal
+																								serverId={server.serverId}
+																							/>
+																							<ShowNodesModal
+																								serverId={server.serverId}
+																							/>
 
-																						<ShowSchedulesModal
-																							serverId={server.serverId}
-																						/>
-																					</>
-																				)}
+																							<ShowSchedulesModal
+																								serverId={server.serverId}
+																							/>
+																						</>
+																					)}
 																			</DropdownMenuContent>
 																		</DropdownMenu>
 																	</TableCell>

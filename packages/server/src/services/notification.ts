@@ -501,7 +501,7 @@ export const createNtfyNotification = async (
 			.values({
 				serverUrl: input.serverUrl,
 				topic: input.topic,
-				accessToken: input.accessToken,
+				accessToken: input.accessToken ?? null,
 				priority: input.priority,
 			})
 			.returning()
@@ -572,7 +572,7 @@ export const updateNtfyNotification = async (
 			.set({
 				serverUrl: input.serverUrl,
 				topic: input.topic,
-				accessToken: input.accessToken,
+				accessToken: input.accessToken ?? null,
 				priority: input.priority,
 			})
 			.where(eq(ntfy.ntfyId, input.ntfyId));

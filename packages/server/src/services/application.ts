@@ -112,6 +112,7 @@ export const findApplicationById = async (applicationId: string) => {
 			gitea: true,
 			server: true,
 			previewDeployments: true,
+			buildRegistry: true,
 		},
 	});
 	if (!application) {
@@ -172,6 +173,7 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const serverId = application.buildServerId || application.serverId;
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
@@ -199,8 +201,8 @@ export const deployApplication = async ({
 		command += getBuildCommand(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (application.serverId) {
-			await execAsyncRemote(application.serverId, commandWithLog);
+		if (serverId) {
+			await execAsyncRemote(serverId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -240,8 +242,8 @@ export const deployApplication = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (application.serverId) {
-			await execAsyncRemote(application.serverId, command);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
@@ -285,6 +287,7 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const serverId = application.buildServerId || application.serverId;
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
 	const deployment = await createDeployment({
@@ -298,8 +301,8 @@ export const rebuildApplication = async ({
 		// Check case for docker only
 		command += getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (application.serverId) {
-			await execAsyncRemote(application.serverId, commandWithLog);
+		if (serverId) {
+			await execAsyncRemote(serverId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -338,8 +341,8 @@ export const rebuildApplication = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (application.serverId) {
-			await execAsyncRemote(application.serverId, command);
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
