@@ -216,8 +216,13 @@ echo "$json_output"
 	return result;
 };
 
-export const cleanupFullDocker = async (serverId?: string) =>
-	cleanupAll(serverId);
+/**
+ * This function is not currently used anywhere, but it remains here because removing it would be risky.
+ * 
+ * https://github.com/Dokploy/dokploy/pull/3064
+ * https://github.com/fir4tozden
+ */
+export const cleanupFullDocker = cleanupAll;
 
 export const getDockerResourceType = async (
 	resourceName: string,
