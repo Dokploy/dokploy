@@ -162,18 +162,13 @@ export const rollback = async (rollbackId: string) => {
 	if (!result.fullContext) {
 		throw new Error("Rollback context not found");
 	}
-	try {
-		// Use the full context for rollback
-		await rollbackApplication(
-			application.appName,
-			result.image || "",
-			application.serverId,
-			result.fullContext,
-		);
-	} catch (error) {
-		console.error(error);
-		throw new Error("Failed to rollback application");
-	}
+	// Use the full context for rollback
+	await rollbackApplication(
+		application.appName,
+		result.image || "",
+		application.serverId,
+		result.fullContext,
+	);
 };
 
 const rollbackApplication = async (
