@@ -221,7 +221,10 @@ export const ContainerFreeMonitoring = ({
 								Used: {currentData.cpu.value}
 							</span>
 							<Progress
-								value={parseInt(currentData.cpu.value.replace("%", ""), 10)}
+								value={Number.parseInt(
+									currentData.cpu.value.replace("%", ""),
+									10,
+								)}
 								className="w-[100%]"
 							/>
 							<DockerCpuChart acummulativeData={acummulativeData.cpu} />
