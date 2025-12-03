@@ -77,10 +77,15 @@ export class OrchestratorFactory {
 			// Detect and update K8s capabilities
 			const capabilities = await this.detectK8sCapabilities(k8sAdapter);
 			if (serverConfig.serverId) {
-				await this.updateServerK8sCapabilities(serverConfig.serverId, capabilities);
+				await this.updateServerK8sCapabilities(
+					serverConfig.serverId,
+					capabilities,
+				);
 			}
 
-			console.log(`✅ Kubernetes detected on server ${serverConfig.name || cacheKey}`);
+			console.log(
+				`✅ Kubernetes detected on server ${serverConfig.name || cacheKey}`,
+			);
 			return k8sAdapter;
 		}
 
@@ -88,7 +93,9 @@ export class OrchestratorFactory {
 		const swarmAdapter = new SwarmAdapter(serverConfig);
 		adapterCache.set(cacheKey, swarmAdapter);
 
-		console.log(`⚙️  Docker Swarm used on server ${serverConfig.name || cacheKey}`);
+		console.log(
+			`⚙️  Docker Swarm used on server ${serverConfig.name || cacheKey}`,
+		);
 		return swarmAdapter;
 	}
 
@@ -98,7 +105,9 @@ export class OrchestratorFactory {
 	 * @param applicationId Application ID
 	 * @returns Orchestrator adapter for the application's server
 	 */
-	static async forApplication(applicationId: string): Promise<IOrchestratorAdapter> {
+	static async forApplication(
+		applicationId: string,
+	): Promise<IOrchestratorAdapter> {
 		const app = await db.query.applications.findFirst({
 			where: eq(applications.applicationId, applicationId),
 			with: { server: true },
@@ -142,7 +151,9 @@ export class OrchestratorFactory {
 	 * @param serverId Server ID (null for local)
 	 * @returns Orchestrator adapter for the server
 	 */
-	static async forServer(serverId: string | null): Promise<IOrchestratorAdapter> {
+	static async forServer(
+		serverId: string | null,
+	): Promise<IOrchestratorAdapter> {
 		if (!serverId) {
 			// Local server
 			return this.create({
@@ -185,7 +196,9 @@ export class OrchestratorFactory {
 	 * @param serverConfig Server configuration
 	 * @returns Detected orchestrator type
 	 */
-	static async detectOrchestrator(serverConfig: ServerConfig): Promise<OrchestratorType> {
+	static async detectOrchestrator(
+		serverConfig: ServerConfig,
+	): Promise<OrchestratorType> {
 		// First, try Kubernetes
 		if (serverConfig.k8sKubeconfig || serverConfig.k8sApiEndpoint) {
 			try {

@@ -72,7 +72,7 @@ export function buildTraefikIngressRoute(
 					port: config.servicePort,
 				},
 			],
-			middlewares: config.middlewares?.map(m => ({
+			middlewares: config.middlewares?.map((m) => ({
 				name: m,
 				namespace: config.namespace,
 			})),
@@ -130,7 +130,9 @@ export function buildTraefikIngressRouteTCP(config: {
 			entryPoints: config.entryPoints,
 			routes: [
 				{
-					match: config.sniHost ? `HostSNI(\`${config.sniHost}\`)` : "HostSNI(`*`)",
+					match: config.sniHost
+						? `HostSNI(\`${config.sniHost}\`)`
+						: "HostSNI(`*`)",
 					services: [
 						{
 							name: config.serviceName,
@@ -258,7 +260,11 @@ export const commonMiddlewares = {
 	/**
 	 * Build strip prefix middleware
 	 */
-	stripPrefix: (name: string, namespace: string, prefixes: string[]): CustomResource =>
+	stripPrefix: (
+		name: string,
+		namespace: string,
+		prefixes: string[],
+	): CustomResource =>
 		buildTraefikMiddleware({
 			name,
 			namespace,

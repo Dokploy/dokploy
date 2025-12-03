@@ -123,7 +123,10 @@ describe("OrchestratorFactory", () => {
 
 		test("creates new adapter when forceDetection is true", async () => {
 			const adapter1 = await OrchestratorFactory.create(swarmServerConfig);
-			const adapter2 = await OrchestratorFactory.create(swarmServerConfig, true);
+			const adapter2 = await OrchestratorFactory.create(
+				swarmServerConfig,
+				true,
+			);
 
 			expect(adapter1).not.toBe(adapter2);
 			expect(SwarmAdapter).toHaveBeenCalledTimes(2);
@@ -215,7 +218,7 @@ describe("OrchestratorFactory", () => {
 					serverId: "",
 					name: "local",
 					orchestratorType: "swarm",
-				})
+				}),
 			);
 		});
 
@@ -223,7 +226,7 @@ describe("OrchestratorFactory", () => {
 			(db.query.applications.findFirst as any).mockResolvedValue(null);
 
 			await expect(
-				OrchestratorFactory.forApplication("non-existent")
+				OrchestratorFactory.forApplication("non-existent"),
 			).rejects.toThrow("Application not found");
 		});
 	});
@@ -252,7 +255,7 @@ describe("OrchestratorFactory", () => {
 				expect.objectContaining({
 					serverId: "",
 					orchestratorType: "swarm",
-				})
+				}),
 			);
 		});
 
@@ -260,7 +263,7 @@ describe("OrchestratorFactory", () => {
 			(db.query.server.findFirst as any).mockResolvedValue(null);
 
 			await expect(
-				OrchestratorFactory.forServer("non-existent")
+				OrchestratorFactory.forServer("non-existent"),
 			).rejects.toThrow("Server not found");
 		});
 	});
@@ -324,11 +327,13 @@ describe("OrchestratorFactory", () => {
 				getHPAStatus: vi.fn().mockRejectedValue(new Error("404 Not Found")),
 				getMetrics: vi.fn().mockResolvedValue(null),
 				getNetworkPolicy: vi.fn().mockRejectedValue(new Error("404 Not Found")),
-				getCustomResource: vi.fn().mockRejectedValue(new Error("404 Not Found")),
+				getCustomResource: vi
+					.fn()
+					.mockRejectedValue(new Error("404 Not Found")),
 			};
 
 			const result = await OrchestratorFactory.detectK8sCapabilities(
-				mockAdapter as any
+				mockAdapter as any,
 			);
 
 			expect(result.supportsHPA).toBe(true);
@@ -337,14 +342,20 @@ describe("OrchestratorFactory", () => {
 
 		test("detects no HPA support from non-404 error", async () => {
 			const mockAdapter = {
-				getHPAStatus: vi.fn().mockRejectedValue(new Error("Connection refused")),
+				getHPAStatus: vi
+					.fn()
+					.mockRejectedValue(new Error("Connection refused")),
 				getMetrics: vi.fn().mockResolvedValue(null),
-				getNetworkPolicy: vi.fn().mockRejectedValue(new Error("Connection refused")),
-				getCustomResource: vi.fn().mockRejectedValue(new Error("Connection refused")),
+				getNetworkPolicy: vi
+					.fn()
+					.mockRejectedValue(new Error("Connection refused")),
+				getCustomResource: vi
+					.fn()
+					.mockRejectedValue(new Error("Connection refused")),
 			};
 
 			const result = await OrchestratorFactory.detectK8sCapabilities(
-				mockAdapter as any
+				mockAdapter as any,
 			);
 
 			expect(result.supportsHPA).toBe(false);
@@ -356,11 +367,13 @@ describe("OrchestratorFactory", () => {
 				getHPAStatus: vi.fn().mockRejectedValue(new Error("404")),
 				getMetrics: vi.fn().mockResolvedValue(null),
 				getNetworkPolicy: vi.fn().mockRejectedValue(new Error("404")),
-				getCustomResource: vi.fn().mockRejectedValue(new Error("404 Not Found")),
+				getCustomResource: vi
+					.fn()
+					.mockRejectedValue(new Error("404 Not Found")),
 			};
 
 			const result = await OrchestratorFactory.detectK8sCapabilities(
-				mockAdapter as any
+				mockAdapter as any,
 			);
 
 			expect(result.ingressController).toBe("traefik");

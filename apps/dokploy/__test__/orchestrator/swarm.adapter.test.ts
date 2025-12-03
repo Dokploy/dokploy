@@ -6,7 +6,10 @@
  */
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
-import type { DeploymentConfig, ServerConfig } from "@dokploy/server/services/orchestrator";
+import type {
+	DeploymentConfig,
+	ServerConfig,
+} from "@dokploy/server/services/orchestrator";
 
 // Mock the remote docker utility
 vi.mock("@dokploy/server/utils/servers/remote-docker", () => ({
@@ -22,7 +25,10 @@ vi.mock("@dokploy/server/utils/process/execAsync", () => ({
 // Import after mocking
 import { SwarmAdapter } from "@dokploy/server/services/orchestrator/swarm.adapter";
 import { getRemoteDocker } from "@dokploy/server/utils/servers/remote-docker";
-import { execAsync, execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 
 describe("SwarmAdapter", () => {
 	const mockServerConfig: ServerConfig = {
@@ -241,7 +247,7 @@ describe("SwarmAdapter", () => {
 
 			expect(execAsyncRemote).toHaveBeenCalledWith(
 				mockServerConfig.serverId,
-				"docker service scale my-app=5"
+				"docker service scale my-app=5",
 			);
 		});
 
@@ -265,7 +271,7 @@ describe("SwarmAdapter", () => {
 			});
 
 			await expect(adapter.scaleApplication("my-app", 5)).rejects.toThrow(
-				"Failed to scale service"
+				"Failed to scale service",
 			);
 		});
 	});
@@ -282,7 +288,7 @@ describe("SwarmAdapter", () => {
 
 			expect(execAsyncRemote).toHaveBeenCalledWith(
 				mockServerConfig.serverId,
-				"docker service rm my-app"
+				"docker service rm my-app",
 			);
 		});
 
@@ -310,7 +316,7 @@ describe("SwarmAdapter", () => {
 
 			expect(execAsyncRemote).toHaveBeenCalledWith(
 				mockServerConfig.serverId,
-				"docker service rollback my-app"
+				"docker service rollback my-app",
 			);
 		});
 	});
@@ -340,7 +346,7 @@ describe("SwarmAdapter", () => {
 					TaskTemplate: expect.objectContaining({
 						ForceUpdate: 1,
 					}),
-				})
+				}),
 			);
 		});
 	});
@@ -366,7 +372,9 @@ describe("SwarmAdapter", () => {
 				}),
 			};
 			mockDocker.getService.mockReturnValue(mockServiceInspect);
-			mockDocker.listTasks.mockResolvedValue([{ Status: { State: "running" } }]);
+			mockDocker.listTasks.mockResolvedValue([
+				{ Status: { State: "running" } },
+			]);
 
 			const result = await adapter.listDeployments();
 
@@ -400,7 +408,7 @@ describe("SwarmAdapter", () => {
 			expect(result).toEqual(["Line 1", "Line 2", "Line 3"]);
 			expect(execAsyncRemote).toHaveBeenCalledWith(
 				mockServerConfig.serverId,
-				expect.stringContaining("docker service logs my-app --tail 100")
+				expect.stringContaining("docker service logs my-app --tail 100"),
 			);
 		});
 
@@ -415,7 +423,7 @@ describe("SwarmAdapter", () => {
 
 			expect(execAsyncRemote).toHaveBeenCalledWith(
 				mockServerConfig.serverId,
-				expect.stringContaining("--timestamps")
+				expect.stringContaining("--timestamps"),
 			);
 		});
 	});
@@ -435,9 +443,7 @@ describe("SwarmAdapter", () => {
 						},
 					},
 					Endpoint: {
-						Ports: [
-							{ PublishedPort: 8080, TargetPort: 80, Protocol: "tcp" },
-						],
+						Ports: [{ PublishedPort: 8080, TargetPort: 80, Protocol: "tcp" }],
 					},
 				}),
 			};

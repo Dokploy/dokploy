@@ -54,7 +54,6 @@ export type {
 	OrchestratorType,
 	HealthStatus,
 	DeploymentStatus,
-
 	// Deployment types
 	DeploymentConfig,
 	Deployment,
@@ -63,44 +62,35 @@ export type {
 	Volume,
 	ResourceRequirements,
 	ProbeConfig,
-
 	// Service types
 	ServiceConfig,
 	Service,
 	ServicePort,
 	ServiceType,
-
 	// Ingress types
 	IngressConfig,
 	Ingress,
 	IngressRule,
-
 	// HPA types
 	HPAConfig,
 	HPAStatus,
 	HPABehavior,
 	CustomMetric,
 	ScalingPolicy,
-
 	// Network Policy types
 	NetworkPolicyConfig,
 	NetworkPolicyRule,
 	NetworkPolicyPeer,
-
 	// Metrics types
 	ResourceMetrics,
 	ContainerMetrics,
-
 	// Log types
 	LogOptions,
-
 	// Custom Resource types
 	CustomResource,
-
 	// Configuration types
 	ServerConfig,
 	K8sAdapterConfig,
-
 	// Migration types
 	MigrationResult,
 } from "./types";

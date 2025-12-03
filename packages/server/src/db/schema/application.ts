@@ -691,7 +691,12 @@ export const apiUpdateK8sDeploymentStrategy = createSchema
 	})
 	.required()
 	.extend({
-		k8sDeploymentStrategy: z.enum(["rolling", "recreate", "blue-green", "canary"]),
+		k8sDeploymentStrategy: z.enum([
+			"rolling",
+			"recreate",
+			"blue-green",
+			"canary",
+		]),
 		k8sNamespace: z.string().optional(),
 		k8sLabels: z.record(z.string()).optional(),
 		k8sAnnotations: z.record(z.string()).optional(),

@@ -262,15 +262,11 @@ describe("Orchestrator Types", () => {
 				behavior: {
 					scaleDown: {
 						stabilizationWindowSeconds: 300,
-						policies: [
-							{ type: "Percent", value: 50, periodSeconds: 60 },
-						],
+						policies: [{ type: "Percent", value: 50, periodSeconds: 60 }],
 					},
 					scaleUp: {
 						stabilizationWindowSeconds: 0,
-						policies: [
-							{ type: "Percent", value: 100, periodSeconds: 15 },
-						],
+						policies: [{ type: "Percent", value: 100, periodSeconds: 15 }],
 					},
 				},
 			};

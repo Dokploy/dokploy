@@ -64,7 +64,7 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 			});
 
 			expect(result.spec.routes[0].match).toBe(
-				"Host(`app.example.com`) && PathPrefix(`/api`)"
+				"Host(`app.example.com`) && PathPrefix(`/api`)",
 			);
 		});
 
@@ -285,11 +285,10 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 		});
 
 		test("stripPrefix creates strip prefix middleware", () => {
-			const result = commonMiddlewares.stripPrefix(
-				"strip-api",
-				"dokploy",
-				["/api", "/v1"]
-			);
+			const result = commonMiddlewares.stripPrefix("strip-api", "dokploy", [
+				"/api",
+				"/v1",
+			]);
 
 			expect(result.metadata.name).toBe("strip-api");
 			expect(result.spec.stripPrefix).toEqual({
@@ -302,7 +301,7 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 				"my-rate-limit",
 				"dokploy",
 				100,
-				50
+				50,
 			);
 
 			expect(result.metadata.name).toBe("my-rate-limit");
@@ -464,7 +463,8 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 			expect(resources.length).toBeGreaterThanOrEqual(2);
 
 			const redirectMiddleware = resources.find(
-				(r) => r.kind === "Middleware" && r.metadata.name === "redirect-to-https"
+				(r) =>
+					r.kind === "Middleware" && r.metadata.name === "redirect-to-https",
 			);
 			expect(redirectMiddleware).toBeDefined();
 
@@ -483,7 +483,8 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 			});
 
 			const stripMiddleware = resources.find(
-				(r) => r.kind === "Middleware" && r.metadata.name === "my-app-strip-prefix"
+				(r) =>
+					r.kind === "Middleware" && r.metadata.name === "my-app-strip-prefix",
 			);
 			expect(stripMiddleware).toBeDefined();
 			expect(stripMiddleware?.spec.stripPrefix.prefixes).toEqual(["/api"]);
@@ -500,7 +501,7 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 
 			const rateLimitMiddleware = resources.find(
 				(r) =>
-					r.kind === "Middleware" && r.metadata.name === "my-app-rate-limit"
+					r.kind === "Middleware" && r.metadata.name === "my-app-rate-limit",
 			);
 			expect(rateLimitMiddleware).toBeDefined();
 			expect(rateLimitMiddleware?.spec.rateLimit).toEqual({
@@ -519,7 +520,8 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 			});
 
 			const securityMiddleware = resources.find(
-				(r) => r.kind === "Middleware" && r.metadata.name === "security-headers"
+				(r) =>
+					r.kind === "Middleware" && r.metadata.name === "security-headers",
 			);
 			expect(securityMiddleware).toBeDefined();
 		});
@@ -534,7 +536,7 @@ describe("Traefik Kubernetes CRD Utilities", () => {
 			});
 
 			const compressMiddleware = resources.find(
-				(r) => r.kind === "Middleware" && r.metadata.name === "compress"
+				(r) => r.kind === "Middleware" && r.metadata.name === "compress",
 			);
 			expect(compressMiddleware).toBeDefined();
 		});

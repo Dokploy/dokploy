@@ -104,7 +104,9 @@ export const kubernetesRouter = createTRPCRouter({
 				}
 			}
 
-			const adapter = await OrchestratorFactory.forServer(input.serverId || null);
+			const adapter = await OrchestratorFactory.forServer(
+				input.serverId || null,
+			);
 			return adapter.healthCheck();
 		}),
 
@@ -133,7 +135,10 @@ export const kubernetesRouter = createTRPCRouter({
 					k8sKubeconfig: input.k8sKubeconfig,
 				})
 				.where(
-					eq(require("@dokploy/server/db/schema").server.serverId, input.serverId),
+					eq(
+						require("@dokploy/server/db/schema").server.serverId,
+						input.serverId,
+					),
 				);
 
 			return { success: true };
@@ -163,7 +168,10 @@ export const kubernetesRouter = createTRPCRouter({
 
 			const adapter = await OrchestratorFactory.forServer(input.serverId);
 
-			if (!("listNamespaces" in adapter) || typeof adapter.listNamespaces !== "function") {
+			if (
+				!("listNamespaces" in adapter) ||
+				typeof adapter.listNamespaces !== "function"
+			) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: "Kubernetes features not available on this server",
@@ -207,7 +215,9 @@ export const kubernetesRouter = createTRPCRouter({
 
 			// If app is deployed on K8s, update HPA in cluster
 			if (app.serverId) {
-				const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+				const adapter = await OrchestratorFactory.forApplication(
+					input.applicationId,
+				);
 
 				if (supportsHPA(adapter)) {
 					if (input.k8sHpaEnabled) {
@@ -222,7 +232,8 @@ export const kubernetesRouter = createTRPCRouter({
 							targetMemory: input.k8sHpaTargetMemory,
 							behavior: {
 								scaleDown: {
-									stabilizationWindowSeconds: input.k8sHpaScaleDownStabilization,
+									stabilizationWindowSeconds:
+										input.k8sHpaScaleDownStabilization,
 								},
 							},
 						});
@@ -258,7 +269,9 @@ export const kubernetesRouter = createTRPCRouter({
 				return null;
 			}
 
-			const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+			const adapter = await OrchestratorFactory.forApplication(
+				input.applicationId,
+			);
 
 			if (!supportsHPA(adapter)) {
 				return null;
@@ -298,7 +311,9 @@ export const kubernetesRouter = createTRPCRouter({
 
 			// If app is deployed on K8s, update network policy in cluster
 			if (app.serverId) {
-				const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+				const adapter = await OrchestratorFactory.forApplication(
+					input.applicationId,
+				);
 
 				if (supportsNetworkPolicies(adapter)) {
 					if (input.k8sNetworkPolicyEnabled) {
@@ -307,8 +322,10 @@ export const kubernetesRouter = createTRPCRouter({
 							namespace: app.k8sNamespace || "dokploy",
 							podSelector: { app: app.appName },
 							policyTypes: ["Ingress", "Egress"],
-							ingress: input.k8sAllowedNamespaces?.map(ns => ({
-								from: [{ namespaceSelector: { "kubernetes.io/metadata.name": ns } }],
+							ingress: input.k8sAllowedNamespaces?.map((ns) => ({
+								from: [
+									{ namespaceSelector: { "kubernetes.io/metadata.name": ns } },
+								],
 							})),
 							egress: [{ to: [] }], // Allow all egress by default
 						});
@@ -419,7 +436,10 @@ export const kubernetesRouter = createTRPCRouter({
 			if (input.serverId) {
 				const adapter = await OrchestratorFactory.forServer(input.serverId);
 
-				if ("createCustomResource" in adapter && typeof adapter.createCustomResource === "function") {
+				if (
+					"createCustomResource" in adapter &&
+					typeof adapter.createCustomResource === "function"
+				) {
 					await adapter.createCustomResource({
 						apiVersion: input.apiVersion,
 						kind: input.kind,
@@ -476,7 +496,10 @@ export const kubernetesRouter = createTRPCRouter({
 			if (resource.serverId) {
 				const adapter = await OrchestratorFactory.forServer(resource.serverId);
 
-				if ("deleteCustomResource" in adapter && typeof adapter.deleteCustomResource === "function") {
+				if (
+					"deleteCustomResource" in adapter &&
+					typeof adapter.deleteCustomResource === "function"
+				) {
 					try {
 						await adapter.deleteCustomResource(
 							resource.apiVersion,
@@ -509,8 +532,9 @@ export const kubernetesRouter = createTRPCRouter({
 			// This is simplified for clarity
 			const results = await query;
 
-			return results.filter(r => {
-				if (input.applicationId && r.applicationId !== input.applicationId) return false;
+			return results.filter((r) => {
+				if (input.applicationId && r.applicationId !== input.applicationId)
+					return false;
 				if (input.serverId && r.serverId !== input.serverId) return false;
 				if (input.kind && r.kind !== input.kind) return false;
 				if (input.namespace && r.namespace !== input.namespace) return false;
@@ -587,7 +611,9 @@ export const kubernetesRouter = createTRPCRouter({
 				return null;
 			}
 
-			const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+			const adapter = await OrchestratorFactory.forApplication(
+				input.applicationId,
+			);
 
 			return adapter.getMetrics(app.appName, app.k8sNamespace || "dokploy");
 		}),
@@ -612,7 +638,9 @@ export const kubernetesRouter = createTRPCRouter({
 				return [];
 			}
 
-			const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+			const adapter = await OrchestratorFactory.forApplication(
+				input.applicationId,
+			);
 
 			return adapter.getEvents(app.appName, app.k8sNamespace || "dokploy");
 		}),
@@ -633,7 +661,9 @@ export const kubernetesRouter = createTRPCRouter({
 				return null;
 			}
 
-			const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+			const adapter = await OrchestratorFactory.forApplication(
+				input.applicationId,
+			);
 
 			return adapter.getDeployment(app.appName, app.k8sNamespace || "dokploy");
 		}),
@@ -655,7 +685,9 @@ export const kubernetesRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const app = await findApplicationById(input.applicationId);
 
-			const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+			const adapter = await OrchestratorFactory.forApplication(
+				input.applicationId,
+			);
 
 			await adapter.scaleApplication(
 				app.appName,
@@ -689,9 +721,14 @@ export const kubernetesRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const app = await findApplicationById(input.applicationId);
 
-			const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+			const adapter = await OrchestratorFactory.forApplication(
+				input.applicationId,
+			);
 
-			await adapter.restartApplication(app.appName, app.k8sNamespace || "dokploy");
+			await adapter.restartApplication(
+				app.appName,
+				app.k8sNamespace || "dokploy",
+			);
 
 			return { success: true };
 		}),
@@ -709,7 +746,9 @@ export const kubernetesRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const app = await findApplicationById(input.applicationId);
 
-			const adapter = await OrchestratorFactory.forApplication(input.applicationId);
+			const adapter = await OrchestratorFactory.forApplication(
+				input.applicationId,
+			);
 
 			await adapter.rollbackApplication(
 				app.appName,

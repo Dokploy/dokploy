@@ -33,7 +33,9 @@ vi.mock("@kubernetes/client-node", () => {
 		loadFromFile = vi.fn();
 		loadFromDefault = vi.fn();
 		setCurrentContext = vi.fn();
-		getCurrentCluster = vi.fn(() => ({ server: "https://mock.k8s.local:6443" }));
+		getCurrentCluster = vi.fn(() => ({
+			server: "https://mock.k8s.local:6443",
+		}));
 		makeApiClient = vi.fn(() => ({}));
 	}
 

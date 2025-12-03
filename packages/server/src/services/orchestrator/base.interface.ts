@@ -362,7 +362,10 @@ export interface IOrchestratorAdapter {
  */
 export function supportsHPA(
 	adapter: IOrchestratorAdapter,
-): adapter is IOrchestratorAdapter & Required<Pick<IOrchestratorAdapter, "configureHPA" | "getHPAStatus" | "deleteHPA">> {
+): adapter is IOrchestratorAdapter &
+	Required<
+		Pick<IOrchestratorAdapter, "configureHPA" | "getHPAStatus" | "deleteHPA">
+	> {
 	return (
 		typeof adapter.configureHPA === "function" &&
 		typeof adapter.getHPAStatus === "function" &&
@@ -375,7 +378,13 @@ export function supportsHPA(
  */
 export function supportsNetworkPolicies(
 	adapter: IOrchestratorAdapter,
-): adapter is IOrchestratorAdapter & Required<Pick<IOrchestratorAdapter, "createNetworkPolicy" | "getNetworkPolicy" | "deleteNetworkPolicy">> {
+): adapter is IOrchestratorAdapter &
+	Required<
+		Pick<
+			IOrchestratorAdapter,
+			"createNetworkPolicy" | "getNetworkPolicy" | "deleteNetworkPolicy"
+		>
+	> {
 	return (
 		typeof adapter.createNetworkPolicy === "function" &&
 		typeof adapter.getNetworkPolicy === "function" &&
@@ -388,7 +397,13 @@ export function supportsNetworkPolicies(
  */
 export function supportsCustomResources(
 	adapter: IOrchestratorAdapter,
-): adapter is IOrchestratorAdapter & Required<Pick<IOrchestratorAdapter, "createCustomResource" | "getCustomResource" | "deleteCustomResource">> {
+): adapter is IOrchestratorAdapter &
+	Required<
+		Pick<
+			IOrchestratorAdapter,
+			"createCustomResource" | "getCustomResource" | "deleteCustomResource"
+		>
+	> {
 	return (
 		typeof adapter.createCustomResource === "function" &&
 		typeof adapter.getCustomResource === "function" &&
@@ -401,7 +416,8 @@ export function supportsCustomResources(
  */
 export function supportsNamespaces(
 	adapter: IOrchestratorAdapter,
-): adapter is IOrchestratorAdapter & Required<Pick<IOrchestratorAdapter, "ensureNamespace" | "listNamespaces">> {
+): adapter is IOrchestratorAdapter &
+	Required<Pick<IOrchestratorAdapter, "ensureNamespace" | "listNamespaces">> {
 	return (
 		typeof adapter.ensureNamespace === "function" &&
 		typeof adapter.listNamespaces === "function"

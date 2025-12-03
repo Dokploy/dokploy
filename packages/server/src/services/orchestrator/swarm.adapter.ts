@@ -23,10 +23,7 @@ import type {
 	ServerConfig,
 } from "./types";
 import { getRemoteDocker } from "../../utils/servers/remote-docker";
-import {
-	execAsync,
-	execAsyncRemote,
-} from "../../utils/process/execAsync";
+import { execAsync, execAsyncRemote } from "../../utils/process/execAsync";
 
 export class SwarmAdapter implements IOrchestratorAdapter {
 	private docker: Dockerode | null = null;
@@ -41,7 +38,9 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 	 */
 	private async getDocker(): Promise<Dockerode> {
 		if (!this.docker) {
-			this.docker = await getRemoteDocker(this.serverConfig.serverId || undefined);
+			this.docker = await getRemoteDocker(
+				this.serverConfig.serverId || undefined,
+			);
 		}
 		return this.docker;
 	}
@@ -49,7 +48,9 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 	/**
 	 * Execute command on server (local or remote)
 	 */
-	private async exec(command: string): Promise<{ stdout: string; stderr: string }> {
+	private async exec(
+		command: string,
+	): Promise<{ stdout: string; stderr: string }> {
 		if (this.serverConfig.serverId) {
 			return execAsyncRemote(this.serverConfig.serverId, command);
 		}
@@ -141,7 +142,10 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 		return this.getDeploymentFromService(config.name);
 	}
 
-	async getDeployment(name: string, _namespace?: string): Promise<Deployment | null> {
+	async getDeployment(
+		name: string,
+		_namespace?: string,
+	): Promise<Deployment | null> {
 		try {
 			return await this.getDeploymentFromService(name);
 		} catch {
@@ -162,7 +166,7 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 			}),
 		});
 
-		const runningTasks = tasks.filter(t => t.Status?.State === "running");
+		const runningTasks = tasks.filter((t) => t.Status?.State === "running");
 		const desiredReplicas = inspect.Spec?.Mode?.Replicated?.Replicas || 1;
 
 		let status: DeploymentStatus = "running";
@@ -186,7 +190,11 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 		};
 	}
 
-	async scaleApplication(name: string, replicas: number, _namespace?: string): Promise<void> {
+	async scaleApplication(
+		name: string,
+		replicas: number,
+		_namespace?: string,
+	): Promise<void> {
 		const { stdout, stderr } = await this.exec(
 			`docker service scale ${name}=${replicas}`,
 		);
@@ -284,7 +292,8 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 		}
 
 		const services = await docker.listServices({
-			filters: Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined,
+			filters:
+				Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined,
 		});
 
 		const deployments: Deployment[] = [];
@@ -321,7 +330,7 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 				Networks: [{ Target: "dokploy-network" }],
 			},
 			EndpointSpec: {
-				Ports: config.ports.map(p => ({
+				Ports: config.ports.map((p) => ({
 					Protocol: (p.protocol?.toLowerCase() || "tcp") as "tcp" | "udp",
 					TargetPort: p.targetPort,
 					PublishedPort: p.port,
@@ -352,7 +361,7 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 			return {
 				name: inspect.Spec?.Name || name,
 				type: "ClusterIP",
-				ports: (inspect.Endpoint?.Ports || []).map(p => ({
+				ports: (inspect.Endpoint?.Ports || []).map((p) => ({
 					port: p.PublishedPort || 0,
 					targetPort: p.TargetPort || 0,
 					protocol: (p.Protocol?.toUpperCase() || "TCP") as "TCP" | "UDP",
@@ -377,7 +386,7 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 
 		if (config.ports) {
 			updateSpec.EndpointSpec = {
-				Ports: config.ports.map(p => ({
+				Ports: config.ports.map((p) => ({
 					Protocol: (p.protocol?.toLowerCase() || "tcp") as "tcp" | "udp",
 					TargetPort: p.targetPort,
 					PublishedPort: p.port,
@@ -441,7 +450,10 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 	// Monitoring & Logs
 	// ==========================================================================
 
-	async getMetrics(name: string, _namespace?: string): Promise<ResourceMetrics | null> {
+	async getMetrics(
+		name: string,
+		_namespace?: string,
+	): Promise<ResourceMetrics | null> {
 		try {
 			const docker = await this.getDocker();
 
@@ -547,7 +559,7 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 					// Ignore errors in streaming
 				}
 
-				await new Promise(resolve => setTimeout(resolve, 1000));
+				await new Promise((resolve) => setTimeout(resolve, 1000));
 			}
 		};
 
@@ -585,8 +597,10 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 			}),
 		});
 
-		return tasks.map(task => ({
-			type: (task.Status?.State === "failed" ? "Warning" : "Normal") as "Normal" | "Warning",
+		return tasks.map((task) => ({
+			type: (task.Status?.State === "failed" ? "Warning" : "Normal") as
+				| "Normal"
+				| "Warning",
 			reason: task.Status?.State || "Unknown",
 			message: task.Status?.Message || "",
 			count: 1,
@@ -599,10 +613,12 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 	// Private Helpers
 	// ==========================================================================
 
-	private buildSwarmServiceSpec(config: DeploymentConfig): CreateServiceOptions {
+	private buildSwarmServiceSpec(
+		config: DeploymentConfig,
+	): CreateServiceOptions {
 		const envVars = Object.entries(config.env).map(([k, v]) => `${k}=${v}`);
 
-		const mounts = (config.volumes || []).map(v => ({
+		const mounts = (config.volumes || []).map((v) => ({
 			Type: (v.pvcName ? "volume" : "bind") as "bind" | "volume",
 			Source: v.hostPath || v.pvcName || v.name,
 			Target: v.mountPath,
@@ -661,7 +677,7 @@ export class SwarmAdapter implements IOrchestratorAdapter {
 				},
 			},
 			EndpointSpec: {
-				Ports: config.ports.map(p => ({
+				Ports: config.ports.map((p) => ({
 					Protocol: (p.protocol?.toLowerCase() || "tcp") as "tcp" | "udp",
 					TargetPort: p.containerPort,
 					PublishedPort: p.publishedPort,

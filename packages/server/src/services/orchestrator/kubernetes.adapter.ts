@@ -49,7 +49,9 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 		} else if (config.kubeconfig) {
 			// Load from string (base64 or raw YAML)
 			try {
-				const decoded = Buffer.from(config.kubeconfig, "base64").toString("utf8");
+				const decoded = Buffer.from(config.kubeconfig, "base64").toString(
+					"utf8",
+				);
 				this.kc.loadFromString(decoded);
 			} catch {
 				// Not base64, try raw YAML
@@ -93,17 +95,19 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			const versionInfo = await this.coreApi.getAPIVersions();
 			const nodes = await this.coreApi.listNode();
 
-			const readyNodes = nodes.items.filter(node =>
+			const readyNodes = nodes.items.filter((node) =>
 				node.status?.conditions?.some(
-					c => c.type === "Ready" && c.status === "True"
-				)
+					(c) => c.type === "Ready" && c.status === "True",
+				),
 			);
 
 			return {
 				healthy: readyNodes.length > 0,
 				message: `Kubernetes cluster is healthy with ${readyNodes.length} ready nodes`,
 				details: {
-					version: versionInfo.serverAddressByClientCIDRs?.[0]?.serverAddress || "unknown",
+					version:
+						versionInfo.serverAddressByClientCIDRs?.[0]?.serverAddress ||
+						"unknown",
 					nodes: readyNodes.length,
 					apiEndpoint: this.kc.getCurrentCluster()?.server,
 					lastCheck: new Date(),
@@ -162,7 +166,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			name: config.name,
 			namespace,
 			selector: { app: config.name },
-			ports: config.ports.map(p => ({
+			ports: config.ports.map((p) => ({
 				port: p.containerPort,
 				targetPort: p.containerPort,
 				protocol: p.protocol,
@@ -194,13 +198,20 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 
 		// 8. Configure PDB if specified
 		if (config.pdb) {
-			await this.configurePodDisruptionBudget(config.name, namespace, config.pdb);
+			await this.configurePodDisruptionBudget(
+				config.name,
+				namespace,
+				config.pdb,
+			);
 		}
 
 		return this.getDeployment(config.name, namespace) as Promise<Deployment>;
 	}
 
-	async getDeployment(name: string, namespace?: string): Promise<Deployment | null> {
+	async getDeployment(
+		name: string,
+		namespace?: string,
+	): Promise<Deployment | null> {
 		const ns = namespace || this.config.namespace;
 
 		try {
@@ -374,7 +385,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			labelSelector,
 		});
 
-		return response.items.map(d => this.mapK8sDeployment(d));
+		return response.items.map((d) => this.mapK8sDeployment(d));
 	}
 
 	// ==========================================================================
@@ -394,7 +405,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			spec: {
 				selector: config.selector,
 				type: config.type || "ClusterIP",
-				ports: config.ports.map(p => ({
+				ports: config.ports.map((p) => ({
 					name: p.name || `port-${p.port}`,
 					port: p.port,
 					targetPort: p.targetPort,
@@ -439,10 +450,15 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			return {
 				name: response.metadata?.name || name,
 				namespace: response.metadata?.namespace,
-				type: (response.spec?.type || "ClusterIP") as "ClusterIP" | "NodePort" | "LoadBalancer",
+				type: (response.spec?.type || "ClusterIP") as
+					| "ClusterIP"
+					| "NodePort"
+					| "LoadBalancer",
 				clusterIP: response.spec?.clusterIP,
-				externalIP: response.status?.loadBalancer?.ingress?.map(i => i.ip || i.hostname || ""),
-				ports: (response.spec?.ports || []).map(p => ({
+				externalIP: response.status?.loadBalancer?.ingress?.map(
+					(i) => i.ip || i.hostname || "",
+				),
+				ports: (response.spec?.ports || []).map((p) => ({
 					name: p.name,
 					port: p.port,
 					targetPort: typeof p.targetPort === "number" ? p.targetPort : 0,
@@ -474,7 +490,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 				...(config.selector && { selector: config.selector }),
 				...(config.type && { type: config.type }),
 				...(config.ports && {
-					ports: config.ports.map(p => ({
+					ports: config.ports.map((p) => ({
 						name: p.name || `port-${p.port}`,
 						port: p.port,
 						targetPort: p.targetPort,
@@ -522,33 +538,40 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 
 		try {
 			// Try to get Traefik IngressRoute first
-			const ingressRoute = await this.customObjectsApi.getNamespacedCustomObject({
-				group: "traefik.io",
-				version: "v1alpha1",
-				namespace: ns,
-				plural: "ingressroutes",
-				name,
-			});
+			const ingressRoute =
+				await this.customObjectsApi.getNamespacedCustomObject({
+					group: "traefik.io",
+					version: "v1alpha1",
+					namespace: ns,
+					plural: "ingressroutes",
+					name,
+				});
 
-			const spec = (ingressRoute as { spec?: { routes?: Array<{ match?: string }> } }).spec;
+			const spec = (
+				ingressRoute as { spec?: { routes?: Array<{ match?: string }> } }
+			).spec;
 			const routes = spec?.routes || [];
 
 			return {
 				name,
 				namespace: ns,
-				hosts: routes.map(r => {
-					const match = r.match?.match(/Host\(`([^`]+)`\)/);
-					return match ? match[1] : "";
-				}).filter(Boolean),
+				hosts: routes
+					.map((r) => {
+						const match = r.match?.match(/Host\(`([^`]+)`\)/);
+						return match ? match[1] : "";
+					})
+					.filter(Boolean),
 				tls: true,
-				rules: routes.map(r => ({
+				rules: routes.map((r) => ({
 					host: r.match?.match(/Host\(`([^`]+)`\)/)?.[1] || "",
-					paths: [{
-						path: "/",
-						pathType: "Prefix" as const,
-						serviceName: name,
-						servicePort: 80,
-					}],
+					paths: [
+						{
+							path: "/",
+							pathType: "Prefix" as const,
+							serviceName: name,
+							servicePort: 80,
+						},
+					],
 				})),
 			};
 		} catch {
@@ -562,13 +585,16 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 				return {
 					name: ingress.metadata?.name || name,
 					namespace: ingress.metadata?.namespace,
-					hosts: ingress.spec?.rules?.map(r => r.host || "") || [],
+					hosts: ingress.spec?.rules?.map((r) => r.host || "") || [],
 					tls: !!ingress.spec?.tls,
-					rules: (ingress.spec?.rules || []).map(r => ({
+					rules: (ingress.spec?.rules || []).map((r) => ({
 						host: r.host || "",
-						paths: (r.http?.paths || []).map(p => ({
+						paths: (r.http?.paths || []).map((p) => ({
 							path: p.path || "/",
-							pathType: (p.pathType || "Prefix") as "Prefix" | "Exact" | "ImplementationSpecific",
+							pathType: (p.pathType || "Prefix") as
+								| "Prefix"
+								| "Exact"
+								| "ImplementationSpecific",
 							serviceName: p.backend?.service?.name || "",
 							servicePort: p.backend?.service?.port?.number || 80,
 						})),
@@ -604,7 +630,10 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 	// Monitoring & Logs
 	// ==========================================================================
 
-	async getMetrics(name: string, namespace?: string): Promise<ResourceMetrics | null> {
+	async getMetrics(
+		name: string,
+		namespace?: string,
+	): Promise<ResourceMetrics | null> {
 		const ns = namespace || this.config.namespace;
 
 		try {
@@ -618,8 +647,8 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			}
 
 			const podMetrics = await this.metricsApi.getPodMetrics(ns);
-			const appPodMetrics = podMetrics.items.filter(m =>
-				pods.items.some(p => p.metadata?.name === m.metadata?.name)
+			const appPodMetrics = podMetrics.items.filter((m) =>
+				pods.items.some((p) => p.metadata?.name === m.metadata?.name),
 			);
 
 			let totalCPU = 0;
@@ -737,7 +766,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 				follow: true,
 				tailLines: options?.tailLines,
 				timestamps: options?.timestamps,
-			}
+			},
 		);
 
 		// Note: The actual streaming implementation would need
@@ -809,7 +838,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 								? {
 										stabilizationWindowSeconds:
 											config.behavior.scaleDown.stabilizationWindowSeconds,
-										policies: config.behavior.scaleDown.policies?.map(p => ({
+										policies: config.behavior.scaleDown.policies?.map((p) => ({
 											type: p.type,
 											value: p.value,
 											periodSeconds: p.periodSeconds,
@@ -820,7 +849,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 								? {
 										stabilizationWindowSeconds:
 											config.behavior.scaleUp.stabilizationWindowSeconds,
-										policies: config.behavior.scaleUp.policies?.map(p => ({
+										policies: config.behavior.scaleUp.policies?.map((p) => ({
 											type: p.type,
 											value: p.value,
 											periodSeconds: p.periodSeconds,
@@ -874,28 +903,32 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 		}
 	}
 
-	async getHPAStatus(name: string, namespace?: string): Promise<HPAStatus | null> {
+	async getHPAStatus(
+		name: string,
+		namespace?: string,
+	): Promise<HPAStatus | null> {
 		const ns = namespace || this.config.namespace;
 
 		try {
-			const response = await this.autoscalingApi.readNamespacedHorizontalPodAutoscaler({
-				name,
-				namespace: ns,
-			});
+			const response =
+				await this.autoscalingApi.readNamespacedHorizontalPodAutoscaler({
+					name,
+					namespace: ns,
+				});
 
 			return {
 				currentReplicas: response.status?.currentReplicas || 0,
 				desiredReplicas: response.status?.desiredReplicas || 0,
-				currentMetrics: response.status?.currentMetrics?.map(m => ({
+				currentMetrics: response.status?.currentMetrics?.map((m) => ({
 					name: m.resource?.name || "unknown",
 					currentValue: String(m.resource?.current?.averageUtilization || 0),
 					targetValue: String(
 						response.spec?.metrics?.find(
-							sm => sm.resource?.name === m.resource?.name
-						)?.resource?.target?.averageUtilization || 0
+							(sm) => sm.resource?.name === m.resource?.name,
+						)?.resource?.target?.averageUtilization || 0,
 					),
 				})),
-				conditions: response.status?.conditions?.map(c => ({
+				conditions: response.status?.conditions?.map((c) => ({
 					type: c.type || "",
 					status: c.status as "True" | "False" | "Unknown",
 					reason: c.reason,
@@ -937,8 +970,8 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 					matchLabels: policy.podSelector,
 				},
 				policyTypes: policy.policyTypes,
-				ingress: policy.ingress?.map(rule => ({
-					from: rule.from?.map(peer => ({
+				ingress: policy.ingress?.map((rule) => ({
+					from: rule.from?.map((peer) => ({
 						...(peer.podSelector && {
 							podSelector: { matchLabels: peer.podSelector },
 						}),
@@ -947,13 +980,13 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 						}),
 						...(peer.ipBlock && { ipBlock: peer.ipBlock }),
 					})),
-					ports: rule.ports?.map(p => ({
+					ports: rule.ports?.map((p) => ({
 						protocol: p.protocol,
 						port: p.port,
 					})),
 				})),
-				egress: policy.egress?.map(rule => ({
-					to: rule.to?.map(peer => ({
+				egress: policy.egress?.map((rule) => ({
+					to: rule.to?.map((peer) => ({
 						...(peer.podSelector && {
 							podSelector: { matchLabels: peer.podSelector },
 						}),
@@ -962,7 +995,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 						}),
 						...(peer.ipBlock && { ipBlock: peer.ipBlock }),
 					})),
-					ports: rule.ports?.map(p => ({
+					ports: rule.ports?.map((p) => ({
 						protocol: p.protocol,
 						port: p.port,
 					})),
@@ -1007,25 +1040,32 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 				name: response.metadata?.name || name,
 				namespace: response.metadata?.namespace,
 				podSelector: response.spec?.podSelector?.matchLabels || {},
-				policyTypes: (response.spec?.policyTypes || []) as ("Ingress" | "Egress")[],
-				ingress: response.spec?.ingress?.map(rule => ({
-					from: rule.from?.map(peer => ({
+				policyTypes: (response.spec?.policyTypes || []) as (
+					| "Ingress"
+					| "Egress"
+				)[],
+				ingress: response.spec?.ingress?.map((rule) => ({
+					from: rule.from?.map((peer) => ({
 						podSelector: peer.podSelector?.matchLabels,
 						namespaceSelector: peer.namespaceSelector?.matchLabels,
-						ipBlock: peer.ipBlock as { cidr: string; except?: string[] } | undefined,
+						ipBlock: peer.ipBlock as
+							| { cidr: string; except?: string[] }
+							| undefined,
 					})),
-					ports: rule.ports?.map(p => ({
+					ports: rule.ports?.map((p) => ({
 						protocol: p.protocol as "TCP" | "UDP",
 						port: p.port as number,
 					})),
 				})),
-				egress: response.spec?.egress?.map(rule => ({
-					to: rule.to?.map(peer => ({
+				egress: response.spec?.egress?.map((rule) => ({
+					to: rule.to?.map((peer) => ({
 						podSelector: peer.podSelector?.matchLabels,
 						namespaceSelector: peer.namespaceSelector?.matchLabels,
-						ipBlock: peer.ipBlock as { cidr: string; except?: string[] } | undefined,
+						ipBlock: peer.ipBlock as
+							| { cidr: string; except?: string[] }
+							| undefined,
 					})),
-					ports: rule.ports?.map(p => ({
+					ports: rule.ports?.map((p) => ({
 						protocol: p.protocol as "TCP" | "UDP",
 						port: p.port as number,
 					})),
@@ -1048,7 +1088,9 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 	// Custom Resources
 	// ==========================================================================
 
-	async createCustomResource(resource: CustomResource): Promise<CustomResource> {
+	async createCustomResource(
+		resource: CustomResource,
+	): Promise<CustomResource> {
 		const [group, version] = resource.apiVersion.split("/");
 		const namespace = resource.metadata.namespace || this.config.namespace;
 		const plural = `${resource.kind.toLowerCase()}s`; // Simplified pluralization
@@ -1148,7 +1190,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 
 	async listNamespaces(): Promise<string[]> {
 		const response = await this.coreApi.listNamespace();
-		return response.items.map(ns => ns.metadata?.name || "").filter(Boolean);
+		return response.items.map((ns) => ns.metadata?.name || "").filter(Boolean);
 	}
 
 	// ==========================================================================
@@ -1175,12 +1217,14 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			fieldSelector: `involvedObject.name=${name}`,
 		});
 
-		return events.items.map(e => ({
+		return events.items.map((e) => ({
 			type: (e.type || "Normal") as "Normal" | "Warning",
 			reason: e.reason || "Unknown",
 			message: e.message || "",
 			count: e.count || 1,
-			firstTimestamp: e.firstTimestamp ? new Date(e.firstTimestamp) : new Date(),
+			firstTimestamp: e.firstTimestamp
+				? new Date(e.firstTimestamp)
+				: new Date(),
 			lastTimestamp: e.lastTimestamp ? new Date(e.lastTimestamp) : new Date(),
 		}));
 	}
@@ -1218,12 +1262,16 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 				},
 				strategy: config.strategy
 					? {
-							type: config.strategy.type === "rolling" ? "RollingUpdate" : "Recreate",
+							type:
+								config.strategy.type === "rolling"
+									? "RollingUpdate"
+									: "Recreate",
 							...(config.strategy.type === "rolling" &&
 								config.strategy.rollingUpdate && {
 									rollingUpdate: {
 										maxSurge: config.strategy.rollingUpdate.maxSurge,
-										maxUnavailable: config.strategy.rollingUpdate.maxUnavailable,
+										maxUnavailable:
+											config.strategy.rollingUpdate.maxUnavailable,
 									},
 								}),
 						}
@@ -1250,7 +1298,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 							{
 								name: config.name,
 								image: config.image,
-								ports: config.ports.map(p => ({
+								ports: config.ports.map((p) => ({
 									containerPort: p.containerPort,
 									protocol: p.protocol || "TCP",
 								})),
@@ -1278,14 +1326,14 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 								...(config.startupProbe && {
 									startupProbe: this.buildProbe(config.startupProbe),
 								}),
-								volumeMounts: config.volumes?.map(v => ({
+								volumeMounts: config.volumes?.map((v) => ({
 									name: v.name,
 									mountPath: v.mountPath,
 									readOnly: v.readOnly,
 								})),
 							},
 						],
-						volumes: config.volumes?.map(v => ({
+						volumes: config.volumes?.map((v) => ({
 							name: v.name,
 							...(v.pvcName && {
 								persistentVolumeClaim: { claimName: v.pvcName },
@@ -1450,7 +1498,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 
 		// Check conditions for failures
 		const failedCondition = status?.conditions?.find(
-			c => c.type === "Available" && c.status === "False"
+			(c) => c.type === "Available" && c.status === "False",
 		);
 		if (failedCondition) {
 			deploymentStatus = "failed";
@@ -1470,7 +1518,7 @@ export class KubernetesAdapter implements IOrchestratorAdapter {
 			createdAt: deployment.metadata?.creationTimestamp
 				? new Date(deployment.metadata.creationTimestamp)
 				: undefined,
-			conditions: status?.conditions?.map(c => ({
+			conditions: status?.conditions?.map((c) => ({
 				type: c.type || "",
 				status: c.status as "True" | "False" | "Unknown",
 				reason: c.reason,
