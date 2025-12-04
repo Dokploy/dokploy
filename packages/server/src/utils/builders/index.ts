@@ -29,13 +29,14 @@ export type ApplicationNested = InferResultType<
 		redirects: true;
 		ports: true;
 		registry: true;
+		buildRegistry: true;
 		environment: { with: { project: true } };
 	}
 >;
 
 export const getBuildCommand = (application: ApplicationNested) => {
 	let command = "";
-	const { buildType, registry } = application;
+	const { buildType } = application;
 
 	if (application.sourceType === "docker") {
 		return "";
@@ -60,7 +61,7 @@ export const getBuildCommand = (application: ApplicationNested) => {
 			command = getRailpackCommand(application);
 			break;
 	}
-	if (registry) {
+	if (application.registry || application.buildRegistry) {
 		command += uploadImageRemoteCommand(application);
 	}
 
@@ -79,6 +80,7 @@ export const mechanizeDockerContainer = async (
 		memoryReservation,
 		cpuReservation,
 		command,
+		args,
 		ports,
 	} = application;
 
@@ -125,12 +127,16 @@ export const mechanizeDockerContainer = async (
 				Image: image,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
+				...(command && {
+					Command: command.split(" "),
+				}),
+				...(args &&
+					args.length > 0 && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,
@@ -153,8 +159,6 @@ export const mechanizeDockerContainer = async (
 					})),
 				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {
@@ -169,13 +173,15 @@ export const mechanizeDockerContainer = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch {
+	} catch (error) {
+		console.log(error);
 		await docker.createService(settings);
 	}
 };
 
 const getImageName = (application: ApplicationNested) => {
-	const { appName, sourceType, dockerImage, registry } = application;
+	const { appName, sourceType, dockerImage, registry, buildRegistry } =
+		application;
 	const imageName = `${appName}:latest`;
 	if (sourceType === "docker") {
 		return dockerImage || "ERROR-NO-IMAGE-PROVIDED";
@@ -188,12 +194,26 @@ const getImageName = (application: ApplicationNested) => {
 			: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
 		return registryTag;
 	}
+	if (buildRegistry) {
+		const { registryUrl, imagePrefix, username } = buildRegistry;
+		const registryTag = imagePrefix
+			? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
+			: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
+		return registryTag;
+	}
 
 	return imageName;
 };
 
 export const getAuthConfig = (application: ApplicationNested) => {
-	const { registry, username, password, sourceType, registryUrl } = application;
+	const {
+		registry,
+		buildRegistry,
+		username,
+		password,
+		sourceType,
+		registryUrl,
+	} = application;
 
 	if (sourceType === "docker") {
 		if (username && password) {
@@ -208,6 +228,12 @@ export const getAuthConfig = (application: ApplicationNested) => {
 			password: registry.password,
 			username: registry.username,
 			serveraddress: registry.registryUrl,
+		};
+	} else if (buildRegistry) {
+		return {
+			password: buildRegistry.password,
+			username: buildRegistry.username,
+			serveraddress: buildRegistry.registryUrl,
 		};
 	}
 

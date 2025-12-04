@@ -28,6 +28,7 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 		databaseUser,
 		databasePassword,
 		command,
+		args,
 		mounts,
 	} = postgres;
 
@@ -72,12 +73,16 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
+				...(command && {
+					Command: command.split(" "),
+				}),
+				...(args &&
+					args.length > 0 && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,
@@ -105,8 +110,6 @@ export const buildPostgres = async (postgres: PostgresNested) => {
 						: [],
 				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 	try {
 		const service = docker.getService(appName);

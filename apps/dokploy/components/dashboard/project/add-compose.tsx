@@ -161,8 +161,8 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 												placeholder="Frontend"
 												{...field}
 												onChange={(e) => {
-													const val = e.target.value?.trim() || "";
-													const serviceName = slugify(val);
+													const val = e.target.value || "";
+													const serviceName = slugify(val.trim());
 													form.setValue("appName", `${slug}-${serviceName}`);
 													field.onChange(val);
 												}}

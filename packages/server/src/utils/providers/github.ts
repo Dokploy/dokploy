@@ -159,7 +159,6 @@ export const cloneGithubRepository = async ({
 	const octokit = authGithub(githubProvider);
 	const token = await getGithubToken(octokit);
 	const repoclone = `github.com/${owner}/${repository}.git`;
-	// await recreateDirectory(outputPath);
 	command += `rm -rf ${outputPath};`;
 	command += `mkdir -p ${outputPath};`;
 	const cloneUrl = `https://oauth2:${token}@${repoclone}`;

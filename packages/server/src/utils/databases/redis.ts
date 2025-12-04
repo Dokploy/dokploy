@@ -26,6 +26,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		cpuLimit,
 		cpuReservation,
 		command,
+		args,
 		mounts,
 	} = redis;
 
@@ -70,11 +71,22 @@ export const buildRedis = async (redis: RedisNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				Command: ["/bin/sh"],
-				Args: [
-					"-c",
-					command ? command : `redis-server --requirepass ${databasePassword}`,
-				],
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
+				...(command || args
+					? {
+							...(command && {
+								Command: command.split(" "),
+							}),
+							...(args &&
+								args.length > 0 && {
+									Args: args,
+								}),
+						}
+					: {
+							Command: ["/bin/sh"],
+							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
+						}),
 				Labels,
 			},
 			Networks,
@@ -102,8 +114,6 @@ export const buildRedis = async (redis: RedisNested) => {
 						: [],
 				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {

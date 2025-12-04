@@ -45,6 +45,7 @@ export const mariadb = pgTable("mariadb", {
 	databaseRootPassword: text("rootPassword").notNull(),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
+	args: text("args").array(),
 	env: text("env"),
 	// RESOURCES
 	memoryReservation: text("memoryReservation"),
@@ -114,6 +115,7 @@ const createSchema = createInsertSchema(mariadb, {
 		.optional(),
 	dockerImage: z.string().default("mariadb:6"),
 	command: z.string().optional(),
+	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),
 	memoryLimit: z.string().optional(),

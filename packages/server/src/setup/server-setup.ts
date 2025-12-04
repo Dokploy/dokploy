@@ -51,7 +51,12 @@ export const serverSetup = async (
 	});
 
 	try {
-		onData?.("\nInstalling Server Dependencies: ✅\n");
+		const isBuildServer = server.serverType === "build";
+		onData?.(
+			isBuildServer
+				? "\nInstalling Build Server Dependencies: ✅\n"
+				: "\nInstalling Server Dependencies: ✅\n",
+		);
 		await installRequirements(serverId, onData);
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -65,7 +70,7 @@ export const serverSetup = async (
 	}
 };
 
-export const defaultCommand = () => {
+export const defaultCommand = (isBuildServer = false) => {
 	const bashCommand = `
 set -e;
 DOCKER_VERSION=27.0.3
@@ -126,6 +131,7 @@ echo -e "---------------------------------------------"
 echo "| CPU Architecture  | $SYS_ARCH"
 echo "| Operating System  | $OS_TYPE $OS_VERSION"
 echo "| Docker            | $DOCKER_VERSION"
+${isBuildServer ? 'echo "| Server Type       | Build Server"' : ""}
 echo -e "---------------------------------------------\n"
 echo -e "1. Installing required packages (curl, wget, git, jq, openssl). "
 
@@ -135,6 +141,9 @@ command_exists() {
 
 ${installUtilities()}
 
+${
+	!isBuildServer
+		? `
 echo -e "2. Validating ports. "
 ${validatePorts()}
 
@@ -173,6 +182,25 @@ ${installBuildpacks()}
 
 echo -e "13. Installing Railpack"
 ${installRailpack()}
+`
+		: `
+echo -e "2. Installing Docker. "
+${installDocker()}
+
+echo -e "3. Setting up Directories"
+${setupMainDirectory()}
+${setupDirectories()}
+
+echo -e "4. Installing Nixpacks"
+${installNixpacks()}
+
+echo -e "5. Installing Buildpacks"
+${installBuildpacks()}
+
+echo -e "6. Installing Railpack"
+${installRailpack()}
+`
+}
 				`;
 
 	return bashCommand;
@@ -189,10 +217,12 @@ const installRequirements = async (
 		throw new Error("No SSH Key found");
 	}
 
+	const isBuildServer = server.serverType === "build";
+
 	return new Promise<void>((resolve, reject) => {
 		client
 			.once("ready", () => {
-				const command = server.command || defaultCommand();
+				const command = server.command || defaultCommand(isBuildServer);
 				client.exec(command, (err, stream) => {
 					if (err) {
 						onData?.(err.message);

@@ -19,6 +19,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			.insert(domains)
 			.values({
 				...input,
+				host: input.host?.trim(),
 			})
 			.returning()
 			.then((response) => response[0]);
@@ -120,6 +121,7 @@ export const updateDomainById = async (
 		.update(domains)
 		.set({
 			...domainData,
+			...(domainData.host && { host: domainData.host.trim() }),
 		})
 		.where(eq(domains.domainId, domainId))
 		.returning();
