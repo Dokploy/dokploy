@@ -130,7 +130,9 @@ describe("Host rule format regression tests", () => {
 				l.includes(".rule="),
 			);
 
-			expect(parsedRuleLabel).toContain("Host(`example.com`) && PathPrefix(`/api`)");
+			expect(parsedRuleLabel).toContain(
+				"Host(`example.com`) && PathPrefix(`/api`)",
+			);
 		});
 	});
 
@@ -157,7 +159,9 @@ describe("Host rule format regression tests", () => {
 				expect(ruleLabel).toBeDefined();
 				expect(ruleLabel).toContain(`Host(\`${host}\`)`);
 				// Verify parenthesis is present
-				expect(ruleLabel).toMatch(new RegExp(`Host\\(\\\`${host.replace(/\./g, "\\.")}\\\`\\)`));
+				expect(ruleLabel).toMatch(
+					new RegExp(`Host\\(\\\`${host.replace(/\./g, "\\.")}\\\`\\)`),
+				);
 			});
 		}
 	});
