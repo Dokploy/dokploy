@@ -2,6 +2,7 @@ import type http from "node:http";
 import {
 	docker,
 	execAsync,
+	getHostSystemStats,
 	getLastAdvancedStatsFile,
 	recordAdvancedStats,
 	validateRequest,
@@ -49,6 +50,21 @@ export const setupDockerStatsMonitoringSocketServer = (
 		}
 		const intervalId = setInterval(async () => {
 			try {
+				// Special case: when monitoring "dokploy", get host system stats instead of container stats
+				if (appName === "dokploy") {
+					const stat = await getHostSystemStats();
+
+					await recordAdvancedStats(stat, appName);
+					const data = await getLastAdvancedStatsFile(appName);
+
+					ws.send(
+						JSON.stringify({
+							data,
+						}),
+					);
+					return;
+				}
+
 				const filter = {
 					status: ["running"],
 					...(appType === "application" && {

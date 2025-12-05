@@ -346,9 +346,12 @@ importers:
       next-themes:
         specifier: ^0.2.1
         version: 0.2.1(next@15.3.2(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      nextjs-toploader:
+        specifier: ^3.9.17
+        version: 3.9.17(next@15.3.2(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       node-os-utils:
-        specifier: 1.3.7
-        version: 1.3.7
+        specifier: 2.0.1
+        version: 2.0.1
       node-pty:
         specifier: 1.0.0
         version: 1.0.0
@@ -406,6 +409,9 @@ importers:
       rotating-file-stream:
         specifier: 3.2.3
         version: 3.2.3
+      shell-quote:
+        specifier: ^1.8.1
+        version: 1.8.2
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
@@ -473,9 +479,6 @@ importers:
       '@types/node':
         specifier: ^18.19.104
         version: 18.19.104
-      '@types/node-os-utils':
-        specifier: 1.3.4
-        version: 1.3.4
       '@types/node-schedule':
         specifier: 2.1.6
         version: 2.1.6
@@ -491,6 +494,9 @@ importers:
       '@types/react-dom':
         specifier: 18.3.0
         version: 18.3.0
+      '@types/shell-quote':
+        specifier: ^1.7.5
+        version: 1.7.5
       '@types/ssh2':
         specifier: 1.15.1
         version: 1.15.1
@@ -688,8 +694,8 @@ importers:
         specifier: 3.3.11
         version: 3.3.11
       node-os-utils:
-        specifier: 1.3.7
-        version: 1.3.7
+        specifier: 2.0.1
+        version: 2.0.1
       node-pty:
         specifier: 1.0.0
         version: 1.0.0
@@ -729,6 +735,9 @@ importers:
       rotating-file-stream:
         specifier: 3.2.3
         version: 3.2.3
+      shell-quote:
+        specifier: ^1.8.1
+        version: 1.8.2
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
@@ -766,9 +775,6 @@ importers:
       '@types/node':
         specifier: ^18.19.104
         version: 18.19.104
-      '@types/node-os-utils':
-        specifier: 1.3.4
-        version: 1.3.4
       '@types/node-schedule':
         specifier: 2.1.6
         version: 2.1.6
@@ -784,6 +790,9 @@ importers:
       '@types/react-dom':
         specifier: 18.3.0
         version: 18.3.0
+      '@types/shell-quote':
+        specifier: ^1.7.5
+        version: 1.7.5
       '@types/ssh2':
         specifier: 1.15.1
         version: 1.15.1
@@ -4000,9 +4009,6 @@ packages:
   '@types/mysql@2.15.26':
     resolution: {integrity: sha512-DSLCOXhkvfS5WNNPbfn2KdICAmk8lLc+/PNvnPnF7gOdMZCxopXduqv0OQ13y/yA/zXTSikZZqVgybUxOEg6YQ==}
 
-  '@types/node-os-utils@1.3.4':
-    resolution: {integrity: sha512-BCUYrbdoO4FUbx6MB9atLNFnkxdliFaxdiTJMIPPiecXIApc5zf4NIqV5G1jWv/ReZvtYyHLs40RkBjHX+vykA==}
-
   '@types/node-schedule@2.1.6':
     resolution: {integrity: sha512-6AlZSUiNTdaVmH5jXYxX9YgmF1zfOlbjUqw0EllTBmZCnN1R5RR/m/u3No1OiWR05bnQ4jM4/+w4FcGvkAtnKQ==}
 
@@ -4041,6 +4047,9 @@ packages:
 
   '@types/readable-stream@4.0.20':
     resolution: {integrity: sha512-eLgbR5KwUh8+6pngBDxS32MymdCsCHnGtwHTrC0GDorbc7NbcnkZAWptDLgZiRk9VRas+B6TyRgPDucq4zRs8g==}
+
+  '@types/shell-quote@1.7.5':
+    resolution: {integrity: sha512-+UE8GAGRPbJVQDdxi16dgadcBfQ+KG2vgZhV1+3A1XmHbmwcdwhCUwIdy+d3pAGrbvgRoVSjeI9vOWyq376Yzw==}
 
   '@types/shimmer@1.2.0':
     resolution: {integrity: sha512-UE7oxhQLLd9gub6JKIAhDq06T0F6FnztwMNRvYgjeQSBeMc1ZG/tA47EwfduvkuQS8apbkM/lpLpWsaCeYsXVg==}
@@ -6261,6 +6270,13 @@ packages:
       sass:
         optional: true
 
+  nextjs-toploader@3.9.17:
+    resolution: {integrity: sha512-9OF0KSSLtoSAuNg2LZ3aTl4hR9mBDj5L9s9DZiFCbMlXehyICGjkIz5dVGzuATU2bheJZoBdFgq9w07AKSuQQw==}
+    peerDependencies:
+      next: '>= 6.0.0'
+      react: '>= 16.0.0'
+      react-dom: '>= 16.0.0'
+
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
 
@@ -6312,8 +6328,9 @@ packages:
       '@types/node':
         optional: true
 
-  node-os-utils@1.3.7:
-    resolution: {integrity: sha512-fvnX9tZbR7WfCG5BAy3yO/nCLyjVWD6MghEq0z5FDfN+ZXpLWNITBdbifxQkQ25ebr16G0N7eRWJisOcMEHG3Q==}
+  node-os-utils@2.0.1:
+    resolution: {integrity: sha512-rH2N3qHZETLhdgTGhMMCE8zU3gsWO4we1MFtrSiAI7tYWrnJRc6dk2PseV4co3Lb0v/MbRONLQI2biHQYbpTpg==}
+    engines: {node: '>=18.0.0'}
 
   node-pty@1.0.0:
     resolution: {integrity: sha512-wtBMWWS7dFZm/VgqElrTvtfMq4GzJ6+edFI0Y0zyzygUSZMgZdraDUMUhCIvkjhJjme15qWmbyJbtAx4ot4uZA==}
@@ -6358,6 +6375,9 @@ packages:
   npmlog@5.0.1:
     resolution: {integrity: sha512-AqZtDUWOMKs1G/8lwylVjrdYgqA4d9nu8hc+0gzRxlDb1I10+FHBGMXs6aiQHFdCUUlqH99MUMuLfzWDNDtfxw==}
     deprecated: This package is no longer supported.
+
+  nprogress@0.2.0:
+    resolution: {integrity: sha512-I19aIingLgR1fmhftnbWWO3dXc0hSxqHQHQb3H8m+K3TnEn/iSeTZZOyvKXWqQESMwuUVnatlCnZdLBZZt2VSA==}
 
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
@@ -11338,8 +11358,6 @@ snapshots:
     dependencies:
       '@types/node': 20.17.51
 
-  '@types/node-os-utils@1.3.4': {}
-
   '@types/node-schedule@2.1.6':
     dependencies:
       '@types/node': 20.17.51
@@ -11392,6 +11410,8 @@ snapshots:
   '@types/readable-stream@4.0.20':
     dependencies:
       '@types/node': 20.17.51
+
+  '@types/shell-quote@1.7.5': {}
 
   '@types/shimmer@1.2.0': {}
 
@@ -13809,6 +13829,14 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
+  nextjs-toploader@3.9.17(next@15.3.2(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+    dependencies:
+      next: 15.3.2(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      nprogress: 0.2.0
+      prop-types: 15.8.1
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+
   node-abort-controller@3.1.1: {}
 
   node-addon-api@5.1.0: {}
@@ -13852,7 +13880,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 18.19.104
 
-  node-os-utils@1.3.7: {}
+  node-os-utils@2.0.1: {}
 
   node-pty@1.0.0:
     dependencies:
@@ -13892,6 +13920,8 @@ snapshots:
       console-control-strings: 1.1.0
       gauge: 3.0.2
       set-blocking: 2.0.0
+
+  nprogress@0.2.0: {}
 
   object-assign@4.1.1: {}
 
