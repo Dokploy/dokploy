@@ -110,7 +110,8 @@ export const getDokployUrl = async () => {
 	const admin = await findAdmin();
 
 	if (admin.user.host) {
-		return `https://${admin.user.host}`;
+		const protocol = admin.user.https ? "https" : "http";
+		return `${protocol}://${admin.user.host}`;
 	}
 	return `http://${admin.user.serverIp}:${process.env.PORT}`;
 };

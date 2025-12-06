@@ -1,4 +1,3 @@
-import type { findEnvironmentById } from "@dokploy/server/index";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -27,12 +26,10 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { api } from "@/utils/api";
+import { api, type RouterOutputs } from "@/utils/api";
 
-type Environment = Omit<
-	Awaited<ReturnType<typeof findEnvironmentById>>,
-	"project"
->;
+type Project = RouterOutputs["project"]["all"][number];
+type Environment = Project["environments"][number];
 
 export type Services = {
 	appName: string;
@@ -53,17 +50,16 @@ export type Services = {
 };
 
 export const extractServices = (data: Environment | undefined) => {
-	const applications: Services[] =
-		data?.applications.map((item) => ({
-			appName: item.appName,
-			name: item.name,
-			type: "application",
-			id: item.applicationId,
-			createdAt: item.createdAt,
-			status: item.applicationStatus,
-			description: item.description,
-			serverId: item.serverId,
-		})) || [];
+	const applications: Services[] = (data?.applications?.map((item) => ({
+		appName: item.appName,
+		name: item.name,
+		type: "application",
+		id: item.applicationId,
+		createdAt: item.createdAt,
+		status: item.applicationStatus,
+		description: item.description,
+		serverId: item.serverId,
+	})) ?? []) as Services[];
 
 	const mariadb: Services[] =
 		data?.mariadb.map((item) => ({
@@ -125,17 +121,16 @@ export const extractServices = (data: Environment | undefined) => {
 			serverId: item.serverId,
 		})) || [];
 
-	const compose: Services[] =
-		data?.compose.map((item) => ({
-			appName: item.appName,
-			name: item.name,
-			type: "compose",
-			id: item.composeId,
-			createdAt: item.createdAt,
-			status: item.composeStatus,
-			description: item.description,
-			serverId: item.serverId,
-		})) || [];
+	const compose: Services[] = (data?.compose?.map((item) => ({
+		appName: item.appName,
+		name: item.name,
+		type: "compose",
+		id: item.composeId,
+		createdAt: item.createdAt,
+		status: item.composeStatus,
+		description: item.description,
+		serverId: item.serverId,
+	})) ?? []) as Services[];
 
 	applications.push(
 		...mysql,
