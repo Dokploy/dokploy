@@ -105,7 +105,9 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 			});
 			toast.success(t("settings.server.webServer.traefik.portsUpdated"));
 			setOpen(false);
-		} catch {}
+		} catch (error) {
+			toast.error((error as Error).message || "Error updating Traefik ports");
+		}
 	};
 
 	return (

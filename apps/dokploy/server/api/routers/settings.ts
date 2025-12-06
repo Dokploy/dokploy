@@ -822,6 +822,19 @@ export const settingsRouter = createTRPCRouter({
 					"dokploy-traefik",
 					input?.serverId,
 				);
+
+				for (const port of input.additionalPorts) {
+					const portCheck = await checkPortInUse(
+						port.publishedPort,
+						input.serverId,
+					);
+					if (portCheck.isInUse) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: `Port ${port.targetPort} is already in use by ${portCheck.conflictingContainer}`,
+						});
+					}
+				}
 				const preparedEnv = prepareEnvironmentVariables(env);
 
 				await writeTraefikSetup({
