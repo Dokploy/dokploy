@@ -177,7 +177,9 @@ export const cleanupContainers = async (serverId?: string) => {
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else await execAsync(dockerSafeExec(command));
+		} else {
+			await execAsync(dockerSafeExec(command));
+		}
 	} catch (error) {
 		console.error(error);
 
@@ -205,7 +207,9 @@ export const cleanupVolumes = async (serverId?: string) => {
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else await execAsync(dockerSafeExec(command));
+		} else {
+			await execAsync(dockerSafeExec(command));
+		}
 	} catch (error) {
 		console.error(error);
 
@@ -219,7 +223,9 @@ export const cleanupBuilders = async (serverId?: string) => {
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else await execAsync(dockerSafeExec(command));
+		} else {
+			await execAsync(dockerSafeExec(command));
+		}
 	} catch (error) {
 		console.error(error);
 
@@ -233,27 +239,12 @@ export const cleanupSystem = async (serverId?: string) => {
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else await execAsync(dockerSafeExec(command));
+		} else {
+			await execAsync(dockerSafeExec(command));
+		}
 	} catch (error) {
 		console.error(error);
 
-		throw error;
-	}
-};
-
-export const cleanupInactiveContainers = async () => {
-	try {
-		const containers = await docker.listContainers({ all: true });
-		const inactiveContainers = containers.filter(
-			(container) => container.State !== "running",
-		);
-
-		for (const container of inactiveContainers) {
-			await docker.getContainer(container.Id).remove({ force: true });
-			console.log(`Cleaning up inactive container: ${container.Id}`);
-		}
-	} catch (error) {
-		console.error("Error cleaning up inactive containers:", error);
 		throw error;
 	}
 };
@@ -264,14 +255,6 @@ export const cleanupAll = async (serverId?: string) => {
 	await cleanupVolumes(serverId);
 	await cleanupBuilders(serverId);
 	await cleanupSystem(serverId);
-
-	/**
-	 * This wasn't being used. If it's ready, it should be used here.
-	 *
-	 * https://github.com/Dokploy/dokploy/pull/3064
-	 * https://github.com/fir4tozden
-	 */
-	// await cleanupInactiveContainers();
 };
 
 export const startService = async (appName: string) => {
