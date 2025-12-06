@@ -373,7 +373,19 @@ export const ShowDeployments = ({
 												type === "application" && (
 													<DialogAction
 														title="Rollback to this deployment"
-														description="Are you sure you want to rollback to this deployment?"
+														description={
+															<div className="flex flex-col gap-3">
+																<p>
+																	Are you sure you want to rollback to this
+																	deployment?
+																</p>
+																<AlertBlock type="info" className="text-sm">
+																	Please wait a few seconds while the image is
+																	pulled from the registry. Your application
+																	should be running shortly.
+																</AlertBlock>
+															</div>
+														}
 														type="default"
 														onClick={async () => {
 															await rollback({
@@ -407,7 +419,7 @@ export const ShowDeployments = ({
 					</div>
 				)}
 				<ShowDeployment
-					serverId={serverId}
+					serverId={activeLog?.buildServerId || serverId}
 					open={Boolean(activeLog && activeLog.logPath !== null)}
 					onClose={() => setActiveLog(null)}
 					logPath={activeLog?.logPath || ""}
