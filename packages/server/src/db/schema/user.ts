@@ -56,7 +56,7 @@ export const user = pgTable("user", {
 	host: text("host"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
-	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
 	role: text("role").notNull().default("user"),
 	// Metrics
