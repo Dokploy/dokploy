@@ -187,6 +187,12 @@ export const applications = pgTable("application", {
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
+	rollbackRegistryId: text("rollbackRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -270,6 +276,11 @@ export const applicationsRelations = relations(
 			relationName: "applicationBuildRegistry",
 		}),
 		previewDeployments: many(previewDeployments),
+		rollbackRegistry: one(registry, {
+			fields: [applications.rollbackRegistryId],
+			references: [registry.registryId],
+			relationName: "applicationRollbackRegistry",
+		}),
 	}),
 );
 
