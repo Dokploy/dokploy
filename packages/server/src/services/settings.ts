@@ -392,6 +392,28 @@ export const readPorts = async (
 	);
 };
 
+export const checkPortInUse = async (
+	port: number,
+	serverId?: string,
+): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
+	try {
+		const command = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const container = stdout.trim();
+
+		return {
+			isInUse: !!container,
+			conflictingContainer: container || undefined,
+		};
+	} catch (error) {
+		console.error("Error checking port availability:", error);
+		return { isInUse: false };
+	}
+};
+
 export const writeTraefikSetup = async (input: TraefikOptions) => {
 	const resourceType = await getDockerResourceType(
 		"dokploy-traefik",
