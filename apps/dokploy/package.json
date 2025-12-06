@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.25.11",
+	"version": "v0.26.0",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -118,7 +118,7 @@
 		"lucide-react": "^0.469.0",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.11",
-		"next": "^15.3.2",
+		"next": "^16.0.7",
 		"next-i18next": "^15.4.2",
 		"next-themes": "^0.2.1",
 		"nextjs-toploader": "^3.9.17",
