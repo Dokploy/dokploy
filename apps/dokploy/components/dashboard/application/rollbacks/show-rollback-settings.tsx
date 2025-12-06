@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,7 +23,6 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Switch } from "@/components/ui/switch";
 import {
 	Select,
 	SelectContent,
@@ -32,6 +32,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 const formSchema = z
@@ -189,9 +190,22 @@ export const ShowRollbackSettings = ({ applicationId, children }: Props) => {
 												</SelectGroup>
 											</SelectContent>
 										</Select>
-										<FormDescription>
-											Select a registry where rollback images will be stored.
-										</FormDescription>
+										{!registries || registries.length === 0 ? (
+											<FormDescription className="text-amber-600 dark:text-amber-500">
+												No registries available. Please{" "}
+												<Link
+													href="/dashboard/settings/registry"
+													className="underline font-medium hover:text-amber-700 dark:hover:text-amber-400"
+												>
+													configure a registry
+												</Link>{" "}
+												first to enable rollbacks.
+											</FormDescription>
+										) : (
+											<FormDescription>
+												Select a registry where rollback images will be stored.
+											</FormDescription>
+										)}
 										<FormMessage />
 									</FormItem>
 								)}
