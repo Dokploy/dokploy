@@ -158,11 +158,11 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										</p>
 									</div>
 								) : (
-									<ScrollArea className="h-[400px] pr-4">
+									<ScrollArea className="pr-4">
 										<div className="grid gap-4">
 											{fields.map((field, index) => (
 												<Card key={field.id} className="bg-transparent">
-													<CardContent className="grid grid-cols-[1fr_1fr_1fr_auto] gap-4 p-4 transparent">
+													<CardContent className="grid grid-cols-4  gap-4 p-4 transparent">
 														<FormField
 															control={form.control}
 															name={`ports.${index}.targetPort`}
@@ -305,6 +305,12 @@ export const ManageTraefikPorts = ({ children, serverId }: Props) => {
 										</div>
 									</AlertBlock>
 								)}
+
+								<AlertBlock type="warning">
+									The Traefik container will be recreated from scratch. This
+									means the container will be deleted and created again, which
+									may cause downtime in your applications.
+								</AlertBlock>
 							</div>
 							<DialogFooter>
 								<Button
