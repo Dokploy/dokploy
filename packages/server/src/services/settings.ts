@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { docker } from "@dokploy/server/constants";
+import { cleanupAll } from "@dokploy/server/utils/docker/utils";
 import {
 	execAsync,
 	execAsyncRemote,
@@ -10,7 +11,6 @@ import {
 	initializeTraefikService,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
-import { cleanupAll } from "@dokploy/server/utils/docker/utils";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -215,14 +215,6 @@ echo "$json_output"
 	}
 	return result;
 };
-
-/**
- * This function is not currently used anywhere, but it remains here because removing it would be risky.
- *
- * https://github.com/Dokploy/dokploy/pull/3064
- * https://github.com/fir4tozden
- */
-export const cleanupFullDocker = cleanupAll;
 
 export const getDockerResourceType = async (
 	resourceName: string,
