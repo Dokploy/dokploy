@@ -1,6 +1,6 @@
 {
-  "id": "da1c966b-1fc0-41ea-b54c-38d748f3d5f5",
-  "prevId": "f859f128-7326-4ec9-b5d8-78b518c77fa5",
+  "id": "70e92aa8-56d1-4842-b844-775cb8198849",
+  "prevId": "8310936d-e9ff-408b-ae6d-2292aac02523",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -4258,12 +4258,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "customId": {
-          "name": "customId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4347,19 +4341,6 @@
           ],
           "columnsTo": [
             "ntfyId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "notification_customId_custom_customId_fk": {
-          "name": "notification_customId_custom_customId_fk",
-          "tableFrom": "notification",
-          "tableTo": "custom",
-          "columnsFrom": [
-            "customId"
-          ],
-          "columnsTo": [
-            "customId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -6533,8 +6514,7 @@
         "discord",
         "email",
         "gotify",
-        "ntfy",
-        "custom"
+        "ntfy"
       ]
     },
     "public.protocolType": {

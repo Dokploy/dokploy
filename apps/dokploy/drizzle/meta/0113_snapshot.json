@@ -4234,12 +4234,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "customId": {
-          "name": "customId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "organizationId": {
           "name": "organizationId",
           "type": "text",
@@ -4323,19 +4317,6 @@
           ],
           "columnsTo": [
             "ntfyId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "notification_customId_custom_customId_fk": {
-          "name": "notification_customId_custom_customId_fk",
-          "tableFrom": "notification",
-          "tableTo": "custom",
-          "columnsFrom": [
-            "customId"
-          ],
-          "columnsTo": [
-            "customId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -6497,8 +6478,7 @@
         "discord",
         "email",
         "gotify",
-        "ntfy",
-        "custom"
+        "ntfy"
       ]
     },
     "public.protocolType": {
