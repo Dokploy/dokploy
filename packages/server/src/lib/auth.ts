@@ -271,14 +271,9 @@ const { handler, api } = betterAuth({
 	],
 });
 
-export const auth: {
-	handler: typeof handler;
-	createApiKey: typeof api.createApiKey;
-	api: typeof api;
-} = {
-	handler: handler,
+export const auth = {
+	handler,
 	createApiKey: api.createApiKey,
-	api: api,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {

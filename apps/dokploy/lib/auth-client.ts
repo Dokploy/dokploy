@@ -1,4 +1,3 @@
-import type { auth } from "@dokploy/server";
 import {
 	adminClient,
 	apiKeyClient,
@@ -15,6 +14,12 @@ export const authClient = createAuthClient({
 		twoFactorClient(),
 		apiKeyClient(),
 		adminClient(),
-		inferAdditionalFields<typeof auth.api>(),
+		inferAdditionalFields({
+			user: {
+				lastName: {
+					type: "string",
+				},
+			},
+		}),
 	],
 });
