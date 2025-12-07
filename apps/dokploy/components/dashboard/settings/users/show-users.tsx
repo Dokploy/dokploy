@@ -235,9 +235,6 @@ export const ShowUsers = () => {
 																									return;
 																								}
 																							}
-																							await removeMember({
-																								memberId: member.id,
-																							});
 																							toast.success(
 																								"User unlinked successfully",
 																							);
