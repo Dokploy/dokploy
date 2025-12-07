@@ -235,7 +235,7 @@ export const cleanupBuilders = async (serverId?: string) => {
 
 export const cleanupSystem = async (serverId?: string) => {
 	try {
-		const command = "docker system prune --all --volumes --force";
+		const command = "docker system prune --all --force";
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -252,7 +252,7 @@ export const cleanupSystem = async (serverId?: string) => {
 export const cleanupAll = async (serverId?: string) => {
 	await cleanupContainers(serverId);
 	await cleanupImages(serverId);
-	await cleanupVolumes(serverId);
+	// await cleanupVolumes(serverId);
 	await cleanupBuilders(serverId);
 	await cleanupSystem(serverId);
 };
