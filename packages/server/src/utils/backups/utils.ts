@@ -27,7 +27,8 @@ export const getEncryptionConfigFromDestination = (
 		enabled: destination.encryptionEnabled ?? false,
 		key: destination.encryptionKey,
 		password2: destination.encryptionPassword2,
-		filenameEncryption: (destination.filenameEncryption as FilenameEncryption) ?? "off",
+		filenameEncryption:
+			(destination.filenameEncryption as FilenameEncryption) ?? "off",
 		directoryNameEncryption: destination.directoryNameEncryption ?? false,
 	};
 };
@@ -64,7 +65,8 @@ export const getRcloneS3Remote = (
 
 		// Build crypt options
 		const filenameEncryption = encryptionConfig.filenameEncryption || "off";
-		const directoryNameEncryption = encryptionConfig.directoryNameEncryption ?? false;
+		const directoryNameEncryption =
+			encryptionConfig.directoryNameEncryption ?? false;
 
 		// Build the crypt remote string with all options
 		const cryptRemote = `:crypt,remote="${s3Remote}:${bucket}",filename_encryption=${filenameEncryption},directory_name_encryption=${directoryNameEncryption}:`;
@@ -74,7 +76,10 @@ export const getRcloneS3Remote = (
 
 		// Add password2 (salt) if provided
 		if (encryptionConfig.password2) {
-			const escapedPassword2 = encryptionConfig.password2.replace(/'/g, "'\\''");
+			const escapedPassword2 = encryptionConfig.password2.replace(
+				/'/g,
+				"'\\''",
+			);
 			envVars += ` RCLONE_CRYPT_PASSWORD2='${escapedPassword2}'`;
 		}
 

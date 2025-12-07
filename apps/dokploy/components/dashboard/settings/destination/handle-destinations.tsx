@@ -170,8 +170,10 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				encryptionKey: destination.encryptionKey ?? "",
 				encryptionPassword2: destination.encryptionPassword2 ?? "",
 				filenameEncryption:
-					(destination.filenameEncryption as "standard" | "obfuscate" | "off") ??
-					"off",
+					(destination.filenameEncryption as
+						| "standard"
+						| "obfuscate"
+						| "off") ?? "off",
 				directoryNameEncryption: destination.directoryNameEncryption ?? false,
 			});
 		} else {
@@ -574,10 +576,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 														</SelectTrigger>
 														<SelectContent>
 															{FILENAME_ENCRYPTION_OPTIONS.map((option) => (
-																<SelectItem
-																	key={option.key}
-																	value={option.key}
-																>
+																<SelectItem key={option.key} value={option.key}>
 																	<div className="flex flex-col">
 																		<span>{option.name}</span>
 																		<span className="text-xs text-muted-foreground">

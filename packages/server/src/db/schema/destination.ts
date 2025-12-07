@@ -30,7 +30,9 @@ export const destinations = pgTable("destination", {
 	// Filename encryption: "standard" (encrypt), "obfuscate", or "off"
 	filenameEncryption: text("filenameEncryption").notNull().default("off"),
 	// Whether to encrypt directory names (only applies if filenameEncryption is not "off")
-	directoryNameEncryption: boolean("directoryNameEncryption").notNull().default(false),
+	directoryNameEncryption: boolean("directoryNameEncryption")
+		.notNull()
+		.default(false),
 });
 
 export const destinationsRelations = relations(
