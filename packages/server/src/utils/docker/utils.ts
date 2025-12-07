@@ -252,7 +252,6 @@ export const cleanupSystem = async (serverId?: string) => {
 export const cleanupAll = async (serverId?: string) => {
 	await cleanupContainers(serverId);
 	await cleanupImages(serverId);
-	// await cleanupVolumes(serverId);
 	await cleanupBuilders(serverId);
 	await cleanupSystem(serverId);
 };
