@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import { notifications } from "@dokploy/server/db/schema";
+import { VolumeBackupEmail } from "@dokploy/server/emails/emails/volume-backup";
 import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
@@ -60,25 +61,18 @@ export const sendVolumeBackupNotifications = async ({
 
 		if (email) {
 			const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
-			const htmlContent = `
-				<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-					<h2 style="color: ${type === "success" ? "#00AA00" : "#AA0000"};">
-						${type === "success" ? "✅" : "❌"} Volume Backup ${type === "success" ? "Successful" : "Failed"}
-					</h2>
-					<div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-						<p><strong>Project:</strong> ${projectName}</p>
-						<p><strong>Application:</strong> ${applicationName}</p>
-						<p><strong>Volume Name:</strong> ${volumeName}</p>
-						<p><strong>Service Type:</strong> ${serviceType}</p>
-						${backupSize ? `<p><strong>Backup Size:</strong> ${backupSize}</p>` : ""}
-						<p><strong>Date:</strong> ${date.toLocaleString()}</p>
-						${type === "error" && errorMessage ? `<p><strong>Error:</strong> <code>${errorMessage}</code></p>` : ""}
-					</div>
-					<p style="color: #666; font-size: 12px;">
-						This notification was sent by Dokploy Volume Backup System.
-					</p>
-				</div>
-			`;
+			const htmlContent = await renderAsync(
+				VolumeBackupEmail({
+					projectName,
+					applicationName,
+					volumeName,
+					serviceType,
+					type,
+					errorMessage,
+					backupSize,
+					date: date.toISOString(),
+				}),
+			);
 			await sendEmailNotification(email, subject, htmlContent);
 		}
 
