@@ -26,6 +26,16 @@ config({ path: ".env" });
 const PORT = Number.parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const dev = process.env.NODE_ENV !== "production";
+
+// Initialize critical directories and Traefik config BEFORE Next.js starts
+// This prevents race conditions with the install script
+if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
+	setupDirectories();
+	createDefaultTraefikConfig();
+	createDefaultServerTraefikConfig();
+	console.log("✅ Critical initialization complete");
+}
+
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
 void app.prepare().then(async () => {
@@ -45,11 +55,8 @@ void app.prepare().then(async () => {
 		}
 
 		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
-			setupDirectories();
 			createDefaultMiddlewares();
 			await initializeNetwork();
-			createDefaultTraefikConfig();
-			createDefaultServerTraefikConfig();
 			await migration();
 			await initCronJobs();
 			await initSchedules();
