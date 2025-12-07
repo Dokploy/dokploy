@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -131,7 +138,7 @@ export const custom = pgTable("custom", {
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
 	endpoint: text("endpoint").notNull(),
-	headers: text("headers"), // JSON string
+	headers: jsonb("headers").$type<Record<string, string>>(),
 });
 
 export const lark = pgTable("lark", {
@@ -391,7 +398,7 @@ export const apiCreateCustom = notificationsSchema
 	})
 	.extend({
 		endpoint: z.string().min(1),
-		headers: z.string().optional(),
+		headers: z.record(z.string()).optional(),
 	});
 
 export const apiUpdateCustom = apiCreateCustom.partial().extend({
@@ -402,7 +409,7 @@ export const apiUpdateCustom = apiCreateCustom.partial().extend({
 
 export const apiTestCustomConnection = z.object({
 	endpoint: z.string().min(1),
-	headers: z.string().optional(),
+	headers: z.record(z.string()).optional(),
 });
 
 export const apiCreateLark = notificationsSchema

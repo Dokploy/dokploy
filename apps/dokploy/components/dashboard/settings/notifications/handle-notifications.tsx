@@ -1,5 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Mail, PenBoxIcon, PlusIcon } from "lucide-react";
+import {
+	AlertTriangle,
+	Mail,
+	PenBoxIcon,
+	PlusIcon,
+	Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,7 +42,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { KeyValueInput } from "./key-value-input";
 
 const notificationBaseSchema = z.object({
 	name: z.string().min(1, {
@@ -113,7 +118,15 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.object({
 			type: z.literal("custom"),
 			endpoint: z.string().min(1, { message: "Endpoint URL is required" }),
-			headers: z.string().optional(),
+			headers: z
+				.array(
+					z.object({
+						key: z.string(),
+						value: z.string(),
+					}),
+				)
+				.optional()
+				.default([]),
 		})
 		.merge(notificationBaseSchema),
 	z
@@ -237,6 +250,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		name: "toAddresses" as never,
 	});
 
+	const {
+		fields: headerFields,
+		append: appendHeader,
+		remove: removeHeader,
+	} = useFieldArray({
+		control: form.control,
+		name: "headers" as never,
+	});
+
 	useEffect(() => {
 		if (type === "email" && fields.length === 0) {
 			append("");
@@ -357,7 +379,14 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					databaseBackup: notification.databaseBackup,
 					type: notification.notificationType,
 					endpoint: notification.custom?.endpoint || "",
-					headers: notification.custom?.headers || "",
+					headers: notification.custom?.headers
+						? Object.entries(notification.custom.headers).map(
+								([key, value]) => ({
+									key,
+									value,
+								}),
+							)
+						: [],
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
@@ -501,13 +530,25 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 			});
 		} else if (data.type === "custom") {
+			// Convert headers array to object
+			const headersRecord =
+				data.headers && data.headers.length > 0
+					? data.headers.reduce(
+							(acc, { key, value }) => {
+								if (key.trim()) acc[key] = value;
+								return acc;
+							},
+							{} as Record<string, string>,
+						)
+					: undefined;
+
 			promise = customMutation.mutateAsync({
 				appBuildError: appBuildError,
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
 				endpoint: data.endpoint,
-				headers: data.headers || "",
+				headers: headersRecord,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
 				serverThreshold: serverThreshold,
@@ -1127,23 +1168,67 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 											)}
 										/>
 
-										<FormField
-											control={form.control}
-											name="headers"
-											render={({ field }) => (
-												<FormItem>
-													<FormControl>
-														<KeyValueInput
-															value={field.value || ""}
-															onChange={field.onChange}
-															label="Headers"
-															description="Optional. Custom headers for your POST request (e.g., Authorization, Content-Type)."
+										<div className="space-y-3">
+											<div>
+												<FormLabel>Headers</FormLabel>
+												<FormDescription>
+													Optional. Custom headers for your POST request (e.g.,
+													Authorization, Content-Type).
+												</FormDescription>
+											</div>
+
+											<div className="space-y-2">
+												{headerFields.map((field, index) => (
+													<div
+														key={field.id}
+														className="flex items-center gap-2 p-2 border rounded-md bg-muted/50"
+													>
+														<FormField
+															control={form.control}
+															name={`headers.${index}.key` as never}
+															render={({ field }) => (
+																<FormItem className="flex-1">
+																	<FormControl>
+																		<Input placeholder="Key" {...field} />
+																	</FormControl>
+																</FormItem>
+															)}
 														/>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
-										/>
+														<FormField
+															control={form.control}
+															name={`headers.${index}.value` as never}
+															render={({ field }) => (
+																<FormItem className="flex-[2]">
+																	<FormControl>
+																		<Input placeholder="Value" {...field} />
+																	</FormControl>
+																</FormItem>
+															)}
+														/>
+														<Button
+															type="button"
+															variant="ghost"
+															size="sm"
+															onClick={() => removeHeader(index)}
+															className="text-red-500 hover:text-red-700 hover:bg-red-50"
+														>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												))}
+											</div>
+
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => appendHeader({ key: "", value: "" })}
+												className="w-full"
+											>
+												<PlusIcon className="h-4 w-4 mr-2" />
+												Add header
+											</Button>
+										</div>
 									</div>
 								)}
 								{type === "lark" && (
@@ -1338,7 +1423,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingEmail ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
-								isLoadingLark
+								isLoadingLark ||
+								isLoadingCustom
 							}
 							variant="secondary"
 							type="button"
@@ -1391,6 +1477,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									} else if (data.type === "lark") {
 										await testLarkConnection({
 											webhookUrl: data.webhookUrl,
+										});
+									} else if (data.type === "custom") {
+										const headersRecord =
+											data.headers && data.headers.length > 0
+												? data.headers.reduce(
+														(acc, { key, value }) => {
+															if (key.trim()) acc[key] = value;
+															return acc;
+														},
+														{} as Record<string, string>,
+													)
+												: undefined;
+										await testCustomConnection({
+											endpoint: data.endpoint,
+											headers: headersRecord,
 										});
 									}
 									toast.success("Connection Success");

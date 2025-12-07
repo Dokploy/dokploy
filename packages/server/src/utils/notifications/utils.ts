@@ -181,17 +181,11 @@ export const sendCustomNotification = async (
 	payload: Record<string, any>,
 ) => {
 	try {
-		// Parse headers if provided
-		let headers: Record<string, string> = {
+		// Merge default headers with custom headers (now already an object from jsonb)
+		const headers: Record<string, string> = {
 			"Content-Type": "application/json",
+			...(connection.headers || {}),
 		};
-		if (connection.headers) {
-			try {
-				headers = { ...headers, ...JSON.parse(connection.headers) };
-			} catch (error) {
-				console.error("Error parsing headers:", error);
-			}
-		}
 
 		// Default body with payload
 		const body = JSON.stringify(payload);
