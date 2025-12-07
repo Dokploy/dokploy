@@ -876,13 +876,6 @@
       "when": 1764571454170,
       "tag": "0124_certain_cloak",
       "breakpoints": true
-    },
-    {
-      "idx": 125,
-      "version": "7",
-      "when": 1765134933476,
-      "tag": "0125_jittery_diamondback",
-      "breakpoints": true
     }
   ]
 }
