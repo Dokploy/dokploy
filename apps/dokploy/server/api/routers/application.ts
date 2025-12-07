@@ -58,7 +58,11 @@ import {
 	applications,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import {
+	cleanQueuesByApplication,
+	killDockerBuild,
+	myQueue,
+} from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
@@ -360,6 +364,7 @@ export const applicationRouter = createTRPCRouter({
 			await updateApplication(input.applicationId, {
 				env: input.env,
 				buildArgs: input.buildArgs,
+				buildSecrets: input.buildSecrets,
 			});
 			return true;
 		}),
@@ -724,7 +729,21 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await cleanQueuesByApplication(input.applicationId);
 		}),
-
+	killBuild: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to kill this build",
+				});
+			}
+			await killDockerBuild("application", application.serverId);
+		}),
 	readTraefikConfig: protectedProcedure
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {

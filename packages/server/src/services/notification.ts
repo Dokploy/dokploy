@@ -2,18 +2,21 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreateDiscord,
 	type apiCreateEmail,
+	type apiCreateLark,
 	type apiCreateGotify,
 	type apiCreateNtfy,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
+	type apiUpdateLark,
 	type apiUpdateGotify,
 	type apiUpdateNtfy,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	discord,
 	email,
+	lark,
 	gotify,
 	notifications,
 	ntfy,
@@ -505,7 +508,7 @@ export const createNtfyNotification = async (
 			.values({
 				serverUrl: input.serverUrl,
 				topic: input.topic,
-				accessToken: input.accessToken,
+				accessToken: input.accessToken ?? null,
 				priority: input.priority,
 			})
 			.returning()
@@ -578,7 +581,7 @@ export const updateNtfyNotification = async (
 			.set({
 				serverUrl: input.serverUrl,
 				topic: input.topic,
-				accessToken: input.accessToken,
+				accessToken: input.accessToken ?? null,
 				priority: input.priority,
 			})
 			.where(eq(ntfy.ntfyId, input.ntfyId));
@@ -597,6 +600,7 @@ export const findNotificationById = async (notificationId: string) => {
 			email: true,
 			gotify: true,
 			ntfy: true,
+			lark: true,
 		},
 	});
 	if (!notification) {
@@ -615,6 +619,94 @@ export const removeNotificationById = async (notificationId: string) => {
 		.returning();
 
 	return result[0];
+};
+
+export const createLarkNotification = async (
+	input: typeof apiCreateLark._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newLark = await tx
+			.insert(lark)
+			.values({
+				webhookUrl: input.webhookUrl,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newLark) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting lark",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				larkId: newLark.larkId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "lark",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateLarkNotification = async (
+	input: typeof apiUpdateLark._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(lark)
+			.set({
+				webhookUrl: input.webhookUrl,
+			})
+			.where(eq(lark.larkId, input.larkId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
 };
 
 export const updateNotificationById = async (

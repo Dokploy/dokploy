@@ -12,7 +12,6 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";

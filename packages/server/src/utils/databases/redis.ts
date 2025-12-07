@@ -26,6 +26,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		cpuLimit,
 		cpuReservation,
 		command,
+		args,
 		mounts,
 	} = redis;
 
@@ -43,6 +44,7 @@ export const buildRedis = async (redis: RedisNested) => {
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(redis);
 	const resources = calculateResources({
 		memoryLimit,
@@ -69,11 +71,22 @@ export const buildRedis = async (redis: RedisNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				Command: ["/bin/sh"],
-				Args: [
-					"-c",
-					command ? command : `redis-server --requirepass ${databasePassword}`,
-				],
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
+				...(command || args
+					? {
+							...(command && {
+								Command: command.split(" "),
+							}),
+							...(args &&
+								args.length > 0 && {
+									Args: args,
+								}),
+						}
+					: {
+							Command: ["/bin/sh"],
+							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
+						}),
 				Labels,
 			},
 			Networks,
@@ -85,22 +98,22 @@ export const buildRedis = async (redis: RedisNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 6379,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 6379,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {

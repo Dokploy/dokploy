@@ -62,6 +62,12 @@ export const aiRouter = createTRPCRouter({
 					case "ollama":
 						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
 						break;
+					case "gemini":
+						response = await fetch(
+							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
+							{ headers: {} },
+						);
+						break;
 					default:
 						if (!input.apiKey)
 							throw new TRPCError({

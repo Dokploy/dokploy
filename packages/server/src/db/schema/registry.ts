@@ -33,7 +33,15 @@ export const registry = pgTable("registry", {
 });
 
 export const registryRelations = relations(registry, ({ many }) => ({
-	applications: many(applications),
+	applications: many(applications, {
+		relationName: "applicationRegistry",
+	}),
+	buildApplications: many(applications, {
+		relationName: "applicationBuildRegistry",
+	}),
+	rollbackApplications: many(applications, {
+		relationName: "applicationRollbackRegistry",
+	}),
 }));
 
 const createSchema = createInsertSchema(registry, {

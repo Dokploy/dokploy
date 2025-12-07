@@ -28,6 +28,7 @@ export const buildMongo = async (mongo: MongoNested) => {
 		databaseUser,
 		databasePassword,
 		command,
+		args,
 		mounts,
 		replicaSets,
 	} = mongo;
@@ -92,6 +93,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 		UpdateConfig,
 		Networks,
 		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(mongo);
 
 	const resources = calculateResources({
@@ -120,17 +122,24 @@ ${command ?? "wait $MONGOD_PID"}`;
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(replicaSets
 					? {
 							Command: ["/bin/bash"],
 							Args: ["-c", startupScript],
 						}
-					: {
-							...(command && {
-								Command: ["/bin/bash"],
-								Args: ["-c", command],
-							}),
-						}),
+					: {}),
+				...(command &&
+					!replicaSets && {
+						Command: command.split(" "),
+					}),
+				...(args &&
+					args.length > 0 &&
+					!replicaSets && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,
@@ -142,22 +151,22 @@ ${command ?? "wait $MONGOD_PID"}`;
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 27017,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 27017,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
-		...(StopGracePeriod !== undefined &&
-			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {

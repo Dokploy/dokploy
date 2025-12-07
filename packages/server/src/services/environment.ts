@@ -34,13 +34,43 @@ export const findEnvironmentById = async (environmentId: string) => {
 	const environment = await db.query.environments.findFirst({
 		where: eq(environments.environmentId, environmentId),
 		with: {
-			applications: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
-			compose: true,
+			applications: {
+				with: {
+					deployments: true,
+					server: true,
+				},
+			},
+			mariadb: {
+				with: {
+					server: true,
+				},
+			},
+			mongo: {
+				with: {
+					server: true,
+				},
+			},
+			mysql: {
+				with: {
+					server: true,
+				},
+			},
+			postgres: {
+				with: {
+					server: true,
+				},
+			},
+			redis: {
+				with: {
+					server: true,
+				},
+			},
+			compose: {
+				with: {
+					deployments: true,
+					server: true,
+				},
+			},
 			project: true,
 		},
 	});

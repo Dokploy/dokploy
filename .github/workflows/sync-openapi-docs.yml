@@ -1,0 +1,70 @@
+name: Generate and Sync OpenAPI
+
+on:
+  push:
+    branches:
+      - canary
+      - main
+    paths:
+      - 'apps/dokploy/server/api/routers/**'
+      - 'packages/server/src/services/**'
+      - 'packages/server/src/db/schema/**'
+
+  workflow_dispatch:
+
+jobs:
+  generate-and-commit:
+    name: Generate OpenAPI and commit to Dokploy repo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Dokploy repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.16.0
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate OpenAPI specification
+        run: |
+          pnpm generate:openapi
+          
+          # Verifica que se generó correctamente
+          if [ ! -f openapi.json ]; then
+            echo "❌ openapi.json not found"
+            exit 1
+          fi
+          
+          echo "✅ OpenAPI specification generated successfully"
+
+      - name: Sync to website repository
+        run: |
+          # Clona el repositorio de website
+          git clone https://x-access-token:${{ secrets.DOCS_SYNC_TOKEN }}@github.com/dokploy/website.git website-repo
+          
+          cd website-repo
+          
+          # Copia el openapi.json al website (sobrescribe)
+          mkdir -p apps/docs/public
+          cp -f ../openapi.json apps/docs/public/openapi.json
+          
+          # Configura git
+          git config user.name "Dokploy Bot"
+          git config user.email "bot@dokploy.com"
+          
+          # Agrega y commitea siempre
+          git add apps/docs/public/openapi.json
+          git commit -m "chore: sync OpenAPI specification [skip ci]" \
+            -m "Source: ${{ github.repository }}@${{ github.sha }}" \
+            -m "Updated: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --allow-empty
+          
+          git push
+          
+          echo "✅ OpenAPI synced to website successfully"
+
