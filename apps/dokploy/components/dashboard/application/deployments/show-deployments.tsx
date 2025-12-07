@@ -143,7 +143,7 @@ export const ShowDeployments = ({
 						See the last 10 deployments for this {type}
 					</CardDescription>
 				</div>
-				<div className="flex flex-row items-center gap-2">
+				<div className="flex flex-row items-center flex-wrap gap-2">
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
