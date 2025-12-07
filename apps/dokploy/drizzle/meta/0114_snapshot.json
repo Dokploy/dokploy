@@ -4021,37 +4021,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.custom": {
-      "name": "custom",
-      "schema": "",
-      "columns": {
-        "customId": {
-          "name": "customId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "headers": {
-          "name": "headers",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.discord": {
       "name": "discord",
       "schema": "",

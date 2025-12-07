@@ -3997,56 +3997,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.custom": {
-      "name": "custom",
-      "schema": "",
-      "columns": {
-        "customId": {
-          "name": "customId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "httpMethod": {
-          "name": "httpMethod",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'POST'"
-        },
-        "headers": {
-          "name": "headers",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "queryParams": {
-          "name": "queryParams",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.discord": {
       "name": "discord",
       "schema": "",
