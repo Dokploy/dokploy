@@ -29,6 +29,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
+import { ChangeRole } from "./change-role";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -84,11 +85,24 @@ export const ShowUsers = () => {
 											</TableHeader>
 											<TableBody>
 												{data?.map((member) => {
-													const canEditPermissions = member.role === "member";
+													// Owner never has "Edit Permissions" (they're absolute owner)
+													// Other users can edit permissions if target is not themselves and target is a member
+													const canEditPermissions =
+														member.role !== "owner" &&
+														member.role === "member" &&
+														member.user.id !== session?.user?.id;
+
+													// Can change role if target is not owner and not the current user
+													// Owner role is intransferible
+													const canChangeRole =
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id;
+
 													const canDelete =
 														member.role !== "owner" &&
 														!isCloud &&
 														member.user.id !== session?.user?.id;
+
 													const canUnlink =
 														member.role !== "owner" &&
 														!(
@@ -97,7 +111,10 @@ export const ShowUsers = () => {
 														);
 
 													const hasAnyAction =
-														canEditPermissions || canDelete || canUnlink;
+														canEditPermissions ||
+														canChangeRole ||
+														canDelete ||
+														canUnlink;
 
 													return (
 														<TableRow key={member.id}>
@@ -144,6 +161,16 @@ export const ShowUsers = () => {
 																			<DropdownMenuLabel>
 																				Actions
 																			</DropdownMenuLabel>
+
+																			{canChangeRole && (
+																				<ChangeRole
+																					memberId={member.id}
+																					currentRole={
+																						member.role as "admin" | "member"
+																					}
+																					userEmail={member.user.email}
+																				/>
+																			)}
 
 																			{canEditPermissions && (
 																				<AddUserPermissions

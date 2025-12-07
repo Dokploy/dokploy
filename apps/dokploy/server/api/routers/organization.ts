@@ -234,6 +234,55 @@ export const organizationRouter = createTRPCRouter({
 			await db.delete(member).where(eq(member.id, input.memberId));
 			return true;
 		}),
+	updateMemberRole: adminProcedure
+		.input(
+			z.object({
+				memberId: z.string(),
+				role: z.enum(["admin", "member"]),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			// Fetch the target member
+			const target = await db.query.member.findFirst({
+				where: eq(member.id, input.memberId),
+				with: { user: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to update this member's role",
+				});
+			}
+
+			// Prevent users from changing their own role
+			if (target.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot change your own role",
+				});
+			}
+
+			// Owner role is intransferible - cannot change to or from owner
+			if (target.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "The owner role is intransferible",
+				});
+			}
+
+			// Update the target member's role
+			await db
+				.update(member)
+				.set({ role: input.role })
+				.where(eq(member.id, input.memberId));
+
+			return true;
+		}),
 	setDefault: protectedProcedure
 		.input(
 			z.object({

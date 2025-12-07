@@ -316,7 +316,11 @@ const MENU: Menu = {
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for admins and users with access to SSH keys
 			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
+				!!(
+					auth?.role === "owner" ||
+					auth?.canAccessToSSHKeys ||
+					auth?.role === "admin"
+				),
 		},
 		{
 			title: "AI",
