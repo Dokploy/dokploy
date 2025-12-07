@@ -27,7 +27,10 @@ import { api } from "@/utils/api";
 const registerSchema = z
 	.object({
 		name: z.string().min(1, {
-			message: "Name is required",
+			message: "First name is required",
+		}),
+		lastName: z.string().min(1, {
+			message: "Last name is required",
 		}),
 		email: z
 			.string()
@@ -92,6 +95,7 @@ const Invitation = ({
 	const form = useForm<Register>({
 		defaultValues: {
 			name: "",
+			lastName: "",
 			email: "",
 			password: "",
 			confirmPassword: "",
@@ -115,6 +119,7 @@ const Invitation = ({
 				email: values.email,
 				password: values.password,
 				name: values.name,
+				lastName: values.lastName,
 				fetchOptions: {
 					headers: {
 						"x-dokploy-token": token,
@@ -197,12 +202,22 @@ const Invitation = ({
 													name="name"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Name</FormLabel>
+															<FormLabel>First Name</FormLabel>
 															<FormControl>
-																<Input
-																	placeholder="Enter your name"
-																	{...field}
-																/>
+																<Input placeholder="John" {...field} />
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="lastName"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Last Name</FormLabel>
+															<FormControl>
+																<Input placeholder="Doe" {...field} />
 															</FormControl>
 															<FormMessage />
 														</FormItem>

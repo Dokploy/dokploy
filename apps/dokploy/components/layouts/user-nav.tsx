@@ -49,7 +49,9 @@ export const UserNav = () => {
 							alt={data?.user?.image || ""}
 						/>
 						<AvatarFallback className="rounded-lg">
-							{getFallbackAvatarInitials(data?.user?.name)}
+							{getFallbackAvatarInitials(
+								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
+							)}
 						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">

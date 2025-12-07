@@ -31,7 +31,8 @@ export const user = pgTable("user", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	name: text("name").notNull().default(""),
+	firstName: text("firstName").notNull().default(""),
+	lastName: text("lastName").notNull().default(""),
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: text("expirationDate")
 		.notNull()
@@ -332,6 +333,7 @@ export const apiUpdateUser = createSchema.partial().extend({
 	password: z.string().optional(),
 	currentPassword: z.string().optional(),
 	name: z.string().optional(),
+	lastName: z.string().optional(),
 	metricsConfig: z
 		.object({
 			server: z.object({
