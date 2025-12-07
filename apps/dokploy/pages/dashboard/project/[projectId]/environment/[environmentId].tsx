@@ -1,4 +1,4 @@
-import type { findProjectById } from "@dokploy/server";
+import type { findEnvironmentById } from "@dokploy/server";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import {
@@ -102,6 +102,7 @@ import { api } from "@/utils/api";
 export type Services = {
 	appName: string;
 	serverId?: string | null;
+	serverName?: string | null;
 	name: string;
 	type:
 		| "mariadb"
@@ -118,8 +119,7 @@ export type Services = {
 	lastDeployDate?: Date | null;
 };
 
-type Project = Awaited<ReturnType<typeof findProjectById>>;
-type Environment = Project["environments"][0];
+type Environment = Awaited<ReturnType<typeof findEnvironmentById>>;
 
 export const extractServicesFromEnvironment = (
 	environment: Environment | undefined,
@@ -154,6 +154,7 @@ export const extractServicesFromEnvironment = (
 				status: item.applicationStatus,
 				description: item.description,
 				serverId: item.serverId,
+				serverName: item?.server?.name || null,
 				lastDeployDate,
 			};
 		}) || [];
@@ -168,6 +169,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const postgres: Services[] =
@@ -180,6 +182,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const mongo: Services[] =
@@ -192,6 +195,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const redis: Services[] =
@@ -204,6 +208,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const mysql: Services[] =
@@ -216,6 +221,7 @@ export const extractServicesFromEnvironment = (
 			status: item.applicationStatus,
 			description: item.description,
 			serverId: item.serverId,
+			serverName: item?.server?.name || null,
 		})) || [];
 
 	const compose: Services[] =
@@ -244,6 +250,7 @@ export const extractServicesFromEnvironment = (
 				status: item.composeStatus,
 				description: item.description,
 				serverId: item.serverId,
+				serverName: item?.server?.name || null,
 				lastDeployDate,
 			};
 		}) || [];
@@ -392,6 +399,7 @@ const EnvironmentPage = (
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 	const [deleteVolumes, setDeleteVolumes] = useState(false);
+	const [selectedServerId, setSelectedServerId] = useState<string>("all");
 
 	const handleSelectAll = () => {
 		if (selectedServices.length === filteredServices.length) {
@@ -781,6 +789,27 @@ const EnvironmentPage = (
 		setIsBulkActionLoading(false);
 	};
 
+	// Get unique servers from services
+	const availableServers = useMemo(() => {
+		if (!applications) return [];
+		const servers = new Map<string, { serverId: string; serverName: string }>();
+		applications.forEach((service) => {
+			if (service.serverId && service.serverName) {
+				servers.set(service.serverId, {
+					serverId: service.serverId,
+					serverName: service.serverName,
+				});
+			}
+		});
+		return Array.from(servers.values());
+	}, [applications]);
+
+	// Check if there are services without a server (Dokploy server)
+	const hasServicesWithoutServer = useMemo(() => {
+		if (!applications) return false;
+		return applications.some((service) => !service.serverId);
+	}, [applications]);
+
 	const filteredServices = useMemo(() => {
 		if (!applications) return [];
 		const filtered = applications.filter(
@@ -789,10 +818,14 @@ const EnvironmentPage = (
 					service.description
 						?.toLowerCase()
 						.includes(searchQuery.toLowerCase())) &&
-				(selectedTypes.length === 0 || selectedTypes.includes(service.type)),
+				(selectedTypes.length === 0 || selectedTypes.includes(service.type)) &&
+				(selectedServerId === "" ||
+					selectedServerId === "all" ||
+					(selectedServerId === "dokploy-server" && !service.serverId) ||
+					service.serverId === selectedServerId),
 		);
 		return sortServices(filtered);
-	}, [applications, searchQuery, selectedTypes, sortBy]);
+	}, [applications, searchQuery, selectedTypes, selectedServerId, sortBy]);
 
 	const selectedServicesWithRunningStatus = useMemo(() => {
 		return filteredServices.filter(
@@ -1366,6 +1399,39 @@ const EnvironmentPage = (
 												</Command>
 											</PopoverContent>
 										</Popover>
+										{(availableServers.length > 0 ||
+											hasServicesWithoutServer) && (
+											<Select
+												value={selectedServerId || "all"}
+												onValueChange={setSelectedServerId}
+											>
+												<SelectTrigger className="lg:w-[200px]">
+													<SelectValue placeholder="Filter by server..." />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="all">All servers</SelectItem>
+													{hasServicesWithoutServer && (
+														<SelectItem value="dokploy-server">
+															<div className="flex items-center gap-2">
+																<ServerIcon className="size-4" />
+																<span>Dokploy server</span>
+															</div>
+														</SelectItem>
+													)}
+													{availableServers.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<div className="flex items-center gap-2">
+																<ServerIcon className="size-4" />
+																<span>{server.serverName}</span>
+															</div>
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
 									</div>
 								</div>
 
@@ -1471,7 +1537,15 @@ const EnvironmentPage = (
 															</CardTitle>
 														</CardHeader>
 														<CardFooter className="mt-auto">
-															<div className="space-y-1 text-sm">
+															<div className="space-y-1 text-sm w-full">
+																{service.serverName && (
+																	<div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+																		<ServerIcon className="size-3" />
+																		<span className="truncate">
+																			{service.serverName}
+																		</span>
+																	</div>
+																)}
 																<DateTooltip date={service.createdAt}>
 																	Created
 																</DateTooltip>

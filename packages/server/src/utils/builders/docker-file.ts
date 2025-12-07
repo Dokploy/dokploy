@@ -1,13 +1,13 @@
 import {
 	getEnviromentVariablesObject,
-	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForShell,
 } from "@dokploy/server/utils/docker/utils";
+import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
 } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
-import { createEnvFileCommand } from "./utils";
 
 export const getDockerCommand = (application: ApplicationNested) => {
 	const {
@@ -40,14 +40,14 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--no-cache");
 		}
 
-		const args = prepareEnvironmentVariables(
+		const args = prepareEnvironmentVariablesForShell(
 			buildArgs,
 			application.environment.project.env,
 			application.environment.env,
 		);
 
 		for (const arg of args) {
-			commandArgs.push("--build-arg", `'${arg}'`);
+			commandArgs.push("--build-arg", arg);
 		}
 
 		const secrets = getEnviromentVariablesObject(
@@ -57,7 +57,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		);
 
 		const joinedSecrets = Object.entries(secrets)
-			.map(([key, value]) => `${key}='${value.replace(/'/g, "'\"'\"'")}'`)
+			.map(([key, value]) => `${key}=${quote([value])}`)
 			.join(" ");
 
 		for (const key in secrets) {
@@ -67,21 +67,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--secret", `type=env,id=${key}`);
 		}
 
-		/*
-			Do not generate an environment file when publishDirectory is specified,
-			as it could be publicly exposed.
-		*/
-		let command = "";
-		if (!publishDirectory) {
-			command += createEnvFileCommand(
-				dockerFilePath,
-				env,
-				application.environment.project.env,
-				application.environment.env,
-			);
-		}
-
-		command += `
+		const command = `
 echo "Building ${appName}" ;
 cd ${dockerContextPath} || { 
   echo "❌ The path ${dockerContextPath} does not exist" ;

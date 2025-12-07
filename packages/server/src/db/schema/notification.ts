@@ -24,6 +24,7 @@ export const notifications = pgTable("notification", {
 	appDeploy: boolean("appDeploy").notNull().default(false),
 	appBuildError: boolean("appBuildError").notNull().default(false),
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
+	volumeBackup: boolean("volumeBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
@@ -116,7 +117,7 @@ export const ntfy = pgTable("ntfy", {
 		.$defaultFn(() => nanoid()),
 	serverUrl: text("serverUrl").notNull(),
 	topic: text("topic").notNull(),
-	accessToken: text("accessToken").notNull(),
+	accessToken: text("accessToken"),
 	priority: integer("priority").notNull().default(3),
 });
 
@@ -169,6 +170,7 @@ export const apiCreateSlack = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -196,6 +198,7 @@ export const apiCreateTelegram = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -225,6 +228,7 @@ export const apiCreateDiscord = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -255,6 +259,7 @@ export const apiCreateEmail = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -290,6 +295,7 @@ export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -323,6 +329,7 @@ export const apiCreateNtfy = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -331,7 +338,7 @@ export const apiCreateNtfy = notificationsSchema
 	.extend({
 		serverUrl: z.string().min(1),
 		topic: z.string().min(1),
-		accessToken: z.string().min(1),
+		accessToken: z.string().optional(),
 		priority: z.number().min(1),
 	})
 	.required();
@@ -395,7 +402,7 @@ export const apiSendTest = notificationsSchema
 		serverUrl: z.string(),
 		topic: z.string(),
 		appToken: z.string(),
-		accessToken: z.string(),
+		accessToken: z.string().optional(),
 		priority: z.number(),
 	})
 	.partial();

@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 import { nanoid } from "nanoid";
+import { quote } from "shell-quote";
 import {
 	parseEnvironmentKeyValuePair,
 	prepareEnvironmentVariables,
+	prepareEnvironmentVariablesForShell,
 } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
@@ -18,7 +20,7 @@ const calculateSecretsHash = (envVariables: string[]): string => {
 export const getRailpackCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(
+	const envVariables = prepareEnvironmentVariablesForShell(
 		env,
 		application.environment.project.env,
 		application.environment.env,
@@ -35,7 +37,7 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	];
 
 	for (const env of envVariables) {
-		prepareArgs.push("--env", `'${env}'`);
+		prepareArgs.push("--env", env);
 	}
 
 	// Calculate secrets hash for layer invalidation
@@ -63,25 +65,36 @@ export const getRailpackCommand = (application: ApplicationNested) => {
 	];
 
 	// Add secrets properly formatted
+	// Use prepareEnvironmentVariables (without ForShell) to get raw values for parsing
+	const rawEnvVariables = prepareEnvironmentVariables(
+		env,
+		application.environment.project.env,
+		application.environment.env,
+	);
 	const exportEnvs = [];
-	for (const pair of envVariables) {
+	for (const pair of rawEnvVariables) {
 		const [key, value] = parseEnvironmentKeyValuePair(pair);
 		if (key && value) {
 			buildArgs.push("--secret", `id=${key},env=${key}`);
-			exportEnvs.push(`export ${key}='${value}'`);
+			exportEnvs.push(`export ${key}=${quote([value])}`);
 		}
 	}
 
 	buildArgs.push(buildAppDirectory);
 
 	const bashCommand = `
+
 # Ensure we have a builder with containerd
+
+export RAILPACK_VERSION=${application.railpackVersion}
+bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 docker buildx create --use --name builder-containerd --driver docker-container || true
 docker buildx use builder-containerd
 
 echo "Preparing Railpack build plan..." ;
 railpack ${prepareArgs.join(" ")} || { 
 	echo "❌ Railpack prepare failed" ;
+	docker buildx rm builder-containerd || true
 	exit 1;
 }
 echo "✅ Railpack prepare completed." ;
@@ -91,6 +104,7 @@ echo "Building with Railpack frontend..." ;
 ${exportEnvs.join("\n")}
 docker ${buildArgs.join(" ")} || { 
 	echo "❌ Railpack build failed" ;
+	docker buildx rm builder-containerd || true
 	exit 1;
 }
 echo "✅ Railpack build completed." ;
