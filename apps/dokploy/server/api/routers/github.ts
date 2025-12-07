@@ -6,6 +6,12 @@ import {
 	updateGithub,
 	updateGitProvider,
 } from "@dokploy/server";
+import {
+	apiFindOneGithubOutput,
+	apiGithubProvidersOutput,
+	apiTestConnectionGithubOutput,
+	apiUpdateGithubOutput,
+} from "@dokploy/server/api/schemas/github";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
@@ -18,6 +24,7 @@ import {
 export const githubRouter = createTRPCRouter({
 	one: protectedProcedure
 		.input(apiFindOneGithub)
+		.output(apiFindOneGithubOutput)
 		.query(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
 			if (
@@ -65,36 +72,39 @@ export const githubRouter = createTRPCRouter({
 			}
 			return await getGithubBranches(input);
 		}),
-	githubProviders: protectedProcedure.query(async ({ ctx }) => {
-		let result = await db.query.github.findMany({
-			with: {
-				gitProvider: true,
-			},
-		});
-
-		result = result.filter(
-			(provider) =>
-				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId,
-		);
-
-		const filtered = result
-			.filter((provider) => haveGithubRequirements(provider))
-			.map((provider) => {
-				return {
-					githubId: provider.githubId,
-					gitProvider: {
-						...provider.gitProvider,
-					},
-				};
+	githubProviders: protectedProcedure
+		.output(apiGithubProvidersOutput)
+		.query(async ({ ctx }) => {
+			let result = await db.query.github.findMany({
+				with: {
+					gitProvider: true,
+				},
 			});
 
-		return filtered;
-	}),
+			result = result.filter(
+				(provider) =>
+					provider.gitProvider.organizationId ===
+						ctx.session.activeOrganizationId &&
+					provider.gitProvider.userId === ctx.session.userId,
+			);
+
+			const filtered = result
+				.filter((provider) => haveGithubRequirements(provider))
+				.map((provider) => {
+					return {
+						githubId: provider.githubId,
+						gitProvider: {
+							...provider.gitProvider,
+						},
+					};
+				});
+
+			return filtered;
+		}),
 
 	testConnection: protectedProcedure
 		.input(apiFindOneGithub)
+		.output(apiTestConnectionGithubOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const githubProvider = await findGithubById(input.githubId);
@@ -119,6 +129,7 @@ export const githubRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateGithub)
+		.output(apiUpdateGithubOutput)
 		.mutation(async ({ input, ctx }) => {
 			const githubProvider = await findGithubById(input.githubId);
 			if (

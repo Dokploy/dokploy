@@ -5,8 +5,8 @@ import {
 	createMount,
 	deployMongo,
 	findBackupsByDbId,
-	findMongoById,
 	findEnvironmentById,
+	findMongoById,
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -18,6 +18,16 @@ import {
 	stopServiceRemote,
 	updateMongoById,
 } from "@dokploy/server";
+import {
+	apiChangeMongoStatusOutput,
+	apiDeployMongoOutput,
+	apiFindOneMongoOutput,
+	apiMoveMongoOutput,
+	apiRemoveMongoOutput,
+	apiSaveExternalPortMongoOutput,
+	apiStartMongoOutput,
+	apiStopMongoOutput,
+} from "@dokploy/server/api/schemas/mongo";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -40,6 +50,7 @@ import { cancelJobs } from "@/server/utils/backup";
 export const mongoRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMongo)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get project from environment
@@ -101,6 +112,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneMongo)
+		.output(apiFindOneMongoOutput)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -126,6 +138,7 @@ export const mongoRouter = createTRPCRouter({
 
 	start: protectedProcedure
 		.input(apiFindOneMongo)
+		.output(apiStartMongoOutput)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findMongoById(input.mongoId);
 
@@ -152,6 +165,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMongo)
+		.output(apiStopMongoOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 
@@ -178,6 +192,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMongo)
+		.output(apiSaveExternalPortMongoOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 			if (
@@ -197,6 +212,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMongo)
+		.output(apiDeployMongoOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 			if (
@@ -240,6 +256,7 @@ export const mongoRouter = createTRPCRouter({
 
 	changeStatus: protectedProcedure
 		.input(apiChangeMongoStatus)
+		.output(apiChangeMongoStatusOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 			if (
@@ -258,6 +275,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	reload: protectedProcedure
 		.input(apiResetMongo)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 			if (
@@ -290,6 +308,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneMongo)
+		.output(apiRemoveMongoOutput)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -329,6 +348,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMongo)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 			if (
@@ -355,6 +375,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMongo)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const { mongoId, ...rest } = input;
 			const mongo = await findMongoById(mongoId);
@@ -387,6 +408,7 @@ export const mongoRouter = createTRPCRouter({
 				targetEnvironmentId: z.string(),
 			}),
 		)
+		.output(apiMoveMongoOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 			if (
@@ -433,6 +455,7 @@ export const mongoRouter = createTRPCRouter({
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMongo)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMongoById(input.mongoId);
 			if (

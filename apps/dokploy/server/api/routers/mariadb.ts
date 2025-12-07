@@ -5,8 +5,8 @@ import {
 	createMount,
 	deployMariadb,
 	findBackupsByDbId,
-	findMariadbById,
 	findEnvironmentById,
+	findMariadbById,
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -18,6 +18,16 @@ import {
 	stopServiceRemote,
 	updateMariadbById,
 } from "@dokploy/server";
+import {
+	apiChangeMariaDBStatusOutput,
+	apiDeployMariaDBOutput,
+	apiFindOneMariaDBOutput,
+	apiMoveMariaDBOutput,
+	apiRemoveMariaDBOutput,
+	apiSaveExternalPortMariaDBOutput,
+	apiStartMariaDBOutput,
+	apiStopMariaDBOutput,
+} from "@dokploy/server/api/schemas/mariadb";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -40,6 +50,7 @@ import { cancelJobs } from "@/server/utils/backup";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMariaDB)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get project from environment
@@ -97,6 +108,7 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneMariaDB)
+		.output(apiFindOneMariaDBOutput)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -121,6 +133,7 @@ export const mariadbRouter = createTRPCRouter({
 
 	start: protectedProcedure
 		.input(apiFindOneMariaDB)
+		.output(apiStartMariaDBOutput)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findMariadbById(input.mariadbId);
 			if (
@@ -145,6 +158,7 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	stop: protectedProcedure
 		.input(apiFindOneMariaDB)
+		.output(apiStopMariaDBOutput)
 		.mutation(async ({ input }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 
@@ -161,10 +175,11 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMariaDB)
+		.output(apiSaveExternalPortMariaDBOutput)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMariadbById(input.mariadbId);
+			const mariadb = await findMariadbById(input.mariadbId);
 			if (
-				mongo.environment.project.organizationId !==
+				mariadb.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -176,10 +191,11 @@ export const mariadbRouter = createTRPCRouter({
 				externalPort: input.externalPort,
 			});
 			await deployMariadb(input.mariadbId);
-			return mongo;
+			return mariadb;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployMariaDB)
+		.output(apiDeployMariaDBOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (
@@ -224,10 +240,11 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeMariaDBStatus)
+		.output(apiChangeMariaDBStatusOutput)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMariadbById(input.mariadbId);
+			const mariadb = await findMariadbById(input.mariadbId);
 			if (
-				mongo.environment.project.organizationId !==
+				mariadb.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -238,10 +255,11 @@ export const mariadbRouter = createTRPCRouter({
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: input.applicationStatus,
 			});
-			return mongo;
+			return mariadb;
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneMariaDB)
+		.output(apiRemoveMariaDBOutput)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -252,9 +270,9 @@ export const mariadbRouter = createTRPCRouter({
 				);
 			}
 
-			const mongo = await findMariadbById(input.mariadbId);
+			const mariadb = await findMariadbById(input.mariadbId);
 			if (
-				mongo.environment.project.organizationId !==
+				mariadb.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -265,7 +283,7 @@ export const mariadbRouter = createTRPCRouter({
 
 			const backups = await findBackupsByDbId(input.mariadbId, "mariadb");
 			const cleanupOperations = [
-				async () => await removeService(mongo?.appName, mongo.serverId),
+				async () => await removeService(mariadb?.appName, mariadb.serverId),
 				async () => await cancelJobs(backups),
 				async () => await removeMariadbById(input.mariadbId),
 			];
@@ -276,10 +294,11 @@ export const mariadbRouter = createTRPCRouter({
 				} catch (_) {}
 			}
 
-			return mongo;
+			return mariadb;
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesMariaDB)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (
@@ -306,6 +325,7 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	reload: protectedProcedure
 		.input(apiResetMariadb)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (
@@ -338,6 +358,7 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateMariaDB)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const { mariadbId, ...rest } = input;
 			const mariadb = await findMariadbById(mariadbId);
@@ -370,6 +391,7 @@ export const mariadbRouter = createTRPCRouter({
 				targetEnvironmentId: z.string(),
 			}),
 		)
+		.output(apiMoveMariaDBOutput)
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (
@@ -416,6 +438,7 @@ export const mariadbRouter = createTRPCRouter({
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildMariadb)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 			if (

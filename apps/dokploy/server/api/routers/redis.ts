@@ -17,7 +17,17 @@ import {
 	stopServiceRemote,
 	updateRedisById,
 } from "@dokploy/server";
-
+import {
+	apiChangeRedisStatusOutput,
+	apiCreateRedisOutput,
+	apiDeployRedisOutput,
+	apiFindOneRedisOutput,
+	apiMoveRedisOutput,
+	apiRemoveRedisOutput,
+	apiSaveExternalPortRedisOutput,
+	apiStartRedisOutput,
+	apiStopRedisOutput,
+} from "@dokploy/server/api/schemas/redis";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -39,6 +49,7 @@ import {
 export const redisRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateRedis)
+		.output(apiCreateRedisOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				// Get project from environment
@@ -93,6 +104,7 @@ export const redisRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneRedis)
+		.output(apiFindOneRedisOutput)
 		.query(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -118,6 +130,7 @@ export const redisRouter = createTRPCRouter({
 
 	start: protectedProcedure
 		.input(apiFindOneRedis)
+		.output(apiStartRedisOutput)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
 			if (
@@ -143,6 +156,7 @@ export const redisRouter = createTRPCRouter({
 		}),
 	reload: protectedProcedure
 		.input(apiResetRedis)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
 			if (
@@ -176,6 +190,7 @@ export const redisRouter = createTRPCRouter({
 
 	stop: protectedProcedure
 		.input(apiFindOneRedis)
+		.output(apiStopRedisOutput)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
 			if (
@@ -200,10 +215,11 @@ export const redisRouter = createTRPCRouter({
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortRedis)
+		.output(apiSaveExternalPortRedisOutput)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findRedisById(input.redisId);
+			const redis = await findRedisById(input.redisId);
 			if (
-				mongo.environment.project.organizationId !==
+				redis.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -215,10 +231,11 @@ export const redisRouter = createTRPCRouter({
 				externalPort: input.externalPort,
 			});
 			await deployRedis(input.redisId);
-			return mongo;
+			return redis;
 		}),
 	deploy: protectedProcedure
 		.input(apiDeployRedis)
+		.output(apiDeployRedisOutput)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
 			if (
@@ -261,10 +278,11 @@ export const redisRouter = createTRPCRouter({
 		}),
 	changeStatus: protectedProcedure
 		.input(apiChangeRedisStatus)
+		.output(apiChangeRedisStatusOutput)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findRedisById(input.redisId);
+			const redis = await findRedisById(input.redisId);
 			if (
-				mongo.environment.project.organizationId !==
+				redis.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -275,10 +293,11 @@ export const redisRouter = createTRPCRouter({
 			await updateRedisById(input.redisId, {
 				applicationStatus: input.applicationStatus,
 			});
-			return mongo;
+			return redis;
 		}),
 	remove: protectedProcedure
 		.input(apiFindOneRedis)
+		.output(apiRemoveRedisOutput)
 		.mutation(async ({ input, ctx }) => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
@@ -315,6 +334,7 @@ export const redisRouter = createTRPCRouter({
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariablesRedis)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
 			if (
@@ -341,6 +361,7 @@ export const redisRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateRedis)
+		.output(z.boolean())
 		.mutation(async ({ input }) => {
 			const { redisId, ...rest } = input;
 			const redis = await updateRedisById(redisId, {
@@ -363,6 +384,7 @@ export const redisRouter = createTRPCRouter({
 				targetEnvironmentId: z.string(),
 			}),
 		)
+		.output(apiMoveRedisOutput)
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
 			if (
@@ -409,6 +431,7 @@ export const redisRouter = createTRPCRouter({
 		}),
 	rebuild: protectedProcedure
 		.input(apiRebuildRedis)
+		.output(z.boolean())
 		.mutation(async ({ input, ctx }) => {
 			const redis = await findRedisById(input.redisId);
 			if (

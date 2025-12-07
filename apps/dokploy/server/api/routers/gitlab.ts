@@ -8,6 +8,12 @@ import {
 	updateGitlab,
 	updateGitProvider,
 } from "@dokploy/server";
+import {
+	apiFindOneGitlabOutput,
+	apiGitlabProvidersOutput,
+	apiTestConnectionGitlabOutput,
+	apiUpdateGitlabOutput,
+} from "@dokploy/server/api/schemas/gitlab";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
@@ -39,6 +45,7 @@ export const gitlabRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneGitlab)
+		.output(apiFindOneGitlabOutput)
 		.query(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (
@@ -53,34 +60,36 @@ export const gitlabRouter = createTRPCRouter({
 			}
 			return gitlabProvider;
 		}),
-	gitlabProviders: protectedProcedure.query(async ({ ctx }) => {
-		let result = await db.query.gitlab.findMany({
-			with: {
-				gitProvider: true,
-			},
-		});
-
-		result = result.filter((provider) => {
-			return (
-				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
-			);
-		});
-		const filtered = result
-			.filter((provider) => haveGitlabRequirements(provider))
-			.map((provider) => {
-				return {
-					gitlabId: provider.gitlabId,
-					gitProvider: {
-						...provider.gitProvider,
-					},
-					gitlabUrl: provider.gitlabUrl,
-				};
+	gitlabProviders: protectedProcedure
+		.output(apiGitlabProvidersOutput)
+		.query(async ({ ctx }) => {
+			let result = await db.query.gitlab.findMany({
+				with: {
+					gitProvider: true,
+				},
 			});
 
-		return filtered;
-	}),
+			result = result.filter((provider) => {
+				return (
+					provider.gitProvider.organizationId ===
+						ctx.session.activeOrganizationId &&
+					provider.gitProvider.userId === ctx.session.userId
+				);
+			});
+			const filtered = result
+				.filter((provider) => haveGitlabRequirements(provider))
+				.map((provider) => {
+					return {
+						gitlabId: provider.gitlabId,
+						gitProvider: {
+							...provider.gitProvider,
+						},
+						gitlabUrl: provider.gitlabUrl,
+					};
+				});
+
+			return filtered;
+		}),
 	getGitlabRepositories: protectedProcedure
 		.input(apiFindOneGitlab)
 		.query(async ({ input, ctx }) => {
@@ -116,6 +125,7 @@ export const gitlabRouter = createTRPCRouter({
 		}),
 	testConnection: protectedProcedure
 		.input(apiGitlabTestConnection)
+		.output(apiTestConnectionGitlabOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const gitlabProvider = await findGitlabById(input.gitlabId || "");
@@ -141,6 +151,7 @@ export const gitlabRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateGitlab)
+		.output(apiUpdateGitlabOutput)
 		.mutation(async ({ input, ctx }) => {
 			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (

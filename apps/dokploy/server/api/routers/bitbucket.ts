@@ -6,6 +6,12 @@ import {
 	testBitbucketConnection,
 	updateBitbucket,
 } from "@dokploy/server";
+import {
+	apiBitbucketProvidersOutput,
+	apiFindOneBitbucketOutput,
+	apiTestConnectionBitbucketOutput,
+	apiUpdateBitbucketOutput,
+} from "@dokploy/server/api/schemas/bitbucket";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
@@ -37,6 +43,7 @@ export const bitbucketRouter = createTRPCRouter({
 		}),
 	one: protectedProcedure
 		.input(apiFindOneBitbucket)
+		.output(apiFindOneBitbucketOutput)
 		.query(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
@@ -51,25 +58,27 @@ export const bitbucketRouter = createTRPCRouter({
 			}
 			return bitbucketProvider;
 		}),
-	bitbucketProviders: protectedProcedure.query(async ({ ctx }) => {
-		let result = await db.query.bitbucket.findMany({
-			with: {
-				gitProvider: true,
-			},
-			columns: {
-				bitbucketId: true,
-			},
-		});
+	bitbucketProviders: protectedProcedure
+		.output(apiBitbucketProvidersOutput)
+		.query(async ({ ctx }) => {
+			let result = await db.query.bitbucket.findMany({
+				with: {
+					gitProvider: true,
+				},
+				columns: {
+					bitbucketId: true,
+				},
+			});
 
-		result = result.filter((provider) => {
-			return (
-				provider.gitProvider.organizationId ===
-					ctx.session.activeOrganizationId &&
-				provider.gitProvider.userId === ctx.session.userId
-			);
-		});
-		return result;
-	}),
+			result = result.filter((provider) => {
+				return (
+					provider.gitProvider.organizationId ===
+						ctx.session.activeOrganizationId &&
+					provider.gitProvider.userId === ctx.session.userId
+				);
+			});
+			return result;
+		}),
 
 	getBitbucketRepositories: protectedProcedure
 		.input(apiFindOneBitbucket)
@@ -107,6 +116,7 @@ export const bitbucketRouter = createTRPCRouter({
 		}),
 	testConnection: protectedProcedure
 		.input(apiBitbucketTestConnection)
+		.output(apiTestConnectionBitbucketOutput)
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const bitbucketProvider = await findBitbucketById(input.bitbucketId);
@@ -132,6 +142,7 @@ export const bitbucketRouter = createTRPCRouter({
 		}),
 	update: protectedProcedure
 		.input(apiUpdateBitbucket)
+		.output(apiUpdateBitbucketOutput)
 		.mutation(async ({ input, ctx }) => {
 			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
@@ -144,9 +155,16 @@ export const bitbucketRouter = createTRPCRouter({
 					message: "You are not allowed to access this bitbucket provider",
 				});
 			}
-			return await updateBitbucket(input.bitbucketId, {
+			const result = await updateBitbucket(input.bitbucketId, {
 				...input,
 				organizationId: ctx.session.activeOrganizationId,
 			});
+			if (!result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Bitbucket provider not found or update failed",
+				});
+			}
+			return result;
 		}),
 });

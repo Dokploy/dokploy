@@ -10,6 +10,7 @@ import {
 	findServerById,
 	updateDeploymentStatus,
 } from "@dokploy/server";
+import { apiDeploymentAllOutput } from "@dokploy/server/api";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -26,6 +27,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const deploymentRouter = createTRPCRouter({
 	all: protectedProcedure
 		.input(apiFindAllByApplication)
+		.output(apiDeploymentAllOutput)
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
@@ -42,6 +44,7 @@ export const deploymentRouter = createTRPCRouter({
 
 	allByCompose: protectedProcedure
 		.input(apiFindAllByCompose)
+		.output(apiDeploymentAllOutput)
 		.query(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
 			if (
@@ -57,6 +60,7 @@ export const deploymentRouter = createTRPCRouter({
 		}),
 	allByServer: protectedProcedure
 		.input(apiFindAllByServer)
+		.output(apiDeploymentAllOutput)
 		.query(async ({ input, ctx }) => {
 			const server = await findServerById(input.serverId);
 			if (server.organizationId !== ctx.session.activeOrganizationId) {
@@ -70,6 +74,7 @@ export const deploymentRouter = createTRPCRouter({
 
 	allByType: protectedProcedure
 		.input(apiFindAllByType)
+		.output(apiDeploymentAllOutput)
 		.query(async ({ input }) => {
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
