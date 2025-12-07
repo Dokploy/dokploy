@@ -1,6 +1,8 @@
+import type { betterAuthInstance } from "@dokploy/server";
 import {
 	adminClient,
 	apiKeyClient,
+	inferAdditionalFields,
 	organizationClient,
 	twoFactorClient,
 } from "better-auth/client/plugins";
@@ -13,5 +15,6 @@ export const authClient = createAuthClient({
 		twoFactorClient(),
 		apiKeyClient(),
 		adminClient(),
+		inferAdditionalFields<typeof betterAuthInstance>(),
 	],
 });

@@ -14,7 +14,7 @@ import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
-const { handler, api } = betterAuth({
+export const betterAuthInstance = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -127,16 +127,22 @@ const { handler, api } = betterAuth({
 						});
 					}
 
+					console.log(user);
+
 					if (IS_CLOUD) {
 						try {
 							const hutk = getHubSpotUTK(
 								context?.request?.headers?.get("cookie") || undefined,
 							);
+							// Cast to include additional fields
+							const userWithFields = user as typeof user & {
+								lastName?: string;
+							};
 							const hubspotSuccess = await submitToHubSpot(
 								{
 									email: user.email,
-									firstName: user.name,
-									lastName: user.name,
+									firstName: user.name || "", // name is mapped to firstName column
+									lastName: userWithFields.lastName || "",
 								},
 								hutk,
 							);
@@ -204,6 +210,9 @@ const { handler, api } = betterAuth({
 	},
 	user: {
 		modelName: "user",
+		fields: {
+			name: "firstName", // Map better-auth's default 'name' field to 'firstName' column
+		},
 		additionalFields: {
 			role: {
 				type: "string",
@@ -219,6 +228,12 @@ const { handler, api } = betterAuth({
 				fieldName: "allowImpersonation",
 				type: "boolean",
 				defaultValue: false,
+			},
+			lastName: {
+				type: "string",
+				required: false,
+				input: true,
+				defaultValue: "",
 			},
 		},
 	},
@@ -257,9 +272,11 @@ const { handler, api } = betterAuth({
 });
 
 export const auth = {
-	handler,
-	createApiKey: api.createApiKey,
+	handler: betterAuthInstance.handler,
+	createApiKey: betterAuthInstance.api.createApiKey,
 };
+
+export const { handler, api } = betterAuthInstance;
 
 export const validateRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
@@ -316,16 +333,11 @@ export const validateRequest = async (request: IncomingMessage) => {
 				},
 			});
 
-			const {
-				id,
-				name,
-				email,
-				emailVerified,
-				image,
-				createdAt,
-				updatedAt,
-				twoFactorEnabled,
-			} = apiKeyRecord.user;
+			// When accessing from DB, use actual column names
+			const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
+				firstName: string;
+				lastName: string;
+			};
 
 			const mockSession = {
 				session: {
@@ -333,14 +345,14 @@ export const validateRequest = async (request: IncomingMessage) => {
 					activeOrganizationId: organizationId || "",
 				},
 				user: {
-					id,
-					name,
-					email,
-					emailVerified,
-					image,
-					createdAt,
-					updatedAt,
-					twoFactorEnabled,
+					id: userFromDb.id,
+					name: userFromDb.firstName, // Map firstName back to name for better-auth
+					email: userFromDb.email,
+					emailVerified: userFromDb.emailVerified,
+					image: userFromDb.image,
+					createdAt: userFromDb.createdAt,
+					updatedAt: userFromDb.updatedAt,
+					twoFactorEnabled: userFromDb.twoFactorEnabled,
 					role: member?.role || "member",
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
 				},
