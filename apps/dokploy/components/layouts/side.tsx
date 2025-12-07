@@ -333,7 +333,11 @@ const MENU: Menu = {
 			icon: GitBranch,
 			// Only enabled for admins and users with access to Git providers
 			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.canAccessToGitProviders),
+				!!(
+					auth?.role === "owner" ||
+					auth?.canAccessToGitProviders ||
+					auth?.role === "admin"
+				),
 		},
 		{
 			isSingle: true,
