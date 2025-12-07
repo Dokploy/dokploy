@@ -1,4 +1,4 @@
-import { Paintbrush } from "lucide-react";
+import { Ban } from "lucide-react";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -35,7 +35,7 @@ export const CancelQueues = ({ id, type }: Props) => {
 			<AlertDialogTrigger asChild>
 				<Button variant="destructive" className="w-fit" isLoading={isLoading}>
 					Cancel Queues
-					<Paintbrush className="size-4" />
+					<Ban className="size-4" />
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
