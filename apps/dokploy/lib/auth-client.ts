@@ -1,4 +1,4 @@
-import type { betterAuthInstance } from "@dokploy/server";
+import type { auth } from "@dokploy/server";
 import {
 	adminClient,
 	apiKeyClient,
@@ -15,6 +15,6 @@ export const authClient = createAuthClient({
 		twoFactorClient(),
 		apiKeyClient(),
 		adminClient(),
-		inferAdditionalFields<typeof betterAuthInstance>(),
+		inferAdditionalFields<typeof auth.api>(),
 	],
 });

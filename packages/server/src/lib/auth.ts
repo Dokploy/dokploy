@@ -14,7 +14,7 @@ import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
-export const betterAuthInstance = betterAuth({
+const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -272,11 +272,10 @@ export const betterAuthInstance = betterAuth({
 });
 
 export const auth = {
-	handler: betterAuthInstance.handler,
-	createApiKey: betterAuthInstance.api.createApiKey,
+	handler: handler,
+	createApiKey: api.createApiKey,
+	api: api,
 };
-
-export const { handler, api } = betterAuthInstance;
 
 export const validateRequest = async (request: IncomingMessage) => {
 	const apiKey = request.headers["x-api-key"] as string;
