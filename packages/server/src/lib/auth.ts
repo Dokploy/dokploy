@@ -271,7 +271,11 @@ const { handler, api } = betterAuth({
 	],
 });
 
-export const auth = {
+export const auth: {
+	handler: typeof handler;
+	createApiKey: typeof api.createApiKey;
+	api: typeof api;
+} = {
 	handler: handler,
 	createApiKey: api.createApiKey,
 	api: api,
