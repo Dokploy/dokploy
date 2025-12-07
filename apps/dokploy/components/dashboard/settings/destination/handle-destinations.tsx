@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { KeyRound, PenBoxIcon, PlusIcon, RefreshCw, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -33,22 +34,53 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { S3_PROVIDERS } from "./constants";
 
-const addDestination = z.object({
-	name: z.string().min(1, "Name is required"),
-	provider: z.string().min(1, "Provider is required"),
-	accessKeyId: z.string().min(1, "Access Key Id is required"),
-	secretAccessKey: z.string().min(1, "Secret Access Key is required"),
-	bucket: z.string().min(1, "Bucket is required"),
-	region: z.string(),
-	endpoint: z.string().min(1, "Endpoint is required"),
-	serverId: z.string().optional(),
-});
+const ENCRYPTION_METHODS = [
+	{ key: "aes-256-cbc", name: "AES-256-CBC" },
+	{ key: "aes-256-gcm", name: "AES-256-GCM" },
+] as const;
+
+const addDestination = z
+	.object({
+		name: z.string().min(1, "Name is required"),
+		provider: z.string().min(1, "Provider is required"),
+		accessKeyId: z.string().min(1, "Access Key Id is required"),
+		secretAccessKey: z.string().min(1, "Secret Access Key is required"),
+		bucket: z.string().min(1, "Bucket is required"),
+		region: z.string(),
+		endpoint: z.string().min(1, "Endpoint is required"),
+		serverId: z.string().optional(),
+		encryptionEnabled: z.boolean().optional(),
+		encryptionMethod: z.enum(["aes-256-cbc", "aes-256-gcm"]).optional(),
+		encryptionKey: z.string().optional(),
+	})
+	.refine(
+		(data) => {
+			if (data.encryptionEnabled) {
+				return data.encryptionMethod && data.encryptionKey;
+			}
+			return true;
+		},
+		{
+			message:
+				"Encryption method and key are required when encryption is enabled",
+			path: ["encryptionKey"],
+		},
+	);
 
 type AddDestination = z.infer<typeof addDestination>;
+
+const generateEncryptionKey = (): string => {
+	const array = new Uint8Array(32);
+	crypto.getRandomValues(array);
+	return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+		"",
+	);
+};
 
 interface Props {
 	destinationId?: string;
@@ -89,9 +121,15 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: "",
 			secretAccessKey: "",
 			endpoint: "",
+			encryptionEnabled: false,
+			encryptionMethod: undefined,
+			encryptionKey: "",
 		},
 		resolver: zodResolver(addDestination),
 	});
+
+	const encryptionEnabled = form.watch("encryptionEnabled");
+
 	useEffect(() => {
 		if (destination) {
 			form.reset({
@@ -102,6 +140,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				bucket: destination.bucket,
 				region: destination.region,
 				endpoint: destination.endpoint,
+				encryptionEnabled: destination.encryptionEnabled ?? false,
+				encryptionMethod: destination.encryptionMethod ?? undefined,
+				encryptionKey: destination.encryptionKey ?? "",
 			});
 		} else {
 			form.reset();
@@ -118,6 +159,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			region: data.region,
 			secretAccessKey: data.secretAccessKey,
 			destinationId: destinationId || "",
+			encryptionEnabled: data.encryptionEnabled,
+			encryptionMethod: data.encryptionMethod,
+			encryptionKey: data.encryptionKey,
 		})
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
@@ -355,6 +399,109 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
+						{/* Encryption Settings */}
+						<div className="space-y-4 rounded-lg border p-4">
+							<div className="flex items-center gap-2">
+								<Shield className="h-4 w-4 text-muted-foreground" />
+								<span className="text-sm font-medium">
+									Backup Encryption (At Rest)
+								</span>
+							</div>
+
+							<FormField
+								control={form.control}
+								name="encryptionEnabled"
+								render={({ field }) => (
+									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+										<div className="space-y-0.5">
+											<FormLabel>Enable Encryption</FormLabel>
+											<FormDescription>
+												Encrypt backups before uploading to S3
+											</FormDescription>
+										</div>
+										<FormControl>
+											<Switch
+												checked={field.value}
+												onCheckedChange={field.onChange}
+											/>
+										</FormControl>
+									</FormItem>
+								)}
+							/>
+
+							{encryptionEnabled && (
+								<>
+									<FormField
+										control={form.control}
+										name="encryptionMethod"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Encryption Method</FormLabel>
+												<FormControl>
+													<Select
+														onValueChange={field.onChange}
+														value={field.value}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder="Select encryption method" />
+														</SelectTrigger>
+														<SelectContent>
+															{ENCRYPTION_METHODS.map((method) => (
+																<SelectItem key={method.key} value={method.key}>
+																	{method.name}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={form.control}
+										name="encryptionKey"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Encryption Key</FormLabel>
+												<div className="flex gap-2">
+													<FormControl>
+														<Input
+															type="password"
+															placeholder="Enter or generate an encryption key"
+															{...field}
+														/>
+													</FormControl>
+													<Button
+														type="button"
+														variant="outline"
+														size="icon"
+														onClick={() => {
+															const key = generateEncryptionKey();
+															form.setValue("encryptionKey", key);
+															toast.success("Encryption key generated", {
+																description:
+																	"Make sure to save this key securely. You will need it to restore backups.",
+															});
+														}}
+													>
+														<RefreshCw className="h-4 w-4" />
+													</Button>
+												</div>
+												<FormDescription>
+													<KeyRound className="mr-1 inline h-3 w-3" />
+													Store this key securely. Lost keys cannot be
+													recovered and encrypted backups will be unrecoverable.
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</>
+							)}
+						</div>
 					</form>
 
 					<DialogFooter

@@ -8,7 +8,12 @@ import { findEnvironmentById } from "@dokploy/server/services/environment";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getEncryptionConfigFromDestination,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runComposeBackup = async (
 	compose: Compose,
@@ -19,7 +24,10 @@ export const runComposeBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix, databaseType } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+	const encryptionConfig = getEncryptionConfigFromDestination(destination);
+	const backupFileName = encryptionConfig.enabled
+		? `${new Date().toISOString()}.sql.gz.enc`
+		: `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
@@ -36,6 +44,7 @@ export const runComposeBackup = async (
 			backup,
 			rcloneCommand,
 			deployment.logPath,
+			encryptionConfig,
 		);
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, backupCommand);

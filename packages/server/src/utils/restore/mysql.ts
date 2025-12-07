@@ -2,9 +2,12 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import {
+	getEncryptionConfigFromDestination,
+	getS3Credentials,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getRestoreCommand } from "./utils";
+import { getRestoreCommand, isEncryptedBackup } from "./utils";
 
 export const restoreMySqlBackup = async (
 	mysql: MySql,
@@ -17,9 +20,14 @@ export const restoreMySqlBackup = async (
 
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
+		const encryptionConfig = getEncryptionConfigFromDestination(destination);
+		const isEncrypted = isEncryptedBackup(backupInput.backupFile);
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
 
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		// For encrypted files, we don't decompress here - getRestoreCommand handles decryption
+		const rcloneCommand = isEncrypted
+			? `rclone cat ${rcloneFlags.join(" ")} "${backupPath}"`
+			: `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
 		const command = getRestoreCommand({
 			appName,
@@ -30,9 +38,14 @@ export const restoreMySqlBackup = async (
 			},
 			restoreType: "database",
 			rcloneCommand,
+			backupFile: backupInput.backupFile,
+			encryptionConfig: isEncrypted ? encryptionConfig : undefined,
 		});
 
 		emit("Starting restore...");
+		if (isEncrypted) {
+			emit("🔐 Encrypted backup detected - will decrypt during restore");
+		}
 
 		emit(`Executing command: ${command}`);
 

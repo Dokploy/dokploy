@@ -8,7 +8,12 @@ import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getEncryptionConfigFromDestination,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { environmentId, name } = mongo;
@@ -16,7 +21,10 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+	const encryptionConfig = getEncryptionConfigFromDestination(destination);
+	const backupFileName = encryptionConfig.enabled
+		? `${new Date().toISOString()}.sql.gz.enc`
+		: `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
@@ -32,6 +40,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 			backup,
 			rcloneCommand,
 			deployment.logPath,
+			encryptionConfig,
 		);
 
 		if (mongo.serverId) {

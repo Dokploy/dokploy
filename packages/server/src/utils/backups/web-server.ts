@@ -10,7 +10,12 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { execAsync } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getEncryptionCommand,
+	getEncryptionConfigFromDestination,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
@@ -26,11 +31,15 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 	try {
 		const destination = await findDestinationById(backup.destinationId);
+		const encryptionConfig = getEncryptionConfigFromDestination(destination);
 		const rcloneFlags = getS3Credentials(destination);
 		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 		const { BASE_PATH } = paths();
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-backup-"));
-		const backupFileName = `webserver-backup-${timestamp}.zip`;
+		const baseBackupFileName = `webserver-backup-${timestamp}.zip`;
+		const backupFileName = encryptionConfig.enabled
+			? `${baseBackupFileName}.enc`
+			: baseBackupFileName;
 		const s3Path = `:s3:${destination.bucket}/${normalizeS3Path(backup.prefix)}${backupFileName}`;
 
 		try {
@@ -74,15 +83,25 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			await execAsync(
 				// Zip all .sql files since we created more than one
-				`cd ${tempDir} && zip -r ${backupFileName} *.sql filesystem/ > /dev/null 2>&1`,
+				`cd ${tempDir} && zip -r ${baseBackupFileName} *.sql filesystem/ > /dev/null 2>&1`,
 			);
 
 			writeStream.write("Zipped database and filesystem\n");
 
+			// Encrypt the backup if encryption is enabled
+			if (encryptionConfig.enabled && encryptionConfig.method && encryptionConfig.key) {
+				const encryptionCommand = getEncryptionCommand(encryptionConfig);
+				writeStream.write(`🔐 Encrypting backup with ${encryptionConfig.method}...\n`);
+				await execAsync(
+					`cd ${tempDir} && cat "${baseBackupFileName}" | ${encryptionCommand} > "${backupFileName}"`,
+				);
+				writeStream.write("Backup encrypted successfully\n");
+			}
+
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
 			writeStream.write("Running command to upload backup to S3\n");
 			await execAsync(uploadCommand);
-			writeStream.write("Uploaded backup to S3 ✅\n");
+			writeStream.write(`Uploaded backup to S3${encryptionConfig.enabled ? " (encrypted)" : ""} ✅\n`);
 			writeStream.end();
 			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;

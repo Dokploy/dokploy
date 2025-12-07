@@ -10,6 +10,58 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
+export type EncryptionMethod = "aes-256-cbc" | "aes-256-gcm";
+
+export interface EncryptionConfig {
+	enabled: boolean;
+	method?: EncryptionMethod | null;
+	key?: string | null;
+}
+
+export const getEncryptionCommand = (config: EncryptionConfig): string => {
+	if (!config.enabled || !config.method || !config.key) {
+		return "";
+	}
+
+	const escapedKey = config.key.replace(/'/g, "'\\''");
+
+	switch (config.method) {
+		case "aes-256-cbc":
+			return `openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
+		case "aes-256-gcm":
+			return `openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
+		default:
+			return "";
+	}
+};
+
+export const getDecryptionCommand = (config: EncryptionConfig): string => {
+	if (!config.enabled || !config.method || !config.key) {
+		return "";
+	}
+
+	const escapedKey = config.key.replace(/'/g, "'\\''");
+
+	switch (config.method) {
+		case "aes-256-cbc":
+			return `openssl enc -aes-256-cbc -d -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
+		case "aes-256-gcm":
+			return `openssl enc -aes-256-cbc -d -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
+		default:
+			return "";
+	}
+};
+
+export const getEncryptionConfigFromDestination = (
+	destination: Destination,
+): EncryptionConfig => {
+	return {
+		enabled: destination.encryptionEnabled ?? false,
+		method: destination.encryptionMethod as EncryptionMethod | null,
+		key: destination.encryptionKey,
+	};
+};
+
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
 		schedule,
@@ -220,9 +272,14 @@ export const getBackupCommand = (
 	backup: BackupSchedule,
 	rcloneCommand: string,
 	logPath: string,
+	encryptionConfig?: EncryptionConfig,
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+	const encryptionCommand = encryptionConfig
+		? getEncryptionCommand(encryptionConfig)
+		: "";
+	const isEncrypted = encryptionConfig?.enabled && encryptionCommand;
 
 	logger.info(
 		{
@@ -230,13 +287,23 @@ export const getBackupCommand = (
 			backupCommand,
 			rcloneCommand,
 			logPath,
+			encryptionEnabled: isEncrypted,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
 	);
 
+	const pipelineCommand = isEncrypted
+		? `${backupCommand} | ${encryptionCommand} | ${rcloneCommand}`
+		: `${backupCommand} | ${rcloneCommand}`;
+
+	const encryptionLogMessage = isEncrypted
+		? `echo "[$(date)] 🔐 Encryption enabled (${encryptionConfig?.method})" >> ${logPath};`
+		: "";
+
 	return `
 	set -eo pipefail;
 	echo "[$(date)] Starting backup process..." >> ${logPath};
+	${encryptionLogMessage}
 	echo "[$(date)] Executing backup command..." >> ${logPath};
 	CONTAINER_ID=$(${containerSearch})
 
@@ -255,10 +322,10 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload to S3${isEncrypted ? " (encrypted)" : ""}..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
-	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
+	UPLOAD_OUTPUT=$(${pipelineCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;

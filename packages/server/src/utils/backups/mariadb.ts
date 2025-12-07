@@ -8,7 +8,12 @@ import type { Mariadb } from "@dokploy/server/services/mariadb";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getEncryptionConfigFromDestination,
+	getS3Credentials,
+	normalizeS3Path,
+} from "./utils";
 
 export const runMariadbBackup = async (
 	mariadb: Mariadb,
@@ -19,7 +24,10 @@ export const runMariadbBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+	const encryptionConfig = getEncryptionConfigFromDestination(destination);
+	const backupFileName = encryptionConfig.enabled
+		? `${new Date().toISOString()}.sql.gz.enc`
+		: `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
@@ -35,6 +43,7 @@ export const runMariadbBackup = async (
 			backup,
 			rcloneCommand,
 			deployment.logPath,
+			encryptionConfig,
 		);
 		if (mariadb.serverId) {
 			await execAsyncRemote(mariadb.serverId, backupCommand);

@@ -3,8 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
-import { getS3Credentials } from "../backups/utils";
+import {
+	getDecryptionCommand,
+	getEncryptionConfigFromDestination,
+	getS3Credentials,
+} from "../backups/utils";
 import { execAsync } from "../process/execAsync";
+import { isEncryptedBackup } from "./utils";
 
 export const restoreWebServerBackup = async (
 	destination: Destination,
@@ -19,6 +24,11 @@ export const restoreWebServerBackup = async (
 		const bucketPath = `:s3:${destination.bucket}`;
 		const backupPath = `${bucketPath}/${backupFile}`;
 		const { BASE_PATH } = paths();
+		const encryptionConfig = getEncryptionConfigFromDestination(destination);
+		const isEncrypted = isEncryptedBackup(backupFile);
+		const decryptedFileName = isEncrypted
+			? backupFile.replace(".enc", "")
+			: backupFile;
 
 		// Create a temporary directory outside of BASE_PATH
 		const tempDir = await mkdtemp(join(tmpdir(), "dokploy-restore-"));
@@ -27,6 +37,9 @@ export const restoreWebServerBackup = async (
 			emit("Starting restore...");
 			emit(`Backup path: ${backupPath}`);
 			emit(`Temp directory: ${tempDir}`);
+			if (isEncrypted) {
+				emit("🔐 Encrypted backup detected - will decrypt before extraction");
+			}
 
 			// Create temp directory
 			emit("Creating temporary directory...");
@@ -38,14 +51,30 @@ export const restoreWebServerBackup = async (
 				`rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${tempDir}/${backupFile}"`,
 			);
 
+			// Decrypt if necessary
+			if (isEncrypted && encryptionConfig.enabled) {
+				emit("Decrypting backup...");
+				const decryptionCommand = getDecryptionCommand(encryptionConfig);
+				if (decryptionCommand) {
+					await execAsync(
+						`cd ${tempDir} && cat "${backupFile}" | ${decryptionCommand} > "${decryptedFileName}"`,
+					);
+					// Remove the encrypted file
+					await execAsync(`rm -f "${tempDir}/${backupFile}"`);
+					emit("Backup decrypted successfully");
+				}
+			}
+
 			// List files before extraction
 			emit("Listing files before extraction...");
 			const { stdout: beforeFiles } = await execAsync(`ls -la ${tempDir}`);
 			emit(`Files before extraction: ${beforeFiles}`);
 
-			// Extract backup
+			// Extract backup (use decrypted filename)
 			emit("Extracting backup...");
-			await execAsync(`cd ${tempDir} && unzip ${backupFile} > /dev/null 2>&1`);
+			await execAsync(
+				`cd ${tempDir} && unzip ${decryptedFileName} > /dev/null 2>&1`,
+			);
 
 			// Restore filesystem first
 			emit("Restoring filesystem...");

@@ -2,9 +2,12 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import {
+	getEncryptionConfigFromDestination,
+	getS3Credentials,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getRestoreCommand } from "./utils";
+import { getRestoreCommand, isEncryptedBackup } from "./utils";
 
 interface DatabaseCredentials {
 	databaseUser?: string;
@@ -25,11 +28,19 @@ export const restoreComposeBackup = async (
 
 		const rcloneFlags = getS3Credentials(destination);
 		const bucketPath = `:s3:${destination.bucket}`;
+		const encryptionConfig = getEncryptionConfigFromDestination(destination);
+		const isEncrypted = isEncryptedBackup(backupInput.backupFile);
 		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 
+		let rcloneCommand: string;
 		if (backupInput.metadata?.mongo) {
+			// Mongo uses rclone copy regardless of encryption
 			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
+		} else if (isEncrypted) {
+			// For encrypted non-mongo, don't decompress - getRestoreCommand handles it
+			rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}"`;
+		} else {
+			rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
 		}
 
 		let credentials: DatabaseCredentials;
@@ -69,10 +80,15 @@ export const restoreComposeBackup = async (
 			},
 			restoreType: composeType,
 			rcloneCommand,
+			backupFile: backupInput.backupFile,
+			encryptionConfig: isEncrypted ? encryptionConfig : undefined,
 		});
 
 		emit("Starting restore...");
 		emit(`Backup path: ${backupPath}`);
+		if (isEncrypted) {
+			emit("🔐 Encrypted backup detected - will decrypt during restore");
+		}
 
 		emit(`Executing command: ${restoreCommand}`);
 
