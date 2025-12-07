@@ -25,6 +25,7 @@ import {
 import { api, type RouterOutputs } from "@/utils/api";
 import { ShowRollbackSettings } from "../rollbacks/show-rollback-settings";
 import { CancelQueues } from "./cancel-queues";
+import { ClearDeployments } from "./clear-deployments";
 import { KillBuild } from "./kill-build";
 import { RefreshToken } from "./refresh-token";
 import { ShowDeployment } from "./show-deployment";
@@ -144,6 +145,9 @@ export const ShowDeployments = ({
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center flex-wrap gap-2">
+					{(type === "application" || type === "compose") && (
+						<ClearDeployments id={id} type={type} />
+					)}
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
