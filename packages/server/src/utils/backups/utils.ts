@@ -10,9 +10,14 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
+export type FilenameEncryption = "standard" | "obfuscate" | "off";
+
 export interface EncryptionConfig {
 	enabled: boolean;
 	key?: string | null;
+	password2?: string | null;
+	filenameEncryption?: FilenameEncryption | null;
+	directoryNameEncryption?: boolean | null;
 }
 
 export const getEncryptionConfigFromDestination = (
@@ -21,6 +26,9 @@ export const getEncryptionConfigFromDestination = (
 	return {
 		enabled: destination.encryptionEnabled ?? false,
 		key: destination.encryptionKey,
+		password2: destination.encryptionPassword2,
+		filenameEncryption: (destination.filenameEncryption as FilenameEncryption) ?? "off",
+		directoryNameEncryption: destination.directoryNameEncryption ?? false,
 	};
 };
 
@@ -28,6 +36,14 @@ export const getEncryptionConfigFromDestination = (
  * Get rclone flags for S3 credentials with optional crypt encryption overlay.
  * When encryption is enabled, uses rclone's native crypt backend which provides
  * file name and content encryption using NaCl SecretBox (XSalsa20 cipher + Poly1305).
+ *
+ * Rclone crypt options:
+ * - password: Main encryption password (required)
+ * - password2: Salt password for additional security (optional but recommended)
+ * - filename_encryption: "standard" (encrypt), "obfuscate", or "off"
+ * - directory_name_encryption: true/false (only applies if filename_encryption is not "off")
+ *
+ * @see https://rclone.org/crypt/
  */
 export const getRcloneS3Remote = (
 	destination: Destination,
@@ -45,12 +61,26 @@ export const getRcloneS3Remote = (
 	// If encryption is enabled, wrap the S3 remote with crypt
 	if (encryptionConfig?.enabled && encryptionConfig?.key) {
 		const escapedKey = encryptionConfig.key.replace(/'/g, "'\\''");
-		// Use crypt overlay with the S3 remote as backend
-		// filename_encryption=off keeps original filenames (only content is encrypted)
-		const cryptRemote = `:crypt,remote="${s3Remote}:${bucket}",filename_encryption=off:`;
+
+		// Build crypt options
+		const filenameEncryption = encryptionConfig.filenameEncryption || "off";
+		const directoryNameEncryption = encryptionConfig.directoryNameEncryption ?? false;
+
+		// Build the crypt remote string with all options
+		const cryptRemote = `:crypt,remote="${s3Remote}:${bucket}",filename_encryption=${filenameEncryption},directory_name_encryption=${directoryNameEncryption}:`;
+
+		// Build environment variables for passwords
+		let envVars = `RCLONE_CRYPT_PASSWORD='${escapedKey}'`;
+
+		// Add password2 (salt) if provided
+		if (encryptionConfig.password2) {
+			const escapedPassword2 = encryptionConfig.password2.replace(/'/g, "'\\''");
+			envVars += ` RCLONE_CRYPT_PASSWORD2='${escapedPassword2}'`;
+		}
+
 		return {
 			remote: cryptRemote,
-			envVars: `RCLONE_CRYPT_PASSWORD='${escapedKey}'`,
+			envVars,
 		};
 	}
 
