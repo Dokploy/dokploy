@@ -39,11 +39,6 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { S3_PROVIDERS } from "./constants";
 
-const ENCRYPTION_METHODS = [
-	{ key: "aes-256-cbc", name: "AES-256-CBC" },
-	{ key: "aes-256-gcm", name: "AES-256-GCM" },
-] as const;
-
 const addDestination = z
 	.object({
 		name: z.string().min(1, "Name is required"),
@@ -55,19 +50,17 @@ const addDestination = z
 		endpoint: z.string().min(1, "Endpoint is required"),
 		serverId: z.string().optional(),
 		encryptionEnabled: z.boolean().optional(),
-		encryptionMethod: z.enum(["aes-256-cbc", "aes-256-gcm"]).optional(),
 		encryptionKey: z.string().optional(),
 	})
 	.refine(
 		(data) => {
 			if (data.encryptionEnabled) {
-				return data.encryptionMethod && data.encryptionKey;
+				return !!data.encryptionKey;
 			}
 			return true;
 		},
 		{
-			message:
-				"Encryption method and key are required when encryption is enabled",
+			message: "Encryption key is required when encryption is enabled",
 			path: ["encryptionKey"],
 		},
 	);
@@ -122,7 +115,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			secretAccessKey: "",
 			endpoint: "",
 			encryptionEnabled: false,
-			encryptionMethod: undefined,
 			encryptionKey: "",
 		},
 		resolver: zodResolver(addDestination),
@@ -141,7 +133,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 				region: destination.region,
 				endpoint: destination.endpoint,
 				encryptionEnabled: destination.encryptionEnabled ?? false,
-				encryptionMethod: destination.encryptionMethod ?? undefined,
 				encryptionKey: destination.encryptionKey ?? "",
 			});
 		} else {
@@ -160,7 +151,6 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			secretAccessKey: data.secretAccessKey,
 			destinationId: destinationId || "",
 			encryptionEnabled: data.encryptionEnabled,
-			encryptionMethod: data.encryptionMethod,
 			encryptionKey: data.encryptionKey,
 		})
 			.then(async () => {
@@ -431,75 +421,45 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 							/>
 
 							{encryptionEnabled && (
-								<>
-									<FormField
-										control={form.control}
-										name="encryptionMethod"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Encryption Method</FormLabel>
+								<FormField
+									control={form.control}
+									name="encryptionKey"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Encryption Key</FormLabel>
+											<div className="flex gap-2">
 												<FormControl>
-													<Select
-														onValueChange={field.onChange}
-														value={field.value}
-													>
-														<SelectTrigger>
-															<SelectValue placeholder="Select encryption method" />
-														</SelectTrigger>
-														<SelectContent>
-															{ENCRYPTION_METHODS.map((method) => (
-																<SelectItem key={method.key} value={method.key}>
-																	{method.name}
-																</SelectItem>
-															))}
-														</SelectContent>
-													</Select>
+													<Input
+														type="password"
+														placeholder="Enter or generate an encryption key"
+														{...field}
+													/>
 												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormField
-										control={form.control}
-										name="encryptionKey"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Encryption Key</FormLabel>
-												<div className="flex gap-2">
-													<FormControl>
-														<Input
-															type="password"
-															placeholder="Enter or generate an encryption key"
-															{...field}
-														/>
-													</FormControl>
-													<Button
-														type="button"
-														variant="outline"
-														size="icon"
-														onClick={() => {
-															const key = generateEncryptionKey();
-															form.setValue("encryptionKey", key);
-															toast.success("Encryption key generated", {
-																description:
-																	"Make sure to save this key securely. You will need it to restore backups.",
-															});
-														}}
-													>
-														<RefreshCw className="h-4 w-4" />
-													</Button>
-												</div>
-												<FormDescription>
-													<KeyRound className="mr-1 inline h-3 w-3" />
-													Store this key securely. Lost keys cannot be
-													recovered and encrypted backups will be unrecoverable.
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</>
+												<Button
+													type="button"
+													variant="outline"
+													size="icon"
+													onClick={() => {
+														const key = generateEncryptionKey();
+														form.setValue("encryptionKey", key);
+														toast.success("Encryption key generated", {
+															description:
+																"Make sure to save this key securely. You will need it to restore backups.",
+														});
+													}}
+												>
+													<RefreshCw className="h-4 w-4" />
+												</Button>
+											</div>
+											<FormDescription>
+												<KeyRound className="mr-1 inline h-3 w-3" />
+												Store this key securely. Lost keys cannot be
+												recovered and encrypted backups will be unrecoverable.
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							)}
 						</div>
 					</form>

@@ -1,15 +1,10 @@
 import { relations } from "drizzle-orm";
-import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { backups } from "./backups";
-
-export const encryptionMethod = pgEnum("encryptionMethod", [
-	"aes-256-cbc",
-	"aes-256-gcm",
-]);
 
 export const destinations = pgTable("destination", {
 	destinationId: text("destinationId")
@@ -28,7 +23,6 @@ export const destinations = pgTable("destination", {
 		.references(() => organization.id, { onDelete: "cascade" }),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	encryptionEnabled: boolean("encryptionEnabled").notNull().default(false),
-	encryptionMethod: encryptionMethod("encryptionMethod"),
 	encryptionKey: text("encryptionKey"),
 });
 
@@ -53,7 +47,6 @@ const createSchema = createInsertSchema(destinations, {
 	secretAccessKey: z.string(),
 	region: z.string(),
 	encryptionEnabled: z.boolean().optional(),
-	encryptionMethod: z.enum(["aes-256-cbc", "aes-256-gcm"]).optional(),
 	encryptionKey: z.string().optional(),
 });
 
@@ -67,14 +60,12 @@ export const apiCreateDestination = createSchema
 		endpoint: true,
 		secretAccessKey: true,
 		encryptionEnabled: true,
-		encryptionMethod: true,
 		encryptionKey: true,
 	})
 	.required()
 	.extend({
 		serverId: z.string().optional(),
 		encryptionEnabled: z.boolean().optional(),
-		encryptionMethod: z.enum(["aes-256-cbc", "aes-256-gcm"]).optional(),
 		encryptionKey: z.string().optional(),
 	});
 
@@ -101,13 +92,11 @@ export const apiUpdateDestination = createSchema
 		destinationId: true,
 		provider: true,
 		encryptionEnabled: true,
-		encryptionMethod: true,
 		encryptionKey: true,
 	})
 	.required()
 	.extend({
 		serverId: z.string().optional(),
 		encryptionEnabled: z.boolean().optional(),
-		encryptionMethod: z.enum(["aes-256-cbc", "aes-256-gcm"]).optional(),
 		encryptionKey: z.string().optional(),
 	});

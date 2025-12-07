@@ -11,7 +11,7 @@ import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
 	getBackupCommand,
 	getEncryptionConfigFromDestination,
-	getS3Credentials,
+	getRcloneS3Remote,
 	normalizeS3Path,
 } from "./utils";
 
@@ -31,15 +31,15 @@ export const runPostgresBackup = async (
 	const { prefix } = backup;
 	const destination = backup.destination;
 	const encryptionConfig = getEncryptionConfigFromDestination(destination);
-	const backupFileName = encryptionConfig.enabled
-		? `${new Date().toISOString()}.sql.gz.enc`
-		: `${new Date().toISOString()}.sql.gz`;
+	const backupFileName = `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		const rcloneDestination = `${remote}/${bucketDestination}`;
 
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCommand = envVars
+			? `${envVars} rclone rcat "${rcloneDestination}"`
+			: `rclone rcat "${rcloneDestination}"`;
 
 		const backupCommand = getBackupCommand(
 			backup,

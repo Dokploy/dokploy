@@ -10,55 +10,53 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
-export type EncryptionMethod = "aes-256-cbc" | "aes-256-gcm";
-
 export interface EncryptionConfig {
 	enabled: boolean;
-	method?: EncryptionMethod | null;
 	key?: string | null;
 }
-
-export const getEncryptionCommand = (config: EncryptionConfig): string => {
-	if (!config.enabled || !config.method || !config.key) {
-		return "";
-	}
-
-	const escapedKey = config.key.replace(/'/g, "'\\''");
-
-	switch (config.method) {
-		case "aes-256-cbc":
-			return `openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
-		case "aes-256-gcm":
-			return `openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
-		default:
-			return "";
-	}
-};
-
-export const getDecryptionCommand = (config: EncryptionConfig): string => {
-	if (!config.enabled || !config.method || !config.key) {
-		return "";
-	}
-
-	const escapedKey = config.key.replace(/'/g, "'\\''");
-
-	switch (config.method) {
-		case "aes-256-cbc":
-			return `openssl enc -aes-256-cbc -d -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
-		case "aes-256-gcm":
-			return `openssl enc -aes-256-cbc -d -salt -pbkdf2 -iter 100000 -pass pass:'${escapedKey}'`;
-		default:
-			return "";
-	}
-};
 
 export const getEncryptionConfigFromDestination = (
 	destination: Destination,
 ): EncryptionConfig => {
 	return {
 		enabled: destination.encryptionEnabled ?? false,
-		method: destination.encryptionMethod as EncryptionMethod | null,
 		key: destination.encryptionKey,
+	};
+};
+
+/**
+ * Get rclone flags for S3 credentials with optional crypt encryption overlay.
+ * When encryption is enabled, uses rclone's native crypt backend which provides
+ * file name and content encryption using NaCl SecretBox (XSalsa20 cipher + Poly1305).
+ */
+export const getRcloneS3Remote = (
+	destination: Destination,
+	encryptionConfig?: EncryptionConfig,
+): { remote: string; envVars: string } => {
+	const { accessKey, secretAccessKey, region, endpoint, provider, bucket } =
+		destination;
+
+	// Build the base S3 remote string
+	let s3Remote = `:s3,access_key_id="${accessKey}",secret_access_key="${secretAccessKey}",region="${region}",endpoint="${endpoint}",no_check_bucket=true,force_path_style=true`;
+	if (provider) {
+		s3Remote = `:s3,provider="${provider}",access_key_id="${accessKey}",secret_access_key="${secretAccessKey}",region="${region}",endpoint="${endpoint}",no_check_bucket=true,force_path_style=true`;
+	}
+
+	// If encryption is enabled, wrap the S3 remote with crypt
+	if (encryptionConfig?.enabled && encryptionConfig?.key) {
+		const escapedKey = encryptionConfig.key.replace(/'/g, "'\\''");
+		// Use crypt overlay with the S3 remote as backend
+		// filename_encryption=off keeps original filenames (only content is encrypted)
+		const cryptRemote = `:crypt,remote="${s3Remote}:${bucket}",filename_encryption=off:`;
+		return {
+			remote: cryptRemote,
+			envVars: `RCLONE_CRYPT_PASSWORD='${escapedKey}'`,
+		};
+	}
+
+	return {
+		remote: `${s3Remote}:${bucket}`,
+		envVars: "",
 	};
 };
 
@@ -276,10 +274,7 @@ export const getBackupCommand = (
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
-	const encryptionCommand = encryptionConfig
-		? getEncryptionCommand(encryptionConfig)
-		: "";
-	const isEncrypted = encryptionConfig?.enabled && encryptionCommand;
+	const isEncrypted = encryptionConfig?.enabled && encryptionConfig?.key;
 
 	logger.info(
 		{
@@ -292,12 +287,11 @@ export const getBackupCommand = (
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
 	);
 
-	const pipelineCommand = isEncrypted
-		? `${backupCommand} | ${encryptionCommand} | ${rcloneCommand}`
-		: `${backupCommand} | ${rcloneCommand}`;
+	// With rclone crypt, encryption is handled by the rclone remote itself
+	const pipelineCommand = `${backupCommand} | ${rcloneCommand}`;
 
 	const encryptionLogMessage = isEncrypted
-		? `echo "[$(date)] 🔐 Encryption enabled (${encryptionConfig?.method})" >> ${logPath};`
+		? `echo "[$(date)] 🔐 Encryption enabled (rclone crypt)" >> ${logPath};`
 		: "";
 
 	return `

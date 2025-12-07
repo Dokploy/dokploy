@@ -4,10 +4,10 @@ import type { Mariadb } from "@dokploy/server/services/mariadb";
 import type { z } from "zod";
 import {
 	getEncryptionConfigFromDestination,
-	getS3Credentials,
+	getRcloneS3Remote,
 } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getRestoreCommand, isEncryptedBackup } from "./utils";
+import { getRestoreCommand } from "./utils";
 
 export const restoreMariadbBackup = async (
 	mariadb: Mariadb,
@@ -18,16 +18,14 @@ export const restoreMariadbBackup = async (
 	try {
 		const { appName, serverId, databaseUser, databasePassword } = mariadb;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
 		const encryptionConfig = getEncryptionConfigFromDestination(destination);
-		const isEncrypted = isEncryptedBackup(backupInput.backupFile);
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		const backupPath = `${remote}/${backupInput.backupFile}`;
 
-		// For encrypted files, we don't decompress here - getRestoreCommand handles decryption
-		const rcloneCommand = isEncrypted
-			? `rclone cat ${rcloneFlags.join(" ")} "${backupPath}"`
-			: `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		// With rclone crypt, decryption happens automatically when reading from the crypt remote
+		const rcloneCommand = envVars
+			? `${envVars} rclone cat "${backupPath}" | gunzip`
+			: `rclone cat "${backupPath}" | gunzip`;
 
 		const command = getRestoreCommand({
 			appName,
@@ -40,12 +38,11 @@ export const restoreMariadbBackup = async (
 			rcloneCommand,
 			restoreType: "database",
 			backupFile: backupInput.backupFile,
-			encryptionConfig: isEncrypted ? encryptionConfig : undefined,
 		});
 
 		emit("Starting restore...");
-		if (isEncrypted) {
-			emit("🔐 Encrypted backup detected - will decrypt during restore");
+		if (encryptionConfig.enabled) {
+			emit("🔐 Encryption enabled - will decrypt during restore (rclone crypt)");
 		}
 
 		emit(`Executing command: ${command}`);

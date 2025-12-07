@@ -4,10 +4,10 @@ import type { Destination } from "@dokploy/server/services/destination";
 import type { z } from "zod";
 import {
 	getEncryptionConfigFromDestination,
-	getS3Credentials,
+	getRcloneS3Remote,
 } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getRestoreCommand, isEncryptedBackup } from "./utils";
+import { getRestoreCommand } from "./utils";
 
 interface DatabaseCredentials {
 	databaseUser?: string;
@@ -26,21 +26,21 @@ export const restoreComposeBackup = async (
 		}
 		const { serverId, appName, composeType } = compose;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
 		const encryptionConfig = getEncryptionConfigFromDestination(destination);
-		const isEncrypted = isEncryptedBackup(backupInput.backupFile);
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		const backupPath = `${remote}/${backupInput.backupFile}`;
 
 		let rcloneCommand: string;
 		if (backupInput.metadata?.mongo) {
-			// Mongo uses rclone copy regardless of encryption
-			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
-		} else if (isEncrypted) {
-			// For encrypted non-mongo, don't decompress - getRestoreCommand handles it
-			rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}"`;
+			// Mongo uses rclone copy
+			rcloneCommand = envVars
+				? `${envVars} rclone copy "${backupPath}"`
+				: `rclone copy "${backupPath}"`;
 		} else {
-			rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+			// With rclone crypt, decryption happens automatically when reading from the crypt remote
+			rcloneCommand = envVars
+				? `${envVars} rclone cat "${backupPath}" | gunzip`
+				: `rclone cat "${backupPath}" | gunzip`;
 		}
 
 		let credentials: DatabaseCredentials;
@@ -81,13 +81,12 @@ export const restoreComposeBackup = async (
 			restoreType: composeType,
 			rcloneCommand,
 			backupFile: backupInput.backupFile,
-			encryptionConfig: isEncrypted ? encryptionConfig : undefined,
 		});
 
 		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
-		if (isEncrypted) {
-			emit("🔐 Encrypted backup detected - will decrypt during restore");
+		emit(`Backup file: ${backupInput.backupFile}`);
+		if (encryptionConfig.enabled) {
+			emit("🔐 Encryption enabled - will decrypt during restore (rclone crypt)");
 		}
 
 		emit(`Executing command: ${restoreCommand}`);
