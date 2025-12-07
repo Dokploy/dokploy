@@ -194,46 +194,6 @@ export const organizationRouter = createTRPCRouter({
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
 		}),
-	removeMember: adminProcedure
-		.input(z.object({ memberId: z.string() }))
-		.mutation(async ({ ctx, input }) => {
-			// Fetch the target member within the active organization
-			const target = await db.query.member.findFirst({
-				where: eq(member.id, input.memberId),
-				with: { user: true },
-			});
-
-			if (!target) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
-			}
-
-			if (target.organizationId !== ctx.session.activeOrganizationId) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You are not allowed to remove this member",
-				});
-			}
-
-			// Disallow removing the organization owner
-			if (target.role === "owner") {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You cannot unlink the organization owner",
-				});
-			}
-
-			// Admin self-protection: an admin cannot unlink themselves
-			if (target.role === "admin" && target.userId === ctx.user.id) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message:
-						"Admins cannot unlink themselves. Ask the owner or another admin.",
-				});
-			}
-
-			await db.delete(member).where(eq(member.id, input.memberId));
-			return true;
-		}),
 	updateMemberRole: adminProcedure
 		.input(
 			z.object({
@@ -272,6 +232,16 @@ export const organizationRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "The owner role is intransferible",
+				});
+			}
+
+			// Only owners can change admin roles
+			// Admins can only change member roles
+			if (ctx.user.role === "admin" && target.role === "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Only the organization owner can change admin roles. Admins can only modify member roles.",
 				});
 			}
 

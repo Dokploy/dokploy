@@ -35,8 +35,7 @@ export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
-	const { mutateAsync: removeMember } =
-		api.organization.removeMember.useMutation();
+
 	const utils = api.useUtils();
 	const { data: session } = authClient.useSession();
 
@@ -85,6 +84,10 @@ export const ShowUsers = () => {
 											</TableHeader>
 											<TableBody>
 												{data?.map((member) => {
+													const currentUserRole = data?.find(
+														(m) => m.user.id === session?.user?.id,
+													)?.role;
+
 													// Owner never has "Edit Permissions" (they're absolute owner)
 													// Other users can edit permissions if target is not themselves and target is a member
 													const canEditPermissions =
@@ -92,23 +95,34 @@ export const ShowUsers = () => {
 														member.role === "member" &&
 														member.user.id !== session?.user?.id;
 
-													// Can change role if target is not owner and not the current user
-													// Owner role is intransferible
+													// Can change role based on hierarchy:
+													// - Owner: Can change anyone's role (except themselves and other owners)
+													// - Admin: Can only change member roles (not other admins or owners)
+													// - Owner role is intransferible
 													const canChangeRole =
 														member.role !== "owner" &&
-														member.user.id !== session?.user?.id;
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role === "member"));
 
+													// Delete/Unlink follow same hierarchy as role changes
+													// - Owner: Can delete/unlink anyone (except themselves and owner can't be deleted)
+													// - Admin: Can only delete/unlink members (not other admins or owner)
 													const canDelete =
 														member.role !== "owner" &&
 														!isCloud &&
-														member.user.id !== session?.user?.id;
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role === "member"));
 
 													const canUnlink =
 														member.role !== "owner" &&
-														!(
-															member.role === "admin" &&
-															member.user.id === session?.user?.id
-														);
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role === "member"));
 
 													const hasAnyAction =
 														canEditPermissions ||
@@ -216,33 +230,48 @@ export const ShowUsers = () => {
 																					description="Are you sure you want to unlink this user?"
 																					type="destructive"
 																					onClick={async () => {
-																						try {
-																							if (!isCloud) {
-																								const orgCount =
-																									await utils.user.checkUserOrganizations.fetch(
-																										{
-																											userId: member.user.id,
-																										},
-																									);
-																								if (orgCount === 1) {
-																									await mutateAsync({
+																						if (!isCloud) {
+																							const orgCount =
+																								await utils.user.checkUserOrganizations.fetch(
+																									{
 																										userId: member.user.id,
+																									},
+																								);
+
+																							if (orgCount === 1) {
+																								await mutateAsync({
+																									userId: member.user.id,
+																								})
+																									.then(() => {
+																										toast.success(
+																											"User deleted successfully",
+																										);
+																										refetch();
+																									})
+																									.catch(() => {
+																										toast.error(
+																											"Error deleting user",
+																										);
 																									});
-																									toast.success(
-																										"User deleted successfully",
-																									);
-																									refetch();
-																									return;
-																								}
+																								return;
 																							}
+																						}
+
+																						const { error } =
+																							await authClient.organization.removeMember(
+																								{
+																									memberIdOrEmail: member.id,
+																								},
+																							);
+
+																						if (!error) {
 																							toast.success(
 																								"User unlinked successfully",
 																							);
 																							refetch();
-																						} catch (error: any) {
+																						} else {
 																							toast.error(
-																								error?.message ||
-																									"Error unlinking user",
+																								"Error unlinking user",
 																							);
 																						}
 																					}}

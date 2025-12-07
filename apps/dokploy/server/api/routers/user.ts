@@ -1,6 +1,5 @@
 import {
 	createApiKey,
-	findAdmin,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
@@ -269,6 +268,16 @@ export const userRouter = createTRPCRouter({
 					code: "FORBIDDEN",
 					message:
 						"Admins cannot delete themselves. Ask the owner or another admin.",
+				});
+			}
+
+			// Only owners can delete admins
+			// Admins can only delete members
+			if (ctx.user.role === "admin" && targetMember.role === "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Only the organization owner can delete admins. Admins can only delete members.",
 				});
 			}
 
