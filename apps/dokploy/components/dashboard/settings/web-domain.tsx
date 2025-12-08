@@ -34,19 +34,9 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
-const hostnameRegex =
-	/^(?=.{1,253}$)(?!-)[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.(?!-)[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
-
 const addServerDomain = z
 	.object({
-		domain: z
-			.string()
-			.trim()
-			.toLowerCase()
-			.regex(
-				hostnameRegex,
-				"Invalid hostname (no http://, no slash, no port).",
-			),
+		domain: z.string().trim().toLowerCase(),
 		letsEncryptEmail: z.string(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
