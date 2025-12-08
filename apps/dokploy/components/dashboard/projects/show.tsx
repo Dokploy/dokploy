@@ -10,6 +10,7 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
@@ -54,16 +55,23 @@ import {
 } from "@/components/ui/select";
 import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
+import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
+	const router = useRouter();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
-	const [searchQuery, setSearchQuery] = useState("");
+
+	const [searchQuery, setSearchQuery] = useState(
+		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
+	);
+	const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
 			return localStorage.getItem("projectsSort") || "createdAt-desc";
@@ -75,14 +83,41 @@ export const ShowProjects = () => {
 		localStorage.setItem("projectsSort", sortBy);
 	}, [sortBy]);
 
+	useEffect(() => {
+		if (!router.isReady) return;
+		const urlQuery = typeof router.query.q === "string" ? router.query.q : "";
+		if (urlQuery !== searchQuery) {
+			setSearchQuery(urlQuery);
+		}
+	}, [router.isReady, router.query.q]);
+
+	useEffect(() => {
+		if (!router.isReady) return;
+		const urlQuery = typeof router.query.q === "string" ? router.query.q : "";
+		if (debouncedSearchQuery === urlQuery) return;
+
+		const newQuery = { ...router.query };
+		if (debouncedSearchQuery) {
+			newQuery.q = debouncedSearchQuery;
+		} else {
+			delete newQuery.q;
+		}
+		router.replace({ pathname: router.pathname, query: newQuery }, undefined, {
+			shallow: true,
+		});
+	}, [debouncedSearchQuery]);
+
 	const filteredProjects = useMemo(() => {
 		if (!data) return [];
 
-		// First filter by search query
 		const filtered = data.filter(
 			(project) =>
-				project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				project.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+				project.name
+					.toLowerCase()
+					.includes(debouncedSearchQuery.toLowerCase()) ||
+				project.description
+					?.toLowerCase()
+					.includes(debouncedSearchQuery.toLowerCase()),
 		);
 
 		// Then sort the filtered results
@@ -130,7 +165,7 @@ export const ShowProjects = () => {
 			}
 			return direction === "asc" ? comparison : -comparison;
 		});
-	}, [data, searchQuery, sortBy]);
+	}, [data, debouncedSearchQuery, sortBy]);
 
 	return (
 		<>

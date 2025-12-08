@@ -127,8 +127,6 @@ const { handler, api } = betterAuth({
 						});
 					}
 
-					console.log(user);
-
 					if (IS_CLOUD) {
 						try {
 							const hutk = getHubSpotUTK(
