@@ -8,7 +8,6 @@ import {
 	getDockerContextPath,
 } from "../filesystem/directory";
 import type { ApplicationNested } from ".";
-import { createEnvFileCommand } from "./utils";
 
 export const getDockerCommand = (application: ApplicationNested) => {
 	const {
@@ -68,21 +67,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			commandArgs.push("--secret", `type=env,id=${key}`);
 		}
 
-		/*
-			Do not generate an environment file when publishDirectory is specified,
-			as it could be publicly exposed.
-		*/
-		let command = "";
-		if (!publishDirectory) {
-			command += createEnvFileCommand(
-				dockerFilePath,
-				env,
-				application.environment.project.env,
-				application.environment.env,
-			);
-		}
-
-		command += `
+		const command = `
 echo "Building ${appName}" ;
 cd ${dockerContextPath} || { 
   echo "❌ The path ${dockerContextPath} does not exist" ;
