@@ -165,12 +165,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Only the organization owner can delete it",
-				});
-			}
+			// First, verify the organization exists
 			const org = await db.query.organization.findFirst({
 				where: eq(organization.id, input.organizationId),
 			});
@@ -182,7 +177,27 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
-			if (org.ownerId !== ctx.user.id) {
+			// Verify user is a member of this organization
+			const userMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (!userMember) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			// Only owners can delete the organization
+			// Verify the user is either the organization owner or has the owner role
+			const isOwner =
+				org.ownerId === ctx.user.id || userMember.role === "owner";
+
+			if (!isOwner) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can delete it",
