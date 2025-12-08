@@ -8,7 +8,12 @@ import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getEncryptionConfigFromDestination,
+	getRcloneS3Remote,
+	normalizeS3Path,
+} from "./utils";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
@@ -25,18 +30,22 @@ export const runPostgresBackup = async (
 	});
 	const { prefix } = backup;
 	const destination = backup.destination;
+	const encryptionConfig = getEncryptionConfigFromDestination(destination);
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		const rcloneDestination = `${remote}/${bucketDestination}`;
 
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const rcloneCommand = envVars
+			? `${envVars} rclone rcat "${rcloneDestination}"`
+			: `rclone rcat "${rcloneDestination}"`;
 
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
 			deployment.logPath,
+			encryptionConfig,
 		);
 		if (postgres.serverId) {
 			await execAsyncRemote(postgres.serverId, backupCommand);

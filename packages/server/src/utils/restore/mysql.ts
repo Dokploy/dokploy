@@ -2,7 +2,10 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { MySql } from "@dokploy/server/services/mysql";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import {
+	getEncryptionConfigFromDestination,
+	getRcloneS3Remote,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -15,11 +18,14 @@ export const restoreMySqlBackup = async (
 	try {
 		const { appName, databaseRootPassword, serverId } = mysql;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
+		const encryptionConfig = getEncryptionConfigFromDestination(destination);
+		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		const backupPath = `${remote}/${backupInput.backupFile}`;
 
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		// With rclone crypt, decryption happens automatically when reading from the crypt remote
+		const rcloneCommand = envVars
+			? `${envVars} rclone cat "${backupPath}" | gunzip`
+			: `rclone cat "${backupPath}" | gunzip`;
 
 		const command = getRestoreCommand({
 			appName,
@@ -30,9 +36,13 @@ export const restoreMySqlBackup = async (
 			},
 			restoreType: "database",
 			rcloneCommand,
+			backupFile: backupInput.backupFile,
 		});
 
 		emit("Starting restore...");
+		if (encryptionConfig.enabled) {
+			emit("🔐 Encryption enabled - will decrypt during restore (rclone crypt)");
+		}
 
 		emit(`Executing command: ${command}`);
 

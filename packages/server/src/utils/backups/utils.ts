@@ -10,6 +10,91 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
+export type FilenameEncryption = "standard" | "obfuscate" | "off";
+
+export interface EncryptionConfig {
+	enabled: boolean;
+	key?: string | null;
+	password2?: string | null;
+	filenameEncryption?: FilenameEncryption | null;
+	directoryNameEncryption?: boolean | null;
+}
+
+export const getEncryptionConfigFromDestination = (
+	destination: Destination,
+): EncryptionConfig => {
+	return {
+		enabled: destination.encryptionEnabled ?? false,
+		key: destination.encryptionKey,
+		password2: destination.encryptionPassword2,
+		filenameEncryption:
+			(destination.filenameEncryption as FilenameEncryption) ?? "off",
+		directoryNameEncryption: destination.directoryNameEncryption ?? false,
+	};
+};
+
+/**
+ * Get rclone flags for S3 credentials with optional crypt encryption overlay.
+ * When encryption is enabled, uses rclone's native crypt backend which provides
+ * file name and content encryption using NaCl SecretBox (XSalsa20 cipher + Poly1305).
+ *
+ * Rclone crypt options:
+ * - password: Main encryption password (required)
+ * - password2: Salt password for additional security (optional but recommended)
+ * - filename_encryption: "standard" (encrypt), "obfuscate", or "off"
+ * - directory_name_encryption: true/false (only applies if filename_encryption is not "off")
+ *
+ * @see https://rclone.org/crypt/
+ */
+export const getRcloneS3Remote = (
+	destination: Destination,
+	encryptionConfig?: EncryptionConfig,
+): { remote: string; envVars: string } => {
+	const { accessKey, secretAccessKey, region, endpoint, provider, bucket } =
+		destination;
+
+	// Build the base S3 remote string
+	let s3Remote = `:s3,access_key_id="${accessKey}",secret_access_key="${secretAccessKey}",region="${region}",endpoint="${endpoint}",no_check_bucket=true,force_path_style=true`;
+	if (provider) {
+		s3Remote = `:s3,provider="${provider}",access_key_id="${accessKey}",secret_access_key="${secretAccessKey}",region="${region}",endpoint="${endpoint}",no_check_bucket=true,force_path_style=true`;
+	}
+
+	// If encryption is enabled, wrap the S3 remote with crypt
+	if (encryptionConfig?.enabled && encryptionConfig?.key) {
+		const escapedKey = encryptionConfig.key.replace(/'/g, "'\\''");
+
+		// Build crypt options
+		const filenameEncryption = encryptionConfig.filenameEncryption || "off";
+		const directoryNameEncryption =
+			encryptionConfig.directoryNameEncryption ?? false;
+
+		// Build the crypt remote string with all options
+		const cryptRemote = `:crypt,remote="${s3Remote}:${bucket}",filename_encryption=${filenameEncryption},directory_name_encryption=${directoryNameEncryption}:`;
+
+		// Build environment variables for passwords
+		let envVars = `RCLONE_CRYPT_PASSWORD='${escapedKey}'`;
+
+		// Add password2 (salt) if provided
+		if (encryptionConfig.password2) {
+			const escapedPassword2 = encryptionConfig.password2.replace(
+				/'/g,
+				"'\\''",
+			);
+			envVars += ` RCLONE_CRYPT_PASSWORD2='${escapedPassword2}'`;
+		}
+
+		return {
+			remote: cryptRemote,
+			envVars,
+		};
+	}
+
+	return {
+		remote: `${s3Remote}:${bucket}`,
+		envVars: "",
+	};
+};
+
 export const scheduleBackup = (backup: BackupSchedule) => {
 	const {
 		schedule,
@@ -220,9 +305,11 @@ export const getBackupCommand = (
 	backup: BackupSchedule,
 	rcloneCommand: string,
 	logPath: string,
+	encryptionConfig?: EncryptionConfig,
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
+	const isEncrypted = encryptionConfig?.enabled && encryptionConfig?.key;
 
 	logger.info(
 		{
@@ -230,13 +317,22 @@ export const getBackupCommand = (
 			backupCommand,
 			rcloneCommand,
 			logPath,
+			encryptionEnabled: isEncrypted,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
 	);
 
+	// With rclone crypt, encryption is handled by the rclone remote itself
+	const pipelineCommand = `${backupCommand} | ${rcloneCommand}`;
+
+	const encryptionLogMessage = isEncrypted
+		? `echo "[$(date)] 🔐 Encryption enabled (rclone crypt)" >> ${logPath};`
+		: "";
+
 	return `
 	set -eo pipefail;
 	echo "[$(date)] Starting backup process..." >> ${logPath};
+	${encryptionLogMessage}
 	echo "[$(date)] Executing backup command..." >> ${logPath};
 	CONTAINER_ID=$(${containerSearch})
 
@@ -255,10 +351,10 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3..." >> ${logPath};
+	echo "[$(date)] Starting upload to S3${isEncrypted ? " (encrypted)" : ""}..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
-	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
+	UPLOAD_OUTPUT=$(${pipelineCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
 		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
 		exit 1;

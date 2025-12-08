@@ -2,7 +2,10 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import {
+	getEncryptionConfigFromDestination,
+	getRcloneS3Remote,
+} from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -23,13 +26,21 @@ export const restoreComposeBackup = async (
 		}
 		const { serverId, appName, composeType } = compose;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-		let rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		const encryptionConfig = getEncryptionConfigFromDestination(destination);
+		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		const backupPath = `${remote}/${backupInput.backupFile}`;
 
+		let rcloneCommand: string;
 		if (backupInput.metadata?.mongo) {
-			rcloneCommand = `rclone copy ${rcloneFlags.join(" ")} "${backupPath}"`;
+			// Mongo uses rclone copy
+			rcloneCommand = envVars
+				? `${envVars} rclone copy "${backupPath}"`
+				: `rclone copy "${backupPath}"`;
+		} else {
+			// With rclone crypt, decryption happens automatically when reading from the crypt remote
+			rcloneCommand = envVars
+				? `${envVars} rclone cat "${backupPath}" | gunzip`
+				: `rclone cat "${backupPath}" | gunzip`;
 		}
 
 		let credentials: DatabaseCredentials;
@@ -69,10 +80,14 @@ export const restoreComposeBackup = async (
 			},
 			restoreType: composeType,
 			rcloneCommand,
+			backupFile: backupInput.backupFile,
 		});
 
 		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
+		emit(`Backup file: ${backupInput.backupFile}`);
+		if (encryptionConfig.enabled) {
+			emit("🔐 Encryption enabled - will decrypt during restore (rclone crypt)");
+		}
 
 		emit(`Executing command: ${restoreCommand}`);
 
