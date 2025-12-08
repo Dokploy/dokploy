@@ -13,6 +13,7 @@ import {
 import { sendBuildErrorNotifications } from "@dokploy/server/utils/notifications/build-error";
 import { sendBuildSuccessNotifications } from "@dokploy/server/utils/notifications/build-success";
 import {
+	ExecError,
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
@@ -28,6 +29,7 @@ import { cloneGitlabRepository } from "@dokploy/server/utils/providers/gitlab";
 import { createTraefikConfig } from "@dokploy/server/utils/traefik/application";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
 import {
 	createDeployment,
@@ -47,7 +49,6 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
-import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -110,6 +111,8 @@ export const findApplicationById = async (applicationId: string) => {
 			gitea: true,
 			server: true,
 			previewDeployments: true,
+			buildRegistry: true,
+			rollbackRegistry: true,
 		},
 	});
 	if (!application) {
@@ -170,6 +173,7 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const serverId = application.buildServerId || application.serverId;
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
@@ -194,11 +198,11 @@ export const deployApplication = async ({
 			command += await buildRemoteDocker(application);
 		}
 
-		command += getBuildCommand(application);
+		command += await getBuildCommand(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (application.serverId) {
-			await execAsyncRemote(application.serverId, commandWithLog);
+		if (serverId) {
+			await execAsyncRemote(serverId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -206,17 +210,6 @@ export const deployApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
-
-		if (application.rollbackActive) {
-			const tagImage =
-				application.sourceType === "docker"
-					? application.dockerImage
-					: application.appName;
-			await createRollback({
-				appName: tagImage || "",
-				deploymentId: deployment.deploymentId,
-			});
-		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -228,9 +221,18 @@ export const deployApplication = async ({
 			environmentName: application.environment.name,
 		});
 	} catch (error) {
-		const command = `echo "Error occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (application.serverId) {
-			await execAsyncRemote(application.serverId, command);
+		let command = "";
+
+		// Only log details for non-ExecError errors
+		if (!(error instanceof ExecError)) {
+			const message = error instanceof Error ? error.message : String(error);
+			const encodedMessage = encodeBase64(message);
+			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
+		}
+
+		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
 		}
@@ -274,6 +276,7 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
+	const serverId = application.buildServerId || application.serverId;
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
 	const deployment = await createDeployment({
@@ -285,27 +288,16 @@ export const rebuildApplication = async ({
 	try {
 		let command = "set -e;";
 		// Check case for docker only
-		command += getBuildCommand(application);
+		command += await getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (application.serverId) {
-			await execAsyncRemote(application.serverId, commandWithLog);
+		if (serverId) {
+			await execAsyncRemote(serverId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
-
-		if (application.rollbackActive) {
-			const tagImage =
-				application.sourceType === "docker"
-					? application.dockerImage
-					: application.appName;
-			await createRollback({
-				appName: tagImage || "",
-				deploymentId: deployment.deploymentId,
-			});
-		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -317,6 +309,21 @@ export const rebuildApplication = async ({
 			environmentName: application.environment.name,
 		});
 	} catch (error) {
+		let command = "";
+
+		// Only log details for non-ExecError errors
+		if (!(error instanceof ExecError)) {
+			const message = error instanceof Error ? error.message : String(error);
+			const encodedMessage = encodeBase64(message);
+			command += `echo "${encodedMessage}" | base64 -d >> "${deployment.logPath}";`;
+		}
+
+		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
+		if (serverId) {
+			await execAsyncRemote(serverId, command);
+		} else {
+			await execAsync(command);
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 		throw error;
@@ -394,6 +401,10 @@ export const deployPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
+		application.rollbackActive = false;
+		application.buildRegistry = null;
+		application.rollbackRegistry = null;
+		application.registry = null;
 
 		let command = "set -e;";
 		if (application.sourceType === "github") {
@@ -402,7 +413,7 @@ export const deployPreviewApplication = async ({
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
-			command += getBuildCommand(application);
+			command += await getBuildCommand(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 			if (application.serverId) {

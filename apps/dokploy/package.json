@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.25.10",
+	"version": "v0.26.0",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -34,7 +34,8 @@
 		"docker:build:canary": "./docker/build.sh canary",
 		"docker:push:canary": "./docker/push.sh canary",
 		"version": "echo $(node -p \"require('./package.json').version\")",
-		"test": "vitest --config __test__/vitest.config.ts"
+		"test": "vitest --config __test__/vitest.config.ts",
+		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^2.0.5",
@@ -113,14 +114,14 @@
 		"i18next": "^23.16.8",
 		"input-otp": "^1.4.2",
 		"js-cookie": "^3.0.5",
-		"yaml": "2.8.1",
 		"lodash": "4.17.21",
 		"lucide-react": "^0.469.0",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.11",
-		"next": "^15.3.2",
+		"next": "^16.0.7",
 		"next-i18next": "^15.4.2",
 		"next-themes": "^0.2.1",
+		"nextjs-toploader": "^3.9.17",
 		"node-os-utils": "2.0.1",
 		"node-pty": "1.0.0",
 		"node-schedule": "2.1.1",
@@ -154,6 +155,7 @@
 		"use-resize-observer": "9.1.0",
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
+		"yaml": "2.8.1",
 		"zod": "^3.25.32",
 		"zod-form-data": "^2.0.7"
 	},
