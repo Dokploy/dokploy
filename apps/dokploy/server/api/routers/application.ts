@@ -745,10 +745,13 @@ export const applicationRouter = createTRPCRouter({
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to clear deployments for this application",
+					message:
+						"You are not authorized to clear deployments for this application",
 				});
 			}
-			const result = await clearOldDeploymentsByApplicationId(input.applicationId);
+			const result = await clearOldDeploymentsByApplicationId(
+				input.applicationId,
+			);
 			return {
 				success: true,
 				message: `${result.deletedCount} old deployments cleared successfully`,
