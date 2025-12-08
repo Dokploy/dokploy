@@ -130,9 +130,7 @@ export const createColumns = ({
 						</TooltipTrigger>
 						<TooltipContent>
 							<p>
-								{https
-									? "Secure HTTPS connection"
-									: "Standard HTTP connection"}
+								{https ? "Secure HTTPS connection" : "Standard HTTP connection"}
 							</p>
 						</TooltipContent>
 					</Tooltip>
@@ -177,8 +175,7 @@ export const createColumns = ({
 										) : validationState?.isValid ? (
 											<>
 												<CheckCircle2 className="size-3 mr-1" />
-												{validationState.message &&
-												validationState.cdnProvider
+												{validationState.message && validationState.cdnProvider
 													? `${validationState.cdnProvider}`
 													: "Valid"}
 											</>
