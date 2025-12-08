@@ -1,4 +1,5 @@
 import type {
+	custom,
 	discord,
 	email,
 	gotify,
@@ -159,7 +160,9 @@ export const sendNtfyNotification = async (
 	const response = await fetch(`${connection.serverUrl}/${connection.topic}`, {
 		method: "POST",
 		headers: {
-			Authorization: `Bearer ${connection.accessToken}`,
+			...(connection.accessToken && {
+				Authorization: `Bearer ${connection.accessToken}`,
+			}),
 			"X-Priority": connection.priority?.toString() || "3",
 			"X-Title": title,
 			"X-Tags": tags,
@@ -170,6 +173,39 @@ export const sendNtfyNotification = async (
 
 	if (!response.ok) {
 		throw new Error(`Failed to send ntfy notification: ${response.statusText}`);
+	}
+};
+
+export const sendCustomNotification = async (
+	connection: typeof custom.$inferInsert,
+	payload: Record<string, any>,
+) => {
+	try {
+		// Merge default headers with custom headers (now already an object from jsonb)
+		const headers: Record<string, string> = {
+			"Content-Type": "application/json",
+			...(connection.headers || {}),
+		};
+
+		// Default body with payload
+		const body = JSON.stringify(payload);
+
+		const response = await fetch(connection.endpoint, {
+			method: "POST",
+			headers,
+			body,
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`Failed to send custom notification: ${response.statusText}`,
+			);
+		}
+
+		return response;
+	} catch (error) {
+		console.error("Error sending custom notification:", error);
+		throw error;
 	}
 };
 
