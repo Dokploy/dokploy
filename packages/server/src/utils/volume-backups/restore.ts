@@ -3,9 +3,12 @@ import {
 	findApplicationById,
 	findComposeById,
 	findDestinationById,
-	getS3Credentials,
 	paths,
 } from "../..";
+import {
+	getEncryptionConfigFromDestination,
+	getRcloneS3Remote,
+} from "../backups/utils";
 
 export const restoreVolume = async (
 	id: string,
@@ -18,12 +21,15 @@ export const restoreVolume = async (
 	const destination = await findDestinationById(destinationId);
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
-	const rcloneFlags = getS3Credentials(destination);
-	const bucketPath = `:s3:${destination.bucket}`;
-	const backupPath = `${bucketPath}/${backupFileName}`;
 
-	// Command to download backup file from S3
-	const downloadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+	// Get encryption config and build rclone remote with optional crypt overlay
+	const encryptionConfig = getEncryptionConfigFromDestination(destination);
+	const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+	const backupPath = `${remote}${backupFileName}`;
+	const isEncrypted = encryptionConfig.enabled && encryptionConfig.key;
+
+	// Command to download backup file from S3 (decryption happens automatically with rclone crypt)
+	const downloadCommand = `${envVars ? `${envVars} ` : ""}rclone copyto "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
@@ -31,7 +37,8 @@ export const restoreVolume = async (
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Volume backup path: ${volumeBackupPath}"
-	echo "Downloading backup from S3..."
+	${isEncrypted ? 'echo "🔐 Decryption enabled (rclone crypt)"' : ""}
+	echo "Downloading backup from S3${isEncrypted ? " (decrypting)" : ""}..."
 	mkdir -p ${volumeBackupPath}
 	${downloadCommand}
 	echo "Download completed ✅"

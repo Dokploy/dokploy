@@ -2,7 +2,11 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	getEncryptionConfigFromDestination,
+	getRcloneS3Remote,
+	normalizeS3Path,
+} from "../backups/utils";
 
 export const backupVolume = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -14,18 +18,23 @@ export const backupVolume = async (
 	const destination = volumeBackup.destination;
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+
+	// Get encryption config and build rclone remote with optional crypt overlay
+	const encryptionConfig = getEncryptionConfigFromDestination(destination);
+	const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+	const rcloneDestination = `${remote}${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const rcloneCommand = `${envVars ? `${envVars} ` : ""}rclone copyto "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
 
+	const isEncrypted = encryptionConfig.enabled && encryptionConfig.key;
 	const baseCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
-	echo "Starting volume backup" 
+	${isEncrypted ? 'echo "🔐 Encryption enabled (rclone crypt)"' : ""}
+	echo "Starting volume backup"
 	echo "Dir: ${volumeBackupPath}"
     docker run --rm \
   -v ${volumeName}:/volume_data \
@@ -33,7 +42,7 @@ export const backupVolume = async (
   ubuntu \
   bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
   echo "Volume backup done ✅"
-  echo "Starting upload to S3..."
+  echo "Starting upload to S3${isEncrypted ? " (encrypted)" : ""}..."
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
   echo "Cleaning up local backup file..."
