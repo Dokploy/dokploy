@@ -10,7 +10,7 @@ import { DockerNetworkChart } from "./docker-network-chart";
 
 const defaultData = {
 	cpu: {
-		value: 0,
+		value: "0%",
 		time: "",
 	},
 	memory: {
@@ -46,7 +46,7 @@ interface Props {
 }
 export interface DockerStats {
 	cpu: {
-		value: number;
+		value: string;
 		time: string;
 	};
 	memory: {
@@ -220,7 +220,13 @@ export const ContainerFreeMonitoring = ({
 							<span className="text-sm text-muted-foreground">
 								Used: {currentData.cpu.value}
 							</span>
-							<Progress value={currentData.cpu.value} className="w-[100%]" />
+							<Progress
+								value={Number.parseInt(
+									currentData.cpu.value.replace("%", ""),
+									10,
+								)}
+								className="w-[100%]"
+							/>
 							<DockerCpuChart acummulativeData={acummulativeData.cpu} />
 						</div>
 					</CardContent>

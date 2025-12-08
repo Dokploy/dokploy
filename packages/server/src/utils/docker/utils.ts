@@ -5,6 +5,7 @@ import { docker, paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { ContainerInfo, ResourceRequirements } from "dockerode";
 import { parse } from "dotenv";
+import { quote } from "shell-quote";
 import type { ApplicationNested } from "../builders";
 import type { MariadbNested } from "../databases/mariadb";
 import type { MongoNested } from "../databases/mongo";
@@ -143,81 +144,116 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 		});
 	});
 };
-export const cleanUpUnusedImages = async (serverId?: string) => {
-	try {
-		const command = "docker image prune --force";
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
-		} else {
-			await execAsync(command);
-		}
-	} catch (error) {
-		console.error(error);
-		throw error;
-	}
-};
 
-export const cleanStoppedContainers = async (serverId?: string) => {
+/**
+ * Docker commands passed through this method are held during Docker's build or pull process.
+ *
+ * https://github.com/Dokploy/dokploy/pull/3064
+ * https://github.com/fir4tozden
+ */
+export const dockerSafeExec = (exec: string) => `CHECK_INTERVAL=10
+
+echo "Preparing for execution..."
+
+while true; do
+    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
+
+    if [ -z "$PROCESSES" ]; then
+        echo "Docker is idle. Starting execution..."
+        break
+    else
+        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+        sleep $CHECK_INTERVAL
+    fi
+done
+
+${exec}
+
+echo "Execution completed."`;
+
+export const cleanupContainers = async (serverId?: string) => {
 	try {
 		const command = "docker container prune --force";
+
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, dockerSafeExec(command));
 		} else {
-			await execAsync(command);
+			await execAsync(dockerSafeExec(command));
 		}
 	} catch (error) {
 		console.error(error);
+
 		throw error;
 	}
 };
 
-export const cleanUpUnusedVolumes = async (serverId?: string) => {
+export const cleanupImages = async (serverId?: string) => {
 	try {
-		const command = "docker volume prune --force";
+		const command = "docker image prune --all --force";
+
 		if (serverId) {
-			await execAsyncRemote(serverId, command);
+			await execAsyncRemote(serverId, dockerSafeExec(command));
+		} else await execAsync(dockerSafeExec(command));
+	} catch (error) {
+		console.error(error);
+
+		throw error;
+	}
+};
+
+export const cleanupVolumes = async (serverId?: string) => {
+	try {
+		const command = "docker volume prune --all --force";
+
+		if (serverId) {
+			await execAsyncRemote(serverId, dockerSafeExec(command));
 		} else {
-			await execAsync(command);
+			await execAsync(dockerSafeExec(command));
 		}
 	} catch (error) {
 		console.error(error);
+
 		throw error;
 	}
 };
 
-export const cleanUpInactiveContainers = async () => {
+export const cleanupBuilders = async (serverId?: string) => {
 	try {
-		const containers = await docker.listContainers({ all: true });
-		const inactiveContainers = containers.filter(
-			(container) => container.State !== "running",
-		);
+		const command = "docker builder prune --all --force";
 
-		for (const container of inactiveContainers) {
-			await docker.getContainer(container.Id).remove({ force: true });
-			console.log(`Cleaning up inactive container: ${container.Id}`);
+		if (serverId) {
+			await execAsyncRemote(serverId, dockerSafeExec(command));
+		} else {
+			await execAsync(dockerSafeExec(command));
 		}
 	} catch (error) {
-		console.error("Error cleaning up inactive containers:", error);
+		console.error(error);
+
 		throw error;
 	}
 };
 
-export const cleanUpDockerBuilder = async (serverId?: string) => {
-	const command = "docker builder prune --all --force";
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
+export const cleanupSystem = async (serverId?: string) => {
+	try {
+		const command = "docker system prune --all --force";
+
+		if (serverId) {
+			await execAsyncRemote(serverId, dockerSafeExec(command));
+		} else {
+			await execAsync(dockerSafeExec(command));
+		}
+	} catch (error) {
+		console.error(error);
+
+		throw error;
 	}
 };
 
-export const cleanUpSystemPrune = async (serverId?: string) => {
-	const command = "docker system prune --force --volumes";
-	if (serverId) {
-		await execAsyncRemote(serverId, command);
-	} else {
-		await execAsync(command);
-	}
+export const cleanupAll = async (serverId?: string) => {
+	await cleanupContainers(serverId);
+	await cleanupImages(serverId);
+	await cleanupBuilders(serverId);
+	await cleanupSystem(serverId);
 };
 
 export const startService = async (appName: string) => {
@@ -310,6 +346,21 @@ export const prepareEnvironmentVariables = (
 	return resolvedVars;
 };
 
+export const prepareEnvironmentVariablesForShell = (
+	serviceEnv: string | null,
+	projectEnv?: string | null,
+	environmentEnv?: string | null,
+): string[] => {
+	const envVars = prepareEnvironmentVariables(
+		serviceEnv,
+		projectEnv,
+		environmentEnv,
+	);
+	// Using shell-quote library to properly escape shell arguments
+	// This is the standard way to handle special characters in shell commands
+	return envVars.map((env) => quote([env]));
+};
+
 export const parseEnvironmentKeyValuePair = (
 	pair: string,
 ): [string, string] => {
@@ -394,7 +445,14 @@ export const generateConfigContainer = (
 		replicas,
 		mounts,
 		networkSwarm,
+		stopGracePeriodSwarm,
+		endpointSpecSwarm,
 	} = application;
+
+	const sanitizedStopGracePeriodSwarm =
+		typeof stopGracePeriodSwarm === "bigint"
+			? Number(stopGracePeriodSwarm)
+			: stopGracePeriodSwarm;
 
 	const haveMounts = mounts && mounts.length > 0;
 
@@ -402,11 +460,9 @@ export const generateConfigContainer = (
 		...(healthCheckSwarm && {
 			HealthCheck: healthCheckSwarm,
 		}),
-		...(restartPolicySwarm
-			? {
-					RestartPolicy: restartPolicySwarm,
-				}
-			: {}),
+		...(restartPolicySwarm && {
+			RestartPolicy: restartPolicySwarm,
+		}),
 		...(placementSwarm
 			? {
 					Placement: placementSwarm,
@@ -444,6 +500,10 @@ export const generateConfigContainer = (
 						Order: "start-first",
 					},
 				}),
+		...(sanitizedStopGracePeriodSwarm !== null &&
+			sanitizedStopGracePeriodSwarm !== undefined && {
+				StopGracePeriod: sanitizedStopGracePeriodSwarm,
+			}),
 		...(networkSwarm
 			? {
 					Networks: networkSwarm,
@@ -451,6 +511,18 @@ export const generateConfigContainer = (
 			: {
 					Networks: [{ Target: "dokploy-network" }],
 				}),
+		...(endpointSpecSwarm && {
+			EndpointSpec: {
+				...(endpointSpecSwarm.Mode && { Mode: endpointSpecSwarm.Mode }),
+				Ports:
+					endpointSpecSwarm.Ports?.map((port) => ({
+						Protocol: (port.Protocol || "tcp") as "tcp" | "udp" | "sctp",
+						TargetPort: port.TargetPort || 0,
+						PublishedPort: port.PublishedPort || 0,
+						PublishMode: (port.PublishMode || "host") as "ingress" | "host",
+					})) || [],
+			},
+		}),
 	};
 };
 

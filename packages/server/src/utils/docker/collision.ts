@@ -1,11 +1,11 @@
 import { findComposeById } from "@dokploy/server/services/compose";
 import { stringify } from "yaml";
+import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { addAppNameToAllServiceNames } from "./collision/root-network";
 import { generateRandomHash } from "./compose";
 import { addSuffixToAllVolumes } from "./compose/volume";
 import {
 	cloneCompose,
-	cloneComposeRemote,
 	loadDockerCompose,
 	loadDockerComposeRemote,
 } from "./domain";
@@ -31,10 +31,11 @@ export const randomizeIsolatedDeploymentComposeFile = async (
 ) => {
 	const compose = await findComposeById(composeId);
 
+	const command = await cloneCompose(compose);
 	if (compose.serverId) {
-		await cloneComposeRemote(compose);
+		await execAsyncRemote(compose.serverId, command);
 	} else {
-		await cloneCompose(compose);
+		await execAsync(command);
 	}
 
 	let composeData: ComposeSpecification | null;

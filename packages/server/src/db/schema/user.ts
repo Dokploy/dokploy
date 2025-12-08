@@ -26,12 +26,13 @@ import { certificateType } from "./shared";
 // OLD TABLE
 
 // TEMP
-export const users_temp = pgTable("user_temp", {
+export const user = pgTable("user", {
 	id: text("id")
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	name: text("name").notNull().default(""),
+	firstName: text("firstName").notNull().default(""),
+	lastName: text("lastName").notNull().default(""),
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: text("expirationDate")
 		.notNull()
@@ -56,7 +57,7 @@ export const users_temp = pgTable("user_temp", {
 	host: text("host"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
-	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
+	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
 	role: text("role").notNull().default("user"),
 	// Metrics
@@ -122,9 +123,9 @@ export const users_temp = pgTable("user_temp", {
 	serversQuantity: integer("serversQuantity").notNull().default(0),
 });
 
-export const usersRelations = relations(users_temp, ({ one, many }) => ({
+export const usersRelations = relations(user, ({ one, many }) => ({
 	account: one(account, {
-		fields: [users_temp.id],
+		fields: [user.id],
 		references: [account.userId],
 	}),
 	organizations: many(organization),
@@ -134,7 +135,7 @@ export const usersRelations = relations(users_temp, ({ one, many }) => ({
 	schedules: many(schedules),
 }));
 
-const createSchema = createInsertSchema(users_temp, {
+const createSchema = createInsertSchema(user, {
 	id: z.string().min(1),
 	isRegistered: z.boolean().optional(),
 }).omit({
@@ -186,6 +187,8 @@ export const apiAssignPermissions = createSchema
 		canAccessToAPI: z.boolean().optional(),
 		canAccessToSSHKeys: z.boolean().optional(),
 		canAccessToGitProviders: z.boolean().optional(),
+		canDeleteEnvironments: z.boolean().optional(),
+		canCreateEnvironments: z.boolean().optional(),
 	})
 	.required();
 
@@ -330,6 +333,7 @@ export const apiUpdateUser = createSchema.partial().extend({
 	password: z.string().optional(),
 	currentPassword: z.string().optional(),
 	name: z.string().optional(),
+	lastName: z.string().optional(),
 	metricsConfig: z
 		.object({
 			server: z.object({

@@ -1,9 +1,9 @@
 import {
 	createApiKey,
-	findAdmin,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
+	getDokployUrl,
 	getUserByToken,
 	IS_CLOUD,
 	removeUserById,
@@ -86,7 +86,11 @@ export const userRouter = createTRPCRouter({
 			// Allow access if:
 			// 1. User is requesting their own information
 			// 2. User has owner role (admin permissions) AND user is in the same organization
-			if (memberResult.userId !== ctx.user.id && ctx.user.role !== "owner") {
+			if (
+				memberResult.userId !== ctx.user.id &&
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin"
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this user",
@@ -222,10 +226,61 @@ export const userRouter = createTRPCRouter({
 				userId: z.string(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
+
+			// Ensure the acting user has admin privileges in the active organization
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners or admins can delete users",
+				});
+			}
+
+			// Fetch target member within the active organization
+			const targetMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, input.userId),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+			});
+
+			if (!targetMember) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Target user is not a member of this organization",
+				});
+			}
+
+			// Never allow deleting the organization owner via this endpoint
+			if (targetMember.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot delete the organization owner",
+				});
+			}
+
+			// Admin self-protection: an admin cannot delete themselves
+			if (targetMember.role === "admin" && input.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Admins cannot delete themselves. Ask the owner or another admin.",
+				});
+			}
+
+			// Only owners can delete admins
+			// Admins can only delete members
+			if (ctx.user.role === "admin" && targetMember.role === "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Only the organization owner can delete admins. Admins can only delete members.",
+				});
+			}
+
 			return await removeUserById(input.userId);
 		}),
 	assignPermissions: adminProcedure
@@ -419,11 +474,10 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			const admin = await findAdmin();
 			const host =
 				process.env.NODE_ENV === "development"
 					? "http://localhost:3000"
-					: admin.user.host;
+					: await getDokployUrl();
 			const inviteLink = `${host}/invitation?token=${input.invitationId}`;
 
 			const organization = await findOrganizationById(

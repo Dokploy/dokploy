@@ -44,11 +44,14 @@ export const UserNav = () => {
 				>
 					<Avatar className="h-8 w-8 rounded-lg">
 						<AvatarImage
+							className="object-cover"
 							src={data?.user?.image || ""}
 							alt={data?.user?.image || ""}
 						/>
 						<AvatarFallback className="rounded-lg">
-							{getFallbackAvatarInitials(data?.user?.name)}
+							{getFallbackAvatarInitials(
+								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
+							)}
 						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
@@ -101,7 +104,9 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -111,7 +116,9 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" || data?.canAccessToDocker) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -125,7 +132,7 @@ export const UserNav = () => {
 							)}
 						</>
 					) : (
-						data?.role === "owner" && (
+						(data?.role === "owner" || data?.role === "admin") && (
 							<DropdownMenuItem
 								className="cursor-pointer"
 								onClick={() => {

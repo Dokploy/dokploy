@@ -59,10 +59,8 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 	let currentDigest: string;
 	try {
 		currentDigest = await getServiceImageDigest();
-	} catch {
-		// Docker service might not exist locally
-		// You can run the # Installation command for docker service create mentioned in the below docs to test it locally:
-		// https://docs.dokploy.com/docs/core/manual-installation
+	} catch (error) {
+		// TODO: Docker versions 29.0.0 change the way to get the service image digest, so we need to update this in the future we upgrade to that version.
 		return DEFAULT_UPDATE_DATA;
 	}
 
@@ -217,38 +215,6 @@ echo "$json_output"
 	return result;
 };
 
-export const cleanupFullDocker = async (serverId?: string | null) => {
-	const cleanupImages = "docker image prune --force";
-	const cleanupVolumes = "docker volume prune --force";
-	const cleanupContainers = "docker container prune --force";
-	const cleanupSystem = "docker system prune  --force --volumes";
-	const cleanupBuilder = "docker builder prune  --force";
-
-	try {
-		if (serverId) {
-			await execAsyncRemote(
-				serverId,
-				`
-	${cleanupImages}
-	${cleanupVolumes}
-	${cleanupContainers}
-	${cleanupSystem}
-	${cleanupBuilder}
-			`,
-			);
-		}
-		await execAsync(`
-			${cleanupImages}
-			${cleanupVolumes}
-			${cleanupContainers}
-			${cleanupSystem}
-			${cleanupBuilder}
-					`);
-	} catch (error) {
-		console.log(error);
-	}
-};
-
 export const getDockerResourceType = async (
 	resourceName: string,
 	serverId?: string,
@@ -374,24 +340,54 @@ export const readPorts = async (
 		publishedPort: number;
 		protocol?: string;
 	}[] = [];
+	const seenPorts = new Set<string>();
 	for (const key in parsedResult) {
 		if (Object.hasOwn(parsedResult, key)) {
 			const containerPortMapppings = parsedResult[key];
 			const protocol = key.split("/")[1];
 			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
 
-			containerPortMapppings.forEach((mapping: any) => {
-				ports.push({
-					targetPort: targetPort,
-					publishedPort: Number.parseInt(mapping.HostPort, 10),
-					protocol: protocol,
-				});
-			});
+			// Take only the first mapping to avoid duplicates (IPv4 and IPv6)
+			const firstMapping = containerPortMapppings[0];
+			if (firstMapping) {
+				const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
+				const portKey = `${targetPort}-${publishedPort}-${protocol}`;
+				if (!seenPorts.has(portKey)) {
+					seenPorts.add(portKey);
+					ports.push({
+						targetPort: targetPort,
+						publishedPort: publishedPort,
+						protocol: protocol,
+					});
+				}
+			}
 		}
 	}
 	return ports.filter(
 		(port: any) => port.targetPort !== 80 && port.targetPort !== 443,
 	);
+};
+
+export const checkPortInUse = async (
+	port: number,
+	serverId?: string,
+): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
+	try {
+		const command = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const container = stdout.trim();
+
+		return {
+			isInUse: !!container,
+			conflictingContainer: container || undefined,
+		};
+	} catch (error) {
+		console.error("Error checking port availability:", error);
+		return { isInUse: false };
+	}
 };
 
 export const writeTraefikSetup = async (input: TraefikOptions) => {

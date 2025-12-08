@@ -15,7 +15,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can create an organization",
@@ -41,6 +41,11 @@ export const organizationRouter = createTRPCRouter({
 				});
 			}
 
+			// Check if this is the user's first organization
+			const existingMemberships = await db.query.member.findMany({
+				where: eq(member.userId, ctx.user.id),
+			});
+
 			await db.insert(member).values({
 				organizationId: result.id,
 				role: "owner",
@@ -63,6 +68,11 @@ export const organizationRouter = createTRPCRouter({
 							),
 						),
 				),
+			with: {
+				members: {
+					where: eq(member.userId, ctx.user.id),
+				},
+			},
 		});
 		return memberResult;
 	}),
@@ -86,7 +96,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can update it",
@@ -109,7 +119,7 @@ export const organizationRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			if (ctx.user.role !== "owner" && !IS_CLOUD) {
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin" && !IS_CLOUD) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only the organization owner can delete it",
@@ -183,5 +193,105 @@ export const organizationRouter = createTRPCRouter({
 			return await db
 				.delete(invitation)
 				.where(eq(invitation.id, input.invitationId));
+		}),
+	updateMemberRole: adminProcedure
+		.input(
+			z.object({
+				memberId: z.string(),
+				role: z.enum(["admin", "member"]),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			// Fetch the target member
+			const target = await db.query.member.findFirst({
+				where: eq(member.id, input.memberId),
+				with: { user: true },
+			});
+
+			if (!target) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+			}
+
+			if (target.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not allowed to update this member's role",
+				});
+			}
+
+			// Prevent users from changing their own role
+			if (target.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot change your own role",
+				});
+			}
+
+			// Owner role is intransferible - cannot change to or from owner
+			if (target.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "The owner role is intransferible",
+				});
+			}
+
+			// Only owners can change admin roles
+			// Admins can only change member roles
+			if (ctx.user.role === "admin" && target.role === "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Only the organization owner can change admin roles. Admins can only modify member roles.",
+				});
+			}
+
+			// Update the target member's role
+			await db
+				.update(member)
+				.set({ role: input.role })
+				.where(eq(member.id, input.memberId));
+
+			return true;
+		}),
+	setDefault: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			// Verify user is a member of this organization
+			const userMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (!userMember) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			// First, unset all defaults for this user
+			await db
+				.update(member)
+				.set({ isDefault: false })
+				.where(eq(member.userId, ctx.user.id));
+
+			// Then set this organization as default
+			await db
+				.update(member)
+				.set({ isDefault: true })
+				.where(
+					and(
+						eq(member.organizationId, input.organizationId),
+						eq(member.userId, ctx.user.id),
+					),
+				);
+
+			return { success: true };
 		}),
 });

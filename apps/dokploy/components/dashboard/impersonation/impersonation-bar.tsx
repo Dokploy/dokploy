@@ -103,7 +103,7 @@ export const ImpersonationBar = () => {
 			setOpen(false);
 
 			toast.success("Successfully impersonating user", {
-				description: `You are now viewing as ${selectedUser.name || selectedUser.email}`,
+				description: `You are now viewing as ${`${selectedUser.name} ${selectedUser.lastName}`.trim() || selectedUser.email}`,
 			});
 			window.location.reload();
 		} catch (error) {
@@ -195,7 +195,8 @@ export const ImpersonationBar = () => {
 													<UserIcon className="mr-2 h-4 w-4 flex-shrink-0" />
 													<span className="truncate flex flex-col items-start">
 														<span className="text-sm font-medium">
-															{selectedUser.name || ""}
+															{`${selectedUser.name} ${selectedUser.lastName}`.trim() ||
+																""}
 														</span>
 														<span className="text-xs text-muted-foreground">
 															{selectedUser.email}
@@ -242,7 +243,8 @@ export const ImpersonationBar = () => {
 																		<UserIcon className="h-4 w-4 flex-shrink-0" />
 																		<span className="flex flex-col items-start">
 																			<span className="text-sm font-medium">
-																				{user.name || ""}
+																				{`${user.name} ${user.lastName}`.trim() ||
+																					""}
 																			</span>
 																			<span className="text-xs text-muted-foreground">
 																				{user.email} • {user.role}
@@ -281,11 +283,16 @@ export const ImpersonationBar = () => {
 								<div className="flex items-center gap-4 flex-1 flex-wrap">
 									<Avatar className="h-10 w-10">
 										<AvatarImage
+											className="object-cover"
 											src={data?.user?.image || ""}
-											alt={data?.user?.name || ""}
+											alt={
+												`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
+												""
+											}
 										/>
 										<AvatarFallback>
-											{data?.user?.name?.slice(0, 2).toUpperCase() || "U"}
+											{`${data?.user?.firstName?.[0] || ""}${data?.user?.lastName?.[0] || ""}`.toUpperCase() ||
+												"U"}
 										</AvatarFallback>
 									</Avatar>
 									<div className="flex flex-col gap-1">
@@ -298,7 +305,8 @@ export const ImpersonationBar = () => {
 												Impersonating
 											</Badge>
 											<span className="font-medium">
-												{data?.user?.name || ""}
+												{`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
+													""}
 											</span>
 										</div>
 										<div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">

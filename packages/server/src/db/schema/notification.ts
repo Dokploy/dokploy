@@ -1,5 +1,12 @@
 import { relations } from "drizzle-orm";
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -12,6 +19,8 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+	"custom",
+	"lark",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -23,6 +32,7 @@ export const notifications = pgTable("notification", {
 	appDeploy: boolean("appDeploy").notNull().default(false),
 	appBuildError: boolean("appBuildError").notNull().default(false),
 	databaseBackup: boolean("databaseBackup").notNull().default(false),
+	volumeBackup: boolean("volumeBackup").notNull().default(false),
 	dokployRestart: boolean("dokployRestart").notNull().default(false),
 	dockerCleanup: boolean("dockerCleanup").notNull().default(false),
 	serverThreshold: boolean("serverThreshold").notNull().default(false),
@@ -46,6 +56,12 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	ntfyId: text("ntfyId").references(() => ntfy.ntfyId, {
+		onDelete: "cascade",
+	}),
+	customId: text("customId").references(() => custom.customId, {
+		onDelete: "cascade",
+	}),
+	larkId: text("larkId").references(() => lark.larkId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -112,8 +128,25 @@ export const ntfy = pgTable("ntfy", {
 		.$defaultFn(() => nanoid()),
 	serverUrl: text("serverUrl").notNull(),
 	topic: text("topic").notNull(),
-	accessToken: text("accessToken").notNull(),
+	accessToken: text("accessToken"),
 	priority: integer("priority").notNull().default(3),
+});
+
+export const custom = pgTable("custom", {
+	customId: text("customId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	endpoint: text("endpoint").notNull(),
+	headers: jsonb("headers").$type<Record<string, string>>(),
+});
+
+export const lark = pgTable("lark", {
+	larkId: text("larkId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -141,6 +174,14 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 		fields: [notifications.ntfyId],
 		references: [ntfy.ntfyId],
 	}),
+	custom: one(custom, {
+		fields: [notifications.customId],
+		references: [custom.customId],
+	}),
+	lark: one(lark, {
+		fields: [notifications.larkId],
+		references: [lark.larkId],
+	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
 		references: [organization.id],
@@ -153,6 +194,7 @@ export const apiCreateSlack = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -180,6 +222,7 @@ export const apiCreateTelegram = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -209,6 +252,7 @@ export const apiCreateDiscord = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -239,6 +283,7 @@ export const apiCreateEmail = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -274,6 +319,7 @@ export const apiCreateGotify = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -307,6 +353,7 @@ export const apiCreateNtfy = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -315,7 +362,7 @@ export const apiCreateNtfy = notificationsSchema
 	.extend({
 		serverUrl: z.string().min(1),
 		topic: z.string().min(1),
-		accessToken: z.string().min(1),
+		accessToken: z.string().optional(),
 		priority: z.number().min(1),
 	})
 	.required();
@@ -339,6 +386,57 @@ export const apiFindOneNotification = notificationsSchema
 	})
 	.required();
 
+export const apiCreateCustom = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		endpoint: z.string().min(1),
+		headers: z.record(z.string()).optional(),
+	});
+
+export const apiUpdateCustom = apiCreateCustom.partial().extend({
+	notificationId: z.string().min(1),
+	customId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestCustomConnection = z.object({
+	endpoint: z.string().min(1),
+	headers: z.record(z.string()).optional(),
+});
+
+export const apiCreateLark = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateLark = apiCreateLark.partial().extend({
+	notificationId: z.string().min(1),
+	larkId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestLarkConnection = apiCreateLark.pick({
+	webhookUrl: true,
+});
+
 export const apiSendTest = notificationsSchema
 	.extend({
 		botToken: z.string(),
@@ -354,7 +452,9 @@ export const apiSendTest = notificationsSchema
 		serverUrl: z.string(),
 		topic: z.string(),
 		appToken: z.string(),
-		accessToken: z.string(),
+		accessToken: z.string().optional(),
 		priority: z.number(),
+		endpoint: z.string(),
+		headers: z.string(),
 	})
 	.partial();
