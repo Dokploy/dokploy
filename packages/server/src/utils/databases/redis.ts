@@ -73,7 +73,9 @@ export const buildRedis = async (redis: RedisNested) => {
 				Command: ["/bin/sh"],
 				Args: [
 					"-c",
-					command ? command : `docker-entrypoint.sh redis-server --requirepass ${databasePassword}`,
+					command
+						? command
+						: `docker-entrypoint.sh redis-server --requirepass ${databasePassword}`,
 				],
 				Labels,
 			},
