@@ -80,7 +80,22 @@ export const organizationRouter = createTRPCRouter({
 				organizationId: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
+			// Verify user is a member of this organization
+			const userMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, input.organizationId),
+					eq(member.userId, ctx.user.id),
+				),
+			});
+
+			if (!userMember) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
 			return await db.query.organization.findFirst({
 				where: eq(organization.id, input.organizationId),
 			});
