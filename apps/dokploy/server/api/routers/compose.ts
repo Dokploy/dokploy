@@ -263,7 +263,8 @@ export const composeRouter = createTRPCRouter({
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to clear deployments for this compose",
+					message:
+						"You are not authorized to clear deployments for this compose",
 				});
 			}
 			const result = await clearOldDeploymentsByComposeId(input.composeId);
