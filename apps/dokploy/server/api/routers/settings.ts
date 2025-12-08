@@ -225,9 +225,7 @@ export const settingsRouter = createTRPCRouter({
 			}
 			const user = await updateUser(ctx.user.ownerId, {
 				host: input.host,
-				...(input.letsEncryptEmail && {
-					letsEncryptEmail: input.letsEncryptEmail,
-				}),
+				letsEncryptEmail: input.letsEncryptEmail,
 				certificateType: input.certificateType,
 				https: input.https,
 			});
