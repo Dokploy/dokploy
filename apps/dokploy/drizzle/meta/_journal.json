@@ -855,13 +855,6 @@
       "when": 1763755037033,
       "tag": "0121_rainy_cargill",
       "breakpoints": true
-    },
-    {
-      "idx": 122,
-      "version": "7",
-      "when": 1763829727264,
-      "tag": "0122_sleepy_aqueduct",
-      "breakpoints": true
     }
   ]
 }
