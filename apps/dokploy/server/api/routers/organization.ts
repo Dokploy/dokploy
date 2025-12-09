@@ -158,6 +158,47 @@ export const organizationRouter = createTRPCRouter({
 				.returning();
 			return result[0];
 		}),
+	// Update the wildcard domain for the organization
+	// This domain pattern will be used as default for all projects in the organization
+	updateWildcardDomain: adminProcedure
+		.input(
+			z.object({
+				wildcardDomain: z
+					.string()
+					.nullable()
+					.refine(
+						(val) => {
+							if (val === null || val === "") return true;
+							// Validate wildcard domain format: should start with * and be a valid domain pattern
+							// Examples: *.example.com, *-apps.example.com, *.apps.mydomain.org
+							const wildcardPattern =
+								/^\*[\.\-]?[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
+							return wildcardPattern.test(val);
+						},
+						{
+							message:
+								'Invalid wildcard domain format. Use patterns like "*.example.com" or "*-apps.example.com"',
+						},
+					),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const result = await db
+				.update(organization)
+				.set({
+					wildcardDomain: input.wildcardDomain || null,
+				})
+				.where(eq(organization.id, ctx.session.activeOrganizationId))
+				.returning();
+			return result[0];
+		}),
+	// Get the current wildcard domain configuration for the active organization
+	getWildcardDomain: protectedProcedure.query(async ({ ctx }) => {
+		const org = await db.query.organization.findFirst({
+			where: eq(organization.id, ctx.session.activeOrganizationId),
+		});
+		return org?.wildcardDomain ?? null;
+	}),
 	delete: protectedProcedure
 		.input(
 			z.object({

@@ -29,6 +29,7 @@ import {
 	findProjectById,
 	findRedisById,
 	findUserById,
+	getProjectWildcardDomain,
 	IS_CLOUD,
 	updateProjectById,
 } from "@dokploy/server";
@@ -325,6 +326,70 @@ export const projectRouter = createTRPCRouter({
 			} catch (error) {
 				throw error;
 			}
+		}),
+	// Update wildcard domain settings for a project
+	updateWildcardDomain: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().min(1),
+				wildcardDomain: z
+					.string()
+					.nullable()
+					.refine(
+						(val) => {
+							if (val === null || val === "") return true;
+							// Validate wildcard domain format: should start with * and be a valid domain pattern
+							// Examples: *.example.com, *-apps.example.com, *.apps.mydomain.org
+							const wildcardPattern =
+								/^\*[\.\-]?[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
+							return wildcardPattern.test(val);
+						},
+						{
+							message:
+								'Invalid wildcard domain format. Use patterns like "*.example.com" or "*-apps.example.com"',
+						},
+					),
+				useOrganizationWildcard: z.boolean(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const currentProject = await findProjectById(input.projectId);
+			if (currentProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to update this project",
+				});
+			}
+
+			const project = await updateProjectById(input.projectId, {
+				wildcardDomain: input.wildcardDomain || null,
+				useOrganizationWildcard: input.useOrganizationWildcard,
+			});
+
+			return project;
+		}),
+	// Get wildcard domain configuration for a project (includes inheritance from organization)
+	getWildcardDomainConfig: protectedProcedure
+		.input(apiFindOneProject)
+		.query(async ({ input, ctx }) => {
+			const currentProject = await findProjectById(input.projectId);
+			if (currentProject.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to access this project",
+				});
+			}
+
+			// Get the effective wildcard domain (with inheritance)
+			const effectiveWildcard = await getProjectWildcardDomain(input.projectId);
+
+			return {
+				projectWildcardDomain: currentProject.wildcardDomain,
+				useOrganizationWildcard: currentProject.useOrganizationWildcard,
+				organizationWildcardDomain:
+					currentProject.organization?.wildcardDomain ?? null,
+				effectiveWildcardDomain: effectiveWildcard,
+			};
 		}),
 	duplicate: protectedProcedure
 		.input(

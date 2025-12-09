@@ -49,6 +49,50 @@ export const generateRandomDomain = ({
 	return `${truncatedProjectName}-${hash}${slugIp === "" ? "" : `-${slugIp}`}.traefik.me`;
 };
 
+export interface CustomWildcardSchema {
+	appName: string;
+	wildcardDomain: string;
+}
+
+/**
+ * Generates a domain using a custom wildcard pattern.
+ * The wildcardDomain should be in the format "*-apps.example.com"
+ * where the "*" will be replaced with "{appName}-{randomHash}".
+ *
+ * @example
+ * generateCustomWildcardDomain({
+ *   appName: "nitropage",
+ *   wildcardDomain: "*-apps.example.com"
+ * })
+ * // Returns: "nitropage-a1b2c3-apps.example.com"
+ */
+export const generateCustomWildcardDomain = ({
+	appName,
+	wildcardDomain,
+}: CustomWildcardSchema): string => {
+	const hash = randomBytes(3).toString("hex");
+
+	// Domain labels have a max length of 63 characters
+	// Reserve space for: hash (6) + separator (1) + remaining domain parts
+	const maxAppNameLength = 40;
+	const truncatedAppName =
+		appName.length > maxAppNameLength
+			? appName.substring(0, maxAppNameLength)
+			: appName;
+
+	// Replace the wildcard "*" with the app name and hash
+	// The wildcardDomain format should be like "*-apps.example.com" or "*.apps.example.com"
+	const replacement = `${truncatedAppName}-${hash}`;
+
+	// Handle both "*-apps.example.com" and "*.apps.example.com" patterns
+	if (wildcardDomain.startsWith("*")) {
+		return wildcardDomain.replace("*", replacement);
+	}
+
+	// If no wildcard found at the start, prepend the replacement
+	return `${replacement}.${wildcardDomain}`;
+};
+
 export const generateHash = (length = 8): string => {
 	return randomBytes(Math.ceil(length / 2))
 		.toString("hex")
