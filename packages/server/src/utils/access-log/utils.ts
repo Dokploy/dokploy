@@ -27,6 +27,10 @@ export function processLogs(
 				if (log.ServiceName === "dokploy-service-app@file") {
 					return null;
 				}
+				// Exclude Dashboard requests - they start with /dashboard
+				if (log.RequestPath?.startsWith("/dashboard")) {
+					return null;
+				}
 				const date = new Date(log.StartUTC);
 
 				if (dateRange?.start || dateRange?.end) {
@@ -97,6 +101,10 @@ export function parseRawConfig(
 				}
 			})
 			.compact()
+			.filter((log) => {
+				// Exclude Dashboard requests - they start with /dashboard
+				return !log.RequestPath?.startsWith("/dashboard");
+			})
 			.value();
 
 		// Apply date range filter if provided
