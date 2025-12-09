@@ -430,6 +430,23 @@ export const userRouter = createTRPCRouter({
 	createApiKey: protectedProcedure
 		.input(apiCreateApiKey)
 		.mutation(async ({ input, ctx }) => {
+			// Verify user is a member of the organization specified in metadata
+			if (input.metadata?.organizationId) {
+				const userMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.organizationId, input.metadata.organizationId),
+						eq(member.userId, ctx.user.id),
+					),
+				});
+
+				if (!userMember) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not a member of this organization",
+					});
+				}
+			}
+
 			const apiKey = await createApiKey(ctx.user.id, input);
 			return apiKey;
 		}),
@@ -440,7 +457,35 @@ export const userRouter = createTRPCRouter({
 				userId: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			// Users can check their own organizations
+			// Admins and owners can check organizations of members in their active organization
+			if (input.userId !== ctx.user.id) {
+				// Verify the target user is a member of the active organization
+				const targetMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, input.userId),
+						eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+					),
+				});
+
+				if (!targetMember) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "User is not a member of your active organization",
+					});
+				}
+
+				// Only admins and owners can check other users' organizations
+				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"Only admins and owners can check other users' organizations",
+					});
+				}
+			}
+
 			const organizations = await db.query.member.findMany({
 				where: eq(member.userId, input.userId),
 			});
