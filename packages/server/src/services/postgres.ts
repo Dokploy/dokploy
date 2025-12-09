@@ -19,7 +19,8 @@ export function getMountPath(dockerImage: string): string {
 	if (versionMatch?.[1]) {
 		const version = Number.parseInt(versionMatch[1], 10);
 		if (version >= 18) {
-			return `/var/lib/postgresql/${version}/data`;
+			// PostgreSQL 18+ uses /var/lib/postgresql/{version}/docker as the default PGDATA
+			return `/var/lib/postgresql/${version}/docker`;
 		}
 	}
 	return "/var/lib/postgresql/data";

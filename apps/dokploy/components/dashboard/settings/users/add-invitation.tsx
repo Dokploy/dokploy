@@ -158,6 +158,7 @@ export const AddInvitation = () => {
 											</FormControl>
 											<SelectContent>
 												<SelectItem value="member">Member</SelectItem>
+												<SelectItem value="admin">Admin</SelectItem>
 											</SelectContent>
 										</Select>
 										<FormDescription>

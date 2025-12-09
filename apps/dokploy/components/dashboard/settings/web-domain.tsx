@@ -36,7 +36,7 @@ import { api } from "@/utils/api";
 
 const addServerDomain = z
 	.object({
-		domain: z.string(),
+		domain: z.string().trim().toLowerCase(),
 		letsEncryptEmail: z.string(),
 		https: z.boolean().optional(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
@@ -49,7 +49,11 @@ const addServerDomain = z
 				message: "Required",
 			});
 		}
-		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
+		if (
+			data.https &&
+			data.certificateType === "letsencrypt" &&
+			!data.letsEncryptEmail
+		) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				message:

@@ -1,7 +1,5 @@
 import {
-	cleanUpDockerBuilder,
-	cleanUpSystemPrune,
-	cleanUpUnusedImages,
+	cleanupAll,
 	findBackupById,
 	findScheduleById,
 	findServerById,
@@ -91,9 +89,7 @@ export const runJobs = async (job: QueueJob) => {
 				logger.info("Server is inactive");
 				return;
 			}
-			await cleanUpUnusedImages(serverId);
-			await cleanUpDockerBuilder(serverId);
-			await cleanUpSystemPrune(serverId);
+			await cleanupAll(serverId);
 		} else if (job.type === "schedule") {
 			const { scheduleId } = job;
 			const schedule = await findScheduleById(scheduleId);

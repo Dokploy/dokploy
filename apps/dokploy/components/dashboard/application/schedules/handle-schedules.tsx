@@ -60,6 +60,30 @@ export const commonCronExpressions = [
 	{ label: "Custom", value: "custom" },
 ];
 
+export const commonTimezones = [
+	{ label: "UTC (Coordinated Universal Time)", value: "UTC" },
+	{ label: "America/New_York (Eastern Time)", value: "America/New_York" },
+	{ label: "America/Chicago (Central Time)", value: "America/Chicago" },
+	{ label: "America/Denver (Mountain Time)", value: "America/Denver" },
+	{ label: "America/Los_Angeles (Pacific Time)", value: "America/Los_Angeles" },
+	{
+		label: "America/Mexico_City (Central Mexico)",
+		value: "America/Mexico_City",
+	},
+	{ label: "America/Sao_Paulo (Brasilia Time)", value: "America/Sao_Paulo" },
+	{ label: "Europe/London (Greenwich Mean Time)", value: "Europe/London" },
+	{ label: "Europe/Paris (Central European Time)", value: "Europe/Paris" },
+	{ label: "Europe/Berlin (Central European Time)", value: "Europe/Berlin" },
+	{ label: "Asia/Tokyo (Japan Standard Time)", value: "Asia/Tokyo" },
+	{ label: "Asia/Shanghai (China Standard Time)", value: "Asia/Shanghai" },
+	{ label: "Asia/Dubai (Gulf Standard Time)", value: "Asia/Dubai" },
+	{ label: "Asia/Kolkata (India Standard Time)", value: "Asia/Kolkata" },
+	{
+		label: "Australia/Sydney (Australian Eastern Time)",
+		value: "Australia/Sydney",
+	},
+];
+
 const formSchema = z
 	.object({
 		name: z.string().min(1, "Name is required"),
@@ -75,6 +99,7 @@ const formSchema = z
 			"dokploy-server",
 		]),
 		script: z.string(),
+		timezone: z.string().optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.scheduleType === "compose" && !data.serviceName) {
@@ -213,6 +238,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 			serviceName: "",
 			scheduleType: scheduleType || "application",
 			script: "",
+			timezone: undefined,
 		},
 	});
 
@@ -251,6 +277,7 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 				serviceName: schedule.serviceName || "",
 				scheduleType: schedule.scheduleType,
 				script: schedule.script || "",
+				timezone: schedule.timezone || undefined,
 			});
 		}
 	}, [form, schedule, scheduleId]);
@@ -462,6 +489,54 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 						<ScheduleFormField
 							name="cronExpression"
 							formControl={form.control}
+						/>
+
+						<FormField
+							control={form.control}
+							name="timezone"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel className="flex items-center gap-2">
+										Timezone
+										<TooltipProvider>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Info className="w-4 h-4 text-muted-foreground cursor-help" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<p>
+														Select a timezone for the schedule. If not
+														specified, UTC will be used.
+													</p>
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									</FormLabel>
+									<Select
+										onValueChange={(value) => {
+											field.onChange(value);
+										}}
+										value={field.value}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="UTC (default)" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{commonTimezones.map((tz) => (
+												<SelectItem key={tz.value} value={tz.value}>
+													{tz.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormDescription>
+										Optional: Choose a timezone for the schedule execution time
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
 						/>
 
 						{(scheduleTypeForm === "application" ||

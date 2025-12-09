@@ -41,6 +41,7 @@ const profileSchema = z.object({
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
 	name: z.string().optional(),
+	lastName: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
 
@@ -88,7 +89,8 @@ export const ProfileForm = () => {
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
-			name: data?.user?.name || "",
+			name: data?.user?.firstName || "",
+			lastName: data?.user?.lastName || "",
 		},
 		resolver: zodResolver(profileSchema),
 	});
@@ -102,7 +104,8 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
-					name: data?.user?.name || "",
+					name: data?.user?.firstName || "",
+					lastName: data?.user?.lastName || "",
 				},
 				{
 					keepValues: true,
@@ -127,6 +130,7 @@ export const ProfileForm = () => {
 				currentPassword: values.currentPassword || undefined,
 				allowImpersonation: values.allowImpersonation,
 				name: values.name || undefined,
+				lastName: values.lastName || undefined,
 			});
 			await refetch();
 			toast.success("Profile Updated");
@@ -136,6 +140,7 @@ export const ProfileForm = () => {
 				image: values.image,
 				currentPassword: "",
 				name: values.name || "",
+				lastName: values.lastName || "",
 			});
 		} catch (error) {
 			toast.error("Error updating the profile");
@@ -180,9 +185,22 @@ export const ProfileForm = () => {
 												name="name"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Name</FormLabel>
+														<FormLabel>First Name</FormLabel>
 														<FormControl>
-															<Input placeholder="Name" {...field} />
+															<Input placeholder="John" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="lastName"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Last Name</FormLabel>
+														<FormControl>
+															<Input placeholder="Doe" {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -280,7 +298,7 @@ export const ProfileForm = () => {
 																		<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
 																			<AvatarFallback className="rounded-lg">
 																				{getFallbackAvatarInitials(
-																					data?.user?.name,
+																					`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
 																				)}
 																			</AvatarFallback>
 																		</Avatar>

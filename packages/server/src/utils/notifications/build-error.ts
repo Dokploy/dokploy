@@ -5,6 +5,7 @@ import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -45,12 +46,13 @@ export const sendBuildErrorNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			custom: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
 			notification;
 		try {
 			if (email) {
@@ -217,6 +219,22 @@ export const sendBuildErrorNotifications = async ({
 							],
 						},
 					],
+				});
+			}
+
+			if (custom) {
+				await sendCustomNotification(custom, {
+					title: "Build Error",
+					message: "Build failed with errors",
+					projectName,
+					applicationName,
+					applicationType,
+					errorMessage,
+					buildLink,
+					timestamp: date.toISOString(),
+					date: date.toLocaleString(),
+					status: "error",
+					type: "build",
 				});
 			}
 

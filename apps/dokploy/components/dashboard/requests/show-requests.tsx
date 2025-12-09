@@ -65,6 +65,25 @@ export const ShowRequests = () => {
 		to: Date | undefined;
 	}>(getDefaultDateRange());
 
+	// Check if logs exist to determine if traefik has been reloaded
+	// Only fetch when active to minimize network calls
+	const { data: statsLogsCheck } = api.settings.readStatsLogs.useQuery(
+		{
+			page: {
+				pageIndex: 0,
+				pageSize: 1,
+			},
+		},
+		{
+			enabled: !!isActive,
+			refetchInterval: 5000, // Check every 5 seconds when active
+		},
+	);
+
+	// Determine if warning should be shown
+	// Show warning only if active but no logs exist yet
+	const shouldShowWarning = isActive && (statsLogsCheck?.totalCount ?? 0) === 0;
+
 	useEffect(() => {
 		if (logCleanupStatus) {
 			setCronExpression(logCleanupStatus.cronExpression || "0 0 * * *");
@@ -85,16 +104,18 @@ export const ShowRequests = () => {
 								See all the incoming requests that pass trough Traefik
 							</CardDescription>
 
-							<AlertBlock type="warning">
-								When you activate, you need to reload traefik to apply the
-								changes, you can reload traefik in{" "}
-								<Link
-									href="/dashboard/settings/server"
-									className="text-primary"
-								>
-									Settings
-								</Link>
-							</AlertBlock>
+							{shouldShowWarning && (
+								<AlertBlock type="warning">
+									When you activate, you need to reload traefik to apply the
+									changes, you can reload traefik in{" "}
+									<Link
+										href="/dashboard/settings/server"
+										className="text-primary"
+									>
+										Settings
+									</Link>
+								</AlertBlock>
+							)}
 						</CardHeader>
 						<CardContent className="space-y-2 py-8 border-t">
 							<div className="flex w-full gap-4 justify-end items-center">

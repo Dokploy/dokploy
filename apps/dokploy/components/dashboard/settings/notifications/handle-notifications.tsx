@@ -1,5 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Mail, PenBoxIcon, PlusIcon } from "lucide-react";
+import {
+	AlertTriangle,
+	Mail,
+	PenBoxIcon,
+	PlusIcon,
+	Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,6 +50,7 @@ const notificationBaseSchema = z.object({
 	appDeploy: z.boolean().default(false),
 	appBuildError: z.boolean().default(false),
 	databaseBackup: z.boolean().default(false),
+	volumeBackup: z.boolean().default(false),
 	dokployRestart: z.boolean().default(false),
 	dockerCleanup: z.boolean().default(false),
 	serverThreshold: z.boolean().default(false),
@@ -109,6 +116,21 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
+			type: z.literal("custom"),
+			endpoint: z.string().min(1, { message: "Endpoint URL is required" }),
+			headers: z
+				.array(
+					z.object({
+						key: z.string(),
+						value: z.string(),
+					}),
+				)
+				.optional()
+				.default([]),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
 			type: z.literal("lark"),
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
@@ -143,6 +165,10 @@ export const notificationsMap = {
 	ntfy: {
 		icon: <NtfyIcon />,
 		label: "ntfy",
+	},
+	custom: {
+		icon: <PenBoxIcon size={29} className="text-muted-foreground" />,
+		label: "Custom",
 	},
 };
 
@@ -179,6 +205,13 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testNtfyConnection.useMutation();
 	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
+
+	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
+		api.notification.testCustomConnection.useMutation();
+
+	const customMutation = notificationId
+		? api.notification.updateCustom.useMutation()
+		: api.notification.createCustom.useMutation();
 	const slackMutation = notificationId
 		? api.notification.updateSlack.useMutation()
 		: api.notification.createSlack.useMutation();
@@ -217,6 +250,15 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		name: "toAddresses" as never,
 	});
 
+	const {
+		fields: headerFields,
+		append: appendHeader,
+		remove: removeHeader,
+	} = useFieldArray({
+		control: form.control,
+		name: "headers" as never,
+	});
+
 	useEffect(() => {
 		if (type === "email" && fields.length === 0) {
 			append("");
@@ -231,6 +273,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
 					webhookUrl: notification.slack?.webhookUrl,
 					channel: notification.slack?.channel || "",
@@ -244,6 +287,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
 					botToken: notification.telegram?.botToken,
 					messageThreadId: notification.telegram?.messageThreadId || "",
 					chatId: notification.telegram?.chatId,
@@ -258,6 +302,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					webhookUrl: notification.discord?.webhookUrl,
 					decoration: notification.discord?.decoration || undefined,
@@ -271,6 +316,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					smtpServer: notification.email?.smtpServer,
 					smtpPort: notification.email?.smtpPort,
@@ -288,6 +334,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					appToken: notification.gotify?.appToken,
 					decoration: notification.gotify?.decoration || undefined,
@@ -302,6 +349,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					appDeploy: notification.appDeploy,
 					dokployRestart: notification.dokployRestart,
 					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
 					type: notification.notificationType,
 					accessToken: notification.ntfy?.accessToken || "",
 					topic: notification.ntfy?.topic,
@@ -323,6 +371,26 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "custom") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					endpoint: notification.custom?.endpoint || "",
+					headers: notification.custom?.headers
+						? Object.entries(notification.custom.headers).map(
+								([key, value]) => ({
+									key,
+									value,
+								}),
+							)
+						: [],
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -337,6 +405,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		gotify: gotifyMutation,
 		ntfy: ntfyMutation,
 		lark: larkMutation,
+		custom: customMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -345,6 +414,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 			appDeploy,
 			dokployRestart,
 			databaseBackup,
+			volumeBackup,
 			dockerCleanup,
 			serverThreshold,
 		} = data;
@@ -355,6 +425,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				channel: data.channel,
 				name: data.name,
@@ -369,6 +440,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				botToken: data.botToken,
 				messageThreadId: data.messageThreadId || "",
 				chatId: data.chatId,
@@ -384,6 +456,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				decoration: data.decoration,
 				name: data.name,
@@ -398,6 +471,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				smtpServer: data.smtpServer,
 				smtpPort: data.smtpPort,
 				username: data.username,
@@ -416,6 +490,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
 				appToken: data.appToken,
 				priority: data.priority,
@@ -431,6 +506,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				serverUrl: data.serverUrl,
 				accessToken: data.accessToken || "",
 				topic: data.topic,
@@ -452,6 +528,32 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				notificationId: notificationId || "",
 				larkId: notification?.larkId || "",
 				serverThreshold: serverThreshold,
+			});
+		} else if (data.type === "custom") {
+			// Convert headers array to object
+			const headersRecord =
+				data.headers && data.headers.length > 0
+					? data.headers.reduce(
+							(acc, { key, value }) => {
+								if (key.trim()) acc[key] = value;
+								return acc;
+							},
+							{} as Record<string, string>,
+						)
+					: undefined;
+
+			promise = customMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				endpoint: data.endpoint,
+				headers: headersRecord,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				customId: notification?.customId || "",
 			});
 		}
 
@@ -1043,7 +1145,92 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+								{type === "custom" && (
+									<div className="space-y-4">
+										<FormField
+											control={form.control}
+											name="endpoint"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://api.example.com/webhook"
+															{...field}
+														/>
+													</FormControl>
+													<FormDescription>
+														The URL where POST requests will be sent with
+														notification data.
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 
+										<div className="space-y-3">
+											<div>
+												<FormLabel>Headers</FormLabel>
+												<FormDescription>
+													Optional. Custom headers for your POST request (e.g.,
+													Authorization, Content-Type).
+												</FormDescription>
+											</div>
+
+											<div className="space-y-2">
+												{headerFields.map((field, index) => (
+													<div
+														key={field.id}
+														className="flex items-center gap-2 p-2 border rounded-md bg-muted/50"
+													>
+														<FormField
+															control={form.control}
+															name={`headers.${index}.key` as never}
+															render={({ field }) => (
+																<FormItem className="flex-1">
+																	<FormControl>
+																		<Input placeholder="Key" {...field} />
+																	</FormControl>
+																</FormItem>
+															)}
+														/>
+														<FormField
+															control={form.control}
+															name={`headers.${index}.value` as never}
+															render={({ field }) => (
+																<FormItem className="flex-[2]">
+																	<FormControl>
+																		<Input placeholder="Value" {...field} />
+																	</FormControl>
+																</FormItem>
+															)}
+														/>
+														<Button
+															type="button"
+															variant="ghost"
+															size="sm"
+															onClick={() => removeHeader(index)}
+															className="text-red-500 hover:text-red-700 hover:bg-red-50"
+														>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												))}
+											</div>
+
+											<Button
+												type="button"
+												variant="outline"
+												size="sm"
+												onClick={() => appendHeader({ key: "", value: "" })}
+												className="w-full"
+											>
+												<PlusIcon className="h-4 w-4 mr-2" />
+												Add header
+											</Button>
+										</div>
+									</div>
+								)}
 								{type === "lark" && (
 									<>
 										<FormField
@@ -1122,6 +1309,27 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 												<FormLabel>Database Backup</FormLabel>
 												<FormDescription>
 													Trigger the action when a database backup is created.
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="volumeBackup"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm gap-2">
+											<div className="space-y-0.5">
+												<FormLabel>Volume Backup</FormLabel>
+												<FormDescription>
+													Trigger the action when a volume backup is created.
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -1215,7 +1423,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingEmail ||
 								isLoadingGotify ||
 								isLoadingNtfy ||
-								isLoadingLark
+								isLoadingLark ||
+								isLoadingCustom
 							}
 							variant="secondary"
 							type="button"
@@ -1268,6 +1477,21 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 									} else if (data.type === "lark") {
 										await testLarkConnection({
 											webhookUrl: data.webhookUrl,
+										});
+									} else if (data.type === "custom") {
+										const headersRecord =
+											data.headers && data.headers.length > 0
+												? data.headers.reduce(
+														(acc, { key, value }) => {
+															if (key.trim()) acc[key] = value;
+															return acc;
+														},
+														{} as Record<string, string>,
+													)
+												: undefined;
+										await testCustomConnection({
+											endpoint: data.endpoint,
+											headers: headersRecord,
 										});
 									}
 									toast.success("Connection Success");

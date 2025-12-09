@@ -1,6 +1,6 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { uploadImageRemoteCommand } from "../cluster/upload";
+import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -30,39 +30,45 @@ export type ApplicationNested = InferResultType<
 		ports: true;
 		registry: true;
 		buildRegistry: true;
+		rollbackRegistry: true;
+		deployments: true;
 		environment: { with: { project: true } };
 	}
 >;
 
-export const getBuildCommand = (application: ApplicationNested) => {
+export const getBuildCommand = async (application: ApplicationNested) => {
 	let command = "";
-	const { buildType } = application;
 
-	if (application.sourceType === "docker") {
-		return "";
+	if (application.sourceType !== "docker") {
+		const { buildType } = application;
+		switch (buildType) {
+			case "nixpacks":
+				command = getNixpacksCommand(application);
+				break;
+			case "heroku_buildpacks":
+				command = getHerokuCommand(application);
+				break;
+			case "paketo_buildpacks":
+				command = getPaketoCommand(application);
+				break;
+			case "static":
+				command = getStaticCommand(application);
+				break;
+			case "dockerfile":
+				command = getDockerCommand(application);
+				break;
+			case "railpack":
+				command = getRailpackCommand(application);
+				break;
+		}
 	}
-	switch (buildType) {
-		case "nixpacks":
-			command = getNixpacksCommand(application);
-			break;
-		case "heroku_buildpacks":
-			command = getHerokuCommand(application);
-			break;
-		case "paketo_buildpacks":
-			command = getPaketoCommand(application);
-			break;
-		case "static":
-			command = getStaticCommand(application);
-			break;
-		case "dockerfile":
-			command = getDockerCommand(application);
-			break;
-		case "railpack":
-			command = getRailpackCommand(application);
-			break;
-	}
-	if (application.registry || application.buildRegistry) {
-		command += uploadImageRemoteCommand(application);
+
+	if (
+		application.registry ||
+		application.buildRegistry ||
+		application.rollbackRegistry
+	) {
+		command += await uploadImageRemoteCommand(application);
 	}
 
 	return command;
@@ -188,17 +194,11 @@ const getImageName = (application: ApplicationNested) => {
 	}
 
 	if (registry) {
-		const { registryUrl, imagePrefix, username } = registry;
-		const registryTag = imagePrefix
-			? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
-			: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
+		const registryTag = getRegistryTag(registry, imageName);
 		return registryTag;
 	}
 	if (buildRegistry) {
-		const { registryUrl, imagePrefix, username } = buildRegistry;
-		const registryTag = imagePrefix
-			? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
-			: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
+		const registryTag = getRegistryTag(buildRegistry, imageName);
 		return registryTag;
 	}
 

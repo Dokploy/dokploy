@@ -29,12 +29,15 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
+import { ChangeRole } from "./change-role";
 
 export const ShowUsers = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
+
 	const utils = api.useUtils();
+	const { data: session } = authClient.useSession();
 
 	return (
 		<div className="w-full">
@@ -81,6 +84,52 @@ export const ShowUsers = () => {
 											</TableHeader>
 											<TableBody>
 												{data?.map((member) => {
+													const currentUserRole = data?.find(
+														(m) => m.user.id === session?.user?.id,
+													)?.role;
+
+													// Owner never has "Edit Permissions" (they're absolute owner)
+													// Other users can edit permissions if target is not themselves and target is a member
+													const canEditPermissions =
+														member.role !== "owner" &&
+														member.role === "member" &&
+														member.user.id !== session?.user?.id;
+
+													// Can change role based on hierarchy:
+													// - Owner: Can change anyone's role (except themselves and other owners)
+													// - Admin: Can only change member roles (not other admins or owners)
+													// - Owner role is intransferible
+													const canChangeRole =
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role === "member"));
+
+													// Delete/Unlink follow same hierarchy as role changes
+													// - Owner: Can delete/unlink anyone (except themselves and owner can't be deleted)
+													// - Admin: Can only delete/unlink members (not other admins or owner)
+													const canDelete =
+														member.role !== "owner" &&
+														!isCloud &&
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role === "member"));
+
+													const canUnlink =
+														member.role !== "owner" &&
+														member.user.id !== session?.user?.id &&
+														(currentUserRole === "owner" ||
+															(currentUserRole === "admin" &&
+																member.role === "member"));
+
+													const hasAnyAction =
+														canEditPermissions ||
+														canChangeRole ||
+														canDelete ||
+														canUnlink;
+
 													return (
 														<TableRow key={member.id}>
 															<TableCell className="w-[100px]">
@@ -109,7 +158,7 @@ export const ShowUsers = () => {
 															</TableCell>
 
 															<TableCell className="text-right flex justify-end">
-																{member.role !== "owner" && (
+																{hasAnyAction ? (
 																	<DropdownMenu>
 																		<DropdownMenuTrigger asChild>
 																			<Button
@@ -127,11 +176,23 @@ export const ShowUsers = () => {
 																				Actions
 																			</DropdownMenuLabel>
 
-																			<AddUserPermissions
-																				userId={member.user.id}
-																			/>
+																			{canChangeRole && (
+																				<ChangeRole
+																					memberId={member.id}
+																					currentRole={
+																						member.role as "admin" | "member"
+																					}
+																					userEmail={member.user.email}
+																				/>
+																			)}
 
-																			{!isCloud && (
+																			{canEditPermissions && (
+																				<AddUserPermissions
+																					userId={member.user.id}
+																				/>
+																			)}
+
+																			{canDelete && (
 																				<DialogAction
 																					title="Delete User"
 																					description="Are you sure you want to delete this user?"
@@ -146,9 +207,10 @@ export const ShowUsers = () => {
 																								);
 																								refetch();
 																							})
-																							.catch(() => {
+																							.catch((err) => {
 																								toast.error(
-																									"Error deleting destination",
+																									err?.message ||
+																										"Error deleting user",
 																								);
 																							});
 																					}}
@@ -162,66 +224,79 @@ export const ShowUsers = () => {
 																				</DialogAction>
 																			)}
 
-																			<DialogAction
-																				title="Unlink User"
-																				description="Are you sure you want to unlink this user?"
-																				type="destructive"
-																				onClick={async () => {
-																					if (!isCloud) {
-																						const orgCount =
-																							await utils.user.checkUserOrganizations.fetch(
-																								{
+																			{canUnlink && (
+																				<DialogAction
+																					title="Unlink User"
+																					description="Are you sure you want to unlink this user?"
+																					type="destructive"
+																					onClick={async () => {
+																						if (!isCloud) {
+																							const orgCount =
+																								await utils.user.checkUserOrganizations.fetch(
+																									{
+																										userId: member.user.id,
+																									},
+																								);
+
+																							if (orgCount === 1) {
+																								await mutateAsync({
 																									userId: member.user.id,
+																								})
+																									.then(() => {
+																										toast.success(
+																											"User deleted successfully",
+																										);
+																										refetch();
+																									})
+																									.catch(() => {
+																										toast.error(
+																											"Error deleting user",
+																										);
+																									});
+																								return;
+																							}
+																						}
+
+																						const { error } =
+																							await authClient.organization.removeMember(
+																								{
+																									memberIdOrEmail: member.id,
 																								},
 																							);
 
-																						console.log(orgCount);
-
-																						if (orgCount === 1) {
-																							await mutateAsync({
-																								userId: member.user.id,
-																							})
-																								.then(() => {
-																									toast.success(
-																										"User deleted successfully",
-																									);
-																									refetch();
-																								})
-																								.catch(() => {
-																									toast.error(
-																										"Error deleting user",
-																									);
-																								});
-																							return;
+																						if (!error) {
+																							toast.success(
+																								"User unlinked successfully",
+																							);
+																							refetch();
+																						} else {
+																							toast.error(
+																								"Error unlinking user",
+																							);
 																						}
-																					}
-
-																					const { error } =
-																						await authClient.organization.removeMember(
-																							{
-																								memberIdOrEmail: member.id,
-																							},
-																						);
-
-																					if (!error) {
-																						toast.success(
-																							"User unlinked successfully",
-																						);
-																						refetch();
-																					} else {
-																						toast.error("Error unlinking user");
-																					}
-																				}}
-																			>
-																				<DropdownMenuItem
-																					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																					onSelect={(e) => e.preventDefault()}
+																					}}
 																				>
-																					Unlink User
-																				</DropdownMenuItem>
-																			</DialogAction>
+																					<DropdownMenuItem
+																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																						onSelect={(e) => e.preventDefault()}
+																					>
+																						Unlink User
+																					</DropdownMenuItem>
+																				</DialogAction>
+																			)}
 																		</DropdownMenuContent>
 																	</DropdownMenu>
+																) : (
+																	<Button
+																		variant="ghost"
+																		className="h-8 w-8 p-0"
+																		disabled
+																	>
+																		<span className="sr-only">
+																			No actions available
+																		</span>
+																		<MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+																	</Button>
 																)}
 															</TableCell>
 														</TableRow>

@@ -18,6 +18,8 @@ const baseAdmin: User = {
 	enablePaidFeatures: false,
 	allowImpersonation: false,
 	role: "user",
+	firstName: "",
+	lastName: "",
 	metricsConfig: {
 		containers: {
 			refreshRate: 20,
@@ -61,7 +63,6 @@ const baseAdmin: User = {
 	expirationDate: "",
 	id: "",
 	isRegistered: false,
-	name: "",
 	createdAt2: new Date().toISOString(),
 	emailVerified: false,
 	image: "",

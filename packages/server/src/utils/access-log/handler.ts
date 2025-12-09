@@ -1,5 +1,5 @@
 import { paths } from "@dokploy/server/constants";
-import { findAdmin } from "@dokploy/server/services/admin";
+import { findOwner } from "@dokploy/server/services/admin";
 import { updateUser } from "@dokploy/server/services/user";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { execAsync } from "../process/execAsync";
@@ -29,9 +29,9 @@ export const startLogCleanup = async (
 			}
 		});
 
-		const admin = await findAdmin();
-		if (admin) {
-			await updateUser(admin.user.id, {
+		const owner = await findOwner();
+		if (owner) {
+			await updateUser(owner.user.id, {
 				logCleanupCron: cronExpression,
 			});
 		}
@@ -51,9 +51,9 @@ export const stopLogCleanup = async (): Promise<boolean> => {
 		}
 
 		// Update database
-		const admin = await findAdmin();
-		if (admin) {
-			await updateUser(admin.user.id, {
+		const owner = await findOwner();
+		if (owner) {
+			await updateUser(owner.user.id, {
 				logCleanupCron: null,
 			});
 		}
@@ -69,8 +69,8 @@ export const getLogCleanupStatus = async (): Promise<{
 	enabled: boolean;
 	cronExpression: string | null;
 }> => {
-	const admin = await findAdmin();
-	const cronExpression = admin?.user.logCleanupCron ?? null;
+	const owner = await findOwner();
+	const cronExpression = owner?.user.logCleanupCron ?? null;
 	return {
 		enabled: cronExpression !== null,
 		cronExpression,
