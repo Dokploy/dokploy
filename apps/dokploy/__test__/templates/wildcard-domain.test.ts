@@ -33,7 +33,8 @@ describe("generateCustomWildcardDomain", () => {
 	});
 
 	it("should truncate long app names to 40 characters", () => {
-		const longAppName = "this-is-a-very-long-application-name-that-exceeds-forty-chars";
+		const longAppName =
+			"this-is-a-very-long-application-name-that-exceeds-forty-chars";
 		const domain = generateCustomWildcardDomain({
 			appName: longAppName,
 			wildcardDomain: "*.example.com",
@@ -41,7 +42,9 @@ describe("generateCustomWildcardDomain", () => {
 
 		// The truncated app name should be 40 chars
 		const truncated = longAppName.substring(0, 40);
-		expect(domain).toMatch(new RegExp(`^${truncated}-[a-f0-9]{6}\\.example\\.com$`));
+		expect(domain).toMatch(
+			new RegExp(`^${truncated}-[a-f0-9]{6}\\.example\\.com$`),
+		);
 	});
 
 	it("should handle domain without wildcard at start", () => {
