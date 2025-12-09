@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { notifications } from "../../db/schema";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendLarkNotification,
 	sendSlackNotification,
@@ -35,6 +36,7 @@ export const sendServerThresholdNotifications = async (
 			discord: true,
 			telegram: true,
 			slack: true,
+			custom: true,
 			lark: true,
 		},
 	});
@@ -43,7 +45,7 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, lark } = notification;
+		const { discord, telegram, slack, custom, lark } = notification;
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -151,6 +153,21 @@ export const sendServerThresholdNotifications = async (
 						],
 					},
 				],
+			});
+		}
+
+		if (custom) {
+			await sendCustomNotification(custom, {
+				title: `Server ${payload.Type} Alert`,
+				message: payload.Message,
+				serverName: payload.ServerName,
+				type: payload.Type,
+				currentValue: payload.Value,
+				threshold: payload.Threshold,
+				timestamp: date.toISOString(),
+				date: date.toLocaleString(),
+				status: "alert",
+				alertType: "server-threshold",
 			});
 		}
 

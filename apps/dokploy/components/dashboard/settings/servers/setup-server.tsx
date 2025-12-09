@@ -51,6 +51,7 @@ export const SetupServer = ({ serverId }: Props) => {
 
 	const [activeLog, setActiveLog] = useState<string | null>(null);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const isBuildServer = server?.serverType === "build";
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [filteredLogs, setFilteredLogs] = useState<LogLine[]>([]);
 	const [isDeploying, setIsDeploying] = useState(false);
@@ -117,17 +118,26 @@ export const SetupServer = ({ serverId }: Props) => {
 							<TabsList
 								className={cn(
 									"grid  w-[700px]",
-									isCloud ? "grid-cols-6" : "grid-cols-5",
+									isBuildServer
+										? "grid-cols-3"
+										: isCloud
+											? "grid-cols-6"
+											: "grid-cols-5",
 								)}
 							>
 								<TabsTrigger value="ssh-keys">SSH Keys</TabsTrigger>
 								<TabsTrigger value="deployments">Deployments</TabsTrigger>
 								<TabsTrigger value="validate">Validate</TabsTrigger>
-								<TabsTrigger value="audit">Security</TabsTrigger>
-								{isCloud && (
-									<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+
+								{!isBuildServer && (
+									<>
+										<TabsTrigger value="audit">Security</TabsTrigger>
+										{isCloud && (
+											<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+										)}
+										<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
+									</>
 								)}
-								<TabsTrigger value="gpu-setup">GPU Setup</TabsTrigger>
 							</TabsList>
 							<TabsContent
 								value="ssh-keys"
@@ -311,32 +321,36 @@ export const SetupServer = ({ serverId }: Props) => {
 									<ValidateServer serverId={serverId} />
 								</div>
 							</TabsContent>
-							<TabsContent
-								value="audit"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-									<SecurityAudit serverId={serverId} />
-								</div>
-							</TabsContent>
-							<TabsContent
-								value="monitoring"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-							>
-								<div className="flex flex-col gap-2 text-sm pt-3">
-									<div className="rounded-xl bg-background shadow-md border">
-										<SetupMonitoring serverId={serverId} />
-									</div>
-								</div>
-							</TabsContent>
-							<TabsContent
-								value="gpu-setup"
-								className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-							>
-								<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
-									<GPUSupport serverId={serverId} />
-								</div>
-							</TabsContent>
+							{!isBuildServer && (
+								<>
+									<TabsContent
+										value="audit"
+										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+									>
+										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+											<SecurityAudit serverId={serverId} />
+										</div>
+									</TabsContent>
+									<TabsContent
+										value="monitoring"
+										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+									>
+										<div className="flex flex-col gap-2 text-sm pt-3">
+											<div className="rounded-xl bg-background shadow-md border">
+												<SetupMonitoring serverId={serverId} />
+											</div>
+										</div>
+									</TabsContent>
+									<TabsContent
+										value="gpu-setup"
+										className="outline-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+									>
+										<div className="flex flex-col gap-2 text-sm text-muted-foreground pt-3">
+											<GPUSupport serverId={serverId} />
+										</div>
+									</TabsContent>
+								</>
+							)}
 						</Tabs>
 					</div>
 				)}

@@ -1,0 +1,1 @@
+ALTER TABLE "user" ALTER COLUMN "enableDockerCleanup" SET DEFAULT true;
