@@ -13,33 +13,55 @@ import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
 
+const handleDomainConflictError = (
+	error: unknown,
+	data: { host?: string; path?: string | null },
+) => {
+	if (
+		error instanceof Error &&
+		"constraint_name" in error &&
+		error.constraint_name === "domain_host_path_unique"
+	) {
+		const pathMsg = data.path ? ` with path '${data.path}'` : "";
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: `Host '${data.host}'${pathMsg} is already in use`,
+		});
+	}
+};
+
 export const createDomain = async (input: typeof apiCreateDomain._type) => {
-	const result = await db.transaction(async (tx) => {
-		const domain = await tx
-			.insert(domains)
-			.values({
-				...input,
-				host: input.host?.trim(),
-			})
-			.returning()
-			.then((response) => response[0]);
+	try {
+		const result = await db.transaction(async (tx) => {
+			const domain = await tx
+				.insert(domains)
+				.values({
+					...input,
+					host: input.host?.trim(),
+				})
+				.returning()
+				.then((response) => response[0]);
 
-		if (!domain) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Error creating domain",
-			});
-		}
+			if (!domain) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating domain",
+				});
+			}
 
-		if (domain.applicationId) {
-			const application = await findApplicationById(domain.applicationId);
-			await manageDomain(application, domain);
-		}
+			if (domain.applicationId) {
+				const application = await findApplicationById(domain.applicationId);
+				await manageDomain(application, domain);
+			}
 
-		return domain;
-	});
+			return domain;
+		});
 
-	return result;
+		return result;
+	} catch (error) {
+		handleDomainConflictError(error, input);
+		throw error;
+	}
 };
 
 export const generateTraefikMeDomain = async (
@@ -117,16 +139,21 @@ export const updateDomainById = async (
 	domainId: string,
 	domainData: Partial<Domain>,
 ) => {
-	const domain = await db
-		.update(domains)
-		.set({
-			...domainData,
-			...(domainData.host && { host: domainData.host.trim() }),
-		})
-		.where(eq(domains.domainId, domainId))
-		.returning();
+	try {
+		const domain = await db
+			.update(domains)
+			.set({
+				...domainData,
+				...(domainData.host && { host: domainData.host.trim() }),
+			})
+			.where(eq(domains.domainId, domainId))
+			.returning();
 
-	return domain[0];
+		return domain[0];
+	} catch (error) {
+		handleDomainConflictError(error, domainData);
+		throw error;
+	}
 };
 
 export const removeDomainById = async (domainId: string) => {
