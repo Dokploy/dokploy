@@ -39,7 +39,7 @@ const wildcardDomainSchema = z.object({
 				if (val === null || val === "") return true;
 				// Validate wildcard domain format: should start with * and be a valid domain pattern
 				const wildcardPattern =
-					/^\*[\.\-]?[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
+					/^\*[.-]?[a-zA-Z0-9]([a-zA-Z0-9\-.]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
 				return wildcardPattern.test(val);
 			},
 			{

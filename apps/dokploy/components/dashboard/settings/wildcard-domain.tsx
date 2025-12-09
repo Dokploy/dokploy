@@ -36,7 +36,7 @@ const wildcardDomainSchema = z.object({
 				// Validate wildcard domain format: should start with * and be a valid domain pattern
 				// Examples: *.example.com, *-apps.example.com, *.apps.mydomain.org
 				const wildcardPattern =
-					/^\*[\.\-]?[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
+					/^\*[.-]?[a-zA-Z0-9]([a-zA-Z0-9\-.]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
 				return wildcardPattern.test(val);
 			},
 			{
