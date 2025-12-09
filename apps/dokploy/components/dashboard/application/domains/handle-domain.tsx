@@ -171,6 +171,15 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			serverId: application?.serverId || "",
 		});
 
+	// Get the project ID to check for custom wildcard domain
+	const projectId = application?.environment?.projectId;
+
+	// Fetch the effective wildcard domain for the project
+	const { data: effectiveWildcard } = api.domain.getEffectiveWildcardDomain.useQuery(
+		{ projectId: projectId || "" },
+		{ enabled: !!projectId },
+	);
+
 	const {
 		data: services,
 		isFetching: isLoadingServices,
@@ -518,6 +527,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																	generateDomain({
 																		appName: application?.appName || "",
 																		serverId: application?.serverId || "",
+																		projectId: projectId || undefined,
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
@@ -533,9 +543,16 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-[12rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															{effectiveWildcard ? (
+																<p>
+																	Generate domain using: <br />
+																	<code className="text-xs">{effectiveWildcard}</code>
+																</p>
+															) : (
+																<p>Generate traefik.me domain</p>
+															)}
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>

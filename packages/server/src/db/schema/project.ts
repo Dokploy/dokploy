@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -21,6 +21,13 @@ export const projects = pgTable("project", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	env: text("env").notNull().default(""),
+	// Custom wildcard domain settings for this project
+	// If wildcardDomain is set, it overrides the organization's wildcardDomain
+	// If useOrganizationWildcard is true (default), inherit from organization when wildcardDomain is null
+	wildcardDomain: text("wildcardDomain"),
+	useOrganizationWildcard: boolean("useOrganizationWildcard")
+		.notNull()
+		.default(true),
 });
 
 export const projectRelations = relations(projects, ({ many, one }) => ({
