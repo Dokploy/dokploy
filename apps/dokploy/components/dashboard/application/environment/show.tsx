@@ -5,7 +5,14 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+} from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
@@ -184,8 +191,9 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 									<div className="space-y-0.5">
 										<FormLabel>Create Environment File</FormLabel>
 										<FormDescription>
-											When enabled, an .env file will be created during the build process.
-											Disable this if you don't want to generate an environment file.
+											When enabled, an .env file will be created during the
+											build process. Disable this if you don't want to generate
+											an environment file.
 										</FormDescription>
 									</div>
 									<FormControl>
