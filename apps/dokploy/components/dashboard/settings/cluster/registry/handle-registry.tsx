@@ -126,6 +126,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const registryName = form.watch("registryName");
 	const imagePrefix = form.watch("imagePrefix");
 	const serverId = form.watch("serverId");
+	const selectedServer = servers?.find(
+		(server) => server.serverId === serverId,
+	);
 
 	useEffect(() => {
 		if (registry) {
@@ -313,8 +316,40 @@ export const HandleRegistry = ({ registryId }: Props) => {
 									<FormItem>
 										<FormLabel>Server {!isCloud && "(Optional)"}</FormLabel>
 										<FormDescription>
-											Select a server to test the registry. this will run the
-											following command on the server
+											{!isCloud ? (
+												<>
+													{serverId && serverId !== "none" && selectedServer ? (
+														<>
+															Authentication will be performed on{" "}
+															<strong>{selectedServer.name}</strong>. This
+															registry will be available on this server.
+														</>
+													) : (
+														<>
+															Choose where to authenticate with the registry. By
+															default, authentication occurs on the Dokploy
+															server. Select a specific server to authenticate
+															from that server instead.
+														</>
+													)}
+												</>
+											) : (
+												<>
+													{serverId && serverId !== "none" && selectedServer ? (
+														<>
+															Authentication will be performed on{" "}
+															<strong>{selectedServer.name}</strong>. This
+															registry will be available on this server.
+														</>
+													) : (
+														<>
+															Select a server to authenticate with the registry.
+															The authentication will be performed from the
+															selected server.
+														</>
+													)}
+												</>
+											)}
 										</FormDescription>
 										<FormControl>
 											<Select
