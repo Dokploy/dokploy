@@ -86,6 +86,9 @@ export const AddPreviewDomain = ({
 		resolver: zodResolver(domain),
 	});
 
+	const host = form.watch("host");
+	const isTraefikMeDomain = host?.includes("traefik.me") || false;
+
 	useEffect(() => {
 		if (data) {
 			form.reset({
@@ -157,6 +160,13 @@ export const AddPreviewDomain = ({
 									name="host"
 									render={({ field }) => (
 										<FormItem>
+											{isTraefikMeDomain && (
+												<AlertBlock type="info">
+													<strong>Note:</strong> traefik.me is a public HTTP
+													service and does not support SSL/HTTPS. HTTPS and
+													certificate options will not have any effect.
+												</AlertBlock>
+											)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
@@ -245,6 +255,12 @@ export const AddPreviewDomain = ({
 												<FormDescription>
 													Automatically provision SSL Certificate.
 												</FormDescription>
+												{isTraefikMeDomain && (
+													<AlertBlock type="warning" className="mt-2">
+														HTTPS is not available for traefik.me domains as it
+														is a public HTTP-only service.
+													</AlertBlock>
+												)}
 												<FormMessage />
 											</div>
 											<FormControl>
