@@ -1,10 +1,12 @@
-import { getLogType } from "../../components/dashboard/docker/logs/utils";
 import { describe, expect, test } from "vitest";
+import { getLogType } from "../../components/dashboard/docker/logs/utils";
 
 describe("getLogType", () => {
 	describe("Structured error patterns", () => {
 		test("should detect [ERROR] format", () => {
-			expect(getLogType("[ERROR] Database connection failed").type).toBe("error");
+			expect(getLogType("[ERROR] Database connection failed").type).toBe(
+				"error",
+			);
 		});
 
 		test("should detect ERROR: format", () => {
@@ -12,7 +14,9 @@ describe("getLogType", () => {
 		});
 
 		test("should detect level=error format", () => {
-			expect(getLogType('level=error msg="Database connection failed"').type).toBe("error");
+			expect(
+				getLogType('level=error msg="Database connection failed"').type,
+			).toBe("error");
 		});
 
 		test("should detect error emojis", () => {
@@ -31,7 +35,9 @@ describe("getLogType", () => {
 		});
 
 		test("should detect 'X failed with' patterns", () => {
-			expect(getLogType("Token exchange failed with status: 400").type).toBe("error");
+			expect(getLogType("Token exchange failed with status: 400").type).toBe(
+				"error",
+			);
 		});
 
 		test("should detect HTTP error codes", () => {
@@ -40,18 +46,24 @@ describe("getLogType", () => {
 		});
 
 		test("should detect stack trace lines", () => {
-			expect(getLogType("    at Object.<anonymous> (/app/server.js:123:45)").type).toBe("error");
+			expect(
+				getLogType("    at Object.<anonymous> (/app/server.js:123:45)").type,
+			).toBe("error");
 		});
 	});
 
 	describe("False positives - should NOT be detected as errors", () => {
 		test("should not flag 'Failed=0' as error", () => {
-			const result = getLogType('time="2025-11-20T08:19:13Z" level=info msg="Session done" Failed=0 Scanned=1');
+			const result = getLogType(
+				'time="2025-11-20T08:19:13Z" level=info msg="Session done" Failed=0 Scanned=1',
+			);
 			expect(result.type).toBe("info");
 		});
 
 		test("should not flag '0 failed' as error", () => {
-			expect(getLogType("0 practices builds failed, and 0 uploads failed.").type).toBe("info");
+			expect(
+				getLogType("0 practices builds failed, and 0 uploads failed.").type,
+			).toBe("info");
 		});
 
 		test("should not flag negative contexts as error", () => {
@@ -65,7 +77,9 @@ describe("getLogType", () => {
 
 	describe("Warning patterns", () => {
 		test("should detect [WARN] format", () => {
-			expect(getLogType("[WARN] API rate limit approaching").type).toBe("warning");
+			expect(getLogType("[WARN] API rate limit approaching").type).toBe(
+				"warning",
+			);
 		});
 
 		test("should detect WARNING: format", () => {
@@ -73,7 +87,9 @@ describe("getLogType", () => {
 		});
 
 		test("should detect warning emojis", () => {
-			expect(getLogType("⚠️ Token exchange failed with status: 400 Bad Request").type).not.toBe("info");
+			expect(
+				getLogType("⚠️ Token exchange failed with status: 400 Bad Request").type,
+			).not.toBe("info");
 		});
 
 		test("should detect deprecated warnings", () => {
@@ -91,7 +107,9 @@ describe("getLogType", () => {
 		});
 
 		test("should detect 'successfully' patterns", () => {
-			expect(getLogType("Successfully connected to database").type).toBe("success");
+			expect(getLogType("Successfully connected to database").type).toBe(
+				"success",
+			);
 		});
 
 		test("should detect success emojis", () => {
