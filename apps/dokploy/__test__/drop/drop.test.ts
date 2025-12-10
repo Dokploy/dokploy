@@ -28,6 +28,7 @@ const baseApp: ApplicationNested = {
 	railpackVersion: "0.2.2",
 	applicationId: "",
 	previewLabels: [],
+	createEnvFile: true,
 	herokuVersion: "",
 	giteaBranch: "",
 	buildServerId: "",
@@ -67,6 +68,7 @@ const baseApp: ApplicationNested = {
 	previewWildcard: "",
 	environment: {
 		env: "",
+		isDefault: false,
 		environmentId: "",
 		name: "",
 		createdAt: "",

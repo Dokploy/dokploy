@@ -74,11 +74,40 @@ export const uploadImageRemoteCommand = async (
 		throw error;
 	}
 };
+/**
+ * Extract the repository name from imageName by taking the last part after '/'
+ * Examples:
+ * - "nginx" -> "nginx"
+ * - "nginx:latest" -> "nginx:latest"
+ * - "myuser/myrepo" -> "myrepo"
+ * - "myuser/myrepo:tag" -> "myrepo:tag"
+ * - "docker.io/myuser/myrepo" -> "myrepo"
+ */
+const extractRepositoryName = (imageName: string): string => {
+	const lastSlashIndex = imageName.lastIndexOf("/");
+
+	// If no '/', return the imageName as is
+	if (lastSlashIndex === -1) {
+		return imageName;
+	}
+
+	// Extract everything after the last '/'
+	return imageName.substring(lastSlashIndex + 1);
+};
+
 export const getRegistryTag = (registry: Registry, imageName: string) => {
 	const { registryUrl, imagePrefix, username } = registry;
-	return imagePrefix
-		? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
-		: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
+
+	// Extract the repository name (last part after '/')
+	const repositoryName = extractRepositoryName(imageName);
+
+	// Build the final tag using registry's username/prefix
+	const targetPrefix = imagePrefix || username;
+	const finalRegistry = registryUrl || "";
+
+	return finalRegistry
+		? `${finalRegistry}/${targetPrefix}/${repositoryName}`
+		: `${targetPrefix}/${repositoryName}`;
 };
 
 const getRegistryCommands = (

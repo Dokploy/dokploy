@@ -25,7 +25,7 @@ export const initCronJobs = async () => {
 		return;
 	}
 
-	if (admin.user.enableDockerCleanup) {
+	if (admin?.user?.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,

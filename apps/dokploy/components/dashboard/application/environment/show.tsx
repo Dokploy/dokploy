@@ -5,14 +5,23 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Form } from "@/components/ui/form";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+} from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
 	buildArgs: z.string(),
 	buildSecrets: z.string(),
+	createEnvFile: z.boolean(),
 });
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
@@ -39,6 +48,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			env: "",
 			buildArgs: "",
 			buildSecrets: "",
+			createEnvFile: true,
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
@@ -47,10 +57,12 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	const currentEnv = form.watch("env");
 	const currentBuildArgs = form.watch("buildArgs");
 	const currentBuildSecrets = form.watch("buildSecrets");
+	const currentCreateEnvFile = form.watch("createEnvFile");
 	const hasChanges =
 		currentEnv !== (data?.env || "") ||
 		currentBuildArgs !== (data?.buildArgs || "") ||
-		currentBuildSecrets !== (data?.buildSecrets || "");
+		currentBuildSecrets !== (data?.buildSecrets || "") ||
+		currentCreateEnvFile !== (data?.createEnvFile ?? true);
 
 	useEffect(() => {
 		if (data) {
@@ -58,6 +70,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
 				buildSecrets: data.buildSecrets || "",
+				createEnvFile: data.createEnvFile ?? true,
 			});
 		}
 	}, [data, form]);
@@ -67,6 +80,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			env: formData.env,
 			buildArgs: formData.buildArgs,
 			buildSecrets: formData.buildSecrets,
+			createEnvFile: formData.createEnvFile,
 			applicationId,
 		})
 			.then(async () => {
@@ -83,6 +97,7 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 			env: data?.env || "",
 			buildArgs: data?.buildArgs || "",
 			buildSecrets: data?.buildSecrets || "",
+			createEnvFile: data?.createEnvFile ?? true,
 		});
 	};
 
@@ -165,6 +180,30 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+						/>
+					)}
+					{data?.buildType === "dockerfile" && (
+						<FormField
+							control={form.control}
+							name="createEnvFile"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Create Environment File</FormLabel>
+										<FormDescription>
+											When enabled, an .env file will be created during the
+											build process. Disable this if you don't want to generate
+											an environment file.
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
 						/>
 					)}
 					<div className="flex flex-row justify-end gap-2">

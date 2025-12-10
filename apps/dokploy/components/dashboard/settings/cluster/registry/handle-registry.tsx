@@ -45,7 +45,34 @@ const AddRegistrySchema = z.object({
 	password: z.string().min(1, {
 		message: "Password is required",
 	}),
-	registryUrl: z.string(),
+	registryUrl: z
+		.string()
+		.optional()
+		.refine(
+			(val) => {
+				// If empty or undefined, skip validation (field is optional)
+				if (!val || val.trim().length === 0) {
+					return true;
+				}
+				// Validate that it's a valid hostname (no protocol, no path, optional port)
+				// Valid formats: example.com, registry.example.com, [::1], example.com:5000
+				// Invalid: https://example.com, example.com/path
+				const trimmed = val.trim();
+				// Check for protocol or path - these are not allowed
+				if (/^https?:\/\//i.test(trimmed) || trimmed.includes("/")) {
+					return false;
+				}
+				// Basic hostname validation: allow alphanumeric, dots, hyphens, underscores, and IPv6 in brackets
+				// Allow optional port at the end
+				const hostnameRegex =
+					/^(?:\[[^\]]+\]|[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,253}[a-zA-Z0-9])?)(?::\d+)?$/;
+				return hostnameRegex.test(trimmed);
+			},
+			{
+				message:
+					"Invalid registry URL. Please enter only the hostname (e.g., example.com or registry.example.com). Do not include protocol (https://) or paths.",
+			},
+		),
 	imagePrefix: z.string(),
 	serverId: z.string().optional(),
 });
@@ -99,6 +126,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const registryName = form.watch("registryName");
 	const imagePrefix = form.watch("imagePrefix");
 	const serverId = form.watch("serverId");
+	const selectedServer = servers?.find(
+		(server) => server.serverId === serverId,
+	);
 
 	useEffect(() => {
 		if (registry) {
@@ -125,7 +155,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			password: data.password,
 			registryName: data.registryName,
 			username: data.username,
-			registryUrl: data.registryUrl,
+			registryUrl: data.registryUrl || "",
 			registryType: "cloud",
 			imagePrefix: data.imagePrefix,
 			serverId: data.serverId,
@@ -261,6 +291,10 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>Registry URL</FormLabel>
+										<FormDescription>
+											Enter only the hostname (e.g.,
+											aws_account_id.dkr.ecr.us-west-2.amazonaws.com).
+										</FormDescription>
 										<FormControl>
 											<Input
 												placeholder="aws_account_id.dkr.ecr.us-west-2.amazonaws.com"
@@ -282,8 +316,40 @@ export const HandleRegistry = ({ registryId }: Props) => {
 									<FormItem>
 										<FormLabel>Server {!isCloud && "(Optional)"}</FormLabel>
 										<FormDescription>
-											Select a server to test the registry. this will run the
-											following command on the server
+											{!isCloud ? (
+												<>
+													{serverId && serverId !== "none" && selectedServer ? (
+														<>
+															Authentication will be performed on{" "}
+															<strong>{selectedServer.name}</strong>. This
+															registry will be available on this server.
+														</>
+													) : (
+														<>
+															Choose where to authenticate with the registry. By
+															default, authentication occurs on the Dokploy
+															server. Select a specific server to authenticate
+															from that server instead.
+														</>
+													)}
+												</>
+											) : (
+												<>
+													{serverId && serverId !== "none" && selectedServer ? (
+														<>
+															Authentication will be performed on{" "}
+															<strong>{selectedServer.name}</strong>. This
+															registry will be available on this server.
+														</>
+													) : (
+														<>
+															Select a server to authenticate with the registry.
+															The authentication will be performed from the
+															selected server.
+														</>
+													)}
+												</>
+											)}
 										</FormDescription>
 										<FormControl>
 											<Select
@@ -345,7 +411,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										await testRegistry({
 											username: username,
 											password: password,
-											registryUrl: registryUrl,
+											registryUrl: registryUrl || "",
 											registryName: registryName,
 											registryType: "cloud",
 											imagePrefix: imagePrefix,

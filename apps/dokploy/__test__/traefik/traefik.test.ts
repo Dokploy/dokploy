@@ -7,6 +7,7 @@ const baseApp: ApplicationNested = {
 	rollbackActive: false,
 	applicationId: "",
 	previewLabels: [],
+	createEnvFile: true,
 	herokuVersion: "",
 	giteaRepository: "",
 	giteaOwner: "",
@@ -49,6 +50,7 @@ const baseApp: ApplicationNested = {
 	environmentId: "",
 	environment: {
 		env: "",
+		isDefault: false,
 		environmentId: "",
 		name: "",
 		createdAt: "",

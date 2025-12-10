@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -26,6 +26,7 @@ export const environments = pgTable("environment", {
 	projectId: text("projectId")
 		.notNull()
 		.references(() => projects.projectId, { onDelete: "cascade" }),
+	isDefault: boolean("isDefault").notNull().default(false),
 });
 
 export const environmentRelations = relations(
@@ -69,9 +70,14 @@ export const apiRemoveEnvironment = createSchema
 	})
 	.required();
 
-export const apiUpdateEnvironment = createSchema.partial().extend({
-	environmentId: z.string().min(1),
-});
+export const apiUpdateEnvironment = createSchema
+	.partial()
+	.extend({
+		environmentId: z.string().min(1),
+	})
+	.omit({
+		isDefault: true,
+	});
 
 export const apiDuplicateEnvironment = createSchema
 	.pick({
