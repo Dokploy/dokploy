@@ -77,19 +77,17 @@ export const uploadImageRemoteCommand = async (
 export const getRegistryTag = (registry: Registry, imageName: string) => {
 	const { registryUrl, imagePrefix, username } = registry;
 
-	// 1. Define the namespace (Prefix or Username)
 	const namespace = imagePrefix || username;
-
-	// 2. Registry Base URL (e.g., docker.io/)
 	const baseUrl = registryUrl ? `${registryUrl}/` : "";
 
-	// 3. FIX: If the image already starts with the namespace, do NOT add it again
+	// Avoid duplicating namespace if image already includes it
 	if (namespace && imageName.startsWith(`${namespace}/`)) {
 		return `${baseUrl}${imageName}`;
 	}
 
-	// 4. If the namespace is missing, add it (standard behavior)
-	return `${baseUrl}${namespace}/${imageName}`;
+	const namespaceSegment = namespace ? `${namespace}/` : "";
+
+	return `${baseUrl}${namespaceSegment}${imageName}`;
 };
 const getRegistryCommands = (
 	registry: Registry,
