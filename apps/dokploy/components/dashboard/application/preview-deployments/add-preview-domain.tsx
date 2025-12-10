@@ -255,12 +255,6 @@ export const AddPreviewDomain = ({
 												<FormDescription>
 													Automatically provision SSL Certificate.
 												</FormDescription>
-												{isTraefikMeDomain && (
-													<AlertBlock type="warning" className="mt-2">
-														HTTPS is not available for traefik.me domains as it
-														is a public HTTP-only service.
-													</AlertBlock>
-												)}
 												<FormMessage />
 											</div>
 											<FormControl>
