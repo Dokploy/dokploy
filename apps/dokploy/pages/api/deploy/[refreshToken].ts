@@ -81,41 +81,34 @@ export default async function handler(
 				return;
 			}
 
-			if (!webhookImageName) {
-				res.status(301).json({
-					message: "Webhook Docker Image Name Not Found",
-				});
-				return;
-			}
+			// If webhook provides image information, validate it matches the configured image
+			// If webhook doesn't provide image information, fall back to using the configured image (backward compatibility)
+			if (webhookImageName) {
+				// Validate image name matches
+				if (webhookImageName !== applicationImageName) {
+					res.status(301).json({
+						message: `Application Image Name (${applicationImageName}) doesn't match request event payload Image Name (${webhookImageName}).`,
+					});
+					return;
+				}
 
-			// Validate image name matches
-			if (webhookImageName !== applicationImageName) {
-				res.status(301).json({
-					message: `Application Image Name (${applicationImageName}) doesn't match request event payload Image Name (${webhookImageName}).`,
-				});
-				return;
-			}
+				if (!applicationDockerTag) {
+					res.status(301).json({
+						message: "Application Docker Tag Not Found",
+					});
+					return;
+				}
 
-			if (!applicationDockerTag) {
-				res.status(301).json({
-					message: "Application Docker Tag Not Found",
-				});
-				return;
+				if (webhookDockerTag) {
+					if (webhookDockerTag !== applicationDockerTag) {
+						res.status(301).json({
+							message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
+						});
+						return;
+					}
+				}
 			}
-
-			if (!webhookDockerTag) {
-				res.status(301).json({
-					message: "Webhook Docker Tag Not Found",
-				});
-				return;
-			}
-
-			if (webhookDockerTag !== applicationDockerTag) {
-				res.status(301).json({
-					message: `Application Image Tag (${applicationDockerTag}) doesn't match request event payload Image Tag (${webhookDockerTag}).`,
-				});
-				return;
-			}
+			// If webhook doesn't provide image info, we'll use the configured image (old behavior)
 		} else if (sourceType === "github") {
 			const normalizedCommits = req.body?.commits?.flatMap(
 				(commit: any) => commit.modified,

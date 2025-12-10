@@ -1,6 +1,6 @@
 {
-  "id": "fcbc5f29-78e8-4df5-9547-f571ee121334",
-  "prevId": "cff546ae-01ea-40d4-b32d-0512e05c3856",
+  "id": "c8fa3f49-d5f7-4e0b-a6db-de91bb128c38",
+  "prevId": "d612e417-72a3-4619-829e-62daa3a5bf9c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1008,12 +1008,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "args": {
-          "name": "args",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false
-        },
         "refreshToken": {
           "name": "refreshToken",
           "type": "text",
@@ -1349,13 +1343,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "createEnvFile": {
-          "name": "createEnvFile",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -1364,12 +1351,6 @@
         },
         "registryId": {
           "name": "registryId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rollbackRegistryId": {
-          "name": "rollbackRegistryId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1409,18 +1390,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "buildServerId": {
-          "name": "buildServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "buildRegistryId": {
-          "name": "buildRegistryId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -1444,19 +1413,6 @@
           "tableTo": "registry",
           "columnsFrom": [
             "registryId"
-          ],
-          "columnsTo": [
-            "registryId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "application_rollbackRegistryId_registry_registryId_fk": {
-          "name": "application_rollbackRegistryId_registry_registryId_fk",
-          "tableFrom": "application",
-          "tableTo": "registry",
-          "columnsFrom": [
-            "rollbackRegistryId"
           ],
           "columnsTo": [
             "registryId"
@@ -1540,32 +1496,6 @@
             "serverId"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "application_buildServerId_server_serverId_fk": {
-          "name": "application_buildServerId_server_serverId_fk",
-          "tableFrom": "application",
-          "tableTo": "server",
-          "columnsFrom": [
-            "buildServerId"
-          ],
-          "columnsTo": [
-            "serverId"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "application_buildRegistryId_registry_registryId_fk": {
-          "name": "application_buildRegistryId_registry_registryId_fk",
-          "tableFrom": "application",
-          "tableTo": "registry",
-          "columnsFrom": [
-            "buildRegistryId"
-          ],
-          "columnsTo": [
-            "registryId"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -2477,12 +2407,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "buildServerId": {
-          "name": "buildServerId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -2587,19 +2511,6 @@
           ],
           "columnsTo": [
             "volumeBackupId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "deployment_buildServerId_server_serverId_fk": {
-          "name": "deployment_buildServerId_server_serverId_fk",
-          "tableFrom": "deployment",
-          "tableTo": "server",
-          "columnsFrom": [
-            "buildServerId"
-          ],
-          "columnsTo": [
-            "serverId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -3327,12 +3238,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "args": {
-          "name": "args",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false
-        },
         "env": {
           "name": "env",
           "type": "text",
@@ -3555,12 +3460,6 @@
         "command": {
           "name": "command",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "args": {
-          "name": "args",
-          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -4006,12 +3905,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "args": {
-          "name": "args",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false
-        },
         "env": {
           "name": "env",
           "type": "text",
@@ -4181,37 +4074,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.custom": {
-      "name": "custom",
-      "schema": "",
-      "columns": {
-        "customId": {
-          "name": "customId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "headers": {
-          "name": "headers",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -4408,13 +4270,6 @@
           "notNull": true,
           "default": false
         },
-        "volumeBackup": {
-          "name": "volumeBackup",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "dokployRestart": {
           "name": "dokployRestart",
           "type": "boolean",
@@ -4481,12 +4336,6 @@
         },
         "ntfyId": {
           "name": "ntfyId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "customId": {
-          "name": "customId",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4584,19 +4433,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "notification_customId_custom_customId_fk": {
-          "name": "notification_customId_custom_customId_fk",
-          "tableFrom": "notification",
-          "tableTo": "custom",
-          "columnsFrom": [
-            "customId"
-          ],
-          "columnsTo": [
-            "customId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "notification_larkId_lark_larkId_fk": {
           "name": "notification_larkId_lark_larkId_fk",
           "tableFrom": "notification",
@@ -4656,7 +4492,7 @@
           "name": "accessToken",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "priority": {
           "name": "priority",
@@ -4863,12 +4699,6 @@
         "command": {
           "name": "command",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "args": {
-          "name": "args",
-          "type": "text[]",
           "primaryKey": false,
           "notNull": false
         },
@@ -5353,12 +5183,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "args": {
-          "name": "args",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false
-        },
         "env": {
           "name": "env",
           "type": "text",
@@ -5772,12 +5596,6 @@
           "notNull": true,
           "default": true
         },
-        "timezone": {
-          "name": "timezone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -5985,14 +5803,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'active'"
-        },
-        "serverType": {
-          "name": "serverType",
-          "type": "serverType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'deploy'"
         },
         "command": {
           "name": "command",
@@ -6231,15 +6041,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "firstName": {
-          "name": "firstName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "lastName": {
-          "name": "lastName",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -6363,7 +6166,7 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": false
         },
         "logCleanupCron": {
           "name": "logCleanupCron",
@@ -6697,6 +6500,210 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.webhook_delivery": {
+      "name": "webhook_delivery",
+      "schema": "",
+      "columns": {
+        "deliveryId": {
+          "name": "deliveryId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "webhookId": {
+          "name": "webhookId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event": {
+          "name": "event",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statusCode": {
+          "name": "statusCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "responseTime": {
+          "name": "responseTime",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1'"
+        },
+        "deliveredAt": {
+          "name": "deliveredAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "webhook_delivery_webhookId_webhook_webhookId_fk": {
+          "name": "webhook_delivery_webhookId_webhook_webhookId_fk",
+          "tableFrom": "webhook_delivery",
+          "tableTo": "webhook",
+          "columnsFrom": [
+            "webhookId"
+          ],
+          "columnsTo": [
+            "webhookId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.webhook": {
+      "name": "webhook",
+      "schema": "",
+      "columns": {
+        "webhookId": {
+          "name": "webhookId",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "applicationId": {
+          "name": "applicationId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "composeId": {
+          "name": "composeId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "secret": {
+          "name": "secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "templateType": {
+          "name": "templateType",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'generic'"
+        },
+        "customTemplate": {
+          "name": "customTemplate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "events": {
+          "name": "events",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::json"
+        },
+        "headers": {
+          "name": "headers",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::json"
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "webhook_applicationId_application_applicationId_fk": {
+          "name": "webhook_applicationId_application_applicationId_fk",
+          "tableFrom": "webhook",
+          "tableTo": "application",
+          "columnsFrom": [
+            "applicationId"
+          ],
+          "columnsTo": [
+            "applicationId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "webhook_composeId_compose_composeId_fk": {
+          "name": "webhook_composeId_compose_composeId_fk",
+          "tableFrom": "webhook",
+          "tableTo": "compose",
+          "columnsFrom": [
+            "composeId"
+          ],
+          "columnsTo": [
+            "composeId"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -6825,7 +6832,6 @@
         "email",
         "gotify",
         "ntfy",
-        "custom",
         "lark"
       ]
     },
@@ -6877,14 +6883,6 @@
       "values": [
         "active",
         "inactive"
-      ]
-    },
-    "public.serverType": {
-      "name": "serverType",
-      "schema": "public",
-      "values": [
-        "deploy",
-        "build"
       ]
     },
     "public.applicationStatus": {

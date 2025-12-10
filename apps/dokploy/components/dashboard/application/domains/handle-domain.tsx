@@ -208,6 +208,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const certificateType = form.watch("certificateType");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
+	const host = form.watch("host");
+	const isTraefikMeDomain = host?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -502,6 +504,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														to make your traefik.me domain work.
 													</AlertBlock>
 												)}
+											{isTraefikMeDomain && (
+												<AlertBlock type="info">
+													<strong>Note:</strong> traefik.me is a public HTTP
+													service and does not support SSL/HTTPS. HTTPS and
+													certificate options will not have any effect.
+												</AlertBlock>
+											)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
