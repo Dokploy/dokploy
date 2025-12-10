@@ -68,6 +68,7 @@ const baseApp: ApplicationNested = {
 	previewWildcard: "",
 	environment: {
 		env: "",
+		isDefault: false,
 		environmentId: "",
 		name: "",
 		createdAt: "",

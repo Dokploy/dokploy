@@ -50,6 +50,7 @@ const baseApp: ApplicationNested = {
 	environmentId: "",
 	environment: {
 		env: "",
+		isDefault: false,
 		environmentId: "",
 		name: "",
 		createdAt: "",
