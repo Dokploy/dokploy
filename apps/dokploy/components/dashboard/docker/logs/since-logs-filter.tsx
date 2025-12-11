@@ -1,4 +1,5 @@
 import { CheckIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,29 +19,29 @@ import { cn } from "@/lib/utils";
 
 export type TimeFilter = "all" | "1h" | "6h" | "24h" | "168h" | "720h";
 
-const timeRanges: Array<{ label: string; value: TimeFilter }> = [
+const timeRanges: Array<{ labelKey: string; value: TimeFilter }> = [
 	{
-		label: "All time",
+		labelKey: "logs.timeRange.all",
 		value: "all",
 	},
 	{
-		label: "Last hour",
+		labelKey: "logs.timeRange.lastHour",
 		value: "1h",
 	},
 	{
-		label: "Last 6 hours",
+		labelKey: "logs.timeRange.last6Hours",
 		value: "6h",
 	},
 	{
-		label: "Last 24 hours",
+		labelKey: "logs.timeRange.last24Hours",
 		value: "24h",
 	},
 	{
-		label: "Last 7 days",
+		labelKey: "logs.timeRange.last7Days",
 		value: "168h",
 	},
 	{
-		label: "Last 30 days",
+		labelKey: "logs.timeRange.last30Days",
 		value: "720h",
 	},
 ] as const;
@@ -58,11 +59,13 @@ export function SinceLogsFilter({
 	onValueChange,
 	showTimestamp,
 	onTimestampChange,
-	title = "Time range",
+	title,
 }: SinceLogsFilterProps) {
-	const selectedLabel =
-		timeRanges.find((range) => range.value === value)?.label ??
-		"Select time range";
+	const { t } = useTranslation("common");
+	const selectedRange = timeRanges.find((range) => range.value === value);
+	const selectedLabel = selectedRange
+		? t(selectedRange.labelKey)
+		: t("logs.timeRange.select");
 
 	return (
 		<Popover>
@@ -72,7 +75,7 @@ export function SinceLogsFilter({
 					size="sm"
 					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
 				>
-					{title}
+					{title ? title : t("logs.timeRange.title")}
 					<Separator orientation="vertical" className="mx-2 h-4" />
 					<div className="space-x-1 flex">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
@@ -106,7 +109,7 @@ export function SinceLogsFilter({
 										>
 											<CheckIcon className={cn("h-4 w-4")} />
 										</div>
-										<span className="text-sm">{range.label}</span>
+										<span className="text-sm">{t(range.labelKey)}</span>
 									</CommandItem>
 								);
 							})}
@@ -115,7 +118,7 @@ export function SinceLogsFilter({
 				</Command>
 				<Separator className="my-2" />
 				<div className="p-2 flex items-center justify-between">
-					<span className="text-sm">Show timestamps</span>
+					<span className="text-sm">{t("logs.timeRange.showTimestamps")}</span>
 					<Switch checked={showTimestamp} onCheckedChange={onTimestampChange} />
 				</div>
 			</PopoverContent>

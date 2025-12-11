@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "next-i18next";
 import {
 	Area,
 	AreaChart,
@@ -15,10 +16,11 @@ interface Props {
 }
 
 export const DockerBlockChart = ({ acummulativeData }: Props) => {
+	const { t } = useTranslation("common");
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
 			time: item.time,
-			name: `Point ${index + 1}`,
+			name: t("monitoring.chart.point", { index: index + 1 }),
 			readMb: item.value.readMb,
 			writeMb: item.value.writeMb,
 		};
@@ -57,7 +59,7 @@ export const DockerBlockChart = ({ acummulativeData }: Props) => {
 						stroke="#27272A"
 						fillOpacity={1}
 						fill="url(#colorUv)"
-						name="Read Mb"
+						name={t("monitoring.block.readMb")}
 					/>
 					<Area
 						type="monotone"
@@ -65,7 +67,7 @@ export const DockerBlockChart = ({ acummulativeData }: Props) => {
 						stroke="#82ca9d"
 						fillOpacity={1}
 						fill="url(#colorWrite)"
-						name="Write Mb"
+						name={t("monitoring.block.writeMb")}
 					/>
 				</AreaChart>
 			</ResponsiveContainer>
@@ -87,14 +89,23 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const { t } = useTranslation("common");
 	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
 				{payload[0].payload.time && (
-					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+					<p>
+						{t("monitoring.chart.date", {
+							date: format(new Date(payload[0].payload.time), "PPpp"),
+						})}
+					</p>
 				)}
-				<p>{`Read ${payload[0].payload.readMb} `}</p>
-				<p>{`Write: ${payload[0].payload.writeMb} `}</p>
+				<p>
+					{t("monitoring.block.readWrite", {
+						read: payload[0].payload.readMb,
+						write: payload[0].payload.writeMb,
+					})}
+				</p>
 			</div>
 		);
 	}

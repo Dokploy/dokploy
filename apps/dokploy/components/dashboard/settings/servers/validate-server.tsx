@@ -1,4 +1,5 @@
 import { Loader2, PcCase, RefreshCw } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface Props {
 
 export const ValidateServer = ({ serverId }: Props) => {
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const { t } = useTranslation("settings");
 	const { data, refetch, error, isLoading, isError } =
 		api.server.validate.useQuery(
 			{ serverId },
@@ -42,10 +44,12 @@ export const ValidateServer = ({ serverId }: Props) => {
 							<div className="flex flex-col gap-1">
 								<div className="flex items-center gap-2">
 									<PcCase className="size-5" />
-									<CardTitle className="text-xl">Setup Validation</CardTitle>
+									<CardTitle className="text-xl">
+										{t("settings.servers.onboarding.verify.cardTitle")}
+									</CardTitle>
 								</div>
 								<CardDescription>
-									Check if your server is ready for deployment
+									{t("settings.servers.onboarding.verify.cardDescription")}
 								</CardDescription>
 							</div>
 							<Button
@@ -57,7 +61,7 @@ export const ValidateServer = ({ serverId }: Props) => {
 								}}
 							>
 								<RefreshCw className="size-4" />
-								Refresh
+								{t("settings.servers.onboarding.verify.refreshButton")}
 							</Button>
 						</div>
 						<div className="flex items-center gap-2 w-full">
@@ -73,94 +77,155 @@ export const ValidateServer = ({ serverId }: Props) => {
 						{isLoading ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								<span>Checking Server configuration</span>
+								<span>
+									{t("settings.servers.onboarding.verify.loading")}
+								</span>
 							</div>
 						) : (
 							<div className="grid w-full gap-4">
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">Status</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.servers.onboarding.verify.statusCard.title")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
 										{isBuildServer
-											? "Shows the build server configuration status"
-											: "Shows the server configuration status"}
+											? t(
+													"settings.servers.onboarding.verify.statusCard.descriptionBuild",
+												)
+											: t(
+													"settings.servers.onboarding.verify.statusCard.description",
+												)}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="Docker Installed"
+											label={t(
+												"settings.servers.onboarding.verify.status.dockerInstalled.label",
+											)}
 											isEnabled={data?.docker?.enabled}
 											description={
 												data?.docker?.enabled
-													? `Installed: ${data?.docker?.version}`
+													? t(
+															"settings.servers.onboarding.verify.status.dockerInstalled.description",
+															{
+																version: data?.docker?.version,
+															},
+														)
 													: undefined
 											}
 										/>
 										{!isBuildServer && (
 											<StatusRow
-												label="RClone Installed"
+												label={t(
+													"settings.servers.onboarding.verify.status.rcloneInstalled.label",
+												)}
 												isEnabled={data?.rclone?.enabled}
 												description={
 													data?.rclone?.enabled
-														? `Installed: ${data?.rclone?.version}`
+														? t(
+																"settings.servers.onboarding.verify.status.rcloneInstalled.description",
+																{
+																	version: data?.rclone?.version,
+																},
+															)
 														: undefined
 												}
 											/>
 										)}
 										<StatusRow
-											label="Nixpacks Installed"
+											label={t(
+												"settings.servers.onboarding.verify.status.nixpacksInstalled.label",
+											)}
 											isEnabled={data?.nixpacks?.enabled}
 											description={
 												data?.nixpacks?.enabled
-													? `Installed: ${data?.nixpacks?.version}`
+													? t(
+															"settings.servers.onboarding.verify.status.nixpacksInstalled.description",
+															{
+																version: data?.nixpacks?.version,
+															},
+														)
 													: undefined
 											}
 										/>
 										<StatusRow
-											label="Buildpacks Installed"
+											label={t(
+												"settings.servers.onboarding.verify.status.buildpacksInstalled.label",
+											)}
 											isEnabled={data?.buildpacks?.enabled}
 											description={
 												data?.buildpacks?.enabled
-													? `Installed: ${data?.buildpacks?.version}`
+													? t(
+															"settings.servers.onboarding.verify.status.buildpacksInstalled.description",
+															{
+																version: data?.buildpacks?.version,
+															},
+														)
 													: undefined
 											}
 										/>
 										<StatusRow
-											label="Railpack Installed"
+											label={t(
+												"settings.servers.onboarding.verify.status.railpackInstalled.label",
+											)}
 											isEnabled={data?.railpack?.enabled}
 											description={
 												data?.railpack?.enabled
-													? `Installed: ${data?.railpack?.version}`
+													? t(
+															"settings.servers.onboarding.verify.status.railpackInstalled.description",
+															{
+																version: data?.railpack?.version,
+															},
+														)
 													: undefined
 											}
 										/>
 										{!isBuildServer && (
 											<>
 												<StatusRow
-													label="Docker Swarm Initialized"
+													label={t(
+														"settings.servers.onboarding.verify.status.swarm.label",
+													)}
 													isEnabled={data?.isSwarmInstalled}
 													description={
 														data?.isSwarmInstalled
-															? "Initialized"
-															: "Not Initialized"
+															? t(
+																	"settings.servers.onboarding.verify.status.swarm.initialized",
+																)
+															: t(
+																	"settings.servers.onboarding.verify.status.swarm.notInitialized",
+																)
 													}
 												/>
 												<StatusRow
-													label="Dokploy Network Created"
+													label={t(
+														"settings.servers.onboarding.verify.status.network.label",
+													)}
 													isEnabled={data?.isDokployNetworkInstalled}
 													description={
 														data?.isDokployNetworkInstalled
-															? "Created"
-															: "Not Created"
+															? t(
+																	"settings.servers.onboarding.verify.status.network.created",
+																)
+															: t(
+																	"settings.servers.onboarding.verify.status.network.notCreated",
+																)
 													}
 												/>
 											</>
 										)}
 										<StatusRow
-											label="Main Directory Created"
+											label={t(
+												"settings.servers.onboarding.verify.status.mainDirectory.label",
+											)}
 											isEnabled={data?.isMainDirectoryInstalled}
 											description={
 												data?.isMainDirectoryInstalled
-													? "Created"
-													: "Not Created"
+													? t(
+															"settings.servers.onboarding.verify.status.mainDirectory.created",
+														)
+													: t(
+															"settings.servers.onboarding.verify.status.mainDirectory.notCreated",
+														)
 											}
 										/>
 									</div>

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,23 +27,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	gitlabUrl: z.string().url({
-		message: "Invalid Gitlab URL",
-	}),
-	groupName: z.string().optional(),
-});
+const createSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.gitProviders.validation.nameRequired"),
+		}),
+		gitlabUrl: z.string().url({
+			message: t("settings.gitProviders.validation.gitlabUrlInvalid"),
+		}),
+		groupName: z.string().optional(),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = z.infer<ReturnType<typeof createSchema>>;
 
 interface Props {
 	gitlabId: string;
 }
 
 export const EditGitlabProvider = ({ gitlabId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data: gitlab, refetch } = api.gitlab.one.useQuery(
 		{
 			gitlabId,
@@ -56,13 +59,14 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 	const { mutateAsync, error, isError } = api.gitlab.update.useMutation();
 	const { mutateAsync: testConnection, isLoading } =
 		api.gitlab.testConnection.useMutation();
+	const schema = createSchema(t);
 	const form = useForm<Schema>({
 		defaultValues: {
 			groupName: "",
 			name: "",
 			gitlabUrl: "https://gitlab.com",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(schema),
 	});
 
 	const groupName = form.watch("groupName");
@@ -85,12 +89,16 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Gitlab updated successfully");
+				toast.success(
+								t("settings.gitProviders.gitlab.edit.toast.updatedSuccess"),
+						);
 				setIsOpen(false);
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating Gitlab");
+				toast.error(
+								t("settings.gitProviders.gitlab.edit.toast.updatedError"),
+						);
 			});
 	};
 
@@ -108,7 +116,7 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update GitLab <GitlabIcon className="size-5" />
+						{t("settings.gitProviders.gitlab.edit.title")} <GitlabIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -126,10 +134,12 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitlab.edit.nameLabel")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t("settings.gitProviders.gitlab.edit.namePlaceholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -142,9 +152,14 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									name="gitlabUrl"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Gitlab Url</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.gitlab.edit.gitlabUrlLabel")}
+											</FormLabel>
 											<FormControl>
-												<Input placeholder="https://gitlab.com" {...field} />
+												<Input
+													placeholder={t("settings.gitProviders.gitlab.edit.gitlabUrlPlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -157,11 +172,11 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 									render={({ field }) => (
 										<FormItem>
 											<FormLabel>
-												Group Name (Optional, Comma-Separated List)
+												{t("settings.gitProviders.gitlab.edit.groupNameLabel")}
 											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="For organization/group access use the slugish name of the group eg: my-org"
+													placeholder={t("settings.gitProviders.gitlab.edit.groupNamePlaceholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -181,17 +196,25 @@ export const EditGitlabProvider = ({ gitlabId }: Props) => {
 												groupName: groupName || "",
 											})
 												.then(async (message) => {
-													toast.info(`Message: ${message}`);
+													toast.info(
+														t("settings.gitProviders.gitlab.edit.toast.testSuccessMessage", {
+															message,
+														}),
+													);
 												})
-												.catch((error) => {
-													toast.error(`Error: ${error.message}`);
+												.catch((error: any) => {
+													toast.error(
+														t("settings.gitProviders.gitlab.edit.toast.testErrorMessage", {
+															error: error.message,
+														}),
+													);
 												});
 										}}
 									>
-										Test Connection
+										{t("settings.gitProviders.gitlab.edit.testButton")}
 									</Button>
 									<Button type="submit" isLoading={form.formState.isSubmitting}>
-										Update
+										{t("settings.gitProviders.gitlab.edit.updateButton")}
 									</Button>
 								</div>
 							</div>

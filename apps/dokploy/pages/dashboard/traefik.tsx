@@ -7,6 +7,7 @@ import superjson from "superjson";
 import { ShowTraefikSystem } from "@/components/dashboard/file-system/show-traefik-system";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Dashboard = () => {
 	return <ShowTraefikSystem />;
@@ -67,14 +68,19 @@ export async function getServerSideProps(
 				};
 			}
 		}
+		const locale = getLocale((req as any).cookies ?? {});
 		return {
 			props: {
 				trpcState: helpers.dehydrate(),
+				...(await serverSideTranslations(locale)),
 			},
 		};
 	} catch {
+		const locale = getLocale((ctx.req as any).cookies ?? {});
 		return {
-			props: {},
+			props: {
+				...(await serverSideTranslations(locale)),
+			},
 		};
 	}
 }

@@ -31,8 +31,7 @@ export const user = pgTable("user", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	firstName: text("firstName").notNull().default(""),
-	lastName: text("lastName").notNull().default(""),
+	name: text("name").notNull().default(""),
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: text("expirationDate")
 		.notNull()
@@ -57,7 +56,7 @@ export const user = pgTable("user", {
 	host: text("host"),
 	letsEncryptEmail: text("letsEncryptEmail"),
 	sshPrivateKey: text("sshPrivateKey"),
-	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(true),
+	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
 	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
 	role: text("role").notNull().default("user"),
 	// Metrics
@@ -333,7 +332,6 @@ export const apiUpdateUser = createSchema.partial().extend({
 	password: z.string().optional(),
 	currentPassword: z.string().optional(),
 	name: z.string().optional(),
-	lastName: z.string().optional(),
 	metricsConfig: z
 		.object({
 			server: z.object({

@@ -10,8 +10,8 @@ import {
 	TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { BreadcrumbSidebar } from "@/components/shared/breadcrumb-sidebar";
 import { DateTooltip } from "@/components/shared/date-tooltip";
@@ -55,23 +55,17 @@ import {
 } from "@/components/ui/select";
 import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
-import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
-	const router = useRouter();
+	const { t } = useTranslation("common");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
-
-	const [searchQuery, setSearchQuery] = useState(
-		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
-	);
-	const debouncedSearchQuery = useDebounce(searchQuery, 500);
-
+	const [searchQuery, setSearchQuery] = useState("");
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
 			return localStorage.getItem("projectsSort") || "createdAt-desc";
@@ -83,41 +77,14 @@ export const ShowProjects = () => {
 		localStorage.setItem("projectsSort", sortBy);
 	}, [sortBy]);
 
-	useEffect(() => {
-		if (!router.isReady) return;
-		const urlQuery = typeof router.query.q === "string" ? router.query.q : "";
-		if (urlQuery !== searchQuery) {
-			setSearchQuery(urlQuery);
-		}
-	}, [router.isReady, router.query.q]);
-
-	useEffect(() => {
-		if (!router.isReady) return;
-		const urlQuery = typeof router.query.q === "string" ? router.query.q : "";
-		if (debouncedSearchQuery === urlQuery) return;
-
-		const newQuery = { ...router.query };
-		if (debouncedSearchQuery) {
-			newQuery.q = debouncedSearchQuery;
-		} else {
-			delete newQuery.q;
-		}
-		router.replace({ pathname: router.pathname, query: newQuery }, undefined, {
-			shallow: true,
-		});
-	}, [debouncedSearchQuery]);
-
 	const filteredProjects = useMemo(() => {
 		if (!data) return [];
 
+		// First filter by search query
 		const filtered = data.filter(
 			(project) =>
-				project.name
-					.toLowerCase()
-					.includes(debouncedSearchQuery.toLowerCase()) ||
-				project.description
-					?.toLowerCase()
-					.includes(debouncedSearchQuery.toLowerCase()),
+				project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				project.description?.toLowerCase().includes(searchQuery.toLowerCase()),
 		);
 
 		// Then sort the filtered results
@@ -165,12 +132,14 @@ export const ShowProjects = () => {
 			}
 			return direction === "asc" ? comparison : -comparison;
 		});
-	}, [data, debouncedSearchQuery, sortBy]);
+	}, [data, searchQuery, sortBy]);
 
 	return (
 		<>
 			<BreadcrumbSidebar
-				list={[{ name: "Projects", href: "/dashboard/projects" }]}
+				list={[
+					{ name: t("dashboard.projects"), href: "/dashboard/projects" },
+				]}
 			/>
 			{!isCloud && (
 				<div className="absolute top-4 right-4">
@@ -184,10 +153,10 @@ export const ShowProjects = () => {
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									Projects
+									{t("dashboard.projects")}
 								</CardTitle>
 								<CardDescription>
-									Create and manage your projects
+									{t("project.list.description")}
 								</CardDescription>
 							</CardHeader>
 							{(auth?.role === "owner" || auth?.canCreateProjects) && (
@@ -200,7 +169,7 @@ export const ShowProjects = () => {
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							{isLoading ? (
 								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
-									<span>Loading...</span>
+									<span>{t("loading")}</span>
 									<Loader2 className="animate-spin size-4" />
 								</div>
 							) : (
@@ -208,7 +177,7 @@ export const ShowProjects = () => {
 									<div className="flex max-sm:flex-col gap-4 items-center w-full">
 										<div className="flex-1 relative max-sm:w-full">
 											<FocusShortcutInput
-												placeholder="Filter projects..."
+												placeholder={t("project.filterPlaceholder")}
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
 												className="pr-10"
@@ -220,22 +189,28 @@ export const ShowProjects = () => {
 											<ArrowUpDown className="size-4 text-muted-foreground" />
 											<Select value={sortBy} onValueChange={setSortBy}>
 												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Sort by..." />
+													<SelectValue
+														placeholder={t("project.sort.placeholder")}
+													/>
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
-													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
+													<SelectItem value="name-asc">
+														{t("project.sort.nameAsc")}
+													</SelectItem>
+													<SelectItem value="name-desc">
+														{t("project.sort.nameDesc")}
+													</SelectItem>
 													<SelectItem value="createdAt-desc">
-														Newest first
+														{t("project.sort.newestFirst")}
 													</SelectItem>
 													<SelectItem value="createdAt-asc">
-														Oldest first
+														{t("project.sort.oldestFirst")}
 													</SelectItem>
 													<SelectItem value="services-desc">
-														Most services
+														{t("project.sort.mostServices")}
 													</SelectItem>
 													<SelectItem value="services-asc">
-														Least services
+														{t("project.sort.leastServices")}
 													</SelectItem>
 												</SelectContent>
 											</Select>
@@ -245,7 +220,7 @@ export const ShowProjects = () => {
 										<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
 											<FolderInput className="size-8 self-center text-muted-foreground" />
 											<span className="text-center font-medium text-muted-foreground">
-												No projects found
+												{t("project.empty")}
 											</span>
 										</div>
 									)}
@@ -315,7 +290,7 @@ export const ShowProjects = () => {
 																		) && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
-																					Applications
+																					{t("project.applications")}
 																				</DropdownMenuLabel>
 																				{project.environments.map((env) =>
 																					env.applications.map((app) => (
@@ -365,7 +340,7 @@ export const ShowProjects = () => {
 																		) && (
 																			<DropdownMenuGroup>
 																				<DropdownMenuLabel>
-																					Compose
+																					{t("project.compose")}
 																				</DropdownMenuLabel>
 																				{project.environments.map((env) =>
 																					env.compose.map((comp) => (
@@ -441,7 +416,7 @@ export const ShowProjects = () => {
 																				onClick={(e) => e.stopPropagation()}
 																			>
 																				<DropdownMenuLabel className="font-normal">
-																					Actions
+																					{t("project.actions")}
 																				</DropdownMenuLabel>
 																				<div
 																					onClick={(e) => e.stopPropagation()}
@@ -472,59 +447,48 @@ export const ShowProjects = () => {
 																									}
 																								>
 																									<TrashIcon className="size-4" />
-																									<span>Delete</span>
+																									<span>{t("button.delete")}</span>
 																								</DropdownMenuItem>
 																							</AlertDialogTrigger>
 																							<AlertDialogContent>
 																								<AlertDialogHeader>
 																									<AlertDialogTitle>
-																										Are you sure to delete this
-																										project?
-																									</AlertDialogTitle>
+																		{t("project.delete.confirmTitle")}
+																	</AlertDialogTitle>
 																									{!emptyServices ? (
 																										<div className="flex flex-row gap-4 rounded-lg bg-yellow-50 p-2 dark:bg-yellow-950">
 																											<AlertTriangle className="text-yellow-600 dark:text-yellow-400" />
 																											<span className="text-sm text-yellow-600 dark:text-yellow-400">
-																												You have active
-																												services, please delete
-																												them first
-																											</span>
+																			{t("project.delete.activeServicesWarning")}
+																		</span>
 																										</div>
 																									) : (
 																										<AlertDialogDescription>
-																											This action cannot be
-																											undone
-																										</AlertDialogDescription>
+																			{t("common.actionCannotBeUndone")}
+																		</AlertDialogDescription>
 																									)}
 																								</AlertDialogHeader>
 																								<AlertDialogFooter>
-																									<AlertDialogCancel>
-																										Cancel
-																									</AlertDialogCancel>
-																									<AlertDialogAction
-																										disabled={!emptyServices}
-																										onClick={async () => {
-																											await mutateAsync({
-																												projectId:
-																													project.projectId,
-																											})
-																												.then(() => {
-																													toast.success(
-																														"Project deleted successfully",
-																													);
-																												})
-																												.catch(() => {
-																													toast.error(
-																														"Error deleting this project",
-																													);
-																												})
-																												.finally(() => {
-																													utils.project.all.invalidate();
-																												});
-																										}}
-																									>
-																										Delete
-																									</AlertDialogAction>
+																<AlertDialogCancel>
+																	{t("button.cancel")}
+																</AlertDialogCancel>
+																<AlertDialogAction
+																	disabled={!emptyServices}
+																	onClick={async () => {
+																		try {
+																			await mutateAsync({
+																				projectId: project.projectId,
+																			});
+																			toast.success(t("project.delete.success"));
+																		} catch {
+																			toast.error(t("project.delete.error"));
+																		} finally {
+																			utils.project.all.invalidate();
+																		}
+																	}}
+																>
+																	{t("button.delete")}
+																</AlertDialogAction>
 																								</AlertDialogFooter>
 																							</AlertDialogContent>
 																						</AlertDialog>
@@ -538,13 +502,13 @@ export const ShowProjects = () => {
 															<CardFooter className="pt-4">
 																<div className="space-y-1 text-sm flex flex-row justify-between max-sm:flex-wrap w-full gap-2 sm:gap-4">
 																	<DateTooltip date={project.createdAt}>
-																		Created
+																		{t("project.createdAt")}
 																	</DateTooltip>
 																	<span>
 																		{totalServices}{" "}
 																		{totalServices === 1
-																			? "service"
-																			: "services"}
+																			? t("project.service")
+																			: t("project.services")}
 																	</span>
 																</div>
 															</CardFooter>

@@ -14,6 +14,7 @@ import {
 	type VisibilityState,
 } from "@tanstack/react-table";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,10 +37,27 @@ interface DataTableProps<TData, TValue> {
 	data: TData[];
 }
 
+const getSwarmColumnLabel = (columnId: string, t: (key: string) => string) => {
+	const columnLabelMap: Record<string, string> = {
+		ID: t("swarm.applications.table.id"),
+		Name: t("swarm.applications.table.name"),
+		Image: t("swarm.applications.table.image"),
+		Mode: t("swarm.applications.table.mode"),
+		CurrentState: t("swarm.applications.table.currentState"),
+		DesiredState: t("swarm.applications.table.desiredState"),
+		Replicas: t("swarm.applications.table.replicas"),
+		Ports: t("swarm.applications.table.ports"),
+		Errors: t("swarm.applications.table.errors"),
+		Logs: t("swarm.applications.table.logs"),
+	};
+	return columnLabelMap[columnId] || columnId;
+};
+
 export function DataTable<TData, TValue>({
 	columns,
 	data,
 }: DataTableProps<TData, TValue>) {
+	const { t } = useTranslation("common");
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[],
@@ -76,7 +94,7 @@ export function DataTable<TData, TValue>({
 			<div className="flex flex-col gap-4  </div>w-full overflow-auto">
 				<div className="flex items-center gap-2 max-sm:flex-wrap">
 					<Input
-						placeholder="Filter by name..."
+						placeholder={t("swarm.applications.filterPlaceholder")}
 						value={(table.getColumn("Name")?.getFilterValue() as string) ?? ""}
 						onChange={(event) =>
 							table.getColumn("Name")?.setFilterValue(event.target.value)
@@ -86,7 +104,7 @@ export function DataTable<TData, TValue>({
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" className="sm:ml-auto max-sm:w-full">
-								Columns <ChevronDown className="ml-2 h-4 w-4" />
+								{t("table.columns")} <ChevronDown className="ml-2 h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
@@ -103,7 +121,7 @@ export function DataTable<TData, TValue>({
 												column.toggleVisibility(!!value)
 											}
 										>
-											{column.id}
+											{getSwarmColumnLabel(column.id, t)}
 										</DropdownMenuCheckboxItem>
 									);
 								})}
@@ -152,16 +170,7 @@ export function DataTable<TData, TValue>({
 									colSpan={columns.length}
 									className="h-24 text-center"
 								>
-									No results.
-									{/* {isLoading ? (
-                    <div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-                      <span className="text-muted-foreground text-lg font-medium">
-                        Loading...
-                      </span>
-                    </div>
-                  ) : (
-                    <>No results.</>
-                  )} */}
+									{t("search.noResults")}
 								</TableCell>
 							</TableRow>
 						)}
@@ -177,7 +186,7 @@ export function DataTable<TData, TValue>({
 								onClick={() => table.previousPage()}
 								disabled={!table.getCanPreviousPage()}
 							>
-								Previous
+								{t("pagination.prev")}
 							</Button>
 							<Button
 								variant="outline"
@@ -185,7 +194,7 @@ export function DataTable<TData, TValue>({
 								onClick={() => table.nextPage()}
 								disabled={!table.getCanNextPage()}
 							>
-								Next
+								{t("pagination.next")}
 							</Button>
 						</div>
 					</div>

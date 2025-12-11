@@ -5,6 +5,7 @@ import {
 	Play,
 	Trash2,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -40,6 +41,7 @@ export const ShowVolumeBackups = ({
 	serverId,
 }: Props) => {
 	const [runningBackups, setRunningBackups] = useState<Set<string>>(new Set());
+	const { t } = useTranslation("common");
 	const {
 		data: volumeBackups,
 		isLoading: isLoadingVolumeBackups,
@@ -63,10 +65,10 @@ export const ShowVolumeBackups = ({
 		setRunningBackups((prev) => new Set(prev).add(volumeBackupId));
 		try {
 			await runManually({ volumeBackupId });
-			toast.success("Volume backup run successfully");
+			toast.success(t("volumeBackups.run.success"));
 			await refetchVolumeBackups();
 		} catch {
-			toast.error("Error running volume backup");
+			toast.error(t("volumeBackups.run.error"));
 		} finally {
 			setRunningBackups((prev) => {
 				const newSet = new Set(prev);
@@ -82,11 +84,10 @@ export const ShowVolumeBackups = ({
 				<div className="flex justify-between items-center flex-wrap gap-2">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl font-bold flex items-center gap-2">
-							Volume Backups
+							{t("volumeBackups.page.title")}
 						</CardTitle>
 						<CardDescription>
-							Schedule volume backups to run automatically at specified
-							intervals
+							{t("volumeBackups.page.description")}
 						</CardDescription>
 					</div>
 					<div className="flex items-center gap-2 flex-wrap">
@@ -110,7 +111,7 @@ export const ShowVolumeBackups = ({
 					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
-							Loading volume backups...
+							{t("volumeBackups.loading")}
 						</span>
 					</div>
 				) : volumeBackups && volumeBackups.length > 0 ? (
@@ -144,7 +145,9 @@ export const ShowVolumeBackups = ({
 													}
 													className="text-[10px] px-1 py-0"
 												>
-													{volumeBackup.enabled ? "Enabled" : "Disabled"}
+													{volumeBackup.enabled
+														? t("volumeBackups.enabled")
+														: t("volumeBackups.disabled")}
 												</Badge>
 											</div>
 											<div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -189,7 +192,7 @@ export const ShowVolumeBackups = ({
 													</Button>
 												</TooltipTrigger>
 												<TooltipContent>
-													Run Manual Volume Backup
+													{t("volumeBackups.run.tooltip")}
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -199,8 +202,8 @@ export const ShowVolumeBackups = ({
 											volumeBackupType={type}
 										/>
 										<DialogAction
-											title="Delete Volume Backup"
-											description="Are you sure you want to delete this volume backup?"
+											title={t("volumeBackups.delete.title")}
+											description={t("volumeBackups.delete.description")}
 											type="destructive"
 											onClick={async () => {
 												await deleteVolumeBackup({
@@ -211,10 +214,10 @@ export const ShowVolumeBackups = ({
 															id,
 															volumeBackupType: type,
 														});
-														toast.success("Volume backup deleted successfully");
+														toast.success(t("volumeBackups.delete.success"));
 													})
 													.catch(() => {
-														toast.error("Error deleting volume backup");
+														toast.error(t("volumeBackups.delete.error"));
 													});
 											}}
 										>
@@ -236,10 +239,10 @@ export const ShowVolumeBackups = ({
 					<div className="flex flex-col gap-2 items-center justify-center py-12 rounded-lg">
 						<DatabaseBackup className="size-8 mb-4 text-muted-foreground" />
 						<p className="text-lg font-medium text-muted-foreground">
-							No volume backups
+							{t("volumeBackups.empty.title")}
 						</p>
 						<p className="text-sm text-muted-foreground mt-1">
-							Create your first volume backup to automate your workflows
+							{t("volumeBackups.empty.description")}
 						</p>
 						<div className="flex items-center gap-2">
 							<HandleVolumeBackups id={id} volumeBackupType={type} />

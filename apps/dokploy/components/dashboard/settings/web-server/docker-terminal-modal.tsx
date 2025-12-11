@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useTranslation } from "next-i18next";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ export const DockerTerminalModal = ({
 	serverId,
 	appType,
 }: Props) => {
+	const { t } = useTranslation("common");
 	const { data, isLoading } = api.docker.getContainersByAppNameMatch.useQuery(
 		{
 			appName,
@@ -94,20 +96,22 @@ export const DockerTerminalModal = ({
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader>
-					<DialogTitle>Docker Terminal</DialogTitle>
+					<DialogTitle>{t("terminal.modal.title")}</DialogTitle>
 					<DialogDescription>
-						Easy way to access to docker container
+						{t("terminal.modal.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<Select onValueChange={setContainerId} value={containerId}>
 					<SelectTrigger>
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground">
-								<span>Loading...</span>
+								<span>{t("loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
-							<SelectValue placeholder="Select a container" />
+							<SelectValue
+								placeholder={t("monitoring.compose.selectPlaceholder")}
+							/>
 						)}
 					</SelectTrigger>
 					<SelectContent>
@@ -123,7 +127,11 @@ export const DockerTerminalModal = ({
 									</Badge>
 								</SelectItem>
 							))}
-							<SelectLabel>Containers ({data?.length})</SelectLabel>
+							<SelectLabel>
+								{t("monitoring.compose.containersLabel", {
+									count: data?.length ?? 0,
+								})}
+							</SelectLabel>
 						</SelectGroup>
 					</SelectContent>
 				</Select>
@@ -136,17 +144,17 @@ export const DockerTerminalModal = ({
 					<DialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
 						<DialogHeader>
 							<DialogTitle>
-								Are you sure you want to close the terminal?
+								{t("terminal.close.confirmTitle")}
 							</DialogTitle>
 							<DialogDescription>
-								By clicking the confirm button, the terminal will be closed.
+								{t("terminal.close.confirmDescription")}
 							</DialogDescription>
 						</DialogHeader>
 						<DialogFooter>
 							<Button variant="outline" onClick={handleCancel}>
-								Cancel
+								{t("button.cancel")}
 							</Button>
-							<Button onClick={handleConfirm}>Confirm</Button>
+							<Button onClick={handleConfirm}>{t("button.confirm")}</Button>
 						</DialogFooter>
 					</DialogContent>
 				</Dialog>

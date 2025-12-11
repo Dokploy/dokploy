@@ -4,8 +4,8 @@ import BuildFailedEmail from "@dokploy/server/emails/emails/build-failed";
 import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
+import { getBuildFailedEmailContent } from "../i18n/backend";
 import {
-	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -46,16 +46,22 @@ export const sendBuildErrorNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
-			custom: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
 			notification;
 		try {
 			if (email) {
+				const emailContent = getBuildFailedEmailContent({
+					projectName,
+					applicationName,
+					applicationType,
+					buildLink,
+					date: date.toLocaleString(),
+				});
 				const template = await renderAsync(
 					BuildFailedEmail({
 						projectName,
@@ -68,7 +74,7 @@ export const sendBuildErrorNotifications = async ({
 				).catch();
 				await sendEmailNotification(
 					email,
-					"Build failed for dokploy",
+					emailContent.subject,
 					template,
 				);
 			}
@@ -219,22 +225,6 @@ export const sendBuildErrorNotifications = async ({
 							],
 						},
 					],
-				});
-			}
-
-			if (custom) {
-				await sendCustomNotification(custom, {
-					title: "Build Error",
-					message: "Build failed with errors",
-					projectName,
-					applicationName,
-					applicationType,
-					errorMessage,
-					buildLink,
-					timestamp: date.toISOString(),
-					date: date.toLocaleString(),
-					status: "error",
-					type: "build",
 				});
 			}
 

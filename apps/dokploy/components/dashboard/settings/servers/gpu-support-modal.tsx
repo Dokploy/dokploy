@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "next-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -11,6 +12,7 @@ import { GPUSupport } from "./gpu-support";
 
 export const GPUSupportModal = () => {
 	const [isOpen, setIsOpen] = useState(false);
+	const { t } = useTranslation("settings");
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -19,13 +21,13 @@ export const GPUSupportModal = () => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					<span>GPU Setup</span>
+					<span>{t("settings.servers.gpu.modal.menuItem")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Dokploy Server GPU Setup
+						{t("settings.servers.gpu.modal.title")}
 					</DialogTitle>
 				</DialogHeader>
 

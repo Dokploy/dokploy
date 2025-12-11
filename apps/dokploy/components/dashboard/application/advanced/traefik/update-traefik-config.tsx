@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { parse, stringify, YAMLParseError } from "yaml";
 import { z } from "zod";
@@ -59,6 +60,7 @@ export const validateAndFormatYAML = (yamlText: string) => {
 
 export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 	const [open, setOpen] = useState(false);
+	const { t } = useTranslation("common");
 	const { data, refetch } = api.application.readTraefikConfig.useQuery(
 		{
 			applicationId,
@@ -89,7 +91,8 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		if (!valid) {
 			form.setError("traefikConfig", {
 				type: "manual",
-				message: (error as string) || "Invalid YAML",
+				message:
+					(error as string) || t("traefik.config.error.invalidYaml"),
 			});
 			return;
 		}
@@ -99,13 +102,13 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			traefikConfig: data.traefikConfig,
 		})
 			.then(async () => {
-				toast.success("Traefik config Updated");
+				toast.success(t("traefik.config.toast.updateSuccess"));
 				refetch();
 				setOpen(false);
 				form.reset();
 			})
 			.catch(() => {
-				toast.error("Error updating the Traefik config");
+				toast.error(t("traefik.config.toast.updateError"));
 			});
 	};
 
@@ -120,12 +123,18 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			}}
 		>
 			<DialogTrigger asChild>
-				<Button isLoading={isLoading}>Modify</Button>
+				<Button isLoading={isLoading}>
+					{t("traefik.config.button.modify")}
+				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update traefik config</DialogTitle>
-					<DialogDescription>Update the traefik config</DialogDescription>
+					<DialogTitle>
+						{t("traefik.config.dialog.updateTitle")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("traefik.config.dialog.updateDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -141,7 +150,9 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 								name="traefikConfig"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Traefik config</FormLabel>
+										<FormLabel>
+											{t("traefik.config.label")}
+										</FormLabel>
 										<FormControl>
 											<CodeEditor
 												lineWrapping
@@ -175,7 +186,7 @@ routers:
 							form="hook-form-update-traefik-config"
 							type="submit"
 						>
-							Update
+							{t("button.update")}
 						</Button>
 					</DialogFooter>
 				</Form>

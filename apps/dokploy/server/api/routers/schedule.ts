@@ -30,7 +30,6 @@ export const scheduleRouter = createTRPCRouter({
 						scheduleId: newSchedule.scheduleId,
 						type: "schedule",
 						cronSchedule: newSchedule.cronExpression,
-						timezone: newSchedule.timezone,
 					});
 				} else {
 					scheduleJob(newSchedule);
@@ -50,7 +49,6 @@ export const scheduleRouter = createTRPCRouter({
 						scheduleId: updatedSchedule.scheduleId,
 						type: "schedule",
 						cronSchedule: updatedSchedule.cronExpression,
-						timezone: updatedSchedule.timezone,
 					});
 				} else {
 					await removeJob({

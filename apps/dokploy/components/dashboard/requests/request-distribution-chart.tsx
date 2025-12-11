@@ -6,6 +6,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { useTranslation } from "next-i18next";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -21,19 +22,20 @@ export interface RequestDistributionChartProps {
 	};
 }
 
-const chartConfig = {
-	views: {
-		label: "Page Views",
-	},
-	count: {
-		label: "Count",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export const RequestDistributionChart = ({
 	dateRange,
 }: RequestDistributionChartProps) => {
+	const { t } = useTranslation("common");
+
+	const chartConfig = {
+		views: {
+			label: t("requests.chart.pageViews"),
+		},
+		count: {
+			label: t("requests.chart.count"),
+			color: "hsl(var(--chart-1))",
+		},
+	} satisfies ChartConfig;
 	const { data: stats } = api.settings.readStats.useQuery(
 		{
 			dateRange: dateRange

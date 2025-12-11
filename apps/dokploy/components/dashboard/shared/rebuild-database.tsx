@@ -1,4 +1,5 @@
 import { AlertTriangle, DatabaseIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import {
 	AlertDialog,
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const RebuildDatabase = ({ id, type }: Props) => {
+	const { t } = useTranslation("common");
 	const utils = api.useUtils();
 
 	const mutationMap = {
@@ -42,11 +44,14 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 				mongoId: type === "mongo" ? id : "",
 				redisId: type === "redis" ? id : "",
 			});
-			toast.success("Database rebuilt successfully");
+			toast.success(t("database.rebuild.success"));
 			await utils.invalidate();
 		} catch (error) {
-			toast.error("Error rebuilding database", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("database.rebuild.error"), {
+				description:
+					error instanceof Error
+							? error.message
+							: t("common.unknownError"),
 			});
 		}
 	};
@@ -56,16 +61,17 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 			<CardHeader>
 				<CardTitle className="text-xl flex items-center gap-2">
 					<AlertTriangle className="h-5 w-5 text-destructive" />
-					Danger Zone
+					{t("database.rebuild.dangerZone.title")}
 				</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-2">
-						<h3 className="text-base font-semibold">Rebuild Database</h3>
+						<h3 className="text-base font-semibold">
+							{t("database.rebuild.title")}
+						</h3>
 						<p className="text-sm text-muted-foreground">
-							This action will completely reset your database to its initial
-							state. All data, tables, and configurations will be removed.
+							{t("database.rebuild.description")}
 						</p>
 					</div>
 					<AlertDialog>
@@ -76,37 +82,37 @@ export const RebuildDatabase = ({ id, type }: Props) => {
 								className="w-full border-destructive/50 hover:bg-destructive/10 hover:text-destructive text-destructive"
 							>
 								<DatabaseIcon className="mr-2 h-4 w-4" />
-								Rebuild Database
+								{t("database.rebuild.button")}
 							</Button>
 						</AlertDialogTrigger>
 						<AlertDialogContent>
 							<AlertDialogHeader>
 								<AlertDialogTitle className="flex items-center gap-2">
 									<AlertTriangle className="h-5 w-5 text-destructive" />
-									Are you absolutely sure?
+									{t("database.rebuild.confirmTitle")}
 								</AlertDialogTitle>
 								<AlertDialogDescription className="space-y-2">
-									<p>This action will:</p>
+									<p>{t("database.rebuild.confirmIntro")}</p>
 									<ul className="list-disc list-inside space-y-1">
-										<li>Stop the current database service</li>
-										<li>Delete all existing data and volumes</li>
-										<li>Reset to the default configuration</li>
-										<li>Restart the service with a clean state</li>
+										<li>{t("database.rebuild.steps.stopService")}</li>
+										<li>{t("database.rebuild.steps.deleteData")}</li>
+										<li>{t("database.rebuild.steps.resetConfig")}</li>
+										<li>{t("database.rebuild.steps.restartService")}</li>
 									</ul>
 									<p className="font-medium text-destructive mt-4">
-										This action cannot be undone.
+										{t("common.actionCannotBeUndone")}
 									</p>
 								</AlertDialogDescription>
 							</AlertDialogHeader>
 							<AlertDialogFooter>
-								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogCancel>{t("button.cancel")}</AlertDialogCancel>
 								<AlertDialogAction
 									onClick={handleRebuild}
 									className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 									asChild
 								>
 									<Button isLoading={isLoading} type="submit">
-										Yes, rebuild database
+										{t("database.rebuild.confirmButton")}
 									</Button>
 								</AlertDialogAction>
 							</AlertDialogFooter>

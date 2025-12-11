@@ -5,6 +5,7 @@ import {
 	LockIcon,
 	MoreHorizontal,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -47,7 +48,38 @@ interface Props {
 	serverId?: string;
 }
 
+const getNodeStatusLabel = (status: string, t: (key: string) => string) => {
+	const statusMap: Record<string, string> = {
+		Ready: t("settings.cluster.nodes.status.ready"),
+		Down: t("settings.cluster.nodes.status.down"),
+		Unknown: t("settings.cluster.nodes.status.unknown"),
+		Disconnected: t("settings.cluster.nodes.status.disconnected"),
+	};
+	return statusMap[status] || status;
+};
+
+const getNodeRoleLabel = (role: string, t: (key: string) => string) => {
+	const roleMap: Record<string, string> = {
+		manager: t("settings.cluster.nodes.role.manager"),
+		worker: t("settings.cluster.nodes.role.worker"),
+	};
+	return roleMap[role] || role;
+};
+
+const getAvailabilityLabel = (
+	availability: string,
+	t: (key: string) => string,
+) => {
+	const availabilityMap: Record<string, string> = {
+		active: t("common:swarm.nodes.availability.active"),
+		pause: t("common:swarm.nodes.availability.pause"),
+		drain: t("common:swarm.nodes.availability.drain"),
+	};
+	return availabilityMap[availability?.toLowerCase?.() ?? ""] || availability;
+};
+
 export const ShowNodes = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data, isLoading, refetch } = api.cluster.getNodes.useQuery({
 		serverId,
 	});
@@ -64,9 +96,11 @@ export const ShowNodes = ({ serverId }: Props) => {
 						<div className="flex flex-col gap-2">
 							<CardTitle className="text-xl flex flex-row gap-2">
 								<Boxes className="size-6 text-muted-foreground self-center" />
-								Cluster
+								{t("settings.cluster.page.title")}
 							</CardTitle>
-							<CardDescription>Add nodes to your cluster</CardDescription>
+							<CardDescription>
+								{t("settings.cluster.page.description")}
+							</CardDescription>
 						</div>
 						{haveAtLeastOneRegistry && (
 							<div className="flex flex-row gap-2">
@@ -83,20 +117,32 @@ export const ShowNodes = ({ serverId }: Props) => {
 							<div className="grid md:grid-cols-1 gap-4">
 								<Table>
 									<TableCaption>
-										A list of your managers / workers.
+										{t("settings.cluster.nodes.table.caption")}
 									</TableCaption>
 									<TableHeader>
 										<TableRow>
-											<TableHead className="text-left">Hostname</TableHead>
-											<TableHead className="text-right">Status</TableHead>
-											<TableHead className="text-right">Role</TableHead>
-											<TableHead className="text-right">Availability</TableHead>
-											<TableHead className="text-right">
-												Engine Version
+											<TableHead className="text-left">
+												{t("settings.cluster.nodes.table.hostname")}
 											</TableHead>
-											<TableHead className="text-right">Created</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.nodes.table.status")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.nodes.table.role")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.nodes.table.availability")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.nodes.table.engineVersion")}
+											</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.nodes.table.created")}
+											</TableHead>
 
-											<TableHead className="text-right">Actions</TableHead>
+											<TableHead className="text-right">
+												{t("settings.cluster.nodes.table.actions")}
+											</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>
@@ -108,17 +154,17 @@ export const ShowNodes = ({ serverId }: Props) => {
 														{node.Description.Hostname}
 													</TableCell>
 													<TableCell className="text-right">
-														{node.Status.State}
+														{getNodeStatusLabel(node.Status.State, t)}
 													</TableCell>
 													<TableCell className="text-right">
 														<Badge
 															variant={isManager ? "default" : "secondary"}
 														>
-															{node?.Spec?.Role}
+															{getNodeRoleLabel(node?.Spec?.Role || "", t)}
 														</Badge>
 													</TableCell>
 													<TableCell className="text-right">
-														{node.Spec.Availability}
+														{getAvailabilityLabel(node.Spec.Availability, t)}
 													</TableCell>
 
 													<TableCell className="text-right">
@@ -130,24 +176,32 @@ export const ShowNodes = ({ serverId }: Props) => {
 															date={node.CreatedAt}
 															className="text-sm"
 														>
-															Created{" "}
+															{t("settings.cluster.nodes.table.created")}{" "}
 														</DateTooltip>
 													</TableCell>
 													<TableCell className="text-right flex justify-end">
 														<DropdownMenu>
 															<DropdownMenuTrigger asChild>
 																<Button variant="ghost" className="h-8 w-8 p-0">
-																	<span className="sr-only">Open menu</span>
+																	<span className="sr-only">
+																		{t("settings.common.openMenu")}
+																	</span>
 																	<MoreHorizontal className="h-4 w-4" />
 																</Button>
 															</DropdownMenuTrigger>
 															<DropdownMenuContent align="end">
-																<DropdownMenuLabel>Actions</DropdownMenuLabel>
+																<DropdownMenuLabel>
+																	{t("settings.cluster.nodes.table.actions")}
+																</DropdownMenuLabel>
 																<ShowNodeData data={node} />
 																{!node?.ManagerStatus?.Leader && (
 																	<DialogAction
-																		title="Delete Node"
-																		description="Are you sure you want to delete this node from the cluster?"
+																		title={t(
+																			"settings.cluster.nodes.delete.title",
+																		)}
+																		description={t(
+																			"settings.cluster.nodes.delete.description",
+																		)}
 																		type="destructive"
 																		onClick={async () => {
 																			await deleteNode({
@@ -157,18 +211,24 @@ export const ShowNodes = ({ serverId }: Props) => {
 																				.then(() => {
 																					refetch();
 																					toast.success(
-																						"Node deleted successfully",
+																						t(
+																							"settings.cluster.nodes.delete.success",
+																						),
 																					);
 																				})
 																				.catch(() => {
-																					toast.error("Error deleting node");
+																					toast.error(
+																						t(
+																							"settings.cluster.nodes.delete.error",
+																						),
+																					);
 																				});
 																		}}
 																	>
 																		<DropdownMenuItem
 																			onSelect={(e) => e.preventDefault()}
 																		>
-																			Delete
+																			{t("settings.cluster.nodes.menu.delete")}
 																		</DropdownMenuItem>
 																	</DialogAction>
 																)}
@@ -186,8 +246,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 								<LockIcon className="size-8 text-muted-foreground" />
 								<div className="flex flex-row gap-2">
 									<span className="text-base text-muted-foreground ">
-										To add nodes to your cluster, you need to configure at least
-										one registry.
+										{t("settings.cluster.nodes.requireRegistry.description")}
 									</span>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -195,7 +254,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 												<HelpCircle className="size-5 text-muted-foreground " />
 											</TooltipTrigger>
 											<TooltipContent>
-												Nodes need a registry to pull images from.
+												{t("settings.cluster.nodes.requireRegistry.tooltip")}
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
@@ -203,8 +262,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 
 								<ul className="list-disc list-inside text-sm text-muted-foreground border p-4 rounded-lg flex flex-col gap-1.5 mt-2.5">
 									<li>
-										<strong>Docker Registry:</strong> Use custom registries like
-										Docker Hub, DigitalOcean Registry, etc.
+										{t("settings.cluster.nodes.requireRegistry.dockerRegistry")}
 									</li>
 								</ul>
 							</div>

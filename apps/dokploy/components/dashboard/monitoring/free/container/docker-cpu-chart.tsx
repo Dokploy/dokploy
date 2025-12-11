@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "next-i18next";
 import {
 	Area,
 	AreaChart,
@@ -15,9 +16,10 @@ interface Props {
 }
 
 export const DockerCpuChart = ({ acummulativeData }: Props) => {
+	const { t } = useTranslation("common");
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
-			name: `Point ${index + 1}`,
+			name: t("monitoring.chart.point", { index: index + 1 }),
 			time: item.time,
 			usage: item.value.toString().split("%")[0],
 		};
@@ -48,6 +50,7 @@ export const DockerCpuChart = ({ acummulativeData }: Props) => {
 					<Area
 						type="monotone"
 						dataKey="usage"
+						name={t("monitoring.legend.cpu")}
 						stroke="#27272A"
 						fillOpacity={1}
 						fill="url(#colorUv)"
@@ -72,13 +75,22 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const { t } = useTranslation("common");
 	if (active && payload && payload.length && payload[0]) {
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
 				{payload[0].payload.time && (
-					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+					<p>
+						{t("monitoring.chart.date", {
+							date: format(new Date(payload[0].payload.time), "PPpp"),
+						})}
+					</p>
 				)}
-				<p>{`CPU Usage: ${payload[0].payload.usage}%`}</p>
+				<p>
+					{t("monitoring.chart.cpuUsage", {
+						usage: payload[0].payload.usage,
+					})}
+				</p>
 			</div>
 		);
 	}

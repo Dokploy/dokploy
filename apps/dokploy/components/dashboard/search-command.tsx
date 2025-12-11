@@ -26,6 +26,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { StatusTooltip } from "../shared/status-tooltip";
+import { useTranslation } from "next-i18next";
 
 // Extended Services type to include environmentId and environmentName for search navigation
 type SearchServices = Services & {
@@ -61,6 +62,10 @@ export const SearchCommand = () => {
 		enabled: !!session,
 	});
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { t } = useTranslation("common");
+
+	const formatEnvName = (envName?: string) =>
+		envName === "production" ? t("environment.default.production") : envName;
 
 	React.useEffect(() => {
 		const down = (e: KeyboardEvent) => {
@@ -89,26 +94,24 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Projects"}>
 						<CommandList>
 							{data?.map((project) => {
-								// Find default environment, or fall back to first environment
-								const defaultEnvironment =
-									project.environments.find(
-										(environment) => environment.isDefault,
-									) || project?.environments?.[0];
+								const productionEnvironment = project.environments.find(
+									(environment) => environment.name === "production",
+								);
 
-								if (!defaultEnvironment) return null;
+								if (!productionEnvironment) return null;
 
 								return (
 									<CommandItem
 										key={project.projectId}
 										onSelect={() => {
 											router.push(
-												`/dashboard/project/${project.projectId}/environment/${defaultEnvironment.environmentId}`,
+												`/dashboard/project/${project.projectId}/environment/${productionEnvironment!.environmentId}`,
 											);
 											setOpen(false);
 										}}
 									>
 										<BookIcon className="size-4 text-muted-foreground mr-2" />
-										{project.name} / {defaultEnvironment.name}
+										{project.name} / {formatEnvName(productionEnvironment!.name)}
 									</CommandItem>
 								);
 							})}

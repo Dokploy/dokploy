@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { useTranslation } from "next-i18next";
 import {
 	Card,
 	CardContent,
@@ -19,25 +20,32 @@ interface CPUChartProps {
 	data: any[];
 }
 
-const chartConfig = {
-	cpu: {
-		label: "CPU",
-		color: "hsl(var(--chart-1))",
-	},
-} satisfies ChartConfig;
-
 export function CPUChart({ data }: CPUChartProps) {
+	const { t } = useTranslation("common");
+	const chartConfig: ChartConfig = {
+		cpu: {
+			label: t("monitoring.legend.cpu"),
+			color: "hsl(var(--chart-1))",
+		},
+	};
 	const latestData = data[data.length - 1] || {};
 
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>CPU</CardTitle>
-				<CardDescription>CPU Usage: {latestData.cpu}%</CardDescription>
+				<CardTitle>{t("monitoring.card.cpu")}</CardTitle>
+				<CardDescription>
+					{t("monitoring.chart.cpuUsage", { usage: latestData.cpu })}
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
 				<ChartContainer
-					config={chartConfig}
+					config={{
+						cpu: {
+							label: t("monitoring.legend.cpu"),
+							color: "hsl(var(--chart-1))",
+						},
+					}}
 					className="aspect-auto h-[250px] w-full"
 				>
 					<AreaChart data={data}>
@@ -75,7 +83,7 @@ export function CPUChart({ data }: CPUChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("monitoring.tooltip.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -83,7 +91,7 @@ export function CPUChart({ data }: CPUChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														CPU
+														{t("monitoring.tooltip.cpu")}
 													</span>
 													<span className="font-bold">{data.cpu}%</span>
 												</div>
@@ -95,7 +103,7 @@ export function CPUChart({ data }: CPUChartProps) {
 							}}
 						/>
 						<Area
-							name="CPU"
+							name={t("monitoring.legend.cpu")}
 							dataKey="cpu"
 							type="monotone"
 							fill="url(#fillCPU)"

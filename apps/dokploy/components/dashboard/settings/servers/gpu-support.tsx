@@ -1,4 +1,5 @@
 import { CheckCircle2, Cpu, Loader2, RefreshCw, XCircle } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -21,6 +22,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const utils = api.useContext();
+	const { t } = useTranslation("settings");
 
 	const {
 		data: gpuStatus,
@@ -38,14 +40,14 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 			setIsLoading(true);
 		},
 		onSuccess: async () => {
-			toast.success("GPU support enabled successfully");
+			toast.success(t("settings.servers.gpu.toast.enabledSuccess"));
 			setIsLoading(false);
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 		},
 		onError: (error) => {
 			toast.error(
 				error.message ||
-					"Failed to enable GPU support. Please check server logs.",
+																								t("settings.servers.gpu.toast.enableError"),
 			);
 			setIsLoading(false);
 		},
@@ -57,7 +59,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 			await utils.settings.checkGPUStatus.invalidate({ serverId });
 			await refetch();
 		} catch {
-			toast.error("Failed to refresh GPU status");
+			toast.error(t("settings.servers.gpu.toast.refreshError"));
 		} finally {
 			setIsRefreshing(false);
 		}
@@ -68,7 +70,7 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 
 	const handleEnableGPU = async () => {
 		if (serverId === undefined) {
-			toast.error("No server selected");
+			toast.error(t("settings.servers.gpu.error.noServerSelected"));
 			return;
 		}
 
@@ -88,16 +90,20 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 							<div className="flex flex-col gap-1">
 								<div className="flex items-center gap-2">
 									<Cpu className="size-5" />
-									<CardTitle className="text-xl">GPU Configuration</CardTitle>
+									<CardTitle className="text-xl">
+										{t("settings.servers.gpu.card.title")}
+									</CardTitle>
 								</div>
 								<CardDescription>
-									Configure and monitor GPU support
+									{t("settings.servers.gpu.card.description")}
 								</CardDescription>
 							</div>
 							<div className="flex items-center gap-2">
 								<DialogAction
-									title="Enable GPU Support?"
-									description="This will enable GPU support for Docker Swarm on this server. Make sure you have the required hardware and drivers installed."
+									title={t("settings.servers.gpu.dialog.enable.title")}
+									description={t(
+										"settings.servers.gpu.dialog.enable.description",
+									)}
 									onClick={handleEnableGPU}
 								>
 									<Button
@@ -105,10 +111,10 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 										disabled={isLoading || serverId === undefined || isChecking}
 									>
 										{isLoading
-											? "Enabling GPU..."
+											? t("settings.servers.gpu.button.enabling")
 											: gpuStatus?.swarmEnabled
-												? "Reconfigure GPU"
-												: "Enable GPU"}
+													? t("settings.servers.gpu.button.reconfigure")
+													: t("settings.servers.gpu.button.enable")}
 									</Button>
 								</DialogAction>
 								<Button
@@ -126,76 +132,110 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 
 					<CardContent className="flex flex-col gap-4">
 						<AlertBlock type="info">
-							<div className="font-medium mb-2">System Requirements:</div>
+							<div className="font-medium mb-2">
+								{t("settings.servers.gpu.requirements.title")}
+							</div>
 							<ul className="list-disc list-inside text-sm space-y-1">
-								<li>NVIDIA GPU hardware must be physically installed</li>
 								<li>
-									NVIDIA drivers must be installed and running (check with
-									nvidia-smi)
+									{t("settings.servers.gpu.requirements.hardware")}
 								</li>
 								<li>
-									NVIDIA Container Runtime must be installed
-									(nvidia-container-runtime)
+									{t("settings.servers.gpu.requirements.drivers")}
 								</li>
-								<li>User must have sudo/administrative privileges</li>
-								<li>System must support CUDA for GPU acceleration</li>
+								<li>
+									{t("settings.servers.gpu.requirements.runtime")}
+								</li>
+								<li>
+									{t("settings.servers.gpu.requirements.privileges")}
+								</li>
+								<li>
+									{t("settings.servers.gpu.requirements.cudaSupport")}
+								</li>
 							</ul>
 						</AlertBlock>
 
 						{isChecking ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								<span>Checking GPU status...</span>
+								<span>
+									{t("settings.servers.gpu.loading")}
+								</span>
 							</div>
 						) : (
 							<div className="grid gap-4">
 								{/* Prerequisites Section */}
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">Prerequisites</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.servers.gpu.section.prerequisites.title")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										Shows all software checks and available hardware
+										{t("settings.servers.gpu.section.prerequisites.description")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="NVIDIA Driver"
+											label={t("settings.servers.gpu.status.driver.label")}
 											isEnabled={gpuStatus?.driverInstalled}
 											description={
 												gpuStatus?.driverVersion
-													? `Installed (v${gpuStatus.driverVersion})`
-													: "Not Installed"
+													? t(
+														"settings.servers.gpu.status.driver.installed",
+														{
+															version: gpuStatus.driverVersion,
+														},
+													)
+													: t(
+														"settings.servers.gpu.status.driver.notInstalled",
+													)
 											}
 										/>
 										<StatusRow
-											label="GPU Model"
-											value={gpuStatus?.gpuModel || "Not Detected"}
+											label={t("settings.servers.gpu.status.gpuModel.label")}
+											value={
+												gpuStatus?.gpuModel ||
+													t(
+														"settings.servers.gpu.status.gpuModel.notDetected",
+													)
+											}
 											showIcon={false}
 										/>
 										<StatusRow
-											label="GPU Memory"
-											value={gpuStatus?.memoryInfo || "Not Available"}
+											label={t("settings.servers.gpu.status.memory.label")}
+											value={
+												gpuStatus?.memoryInfo ||
+													t(
+														"settings.servers.gpu.status.memory.notAvailable",
+													)
+											}
 											showIcon={false}
 										/>
 										<StatusRow
-											label="Available GPUs"
+											label={t("settings.servers.gpu.status.availableGpus.label")}
 											value={gpuStatus?.availableGPUs || 0}
 											showIcon={false}
 										/>
 										<StatusRow
-											label="CUDA Support"
+											label={t("settings.servers.gpu.status.cuda.label")}
 											isEnabled={gpuStatus?.cudaSupport}
 											description={
 												gpuStatus?.cudaVersion
-													? `Available (v${gpuStatus.cudaVersion})`
-													: "Not Available"
+													? t(
+														"settings.servers.gpu.status.cuda.available",
+														{
+															version: gpuStatus.cudaVersion,
+														},
+													)
+													: t(
+														"settings.servers.gpu.status.cuda.notAvailable",
+													)
 											}
 										/>
 										<StatusRow
-											label="NVIDIA Container Runtime"
+											label={t("settings.servers.gpu.status.runtime.label")}
 											isEnabled={gpuStatus?.runtimeInstalled}
 											description={
 												gpuStatus?.runtimeInstalled
-													? "Installed"
-													: "Not Installed"
+													? t("settings.servers.status.installed")
+													: t("settings.servers.status.notInstalled")
 											}
 										/>
 									</div>
@@ -204,29 +244,39 @@ export function GPUSupport({ serverId }: GPUSupportProps) {
 								{/* Configuration Status */}
 								<div className="border rounded-lg p-4">
 									<h3 className="text-lg font-semibold mb-1">
-										Docker Swarm GPU Status
+										{t("settings.servers.gpu.section.swarmStatus.title")}
 									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										Shows the configuration state that changes with the Enable
-										GPU
+										{t("settings.servers.gpu.section.swarmStatus.description")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="Runtime Configuration"
+											label={t("settings.servers.gpu.status.runtimeConfig.label")}
 											isEnabled={gpuStatus?.runtimeConfigured}
 											description={
 												gpuStatus?.runtimeConfigured
-													? "Default Runtime"
-													: "Not Default Runtime"
+													? t("settings.servers.gpu.status.runtimeConfig.default")
+													: t(
+														"settings.servers.gpu.status.runtimeConfig.notDefault",
+													)
 											}
 										/>
 										<StatusRow
-											label="Swarm GPU Support"
+											label={t(
+												"settings.servers.gpu.status.swarmSupport.label",
+											)}
 											isEnabled={gpuStatus?.swarmEnabled}
 											description={
 												gpuStatus?.swarmEnabled
-													? `Enabled (${gpuStatus.gpuResources} GPU${gpuStatus.gpuResources !== 1 ? "s" : ""})`
-													: "Not Enabled"
+													? t(
+														"settings.servers.gpu.status.swarmSupport.enabled",
+														{
+															count: gpuStatus.gpuResources,
+														},
+													)
+													: t(
+														"settings.servers.gpu.status.swarmSupport.notEnabled",
+													)
 											}
 										/>
 									</div>
@@ -255,6 +305,7 @@ export function StatusRow({
 	value,
 	showIcon = true,
 }: StatusRowProps) {
+	const { t } = useTranslation("settings");
 	return (
 		<div className="flex items-center justify-between">
 			<span className="text-sm">{label}</span>
@@ -264,7 +315,10 @@ export function StatusRow({
 						<span
 							className={`text-sm ${isEnabled ? "text-green-500" : "text-red-500"}`}
 						>
-							{description || (isEnabled ? "Installed" : "Not Installed")}
+							{description ||
+								(isEnabled
+									? t("settings.servers.status.installed")
+									: t("settings.servers.status.notInstalled"))}
 						</span>
 						{isEnabled ? (
 							<CheckCircle2 className="size-4 text-green-500" />

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Settings } from "lucide-react";
+import { useMemo } from "react";
 import { useTranslation } from "next-i18next";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -21,12 +22,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const Schema = z.object({
-	port: z.number().min(1, "Port must be higher than 0"),
-	username: z.string().min(1, "Username is required"),
-});
+const createSchema = (t: (key: string) => string) =>
+	z.object({
+		port: z.number().min(1, {
+			message: t("settings.monitoring.validation.portRequired"),
+		}),
+		username: z.string().min(1, {
+			message: t("security.validation.usernameRequired"),
+		}),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = z.infer<ReturnType<typeof createSchema>>;
 
 const DEFAULT_LOCAL_SERVER_DATA: Schema = {
 	port: 22,
@@ -53,10 +59,11 @@ interface Props {
 
 const LocalServerConfig = ({ onSave }: Props) => {
 	const { t } = useTranslation("settings");
+	const schema = useMemo(() => createSchema(t), [t]);
 
 	const form = useForm<Schema>({
 		defaultValues: getLocalServerData(),
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(schema),
 	});
 
 	const onSubmit = (data: Schema) => {
@@ -126,7 +133,10 @@ const LocalServerConfig = ({ onSave }: Props) => {
 									<FormItem>
 										<FormLabel>{t("settings.terminal.username")}</FormLabel>
 										<FormControl>
-											<Input placeholder="root" {...field} />
+											<Input
+												placeholder={t("settings.terminal.usernamePlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />

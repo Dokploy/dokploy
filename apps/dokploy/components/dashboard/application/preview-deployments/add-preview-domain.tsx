@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dices } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -56,6 +57,7 @@ export const AddPreviewDomain = ({
 	children,
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const { t } = useTranslation("common");
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
 		{
@@ -86,9 +88,6 @@ export const AddPreviewDomain = ({
 		resolver: zodResolver(domain),
 	});
 
-	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("traefik.me") || false;
-
 	useEffect(() => {
 		if (data) {
 			form.reset({
@@ -106,12 +105,18 @@ export const AddPreviewDomain = ({
 	}, [form, form.reset, data, isLoading]);
 
 	const dictionary = {
-		success: domainId ? "Domain Updated" : "Domain Created",
-		error: domainId ? "Error updating the domain" : "Error creating the domain",
-		submit: domainId ? "Update" : "Create",
+		success: domainId
+			? t("preview.domain.toast.updateSuccess")
+			: t("preview.domain.toast.createSuccess"),
+		error: domainId
+			? t("preview.domain.toast.updateError")
+			: t("preview.domain.toast.createError"),
+		submit: domainId
+			? t("preview.domain.button.update")
+			: t("preview.domain.button.create"),
 		dialogDescription: domainId
-			? "In this section you can edit a domain"
-			: "In this section you can add domains",
+			? t("preview.domain.dialog.description.edit")
+			: t("preview.domain.dialog.description.create"),
 	};
 
 	const onSubmit = async (data: Domain) => {
@@ -142,7 +147,7 @@ export const AddPreviewDomain = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Domain</DialogTitle>
+					<DialogTitle>{t("preview.domain.dialog.title")}</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -160,17 +165,13 @@ export const AddPreviewDomain = ({
 									name="host"
 									render={({ field }) => (
 										<FormItem>
-											{isTraefikMeDomain && (
-												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
-													service and does not support SSL/HTTPS. HTTPS and
-													certificate options will not have any effect.
-												</AlertBlock>
-											)}
-											<FormLabel>Host</FormLabel>
+											<FormLabel>{t("preview.domain.field.host")}</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
+													<Input
+														placeholder={t("preview.domain.field.hostPlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
@@ -202,7 +203,7 @@ export const AddPreviewDomain = ({
 															sideOffset={5}
 															className="max-w-[10rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															<p>{t("preview.domain.tooltip.generateTraefikDomain")}</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
@@ -219,9 +220,12 @@ export const AddPreviewDomain = ({
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Path</FormLabel>
+												<FormLabel>{t("preview.domain.field.path")}</FormLabel>
 												<FormControl>
-													<Input placeholder={"/"} {...field} />
+													<Input
+														placeholder={t("preview.domain.field.pathPlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -235,9 +239,12 @@ export const AddPreviewDomain = ({
 									render={({ field }) => {
 										return (
 											<FormItem>
-												<FormLabel>Container Port</FormLabel>
+												<FormLabel>{t("preview.domain.field.port")}</FormLabel>
 												<FormControl>
-													<NumberInput placeholder={"3000"} {...field} />
+													<NumberInput
+														placeholder={t("preview.domain.field.portPlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -251,9 +258,9 @@ export const AddPreviewDomain = ({
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>{t("preview.domain.field.https")}</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t("preview.domain.field.httpsDescription")}
 												</FormDescription>
 												<FormMessage />
 											</div>
@@ -273,21 +280,25 @@ export const AddPreviewDomain = ({
 										name="certificateType"
 										render={({ field }) => (
 											<FormItem className="col-span-2">
-												<FormLabel>Certificate Provider</FormLabel>
+												<FormLabel>{t("preview.domain.certificate.label")}</FormLabel>
 												<Select
 													onValueChange={field.onChange}
 													defaultValue={field.value || ""}
 												>
 													<FormControl>
 														<SelectTrigger>
-															<SelectValue placeholder="Select a certificate provider" />
+															<SelectValue
+																placeholder={t("preview.domain.certificate.placeholder")}
+															/>
 														</SelectTrigger>
 													</FormControl>
 
 													<SelectContent>
-														<SelectItem value="none">None</SelectItem>
+														<SelectItem value="none">
+															{t("preview.domain.certificate.option.none")}
+														</SelectItem>
 														<SelectItem value={"letsencrypt"}>
-															Let's Encrypt
+															{t("preview.domain.certificate.option.letsencrypt")}
 														</SelectItem>
 													</SelectContent>
 												</Select>

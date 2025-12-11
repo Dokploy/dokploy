@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,26 +27,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
-const DockerProviderSchema = z.object({
-	externalPort: z.preprocess((a) => {
-		if (a !== null) {
-			const parsed = Number.parseInt(z.string().parse(a), 10);
-			return Number.isNaN(parsed) ? null : parsed;
-		}
-		return null;
-	}, z
-		.number()
-		.gte(0, "Range must be 0 - 65535")
-		.lte(65535, "Range must be 0 - 65535")
-		.nullable()),
-});
+const createDockerProviderSchema = (t: (key: string) => string) =>
+	z.object({
+		externalPort: z.preprocess((a) => {
+			if (a !== null) {
+				const parsed = Number.parseInt(z.string().parse(a), 10);
+				return Number.isNaN(parsed) ? null : parsed;
+			}
+			return null;
+		}, z
+			.number()
+			.gte(0, t("database.externalCredentials.rangeError"))
+			.lte(65535, t("database.externalCredentials.rangeError"))
+			.nullable()),
+	});
 
-type DockerProvider = z.infer<typeof DockerProviderSchema>;
+type DockerProvider = z.infer<ReturnType<typeof createDockerProviderSchema>>;
 
 interface Props {
 	mysqlId: string;
 }
 export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.mysql.one.useQuery({ mysqlId });
 	const { mutateAsync, isLoading } = api.mysql.saveExternalPort.useMutation();
@@ -53,7 +56,7 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 	const getIp = data?.server?.ipAddress || ip;
 	const form = useForm<DockerProvider>({
 		defaultValues: {},
-		resolver: zodResolver(DockerProviderSchema),
+		resolver: zodResolver(createDockerProviderSchema(t)),
 	});
 
 	useEffect(() => {
@@ -70,11 +73,11 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 			mysqlId,
 		})
 			.then(async () => {
-				toast.success("External Port updated");
+				toast.success(t("database.externalCredentials.toastSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the external port");
+				toast.error(t("database.externalCredentials.toastError"));
 			});
 	};
 
@@ -100,26 +103,26 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">External Credentials</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.externalCredentials.title")}
+						</CardTitle>
 						<CardDescription>
-							In order to make the database reachable through the internet, you
-							must set a port and ensure that the port is not being used by
-							another application or database
+							{t("database.externalCredentials.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">
 						{!getIp && (
 							<AlertBlock type="warning">
-								You need to set an IP address in your{" "}
+								{t("database.externalCredentials.setIpPrefix")} {" "}
 								<Link
 									href="/dashboard/settings/server"
 									className="text-primary"
 								>
 									{data?.serverId
-										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
-										: "Web Server -> Server -> Update Server IP"}
+										? t("database.externalCredentials.remoteServersLink")
+										: t("database.externalCredentials.webServerLink")}
 								</Link>{" "}
-								to fix the database url connection.
+								{t("database.externalCredentials.setIpSuffix")}
 							</AlertBlock>
 						)}
 						<Form {...form}>
@@ -135,10 +138,12 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 											render={({ field }) => {
 												return (
 													<FormItem>
-														<FormLabel>External Port (Internet)</FormLabel>
+														<FormLabel>
+															{t("database.externalCredentials.externalPortLabel")}
+														</FormLabel>
 														<FormControl>
 															<Input
-																placeholder="3306"
+																placeholder={t("database.mysql.externalCredentials.externalPortPlaceholder")}
 																{...field}
 																value={field.value || ""}
 															/>
@@ -153,7 +158,9 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 								{!!data?.externalPort && (
 									<div className="grid w-full gap-8">
 										<div className="flex flex-col gap-3">
-											<Label>External Host</Label>
+											<Label>
+												{t("database.externalCredentials.externalHostLabel")}
+											</Label>
 											<ToggleVisibilityInput disabled value={connectionUrl} />
 										</div>
 									</div>
@@ -161,7 +168,7 @@ export const ShowExternalMysqlCredentials = ({ mysqlId }: Props) => {
 
 								<div className="flex justify-end">
 									<Button type="submit" isLoading={isLoading}>
-										Save
+										{t("button.save")}
 									</Button>
 								</div>
 							</form>

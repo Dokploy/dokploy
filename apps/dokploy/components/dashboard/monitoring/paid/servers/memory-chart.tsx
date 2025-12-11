@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { useTranslation } from "next-i18next";
 import {
 	Card,
 	CardContent,
@@ -16,24 +17,24 @@ import { formatTimestamp } from "@/lib/utils";
 interface MemoryChartProps {
 	data: any[];
 }
-
-const chartConfig = {
-	Memory: {
-		label: "Memory",
-		color: "hsl(var(--chart-2))",
-	},
-} satisfies ChartConfig;
-
 export function MemoryChart({ data }: MemoryChartProps) {
+	const { t } = useTranslation("common");
 	const latestData = data[data.length - 1] || {};
+	const chartConfig: ChartConfig = {
+		Memory: {
+			label: t("monitoring.legend.memory"),
+			color: "hsl(var(--chart-2))",
+		},
+	};
 
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Memory</CardTitle>
+				<CardTitle>{t("monitoring.card.memory")}</CardTitle>
 				<CardDescription>
-					Memory Usage: {latestData.memUsedGB} GB of {latestData.memTotal} GB (
-					{latestData.memUsed}%)
+					{t("monitoring.chart.memoryUsage", {
+						usage: `${latestData.memUsedGB} GB / ${latestData.memTotal} GB (${latestData.memUsed}%)`,
+					})}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -90,7 +91,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("monitoring.tooltip.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -98,7 +99,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Memory
+														{t("monitoring.tooltip.memory")}
 													</span>
 													<span className="font-bold">
 														{data.memUsed}% ({data.memUsedGB} GB)
@@ -118,7 +119,7 @@ export function MemoryChart({ data }: MemoryChartProps) {
 							fill="url(#fillMemory)"
 							stroke="hsl(var(--chart-2))"
 							strokeWidth={2}
-							name="Memory"
+							name={t("monitoring.legend.memory")}
 						/>
 					</AreaChart>
 				</ChartContainer>

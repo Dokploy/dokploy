@@ -41,10 +41,14 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await reloadServer()
 								.then(async () => {
-									toast.success("Server Reloaded");
+									toast.success(
+										t("settings.server.webServer.server.reloaded"),
+									);
 								})
 								.catch(() => {
-									toast.success("Server Reloaded");
+									toast.success(
+										t("settings.server.webServer.server.reloaded"),
+									);
 								});
 						}}
 						className="cursor-pointer"
@@ -77,14 +81,18 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await cleanRedis()
 								.then(async () => {
-									toast.success("Redis cleaned");
+									toast.success(
+										t("settings.server.webServer.redis.cleanSuccess"),
+									);
 								})
 								.catch(() => {
-									toast.error("Error cleaning Redis");
+									toast.error(
+										t("settings.server.webServer.redis.cleanError"),
+									);
 								});
 						}}
 					>
-						Clean Redis
+						{t("settings.server.webServer.redis.clean")}
 					</DropdownMenuItem>
 
 					<DropdownMenuItem
@@ -92,14 +100,18 @@ export const ShowDokployActions = () => {
 						onClick={async () => {
 							await reloadRedis()
 								.then(async () => {
-									toast.success("Redis reloaded");
+									toast.success(
+										t("settings.server.webServer.redis.reloadSuccess"),
+									);
 								})
 								.catch(() => {
-									toast.error("Error reloading Redis");
+									toast.error(
+										t("settings.server.webServer.redis.reloadError"),
+									);
 								});
 						}}
 					>
-						Reload Redis
+						{t("settings.server.webServer.redis.reload")}
 					</DropdownMenuItem>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>

@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
 import { useEffect } from "react";
+import { useTranslation } from "next-i18next";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,14 +28,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const updateRedisSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdateRedisSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("service.validation.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateRedis = z.infer<typeof updateRedisSchema>;
+type UpdateRedis = z.infer<ReturnType<typeof createUpdateRedisSchema>>;
 
 interface Props {
 	redisId: string;
@@ -42,6 +44,7 @@ interface Props {
 
 export const UpdateRedis = ({ redisId }: Props) => {
 	const utils = api.useUtils();
+	const { t } = useTranslation("common");
 	const { mutateAsync, error, isError, isLoading } =
 		api.redis.update.useMutation();
 	const { data } = api.redis.one.useQuery(
@@ -57,7 +60,7 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		},
-		resolver: zodResolver(updateRedisSchema),
+		resolver: zodResolver(createUpdateRedisSchema(t)),
 	});
 	useEffect(() => {
 		if (data) {
@@ -75,13 +78,13 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Redis updated successfully");
+				toast.success(t("database.redis.update.success"));
 				utils.redis.one.invalidate({
 					redisId: redisId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating Redis");
+				toast.error(t("database.redis.update.error"));
 			})
 			.finally(() => {});
 	};
@@ -99,8 +102,8 @@ export const UpdateRedis = ({ redisId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Redis</DialogTitle>
-					<DialogDescription>Update the redis data</DialogDescription>
+					<DialogTitle>{t("database.redis.update.dialogTitle")}</DialogTitle>
+					<DialogDescription>{t("database.redis.update.dialogDescription")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -117,9 +120,12 @@ export const UpdateRedis = ({ redisId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("service.form.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("service.form.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -131,10 +137,10 @@ export const UpdateRedis = ({ redisId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("service.form.description")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("service.form.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>
@@ -150,7 +156,7 @@ export const UpdateRedis = ({ redisId }: Props) => {
 										form="hook-form-update-redis"
 										type="submit"
 									>
-										Update
+										{t("button.update")}
 									</Button>
 								</DialogFooter>
 							</form>

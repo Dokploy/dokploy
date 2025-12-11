@@ -4,6 +4,7 @@ import * as AccordionPrimitive from "@radix-ui/react-accordion";
 // import { ScrollArea } from "@acme/components/ui/scroll-area";
 // import { cn } from "@acme/components/lib/utils";
 import { ChevronRight, type LucideIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React from "react";
 import useResizeObserver from "use-resize-observer";
 import { cn } from "@/lib/utils";
@@ -132,6 +133,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
 		},
 		ref,
 	) => {
+		const { t } = useTranslation("common");
 		return (
 			<div ref={ref} role="tree" className={className} {...props}>
 				<ul>
@@ -171,7 +173,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemProps>(
 											<AccordionContent className="pl-6">
 												{item.children.length === 0 && (
 													<div className="text-sm text-muted-foreground pl-6">
-														No items
+														{t("empty")}
 													</div>
 												)}
 												<TreeItem

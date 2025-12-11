@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,12 +27,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const AddSecuritychema = z.object({
-	username: z.string().min(1, "Username is required"),
-	password: z.string().min(1, "Password is required"),
-});
+const createSecuritySchema = (t: (key: string) => string) =>
+	z.object({
+		username: z
+			.string()
+			.min(1, t("security.validation.usernameRequired")),
+		password: z
+			.string()
+			.min(1, t("security.validation.passwordRequired")),
+	});
 
-type AddSecurity = z.infer<typeof AddSecuritychema>;
+type AddSecurity = z.infer<ReturnType<typeof createSecuritySchema>>;
 
 interface Props {
 	applicationId: string;
@@ -44,6 +50,7 @@ export const HandleSecurity = ({
 	securityId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const { t } = useTranslation("common");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
 	const { data } = api.security.one.useQuery(
@@ -59,6 +66,7 @@ export const HandleSecurity = ({
 		? api.security.update.useMutation()
 		: api.security.create.useMutation();
 
+	const AddSecuritychema = createSecuritySchema(t);
 	const form = useForm<AddSecurity>({
 		defaultValues: {
 			username: "",
@@ -81,7 +89,11 @@ export const HandleSecurity = ({
 			securityId: securityId || "",
 		})
 			.then(async () => {
-				toast.success(securityId ? "Security Updated" : "Security Created");
+				toast.success(
+					securityId
+						? t("security.toast.updateSuccess")
+						: t("security.toast.createSuccess"),
+				);
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -93,8 +105,8 @@ export const HandleSecurity = ({
 			.catch(() => {
 				toast.error(
 					securityId
-						? "Error updating the security"
-						: "Error creating security",
+						? t("security.toast.updateError")
+						: t("security.toast.createError"),
 				);
 			});
 	};
@@ -116,9 +128,11 @@ export const HandleSecurity = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Security</DialogTitle>
+					<DialogTitle>{t("security.dialog.title")}</DialogTitle>
 					<DialogDescription>
-						{securityId ? "Update" : "Add"} security to your application
+						{securityId
+							? t("security.dialog.updateDescription")
+							: t("security.dialog.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -135,9 +149,14 @@ export const HandleSecurity = ({
 								name="username"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Username</FormLabel>
+										<FormLabel>
+											{t("security.form.usernameLabel")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="test1" {...field} />
+											<Input
+												placeholder={t("security.form.usernamePlaceholder")}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -149,9 +168,15 @@ export const HandleSecurity = ({
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>
+											{t("security.form.passwordLabel")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="test" type="password" {...field} />
+											<Input
+												placeholder={t("security.form.passwordPlaceholder")}
+												type="password"
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -167,7 +192,9 @@ export const HandleSecurity = ({
 							form="hook-form-add-security"
 							type="submit"
 						>
-							{securityId ? "Update" : "Create"}
+							{securityId
+								? t("security.form.submit.update")
+								: t("security.form.submit.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

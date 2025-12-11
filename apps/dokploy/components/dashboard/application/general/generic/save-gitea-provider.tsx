@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -64,33 +65,48 @@ interface GiteaBranch {
 	};
 }
 
-const GiteaProviderSchema = z.object({
-	buildPath: z.string().min(1, "Path is required").default("/"),
-	repository: z
-		.object({
-			repo: z.string().min(1, "Repo is required"),
-			owner: z.string().min(1, "Owner is required"),
-		})
-		.required(),
-	branch: z.string().min(1, "Branch is required"),
-	giteaId: z.string().min(1, "Gitea Provider is required"),
-	watchPaths: z.array(z.string()).default([]),
-	enableSubmodules: z.boolean().optional(),
-});
+const createGiteaProviderSchema = (t: (key: string) => string) =>
+	z.object({
+		buildPath: z
+			.string()
+			.min(1, t("application.git.gitea.validation.buildPathRequired"))
+			.default("/"),
+		repository: z
+			.object({
+				repo: z
+					.string()
+					.min(1, t("application.git.gitea.validation.repositoryRequired")),
+				owner: z
+					.string()
+					.min(1, t("application.git.gitea.validation.ownerRequired")),
+			})
+			.required(),
+		branch: z
+			.string()
+			.min(1, t("application.git.gitea.validation.branchRequired")),
+		giteaId: z
+			.string()
+			.min(1, t("application.git.gitea.validation.giteaIdRequired")),
+		watchPaths: z.array(z.string()).default([]),
+		enableSubmodules: z.boolean().optional(),
+	});
 
-type GiteaProvider = z.infer<typeof GiteaProviderSchema>;
+type GiteaProvider = z.infer<ReturnType<typeof createGiteaProviderSchema>>;
 
 interface Props {
 	applicationId: string;
 }
 
 export const SaveGiteaProvider = ({ applicationId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
+	const watchPathInputRef = useRef<HTMLInputElement | null>(null);
 
 	const { mutateAsync, isLoading: isSavingGiteaProvider } =
 		api.application.saveGiteaProvider.useMutation();
 
+	const schema = createGiteaProviderSchema(t);
 	const form = useForm<GiteaProvider>({
 		defaultValues: {
 			buildPath: "/",
@@ -103,7 +119,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			watchPaths: [],
 			enableSubmodules: false,
 		},
-		resolver: zodResolver(GiteaProviderSchema),
+		resolver: zodResolver(schema),
 	});
 
 	const repository = form.watch("repository");
@@ -172,11 +188,11 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 			enableSubmodules: data.enableSubmodules || false,
 		})
 			.then(async () => {
-				toast.success("Service Provider Saved");
+				toast.success(t("application.git.gitea.toast.saveSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Gitea provider");
+				toast.error(t("application.git.gitea.toast.saveError"));
 			});
 	};
 
@@ -194,7 +210,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							name="giteaId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Gitea Account</FormLabel>
+									<FormLabel>
+										{t("application.git.gitea.form.giteaAccountLabel")}
+									</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -209,7 +227,11 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Gitea Account" />
+												<SelectValue
+													placeholder={t(
+														"application.git.gitea.form.giteaAccountPlaceholder",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -234,7 +256,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>Repository</FormLabel>
+										<FormLabel>
+											{t("application.git.gitea.form.repositoryLabel")}
+										</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`${giteaUrl}/${field.value.owner}/${field.value.repo}`}
@@ -243,7 +267,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GiteaIcon className="h-4 w-4" />
-												<span>View Repository</span>
+												<span>
+													{t("application.git.gitea.form.viewRepositoryLink")}
+												</span>
 											</Link>
 										)}
 									</div>
@@ -259,13 +285,15 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 													)}
 												>
 													{isLoadingRepositories
-														? "Loading...."
+														? t("application.git.gitea.state.loadingRepositories")
 														: field.value.owner
 															? repositories?.find(
 																	(repo: GiteaRepository) =>
 																		repo.name === field.value.repo,
 																)?.name
-															: "Select repository"}
+															: t(
+																	"application.git.gitea.form.repositorySelectPlaceholder",
+																)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -274,20 +302,24 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search repository..."
+													placeholder={t(
+														"application.git.gitea.form.repositorySearchPlaceholder",
+													)}
 													className="h-9"
 												/>
 												{isLoadingRepositories && (
-													<span className="py-6 text-center text-sm">
-														Loading Repositories....
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														{t("application.git.gitea.state.loadingRepositories")}
 													</span>
 												)}
-												<CommandEmpty>No repositories found.</CommandEmpty>
+												<CommandEmpty>
+													{t("application.git.gitea.state.noRepositories")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{repositories && repositories.length === 0 && (
 															<CommandEmpty>
-																No repositories found.
+																{t("application.git.gitea.state.noRepositories")}
 															</CommandEmpty>
 														)}
 														{repositories?.map((repo: GiteaRepository) => {
@@ -327,18 +359,21 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 									</Popover>
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											Repository is required
+											{t("application.git.gitea.validation.repositoryRequired")}
 										</p>
 									)}
 								</FormItem>
 							)}
 						/>
+
 						<FormField
 							control={form.control}
 							name="branch"
 							render={({ field }) => (
 								<FormItem className="block w-full">
-									<FormLabel>Branch</FormLabel>
+									<FormLabel>
+										{t("application.git.gitea.form.branchLabel")}
+									</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -350,13 +385,16 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 													)}
 												>
 													{status === "loading" && fetchStatus === "fetching"
-														? "Loading...."
+														? t("application.git.gitea.state.loadingBranches")
 														: field.value
 															? branches?.find(
 																	(branch: GiteaBranch) =>
 																		branch.name === field.value,
 																)?.name
-															: "Select branch"}
+															: t(
+																	"application.git.gitea.form.branchSelectPlaceholder",
+																)}
+
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -364,25 +402,33 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search branch..."
+													placeholder={t(
+														"application.git.gitea.form.branchSearchPlaceholder",
+													)}
 													className="h-9"
 												/>
 												{status === "loading" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Loading Branches....
+														{t("application.git.gitea.state.loadingBranches")}
 													</span>
 												)}
 												{!repository?.owner && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Select a repository
+														{t(
+															"application.git.gitea.form.repositorySelectFirst",
+														)}
 													</span>
 												)}
 												<ScrollArea className="h-96">
-													<CommandEmpty>No branch found.</CommandEmpty>
+													<CommandEmpty>
+														{t("application.git.gitea.state.noBranches")}
+													</CommandEmpty>
 
 													<CommandGroup>
 														{branches && branches.length === 0 && (
-															<CommandItem>No branches found.</CommandItem>
+															<CommandItem>
+																{t("application.git.gitea.state.noBranches")}
+															</CommandItem>
 														)}
 														{branches?.map((branch: GiteaBranch) => (
 															<CommandItem
@@ -407,33 +453,43 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
-
-										<FormMessage />
 									</Popover>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
+
 						<FormField
 							control={form.control}
 							name="buildPath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Build Path</FormLabel>
+									<FormLabel>
+										{t("application.git.gitea.form.buildPathLabel")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="/" {...field} />
+										<Input
+											placeholder={t(
+												"application.git.gitea.form.buildPathPlaceholder",
+											)}
+											{...field}
+										/>
 									</FormControl>
 
 									<FormMessage />
 								</FormItem>
 							)}
 						/>
+
 						<FormField
 							control={form.control}
 							name="watchPaths"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>Watch Paths</FormLabel>
+										<FormLabel>
+											{t("application.git.gitea.form.watchPathsLabel")}
+										</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -441,8 +497,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
-														Add paths to watch for changes. When files in these
-														paths change, a new deployment will be triggered.
+														{t("application.git.gitea.form.watchPathsTooltip")}
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -470,7 +525,10 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 									<div className="flex gap-2">
 										<FormControl>
 											<Input
-												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
+												placeholder={t(
+													"application.git.gitea.form.watchPathsPlaceholder",
+												)}
+												ref={watchPathInputRef}
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -489,9 +547,8 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 											variant="outline"
 											size="icon"
 											onClick={() => {
-												const input = document.querySelector(
-													'input[placeholder*="Enter a path"]',
-												) as HTMLInputElement;
+												const input = watchPathInputRef.current;
+												if (!input) return;
 												const path = input.value.trim();
 												if (path) {
 													field.onChange([...field.value, path]);
@@ -506,6 +563,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 								</FormItem>
 							)}
 						/>
+
 						<FormField
 							control={form.control}
 							name="enableSubmodules"
@@ -517,7 +575,9 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="!mt-0">
+										{t("application.git.gitea.form.enableSubmodulesLabel")}
+									</FormLabel>
 								</FormItem>
 							)}
 						/>
@@ -528,7 +588,7 @@ export const SaveGiteaProvider = ({ applicationId }: Props) => {
 							type="submit"
 							className="w-fit"
 						>
-							Save
+							{t("button.save")}
 						</Button>
 					</div>
 				</form>

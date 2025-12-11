@@ -31,11 +31,8 @@ export const setupDeploymentLogsWebSocketServer = (
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);
 
-		// Generate unique connection ID for tracking
-		const connectionId = `deployment-logs-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
 		if (!logPath) {
-			console.log(`[${connectionId}] logPath no provided`);
+			console.log("logPath no provided");
 			ws.close(4000, "logPath no provided");
 			return;
 		}
@@ -45,55 +42,40 @@ export const setupDeploymentLogsWebSocketServer = (
 			return;
 		}
 
-		let tailProcess: ReturnType<typeof spawn> | null = null;
-		let sshClient: Client | null = null;
-
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
 
-				if (!server.sshKeyId) {
-					ws.close();
-					return;
-				}
-
-				sshClient = new Client();
-				sshClient
+				if (!server.sshKeyId) return;
+				const client = new Client();
+				client
 					.on("ready", () => {
 						const command = `
 						tail -n +1 -f ${logPath};
 					`;
-						sshClient!.exec(command, (err, stream) => {
+						client.exec(command, (err, stream) => {
 							if (err) {
-								sshClient!.end();
+								console.error("Execution error:", err);
 								ws.close();
 								return;
 							}
 							stream
 								.on("close", () => {
-									sshClient!.end();
+									client.end();
 									ws.close();
 								})
 								.on("data", (data: string) => {
-									if (ws.readyState === ws.OPEN) {
-										ws.send(data.toString());
-									}
+									ws.send(data.toString());
 								})
 								.stderr.on("data", (data) => {
-									if (ws.readyState === ws.OPEN) {
-										ws.send(data.toString());
-									}
+									ws.send(data.toString());
 								});
 						});
 					})
 					.on("error", (err) => {
-						if (ws.readyState === ws.OPEN) {
-							ws.send(`SSH error: ${err.message}`);
-							ws.close();
-						}
-						if (sshClient) {
-							sshClient.end();
-						}
+						console.error("SSH connection error:", err);
+						ws.send(`SSH error: ${err.message}`);
+						ws.close(); // Cierra el WebSocket si hay un error con SSH
 					})
 					.connect({
 						host: server.ipAddress,
@@ -103,75 +85,26 @@ export const setupDeploymentLogsWebSocketServer = (
 					});
 
 				ws.on("close", () => {
-					if (sshClient) {
-						sshClient.end();
-					}
+					client.end();
 				});
 			} else {
-				tailProcess = spawn("tail", ["-n", "+1", "-f", logPath]);
+				const tail = spawn("tail", ["-n", "+1", "-f", logPath]);
 
-				const stdout = tailProcess.stdout;
-				const stderr = tailProcess.stderr;
+				tail.stdout.on("data", (data) => {
+					ws.send(data.toString());
+				});
 
-				if (stdout) {
-					stdout.on("data", (data) => {
-						if (ws.readyState === ws.OPEN) {
-							ws.send(data.toString());
-						}
-					});
-				}
-
-				if (stderr) {
-					stderr.on("data", (data) => {
-						if (ws.readyState === ws.OPEN) {
-							ws.send(new Error(`tail error: ${data.toString()}`).message);
-						}
-					});
-				}
-
-				tailProcess.on("close", () => {
+				tail.stderr.on("data", (data) => {
+					ws.send(new Error(`tail error: ${data.toString()}`).message);
+				});
+				tail.on("close", () => {
 					ws.close();
 				});
-
-				tailProcess.on("error", () => {
-					if (ws.readyState === ws.OPEN) {
-						ws.close();
-					}
-				});
-
-				ws.on("close", () => {
-					if (tailProcess && !tailProcess.killed) {
-						tailProcess.kill("SIGTERM");
-						// Force kill after a timeout if it doesn't terminate
-						setTimeout(() => {
-							if (tailProcess && !tailProcess.killed) {
-								tailProcess.kill("SIGKILL");
-							} else {
-							}
-						}, 1000);
-					} else {
-					}
-				});
 			}
-		} catch (error) {
-			// Clean up resources on error
-			if (tailProcess && !tailProcess.killed) {
-				tailProcess.kill("SIGTERM");
-				setTimeout(() => {
-					if (tailProcess && !tailProcess.killed) {
-						tailProcess.kill("SIGKILL");
-					}
-				}, 1000);
-			}
-			if (sshClient) {
-				sshClient.end();
-			}
-			if (ws.readyState === ws.OPEN) {
-				// @ts-ignore
-				const errorMessage = error?.message as unknown as string;
-				ws.send(errorMessage || "An error occurred");
-				ws.close();
-			}
+		} catch {
+			// @ts-ignore
+			// const errorMessage = error?.message as unknown as string;
+			// ws.send(errorMessage);
 		}
 	});
 };

@@ -11,8 +11,19 @@ import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
 import { updateUser } from "../services/user";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
+import {
+	getInvitationEmailContent,
+	getResetPasswordEmailContent,
+	getVerifyEmailContent,
+} from "../utils/i18n/backend";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
+
+export {
+	getInvitationEmailContent,
+	getResetPasswordEmailContent,
+	getVerifyEmailContent,
+};
 
 const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
@@ -58,12 +69,14 @@ const { handler, api } = betterAuth({
 		autoSignInAfterVerification: true,
 		sendVerificationEmail: async ({ user, url }) => {
 			if (IS_CLOUD) {
+				const { subject, html } = getVerifyEmailContent({
+					url,
+				});
+
 				await sendEmail({
 					email: user.email,
-					subject: "Verify your email",
-					text: `
-				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
-				`,
+					subject,
+					text: html,
 				});
 			}
 		},
@@ -81,12 +94,14 @@ const { handler, api } = betterAuth({
 			},
 		},
 		sendResetPassword: async ({ user, url }) => {
+			const { subject, html } = getResetPasswordEmailContent({
+				url,
+			});
+
 			await sendEmail({
 				email: user.email,
-				subject: "Reset your password",
-				text: `
-				<p>Click the link to reset your password: <a href="${url}">Reset Password</a></p>
-				`,
+				subject,
+				text: html,
 			});
 		},
 	},
@@ -132,15 +147,11 @@ const { handler, api } = betterAuth({
 							const hutk = getHubSpotUTK(
 								context?.request?.headers?.get("cookie") || undefined,
 							);
-							// Cast to include additional fields
-							const userWithFields = user as typeof user & {
-								lastName?: string;
-							};
 							const hubspotSuccess = await submitToHubSpot(
 								{
 									email: user.email,
-									firstName: user.name || "", // name is mapped to firstName column
-									lastName: userWithFields.lastName || "",
+									firstName: user.name,
+									lastName: user.name,
 								},
 								hutk,
 							);
@@ -208,9 +219,6 @@ const { handler, api } = betterAuth({
 	},
 	user: {
 		modelName: "user",
-		fields: {
-			name: "firstName", // Map better-auth's default 'name' field to 'firstName' column
-		},
 		additionalFields: {
 			role: {
 				type: "string",
@@ -227,12 +235,6 @@ const { handler, api } = betterAuth({
 				type: "boolean",
 				defaultValue: false,
 			},
-			lastName: {
-				type: "string",
-				required: false,
-				input: true,
-				defaultValue: "",
-			},
 		},
 	},
 	plugins: [
@@ -248,13 +250,15 @@ const { handler, api } = betterAuth({
 							? "http://localhost:3000"
 							: "https://app.dokploy.com";
 					const inviteLink = `${host}/invitation?token=${data.id}`;
+					const { subject, html } = getInvitationEmailContent({
+						organizationName: data.organization.name,
+						inviteLink,
+					});
 
 					await sendEmail({
 						email: data.email,
-						subject: "Invitation to join organization",
-						text: `
-					<p>You are invited to join ${data.organization.name} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
-					`,
+						subject,
+						text: html,
 					});
 				}
 			},
@@ -329,11 +333,16 @@ export const validateRequest = async (request: IncomingMessage) => {
 				},
 			});
 
-			// When accessing from DB, use actual column names
-			const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
-				firstName: string;
-				lastName: string;
-			};
+			const {
+				id,
+				name,
+				email,
+				emailVerified,
+				image,
+				createdAt,
+				updatedAt,
+				twoFactorEnabled,
+			} = apiKeyRecord.user;
 
 			const mockSession = {
 				session: {
@@ -341,14 +350,14 @@ export const validateRequest = async (request: IncomingMessage) => {
 					activeOrganizationId: organizationId || "",
 				},
 				user: {
-					id: userFromDb.id,
-					name: userFromDb.firstName, // Map firstName back to name for better-auth
-					email: userFromDb.email,
-					emailVerified: userFromDb.emailVerified,
-					image: userFromDb.image,
-					createdAt: userFromDb.createdAt,
-					updatedAt: userFromDb.updatedAt,
-					twoFactorEnabled: userFromDb.twoFactorEnabled,
+					id,
+					name,
+					email,
+					emailVerified,
+					image,
+					createdAt,
+					updatedAt,
+					twoFactorEnabled,
 					role: member?.role || "member",
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
 				},

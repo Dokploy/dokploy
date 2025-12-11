@@ -1,5 +1,6 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data, refetch } = api.mariadb.one.useQuery(
 		{
 			mariadbId,
@@ -74,8 +76,8 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 					<CardContent className="flex flex-row gap-4 flex-wrap">
 						<TooltipProvider delayDuration={0}>
 							<DialogAction
-								title="Deploy Mariadb"
-								description="Are you sure you want to deploy this mariadb?"
+								title={t("database.mariadb.deploy.title")}
+								description={t("database.mariadb.deploy.confirm")}
 								type="default"
 								onClick={async () => {
 									setIsDeploying(true);
@@ -106,8 +108,8 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						</TooltipProvider>
 						<TooltipProvider delayDuration={0}>
 							<DialogAction
-								title="Reload Mariadb"
-								description="Are you sure you want to reload this mariadb?"
+								title={t("database.mariadb.reload.title")}
+								description={t("database.mariadb.reload.confirm")}
 								type="default"
 								onClick={async () => {
 									await reload({
@@ -115,11 +117,11 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 										appName: data?.appName || "",
 									})
 										.then(() => {
-											toast.success("Mariadb reloaded successfully");
+											toast.success(t("database.mariadb.reload.success"));
 											refetch();
 										})
 										.catch(() => {
-											toast.error("Error reloading Mariadb");
+											toast.error(t("database.mariadb.reload.error"));
 										});
 								}}
 							>
@@ -147,19 +149,19 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						{data?.applicationStatus === "idle" ? (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Start Mariadb"
-									description="Are you sure you want to start this mariadb?"
+									title={t("database.mariadb.start.title")}
+									description={t("database.mariadb.start.confirm")}
 									type="default"
 									onClick={async () => {
 										await start({
 											mariadbId: mariadbId,
 										})
 											.then(() => {
-												toast.success("Mariadb started successfully");
+												toast.success(t("database.mariadb.start.success"));
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting Mariadb");
+												toast.error(t("database.mariadb.start.error"));
 											});
 									}}
 								>
@@ -190,18 +192,18 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						) : (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Stop Mariadb"
-									description="Are you sure you want to stop this mariadb?"
+									title={t("database.mariadb.stop.title")}
+									description={t("database.mariadb.stop.confirm")}
 									onClick={async () => {
 										await stop({
 											mariadbId: mariadbId,
 										})
 											.then(() => {
-												toast.success("Mariadb stopped successfully");
+												toast.success(t("database.mariadb.stop.success"));
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping Mariadb");
+												toast.error(t("database.mariadb.stop.error"));
 											});
 									}}
 								>

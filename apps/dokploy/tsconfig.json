@@ -8,22 +8,21 @@
 		"resolveJsonModule": true,
 		"moduleDetection": "force",
 		"isolatedModules": true,
+
 		/* Strictness */
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
 		"checkJs": true,
+
 		/* Bundled projects */
 		"lib": ["dom", "dom.iterable", "ES2022"],
 		"noEmit": true,
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
-		"jsx": "react-jsx",
-		"plugins": [
-			{
-				"name": "next"
-			}
-		],
+		"jsx": "preserve",
+		"plugins": [{ "name": "next" }],
 		"incremental": true,
+
 		/* Path Aliases */
 		"baseUrl": ".",
 		"paths": {
@@ -31,6 +30,7 @@
 			"@dokploy/server/*": ["../../packages/server/src/*"]
 		}
 	},
+
 	"include": [
 		"next-env.d.ts",
 		"**/*.ts",

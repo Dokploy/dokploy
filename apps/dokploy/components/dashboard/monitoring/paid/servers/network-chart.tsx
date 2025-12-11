@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { useTranslation } from "next-i18next";
 import {
 	Card,
 	CardContent,
@@ -18,28 +19,29 @@ import { formatTimestamp } from "@/lib/utils";
 interface NetworkChartProps {
 	data: any[];
 }
-
-const chartConfig = {
-	networkIn: {
-		label: "Network In",
-		color: "hsl(var(--chart-3))",
-	},
-	networkOut: {
-		label: "Network Out",
-		color: "hsl(var(--chart-4))",
-	},
-} satisfies ChartConfig;
-
 export function NetworkChart({ data }: NetworkChartProps) {
+	const { t } = useTranslation("common");
+	const chartConfig: ChartConfig = {
+		networkIn: {
+			label: t("monitoring.legend.networkIn"),
+			color: "hsl(var(--chart-3))",
+		},
+		networkOut: {
+			label: t("monitoring.legend.networkOut"),
+			color: "hsl(var(--chart-4))",
+		},
+	};
 	const latestData = data[data.length - 1] || {};
 
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Network</CardTitle>
+				<CardTitle>{t("monitoring.card.networkIO")}</CardTitle>
 				<CardDescription>
-					Network Traffic: ↑ {latestData.networkOut} KB/s ↓{" "}
-					{latestData.networkIn} KB/s
+					{t("monitoring.network.traffic", {
+						in: latestData.networkIn,
+						out: latestData.networkOut,
+					})}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -94,7 +96,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("monitoring.tooltip.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -102,7 +104,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Network
+														{t("monitoring.tooltip.network")}
 													</span>
 													<span className="font-bold">
 														↑ {data.networkOut} KB/s
@@ -117,7 +119,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							}}
 						/>
 						<Area
-							name="Network In"
+							name={t("monitoring.legend.networkIn")}
 							dataKey="networkIn"
 							type="monotone"
 							fill="url(#fillNetworkIn)"
@@ -125,7 +127,7 @@ export function NetworkChart({ data }: NetworkChartProps) {
 							strokeWidth={2}
 						/>
 						<Area
-							name="Network Out"
+							name={t("monitoring.legend.networkOut")}
 							dataKey="networkOut"
 							type="monotone"
 							fill="url(#fillNetworkOut)"

@@ -6,6 +6,9 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
+	eslint: {
+		ignoreDuringBuilds: true,
+	},
 	typescript: {
 		ignoreBuildErrors: true,
 	},
@@ -16,7 +19,7 @@ const nextConfig = {
 	 * @see https://github.com/vercel/next.js/issues/41980
 	 */
 	i18n: {
-		locales: ["en"],
+		locales: ["en", "zh-Hans"],
 		defaultLocale: "en",
 	},
 };

@@ -1,8 +1,10 @@
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 export const ToggleAutoCheckUpdates = ({ disabled }: { disabled: boolean }) => {
+	const { t } = useTranslation("settings");
 	const [enabled, setEnabled] = useState<boolean>(
 		localStorage.getItem("enableAutoCheckUpdates") === "true",
 	);
@@ -21,7 +23,7 @@ export const ToggleAutoCheckUpdates = ({ disabled }: { disabled: boolean }) => {
 				disabled={disabled}
 			/>
 			<Label className="text-primary" htmlFor="autoCheckUpdatesToggle">
-				Automatically check for new updates
+				{t("settings.server.webServer.update.autoCheckLabel")}
 			</Label>
 		</div>
 	);

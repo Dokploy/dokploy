@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { CopyIcon, ExternalLinkIcon, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
 
 export const CreateSSHKey = () => {
+	const { t } = useTranslation("settings");
 	const { data, refetch } = api.sshKey.all.useQuery();
 	const generateMutation = api.sshKey.generate.useMutation();
 	const { mutateAsync, isLoading } = api.sshKey.create.useMutation();
@@ -66,7 +68,7 @@ export const CreateSSHKey = () => {
 						<>
 							<div className="flex flex-col gap-4 text-sm text-muted-foreground">
 								<p className="text-primary text-base font-semibold">
-									Choose how to add SSH Keys to your server:
+									{t("settings.sshKeys.welcome.title")}
 								</p>
 
 								{/* Radio button options */}
@@ -84,7 +86,7 @@ export const CreateSSHKey = () => {
 												htmlFor="manual"
 												className="text-primary font-medium cursor-pointer"
 											>
-												Add SSH Key to Server Manually
+												{t("settings.sshKeys.welcome.optionManual")}
 											</Label>
 										</div>
 
@@ -94,7 +96,7 @@ export const CreateSSHKey = () => {
 												htmlFor="provider"
 												className="text-primary font-medium cursor-pointer"
 											>
-												Add SSH Key when creating server in your provider
+												{t("settings.sshKeys.welcome.optionProvider")}
 											</Label>
 										</div>
 									</RadioGroup>
@@ -104,14 +106,14 @@ export const CreateSSHKey = () => {
 								{selectedOption === "manual" && (
 									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
 										<span className="text-base font-semibold text-primary">
-											Manual Setup Instructions
+											{t("settings.sshKeys.welcome.manual.title")}
 										</span>
 										<ul className="space-y-2">
 											<li className="items-center flex gap-1">
-												1. Login to your server
+												{t("settings.sshKeys.welcome.manual.step1")}
 											</li>
 											<li>
-												2. When you are logged in run the following command
+												{t("settings.sshKeys.welcome.manual.step2")}
 												<div className="flex relative flex-col gap-4 w-full mt-2">
 													<CodeEditor
 														lineWrapping
@@ -127,7 +129,9 @@ export const CreateSSHKey = () => {
 															copy(
 																`echo "${cloudSSHKey?.publicKey}" >> ~/.ssh/authorized_keys`,
 															);
-															toast.success("Copied to clipboard");
+															toast.success(
+																t("settings.sshKeys.welcome.copyCommand"),
+															);
 														}}
 													>
 														<CopyIcon className="size-4" />
@@ -135,8 +139,7 @@ export const CreateSSHKey = () => {
 												</div>
 											</li>
 											<li className="mt-1">
-												3. You're done, follow the next step to insert the
-												details of your server.
+												{t("settings.sshKeys.welcome.manual.step3")}
 											</li>
 										</ul>
 									</div>
@@ -145,20 +148,23 @@ export const CreateSSHKey = () => {
 								{selectedOption === "provider" && (
 									<div className="flex flex-col gap-2 w-full border rounded-lg p-4">
 										<span className="text-base font-semibold text-primary">
-											Provider Setup Instructions
+											{t("settings.sshKeys.welcome.provider.title")}
 										</span>
 										<div className="flex flex-col gap-4 w-full overflow-auto">
 											<div className="flex relative flex-col gap-2 overflow-y-auto">
 												<div className="text-sm text-primary flex flex-row gap-2 items-center">
-													Copy Public Key
+													{t("settings.sshKeys.welcome.provider.copyLabel")}
 													<button
 														type="button"
 														className="right-2 top-8"
 														onClick={() => {
 															copy(
-																cloudSSHKey?.publicKey || "Generate a SSH Key",
+																cloudSSHKey?.publicKey ||
+																	t("settings.sshKeys.welcome.provider.missingKeyFallback"),
 															);
-															toast.success("SSH Copied to clipboard");
+															toast.success(
+																t("settings.sshKeys.welcome.copyPublicKey"),
+															);
 														}}
 													>
 														<CopyIcon className="size-4 text-muted-foreground" />
@@ -167,16 +173,14 @@ export const CreateSSHKey = () => {
 											</div>
 										</div>
 										<p className="text-sm mt-2">
-											Use this public key when creating a server in your
-											preferred provider (Hostinger, Digital Ocean, Hetzner,
-											etc.)
+											{t("settings.sshKeys.welcome.provider.description")}
 										</p>
 										<Link
 											href="https://docs.dokploy.com/docs/core/multi-server/instructions#requirements"
 											target="_blank"
 											className="text-primary flex flex-row gap-2 mt-2"
 										>
-											View Tutorial <ExternalLinkIcon className="size-4" />
+											{t("settings.sshKeys.welcome.provider.tutorial")} <ExternalLinkIcon className="size-4" />
 										</Link>
 									</div>
 								)}

@@ -7,8 +7,7 @@ import {
 	deployments as deploymentsSchema,
 	rollbacks,
 } from "../db/schema";
-import type { ApplicationNested } from "../utils/builders";
-import { getRegistryTag } from "../utils/cluster/upload";
+import { type ApplicationNested, getAuthConfig } from "../utils/builders";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -23,12 +22,11 @@ import { findDeploymentById } from "./deployment";
 import type { Mount } from "./mount";
 import type { Port } from "./port";
 import type { Project } from "./project";
-import type { Registry } from "./registry";
 
 export const createRollback = async (
 	input: z.infer<typeof createRollbackSchema>,
 ) => {
-	return await db.transaction(async (tx) => {
+	await db.transaction(async (tx) => {
 		const { fullContext, ...other } = input;
 		const rollback = await tx
 			.insert(rollbacks)
@@ -72,11 +70,9 @@ export const createRollback = async (
 			})
 			.where(eq(deploymentsSchema.deploymentId, rollback.deploymentId));
 
-		const updatedRollback = await tx.query.rollbacks.findFirst({
-			where: eq(rollbacks.rollbackId, rollback.rollbackId),
-		});
+		await createRollbackImage(rest, tagImage);
 
-		return updatedRollback;
+		return rollback;
 	});
 };
 
@@ -105,6 +101,27 @@ export const findRollbackById = async (rollbackId: string) => {
 	}
 
 	return result;
+};
+
+const createRollbackImage = async (
+	application: ApplicationNested,
+	tagImage: string,
+) => {
+	const docker = await getRemoteDocker(application.serverId);
+
+	const appTagName =
+		application.sourceType === "docker"
+			? application.dockerImage
+			: `${application.appName}:latest`;
+
+	const result = docker.getImage(appTagName || "");
+
+	const [repo, version] = tagImage.split(":");
+
+	await result.tag({
+		repo,
+		tag: version,
+	});
 };
 
 const deleteRollbackImage = async (image: string, serverId?: string | null) => {
@@ -162,6 +179,7 @@ export const rollback = async (rollbackId: string) => {
 	if (!result.fullContext) {
 		throw new Error("Rollback context not found");
 	}
+
 	// Use the full context for rollback
 	await rollbackApplication(
 		application.appName,
@@ -181,7 +199,6 @@ const rollbackApplication = async (
 		};
 		mounts: Mount[];
 		ports: Port[];
-		rollbackRegistry?: Registry;
 	},
 ) => {
 	if (!fullContext) {
@@ -228,24 +245,16 @@ const rollbackApplication = async (
 		fullContext.environment.project.env,
 	);
 
-	// Build the full registry image path if rollbackRegistry is available
-	// e.g., "appName:v5" -> "siumauricio/appName:v5" or "registry.com/prefix/appName:v5"
-	let rollbackImage = image;
-	if (fullContext.rollbackRegistry) {
-		rollbackImage = getRegistryTag(fullContext.rollbackRegistry, image);
-	}
+	// For rollback, we use the provided image instead of calculating it
+	const authConfig = getAuthConfig(fullContext as ApplicationNested);
 
 	const settings: CreateServiceOptions = {
-		authconfig: {
-			password: fullContext.rollbackRegistry?.password || "",
-			username: fullContext.rollbackRegistry?.username || "",
-			serveraddress: fullContext.rollbackRegistry?.registryUrl || "",
-		},
+		authconfig: authConfig,
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
 				HealthCheck,
-				Image: rollbackImage,
+				Image: image,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount],
 				...(command
@@ -288,8 +297,7 @@ const rollbackApplication = async (
 				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
 			},
 		});
-	} catch (error) {
-		console.error(error);
+	} catch {
 		await docker.createService(settings);
 	}
 };

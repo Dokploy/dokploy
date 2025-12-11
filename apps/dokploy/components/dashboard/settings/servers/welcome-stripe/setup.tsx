@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "next-i18next";
 import {
 	type LogLine,
 	parseLogs,
@@ -27,6 +28,7 @@ import { api } from "@/utils/api";
 import { EditScript } from "../edit-script";
 
 export const Setup = () => {
+	const { t } = useTranslation("settings");
 	const { data: servers } = api.server.all.useQuery();
 	const [serverId, setServerId] = useState<string>(
 		servers?.[0]?.serverId || "",
@@ -72,10 +74,16 @@ export const Setup = () => {
 			<Card className="bg-background">
 				<CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
 					<div className="flex flex-col gap-2 w-full">
-						<Label>Select the server and click on setup server</Label>
+						<Label>
+							{t("settings.servers.onboarding.setup.selectLabel")}
+						</Label>
 						<Select onValueChange={setServerId} defaultValue={serverId}>
 							<SelectTrigger>
-								<SelectValue placeholder="Select a server" />
+								<SelectValue
+									placeholder={t(
+										"settings.servers.onboarding.common.selectServerPlaceholder",
+									)}
+								/>
 							</SelectTrigger>
 							<SelectContent>
 								<SelectGroup>
@@ -84,16 +92,25 @@ export const Setup = () => {
 											{server.name}
 										</SelectItem>
 									))}
-									<SelectLabel>Servers ({servers?.length})</SelectLabel>
+									<SelectLabel>
+										{t(
+											"settings.servers.onboarding.common.serversLabel",
+											{
+												count: servers?.length ?? 0,
+											},
+										)}
+									</SelectLabel>
 								</SelectGroup>
 							</SelectContent>
 						</Select>
 					</div>
 					<div className="flex flex-row gap-2 justify-between w-full max-sm:flex-col">
 						<div className="flex flex-col gap-1">
-							<CardTitle className="text-xl">Setup Server</CardTitle>
+							<CardTitle className="text-xl">
+								{t("settings.servers.onboarding.setup.cardTitle")}
+							</CardTitle>
 							<CardDescription>
-								To setup a server, please click on the button below.
+								{t("settings.servers.onboarding.setup.cardDescription")}
 							</CardDescription>
 						</div>
 					</div>
@@ -101,21 +118,23 @@ export const Setup = () => {
 				<CardContent className="flex flex-col gap-4 min-h-[25vh] items-center">
 					<div className="flex flex-col gap-4 items-center h-full max-w-xl mx-auto min-h-[25vh] justify-center">
 						<span className="text-sm text-muted-foreground text-center">
-							When your server is ready, you can click on the button below, to
-							directly run the script we use for setup the server or directly
-							modify the script
+							{t("settings.servers.onboarding.setup.helperText")}
 						</span>
 						<div className="flex flex-row gap-2">
 							<EditScript serverId={server?.serverId || ""} />
 							<DialogAction
-								title={"Setup Server?"}
+								title={t("settings.servers.onboarding.setup.dialog.title")}
 								type="default"
-								description="This will setup the server and all associated data"
+								description={t(
+									"settings.servers.onboarding.setup.dialog.description",
+								)}
 								onClick={async () => {
 									setIsDeploying(true);
 								}}
 							>
-								<Button>Setup Server</Button>
+								<Button>
+									{t("settings.servers.onboarding.setup.button")}
+								</Button>
 							</DialogAction>
 						</div>
 					</div>

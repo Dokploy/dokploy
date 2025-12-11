@@ -1,4 +1,5 @@
 import { Loader2, Puzzle, RefreshCw } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const ShowConvertedCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation("common");
 	const [isOpen, setIsOpen] = useState(false);
 	const {
 		data: compose,
@@ -49,22 +51,20 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 			<DialogTrigger asChild>
 				<Button className="max-lg:w-full" variant="outline">
 					<Puzzle className="h-4 w-4" />
-					Preview Compose
+					{t("compose.converted.previewButton")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl max-h-[50rem]">
 				<DialogHeader>
-					<DialogTitle>Converted Compose</DialogTitle>
+					<DialogTitle>{t("compose.converted.dialogTitle")}</DialogTitle>
 					<DialogDescription>
-						Preview your docker-compose file with added domains. Note: At least
-						one domain must be specified for this conversion to take effect.
+						{t("compose.converted.dialogDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
 				<AlertBlock type="info" className="mb-4">
-					Preview your docker-compose file with added domains. Note: At least
-					one domain must be specified for this conversion to take effect.
+					{t("compose.converted.dialogDescription")}
 				</AlertBlock>
 				{isLoading ? (
 					<div className="flex flex-row items-center justify-center min-h-[25rem] border p-4 rounded-md">
@@ -74,7 +74,7 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 					<div className="border p-4 rounded-md flex flex-col items-center justify-center min-h-[25rem]">
 						<Puzzle className="h-8 w-8 text-muted-foreground mb-2" />
 						<span className="text-muted-foreground">
-							No converted compose data available.
+							{t("compose.converted.noData")}
 						</span>
 					</div>
 				) : (
@@ -87,16 +87,16 @@ export const ShowConvertedCompose = ({ composeId }: Props) => {
 									mutateAsync({ composeId })
 										.then(() => {
 											refetch();
-											toast.success("Fetched source type");
+											toast.success(t("compose.converted.fetch.success"));
 										})
 										.catch((err) => {
-											toast.error("Error fetching source type", {
+											toast.error(t("compose.converted.fetch.error"), {
 												description: err.message,
 											});
 										});
 								}}
 							>
-								Refresh <RefreshCw className="ml-2 h-4 w-4" />
+								{t("compose.converted.refreshButton")} <RefreshCw className="ml-2 h-4 w-4" />
 							</Button>
 						</div>
 

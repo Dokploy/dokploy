@@ -12,6 +12,6 @@ fi
 
 BUILDER=$(docker buildx create --use)
 
-docker buildx build --platform linux/amd64,linux/arm64 --pull --rm -t "dokploy/dokploy:${TAG}" -f 'Dockerfile' .
+docker buildx build --platform linux/amd64,linux/arm64 --pull --rm -t "a3180623/dokploy-i18n:${TAG}" -f 'Dockerfile' .
 
 docker buildx rm $BUILDER

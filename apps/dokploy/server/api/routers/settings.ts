@@ -1,13 +1,11 @@
 import {
 	canAccessToTraefikFiles,
 	checkGPUStatus,
-	checkPortInUse,
-	cleanupAll,
-	cleanupBuilders,
-	cleanupContainers,
-	cleanupImages,
-	cleanupSystem,
-	cleanupVolumes,
+	cleanStoppedContainers,
+	cleanUpDockerBuilder,
+	cleanUpSystemPrune,
+	cleanUpUnusedImages,
+	cleanUpUnusedVolumes,
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
@@ -132,17 +130,6 @@ export const settingsRouter = createTRPCRouter({
 			let newPorts = ports;
 			// If receive true, add 8080 to ports
 			if (input.enableDashboard) {
-				// Check if port 8080 is already in use before enabling dashboard
-				const portCheck = await checkPortInUse(8080, input.serverId);
-				if (portCheck.isInUse) {
-					const conflictingContainer = portCheck.conflictingContainer
-						? ` by container "${portCheck.conflictingContainer}"`
-						: "";
-					throw new TRPCError({
-						code: "CONFLICT",
-						message: `Port 8080 is already in use${conflictingContainer}. Please stop the conflicting service or use a different port for the Traefik dashboard.`,
-					});
-				}
 				newPorts.push({
 					targetPort: 8080,
 					publishedPort: 8080,
@@ -162,38 +149,41 @@ export const settingsRouter = createTRPCRouter({
 	cleanUnusedImages: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanupImages(input?.serverId);
+			await cleanUpUnusedImages(input?.serverId);
 			return true;
 		}),
 	cleanUnusedVolumes: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanupVolumes(input?.serverId);
+			await cleanUpUnusedVolumes(input?.serverId);
 			return true;
 		}),
 	cleanStoppedContainers: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanupContainers(input?.serverId);
+			await cleanStoppedContainers(input?.serverId);
 			return true;
 		}),
 	cleanDockerBuilder: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanupBuilders(input?.serverId);
+			await cleanUpDockerBuilder(input?.serverId);
 		}),
 	cleanDockerPrune: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanupSystem(input?.serverId);
-			await cleanupBuilders(input?.serverId);
+			await cleanUpSystemPrune(input?.serverId);
+			await cleanUpDockerBuilder(input?.serverId);
 
 			return true;
 		}),
 	cleanAll: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanupAll(input?.serverId);
+			await cleanUpUnusedImages(input?.serverId);
+			await cleanStoppedContainers(input?.serverId);
+			await cleanUpDockerBuilder(input?.serverId);
+			await cleanUpSystemPrune(input?.serverId);
 
 			return true;
 		}),
@@ -211,7 +201,7 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			await updateUser(ctx.user.ownerId, {
+			await updateUser(ctx.user.id, {
 				sshPrivateKey: input.sshPrivateKey,
 			});
 
@@ -223,9 +213,11 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return true;
 			}
-			const user = await updateUser(ctx.user.ownerId, {
+			const user = await updateUser(ctx.user.id, {
 				host: input.host,
-				letsEncryptEmail: input.letsEncryptEmail,
+				...(input.letsEncryptEmail && {
+					letsEncryptEmail: input.letsEncryptEmail,
+				}),
 				certificateType: input.certificateType,
 				https: input.https,
 			});
@@ -248,7 +240,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		await updateUser(ctx.user.ownerId, {
+		await updateUser(ctx.user.id, {
 			sshPrivateKey: null,
 		});
 		return true;
@@ -289,9 +281,9 @@ export const settingsRouter = createTRPCRouter({
 							console.log(
 								`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 							);
-
-							await cleanupAll(server.serverId);
-
+							await cleanUpUnusedImages(server.serverId);
+							await cleanUpDockerBuilder(server.serverId);
+							await cleanUpSystemPrune(server.serverId);
 							await sendDockerCleanupNotifications(server.organizationId);
 						});
 					}
@@ -308,7 +300,7 @@ export const settingsRouter = createTRPCRouter({
 					}
 				}
 			} else if (!IS_CLOUD) {
-				const userUpdated = await updateUser(ctx.user.ownerId, {
+				const userUpdated = await updateUser(ctx.user.id, {
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
 
@@ -317,9 +309,9 @@ export const settingsRouter = createTRPCRouter({
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 						);
-
-						await cleanupAll();
-
+						await cleanUpUnusedImages();
+						await cleanUpDockerBuilder();
+						await cleanUpSystemPrune();
 						await sendDockerCleanupNotifications(
 							ctx.session.activeOrganizationId,
 						);
@@ -818,19 +810,6 @@ export const settingsRouter = createTRPCRouter({
 					"dokploy-traefik",
 					input?.serverId,
 				);
-
-				for (const port of input.additionalPorts) {
-					const portCheck = await checkPortInUse(
-						port.publishedPort,
-						input.serverId,
-					);
-					if (portCheck.isInUse) {
-						throw new TRPCError({
-							code: "CONFLICT",
-							message: `Port ${port.targetPort} is already in use by ${portCheck.conflictingContainer}`,
-						});
-					}
-				}
 				const preparedEnv = prepareEnvironmentVariables(env);
 
 				await writeTraefikSetup({

@@ -18,9 +18,7 @@ const Page = () => {
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
-				{(data?.canAccessToAPI ||
-					data?.role === "owner" ||
-					data?.role === "admin") && <ShowApiKeys />}
+				{(data?.canAccessToAPI || data?.role === "owner") && <ShowApiKeys />}
 
 				{/* {isCloud && <RemoveSelfAccount />} */}
 			</div>
@@ -31,7 +29,11 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Profile">{page}</DashboardLayout>;
+	return (
+		<DashboardLayout metaName="settings.profile.title">
+			{page}
+		</DashboardLayout>
+	);
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,

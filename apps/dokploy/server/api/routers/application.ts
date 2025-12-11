@@ -365,7 +365,6 @@ export const applicationRouter = createTRPCRouter({
 				env: input.env,
 				buildArgs: input.buildArgs,
 				buildSecrets: input.buildSecrets,
-				createEnvFile: input.createEnvFile,
 			});
 			return true;
 		}),

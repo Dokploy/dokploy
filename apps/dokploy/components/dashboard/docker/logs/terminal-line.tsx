@@ -1,5 +1,6 @@
 import { FancyAnsi } from "fancy-ansi";
 import _ from "lodash";
+import { useTranslation } from "next-i18next";
 import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
@@ -22,6 +23,7 @@ const fancyAnsi = new FancyAnsi();
 export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 	const { timestamp, message, rawTimestamp } = log;
 	const { type, variant, color } = getLogType(message);
+	const { t } = useTranslation("common");
 
 	const formattedTime = timestamp
 		? timestamp.toLocaleString([], {
@@ -32,7 +34,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 				year: "2-digit",
 				second: "2-digit",
 			})
-		: "--- No time found ---";
+		: t("logs.noTimeFound");
 
 	const highlightMessage = (text: string, term: string) => {
 		if (!term) {
@@ -116,7 +118,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 					variant={variant}
 					className="w-14 justify-center text-[10px] px-1 py-0"
 				>
-					{type}
+					{t(`logs.priority.${type}`)}
 				</Badge>
 			</div>
 			<span className="dark:text-gray-200 font-mono text-foreground whitespace-pre-wrap break-all">

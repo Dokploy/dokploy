@@ -1,6 +1,7 @@
 import { Command as CommandPrimitive } from "cmdk";
 import { debounce } from "lodash";
 import { CheckIcon, Hash } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React, { useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,9 @@ interface LineCountFilterProps {
 export function LineCountFilter({
 	value,
 	onValueChange,
-	title = "Limit to",
+	title,
 }: LineCountFilterProps) {
+	const { t } = useTranslation("common");
 	const [open, setOpen] = React.useState(false);
 	const [inputValue, setInputValue] = React.useState("");
 	const pendingValueRef = useRef<number | null>(null);
@@ -91,8 +93,8 @@ export function LineCountFilter({
 	}, [debouncedValueChange]);
 
 	const displayValue = isPresetValue
-		? lineCountOptions.find((option) => option.value === value)?.label
-		: `${value} lines`;
+		? t(`logs.lines.${value}`)
+		: t("logs.lines.custom", { count: value });
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -102,7 +104,7 @@ export function LineCountFilter({
 					size="sm"
 					className="h-9 bg-input text-sm placeholder-gray-400 w-full sm:w-auto"
 				>
-					{title}
+					{title ?? t("logs.lines.title")}
 					<Separator orientation="vertical" className="mx-2 h-4" />
 					<div className="space-x-1 flex">
 						<Badge variant="blank" className="rounded-sm px-1 font-normal">
@@ -116,7 +118,7 @@ export function LineCountFilter({
 					<div className="flex items-center border-b px-3">
 						<Hash className="mr-2 h-4 w-4 shrink-0 opacity-50" />
 						<CommandPrimitive.Input
-							placeholder="Number of lines"
+							placeholder={t("logs.lines.inputPlaceholder")}
 							value={inputValue}
 							onValueChange={handleInputChange}
 							className="flex h-9 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -145,7 +147,7 @@ export function LineCountFilter({
 								return (
 									<CommandPrimitive.Item
 										key={option.value}
-										onSelect={() => handleSelect(option.label)}
+										onSelect={() => handleSelect(String(option.value))}
 										className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 aria-selected:bg-accent aria-selected:text-accent-foreground"
 									>
 										<div
@@ -158,7 +160,7 @@ export function LineCountFilter({
 										>
 											<CheckIcon className={cn("h-4 w-4")} />
 										</div>
-										<span>{option.label}</span>
+										<span>{t(`logs.lines.${option.value}`)}</span>
 									</CommandPrimitive.Item>
 								);
 							})}

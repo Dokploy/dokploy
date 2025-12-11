@@ -104,28 +104,14 @@ export const suggestVariants = async ({
 				),
 			}),
 			prompt: `
-        Act as advanced DevOps engineer and analyze the user's request to determine the appropriate suggestions (up to 3 items).
-        
-        CRITICAL - Read the user's request carefully and follow the appropriate strategy:
-        
-        Strategy A - If the user specifies a PARTICULAR APPLICATION/SERVICE (e.g., "deploy Chatwoot", "install sendingtk/chatwoot:develop", "setup Bitwarden"):
-        - Generate different deployment VARIANTS of that SAME application
-        - Each variant should be a different configuration (minimal, full stack, with different databases, development vs production, etc.)
-        - Example: For "Chatwoot" → "Chatwoot with PostgreSQL", "Chatwoot Development", "Chatwoot Full Stack"
-        - The name MUST include the specific application name the user mentioned
-        
-        Strategy B - If the user describes a GENERAL NEED or USE CASE (e.g., "personal blog", "project management tool", "chat application"):
-        - Suggest different open source projects that fulfill that need
-        - Each suggestion should be a different tool/platform that solves the same problem
-        - Example: For "personal blog" → "WordPress", "Ghost", "Hugo with Nginx"
-        - The name should be the actual project name
+        Act as advanced DevOps engineer and generate a list of open source projects what can cover users needs(up to 3 items).
         
         Return your response as a JSON object with the following structure:
         {
           "suggestions": [
             {
-              "id": "project-or-variant-slug",
-              "name": "Project Name or Variant Name",
+              "id": "project-slug",
+              "name": "Project Name",
               "shortDescription": "Brief one-line description",
               "description": "Detailed description"
             }
@@ -134,14 +120,10 @@ export const suggestVariants = async ({
         
         Important rules for the response:
         1. Use slug format for the id field (lowercase, hyphenated)
-        2. Determine which strategy to use based on whether the user specified a particular application or described a general need
-        3. For Strategy A (specific app): The name must include the app name and describe the variant configuration
-        4. For Strategy B (general need): The name should be the actual project/tool name that fulfills the need
-        5. The description field should ONLY contain a plain text description of the project or variant, its features, and use cases
-        6. Do NOT include any code snippets, configuration examples, or installation instructions in the description
-        7. The shortDescription should be a single-line summary focusing on key technologies or differentiators
-        8. All suggestions should be installable in docker and have docker compose support
-        9. Provide variety in your suggestions - different complexity levels, tech stacks, or approaches
+        2. The description field should ONLY contain a plain text description of the project, its features, and use cases
+        3. Do NOT include any code snippets, configuration examples, or installation instructions in the description
+        4. The shortDescription should be a single-line summary focusing on the main technologies
+        5. All projects should be installable in docker and have docker compose support
         
         User wants to create a new project with the following details:
         
@@ -204,24 +186,6 @@ export const suggestVariants = async ({
               6. If a service depends on a database or other service, INCLUDE that service in the docker-compose
               7. Make sure all required services are defined in the docker-compose
 
-              Docker Image Rules (CRITICAL):
-              1. ALWAYS use 'image:' field, NEVER use 'build:' field
-              2. NEVER use 'build: .' or any build directive - we don't have local Dockerfiles
-              3. Use images from Docker Hub or other public registries (e.g., docker.io, ghcr.io, quay.io)
-              4. For dependencies (databases, redis, etc.), use official images (e.g., postgres:16, redis:7, etc.)
-              5. Always specify image tags - avoid using 'latest' tag, use specific versions when possible
-              6. Examples of correct image usage:
-                 - image: sendingtk/chatwoot:develop
-                 - image: postgres:16-alpine
-                 - image: redis:7-alpine
-                 - image: chatwoot/chatwoot:latest
-              7. Examples of INCORRECT usage (DO NOT USE):
-                 - build: .
-                 - build: ./app
-                 - build:
-                     context: .
-                     dockerfile: Dockerfile
-
 			  Volume Mounting and Configuration Rules:
               1. DO NOT create configuration files unless the service CANNOT work without them
               2. Most services can work with just environment variables - USE THEM FIRST
@@ -249,8 +213,6 @@ export const suggestVariants = async ({
                 - port: the internal port the service runs on
                 - serviceName: the name of the service in the docker-compose
               2. Make sure the service is properly configured to work with the specified port
-              
-              User's original request: ${input}
               
               Project details:
               ${suggestion?.description}

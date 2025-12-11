@@ -4,6 +4,7 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 export default function Requests() {
 	return <ShowRequests />;
@@ -32,7 +33,11 @@ export async function getServerSideProps(
 		};
 	}
 
+	const locale = getLocale((ctx.req as any).cookies ?? {});
+
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale)),
+		},
 	};
 }

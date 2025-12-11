@@ -6,6 +6,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -47,6 +48,7 @@ export const ShowBackups = ({
 	databaseType,
 	backupType = "database",
 }: Props) => {
+	const { t } = useTranslation("common");
 	const [activeManualBackup, setActiveManualBackup] = useState<
 		string | undefined
 	>();
@@ -102,11 +104,10 @@ export const ShowBackups = ({
 				<div className="flex flex-col gap-0.5">
 					<CardTitle className="text-xl flex flex-row gap-2">
 						<Database className="size-6 text-muted-foreground" />
-						Backups
+						{t("backups.page.title")}
 					</CardTitle>
 					<CardDescription>
-						Add backups to your database to save the data to a different
-						provider.
+						{t("backups.page.description")}
 					</CardDescription>
 				</div>
 
@@ -134,15 +135,14 @@ export const ShowBackups = ({
 					<div className="flex flex-col items-center gap-3 min-h-[35vh] justify-center">
 						<DatabaseBackup className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground text-center">
-							To create a backup it is required to set at least 1 provider.
-							Please, go to{" "}
+							{t("backups.empty.noDestination.prefix")} {" "}
 							<Link
 								href="/dashboard/settings/destinations"
 								className="text-foreground"
 							>
-								S3 Destinations
+								{t("settings.nav.destinations")}
 							</Link>{" "}
-							to do so.
+							{t("backups.empty.noDestination.suffix")}
 						</span>
 					</div>
 				) : (
@@ -151,7 +151,7 @@ export const ShowBackups = ({
 							<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 								<DatabaseBackup className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									No backups configured
+									{t("backups.empty.noBackups")}
 								</span>
 								<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
 									<HandleBackup
@@ -174,7 +174,7 @@ export const ShowBackups = ({
 							<div className="flex flex-col pt-2 gap-4">
 								{backupType === "compose" && (
 									<AlertBlock title="Compose Backups">
-										Make sure the compose is running before creating a backup.
+										{t("backups.composeWarning")}
 									</AlertBlock>
 								)}
 								<div className="flex flex-col gap-6">
@@ -224,7 +224,9 @@ export const ShowBackups = ({
 																		)}
 																	/>
 																	<span className="text-xs text-muted-foreground">
-																		{backup.enabled ? "Active" : "Inactive"}
+																		{backup.enabled
+																			? t("backups.status.active")
+																			: t("backups.status.inactive")}
 																	</span>
 																</div>
 															</div>
@@ -233,7 +235,7 @@ export const ShowBackups = ({
 														<div className="flex flex-wrap gap-x-8 gap-y-2">
 															<div className="min-w-[200px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Destination
+																	{t("backups.field.destination")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.destination.name}
@@ -242,7 +244,7 @@ export const ShowBackups = ({
 
 															<div className="min-w-[150px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Database
+																	{t("backups.field.database")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.database}
@@ -251,7 +253,7 @@ export const ShowBackups = ({
 
 															<div className="min-w-[120px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Schedule
+																	{t("backups.field.schedule")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.schedule}
@@ -260,7 +262,7 @@ export const ShowBackups = ({
 
 															<div className="min-w-[150px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Prefix Storage
+																	{t("backups.field.prefixStorage")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
 																	{backup.prefix}
@@ -269,10 +271,10 @@ export const ShowBackups = ({
 
 															<div className="min-w-[100px]">
 																<span className="text-sm font-medium text-muted-foreground">
-																	Keep Latest
+																	{t("backups.field.keepLatest")}
 																</span>
 																<p className="font-medium text-sm mt-0.5">
-																	{backup.keepLatestCount || "All"}
+																	{backup.keepLatestCount || t("backups.field.keepLatestAll")}
 																</p>
 															</div>
 														</div>
@@ -310,14 +312,10 @@ export const ShowBackups = ({
 																				backupId: backup.backupId as string,
 																			})
 																				.then(async () => {
-																					toast.success(
-																						"Manual Backup Successful",
-																					);
+																					toast.success(t("backups.manual.success"));
 																				})
 																				.catch(() => {
-																					toast.error(
-																						"Error creating the manual backup",
-																					);
+																					toast.error(t("backups.manual.error"));
 																				});
 																			setActiveManualBackup(undefined);
 																		}}
@@ -326,7 +324,7 @@ export const ShowBackups = ({
 																	</Button>
 																</TooltipTrigger>
 																<TooltipContent>
-																	Run Manual Backup
+																	{t("backups.run.tooltip")}
 																</TooltipContent>
 															</Tooltip>
 														</TooltipProvider>
@@ -338,8 +336,8 @@ export const ShowBackups = ({
 															refetch={refetch}
 														/>
 														<DialogAction
-															title="Delete Backup"
-															description="Are you sure you want to delete this backup?"
+															title={t("backups.delete.title")}
+															description={t("backups.delete.description")}
 															type="destructive"
 															onClick={async () => {
 																await deleteBackup({
@@ -347,12 +345,10 @@ export const ShowBackups = ({
 																})
 																	.then(() => {
 																		refetch();
-																		toast.success(
-																			"Backup deleted successfully",
-																		);
+																		toast.success(t("backups.delete.success"));
 																	})
 																	.catch(() => {
-																		toast.error("Error deleting backup");
+																		toast.error(t("backups.delete.error"));
 																	});
 															}}
 														>

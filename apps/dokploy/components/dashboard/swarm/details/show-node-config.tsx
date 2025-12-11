@@ -1,4 +1,5 @@
 import { Settings } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data } = api.swarm.getNodeInfo.useQuery({
 		nodeId,
 		serverId,
@@ -26,14 +28,14 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm" className="w-full">
 					<Settings className="h-4 w-4 mr-2" />
-					Config
+					{t("swarm.nodes.config.button")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Node Config</DialogTitle>
+					<DialogTitle>{t("swarm.nodes.config.title")}</DialogTitle>
 					<DialogDescription>
-						See in detail the metadata of this node
+						{t("swarm.nodes.config.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card max-h-[70vh] overflow-auto ">

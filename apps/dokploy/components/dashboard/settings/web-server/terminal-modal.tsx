@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import type React from "react";
 import { useState } from "react";
+import { useTranslation } from "next-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -29,6 +30,7 @@ interface Props {
 export const TerminalModal = ({ children, serverId }: Props) => {
 	const [terminalKey, setTerminalKey] = useState<string>(getTerminalKey());
 	const isLocalServer = serverId === "local";
+	const { t } = useTranslation("settings");
 
 	const { data } = api.server.one.useQuery(
 		{
@@ -57,8 +59,14 @@ export const TerminalModal = ({ children, serverId }: Props) => {
 				onEscapeKeyDown={(event) => event.preventDefault()}
 			>
 				<DialogHeader className="flex flex-col gap-1">
-					<DialogTitle>Terminal ({data?.name ?? serverId})</DialogTitle>
-					<DialogDescription>Easy way to access the server</DialogDescription>
+					<DialogTitle>
+						{t("settings.servers.terminal.title", {
+							name: data?.name ?? serverId,
+						})}
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.servers.terminal.description")}
+					</DialogDescription>
 				</DialogHeader>
 
 				{isLocalServer && (

@@ -9,6 +9,7 @@ import type {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useTranslation } from "next-i18next";
 import { type ReactElement, useEffect, useState } from "react";
 import { toast } from "sonner";
 import superjson from "superjson";
@@ -51,6 +52,7 @@ import {
 import { UseKeyboardNav } from "@/hooks/use-keyboard-nav";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 type TabState =
 	| "projects"
@@ -67,6 +69,7 @@ const Service = (
 	const [_toggleMonitoring, _setToggleMonitoring] = useState(false);
 	const { composeId, activeTab } = props;
 	const router = useRouter();
+	const { t } = useTranslation("common");
 	const { projectId, environmentId } = router.query;
 	const [tab, setTab] = useState<TabState>(activeTab);
 
@@ -135,7 +138,7 @@ const Service = (
 											onClick={() => {
 												if (data?.server?.ipAddress) {
 													copy(data.server.ipAddress);
-													toast.success("IP Address Copied!");
+													toast.success(t("application.toast.ipCopied"));
 												}
 											}}
 											variant={
@@ -146,7 +149,7 @@ const Service = (
 														: "destructive"
 											}
 										>
-											{data?.server?.name || "Dokploy Server"}
+											{data?.server?.name || t("server.defaultName")}
 										</Badge>
 										{data?.server?.serverStatus === "inactive" && (
 											<TooltipProvider>
@@ -162,9 +165,7 @@ const Service = (
 														side="top"
 													>
 														<span>
-															You cannot, deploy this application because the
-															server is inactive, please upgrade your plan to
-															add more servers.
+															{t("server.inactive.tooltip")}
 														</span>
 													</TooltipContent>
 												</Tooltip>
@@ -187,18 +188,17 @@ const Service = (
 									<div className="max-w-3xl mx-auto flex flex-col items-center justify-center self-center gap-3">
 										<ServerOff className="size-10 text-muted-foreground self-center" />
 										<span className="text-center text-base text-muted-foreground">
-											This service is hosted on the server {data.server.name},
-											but this server has been disabled because your current
-											plan doesn't include enough servers. Please purchase more
-											servers to regain access to this application.
+											{t("server.inactive.description", {
+												name: data?.server?.name ?? "",
+											})}
 										</span>
 										<span className="text-center text-base text-muted-foreground">
-											Go to{" "}
+											{t("common.goTo")} {" "}
 											<Link
 												href="/dashboard/settings/billing"
 												className="text-primary"
 											>
-												Billing
+												{t("settings.nav.billing")}
 											</Link>
 										</span>
 									</div>
@@ -216,20 +216,38 @@ const Service = (
 								>
 									<div className="flex flex-row items-center w-full overflow-auto">
 										<TabsList className="flex gap-8 max-md:gap-4 justify-start">
-											<TabsTrigger value="general">General</TabsTrigger>
-											<TabsTrigger value="environment">Environment</TabsTrigger>
-											<TabsTrigger value="domains">Domains</TabsTrigger>
-											<TabsTrigger value="deployments">Deployments</TabsTrigger>
-											<TabsTrigger value="backups">Backups</TabsTrigger>
-											<TabsTrigger value="schedules">Schedules</TabsTrigger>
-											<TabsTrigger value="volumeBackups">
-												Volume Backups
+											<TabsTrigger value="general">
+												{t("tabs.general")}
 											</TabsTrigger>
-											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="environment">
+												{t("tabs.environment")}
+											</TabsTrigger>
+											<TabsTrigger value="domains">
+												{t("tabs.domains")}
+											</TabsTrigger>
+											<TabsTrigger value="deployments">
+												{t("tabs.deployments")}
+											</TabsTrigger>
+											<TabsTrigger value="backups">
+												{t("tabs.backups")}
+											</TabsTrigger>
+											<TabsTrigger value="schedules">
+												{t("tabs.schedules")}
+											</TabsTrigger>
+											<TabsTrigger value="volumeBackups">
+												{t("tabs.volumeBackups")}
+											</TabsTrigger>
+											<TabsTrigger value="logs">
+												{t("tabs.logs")}
+											</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
-												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+												<TabsTrigger value="monitoring">
+													{t("tabs.monitoring")}
+												</TabsTrigger>
 											)}
-											<TabsTrigger value="advanced">Advanced</TabsTrigger>
+											<TabsTrigger value="advanced">
+												{t("tabs.advanced")}
+											</TabsTrigger>
 										</TabsList>
 									</div>
 
@@ -384,6 +402,7 @@ export async function getServerSideProps(
 
 	const activeTab = query.tab;
 	const { user, session } = await validateRequest(req);
+	const locale = getLocale((req as any).cookies ?? {});
 	if (!user) {
 		return {
 			redirect: {
@@ -418,6 +437,7 @@ export async function getServerSideProps(
 					composeId: params?.composeId,
 					activeTab: (activeTab || "general") as TabState,
 					environmentId: params?.environmentId,
+					...(await serverSideTranslations(locale)),
 				},
 			};
 		} catch {

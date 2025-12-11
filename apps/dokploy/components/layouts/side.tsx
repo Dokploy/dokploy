@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -140,13 +141,13 @@ const MENU: Menu = {
 	home: [
 		{
 			isSingle: true,
-			title: "Projects",
+			title: "dashboard.projects",
 			url: "/dashboard/projects",
 			icon: Folder,
 		},
 		{
 			isSingle: true,
-			title: "Monitoring",
+			title: "dashboard.monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
 			// Only enabled in non-cloud environments
@@ -154,68 +155,50 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			title: "Schedules",
+			title: "dashboard.schedules",
 			url: "/dashboard/schedules",
 			icon: Clock,
 			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud, auth }) =>
-				!isCloud && (auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ isCloud, auth }) => !isCloud && auth?.role === "owner",
 		},
 		{
 			isSingle: true,
-			title: "Traefik File System",
+			title: "dashboard.traefikFileSystem",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
 			// Only enabled for admins and users with access to Traefik files in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
 				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToTraefikFiles) &&
+					(auth?.role === "owner" || auth?.canAccessToTraefikFiles) &&
 					!isCloud
 				),
 		},
 		{
 			isSingle: true,
-			title: "Docker",
+			title: "dashboard.docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 		{
 			isSingle: true,
-			title: "Swarm",
+			title: "dashboard.swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 		{
 			isSingle: true,
-			title: "Requests",
+			title: "dashboard.requests",
 			url: "/dashboard/requests",
 			icon: Forward,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!(
-					(auth?.role === "owner" ||
-						auth?.role === "admin" ||
-						auth?.canAccessToDocker) &&
-					!isCloud
-				),
+				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
 		},
 
 		// Legacy unused menu, adjusted to the new structure
@@ -278,120 +261,103 @@ const MENU: Menu = {
 	settings: [
 		{
 			isSingle: true,
-			title: "Web Server",
+			title: "settings.nav.webServer",
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 		{
 			isSingle: true,
-			title: "Profile",
+			title: "settings.nav.profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
 		},
 		{
 			isSingle: true,
-			title: "Remote Servers",
+			title: "settings.nav.remoteServers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
-			title: "Users",
+			title: "settings.nav.users",
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
-			title: "SSH Keys",
+			title: "settings.nav.sshKeys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for admins and users with access to SSH keys
 			isEnabled: ({ auth }) =>
-				!!(
-					auth?.role === "owner" ||
-					auth?.canAccessToSSHKeys ||
-					auth?.role === "admin"
-				),
+				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
 		},
 		{
-			title: "AI",
+			title: "settings.nav.ai",
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
-			title: "Git",
+			title: "settings.nav.git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
 			// Only enabled for admins and users with access to Git providers
 			isEnabled: ({ auth }) =>
-				!!(
-					auth?.role === "owner" ||
-					auth?.canAccessToGitProviders ||
-					auth?.role === "admin"
-				),
+				!!(auth?.role === "owner" || auth?.canAccessToGitProviders),
 		},
 		{
 			isSingle: true,
-			title: "Registry",
+			title: "settings.nav.registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
-			title: "S3 Destinations",
+			title: "settings.nav.destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 
 		{
 			isSingle: true,
-			title: "Certificates",
+			title: "settings.nav.certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
-			title: "Cluster",
+			title: "settings.nav.cluster",
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
 		},
 		{
 			isSingle: true,
-			title: "Notifications",
+			title: "settings.nav.notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			// Only enabled for admins
-			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.role === "admin"),
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
-			title: "Billing",
+			title: "settings.nav.billing",
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
@@ -401,17 +367,17 @@ const MENU: Menu = {
 
 	help: [
 		{
-			name: "Documentation",
+			name: "help.documentation",
 			url: "https://docs.dokploy.com/docs/core",
 			icon: BookIcon,
 		},
 		{
-			name: "Support",
+			name: "help.support",
 			url: "https://discord.gg/2tBnJ3jDJc",
 			icon: CircleHelp,
 		},
 		{
-			name: "Sponsor",
+			name: "help.sponsor",
 			url: "https://opencollective.com/dokploy",
 			icon: ({ className }) => (
 				<HeartIcon
@@ -546,6 +512,7 @@ function SidebarLogo() {
 	const { isMobile } = useSidebar();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const _utils = api.useUtils();
+	const { t } = useTranslation("common");
 
 	const { data: invitations, refetch: refetchInvitations } =
 		api.user.getInvitations.useQuery();
@@ -553,6 +520,11 @@ function SidebarLogo() {
 	const [_activeTeam, setActiveTeam] = useState<
 		typeof activeOrganization | null
 	>(null);
+	const displayOrgName =
+		activeOrganization?.name &&
+		activeOrganization.name.trim().toLowerCase() !== "my organization"
+			? activeOrganization.name
+			: t("organization.defaultName");
 
 	useEffect(() => {
 		if (activeOrganization) {
@@ -614,7 +586,7 @@ function SidebarLogo() {
 											)}
 										>
 											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
+												{displayOrgName ?? t("organization.select.placeholder")}
 											</p>
 										</div>
 									</div>
@@ -630,10 +602,15 @@ function SidebarLogo() {
 								sideOffset={4}
 							>
 								<DropdownMenuLabel className="text-xs text-muted-foreground">
-									Organizations
+									{t("organization.title")}
 								</DropdownMenuLabel>
 								{organizations?.map((org) => {
 									const isDefault = org.members?.[0]?.isDefault ?? false;
+									const displayName =
+										org.name &&
+										org.name.trim().toLowerCase() !== "my organization"
+											? org.name
+											: t("organization.defaultName");
 									return (
 										<div
 											className="flex flex-row justify-between"
@@ -650,7 +627,7 @@ function SidebarLogo() {
 											>
 												<div className="flex flex-col gap-1">
 													<div className="flex items-center gap-2">
-														{org.name}
+														{displayName}
 													</div>
 												</div>
 												<div className="flex size-6 items-center justify-center rounded-sm border">
@@ -684,19 +661,21 @@ function SidebarLogo() {
 														})
 															.then(() => {
 																refetch();
-																toast.success("Default organization updated");
+																toast.success(
+																	t("organization.default.updated"),
+																);
 															})
 															.catch((error) => {
 																toast.error(
-																	error?.message ||
-																		"Error setting default organization",
+																	error?.message ??
+																		t("organization.default.error"),
 																);
 															});
 													}}
 													title={
 														isDefault
-															? "Default organization"
-															: "Set as default"
+															? t("organization.default.tooltipCurrent")
+															: t("organization.default.tooltipSet")
 													}
 												>
 													{isDefault ? (
@@ -717,8 +696,8 @@ function SidebarLogo() {
 													<>
 														<AddOrganization organizationId={org.id} />
 														<DialogAction
-															title="Delete Organization"
-															description="Are you sure you want to delete this organization?"
+															title={t("organization.delete.title")}
+															description={t("organization.delete.description")}
 															type="destructive"
 															onClick={async () => {
 																await deleteOrganization({
@@ -727,13 +706,13 @@ function SidebarLogo() {
 																	.then(() => {
 																		refetch();
 																		toast.success(
-																			"Organization deleted successfully",
+																			t("organization.delete.success"),
 																		);
 																	})
 																	.catch((error) => {
 																		toast.error(
-																			error?.message ||
-																				"Error deleting organization",
+																			error?.message ??
+																				t("organization.delete.error"),
 																		);
 																	});
 															}}
@@ -753,9 +732,7 @@ function SidebarLogo() {
 										</div>
 									);
 								})}
-								{(user?.role === "owner" ||
-									user?.role === "admin" ||
-									isCloud) && (
+								{(user?.role === "owner" || isCloud) && (
 									<>
 										<DropdownMenuSeparator />
 										<AddOrganization />
@@ -790,7 +767,9 @@ function SidebarLogo() {
 								side={"right"}
 								className="w-80"
 							>
-								<DropdownMenuLabel>Pending Invitations</DropdownMenuLabel>
+								<DropdownMenuLabel>
+									{t("invitations.pending")}
+								</DropdownMenuLabel>
 								<div className="flex flex-col gap-2">
 									{invitations && invitations.length > 0 ? (
 										invitations.map((invitation) => (
@@ -803,16 +782,16 @@ function SidebarLogo() {
 														{invitation?.organization?.name}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Expires:{" "}
+														{t("invitations.field.expires")}:{" "}
 														{new Date(invitation.expiresAt).toLocaleString()}
 													</div>
 													<div className="text-xs text-muted-foreground">
-														Role: {invitation.role}
+														{t("invitations.field.role")}: {invitation.role}
 													</div>
 												</DropdownMenuItem>
 												<DialogAction
-													title="Accept Invitation"
-													description="Are you sure you want to accept this invitation?"
+													title={t("invitations.accept.title")}
+													description={t("invitations.accept.description")}
 													type="default"
 													onClick={async () => {
 														const { error } =
@@ -822,24 +801,24 @@ function SidebarLogo() {
 
 														if (error) {
 															toast.error(
-																error.message || "Error accepting invitation",
+																error.message ?? t("invitations.accept.error"),
 															);
 														} else {
-															toast.success("Invitation accepted successfully");
+															toast.success(t("invitations.accept.success"));
 															await refetchInvitations();
 															await refetch();
 														}
 													}}
 												>
 													<Button size="sm" variant="secondary">
-														Accept Invitation
+														{t("invitations.accept.title")}
 													</Button>
 												</DialogAction>
 											</div>
 										))
 									) : (
 										<DropdownMenuItem disabled>
-											No pending invitations
+											{t("invitations.none")}
 										</DropdownMenuItem>
 									)}
 								</div>
@@ -853,6 +832,7 @@ function SidebarLogo() {
 }
 
 export default function Page({ children }: Props) {
+	const { t } = useTranslation("common");
 	const [defaultOpen, setDefaultOpen] = useState<boolean | undefined>(
 		undefined,
 	);
@@ -917,7 +897,7 @@ export default function Page({ children }: Props) {
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
-						<SidebarGroupLabel>Home</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("dashboard.home")}</SidebarGroupLabel>
 						<SidebarMenu>
 							{filteredHome.map((item) => {
 								const isSingle = item.isSingle !== false;
@@ -938,7 +918,7 @@ export default function Page({ children }: Props) {
 											{isSingle ? (
 												<SidebarMenuButton
 													asChild
-													tooltip={item.title}
+													tooltip={t(item.title)}
 													className={cn(isActive && "bg-border")}
 												>
 													<Link
@@ -950,19 +930,19 @@ export default function Page({ children }: Props) {
 																className={cn(isActive && "text-primary")}
 															/>
 														)}
-														<span>{item.title}</span>
+														<span>{t(item.title)}</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
 												<>
 													<CollapsibleTrigger asChild>
 														<SidebarMenuButton
-															tooltip={item.title}
+															tooltip={t(item.title)}
 															isActive={isActive}
 														>
 															{item.icon && <item.icon />}
 
-															<span>{item.title}</span>
+															<span>{t(item.title)}</span>
 															{item.items?.length && (
 																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
 															)}
@@ -990,7 +970,7 @@ export default function Page({ children }: Props) {
 																					/>
 																				</span>
 																			)}
-																			<span>{subItem.title}</span>
+																			<span>{t(subItem.title)}</span>
 																		</Link>
 																	</SidebarMenuSubButton>
 																</SidebarMenuSubItem>
@@ -1006,7 +986,7 @@ export default function Page({ children }: Props) {
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup>
-						<SidebarGroupLabel>Settings</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("dashboard.settings")}</SidebarGroupLabel>
 						<SidebarMenu className="gap-1">
 							{filteredSettings.map((item) => {
 								const isSingle = item.isSingle !== false;
@@ -1027,7 +1007,7 @@ export default function Page({ children }: Props) {
 											{isSingle ? (
 												<SidebarMenuButton
 													asChild
-													tooltip={item.title}
+													tooltip={t(item.title)}
 													className={cn(isActive && "bg-border")}
 												>
 													<Link
@@ -1039,19 +1019,19 @@ export default function Page({ children }: Props) {
 																className={cn(isActive && "text-primary")}
 															/>
 														)}
-														<span>{item.title}</span>
+														<span>{t(item.title)}</span>
 													</Link>
 												</SidebarMenuButton>
 											) : (
 												<>
 													<CollapsibleTrigger asChild>
 														<SidebarMenuButton
-															tooltip={item.title}
+															tooltip={t(item.title)}
 															isActive={isActive}
 														>
 															{item.icon && <item.icon />}
 
-															<span>{item.title}</span>
+															<span>{t(item.title)}</span>
 															{item.items?.length && (
 																<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
 															)}
@@ -1079,7 +1059,7 @@ export default function Page({ children }: Props) {
 																					/>
 																				</span>
 																			)}
-																			<span>{subItem.title}</span>
+																			<span>{t(subItem.title)}</span>
 																		</Link>
 																	</SidebarMenuSubButton>
 																</SidebarMenuSubItem>
@@ -1095,7 +1075,7 @@ export default function Page({ children }: Props) {
 						</SidebarMenu>
 					</SidebarGroup>
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-						<SidebarGroupLabel>Extra</SidebarGroupLabel>
+						<SidebarGroupLabel>{t("dashboard.extra")}</SidebarGroupLabel>
 						<SidebarMenu>
 							{help.map((item: ExternalLink) => (
 								<SidebarMenuItem key={item.name}>
@@ -1109,7 +1089,7 @@ export default function Page({ children }: Props) {
 											<span className="mr-2">
 												<item.icon className="h-4 w-4" />
 											</span>
-											<span>{item.name}</span>
+											<span>{t(item.name)}</span>
 										</a>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
@@ -1119,7 +1099,7 @@ export default function Page({ children }: Props) {
 				</SidebarContent>
 				<SidebarFooter>
 					<SidebarMenu className="flex flex-col gap-2">
-						{!isCloud && (auth?.role === "owner" || auth?.role === "admin") && (
+						{!isCloud && auth?.role === "owner" && (
 							<SidebarMenuItem>
 								<UpdateServerButton />
 							</SidebarMenuItem>
@@ -1130,10 +1110,10 @@ export default function Page({ children }: Props) {
 						{dokployVersion && (
 							<>
 								<div className="px-3 text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
-									Version {dokployVersion}
+									{t("common.version")} {dokployVersion}
 								</div>
 								<div className="hidden text-xs text-muted-foreground text-center group-data-[collapsible=icon]:block">
-									{dokployVersion}
+									{t("common.version")} {dokployVersion}
 								</div>
 							</>
 						)}
@@ -1156,7 +1136,7 @@ export default function Page({ children }: Props) {
 													href={activeItem?.url || "/"}
 													className="flex items-center gap-1.5"
 												>
-													{activeItem?.title}
+													{t(activeItem?.title ?? "dashboard.title")}
 												</Link>
 											</BreadcrumbLink>
 										</BreadcrumbItem>

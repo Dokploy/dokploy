@@ -1,4 +1,5 @@
 import { CodeIcon, GitBranch, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export const ShowProviderFormCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data: githubProviders, isLoading: isLoadingGithub } =
 		api.github.githubProviders.useQuery();
 	const { data: gitlabProviders, isLoading: isLoadingGitlab } =
@@ -48,12 +50,12 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 	const handleDisconnect = async () => {
 		try {
 			await disconnectGitProvider({ composeId });
-			toast.success("Repository disconnected successfully");
+			toast.success(t("application.git.main.toast.disconnectSuccess"));
 			await refetch();
 		} catch (error) {
 			toast.error(
-				`Failed to disconnect repository: ${
-					error instanceof Error ? error.message : "Unknown error"
+				`${t("application.git.main.toast.disconnectErrorPrefix")}: ${
+					error instanceof Error ? error.message : t("common.unknownError")
 				}`,
 			);
 		}
@@ -65,9 +67,11 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 				<CardHeader>
 					<CardTitle className="flex items-start justify-between">
 						<div className="flex flex-col gap-2">
-							<span className="flex flex-col space-y-0.5">Provider</span>
+							<span className="flex flex-col space-y-0.5">
+								{t("application.git.main.cardTitle")}
+							</span>
 							<p className="flex items-center text-sm font-normal text-muted-foreground">
-								Select the source of your code
+								{t("application.git.main.cardDescription")}
 							</p>
 						</div>
 						<div className="hidden space-y-1 text-sm font-normal md:block">
@@ -79,7 +83,7 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 					<div className="flex min-h-[25vh] items-center justify-center">
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<Loader2 className="size-4 animate-spin" />
-							<span>Loading providers...</span>
+							<span>{t("application.git.main.loadingProviders")}</span>
 						</div>
 					</div>
 				</CardContent>
@@ -98,9 +102,11 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 				<CardHeader>
 					<CardTitle className="flex items-start justify-between">
 						<div className="flex flex-col gap-2">
-							<span className="flex flex-col space-y-0.5">Provider</span>
+							<span className="flex flex-col space-y-0.5">
+								{t("application.git.main.cardTitle")}
+							</span>
 							<p className="flex items-center text-sm font-normal text-muted-foreground">
-								Repository connection through unauthorized provider
+								{t("application.git.main.unauthorizedDescription")}
 							</p>
 						</div>
 						<div className="hidden space-y-1 text-sm font-normal md:block">
@@ -123,9 +129,11 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">
-						<span className="flex flex-col space-y-0.5">Provider</span>
+						<span className="flex flex-col space-y-0.5">
+							{t("application.git.main.cardTitle")}
+						</span>
 						<p className="flex items-center text-sm font-normal text-muted-foreground">
-							Select the source of your code
+							{t("application.git.main.cardDescription")}
 						</p>
 					</div>
 					<div className="hidden space-y-1 text-sm font-normal md:flex flex-row items-center gap-2">
@@ -149,41 +157,42 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GithubIcon className="size-4 text-current fill-current" />
-								GitHub
+								{t("application.git.main.tabs.github")}
 							</TabsTrigger>
 							<TabsTrigger
 								value="gitlab"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GitlabIcon className="size-4 text-current fill-current" />
-								GitLab
+								{t("application.git.main.tabs.gitlab")}
 							</TabsTrigger>
 							<TabsTrigger
 								value="bitbucket"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<BitbucketIcon className="size-4 text-current fill-current" />
-								Bitbucket
+								{t("application.git.main.tabs.bitbucket")}
 							</TabsTrigger>
 							<TabsTrigger
 								value="gitea"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GiteaIcon className="size-4 text-current fill-current" /> Gitea
+								{t("application.git.main.tabs.gitea")}
 							</TabsTrigger>
 							<TabsTrigger
 								value="git"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<GitIcon />
-								Git
+								{t("application.git.main.tabs.git")}
 							</TabsTrigger>
 							<TabsTrigger
 								value="raw"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"
 							>
 								<CodeIcon className="size-4" />
-								Raw
+								{t("compose.git.main.tabs.raw")}
 							</TabsTrigger>
 						</TabsList>
 					</div>
@@ -195,15 +204,15 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<GithubIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using GitHub, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.git.github.empty.description", {
+										settingsLink: t("application.git.main.settingsLink"),
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
-										className="text-foreground"
+										className="text-foreground underline"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.git.main.settingsLink")}
+									</Link>
 								</span>
 							</div>
 						)}
@@ -215,15 +224,15 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<GitlabIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using GitLab, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.git.gitlab.empty.description", {
+										settingsLink: t("application.git.main.settingsLink"),
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
-										className="text-foreground"
+										className="text-foreground underline"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.git.main.settingsLink")}
+									</Link>
 								</span>
 							</div>
 						)}
@@ -235,15 +244,15 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<BitbucketIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using Bitbucket, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.git.bitbucket.empty.description", {
+										settingsLink: t("application.git.main.settingsLink"),
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
-										className="text-foreground"
+										className="text-foreground underline"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.git.main.settingsLink")}
+									</Link>
 								</span>
 							</div>
 						)}
@@ -255,15 +264,15 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 							<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 								<GiteaIcon className="size-8 text-muted-foreground" />
 								<span className="text-base text-muted-foreground">
-									To deploy using Gitea, you need to configure your account
-									first. Please, go to{" "}
+									{t("application.git.gitea.empty.description", {
+										settingsLink: t("application.git.main.settingsLink"),
+									})}{" "}
 									<Link
 										href="/dashboard/settings/git-providers"
-										className="text-foreground"
+										className="text-foreground underline"
 									>
-										Settings
-									</Link>{" "}
-									to do so.
+										{t("application.git.main.settingsLink")}
+									</Link>
 								</span>
 							</div>
 						)}

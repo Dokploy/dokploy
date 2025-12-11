@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useTranslation } from "next-i18next";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,19 +23,21 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
-const loginSchema = z.object({
-	email: z
-		.string()
-		.min(1, {
-			message: "Email is required",
-		})
-		.email({
-			message: "Email must be a valid email",
-		}),
-});
+const createLoginSchema = (t: (key: string) => string) =>
+	z.object({
+		email: z
+			.string()
+			.min(1, {
+				message: t("auth.validation.emailRequired"),
+			})
+			.email({
+				message: t("auth.validation.emailInvalid"),
+			}),
+	});
 
-type Login = z.infer<typeof loginSchema>;
+type Login = z.infer<ReturnType<typeof createLoginSchema>>;
 
 type AuthResponse = {
 	is2FAEnabled: boolean;
@@ -47,6 +50,8 @@ export default function Home() {
 		authId: "",
 	});
 
+	const { t } = useTranslation("common");
+
 	const [error, setError] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const _router = useRouter();
@@ -54,7 +59,7 @@ export default function Home() {
 		defaultValues: {
 			email: "",
 		},
-		resolver: zodResolver(loginSchema),
+		resolver: zodResolver(createLoginSchema(t)),
 	});
 
 	useEffect(() => {
@@ -68,10 +73,10 @@ export default function Home() {
 			redirectTo: "/reset-password",
 		});
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("auth.reset.error.generic"));
 			setIsLoading(false);
 		} else {
-			toast.success("Email sent", {
+			toast.success(t("auth.reset.toast.emailSent"), {
 				duration: 2000,
 			});
 		}
@@ -84,9 +89,11 @@ export default function Home() {
 					<Logo />
 					<span className="font-medium text-sm">Dokploy</span>
 				</Link>
-				<CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+				<CardTitle className="text-2xl font-bold">
+					{t("auth.reset.title")}
+				</CardTitle>
 				<CardDescription>
-					Enter your email to reset your password
+					{t("auth.reset.email.subtitle")}
 				</CardDescription>
 
 				<div className="mx-auto w-full max-w-lg bg-transparent ">
@@ -108,9 +115,12 @@ export default function Home() {
 											name="email"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Email</FormLabel>
+													<FormLabel>{t("auth.emailLabel")}</FormLabel>
 													<FormControl>
-														<Input placeholder="Email" {...field} />
+														<Input
+															placeholder={t("auth.emailPlaceholder")}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -122,7 +132,7 @@ export default function Home() {
 											isLoading={isLoading}
 											className="w-full"
 										>
-											Send Reset Link
+											{t("auth.reset.sendLinkButton")}
 										</Button>
 									</div>
 								</form>
@@ -135,7 +145,7 @@ export default function Home() {
 									className="hover:underline text-muted-foreground"
 									href="/"
 								>
-									Login
+									{t("auth.loginButton")}
 								</Link>
 							</div>
 						</div>
@@ -149,7 +159,7 @@ export default function Home() {
 Home.getLayout = (page: ReactElement) => {
 	return <OnboardingLayout>{page}</OnboardingLayout>;
 };
-export async function getServerSideProps(_context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
 	if (!IS_CLOUD) {
 		return {
 			redirect: {
@@ -159,7 +169,11 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 		};
 	}
 
+	const locale = getLocale((context.req as any).cookies ?? {});
+
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale)),
+		},
 	};
 }

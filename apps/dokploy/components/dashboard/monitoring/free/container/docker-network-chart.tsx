@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "next-i18next";
 import {
 	Area,
 	AreaChart,
@@ -15,10 +16,11 @@ interface Props {
 }
 
 export const DockerNetworkChart = ({ acummulativeData }: Props) => {
+	const { t } = useTranslation("common");
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
 			time: item.time,
-			name: `Point ${index + 1}`,
+			name: t("monitoring.chart.point", { index: index + 1 }),
 			inMB: item.value.inputMb,
 			outMB: item.value.outputMb,
 		};
@@ -52,7 +54,7 @@ export const DockerNetworkChart = ({ acummulativeData }: Props) => {
 						stroke="#8884d8"
 						fillOpacity={1}
 						fill="url(#colorUv)"
-						name="In MB"
+						name={t("monitoring.network.inMB")}
 					/>
 					<Area
 						type="monotone"
@@ -60,7 +62,7 @@ export const DockerNetworkChart = ({ acummulativeData }: Props) => {
 						stroke="#82ca9d"
 						fillOpacity={1}
 						fill="url(#colorUv)"
-						name="Out MB"
+						name={t("monitoring.network.outMB")}
 					/>
 				</AreaChart>
 			</ResponsiveContainer>
@@ -83,14 +85,25 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const { t } = useTranslation("common");
 	if (active && payload && payload.length && payload[0]) {
+		const inMB = payload[0].payload.inMB;
+		const outMB = payload[0].payload.outMB;
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
 				{payload[0].payload.time && (
-					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+					<p>
+						{t("monitoring.chart.date", {
+							date: format(new Date(payload[0].payload.time), "PPpp"),
+						})}
+					</p>
 				)}
-				<p>{`In  Usage: ${payload[0].payload.inMB} `}</p>
-				<p>{`Out  Usage: ${payload[0].payload.outMB} `}</p>
+				<p>
+					{`${t("monitoring.tooltip.input")}: ${inMB} MB`}
+				</p>
+				<p>
+					{`${t("monitoring.tooltip.output")}: ${outMB} MB`}
+				</p>
 			</div>
 		);
 	}

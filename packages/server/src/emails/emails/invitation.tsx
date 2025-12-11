@@ -13,26 +13,34 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import { getInvitationEmailContent } from "../../utils/i18n/backend";
 
 export type TemplateProps = {
 	email: string;
 	name: string;
 };
 
-interface VercelInviteUserEmailProps {
+
+interface InvitationEmailProps {
 	inviteLink: string;
 	toEmail: string;
+	organizationName?: string;
 }
 
 export const InvitationEmail = ({
 	inviteLink,
 	toEmail,
-}: VercelInviteUserEmailProps) => {
-	const previewText = "Join to Dokploy";
+	organizationName = "Dokploy",
+}: InvitationEmailProps) => {
+	const content = getInvitationEmailContent({
+		organizationName,
+		inviteLink,
+		toEmail,
+	});
 	return (
 		<Html>
 			<Head />
-			<Preview>{previewText}</Preview>
+			<Preview>{content.previewText}</Preview>
 			<Tailwind
 				config={{
 					theme: {
@@ -49,7 +57,7 @@ export const InvitationEmail = ({
 						<Section className="mt-[32px]">
 							<Img
 								src={
-									"https://raw.githubusercontent.com/Dokploy/dokploy/refs/heads/canary/apps/dokploy/logo.png"
+									"https://raw.githubusercontent.com/Frankieli123/dokploy-i18n/refs/heads/main/apps/dokploy/logo.png"
 								}
 								width="100"
 								height="50"
@@ -58,35 +66,37 @@ export const InvitationEmail = ({
 							/>
 						</Section>
 						<Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
-							Join to <strong>Dokploy</strong>
+							{content.heading.beforeOrganizationName}
+							<strong>{organizationName}</strong>
+							{content.heading.afterOrganizationName}
 						</Heading>
 						<Text className="text-black text-[14px] leading-[24px]">
-							Hello,
+							{content.greeting}
 						</Text>
 						<Text className="text-black text-[14px] leading-[24px]">
-							You have been invited to join <strong>Dokploy</strong>, a platform
-							that helps for deploying your apps to the cloud.
+							{content.mainText.beforeOrganizationName}
+							<strong>{organizationName}</strong>
+							{content.mainText.afterOrganizationName}
 						</Text>
 						<Section className="text-center mt-[32px] mb-[32px]">
 							<Button
 								href={inviteLink}
 								className="bg-[#000000] rounded text-white text-[12px] font-semibold no-underline text-center px-5 py-3"
 							>
-								Join the team 🚀
+								{content.buttonLabel}
 							</Button>
 						</Section>
 						<Text className="text-black text-[14px] leading-[24px]">
-							or copy and paste this URL into your browser:{" "}
+							{content.orCopyUrlText}{" "}
 							<Link href={inviteLink} className="text-blue-600 no-underline">
-								https://dokploy.com
+								{inviteLink}
 							</Link>
 						</Text>
 						<Hr className="border border-solid border-[#eaeaea] my-[26px] mx-0 w-full" />
 						<Text className="text-[#666666] text-[12px] leading-[24px]">
-							This invitation was intended for {toEmail}. This invite was sent
-							from <strong className="text-black">dokploy.com</strong>. If you
-							were not expecting this invitation, you can ignore this email. If
-							you are concerned about your account's safety, please reply to
+							{content.footer.beforeEmail}
+							{toEmail}
+							{content.footer.afterEmail}
 						</Text>
 					</Container>
 				</Body>

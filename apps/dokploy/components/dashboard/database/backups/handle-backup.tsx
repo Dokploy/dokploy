@@ -7,6 +7,7 @@ import {
 	PlusIcon,
 	RefreshCw,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -67,113 +68,138 @@ type CacheType = "cache" | "fetch";
 
 type DatabaseType = "postgres" | "mariadb" | "mysql" | "mongo" | "web-server";
 
-const Schema = z
-	.object({
-		destinationId: z.string().min(1, "Destination required"),
-		schedule: z.string().min(1, "Schedule (Cron) required"),
-		prefix: z.string().min(1, "Prefix required"),
-		enabled: z.boolean(),
-		database: z.string().min(1, "Database required"),
-		keepLatestCount: z.coerce.number().optional(),
-		serviceName: z.string().nullable(),
-		databaseType: z
-			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
-			.optional(),
-		backupType: z.enum(["database", "compose"]),
-		metadata: z
-			.object({
-				postgres: z
-					.object({
-						databaseUser: z.string(),
-					})
-					.optional(),
-				mariadb: z
-					.object({
-						databaseUser: z.string(),
-						databasePassword: z.string(),
-					})
-					.optional(),
-				mongo: z
-					.object({
-						databaseUser: z.string(),
-						databasePassword: z.string(),
-					})
-					.optional(),
-				mysql: z
-					.object({
-						databaseRootPassword: z.string(),
-					})
-					.optional(),
-			})
-			.optional(),
-	})
-	.superRefine((data, ctx) => {
-		if (data.backupType === "compose" && !data.databaseType) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Database type is required for compose backups",
-				path: ["databaseType"],
-			});
-		}
+const createBackupSchema = (t: (key: string) => string) =>
+	z
+		.object({
+			destinationId: z
+				.string()
+				.min(1, t("backups.restore.validation.destinationRequired")),
+			schedule: z
+				.string()
+				.min(1, t("backups.handle.validation.scheduleRequired")),
+			prefix: z
+				.string()
+				.min(1, t("backups.handle.validation.prefixRequired")),
+			enabled: z.boolean(),
+			database: z
+				.string()
+				.min(1, t("backups.restore.validation.databaseNameRequired")),
+			keepLatestCount: z.coerce.number().optional(),
+			serviceName: z.string().nullable(),
+			databaseType: z
+				.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
+				.optional(),
+			backupType: z.enum(["database", "compose"]),
+			metadata: z
+				.object({
+					postgres: z
+						.object({
+							databaseUser: z.string(),
+						})
+						.optional(),
+					mariadb: z
+						.object({
+							databaseUser: z.string(),
+							databasePassword: z.string(),
+						})
+						.optional(),
+					mongo: z
+						.object({
+							databaseUser: z.string(),
+							databasePassword: z.string(),
+						})
+						.optional(),
+					mysql: z
+						.object({
+							databaseRootPassword: z.string(),
+						})
+						.optional(),
+				})
+				.optional(),
+		})
+		.superRefine((data, ctx) => {
+			if (data.backupType === "compose" && !data.databaseType) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: t(
+						"backups.restore.validation.databaseTypeRequiredForCompose",
+					),
+					path: ["databaseType"],
+				});
+			}
 
-		if (data.backupType === "compose" && !data.serviceName) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Service name is required for compose backups",
-				path: ["serviceName"],
-			});
-		}
+			if (data.backupType === "compose" && !data.serviceName) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: t(
+						"backups.restore.validation.serviceNameRequiredForCompose",
+					),
+					path: ["serviceName"],
+				});
+			}
 
-		if (data.backupType === "compose" && data.databaseType) {
-			if (data.databaseType === "postgres") {
-				if (!data.metadata?.postgres?.databaseUser) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Database user is required for PostgreSQL",
-						path: ["metadata", "postgres", "databaseUser"],
-					});
-				}
-			} else if (data.databaseType === "mariadb") {
-				if (!data.metadata?.mariadb?.databaseUser) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Database user is required for MariaDB",
-						path: ["metadata", "mariadb", "databaseUser"],
-					});
-				}
-				if (!data.metadata?.mariadb?.databasePassword) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Database password is required for MariaDB",
-						path: ["metadata", "mariadb", "databasePassword"],
-					});
-				}
-			} else if (data.databaseType === "mongo") {
-				if (!data.metadata?.mongo?.databaseUser) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Database user is required for MongoDB",
-						path: ["metadata", "mongo", "databaseUser"],
-					});
-				}
-				if (!data.metadata?.mongo?.databasePassword) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Database password is required for MongoDB",
-						path: ["metadata", "mongo", "databasePassword"],
-					});
-				}
-			} else if (data.databaseType === "mysql") {
-				if (!data.metadata?.mysql?.databaseRootPassword) {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "Root password is required for MySQL",
-						path: ["metadata", "mysql", "databaseRootPassword"],
-					});
+			if (data.backupType === "compose" && data.databaseType) {
+				if (data.databaseType === "postgres") {
+					if (!data.metadata?.postgres?.databaseUser) {
+						ctx.addIssue({
+							code: z.ZodIssueCode.custom,
+							message: t(
+								"backups.restore.validation.postgresUserRequired",
+							),
+							path: ["metadata", "postgres", "databaseUser"],
+						});
+					}
+				} else if (data.databaseType === "mariadb") {
+					if (!data.metadata?.mariadb?.databaseUser) {
+						ctx.addIssue({
+							code: z.ZodIssueCode.custom,
+							message: t(
+								"backups.restore.validation.mariadbUserRequired",
+							),
+							path: ["metadata", "mariadb", "databaseUser"],
+						});
+					}
+					if (!data.metadata?.mariadb?.databasePassword) {
+						ctx.addIssue({
+							code: z.ZodIssueCode.custom,
+							message: t(
+								"backups.restore.validation.mariadbPasswordRequired",
+							),
+							path: ["metadata", "mariadb", "databasePassword"],
+						});
+					}
+				} else if (data.databaseType === "mongo") {
+					if (!data.metadata?.mongo?.databaseUser) {
+						ctx.addIssue({
+							code: z.ZodIssueCode.custom,
+							message: t(
+								"backups.restore.validation.mongoUserRequired",
+							),
+							path: ["metadata", "mongo", "databaseUser"],
+						});
+					}
+					if (!data.metadata?.mongo?.databasePassword) {
+						ctx.addIssue({
+							code: z.ZodIssueCode.custom,
+							message: t(
+								"backups.restore.validation.mongoPasswordRequired",
+							),
+							path: ["metadata", "mongo", "databasePassword"],
+						});
+					}
+				} else if (data.databaseType === "mysql") {
+					if (!data.metadata?.mysql?.databaseRootPassword) {
+						ctx.addIssue({
+							code: z.ZodIssueCode.custom,
+							message: t(
+								"backups.restore.validation.mysqlRootPasswordRequired",
+							),
+							path: ["metadata", "mysql", "databaseRootPassword"],
+						});
+					}
 				}
 			}
-		}
-	});
+		});
 
 interface Props {
 	id?: string;
@@ -191,6 +217,7 @@ export const HandleBackup = ({
 	backupType = "database",
 }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
+	const { t } = useTranslation("common");
 
 	const { data, isLoading } = api.destination.all.useQuery();
 	const { data: backup } = api.backup.one.useQuery(
@@ -207,7 +234,7 @@ export const HandleBackup = ({
 			? api.backup.update.useMutation()
 			: api.backup.create.useMutation();
 
-	const form = useForm<z.infer<typeof Schema>>({
+	const form = useForm<z.infer<ReturnType<typeof createBackupSchema>>>({
 		defaultValues: {
 			database: databaseType === "web-server" ? "dokploy" : "",
 			destinationId: "",
@@ -220,7 +247,7 @@ export const HandleBackup = ({
 			backupType: backupType,
 			metadata: {},
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(createBackupSchema(t)),
 	});
 
 	const {
@@ -259,7 +286,9 @@ export const HandleBackup = ({
 		});
 	}, [form, form.reset, backupId, backup]);
 
-	const onSubmit = async (data: z.infer<typeof Schema>) => {
+	const onSubmit = async (
+		data: z.infer<ReturnType<typeof createBackupSchema>>,
+	) => {
 		const getDatabaseId =
 			backupType === "compose"
 				? {
@@ -302,12 +331,20 @@ export const HandleBackup = ({
 			metadata: data.metadata,
 		})
 			.then(async () => {
-				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
+				if (backupId) {
+					toast.success(t("backups.handle.toast.update.success"));
+				} else {
+					toast.success(t("backups.handle.toast.create.success"));
+				}
 				refetch();
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error(`Error ${backupId ? "updating" : "creating"} a backup`);
+				if (backupId) {
+					toast.error(t("backups.handle.toast.update.error"));
+				} else {
+					toast.error(t("backups.handle.toast.create.error"));
+				}
 			});
 	};
 
@@ -325,17 +362,21 @@ export const HandleBackup = ({
 				) : (
 					<Button>
 						<PlusIcon className="h-4 w-4" />
-						{backupId ? "Update Backup" : "Create Backup"}
+						{t("backups.handle.button.create")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>
-						{backupId ? "Update Backup" : "Create Backup"}
+						{backupId
+							? t("backups.handle.dialog.update.title")
+							: t("backups.handle.dialog.create.title")}
 					</DialogTitle>
 					<DialogDescription>
-						{backupId ? "Update a backup" : "Add a new backup"}
+						{backupId
+							? t("backups.handle.dialog.update.description")
+							: t("backups.handle.dialog.create.description")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -357,7 +398,9 @@ export const HandleBackup = ({
 									name="databaseType"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Database Type</FormLabel>
+											<FormLabel>
+												{t("backups.restore.field.databaseTypeLabel")}
+											</FormLabel>
 											<Select
 												value={field.value}
 												onValueChange={(value) => {
@@ -366,13 +409,25 @@ export const HandleBackup = ({
 												}}
 											>
 												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Select a database type" />
+													<SelectValue
+														placeholder={t(
+															"backups.restore.field.databaseTypePlaceholder",
+														)}
+													/>
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem value="postgres">PostgreSQL</SelectItem>
-													<SelectItem value="mariadb">MariaDB</SelectItem>
-													<SelectItem value="mysql">MySQL</SelectItem>
-													<SelectItem value="mongo">MongoDB</SelectItem>
+													<SelectItem value="postgres">
+														{t("service.type.postgres")}
+													</SelectItem>
+													<SelectItem value="mariadb">
+														{t("service.type.mariadb")}
+													</SelectItem>
+													<SelectItem value="mysql">
+														{t("service.type.mysql")}
+													</SelectItem>
+													<SelectItem value="mongo">
+														{t("service.type.mongo")}
+													</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormMessage />
@@ -385,7 +440,9 @@ export const HandleBackup = ({
 								name="destinationId"
 								render={({ field }) => (
 									<FormItem className="">
-										<FormLabel>Destination</FormLabel>
+										<FormLabel>
+											{t("backups.restore.field.destination")}
+										</FormLabel>
 										<Popover>
 											<PopoverTrigger asChild>
 												<FormControl>
@@ -397,13 +454,15 @@ export const HandleBackup = ({
 														)}
 													>
 														{isLoading
-															? "Loading...."
+															? t("loading")
 															: field.value
 																? data?.find(
 																		(destination) =>
 																			destination.destinationId === field.value,
 																	)?.name
-																: "Select Destination"}
+																: t(
+																		"backups.restore.field.destinationPlaceholder",
+																	)}
 
 														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 													</Button>
@@ -412,15 +471,19 @@ export const HandleBackup = ({
 											<PopoverContent className="p-0" align="start">
 												<Command>
 													<CommandInput
-														placeholder="Search Destination..."
+														placeholder={t(
+															"backups.restore.field.destinationSearchPlaceholder",
+														)}
 														className="h-9"
 													/>
 													{isLoading && (
 														<span className="py-6 text-center text-sm">
-															Loading Destinations....
+															{t("loading")}
 														</span>
 													)}
-													<CommandEmpty>No destinations found.</CommandEmpty>
+													<CommandEmpty>
+														{t("backups.restore.field.destinationEmpty")}
+													</CommandEmpty>
 													<ScrollArea className="h-64">
 														<CommandGroup>
 															{data?.map((destination) => (
@@ -462,7 +525,9 @@ export const HandleBackup = ({
 										name="serviceName"
 										render={({ field }) => (
 											<FormItem className="w-full">
-												<FormLabel>Service Name</FormLabel>
+												<FormLabel>
+													{t("backups.restore.field.serviceNameLabel")}
+												</FormLabel>
 												<div className="flex gap-2">
 													<Select
 														onValueChange={field.onChange}
@@ -470,7 +535,11 @@ export const HandleBackup = ({
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select a service name" />
+																<SelectValue
+																	placeholder={t(
+																		"backups.restore.field.serviceNamePlaceholder",
+																	)}
+																/>
 															</SelectTrigger>
 														</FormControl>
 
@@ -485,7 +554,7 @@ export const HandleBackup = ({
 															))}
 															{(!services || services.length === 0) && (
 																<SelectItem value="none" disabled>
-																	Empty
+																	{t("backups.restore.field.serviceNameEmpty")}
 																</SelectItem>
 															)}
 														</SelectContent>
@@ -514,8 +583,7 @@ export const HandleBackup = ({
 																className="max-w-[10rem]"
 															>
 																<p>
-																	Fetch: Will clone the repository and load the
-																	services
+																	{t("backups.restore.tooltip.fetch")}
 																</p>
 															</TooltipContent>
 														</Tooltip>
@@ -544,9 +612,7 @@ export const HandleBackup = ({
 																className="max-w-[10rem]"
 															>
 																<p>
-																	Cache: If you previously deployed this
-																	compose, it will read the services from the
-																	last deployment/fetch from the repository
+																	{t("backups.restore.tooltip.cache")}
 																</p>
 															</TooltipContent>
 														</Tooltip>
@@ -565,11 +631,13 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Database</FormLabel>
+											<FormLabel>
+												{t("backups.field.database")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													disabled={databaseType === "web-server"}
-													placeholder={"dokploy"}
+													placeholder={t("backups.field.databasePlaceholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -587,13 +655,17 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Prefix Destination</FormLabel>
+											<FormLabel>
+												{t("backups.field.prefixStorage")}
+											</FormLabel>
 											<FormControl>
-												<Input placeholder={"dokploy/"} {...field} />
+												<Input
+													placeholder={t("backups.field.prefixStoragePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 											<FormDescription>
-												Use if you want to back up in a specific path of your
-												destination/bucket
+												{t("backups.handle.field.prefixDescription")}
 											</FormDescription>
 
 											<FormMessage />
@@ -607,17 +679,20 @@ export const HandleBackup = ({
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Keep the latest</FormLabel>
+											<FormLabel>
+												{t("backups.field.keepLatest")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
-													placeholder={"keeps all the backups if left empty"}
+													placeholder={t(
+														"backups.handle.field.keepLatestPlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
 											<FormDescription>
-												Optional. If provided, only keeps the latest N backups
-												in the cloud.
+												{t("backups.handle.field.keepLatestDescription")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -630,9 +705,11 @@ export const HandleBackup = ({
 								render={({ field }) => (
 									<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 ">
 										<div className="space-y-0.5">
-											<FormLabel>Enabled</FormLabel>
+											<FormLabel>
+												{t("backups.handle.field.enabledLabel")}
+											</FormLabel>
 											<FormDescription>
-												Enable or disable the backup
+												{t("backups.handle.field.enabledDescription")}
 											</FormDescription>
 										</div>
 										<FormControl>
@@ -652,9 +729,16 @@ export const HandleBackup = ({
 											name="metadata.postgres.databaseUser"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Database User</FormLabel>
+													<FormLabel>
+														{t("database.form.databaseUserLabel")}
+													</FormLabel>
 													<FormControl>
-														<Input placeholder="postgres" {...field} />
+														<Input
+															placeholder={t("database.form.databaseUserPlaceholder", {
+																defaultUser: "postgres",
+															})}
+															{...field}
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -669,9 +753,17 @@ export const HandleBackup = ({
 												name="metadata.mariadb.databaseUser"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database User</FormLabel>
+														<FormLabel>
+															{t("database.form.databaseUserLabel")}
+														</FormLabel>
 														<FormControl>
-															<Input placeholder="mariadb" {...field} />
+															<Input
+																placeholder={t(
+																	"database.form.databaseUserPlaceholder",
+																	{ defaultUser: "mariadb" },
+																)}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -682,11 +774,15 @@ export const HandleBackup = ({
 												name="metadata.mariadb.databasePassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database Password</FormLabel>
+														<FormLabel>
+															{t("database.form.databasePasswordLabel")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder="••••••••"
+																placeholder={t(
+																	"database.form.databasePasswordLabel",
+																)}
 																{...field}
 															/>
 														</FormControl>
@@ -704,9 +800,17 @@ export const HandleBackup = ({
 												name="metadata.mongo.databaseUser"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database User</FormLabel>
+														<FormLabel>
+															{t("database.form.databaseUserLabel")}
+														</FormLabel>
 														<FormControl>
-															<Input placeholder="mongo" {...field} />
+															<Input
+																placeholder={t(
+																	"database.form.databaseUserPlaceholder",
+																	{ defaultUser: "mongo" },
+																)}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -717,11 +821,15 @@ export const HandleBackup = ({
 												name="metadata.mongo.databasePassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Database Password</FormLabel>
+														<FormLabel>
+															{t("database.form.databasePasswordLabel")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
-																placeholder="••••••••"
+																placeholder={t(
+																	"database.form.databasePasswordLabel",
+																)}
 																{...field}
 															/>
 														</FormControl>
@@ -738,11 +846,15 @@ export const HandleBackup = ({
 											name="metadata.mysql.databaseRootPassword"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Root Password</FormLabel>
+													<FormLabel>
+														{t("database.form.databaseRootPasswordLabel")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															type="password"
-															placeholder="••••••••"
+															placeholder={t(
+																"database.form.databaseRootPasswordLabel",
+															)}
 															{...field}
 														/>
 													</FormControl>
@@ -760,7 +872,7 @@ export const HandleBackup = ({
 								form="hook-form-add-backup"
 								type="submit"
 							>
-								{backupId ? "Update" : "Create"}
+								{backupId ? t("button.update") : t("button.create")}
 							</Button>
 						</DialogFooter>
 					</form>

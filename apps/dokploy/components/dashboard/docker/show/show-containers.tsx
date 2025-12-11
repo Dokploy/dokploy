@@ -10,6 +10,7 @@ import {
 	type VisibilityState,
 } from "@tanstack/react-table";
 import { ChevronDown, Container } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +36,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api, type RouterOutputs } from "@/utils/api";
-import { columns } from "./colums";
+import { createColumns } from "./colums";
 export type Container = NonNullable<
 	RouterOutputs["docker"]["getContainers"]
 >[0];
@@ -44,10 +45,22 @@ interface Props {
 	serverId?: string;
 }
 
+const getColumnLabel = (columnId: string, t: (key: string) => string) => {
+	const columnLabelMap: Record<string, string> = {
+		name: t("docker.containers.table.name"),
+		state: t("docker.containers.table.state"),
+		status: t("docker.containers.table.status"),
+		image: t("docker.containers.table.image"),
+	};
+	return columnLabelMap[columnId] || columnId;
+};
+
 export const ShowContainers = ({ serverId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data, isLoading } = api.docker.getContainers.useQuery({
 		serverId,
 	});
+	const columns = React.useMemo(() => createColumns(t), [t]);
 
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -83,10 +96,10 @@ export const ShowContainers = ({ serverId }: Props) => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Container className="size-6 text-muted-foreground self-center" />
-							Docker Containers
+							{t("dashboard.containers")}
 						</CardTitle>
 						<CardDescription>
-							See all the containers of your dokploy server
+							{t("docker.containers.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -94,7 +107,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 							<div className="flex flex-col gap-4  w-full overflow-auto">
 								<div className="flex items-center gap-2 max-sm:flex-wrap">
 									<Input
-										placeholder="Filter by name..."
+										placeholder={t("docker.containers.filterPlaceholder")}
 										value={
 											(table.getColumn("name")?.getFilterValue() as string) ??
 											""
@@ -112,7 +125,8 @@ export const ShowContainers = ({ serverId }: Props) => {
 												variant="outline"
 												className="sm:ml-auto max-sm:w-full"
 											>
-												Columns <ChevronDown className="ml-2 h-4 w-4" />
+												{t("table.columns")}{" "}
+												<ChevronDown className="ml-2 h-4 w-4" />
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
@@ -129,7 +143,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 																column.toggleVisibility(!!value)
 															}
 														>
-															{column.id}
+															{getColumnLabel(column.id, t)}
 														</DropdownMenuCheckboxItem>
 													);
 												})}
@@ -140,13 +154,13 @@ export const ShowContainers = ({ serverId }: Props) => {
 									{isLoading ? (
 										<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
-												Loading...
+												{t("loading")}
 											</span>
 										</div>
 									) : data?.length === 0 ? (
 										<div className="flex-col gap-2 flex items-center justify-center h-[55vh]">
 											<span className="text-muted-foreground text-lg font-medium">
-												No results.
+												{t("search.noResults")}
 											</span>
 										</div>
 									) : (
@@ -195,11 +209,11 @@ export const ShowContainers = ({ serverId }: Props) => {
 															{isLoading ? (
 																<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
 																	<span className="text-muted-foreground text-lg font-medium">
-																		Loading...
+																		{t("loading")}
 																	</span>
 																</div>
 															) : (
-																<>No results.</>
+																<>{t("search.noResults")}</>
 															)}
 														</TableCell>
 													</TableRow>
@@ -217,7 +231,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 												onClick={() => table.previousPage()}
 												disabled={!table.getCanPreviousPage()}
 											>
-												Previous
+												{t("pagination.prev")}
 											</Button>
 											<Button
 												variant="outline"
@@ -225,7 +239,7 @@ export const ShowContainers = ({ serverId }: Props) => {
 												onClick={() => table.nextPage()}
 												disabled={!table.getCanNextPage()}
 											>
-												Next
+												{t("pagination.next")}
 											</Button>
 										</div>
 									</div>

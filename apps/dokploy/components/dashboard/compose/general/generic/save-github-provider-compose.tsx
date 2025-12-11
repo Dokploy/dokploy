@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -47,34 +48,50 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
-const GithubProviderSchema = z.object({
-	composePath: z.string().min(1),
-	repository: z
-		.object({
-			repo: z.string().min(1, "Repo is required"),
-			owner: z.string().min(1, "Owner is required"),
-		})
-		.required(),
-	branch: z.string().min(1, "Branch is required"),
-	githubId: z.string().min(1, "Github Provider is required"),
-	watchPaths: z.array(z.string()).optional(),
-	triggerType: z.enum(["push", "tag"]).default("push"),
-	enableSubmodules: z.boolean().default(false),
-});
+const createGithubProviderSchema = (t: (key: string) => string) =>
+	z.object({
+		composePath: z
+			.string()
+			.min(1, {
+				message: t("compose.git.validation.composePathRequired"),
+			}),
+		repository: z
+			.object({
+				repo: z.string().min(1, {
+					message: t("compose.git.validation.repoRequired"),
+				}),
+				owner: z.string().min(1, {
+					message: t("compose.git.validation.ownerRequired"),
+				}),
+			})
+			.required(),
+		branch: z.string().min(1, {
+			message: t("compose.git.validation.branchRequired"),
+		}),
+		githubId: z.string().min(1, {
+			message: t("compose.git.validation.providerRequired"),
+		}),
+		watchPaths: z.array(z.string()).optional(),
+		triggerType: z.enum(["push", "tag"]).default("push"),
+		enableSubmodules: z.boolean().default(false),
+	});
 
-type GithubProvider = z.infer<typeof GithubProviderSchema>;
+type GithubProvider = z.infer<ReturnType<typeof createGithubProviderSchema>>;
 
 interface Props {
 	composeId: string;
 }
 
 export const SaveGithubProviderCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation("common");
+	const watchPathInputRef = useRef<HTMLInputElement | null>(null);
 	const { data: githubProviders } = api.github.githubProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 
 	const { mutateAsync, isLoading: isSavingGithubProvider } =
 		api.compose.update.useMutation();
 
+	const schema = createGithubProviderSchema(t);
 	const form = useForm<GithubProvider>({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
@@ -88,7 +105,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			triggerType: "push",
 			enableSubmodules: false,
 		},
-		resolver: zodResolver(GithubProviderSchema),
+		resolver: zodResolver(schema),
 	});
 
 	const repository = form.watch("repository");
@@ -151,11 +168,11 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			triggerType: data.triggerType,
 		})
 			.then(async () => {
-				toast.success("Service Provider Saved");
+				toast.success(t("application.git.toast.saveSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Github provider");
+				toast.error(t("application.git.toast.saveError"));
 			});
 	};
 
@@ -172,7 +189,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 							name="githubId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Github Account</FormLabel>
+									<FormLabel>{t("compose.git.github.form.githubAccountLabel")}</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -187,7 +204,11 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Github Account" />
+												<SelectValue
+													placeholder={t(
+														"compose.git.github.form.githubAccountPlaceholder",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -211,7 +232,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>Repository</FormLabel>
+										<FormLabel>{t("compose.git.github.form.repositoryLabel")}</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`https://github.com/${field.value.owner}/${field.value.repo}`}
@@ -220,7 +241,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GithubIcon className="h-4 w-4" />
-												<span>View Repository</span>
+												<span>{t("compose.git.github.form.viewRepositoryLink")}</span>
 											</Link>
 										)}
 									</div>
@@ -235,12 +256,14 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{isLoadingRepositories
-														? "Loading...."
+														? t("compose.git.github.state.loadingRepositories")
 														: field.value.owner
 															? repositories?.find(
 																	(repo) => repo.name === field.value.repo,
 																)?.name
-															: "Select repository"}
+															: t(
+																	"compose.git.github.form.repositorySelectPlaceholder",
+																)}
 
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
@@ -249,15 +272,19 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search repository..."
+													placeholder={t(
+														"compose.git.github.form.repositorySearchPlaceholder",
+													)}
 													className="h-9"
 												/>
 												{isLoadingRepositories && (
-													<span className="py-6 text-center text-sm">
-														Loading Repositories....
+													<span className="py-6 text-center text-sm text-muted-foreground">
+														{t("compose.git.github.state.loadingRepositories")}
 													</span>
 												)}
-												<CommandEmpty>No repositories found.</CommandEmpty>
+												<CommandEmpty>
+													{t("compose.git.github.state.noRepositories")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{repositories?.map((repo) => (
@@ -292,12 +319,12 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
+										{form.formState.errors.repository && (
+											<p className={cn("text-sm font-medium text-destructive")}>
+												{t("compose.git.github.validation.repositoryRequired")}
+											</p>
+										)}
 									</Popover>
-									{form.formState.errors.repository && (
-										<p className={cn("text-sm font-medium text-destructive")}>
-											Repository is required
-										</p>
-									)}
 								</FormItem>
 							)}
 						/>
@@ -306,7 +333,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 							name="branch"
 							render={({ field }) => (
 								<FormItem className="block w-full">
-									<FormLabel>Branch</FormLabel>
+									<FormLabel>{t("compose.git.github.form.branchLabel")}</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -318,12 +345,14 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{status === "loading" && fetchStatus === "fetching"
-														? "Loading...."
+														? t("compose.git.github.state.loadingBranches")
 														: field.value
 															? branches?.find(
 																	(branch) => branch.name === field.value,
 																)?.name
-															: "Select branch"}
+															: t(
+																	"compose.git.github.form.branchSelectPlaceholder",
+																)}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -331,22 +360,25 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search branch..."
+													placeholder={t(
+														"compose.git.github.form.branchSearchPlaceholder",
+													)}
 													className="h-9"
 												/>
 												{status === "loading" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Loading Branches....
+														{t("compose.git.github.state.loadingBranches")}
 													</span>
 												)}
 												{!repository?.owner && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Select a repository
+														{t("compose.git.github.form.repositorySelectFirst")}
 													</span>
 												)}
+												<CommandEmpty>
+													{t("compose.git.github.state.noBranches")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
-													<CommandEmpty>No branch found.</CommandEmpty>
-
 													<CommandGroup>
 														{branches?.map((branch) => (
 															<CommandItem
@@ -371,7 +403,6 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
-
 										<FormMessage />
 									</Popover>
 								</FormItem>
@@ -382,9 +413,12 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 							name="composePath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Compose Path</FormLabel>
+									<FormLabel>{t("compose.git.form.composePathLabel")}</FormLabel>
 									<FormControl>
-										<Input placeholder="docker-compose.yml" {...field} />
+										<Input
+											placeholder={t("compose.git.form.composePathPlaceholder")}
+											{...field}
+										/>
 									</FormControl>
 
 									<FormMessage />
@@ -397,17 +431,14 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>Trigger Type</FormLabel>
+										<FormLabel>{t("compose.git.github.form.triggerTypeLabel")}</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
 												</TooltipTrigger>
 												<TooltipContent>
-													<p>
-														Choose when to trigger deployments: on push to the
-														selected branch or when a new tag is created.
-													</p>
+													<p>{t("compose.git.github.form.triggerTypeTooltip")}</p>
 												</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
@@ -419,12 +450,20 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a trigger type" />
+												<SelectValue
+													placeholder={t(
+														"compose.git.github.form.triggerTypePlaceholder",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
-											<SelectItem value="push">On Push</SelectItem>
-											<SelectItem value="tag">On Tag</SelectItem>
+											<SelectItem value="push">
+												{t("compose.git.github.form.triggerType.push")}
+											</SelectItem>
+											<SelectItem value="tag">
+												{t("compose.git.github.form.triggerType.tag")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									<FormMessage />
@@ -438,7 +477,9 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 								render={({ field }) => (
 									<FormItem className="md:col-span-2">
 										<div className="flex items-center gap-2">
-											<FormLabel>Watch Paths</FormLabel>
+											<FormLabel>
+												{t("application.git.watchPathsLabel")}
+											</FormLabel>
 											<TooltipProvider>
 												<Tooltip>
 													<TooltipTrigger>
@@ -447,11 +488,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 														</div>
 													</TooltipTrigger>
 													<TooltipContent>
-														<p>
-															Add paths to watch for changes. When files in
-															these paths change, a new deployment will be
-															triggered.
-														</p>
+														<p>{t("application.git.watchPathsTooltip")}</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
@@ -474,7 +511,8 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 										<FormControl>
 											<div className="flex gap-2">
 												<Input
-													placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
+													placeholder={t("application.git.watchPathsPlaceholder")}
+													ref={watchPathInputRef}
 													onKeyDown={(e) => {
 														if (e.key === "Enter") {
 															e.preventDefault();
@@ -495,9 +533,8 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 													type="button"
 													variant="secondary"
 													onClick={() => {
-														const input = document.querySelector(
-															'input[placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"]',
-														) as HTMLInputElement;
+														const input = watchPathInputRef.current;
+														if (!input) return;
 														const value = input.value.trim();
 														if (value) {
 															const newPaths = [...(field.value || []), value];
@@ -506,7 +543,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 														}
 													}}
 												>
-													Add
+													{t("application.git.button.addWatchPath")}
 												</Button>
 											</div>
 										</FormControl>
@@ -526,7 +563,9 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="!mt-0">
+										{t("application.git.enableSubmodulesLabel")}
+									</FormLabel>
 								</FormItem>
 							)}
 						/>
@@ -537,7 +576,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 							type="submit"
 							className="w-fit"
 						>
-							Save
+							{t("button.save")}
 						</Button>
 					</div>
 				</form>

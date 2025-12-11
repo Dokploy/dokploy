@@ -1,5 +1,7 @@
 import { format } from "date-fns";
+import { enUS, zhCN, zhTW } from "date-fns/locale";
 import { Loader2, MoreHorizontal, Users } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -29,15 +31,26 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { AddUserPermissions } from "./add-permissions";
-import { ChangeRole } from "./change-role";
 
 export const ShowUsers = () => {
+	const { t, i18n } = useTranslation("settings");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data, isLoading, refetch } = api.user.all.useQuery();
 	const { mutateAsync } = api.user.remove.useMutation();
-
 	const utils = api.useUtils();
-	const { data: session } = authClient.useSession();
+
+	const locale =
+		i18n?.language === "zh-Hans"
+			? zhCN
+			: i18n?.language === "zh-Hant"
+				? zhTW
+				: enUS;
+
+	const roleLabels: Record<string, string> = {
+		owner: t("settings.invitations.role.owner"),
+		admin: t("settings.invitations.role.admin"),
+		member: t("settings.invitations.role.member"),
+	};
 
 	return (
 		<div className="w-full">
@@ -46,16 +59,16 @@ export const ShowUsers = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Users className="size-6 text-muted-foreground self-center" />
-							Users
+							{t("settings.users.page.title")}
 						</CardTitle>
 						<CardDescription>
-							Add your users to your Dokploy account.
+							{t("settings.users.page.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -64,7 +77,7 @@ export const ShowUsers = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Invite users to your Dokploy account
+											{t("settings.users.page.empty")}
 										</span>
 									</div>
 								) : (
@@ -72,64 +85,26 @@ export const ShowUsers = () => {
 										<Table>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-[100px]">Email</TableHead>
-													<TableHead className="text-center">Role</TableHead>
-													<TableHead className="text-center">2FA</TableHead>
+													<TableHead className="w-[100px]">
+														{t("settings.users.page.table.email")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.users.page.table.role")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.users.page.table.twoFactor")}
+													</TableHead>
 
 													<TableHead className="text-center">
-														Created At
+														{t("settings.users.page.table.createdAt")}
 													</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
+													<TableHead className="text-right">
+														{t("settings.users.page.table.actions")}
+													</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
 												{data?.map((member) => {
-													const currentUserRole = data?.find(
-														(m) => m.user.id === session?.user?.id,
-													)?.role;
-
-													// Owner never has "Edit Permissions" (they're absolute owner)
-													// Other users can edit permissions if target is not themselves and target is a member
-													const canEditPermissions =
-														member.role !== "owner" &&
-														member.role === "member" &&
-														member.user.id !== session?.user?.id;
-
-													// Can change role based on hierarchy:
-													// - Owner: Can change anyone's role (except themselves and other owners)
-													// - Admin: Can only change member roles (not other admins or owners)
-													// - Owner role is intransferible
-													const canChangeRole =
-														member.role !== "owner" &&
-														member.user.id !== session?.user?.id &&
-														(currentUserRole === "owner" ||
-															(currentUserRole === "admin" &&
-																member.role === "member"));
-
-													// Delete/Unlink follow same hierarchy as role changes
-													// - Owner: Can delete/unlink anyone (except themselves and owner can't be deleted)
-													// - Admin: Can only delete/unlink members (not other admins or owner)
-													const canDelete =
-														member.role !== "owner" &&
-														!isCloud &&
-														member.user.id !== session?.user?.id &&
-														(currentUserRole === "owner" ||
-															(currentUserRole === "admin" &&
-																member.role === "member"));
-
-													const canUnlink =
-														member.role !== "owner" &&
-														member.user.id !== session?.user?.id &&
-														(currentUserRole === "owner" ||
-															(currentUserRole === "admin" &&
-																member.role === "member"));
-
-													const hasAnyAction =
-														canEditPermissions ||
-														canChangeRole ||
-														canDelete ||
-														canUnlink;
-
 													return (
 														<TableRow key={member.id}>
 															<TableCell className="w-[100px]">
@@ -143,22 +118,25 @@ export const ShowUsers = () => {
 																			: "secondary"
 																	}
 																>
-																	{member.role}
+																	{roleLabels[member.role] ||
+																		member.role}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
 																{member.user.twoFactorEnabled
-																	? "Enabled"
-																	: "Disabled"}
+																	? t("settings.users.page.twoFactor.enabled")
+																	: t("settings.users.page.twoFactor.disabled")}
 															</TableCell>
 															<TableCell className="text-center">
 																<span className="text-sm text-muted-foreground">
-																	{format(new Date(member.createdAt), "PPpp")}
+																	{format(new Date(member.createdAt), "PPpp", {
+																		locale,
+																	})}
 																</span>
 															</TableCell>
 
 															<TableCell className="text-right flex justify-end">
-																{hasAnyAction ? (
+																{member.role !== "owner" && (
 																	<DropdownMenu>
 																		<DropdownMenuTrigger asChild>
 																			<Button
@@ -166,36 +144,26 @@ export const ShowUsers = () => {
 																				className="h-8 w-8 p-0"
 																			>
 																				<span className="sr-only">
-																					Open menu
+																					{t("settings.users.page.actions.openMenu")}
 																				</span>
 																				<MoreHorizontal className="h-4 w-4" />
 																			</Button>
 																		</DropdownMenuTrigger>
 																		<DropdownMenuContent align="end">
 																			<DropdownMenuLabel>
-																				Actions
+																				{t("settings.users.page.table.actions")}
 																			</DropdownMenuLabel>
 
-																			{canChangeRole && (
-																				<ChangeRole
-																					memberId={member.id}
-																					currentRole={
-																						member.role as "admin" | "member"
-																					}
-																					userEmail={member.user.email}
-																				/>
-																			)}
+																			<AddUserPermissions
+																				userId={member.user.id}
+																			/>
 
-																			{canEditPermissions && (
-																				<AddUserPermissions
-																					userId={member.user.id}
-																				/>
-																			)}
-
-																			{canDelete && (
+																			{!isCloud && (
 																				<DialogAction
-																					title="Delete User"
-																					description="Are you sure you want to delete this user?"
+																					title={t("settings.users.page.actions.delete.title")}
+																					description={t(
+																						"settings.users.page.actions.delete.description",
+																					)}
 																					type="destructive"
 																					onClick={async () => {
 																						await mutateAsync({
@@ -203,14 +171,13 @@ export const ShowUsers = () => {
 																						})
 																							.then(() => {
 																								toast.success(
-																									"User deleted successfully",
+																									t("settings.users.page.actions.delete.success"),
 																								);
 																								refetch();
 																							})
-																							.catch((err) => {
+																							.catch(() => {
 																								toast.error(
-																									err?.message ||
-																										"Error deleting user",
+																									t("settings.users.page.actions.delete.error"),
 																								);
 																							});
 																					}}
@@ -219,84 +186,75 @@ export const ShowUsers = () => {
 																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						Delete User
+																						{t("settings.users.page.actions.delete.menu")}
 																					</DropdownMenuItem>
 																				</DialogAction>
 																			)}
 
-																			{canUnlink && (
-																				<DialogAction
-																					title="Unlink User"
-																					description="Are you sure you want to unlink this user?"
-																					type="destructive"
-																					onClick={async () => {
-																						if (!isCloud) {
-																							const orgCount =
-																								await utils.user.checkUserOrganizations.fetch(
-																									{
-																										userId: member.user.id,
-																									},
-																								);
-
-																							if (orgCount === 1) {
-																								await mutateAsync({
-																									userId: member.user.id,
-																								})
-																									.then(() => {
-																										toast.success(
-																											"User deleted successfully",
-																										);
-																										refetch();
-																									})
-																									.catch(() => {
-																										toast.error(
-																											"Error deleting user",
-																										);
-																									});
-																								return;
-																							}
-																						}
-
-																						const { error } =
-																							await authClient.organization.removeMember(
+																			<DialogAction
+																				title={t("settings.users.page.actions.unlink.title")}
+																				description={t(
+																					"settings.users.page.actions.unlink.description",
+																				)}
+																				type="destructive"
+																				onClick={async () => {
+																					if (!isCloud) {
+																						const orgCount =
+																							await utils.user.checkUserOrganizations.fetch(
 																								{
-																									memberIdOrEmail: member.id,
+																									userId: member.user.id,
 																								},
 																							);
 
-																						if (!error) {
-																							toast.success(
-																								"User unlinked successfully",
-																							);
-																							refetch();
-																						} else {
-																							toast.error(
-																								"Error unlinking user",
-																							);
+																						console.log(orgCount);
+
+																						if (orgCount === 1) {
+																							await mutateAsync({
+																								userId: member.user.id,
+																							})
+																								.then(() => {
+																									toast.success(
+																										t("settings.users.page.actions.delete.success"),
+																									);
+																									refetch();
+																								})
+																								.catch(() => {
+																									toast.error(
+																										t("settings.users.page.actions.delete.error"),
+																									);
+																								});
+																							return;
 																						}
-																					}}
+																					}
+
+																					const { error } =
+																						await authClient.organization.removeMember(
+																							{
+																								memberIdOrEmail: member.id,
+																							},
+																						);
+
+																					if (!error) {
+																						toast.success(
+																							t("settings.users.page.actions.unlink.success"),
+																						);
+																						refetch();
+																					} else {
+																						toast.error(
+																							t("settings.users.page.actions.unlink.error"),
+																						);
+																					}
+																				}}
+																			>
+																				<DropdownMenuItem
+																					className="w-full cursor-pointer text-red-500 hover:!text-red-600"
+																					onSelect={(e) => e.preventDefault()}
 																				>
-																					<DropdownMenuItem
-																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
-																						onSelect={(e) => e.preventDefault()}
-																					>
-																						Unlink User
-																					</DropdownMenuItem>
-																				</DialogAction>
-																			)}
+																					{t("settings.users.page.actions.unlink.menu")}
+																				</DropdownMenuItem>
+																			</DialogAction>
 																		</DropdownMenuContent>
 																	</DropdownMenu>
-																) : (
-																	<Button
-																		variant="ghost"
-																		className="h-8 w-8 p-0"
-																		disabled
-																	>
-																		<span className="sr-only">
-																			No actions available
-																		</span>
-																		<MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-																	</Button>
 																)}
 															</TableCell>
 														</TableRow>

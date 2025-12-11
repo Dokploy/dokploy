@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { type CSSProperties, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export const ShowEnvironment = ({ id, type }: Props) => {
+	const { t } = useTranslation("common");
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -94,11 +96,11 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			env: formData.environment,
 		})
 			.then(async () => {
-				toast.success("Environments Added");
+				toast.success(t("application.environment.toast.save.success"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error adding environment");
+				toast.error(t("application.environment.toast.save.error"));
 			});
 	};
 
@@ -128,12 +130,14 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 			<Card className="bg-background">
 				<CardHeader className="flex flex-row w-full items-center justify-between">
 					<div>
-						<CardTitle className="text-xl">Environment Settings</CardTitle>
+						<CardTitle className="text-xl">
+							{t("application.environment.card.title")}
+						</CardTitle>
 						<CardDescription>
-							You can add environment variables to your resource.
+							{t("application.environment.card.description")}
 							{hasChanges && (
 								<span className="text-yellow-500 ml-2">
-									(You have unsaved changes)
+									{t("application.environment.unsavedHint")}
 								</span>
 							)}
 						</CardDescription>
@@ -174,9 +178,7 @@ export const ShowEnvironment = ({ id, type }: Props) => {
 												disabled={isEnvVisible}
 												className="font-mono"
 												wrapperClassName="compose-file-editor"
-												placeholder={`NODE_ENV=production
-PORT=3000
-														`}
+												placeholder={t("application.environment.placeholder.env")}
 												{...field}
 											/>
 										</FormControl>
@@ -192,7 +194,7 @@ PORT=3000
 										variant="outline"
 										onClick={handleCancel}
 									>
-										Cancel
+										{t("application.environment.cancel")}
 									</Button>
 								)}
 								<Button
@@ -201,7 +203,7 @@ PORT=3000
 									type="submit"
 									disabled={!hasChanges}
 								>
-									Save
+									{t("application.environment.save")}
 								</Button>
 							</div>
 						</form>

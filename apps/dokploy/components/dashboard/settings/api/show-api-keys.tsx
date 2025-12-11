@@ -1,5 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { Clock, ExternalLinkIcon, KeyIcon, Tag, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -16,6 +17,7 @@ import { api } from "@/utils/api";
 import { AddApiKey } from "./add-api-key";
 
 export const ShowApiKeys = () => {
+	const { t } = useTranslation("settings");
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync: deleteApiKey, isLoading: isLoadingDelete } =
 		api.user.deleteApiKey.useMutation();
@@ -28,22 +30,24 @@ export const ShowApiKeys = () => {
 						<div>
 							<CardTitle className="text-xl flex items-center gap-2">
 								<KeyIcon className="size-5" />
-								API/CLI Keys
+								{t("settings.api.keys.title")}
 							</CardTitle>
 							<CardDescription>
-								Generate and manage API keys to access the API/CLI
+								{t("settings.api.keys.description")}
 							</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2 max-sm:flex-wrap items-end">
 							<span className="text-sm font-medium text-muted-foreground">
-								Swagger API:
+								{t("settings.api.keys.swagger.label")}
 							</span>
 							<Link
 								href="/swagger"
 								target="_blank"
 								className="flex flex-row gap-2 items-center"
 							>
-								<span className="text-sm font-medium">View</span>
+								<span className="text-sm font-medium">
+									{t("settings.api.keys.swagger.view")}
+								</span>
 								<ExternalLinkIcon className="size-4" />
 							</Link>
 						</div>
@@ -51,80 +55,91 @@ export const ShowApiKeys = () => {
 					<CardContent className="space-y-6">
 						<div className="flex flex-col gap-4">
 							{data?.user.apiKeys && data.user.apiKeys.length > 0 ? (
-								data.user.apiKeys.map((apiKey) => (
-									<div
-										key={apiKey.id}
-										className="flex flex-col gap-2 p-4 border rounded-lg"
-									>
-										<div className="flex justify-between items-start">
-											<div className="flex flex-col gap-1">
-												<span className="font-medium">{apiKey.name}</span>
-												<div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
-													<span className="flex items-center gap-1">
-														<Clock className="size-3.5" />
-														Created{" "}
-														{formatDistanceToNow(new Date(apiKey.createdAt))}{" "}
-														ago
-													</span>
-													{apiKey.prefix && (
-														<Badge
-															variant="secondary"
-															className="flex items-center gap-1"
-														>
-															<Tag className="size-3.5" />
-															{apiKey.prefix}
-														</Badge>
-													)}
-													{apiKey.expiresAt && (
-														<Badge
-															variant="outline"
-															className="flex items-center gap-1"
-														>
+								data.user.apiKeys.map((apiKey) => {
+									const createdDistance = formatDistanceToNow(
+										new Date(apiKey.createdAt),
+									);
+
+									const expiresDistance = apiKey.expiresAt
+										? formatDistanceToNow(new Date(apiKey.expiresAt))
+										: null;
+
+									return (
+										<div
+											key={apiKey.id}
+											className="flex flex-col gap-2 p-4 border rounded-lg"
+										>
+											<div className="flex justify-between items-start">
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">{apiKey.name}</span>
+													<div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
+														<span className="flex items-center gap-1">
 															<Clock className="size-3.5" />
-															Expires in{" "}
-															{formatDistanceToNow(
-																new Date(apiKey.expiresAt),
-															)}{" "}
-														</Badge>
-													)}
+															{t("settings.api.keys.created", {
+																distance: createdDistance,
+															})}
+														</span>
+														{apiKey.prefix && (
+															<Badge
+																variant="secondary"
+																className="flex items-center gap-1"
+															>
+																<Tag className="size-3.5" />
+																{apiKey.prefix}
+															</Badge>
+														)}
+														{expiresDistance && (
+															<Badge
+																variant="outline"
+																className="flex items-center gap-1"
+															>
+																<Clock className="size-3.5" />
+																{t("settings.api.keys.expiresIn", {
+																	distance: expiresDistance,
+																})}
+															</Badge>
+														)}
+													</div>
 												</div>
-											</div>
-											<DialogAction
-												title="Delete API Key"
-												description="Are you sure you want to delete this API key? This action cannot be undone."
-												type="destructive"
-												onClick={async () => {
-													try {
-														await deleteApiKey({
-															apiKeyId: apiKey.id,
-														});
-														await refetch();
-														toast.success("API key deleted successfully");
-													} catch (error) {
-														toast.error(
-															error instanceof Error
-																? error.message
-																: "Error deleting API key",
-														);
-													}
-												}}
-											>
-												<Button
-													variant="ghost"
-													size="icon"
-													isLoading={isLoadingDelete}
+												<DialogAction
+													title={t("settings.api.keys.delete.title")}
+													description={t("settings.api.keys.delete.description")}
+													type="destructive"
+													onClick={async () => {
+														try {
+															await deleteApiKey({
+																apiKeyId: apiKey.id,
+															});
+															await refetch();
+															toast.success(
+																t("settings.api.keys.deleteSuccess"),
+															);
+														} catch (error) {
+															toast.error(
+																error instanceof Error
+																	? error.message
+																	: t("settings.api.keys.deleteError"),
+															);
+														}
+													}}
 												>
-													<Trash2 className="size-4" />
-												</Button>
-											</DialogAction>
+													<Button
+														variant="ghost"
+														size="icon"
+														isLoading={isLoadingDelete}
+													>
+														<Trash2 className="size-4" />
+													</Button>
+												</DialogAction>
+											</div>
 										</div>
-									</div>
-								))
+									);
+								})
 							) : (
 								<div className="flex flex-col items-center gap-3 py-6">
 									<KeyIcon className="size-8 text-muted-foreground" />
 									<span className="text-base text-muted-foreground">
-										No API keys found
+										{t("settings.api.keys.empty")}
 									</span>
 								</div>
 							)}

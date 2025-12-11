@@ -10,6 +10,7 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import { getDatabaseBackupEmailContent } from "../../utils/i18n/backend";
 
 export type TemplateProps = {
 	projectName: string;
@@ -28,10 +29,17 @@ export const DatabaseBackupEmail = ({
 	errorMessage,
 	date = "2023-05-01T00:00:00.000Z",
 }: TemplateProps) => {
-	const previewText = `Database backup for ${applicationName} was ${type === "success" ? "successful ✅" : "failed ❌"}`;
+	const content = getDatabaseBackupEmailContent({
+		projectName,
+		applicationName,
+		databaseType,
+		type,
+		errorMessage,
+		date,
+	});
 	return (
 		<Html>
-			<Preview>{previewText}</Preview>
+			<Preview>{content.previewText}</Preview>
 			<Tailwind
 				config={{
 					theme: {
@@ -50,7 +58,7 @@ export const DatabaseBackupEmail = ({
 						<Section className="mt-[32px]">
 							<Img
 								src={
-									"https://raw.githubusercontent.com/Dokploy/dokploy/refs/heads/canary/apps/dokploy/logo.png"
+									"https://raw.githubusercontent.com/Frankieli123/dokploy-i18n/refs/heads/main/apps/dokploy/logo.png"
 								}
 								width="100"
 								height="50"
@@ -59,38 +67,46 @@ export const DatabaseBackupEmail = ({
 							/>
 						</Section>
 						<Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
-							Database backup for <strong>{applicationName}</strong>
+							{content.heading.beforeApplicationName}
+							<strong>{applicationName}</strong>
+							{type === "success"
+								? content.heading.afterApplicationNameSuccess
+								: content.heading.afterApplicationNameError}
 						</Heading>
 						<Text className="text-black text-[14px] leading-[24px]">
-							Hello,
+							{content.greeting}
 						</Text>
 						<Text className="text-black text-[14px] leading-[24px]">
-							Your database backup for <strong>{applicationName}</strong> was{" "}
+							{content.mainText.beforeApplicationName}
+							<strong>{applicationName}</strong>
 							{type === "success"
-								? "successful ✅"
-								: "failed  Please check the error message below. ❌"}
-							.
+								? content.mainText.afterApplicationNameSuccess
+								: content.mainText.afterApplicationNameError}
 						</Text>
 						<Section className="flex text-black text-[14px]  leading-[24px] bg-[#F4F4F5] rounded-lg p-2">
-							<Text className="!leading-3 font-bold">Details: </Text>
-							<Text className="!leading-3">
-								Project Name: <strong>{projectName}</strong>
+							<Text className="!leading-3 font-bold">
+								{content.detailsLabel}
 							</Text>
 							<Text className="!leading-3">
-								Application Name: <strong>{applicationName}</strong>
+								{content.projectNameLabel} <strong>{projectName}</strong>
 							</Text>
 							<Text className="!leading-3">
-								Database Type: <strong>{databaseType}</strong>
+								{content.applicationNameLabel} <strong>{applicationName}</strong>
 							</Text>
 							<Text className="!leading-3">
-								Date: <strong>{date}</strong>
+								{content.databaseTypeLabel} <strong>{databaseType}</strong>
+							</Text>
+							<Text className="!leading-3">
+								{content.dateLabel} <strong>{date}</strong>
 							</Text>
 						</Section>
 						{type === "error" && errorMessage ? (
 							<Section className="flex text-black text-[14px]  mt-4 leading-[24px] bg-[#F4F4F5] rounded-lg p-2">
-								<Text className="!leading-3 font-bold">Reason: </Text>
+								<Text className="!leading-3 font-bold">
+									{content.reasonLabel}
+								</Text>
 								<Text className="text-[12px] leading-[24px]">
-									{errorMessage || "Error message not provided"}
+									{errorMessage || content.errorMessageFallback}
 								</Text>
 							</Section>
 						) : null}

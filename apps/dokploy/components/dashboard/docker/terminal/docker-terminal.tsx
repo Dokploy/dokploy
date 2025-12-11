@@ -4,6 +4,7 @@ import { FitAddon } from "xterm-addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { AttachAddon } from "@xterm/addon-attach";
 import { useTheme } from "next-themes";
+import { useTranslation } from "next-i18next";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Props {
@@ -20,6 +21,7 @@ export const DockerTerminal: React.FC<Props> = ({
 	const termRef = useRef(null);
 	const [activeWay, setActiveWay] = React.useState<string | undefined>("bash");
 	const { resolvedTheme } = useTheme();
+	const { t } = useTranslation("common");
 	useEffect(() => {
 		const container = document.getElementById(id);
 		if (container) {
@@ -58,7 +60,7 @@ export const DockerTerminal: React.FC<Props> = ({
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-2  mt-4">
 				<span>
-					Select way to connect to <b>{containerId}</b>
+					{t("terminal.selectWay")} <b>{containerId}</b>
 				</span>
 				<Tabs value={activeWay} onValueChange={setActiveWay}>
 					<TabsList>

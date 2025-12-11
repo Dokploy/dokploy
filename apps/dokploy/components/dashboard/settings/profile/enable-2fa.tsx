@@ -1,8 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import copy from "copy-to-clipboard";
 import { CopyIcon, DownloadIcon, Fingerprint, QrCode } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import QRCode from "qrcode";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -39,18 +40,20 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
-const PasswordSchema = z.object({
-	password: z.string().min(8, {
-		message: "Password is required",
-	}),
-	issuer: z.string().optional(),
-});
+const createPasswordSchema = (t: (key: string) => string) =>
+	z.object({
+		password: z.string().min(8, {
+			message: t("auth.validation.passwordRequired"),
+		}),
+		issuer: z.string().optional(),
+	});
 
-const PinSchema = z.object({
-	pin: z.string().min(6, {
-		message: "Pin is required",
-	}),
-});
+const createPinSchema = (t: (key: string) => string) =>
+	z.object({
+		pin: z.string().min(6, {
+			message: t("auth.toast.twoFactorInvalidCode"),
+		}),
+	});
 
 type TwoFactorSetupData = {
 	qrCodeUrl: string;
@@ -58,8 +61,9 @@ type TwoFactorSetupData = {
 	totpURI: string;
 };
 
-type PasswordForm = z.infer<typeof PasswordSchema>;
-type PinForm = z.infer<typeof PinSchema>;
+type PasswordForm = z.infer<ReturnType<typeof createPasswordSchema>>;
+
+type PinForm = z.infer<ReturnType<typeof createPinSchema>>;
 
 export const USERNAME_PLACEHOLDER = "%username%";
 export const DATE_PLACEHOLDER = "%date%";
@@ -90,6 +94,9 @@ export const Enable2FA = () => {
 	const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 	const [otpValue, setOtpValue] = useState("");
 	const { data: currentUser } = api.user.get.useQuery();
+	const { t } = useTranslation(["settings", "common"]);
+	const passwordSchema = useMemo(() => createPasswordSchema(t), [t]);
+	const pinSchema = useMemo(() => createPinSchema(t), [t]);
 
 	const handleVerifySubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -100,7 +107,9 @@ export const Enable2FA = () => {
 
 			if (result.error) {
 				if (result.error.code === "INVALID_TWO_FACTOR_AUTHENTICATION") {
-					toast.error("Invalid verification code");
+					toast.error(
+																t("settings.profile.twoFactor.enable.toast.invalidCode"),
+					);
 					return;
 				}
 
@@ -108,37 +117,37 @@ export const Enable2FA = () => {
 			}
 
 			if (!result.data) {
-				throw new Error("No response received from server");
+				throw new Error(t("settings.profile.twoFactor.enable.error.verify"));
 			}
 
-			toast.success("2FA configured successfully");
+			toast.success(t("settings.profile.twoFactor.enable.toast.configured"));
 			utils.user.get.invalidate();
 			setIsDialogOpen(false);
 		} catch (error) {
 			if (error instanceof Error) {
 				const errorMessage =
 					error.message === "Failed to fetch"
-						? "Connection error. Please check your internet connection."
+						? t("settings.profile.twoFactor.enable.error.connection")
 						: error.message;
 
 				toast.error(errorMessage);
 			} else {
-				toast.error("Error verifying 2FA code", {
-					description: error instanceof Error ? error.message : "Unknown error",
+				toast.error(t("settings.profile.twoFactor.enable.error.verify"), {
+					description: t("settings.profile.twoFactor.enable.error.unknown"),
 				});
 			}
 		}
 	};
 
 	const passwordForm = useForm<PasswordForm>({
-		resolver: zodResolver(PasswordSchema),
+		resolver: zodResolver(passwordSchema),
 		defaultValues: {
 			password: "",
 		},
 	});
 
 	const pinForm = useForm<PinForm>({
-		resolver: zodResolver(PinSchema),
+		resolver: zodResolver(pinSchema),
 		defaultValues: {
 			pin: "",
 		},
@@ -172,7 +181,9 @@ export const Enable2FA = () => {
 			});
 
 			if (!enableData) {
-				throw new Error(error?.message || "Error enabling 2FA");
+				throw new Error(
+					error?.message || t("settings.profile.twoFactor.enable.error.enable")
+				);
 			}
 
 			if (enableData.backupCodes) {
@@ -189,17 +200,21 @@ export const Enable2FA = () => {
 				});
 
 				setStep("verify");
-				toast.success("Scan the QR code with your authenticator app");
+				toast.success(t("settings.profile.twoFactor.enable.verify.scanToast"));
 			} else {
-				throw new Error("No TOTP URI received from server");
+				throw new Error(t("settings.profile.twoFactor.enable.error.setup"));
 			}
 		} catch (error) {
 			toast.error(
-				error instanceof Error ? error.message : "Error setting up 2FA",
+				error instanceof Error
+					? error.message
+					: t("settings.profile.twoFactor.enable.error.setup")
 			);
 			passwordForm.setError("password", {
 				message:
-					error instanceof Error ? error.message : "Error setting up 2FA",
+					error instanceof Error
+						? error.message
+						: t("settings.profile.twoFactor.enable.error.setup"),
 			});
 		} finally {
 			setIsPasswordLoading(false);
@@ -208,7 +223,7 @@ export const Enable2FA = () => {
 
 	const handleDownloadBackupCodes = () => {
 		if (!backupCodes || backupCodes.length === 0) {
-			toast.error("No backup codes to download.");
+			toast.error(t("settings.profile.twoFactor.enable.toast.noBackupCodes"));
 			return;
 		}
 
@@ -251,7 +266,7 @@ export const Enable2FA = () => {
 			.replace(BACKUP_CODES_PLACEHOLDER, backupCodesFormatted);
 
 		copy(backupCodesText);
-		toast.success("Backup codes copied to clipboard");
+		toast.success(t("settings.profile.twoFactor.enable.toast.copied"));
 	};
 
 	return (
@@ -259,16 +274,18 @@ export const Enable2FA = () => {
 			<DialogTrigger asChild>
 				<Button variant="ghost">
 					<Fingerprint className="size-4 text-muted-foreground" />
-					Enable 2FA
+					{t("settings.profile.twoFactor.enable.button")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
-					<DialogTitle>2FA Setup</DialogTitle>
+					<DialogTitle>
+						{t("settings.profile.twoFactor.enable.dialog.title")}
+					</DialogTitle>
 					<DialogDescription>
 						{step === "password"
-							? "Enter your password to begin 2FA setup"
-							: "Scan the QR code and verify with your authenticator app"}
+							? t("settings.profile.twoFactor.enable.dialog.descriptionPassword")
+							: t("settings.profile.twoFactor.enable.dialog.descriptionVerify")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -284,16 +301,18 @@ export const Enable2FA = () => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>
+											{t("settings.profile.twoFactor.enable.password.label")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="password"
-												placeholder="Enter your password"
+												placeholder={t("settings.profile.twoFactor.enable.password.placeholder")}
 												{...field}
 											/>
 										</FormControl>
 										<FormDescription>
-											Enter your password to enable 2FA
+											{t("settings.profile.twoFactor.enable.password.description")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -304,17 +323,18 @@ export const Enable2FA = () => {
 								name="issuer"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Issuer</FormLabel>
+										<FormLabel>
+											{t("settings.profile.twoFactor.enable.issuer.label")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="text"
-												placeholder="Enter your issuer"
+												placeholder={t("settings.profile.twoFactor.enable.issuer.placeholder")}
 												{...field}
 											/>
 										</FormControl>
 										<FormDescription>
-											Use a custom issuer to identify the service you're
-											authenticating with.
+											{t("settings.profile.twoFactor.enable.issuer.description")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -325,7 +345,7 @@ export const Enable2FA = () => {
 								className="w-full"
 								isLoading={isPasswordLoading}
 							>
-								Continue
+								{t("settings.profile.twoFactor.enable.password.submit")}
 							</Button>
 						</form>
 					</Form>
@@ -338,17 +358,17 @@ export const Enable2FA = () => {
 										<div className="flex flex-col items-center gap-4 p-6 border rounded-lg">
 											<QrCode className="size-5 text-muted-foreground" />
 											<span className="text-sm font-medium">
-												Scan this QR code with your authenticator app
+												{t("settings.profile.twoFactor.enable.verify.scanTitle")}
 											</span>
 											{/** biome-ignore lint/performance/noImgElement: This is a valid use case for an img element */}
 											<img
 												src={data.qrCodeUrl}
-												alt="2FA QR Code"
+												alt={t("settings.profile.twoFactor.enable.verify.qrAlt")}
 												className="rounded-lg w-48 h-48"
 											/>
 											<div className="flex flex-col gap-2 text-center">
 												<span className="text-sm text-muted-foreground">
-													Can't scan the QR code?
+													{t("settings.profile.twoFactor.enable.verify.cantScan")}
 												</span>
 												<span className="text-xs font-mono bg-muted p-2 rounded">
 													{data.secret}
@@ -359,7 +379,9 @@ export const Enable2FA = () => {
 										{backupCodes && backupCodes.length > 0 && (
 											<div className="w-full space-y-3 border rounded-lg p-4">
 												<div className="flex items-center justify-between">
-													<h4 className="font-medium">Backup Codes</h4>
+													<h4 className="font-medium">
+														{t("settings.profile.twoFactor.enable.backup.title")}
+													</h4>
 													<div className="flex items-center gap-2">
 														<TooltipProvider>
 															<Tooltip delayDuration={0}>
@@ -374,7 +396,9 @@ export const Enable2FA = () => {
 																	</Button>
 																</TooltipTrigger>
 																<TooltipContent>
-																	<p>Copy</p>
+																	<p>
+																		{t("settings.profile.twoFactor.enable.backup.copy")}
+																	</p>
 																</TooltipContent>
 															</Tooltip>
 														</TooltipProvider>
@@ -392,7 +416,9 @@ export const Enable2FA = () => {
 																	</Button>
 																</TooltipTrigger>
 																<TooltipContent>
-																	<p>Download</p>
+																	<p>
+																		{t("settings.profile.twoFactor.enable.backup.download")}
+																	</p>
 																</TooltipContent>
 															</Tooltip>
 														</TooltipProvider>
@@ -409,9 +435,7 @@ export const Enable2FA = () => {
 													))}
 												</div>
 												<p className="text-sm text-muted-foreground">
-													Save these backup codes in a secure place. You can use
-													them to access your account if you lose access to your
-													authenticator device.
+													{t("settings.profile.twoFactor.enable.backup.description")}
 												</p>
 											</div>
 										)}
@@ -424,7 +448,9 @@ export const Enable2FA = () => {
 							</div>
 
 							<div className="flex flex-col justify-center items-center">
-								<FormLabel>Verification Code</FormLabel>
+								<FormLabel>
+									{t("settings.profile.twoFactor.enable.verify.codeLabel")}
+								</FormLabel>
 								<InputOTP
 									maxLength={6}
 									value={otpValue}
@@ -441,7 +467,7 @@ export const Enable2FA = () => {
 									</InputOTPGroup>
 								</InputOTP>
 								<FormDescription>
-									Enter the 6-digit code from your authenticator app
+									{t("settings.profile.twoFactor.enable.verify.codeDescription")}
 								</FormDescription>
 							</div>
 
@@ -451,7 +477,7 @@ export const Enable2FA = () => {
 								isLoading={isPasswordLoading}
 								disabled={otpValue.length !== 6}
 							>
-								Enable 2FA
+								{t("settings.profile.twoFactor.enable.verify.submit")}
 							</Button>
 						</form>
 					</Form>

@@ -11,53 +11,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { getS3Credentials, normalizeS3Path } from "../backups/utils";
-import { sendVolumeBackupNotifications } from "../notifications/volume-backup";
 import { backupVolume } from "./backup";
-
-// Helper functions to extract project info from volume backup
-const getProjectName = (
-	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
-): string => {
-	const services = [
-		volumeBackup.application,
-		volumeBackup.compose,
-		volumeBackup.postgres,
-		volumeBackup.mysql,
-		volumeBackup.mariadb,
-		volumeBackup.mongo,
-		volumeBackup.redis,
-	];
-
-	for (const service of services) {
-		if (service?.environment?.project?.name) {
-			return service.environment.project.name;
-		}
-	}
-
-	return "Unknown Project";
-};
-
-const getOrganizationId = (
-	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
-): string => {
-	const services = [
-		volumeBackup.application,
-		volumeBackup.compose,
-		volumeBackup.postgres,
-		volumeBackup.mysql,
-		volumeBackup.mariadb,
-		volumeBackup.mongo,
-		volumeBackup.redis,
-	];
-
-	for (const service of services) {
-		if (service?.environment?.project?.organizationId) {
-			return service.environment.project.organizationId;
-		}
-	}
-
-	return "";
-};
 
 export const scheduleVolumeBackup = async (volumeBackupId: string) => {
 	const volumeBackup = await findVolumeBackupById(volumeBackupId);
@@ -107,8 +61,7 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 		title: "Volume Backup",
 		description: "Volume Backup",
 	});
-	const projectName = getProjectName(volumeBackup);
-	const organizationId = getOrganizationId(volumeBackup);
+
 	try {
 		const command = await backupVolume(volumeBackup);
 
@@ -124,21 +77,6 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 		}
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
-
-		// Map service type to match notification function expectations
-		const mappedServiceType =
-			volumeBackup.serviceType === "mongo"
-				? "mongodb"
-				: volumeBackup.serviceType;
-
-		await sendVolumeBackupNotifications({
-			projectName,
-			applicationName: volumeBackup.name,
-			volumeName: volumeBackup.volumeName,
-			serviceType: mappedServiceType,
-			type: "success",
-			organizationId,
-		});
 	} catch (error) {
 		const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 		const volumeBackupPath = path.join(
@@ -154,20 +92,6 @@ export const runVolumeBackup = async (volumeBackupId: string) => {
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 
-		// Send error notification
-		const mappedServiceType =
-			volumeBackup.serviceType === "mongo"
-				? "mongodb"
-				: volumeBackup.serviceType;
-
-		await sendVolumeBackupNotifications({
-			projectName,
-			applicationName: volumeBackup.name,
-			volumeName: volumeBackup.volumeName,
-			serviceType: mappedServiceType,
-			type: "error",
-			organizationId,
-			errorMessage: error instanceof Error ? error.message : String(error),
-		});
+		console.error(error);
 	}
 };

@@ -66,12 +66,10 @@ export const environmentRouter = createTRPCRouter({
 				if (input.name === "production") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message:
-							"You cannot create a environment with the name 'production'",
+						message: "Environment name cannot be production",
 					});
 				}
 
-				// Allow users to create environments with any name, including "production"
 				const environment = await createEnvironment(input);
 
 				if (ctx.user.role === "member") {
@@ -245,7 +243,13 @@ export const environmentRouter = createTRPCRouter({
 			try {
 				const { environmentId, ...updateData } = input;
 
-				// Allow users to rename environments to any name, including "production"
+				if (updateData.name === "production") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Environment name cannot be production",
+					});
+				}
+
 				if (ctx.user.role === "member") {
 					await checkEnvironmentAccess(
 						ctx.user.id,
@@ -255,13 +259,6 @@ export const environmentRouter = createTRPCRouter({
 					);
 				}
 				const currentEnvironment = await findEnvironmentById(environmentId);
-
-				if (currentEnvironment.isDefault) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "You cannot update the default environment",
-					});
-				}
 				if (
 					currentEnvironment.project.organizationId !==
 					ctx.session.activeOrganizationId

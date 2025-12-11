@@ -6,6 +6,7 @@ import superjson from "superjson";
 import { ShowNotifications } from "@/components/dashboard/settings/notifications/show-notifications";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
 	return (
@@ -18,7 +19,11 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Notifications">{page}</DashboardLayout>;
+	return (
+		<DashboardLayout metaName="settings.notifications.page.title">
+			{page}
+		</DashboardLayout>
+	);
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
@@ -48,9 +53,12 @@ export async function getServerSideProps(
 	await helpers.user.get.prefetch();
 	await helpers.settings.isCloud.prefetch();
 
+	const locale = getLocale((req as any).cookies ?? {});
+
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

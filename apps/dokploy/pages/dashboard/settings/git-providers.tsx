@@ -6,6 +6,7 @@ import superjson from "superjson";
 import { ShowGitProviders } from "@/components/dashboard/settings/git/show-git-providers";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
 	return (
@@ -18,7 +19,11 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Git Providers">{page}</DashboardLayout>;
+	return (
+		<DashboardLayout metaName="settings.git.page.title">
+			{page}
+		</DashboardLayout>
+	);
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
@@ -33,6 +38,7 @@ export async function getServerSideProps(
 		};
 	}
 	const { req, res } = ctx;
+	const locale = getLocale((req as any).cookies ?? {});
 	const helpers = createServerSideHelpers({
 		router: appRouter,
 		ctx: {
@@ -65,11 +71,14 @@ export async function getServerSideProps(
 		return {
 			props: {
 				trpcState: helpers.dehydrate(),
+				...(await serverSideTranslations(locale, ["settings"])),
 			},
 		};
 	} catch {
 		return {
-			props: {},
+			props: {
+				...(await serverSideTranslations(locale, ["settings"])),
+			},
 		};
 	}
 }

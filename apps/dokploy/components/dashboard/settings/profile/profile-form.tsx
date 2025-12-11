@@ -32,20 +32,23 @@ import { api } from "@/utils/api";
 import { Configure2FA } from "./configure-2fa";
 import { Enable2FA } from "./enable-2fa";
 
-const profileSchema = z.object({
-	email: z
-		.string()
-		.email("Please enter a valid email address")
-		.min(1, "Email is required"),
+const baseProfileSchema = z.object({
+	email: z.string().email().min(1),
 	password: z.string().nullable(),
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
 	name: z.string().optional(),
-	lastName: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
 
-type Profile = z.infer<typeof profileSchema>;
+const createProfileSchema = (t: (key: string) => string) =>
+	baseProfileSchema.extend({
+		email: baseProfileSchema.shape.email
+			.email(t("settings.profile.validation.emailInvalid"))
+			.min(1, t("settings.profile.validation.emailRequired")),
+	});
+
+type Profile = z.infer<typeof baseProfileSchema>;
 
 const randomImages = [
 	"/avatars/avatar-1.png",
@@ -82,6 +85,8 @@ export const ProfileForm = () => {
 		]);
 	}, [gravatarHash]);
 
+	const profileSchema = useMemo(() => createProfileSchema(t), [t]);
+
 	const form = useForm<Profile>({
 		defaultValues: {
 			email: data?.user?.email || "",
@@ -89,8 +94,7 @@ export const ProfileForm = () => {
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
-			name: data?.user?.firstName || "",
-			lastName: data?.user?.lastName || "",
+			name: data?.user?.name || "",
 		},
 		resolver: zodResolver(profileSchema),
 	});
@@ -104,8 +108,7 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
-					name: data?.user?.firstName || "",
-					lastName: data?.user?.lastName || "",
+					name: data?.user?.name || "",
 				},
 				{
 					keepValues: true,
@@ -130,20 +133,18 @@ export const ProfileForm = () => {
 				currentPassword: values.currentPassword || undefined,
 				allowImpersonation: values.allowImpersonation,
 				name: values.name || undefined,
-				lastName: values.lastName || undefined,
 			});
 			await refetch();
-			toast.success("Profile Updated");
+			toast.success(t("settings.profile.updated"));
 			form.reset({
 				email: values.email,
 				password: "",
 				image: values.image,
 				currentPassword: "",
 				name: values.name || "",
-				lastName: values.lastName || "",
 			});
 		} catch (error) {
-			toast.error("Error updating the profile");
+			toast.error(t("settings.profile.updateError"));
 		}
 	};
 
@@ -169,7 +170,7 @@ export const ProfileForm = () => {
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[35vh]">
-								<span>Loading...</span>
+								<span>{t("settings.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -185,22 +186,14 @@ export const ProfileForm = () => {
 												name="name"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>First Name</FormLabel>
+														<FormLabel>
+															{t("settings.profile.name")}
+														</FormLabel>
 														<FormControl>
-															<Input placeholder="John" {...field} />
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-											<FormField
-												control={form.control}
-												name="lastName"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Last Name</FormLabel>
-														<FormControl>
-															<Input placeholder="Doe" {...field} />
+															<Input
+																placeholder={t("settings.profile.name")}
+																{...field}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -227,7 +220,9 @@ export const ProfileForm = () => {
 												name="currentPassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Current Password</FormLabel>
+														<FormLabel>
+															{t("settings.profile.currentPassword")}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"
@@ -298,7 +293,7 @@ export const ProfileForm = () => {
 																		<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
 																			<AvatarFallback className="rounded-lg">
 																				{getFallbackAvatarInitials(
-																					`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
+																					data?.user?.name,
 																				)}
 																			</AvatarFallback>
 																		</Avatar>
@@ -354,7 +349,7 @@ export const ProfileForm = () => {
 																					// max file size 2mb
 																					if (file.size > 2 * 1024 * 1024) {
 																						toast.error(
-																							"Image size must be less than 2MB",
+																							t("settings.profile.avatar.maxSizeError"),
 																						);
 																						return;
 																					}
@@ -403,13 +398,13 @@ export const ProfileForm = () => {
 													render={({ field }) => (
 														<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
 															<div className="space-y-0.5">
-																<FormLabel>Allow Impersonation</FormLabel>
+																<FormLabel>
+																	{t("settings.profile.allowImpersonation")}
+																</FormLabel>
 																<FormDescription>
-																	Enable this option to allow Dokploy Cloud
-																	administrators to temporarily access your
-																	account for troubleshooting and support
-																	purposes. This helps them quickly identify and
-																	resolve any issues you may encounter.
+																	{t(
+																		"settings.profile.allowImpersonation.description",
+																	)}
 																</FormDescription>
 															</div>
 															<FormControl>

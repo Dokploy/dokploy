@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useTranslation } from "next-i18next";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,21 +42,35 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
-const Schema = z.object({
-	name: z.string().min(1, { message: "Name is required" }),
-	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
+const aiSchema = z.object({
+	name: z.string().min(1),
+	apiUrl: z.string().url(),
 	apiKey: z.string(),
-	model: z.string().min(1, { message: "Model is required" }),
+	model: z.string().min(1),
 	isEnabled: z.boolean(),
 });
 
-type Schema = z.infer<typeof Schema>;
+const createAiSchema = (t: (key: string) => string) =>
+	aiSchema.extend({
+		name: aiSchema.shape.name.min(1, {
+			message: t("settings.ai.validation.nameRequired"),
+		}),
+		apiUrl: aiSchema.shape.apiUrl.url({
+			message: t("settings.ai.validation.apiUrlInvalid"),
+		}),
+		model: aiSchema.shape.model.min(1, {
+			message: t("settings.ai.validation.modelRequired"),
+		}),
+	});
+
+type Schema = z.infer<typeof aiSchema>;
 
 interface Props {
 	aiId?: string;
 }
 
 export const HandleAi = ({ aiId }: Props) => {
+	const { t } = useTranslation("settings");
 	const utils = api.useUtils();
 	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
@@ -73,8 +88,10 @@ export const HandleAi = ({ aiId }: Props) => {
 		? api.ai.update.useMutation()
 		: api.ai.create.useMutation();
 
+	const schema = createAiSchema(t);
+
 	const form = useForm<Schema>({
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(schema),
 		defaultValues: {
 			name: "",
 			apiUrl: "",
@@ -124,12 +141,15 @@ export const HandleAi = ({ aiId }: Props) => {
 			});
 
 			utils.ai.getAll.invalidate();
-			toast.success("AI settings saved successfully");
+			toast.success(t("settings.ai.toast.saveSuccess"));
 			refetch();
 			setOpen(false);
 		} catch (error) {
-			toast.error("Failed to save AI settings", {
-				description: error instanceof Error ? error.message : "Unknown error",
+			toast.error(t("settings.ai.toast.saveError"), {
+				description:
+					error instanceof Error
+							? error.message
+							: t("settings.ai.toast.unknownError"),
 			});
 		}
 	};
@@ -157,15 +177,17 @@ export const HandleAi = ({ aiId }: Props) => {
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Add AI
+						{t("settings.ai.form.add")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>{aiId ? "Edit AI" : "Add AI"}</DialogTitle>
+					<DialogTitle>
+						{aiId ? t("settings.ai.form.editTitle") : t("settings.ai.form.addTitle")} 
+					</DialogTitle>
 					<DialogDescription>
-						Configure your AI provider settings
+						{t("settings.ai.form.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -176,12 +198,17 @@ export const HandleAi = ({ aiId }: Props) => {
 							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Name</FormLabel>
+									<FormLabel>
+										{t("settings.ai.form.name.label")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="My OpenAI Config" {...field} />
+										<Input
+											placeholder={t("settings.ai.form.name.placeholder")}
+											{...field}
+										/>
 									</FormControl>
 									<FormDescription>
-										A name to identify this configuration
+										{t("settings.ai.form.name.description")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -193,10 +220,12 @@ export const HandleAi = ({ aiId }: Props) => {
 							name="apiUrl"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>API URL</FormLabel>
+									<FormLabel>
+										{t("settings.ai.form.apiUrl.label")}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="https://api.openai.com/v1"
+											placeholder={t("settings.ai.form.apiUrl.placeholder")}
 											{...field}
 											onChange={(e) => {
 												field.onChange(e);
@@ -208,7 +237,7 @@ export const HandleAi = ({ aiId }: Props) => {
 										/>
 									</FormControl>
 									<FormDescription>
-										The base URL for your AI provider's API
+										{t("settings.ai.form.apiUrl.description")}
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -221,11 +250,13 @@ export const HandleAi = ({ aiId }: Props) => {
 								name="apiKey"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>API Key</FormLabel>
+										<FormLabel>
+											{t("settings.ai.form.apiKey.label")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												type="password"
-												placeholder="sk-..."
+												placeholder={t("settings.ai.form.apiKey.placeholder")}
 												autoComplete="one-time-code"
 												{...field}
 												onChange={(e) => {
@@ -238,7 +269,7 @@ export const HandleAi = ({ aiId }: Props) => {
 											/>
 										</FormControl>
 										<FormDescription>
-											Your API key for authentication
+											{t("settings.ai.form.apiKey.description")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -248,13 +279,13 @@ export const HandleAi = ({ aiId }: Props) => {
 
 						{isLoadingServerModels && (
 							<span className="text-sm text-muted-foreground">
-								Loading models...
+								{t("settings.ai.models.loading")}
 							</span>
 						)}
 
 						{!isLoadingServerModels && !models?.length && (
 							<span className="text-sm text-muted-foreground">
-								No models available
+								{t("settings.ai.models.empty")}
 							</span>
 						)}
 
@@ -280,7 +311,9 @@ export const HandleAi = ({ aiId }: Props) => {
 
 									return (
 										<FormItem>
-											<FormLabel>Model</FormLabel>
+											<FormLabel>
+												{t("settings.ai.form.model.label")}
+											</FormLabel>
 											<Popover
 												open={modelPopoverOpen}
 												onOpenChange={setModelPopoverOpen}
@@ -296,7 +329,7 @@ export const HandleAi = ({ aiId }: Props) => {
 														>
 															{field.value
 																? (selectedModel?.id ?? field.value)
-																: "Select a model"}
+																: t("settings.ai.form.model.placeholder")}
 															<ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 														</Button>
 													</FormControl>
@@ -304,12 +337,14 @@ export const HandleAi = ({ aiId }: Props) => {
 												<PopoverContent className="w-[400px] p-0" align="start">
 													<Command>
 														<CommandInput
-															placeholder="Search models..."
+															placeholder={t("settings.ai.form.model.searchPlaceholder")}
 															value={modelSearch}
 															onValueChange={setModelSearch}
 														/>
 														<CommandList>
-															<CommandEmpty>No models found.</CommandEmpty>
+															<CommandEmpty>
+																{t("settings.ai.models.notFound")}
+															</CommandEmpty>
 															{displayModels.map((model) => {
 																const isSelected = field.value === model.id;
 																return (
@@ -339,7 +374,7 @@ export const HandleAi = ({ aiId }: Props) => {
 												</PopoverContent>
 											</Popover>
 											<FormDescription>
-												Select an AI model to use
+												{t("settings.ai.form.model.description")}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -355,10 +390,10 @@ export const HandleAi = ({ aiId }: Props) => {
 								<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
 									<div className="space-y-0.5">
 										<FormLabel className="text-base">
-											Enable AI Features
+											{t("settings.ai.form.isEnabled.label")}
 										</FormLabel>
 										<FormDescription>
-											Turn on/off AI functionality
+											{t("settings.ai.form.isEnabled.description")}
 										</FormDescription>
 									</div>
 									<FormControl>
@@ -373,7 +408,7 @@ export const HandleAi = ({ aiId }: Props) => {
 
 						<div className="flex justify-end  gap-2 pt-4">
 							<Button type="submit" isLoading={isLoading}>
-								{aiId ? "Update" : "Create"}
+								{aiId ? t("settings.common.update") : t("settings.common.create")}
 							</Button>
 						</div>
 					</form>

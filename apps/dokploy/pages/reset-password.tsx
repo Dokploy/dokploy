@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { GetServerSidePropsContext } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useTranslation } from "next-i18next";
 import { type ReactElement, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,32 +23,34 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
-const loginSchema = z
-	.object({
-		password: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.min(8, {
-				message: "Password must be at least 8 characters",
-			}),
-		confirmPassword: z
-			.string()
-			.min(1, {
-				message: "Password is required",
-			})
-			.min(8, {
-				message: "Password must be at least 8 characters",
-			}),
-	})
-	.refine((data) => data.password === data.confirmPassword, {
-		message: "Passwords do not match",
-		path: ["confirmPassword"],
-	});
+const createLoginSchema = (t: (key: string) => string) =>
+	z
+		.object({
+			password: z
+				.string()
+				.min(1, {
+					message: t("auth.validation.passwordRequired"),
+				})
+				.min(8, {
+					message: t("auth.validation.passwordMinLength"),
+				}),
+			confirmPassword: z
+				.string()
+				.min(1, {
+					message: t("auth.validation.passwordRequired"),
+				})
+				.min(8, {
+					message: t("auth.validation.passwordMinLength"),
+				}),
+		})
+		.refine((data) => data.password === data.confirmPassword, {
+			message: t("auth.validation.passwordsDoNotMatch"),
+			path: ["confirmPassword"],
+		});
 
-type Login = z.infer<typeof loginSchema>;
+type Login = z.infer<ReturnType<typeof createLoginSchema>>;
 
 interface Props {
 	tokenResetPassword: string;
@@ -57,12 +60,13 @@ export default function Home({ tokenResetPassword }: Props) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
+	const { t } = useTranslation("common");
 	const form = useForm<Login>({
 		defaultValues: {
 			password: "",
 			confirmPassword: "",
 		},
-		resolver: zodResolver(loginSchema),
+		resolver: zodResolver(createLoginSchema(t)),
 	});
 
 	useEffect(() => {
@@ -85,9 +89,9 @@ export default function Home({ tokenResetPassword }: Props) {
 		});
 
 		if (error) {
-			setError(error.message || "An error occurred");
+			setError(error.message || t("auth.reset.error.generic"));
 		} else {
-			toast.success("Password reset successfully");
+			toast.success(t("auth.reset.toast.passwordSuccess"));
 			router.push("/");
 		}
 		setIsLoading(false);
@@ -99,10 +103,10 @@ export default function Home({ tokenResetPassword }: Props) {
 					<Link href="/" className="flex flex-row items-center gap-2">
 						<Logo className="size-12" />
 					</Link>
-					Reset Password
+					{t("auth.reset.title")}
 				</CardTitle>
 				<CardDescription>
-					Enter your email to reset your password
+					{t("auth.reset.password.subtitle")}
 				</CardDescription>
 
 				<div className="w-full">
@@ -123,11 +127,11 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="password"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Password</FormLabel>
+												<FormLabel>{t("auth.passwordLabel")}</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Password"
+														placeholder={t("auth.passwordPlaceholder")}
 														{...field}
 													/>
 												</FormControl>
@@ -140,11 +144,11 @@ export default function Home({ tokenResetPassword }: Props) {
 										name="confirmPassword"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Confirm Password</FormLabel>
+												<FormLabel>{t("auth.confirmPasswordLabel")}</FormLabel>
 												<FormControl>
 													<Input
 														type="password"
-														placeholder="Password"
+														placeholder={t("auth.confirmPasswordPlaceholder")}
 														{...field}
 													/>
 												</FormControl>
@@ -158,12 +162,12 @@ export default function Home({ tokenResetPassword }: Props) {
 										isLoading={isLoading}
 										className="w-full"
 									>
-										Confirm
+										{t("button.confirm")}
 									</Button>
 								</div>
 
 								<div className="text-center text-sm flex gap-2 text-muted-foreground">
-									<Link href="/">Sign in</Link>
+									<Link href="/">{t("auth.signInTitle")}</Link>
 								</div>
 							</form>
 						</Form>
@@ -197,9 +201,12 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 		};
 	}
 
+	const locale = getLocale((context.req as any).cookies ?? {});
+
 	return {
 		props: {
 			tokenResetPassword: token,
+			...(await serverSideTranslations(locale)),
 		},
 	};
 }

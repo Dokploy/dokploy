@@ -189,7 +189,7 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should verify nixpacks command is called with correct app", async () => {
 		const mockNixpacksCommand = "nixpacks build /path/to/app --name test-app";
-		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockNixpacksCommand);
+		vi.mocked(builders.getBuildCommand).mockReturnValue(mockNixpacksCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",
@@ -220,7 +220,7 @@ describe("deployApplication - Command Generation Tests", () => {
 		);
 
 		const mockRailpackCommand = "railpack prepare /path/to/app";
-		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockRailpackCommand);
+		vi.mocked(builders.getBuildCommand).mockReturnValue(mockRailpackCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",
@@ -241,7 +241,7 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should execute commands in correct order", async () => {
 		const mockNixpacksCommand = "nixpacks build";
-		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockNixpacksCommand);
+		vi.mocked(builders.getBuildCommand).mockReturnValue(mockNixpacksCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",
@@ -260,7 +260,7 @@ describe("deployApplication - Command Generation Tests", () => {
 
 	it("should include log redirection in command", async () => {
 		const mockCommand = "nixpacks build";
-		vi.mocked(builders.getBuildCommand).mockResolvedValue(mockCommand);
+		vi.mocked(builders.getBuildCommand).mockReturnValue(mockCommand);
 
 		await deployApplication({
 			applicationId: "test-app-id",

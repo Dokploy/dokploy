@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -48,35 +49,51 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
-const GitlabProviderSchema = z.object({
-	buildPath: z.string().min(1, "Path is required").default("/"),
-	repository: z
-		.object({
-			repo: z.string().min(1, "Repo is required"),
-			owner: z.string().min(1, "Owner is required"),
-			gitlabPathNamespace: z.string().min(1),
-			id: z.number().nullable(),
-		})
-		.required(),
-	branch: z.string().min(1, "Branch is required"),
-	gitlabId: z.string().min(1, "Gitlab Provider is required"),
-	watchPaths: z.array(z.string()).optional(),
-	enableSubmodules: z.boolean().default(false),
-});
+const createGitlabProviderSchema = (t: (key: string) => string) =>
+	z.object({
+		buildPath: z
+			.string()
+			.min(1, t("application.git.gitlab.validation.buildPathRequired"))
+			.default("/"),
+		repository: z
+			.object({
+				repo: z
+					.string()
+					.min(1, t("application.git.gitlab.validation.repositoryRequired")),
+				owner: z
+					.string()
+					.min(1, t("application.git.gitlab.validation.ownerRequired")),
+				gitlabPathNamespace: z
+					.string()
+					.min(1, t("application.git.gitlab.validation.pathNamespaceRequired")),
+				id: z.number().nullable(),
+			})
+			.required(),
+		branch: z
+			.string()
+			.min(1, t("application.git.gitlab.validation.branchRequired")),
+		gitlabId: z
+			.string()
+			.min(1, t("application.git.gitlab.validation.gitlabIdRequired")),
+		watchPaths: z.array(z.string()).optional(),
+		enableSubmodules: z.boolean().default(false),
+	});
 
-type GitlabProvider = z.infer<typeof GitlabProviderSchema>;
+type GitlabProvider = z.infer<ReturnType<typeof createGitlabProviderSchema>>;
 
 interface Props {
 	applicationId: string;
 }
 
 export const SaveGitlabProvider = ({ applicationId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data: gitlabProviders } = api.gitlab.gitlabProviders.useQuery();
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isLoading: isSavingGitlabProvider } =
 		api.application.saveGitlabProvider.useMutation();
 
+	const schema = createGitlabProviderSchema(t);
 	const form = useForm<GitlabProvider>({
 		defaultValues: {
 			buildPath: "/",
@@ -90,11 +107,12 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			branch: "",
 			enableSubmodules: false,
 		},
-		resolver: zodResolver(GitlabProviderSchema),
+		resolver: zodResolver(schema),
 	});
 
 	const repository = form.watch("repository");
 	const gitlabId = form.watch("gitlabId");
+	const watchPathInputRef = useRef<HTMLInputElement | null>(null);
 
 	const gitlabUrl = useMemo(() => {
 		const url = gitlabProviders?.find(
@@ -167,11 +185,11 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
-				toast.success("Service Provider Saved");
+				toast.success(t("application.git.gitlab.toast.saveSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the gitlab provider");
+				toast.error(t("application.git.gitlab.toast.saveError"));
 			});
 	};
 
@@ -189,7 +207,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							name="gitlabId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Gitlab Account</FormLabel>
+									<FormLabel>
+										{t("application.git.gitlab.form.gitlabAccountLabel")}
+									</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -206,7 +226,11 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Gitlab Account" />
+												<SelectValue
+													placeholder={t(
+														"application.git.gitlab.form.gitlabAccountPlaceholder",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -231,7 +255,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>Repository</FormLabel>
+										<FormLabel>
+											{t("application.git.gitlab.form.repositoryLabel")}
+										</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`${gitlabUrl}/${field.value.owner}/${field.value.repo}`}
@@ -240,7 +266,11 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GitlabIcon className="h-4 w-4" />
-												<span>View Repository</span>
+												<span>
+													{t(
+														"application.git.gitlab.form.viewRepositoryLink",
+													)}
+												</span>
 											</Link>
 										)}
 									</div>
@@ -255,13 +285,14 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 													)}
 												>
 													{isLoadingRepositories
-														? "Loading...."
+														? t("application.git.gitlab.state.loadingRepositories")
 														: field.value.owner
 															? repositories?.find(
 																	(repo) => repo.name === field.value.repo,
 																)?.name
-															: "Select repository"}
-
+															: t(
+																"application.git.gitlab.form.repositorySelectPlaceholder",
+															)}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -269,20 +300,24 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search repository..."
+													placeholder={t(
+														"application.git.gitlab.form.repositorySearchPlaceholder",
+													)}
 													className="h-9"
 												/>
 												{isLoadingRepositories && (
 													<span className="py-6 text-center text-sm">
-														Loading Repositories....
+														{t("application.git.gitlab.state.loadingRepositories")}
 													</span>
 												)}
-												<CommandEmpty>No repositories found.</CommandEmpty>
+												<CommandEmpty>
+													{t("application.git.gitlab.state.noRepositories")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{repositories && repositories.length === 0 && (
 															<CommandEmpty>
-																No repositories found.
+																{t("application.git.gitlab.state.noRepositories")}
 															</CommandEmpty>
 														)}
 														{repositories?.map((repo) => {
@@ -325,7 +360,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									</Popover>
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											Repository is required
+											{t("application.git.gitlab.validation.repositoryRequired")}
 										</p>
 									)}
 								</FormItem>
@@ -336,7 +371,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							name="branch"
 							render={({ field }) => (
 								<FormItem className="block w-full">
-									<FormLabel>Branch</FormLabel>
+									<FormLabel>
+										{t("application.git.gitlab.form.branchLabel")}
+									</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -348,12 +385,14 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 													)}
 												>
 													{status === "loading" && fetchStatus === "fetching"
-														? "Loading...."
+														? t("application.git.gitlab.state.loadingBranches")
 														: field.value
 															? branches?.find(
 																	(branch) => branch.name === field.value,
 																)?.name
-															: "Select branch"}
+															: t(
+																"application.git.gitlab.form.branchSelectPlaceholder",
+															)}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -361,22 +400,27 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search branch..."
+													placeholder={t(
+														"application.git.gitlab.form.branchSearchPlaceholder",
+													)}
 													className="h-9"
 												/>
 												{status === "loading" && fetchStatus === "fetching" && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Loading Branches....
+														{t("application.git.gitlab.state.loadingBranches")}
 													</span>
 												)}
 												{!repository?.owner && (
 													<span className="py-6 text-center text-sm text-muted-foreground">
-														Select a repository
+														{t(
+															"application.git.gitlab.form.repositorySelectFirst",
+														)}
 													</span>
 												)}
 												<ScrollArea className="h-96">
-													<CommandEmpty>No branch found.</CommandEmpty>
-
+													<CommandEmpty>
+														{t("application.git.gitlab.state.noBranches")}
+													</CommandEmpty>
 													<CommandGroup>
 														{branches?.map((branch) => (
 															<CommandItem
@@ -401,9 +445,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												</ScrollArea>
 											</Command>
 										</PopoverContent>
-
-										<FormMessage />
 									</Popover>
+									<FormMessage />
 								</FormItem>
 							)}
 						/>
@@ -412,9 +455,16 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							name="buildPath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Build Path</FormLabel>
+									<FormLabel>
+										{t("application.git.gitlab.form.buildPathLabel")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="/" {...field} />
+										<Input
+											placeholder={t(
+												"application.git.gitlab.form.buildPathPlaceholder",
+											)}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -426,7 +476,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2">
 									<div className="flex items-center gap-2">
-										<FormLabel>Watch Paths</FormLabel>
+										<FormLabel>
+											{t("application.git.gitlab.form.watchPathsLabel")}
+										</FormLabel>
 										<TooltipProvider>
 											<Tooltip>
 												<TooltipTrigger asChild>
@@ -434,8 +486,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 												</TooltipTrigger>
 												<TooltipContent>
 													<p>
-														Add paths to watch for changes. When files in these
-														paths change, a new deployment will be triggered.
+														{t(
+															"application.git.gitlab.form.watchPathsTooltip",
+														)}
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -463,7 +516,10 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									<div className="flex gap-2">
 										<FormControl>
 											<Input
-												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
+												ref={watchPathInputRef}
+												placeholder={t(
+													"application.git.gitlab.form.watchPathsPlaceholder",
+												)}
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();
@@ -482,9 +538,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 											variant="outline"
 											size="icon"
 											onClick={() => {
-												const input = document.querySelector(
-													'input[placeholder*="Enter a path"]',
-												) as HTMLInputElement;
+												const input = watchPathInputRef.current;
+												if (!input) return;
 												const path = input.value.trim();
 												if (path) {
 													field.onChange([...(field.value || []), path]);
@@ -510,7 +565,9 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="!mt-0">
+										{t("application.git.gitlab.form.enableSubmodulesLabel")}
+									</FormLabel>
 								</FormItem>
 							)}
 						/>
@@ -521,7 +578,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 							type="submit"
 							className="w-fit"
 						>
-							Save
+							{t("button.save")}
 						</Button>
 					</div>
 				</form>

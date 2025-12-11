@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GlobeIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -34,42 +34,43 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
-const addServerDomain = z
-	.object({
-		domain: z.string().trim().toLowerCase(),
-		letsEncryptEmail: z.string(),
-		https: z.boolean().optional(),
-		certificateType: z.enum(["letsencrypt", "none", "custom"]),
-	})
-	.superRefine((data, ctx) => {
+const baseServerDomainSchema = z.object({
+	domain: z.string(),
+	letsEncryptEmail: z.string(),
+	https: z.boolean().optional(),
+	certificateType: z.enum(["letsencrypt", "none", "custom"]),
+});
+
+const createServerDomainSchema = (t: (key: string) => string) =>
+	baseServerDomainSchema.superRefine((data, ctx) => {
 		if (data.https && !data.certificateType) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				path: ["certificateType"],
-				message: "Required",
+				message: t(
+					"settings.server.domain.validation.certificateRequired",
+				),
 			});
 		}
-		if (
-			data.https &&
-			data.certificateType === "letsencrypt" &&
-			!data.letsEncryptEmail
-		) {
+		if (data.certificateType === "letsencrypt" && !data.letsEncryptEmail) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message:
-					"LetsEncrypt email is required when certificate type is letsencrypt",
 				path: ["letsEncryptEmail"],
+				message: t(
+					"settings.server.domain.validation.letsEncryptEmailRequired",
+				),
 			});
 		}
 	});
 
-type AddServerDomain = z.infer<typeof addServerDomain>;
+type AddServerDomain = z.infer<typeof baseServerDomainSchema>;
 
 export const WebDomain = () => {
 	const { t } = useTranslation("settings");
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();
+	const schema = useMemo(() => createServerDomainSchema(t), [t]);
 
 	const form = useForm<AddServerDomain>({
 		defaultValues: {
@@ -78,7 +79,7 @@ export const WebDomain = () => {
 			letsEncryptEmail: "",
 			https: false,
 		},
-		resolver: zodResolver(addServerDomain),
+		resolver: zodResolver(schema),
 	});
 	const https = form.watch("https");
 	const domain = form.watch("domain") || "";
@@ -104,10 +105,10 @@ export const WebDomain = () => {
 		})
 			.then(async () => {
 				await refetch();
-				toast.success("Domain Assigned");
+				toast.success(t("settings.server.domain.assigned"));
 			})
 			.catch(() => {
-				toast.error("Error assigning the domain");
+				toast.error(t("settings.server.domain.assignError"));
 			});
 	};
 
@@ -131,11 +132,11 @@ export const WebDomain = () => {
 						{hasChanged && (
 							<AlertBlock type="warning">
 								<div className="space-y-2">
-									<p className="font-medium">⚠️ Important: URL Change Impact</p>
+									<p className="font-medium">
+										{t("settings.server.domain.githubWarning.title")}
+									</p>
 									<p>
-										If you change the Dokploy Server URL make sure to update
-										your Github Apps to keep the auto-deploy working and preview
-										deployments working.
+										{t("settings.server.domain.githubWarning.description")}
 									</p>
 								</div>
 							</AlertBlock>
@@ -194,9 +195,11 @@ export const WebDomain = () => {
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm w-full col-span-2">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>
+													{t("settings.server.domain.form.https.label")}
+												</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t("settings.server.domain.form.https.description")}
 												</FormDescription>
 												<FormMessage />
 											</div>
