@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Sun, SunMoon } from "lucide-react";
+import { Moon, Sun, Laptop } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
@@ -23,7 +23,7 @@ const getThemeIcon = (theme: Theme) => {
 		case "dark":
 			return <Moon className={iconClass} />;
 		case "system":
-			return <SunMoon className={iconClass} />;
+			return <Laptop className={iconClass} />;
 	}
 };
 
