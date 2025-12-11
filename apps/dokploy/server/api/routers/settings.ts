@@ -29,6 +29,7 @@ import {
 	readMainConfig,
 	readMonitoringConfig,
 	readPorts,
+	readVolumes,
 	recreateDirectory,
 	reloadDockerResource,
 	sendDockerCleanupNotifications,
@@ -124,6 +125,7 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiEnableDashboard)
 		.mutation(async ({ input }) => {
 			const ports = await readPorts("dokploy-traefik", input.serverId);
+			const volumes = await readVolumes("dokploy-traefik", input.serverId);
 			const env = await readEnvironmentVariables(
 				"dokploy-traefik",
 				input.serverId,
@@ -155,6 +157,7 @@ export const settingsRouter = createTRPCRouter({
 			await writeTraefikSetup({
 				env: preparedEnv,
 				additionalPorts: newPorts,
+				additionalVolumes: volumes,
 				serverId: input.serverId,
 			});
 			return true;
@@ -579,10 +582,12 @@ export const settingsRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const envs = prepareEnvironmentVariables(input.env);
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
+			const volumes = await readVolumes("dokploy-traefik", input?.serverId);
 
 			await writeTraefikSetup({
 				env: envs,
 				additionalPorts: ports,
+				additionalVolumes: volumes,
 				serverId: input.serverId,
 			});
 
@@ -832,10 +837,12 @@ export const settingsRouter = createTRPCRouter({
 					}
 				}
 				const preparedEnv = prepareEnvironmentVariables(env);
+				const volumes = await readVolumes("dokploy-traefik", input?.serverId);
 
 				await writeTraefikSetup({
 					env: preparedEnv,
 					additionalPorts: input.additionalPorts,
+					additionalVolumes: volumes,
 					serverId: input.serverId,
 				});
 				return true;
@@ -855,6 +862,57 @@ export const settingsRouter = createTRPCRouter({
 		.query(async ({ input }) => {
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 			return ports;
+		}),
+	getTraefikVolumes: adminProcedure
+		.input(apiServerSchema)
+		.query(async ({ input }) => {
+			const volumes = await readVolumes("dokploy-traefik", input?.serverId);
+			return volumes;
+		}),
+	updateTraefikVolumes: adminProcedure
+		.input(
+			z.object({
+				serverId: z.string().optional(),
+				additionalVolumes: z.array(
+					z.object({
+						hostPath: z.string().min(1, "Host path is required"),
+						containerPath: z.string().min(1, "Container path is required"),
+					}),
+				),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			try {
+				if (IS_CLOUD && !input.serverId) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "Please set a serverId to update Traefik volumes",
+					});
+				}
+				const env = await readEnvironmentVariables(
+					"dokploy-traefik",
+					input?.serverId,
+				);
+				const ports = await readPorts("dokploy-traefik", input?.serverId);
+				const preparedEnv = prepareEnvironmentVariables(env);
+
+				await writeTraefikSetup({
+					env: preparedEnv,
+					additionalPorts: ports,
+					additionalVolumes: input.additionalVolumes,
+					serverId: input.serverId,
+				});
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Error updating Traefik volumes",
+					cause: error,
+				});
+			}
 		}),
 	updateLogCleanup: protectedProcedure
 		.input(

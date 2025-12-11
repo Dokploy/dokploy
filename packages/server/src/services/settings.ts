@@ -296,6 +296,64 @@ export const readEnvironmentVariables = async (
 	return JSON.parse(result)?.join("\n");
 };
 
+export const readVolumes = async (
+	resourceName: string,
+	serverId?: string,
+): Promise<{ hostPath: string; containerPath: string }[]> => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service inspect ${resourceName} --format '{{json .Spec.TaskTemplate.ContainerSpec.Mounts}}'`;
+	} else if (resourceType === "standalone") {
+		command = `docker container inspect ${resourceName} --format '{{json .Mounts}}'`;
+	} else {
+		throw new Error("Resource type not found");
+	}
+	let result = "";
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, command);
+		result = stdout.trim();
+	} else {
+		const { stdout } = await execAsync(command);
+		result = stdout.trim();
+	}
+
+	if (result === "null") {
+		return [];
+	}
+
+	const parsedResult = JSON.parse(result);
+
+	// Default volumes that should be excluded from user management
+	const defaultVolumePaths = [
+		"/etc/traefik/traefik.yml",
+		"/etc/dokploy/traefik/dynamic",
+		"/var/run/docker.sock",
+	];
+
+	if (resourceType === "service") {
+		return parsedResult
+			.filter((mount: any) => mount.Type === "bind")
+			.map((mount: any) => ({
+				hostPath: mount.Source,
+				containerPath: mount.Target,
+			}))
+			.filter(
+				(vol: any) => !defaultVolumePaths.includes(vol.containerPath),
+			);
+	}
+
+	return parsedResult
+		.filter((mount: any) => mount.Type === "bind")
+		.map((mount: any) => ({
+			hostPath: mount.Source,
+			containerPath: mount.Destination,
+		}))
+		.filter(
+			(vol: any) => !defaultVolumePaths.includes(vol.containerPath),
+		);
+};
+
 export const readPorts = async (
 	resourceName: string,
 	serverId?: string,
@@ -400,12 +458,14 @@ export const writeTraefikSetup = async (input: TraefikOptions) => {
 		await initializeTraefikService({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
+			additionalVolumes: input.additionalVolumes,
 			serverId: input.serverId,
 		});
 	} else if (resourceType === "standalone") {
 		await initializeStandaloneTraefik({
 			env: input.env,
 			additionalPorts: input.additionalPorts,
+			additionalVolumes: input.additionalVolumes,
 			serverId: input.serverId,
 		});
 	} else {

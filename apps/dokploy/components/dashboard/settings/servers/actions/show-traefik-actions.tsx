@@ -15,6 +15,7 @@ import {
 import { api } from "@/utils/api";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
+import { ManageTraefikVolumes } from "../../web-server/manage-traefik-volumes";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 
 interface Props {
@@ -46,7 +47,7 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 					{t("settings.server.webServer.traefik.label")}
 				</Button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent className="w-56" align="start">
+				<DropdownMenuContent className="w-64" align="start">
 				<DropdownMenuLabel>
 					{t("settings.server.webServer.actions")}
 				</DropdownMenuLabel>
@@ -141,11 +142,21 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 					<ManageTraefikPorts serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}
-							className="cursor-pointer"
+							className="w-full cursor-pointer space-x-3"
 						>
 							<span>{t("settings.server.webServer.traefik.managePorts")}</span>
 						</DropdownMenuItem>
 					</ManageTraefikPorts>
+					<ManageTraefikVolumes serverId={serverId}>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="w-full cursor-pointer space-x-3"
+						>
+							<span>
+								{t("settings.server.webServer.traefik.manageVolumes")}
+							</span>
+						</DropdownMenuItem>
+					</ManageTraefikVolumes>
 				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
