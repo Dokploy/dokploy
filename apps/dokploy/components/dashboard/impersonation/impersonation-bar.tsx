@@ -17,6 +17,7 @@ import {
 	UserIcon,
 	XIcon,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Logo } from "@/components/shared/logo";
@@ -55,6 +56,7 @@ export const ImpersonationBar = () => {
 	const [open, setOpen] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [showBar, setShowBar] = useState(false);
+	const { t } = useTranslation("common");
 	const { data } = api.user.get.useQuery();
 
 	const fetchUsers = async (search?: string) => {
@@ -86,7 +88,7 @@ export const ImpersonationBar = () => {
 			}
 		} catch (error) {
 			console.error("Error fetching users:", error);
-			toast.error("Error loading users");
+			toast.error(t("impersonation.toast.loadError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -102,13 +104,15 @@ export const ImpersonationBar = () => {
 			setIsImpersonating(true);
 			setOpen(false);
 
-			toast.success("Successfully impersonating user", {
-				description: `You are now viewing as ${`${selectedUser.name} ${selectedUser.lastName}`.trim() || selectedUser.email}`,
+			toast.success(t("impersonation.toast.startSuccess"), {
+				description: t("impersonation.toast.startSuccessDescription", {
+					name: selectedUser.name || selectedUser.email,
+				}),
 			});
 			window.location.reload();
 		} catch (error) {
 			console.error("Error impersonating user:", error);
-			toast.error("Error impersonating user");
+			toast.error(t("impersonation.toast.startError"));
 		}
 	};
 
@@ -118,11 +122,11 @@ export const ImpersonationBar = () => {
 			setIsImpersonating(false);
 			setSelectedUser(null);
 			setShowBar(false);
-			toast.success("Stopped impersonating user");
+			toast.success(t("impersonation.toast.stopSuccess"));
 			window.location.reload();
 		} catch (error) {
 			console.error("Error stopping impersonation:", error);
-			toast.error("Error stopping impersonation");
+			toast.error(t("impersonation.toast.stopError"));
 		}
 	};
 
@@ -169,7 +173,9 @@ export const ImpersonationBar = () => {
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent>
-						{isImpersonating ? "Impersonation Controls" : "User Impersonation"}
+						{isImpersonating
+								? t("impersonation.tooltip.controls")
+								: t("impersonation.tooltip.entry")}
 					</TooltipContent>
 				</Tooltip>
 
@@ -195,8 +201,7 @@ export const ImpersonationBar = () => {
 													<UserIcon className="mr-2 h-4 w-4 flex-shrink-0" />
 													<span className="truncate flex flex-col items-start">
 														<span className="text-sm font-medium">
-															{`${selectedUser.name} ${selectedUser.lastName}`.trim() ||
-																""}
+															{selectedUser.name || ""}
 														</span>
 														<span className="text-xs text-muted-foreground">
 															{selectedUser.email}
@@ -206,7 +211,7 @@ export const ImpersonationBar = () => {
 											) : (
 												<>
 													<UserIcon className="mr-2 h-4 w-4" />
-													<span>Select user to impersonate</span>
+													<span>{t("impersonation.select.placeholder")}</span>
 												</>
 											)}
 											<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -215,7 +220,7 @@ export const ImpersonationBar = () => {
 									<PopoverContent className="w-[300px] p-0" align="start">
 										<Command>
 											<CommandInput
-												placeholder="Search users by email or name..."
+												placeholder={t("impersonation.search.placeholder")}
 												onValueChange={(search) => {
 													fetchUsers(search);
 												}}
@@ -223,13 +228,15 @@ export const ImpersonationBar = () => {
 											/>
 											{isLoading ? (
 												<div className="py-6 text-center text-sm">
-													Loading users...
+													{t("impersonation.search.loading")}
 												</div>
 											) : (
 												<>
-													<CommandEmpty>No users found.</CommandEmpty>
+													<CommandEmpty>
+														{t("impersonation.search.empty")}
+													</CommandEmpty>
 													<CommandList>
-														<CommandGroup heading="All Users">
+														<CommandGroup heading={t("impersonation.search.groupAll")}>
 															{users.map((user) => (
 																<CommandItem
 																	key={user.id}
@@ -243,8 +250,7 @@ export const ImpersonationBar = () => {
 																		<UserIcon className="h-4 w-4 flex-shrink-0" />
 																		<span className="flex flex-col items-start">
 																			<span className="text-sm font-medium">
-																				{`${user.name} ${user.lastName}`.trim() ||
-																					""}
+																				{user.name || ""}
 																			</span>
 																			<span className="text-xs text-muted-foreground">
 																				{user.email} • {user.role}
@@ -275,7 +281,7 @@ export const ImpersonationBar = () => {
 									className="gap-2"
 								>
 									<Shield className="h-4 w-4" />
-									Impersonate
+									{t("impersonation.button.start")}
 								</Button>
 							</div>
 						) : (
@@ -283,30 +289,25 @@ export const ImpersonationBar = () => {
 								<div className="flex items-center gap-4 flex-1 flex-wrap">
 									<Avatar className="h-10 w-10">
 										<AvatarImage
-											className="object-cover"
-											src={data?.user?.image || ""}
-											alt={
-												`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
-												""
-											}
-										/>
-										<AvatarFallback>
-											{`${data?.user?.firstName?.[0] || ""}${data?.user?.lastName?.[0] || ""}`.toUpperCase() ||
-												"U"}
-										</AvatarFallback>
+												className="object-cover"
+												src={data?.user?.image || ""}
+												alt={data?.user?.name || ""}
+											/>
+											<AvatarFallback>
+												{data?.user?.name?.slice(0, 2).toUpperCase() || "U"}
+											</AvatarFallback>
 									</Avatar>
 									<div className="flex flex-col gap-1">
 										<div className="flex items-center gap-2">
 											<Badge
-												variant="outline"
-												className="gap-1 py-1 text-yellow-500 bg-yellow-50/20"
-											>
-												<Shield className="h-3 w-3" />
-												Impersonating
-											</Badge>
+													variant="outline"
+													className="gap-1 py-1 text-yellow-500 bg-yellow-50/20"
+												>
+													<Shield className="h-3 w-3" />
+													{t("impersonation.badge.impersonating")}
+												</Badge>
 											<span className="font-medium">
-												{`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
-													""}
+												{data?.user?.name || ""}
 											</span>
 										</div>
 										<div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
@@ -317,7 +318,7 @@ export const ImpersonationBar = () => {
 											<span className="flex items-center gap-1">
 												<Key className="h-3 w-3" />
 												<span className="flex items-center gap-1">
-													ID: {data?.user?.id?.slice(0, 8)}
+													{t("swarm.applications.table.id")}: {data?.user?.id?.slice(0, 8)}
 													<Button
 														variant="ghost"
 														size="icon"
@@ -325,7 +326,7 @@ export const ImpersonationBar = () => {
 														onClick={() => {
 															if (data?.id) {
 																copy(data.id);
-																toast.success("ID copied to clipboard");
+																toast.success(t("impersonation.toast.idCopied"));
 															}
 														}}
 													>
@@ -336,7 +337,7 @@ export const ImpersonationBar = () => {
 											<span className="flex items-center gap-1">
 												<Building2 className="h-3 w-3" />
 												<span className="flex items-center gap-1">
-													Org: {data?.organizationId?.slice(0, 8)}
+													{t("organization.title")}: {data?.organizationId?.slice(0, 8)}
 													<Button
 														variant="ghost"
 														size="icon"
@@ -344,9 +345,7 @@ export const ImpersonationBar = () => {
 														onClick={() => {
 															if (data?.organizationId) {
 																copy(data.organizationId);
-																toast.success(
-																	"Organization ID copied to clipboard",
-																);
+																toast.success(t("impersonation.toast.orgIdCopied"));
 															}
 														}}
 													>
@@ -355,104 +354,104 @@ export const ImpersonationBar = () => {
 												</span>
 											</span>
 											{data?.user?.stripeCustomerId && (
-												<span className="flex items-center gap-1">
-													<CreditCard className="h-3 w-3" />
 													<span className="flex items-center gap-1">
-														Customer:
-														{data?.user?.stripeCustomerId?.slice(0, 8)}
-														<Button
-															variant="ghost"
-															size="icon"
-															className="h-4 w-4 hover:bg-muted/50"
-															onClick={() => {
-																copy(data?.user?.stripeCustomerId || "");
-																toast.success(
-																	"Stripe Customer ID copied to clipboard",
-																);
-															}}
-														>
-															<Copy className="h-3 w-3" />
-														</Button>
+														<CreditCard className="h-3 w-3" />
+														<span className="flex items-center gap-1">
+															{t("impersonation.label.customer")}:
+															{data?.user?.stripeCustomerId?.slice(0, 8)}
+															<Button
+																variant="ghost"
+																size="icon"
+																className="h-4 w-4 hover:bg-muted/50"
+																onClick={() => {
+																	copy(data?.user?.stripeCustomerId || "");
+																	toast.success(t("impersonation.toast.customerIdCopied"));
+																}}
+															>
+																<Copy className="h-3 w-3" />
+															</Button>
+														</span>
 													</span>
-												</span>
-											)}
-											{data?.user?.stripeSubscriptionId && (
-												<span className="flex items-center gap-1">
-													<CreditCard className="h-3 w-3" />
+												)}
+												{data?.user?.stripeSubscriptionId && (
 													<span className="flex items-center gap-1">
-														Sub: {data?.user?.stripeSubscriptionId?.slice(0, 8)}
-														<Button
-															variant="ghost"
-															size="icon"
-															className="h-4 w-4 hover:bg-muted/50"
-															onClick={() => {
-																copy(data.user.stripeSubscriptionId || "");
-																toast.success(
-																	"Stripe Subscription ID copied to clipboard",
-																);
-															}}
-														>
-															<Copy className="h-3 w-3" />
-														</Button>
+														<CreditCard className="h-3 w-3" />
+														<span className="flex items-center gap-1">
+															{t("impersonation.label.subscription")}: {data?.user?.stripeSubscriptionId?.slice(0, 8)}
+															<Button
+																variant="ghost"
+																size="icon"
+																className="h-4 w-4 hover:bg-muted/50"
+																onClick={() => {
+																	copy(data.user.stripeSubscriptionId || "");
+																	toast.success(t("impersonation.toast.subscriptionIdCopied"));
+																}}
+															>
+																<Copy className="h-3 w-3" />
+															</Button>
+														</span>
 													</span>
-												</span>
-											)}
-											{data?.user?.serversQuantity !== undefined && (
-												<span className="flex items-center gap-1">
-													<Server className="h-3 w-3" />
-													<span>Servers: {data.user.serversQuantity}</span>
-												</span>
-											)}
-											{data?.createdAt && (
-												<span className="flex items-center gap-1">
-													<Calendar className="h-3 w-3" />
-													Created:{" "}
-													{format(new Date(data.createdAt), "MMM d, yyyy")}
-												</span>
-											)}
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<span className="flex items-center gap-1 cursor-default">
-														<Fingerprint
-															className={cn(
-																"h-3 w-3",
-																data?.user?.twoFactorEnabled
-																	? "text-green-500"
-																	: "text-muted-foreground",
-															)}
-														/>
-														<Badge
-															variant={
-																data?.user?.twoFactorEnabled
-																	? "green"
-																	: "secondary"
-															}
-															className="text-[10px] px-1 py-0"
-														>
-															2FA{" "}
-															{data?.user?.twoFactorEnabled
-																? "Enabled"
-																: "Disabled"}
-														</Badge>
+												)}
+												{data?.user?.serversQuantity !== undefined && (
+													<span className="flex items-center gap-1">
+														<Server className="h-3 w-3" />
+														<span>
+															{t("impersonation.label.servers", {
+																count: data.user.serversQuantity,
+															})}
+														</span>
 													</span>
-												</TooltipTrigger>
-												<TooltipContent>
-													Two-Factor Authentication Status
-												</TooltipContent>
-											</Tooltip>
+												)}
+												{data?.createdAt && (
+													<span className="flex items-center gap-1">
+														<Calendar className="h-3 w-3" />
+														{t("impersonation.label.created")} {" "}
+														{format(new Date(data.createdAt), "MMM d, yyyy")}
+													</span>
+												)}
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<span className="flex items-center gap-1 cursor-default">
+															<Fingerprint
+																className={cn(
+																	"h-3 w-3",
+																	data?.user?.twoFactorEnabled
+																		? "text-green-500"
+																		: "text-muted-foreground",
+																)}
+															/>
+															<Badge
+																variant={
+																	data?.user?.twoFactorEnabled
+																		? "green"
+																		: "secondary"
+																}
+																className="text-[10px] px-1 py-0"
+															>
+																{t("impersonation.badge.twoFactor")} {" "}
+																{data?.user?.twoFactorEnabled
+																		? t("impersonation.badge.enabled")
+																		: t("impersonation.badge.disabled")}
+															</Badge>
+														</span>
+													</TooltipTrigger>
+													<TooltipContent>
+														{t("impersonation.tooltip.twoFactorStatus")}
+													</TooltipContent>
+												</Tooltip>
+											</div>
 										</div>
 									</div>
+									<Button
+										onClick={handleStopImpersonating}
+										variant="secondary"
+										className="gap-2"
+										size="sm"
+									>
+										<XIcon className="w-4 h-4" />
+										{t("impersonation.button.stop")}
+									</Button>
 								</div>
-								<Button
-									onClick={handleStopImpersonating}
-									variant="secondary"
-									className="gap-2"
-									size="sm"
-								>
-									<XIcon className="w-4 h-4" />
-									Stop Impersonating
-								</Button>
-							</div>
 						)}
 					</div>
 				</div>

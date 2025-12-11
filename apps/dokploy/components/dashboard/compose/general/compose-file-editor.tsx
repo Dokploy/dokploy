@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ const AddComposeFile = z.object({
 type AddComposeFile = z.infer<typeof AddComposeFile>;
 
 export const ComposeFileEditor = ({ composeId }: Props) => {
+	const { t } = useTranslation("common");
 	const utils = api.useUtils();
 	const { data, refetch } = api.compose.one.useQuery(
 		{
@@ -65,7 +67,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		if (!valid) {
 			form.setError("composeFile", {
 				type: "manual",
-				message: error || "Invalid YAML",
+				message: error || t("traefik.config.error.invalidYaml"),
 			});
 			return;
 		}
@@ -78,7 +80,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			sourceType: "raw",
 		})
 			.then(async () => {
-				toast.success("Compose config Updated");
+				toast.success(t("compose.fileEditor.update.success"));
 				setHasUnsavedChanges(false);
 				refetch();
 				await utils.compose.getConvertedCompose.invalidate({
@@ -86,7 +88,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the Compose config");
+				toast.error(t("compose.fileEditor.update.error"));
 			});
 	};
 
@@ -110,12 +112,12 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 			<div className="w-full flex flex-col gap-4 ">
 				<div className="flex items-center justify-between">
 					<div>
-						<h3 className="text-lg font-medium">Compose File</h3>
+						<h3 className="text-lg font-medium">{t("compose.fileEditor.title")}</h3>
 						<p className="text-sm text-muted-foreground">
-							Configure your Docker Compose file for this service.
+							{t("compose.fileEditor.description")}
 							{hasUnsavedChanges && (
 								<span className="text-yellow-500 ml-2">
-									(You have unsaved changes)
+									{t("compose.fileEditor.unsavedChanges")}
 								</span>
 							)}
 						</p>
@@ -170,7 +172,7 @@ services:
 						isLoading={isLoading}
 						className="lg:w-fit w-full"
 					>
-						Save
+						{t("button.save")}
 					</Button>
 				</div>
 			</div>

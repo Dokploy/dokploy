@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ interface Props {
 export const ProjectEnvironment = ({ projectId, children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
+	const { t } = useTranslation("common");
 	const { mutateAsync, error, isError, isLoading } =
 		api.project.update.useMutation();
 	const { data } = api.project.one.useQuery(
@@ -72,11 +74,11 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 			projectId: projectId,
 		})
 			.then(() => {
-				toast.success("Project env updated successfully");
+				toast.success(t("project.env.update.success"));
 				utils.project.all.invalidate();
 			})
 			.catch(() => {
-				toast.error("Error updating the env");
+				toast.error(t("project.env.update.error"));
 			})
 			.finally(() => {});
 	};
@@ -105,22 +107,21 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<FileIcon className="size-4" />
-						<span>Project Environment</span>
+						<span>{t("project.env.button")}</span>
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>Project Environment</DialogTitle>
+					<DialogTitle>{t("project.env.title")}</DialogTitle>
 					<DialogDescription>
-						Update the env Environment variables that are accessible to all
-						services of this project.
+						{t("project.env.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					Use this syntax to reference project-level variables in your service
-					environments: <code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
+					{t("project.env.info")}
+					<code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
 					<div className="grid items-center gap-4">
@@ -134,16 +135,13 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 									name="env"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Environment variables</FormLabel>
+											<FormLabel>{t("project.env.label")}</FormLabel>
 											<FormControl>
 												<CodeEditor
 													lineWrapping
 													language="properties"
 													wrapperClassName="h-[35rem] font-mono"
-													placeholder={`NODE_ENV=production
-PORT=3000
-
-                                                    `}
+													placeholder={t("project.env.placeholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -156,7 +154,7 @@ PORT=3000
 								/>
 								<DialogFooter>
 									<Button isLoading={isLoading} type="submit">
-										Update
+										{t("button.update")}
 									</Button>
 								</DialogFooter>
 							</form>

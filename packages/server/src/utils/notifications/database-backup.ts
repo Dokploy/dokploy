@@ -4,8 +4,8 @@ import DatabaseBackupEmail from "@dokploy/server/emails/emails/database-backup";
 import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
+import { getDatabaseBackupEmailContent } from "../i18n/backend";
 import {
-	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -46,16 +46,23 @@ export const sendDatabaseBackupNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
-			custom: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
 			notification;
 		try {
 			if (email) {
+				const emailContent = getDatabaseBackupEmailContent({
+					projectName,
+					applicationName,
+					databaseType,
+					type,
+					errorMessage,
+					date: date.toLocaleString(),
+				});
 				const template = await renderAsync(
 					DatabaseBackupEmail({
 						projectName,
@@ -68,7 +75,7 @@ export const sendDatabaseBackupNotifications = async ({
 				).catch();
 				await sendEmailNotification(
 					email,
-					"Database backup for dokploy",
+					emailContent.subject,
 					template,
 				);
 			}
@@ -241,25 +248,6 @@ export const sendDatabaseBackupNotifications = async ({
 							],
 						},
 					],
-				});
-			}
-
-			if (custom) {
-				await sendCustomNotification(custom, {
-					title: `Database Backup ${type === "success" ? "Successful" : "Failed"}`,
-					message:
-						type === "success"
-							? "Database backup completed successfully"
-							: "Database backup failed",
-					projectName,
-					applicationName,
-					databaseType,
-					databaseName,
-					type,
-					errorMessage: errorMessage || "",
-					timestamp: date.toISOString(),
-					date: date.toLocaleString(),
-					status: type,
 				});
 			}
 

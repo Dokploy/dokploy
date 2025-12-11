@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBox } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,14 +28,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const updatePostgresSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdatePostgresSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("service.validation.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdatePostgres = z.infer<typeof updatePostgresSchema>;
+type UpdatePostgres = z.infer<ReturnType<typeof createUpdatePostgresSchema>>;
 
 interface Props {
 	postgresId: string;
@@ -43,6 +45,7 @@ interface Props {
 export const UpdatePostgres = ({ postgresId }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
+	const { t } = useTranslation("common");
 	const { mutateAsync, error, isError, isLoading } =
 		api.postgres.update.useMutation();
 	const { data } = api.postgres.one.useQuery(
@@ -58,7 +61,7 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		},
-		resolver: zodResolver(updatePostgresSchema),
+		resolver: zodResolver(createUpdatePostgresSchema(t)),
 	});
 	useEffect(() => {
 		if (data) {
@@ -76,14 +79,14 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("Postgres updated successfully");
+				toast.success(t("database.postgres.update.success"));
 				utils.postgres.one.invalidate({
 					postgresId: postgresId,
 				});
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Postgres");
+				toast.error(t("database.postgres.update.error"));
 			})
 			.finally(() => {});
 	};
@@ -101,8 +104,12 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify Postgres</DialogTitle>
-					<DialogDescription>Update the Postgres data</DialogDescription>
+					<DialogTitle>
+						{t("database.postgres.update.dialogTitle")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("database.postgres.update.dialogDescription")}
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -119,9 +126,12 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("service.form.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("service.form.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -133,10 +143,10 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("service.form.description")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("service.form.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>
@@ -153,7 +163,7 @@ export const UpdatePostgres = ({ postgresId }: Props) => {
 										type="submit"
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
-										Update
+										{t("button.update")}
 									</Button>
 								</DialogFooter>
 							</form>

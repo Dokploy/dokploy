@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useTranslation } from "next-i18next";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -29,28 +30,30 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-	ipAddress: z.string().min(1, {
-		message: "IP Address is required",
-	}),
-	port: z.number().optional(),
-	username: z.string().optional(),
-	sshKeyId: z.string().min(1, {
-		message: "SSH Key is required",
-	}),
-});
+const buildSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.remoteServers.validation.nameRequired"),
+		}),
+		description: z.string().optional(),
+		ipAddress: z.string().min(1, {
+			message: t("settings.remoteServers.validation.ipRequired"),
+		}),
+		port: z.number().optional(),
+		username: z.string().optional(),
+		sshKeyId: z.string().min(1, {
+			message: t("settings.remoteServers.validation.sshKeyRequired"),
+		}),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = z.infer<ReturnType<typeof buildSchema>>;
 
 interface Props {
 	stepper: any;
 }
 
 export const CreateServer = ({ stepper }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data: sshKeys } = api.sshKey.all.useQuery();
 	const [isOpen, _setIsOpen] = useState(false);
 	const { data: canCreateMoreServers, refetch } =
@@ -60,28 +63,30 @@ export const CreateServer = ({ stepper }: Props) => {
 		(sshKey) => sshKey.name === "dokploy-cloud-ssh-key",
 	);
 
+	const schema = useMemo(() => buildSchema(t), [t]);
+
 	const form = useForm<Schema>({
 		defaultValues: {
-			description: "Dokploy Cloud Server",
-			name: "My First Server",
+			description: t("settings.remoteServers.form.defaultDescription"),
+			name: t("settings.remoteServers.form.defaultName"),
 			ipAddress: "",
 			port: 22,
 			username: "root",
 			sshKeyId: cloudSSHKey?.sshKeyId || "",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(schema),
 	});
 
 	useEffect(() => {
 		form.reset({
-			description: "Dokploy Cloud Server",
-			name: "My First Server",
+			description: t("settings.remoteServers.form.defaultDescription"),
+			name: t("settings.remoteServers.form.defaultName"),
 			ipAddress: "",
 			port: 22,
 			username: "root",
 			sshKeyId: cloudSSHKey?.sshKeyId || "",
 		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful, sshKeys]);
+	}, [form, form.reset, form.formState.isSubmitSuccessful, sshKeys, t]);
 
 	useEffect(() => {
 		refetch();
@@ -98,11 +103,11 @@ export const CreateServer = ({ stepper }: Props) => {
 			serverType: "deploy",
 		})
 			.then(async (_data) => {
-				toast.success("Server Created");
+				toast.success(t("settings.remoteServers.created"));
 				stepper.next();
 			})
 			.catch(() => {
-				toast.error("Error creating a server");
+				toast.error(t("settings.remoteServers.createError"));
 			});
 	};
 	return (
@@ -110,9 +115,9 @@ export const CreateServer = ({ stepper }: Props) => {
 			<div className="flex flex-col gap-2 pt-5 px-4">
 				{!canCreateMoreServers && (
 					<AlertBlock type="warning" className="mt-2">
-						You cannot create more servers,{" "}
+						{t("settings.remoteServers.limitReached")} {" "}
 						<Link href="/dashboard/settings/billing" className="text-primary">
-							Please upgrade your plan
+							{t("settings.remoteServers.upgradePlan")}
 						</Link>
 					</AlertBlock>
 				)}
@@ -131,9 +136,16 @@ export const CreateServer = ({ stepper }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>
+											{t("settings.remoteServers.form.name")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="Hostinger Server" {...field} />
+											<Input
+												placeholder={t(
+													"settings.remoteServers.form.namePlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -146,10 +158,14 @@ export const CreateServer = ({ stepper }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>
+										{t("settings.remoteServers.form.description")}
+									</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="This server is for databases..."
+											placeholder={t(
+												"settings.remoteServers.form.descriptionPlaceholder",
+											)}
 											className="resize-none"
 											{...field}
 										/>
@@ -164,16 +180,17 @@ export const CreateServer = ({ stepper }: Props) => {
 							name="sshKeyId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Select a SSH Key</FormLabel>
+									<FormLabel>
+										{t("settings.remoteServers.form.sshKey")}
+									</FormLabel>
 									{!cloudSSHKey && (
 										<AlertBlock>
-											Looks like you didn't have the SSH Key yet, you can create
-											one{" "}
+											{t("settings.remoteServers.sshKey.missing")} {" "}
 											<Link
 												href="/dashboard/settings/ssh-keys"
 												className="text-primary"
 											>
-												here
+												{t("settings.remoteServers.sshKey.missingHere")}
 											</Link>
 										</AlertBlock>
 									)}
@@ -183,7 +200,11 @@ export const CreateServer = ({ stepper }: Props) => {
 										defaultValue={field.value}
 									>
 										<SelectTrigger>
-											<SelectValue placeholder="Select a SSH Key" />
+											<SelectValue
+												placeholder={t(
+													"settings.remoteServers.form.sshKeyPlaceholder",
+												)}
+											/>
 										</SelectTrigger>
 										<SelectContent>
 											<SelectGroup>
@@ -196,7 +217,7 @@ export const CreateServer = ({ stepper }: Props) => {
 													</SelectItem>
 												))}
 												<SelectLabel>
-													Registries ({sshKeys?.length})
+													{t("settings.nav.sshKeys")} ({sshKeys?.length})
 												</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
@@ -211,7 +232,7 @@ export const CreateServer = ({ stepper }: Props) => {
 								name="ipAddress"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>IP Address</FormLabel>
+										<FormLabel>{t("settings.terminal.ipAddress")}</FormLabel>
 										<FormControl>
 											<Input placeholder="192.168.1.100" {...field} />
 										</FormControl>
@@ -225,7 +246,7 @@ export const CreateServer = ({ stepper }: Props) => {
 								name="port"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Port</FormLabel>
+										<FormLabel>{t("settings.terminal.port")}</FormLabel>
 										<FormControl>
 											<Input
 												placeholder="22"
@@ -255,9 +276,12 @@ export const CreateServer = ({ stepper }: Props) => {
 							name="username"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Username</FormLabel>
+									<FormLabel>{t("settings.terminal.username")}</FormLabel>
 									<FormControl>
-										<Input placeholder="root" {...field} />
+										<Input
+											placeholder={t("settings.terminal.usernamePlaceholder")}
+											{...field}
+										/>
 									</FormControl>
 
 									<FormMessage />
@@ -273,7 +297,7 @@ export const CreateServer = ({ stepper }: Props) => {
 							form="hook-form-add-server"
 							type="submit"
 						>
-							Create
+							{t("settings.common.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

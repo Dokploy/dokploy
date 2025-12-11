@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "next-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const ShowServerActions = ({ serverId }: Props) => {
+	const { t } = useTranslation("settings");
 	const [isOpen, setIsOpen] = useState(false);
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -24,13 +26,17 @@ export const ShowServerActions = ({ serverId }: Props) => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					View Actions
+					{t("settings.servers.page.actions.view")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl">
 				<div className="flex flex-col gap-1">
-					<DialogTitle className="text-xl">Web server settings</DialogTitle>
-					<DialogDescription>Reload or clean the web server.</DialogDescription>
+					<DialogTitle className="text-xl">
+						{t("settings.server.webServer.title")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("settings.server.webServer.description")}
+					</DialogDescription>
 				</div>
 
 				<div className="grid grid-cols-2 w-full gap-4">

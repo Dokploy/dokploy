@@ -71,9 +71,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 						const command = search
 							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
 							: baseCommand;
-						// Use pty: true to ensure the remote process receives SIGHUP when SSH connection closes
-						// This is crucial for terminating docker logs processes when the connection is closed
-						client.exec(command, { pty: true }, (err, stream) => {
+						client.exec(command, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
 								ws.close();

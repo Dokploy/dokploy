@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { useTranslation } from "next-i18next";
 import {
 	Card,
 	CardContent,
@@ -36,19 +37,18 @@ interface FormattedMetric {
 	inputUnit: string;
 	outputUnit: string;
 }
-
-const chartConfig = {
-	input: {
-		label: "Input",
-		color: "hsl(var(--chart-3))",
-	},
-	output: {
-		label: "Output",
-		color: "hsl(var(--chart-4))",
-	},
-} satisfies ChartConfig;
-
 export const ContainerNetworkChart = ({ data }: Props) => {
+	const { t } = useTranslation("common");
+	const chartConfig: ChartConfig = {
+		input: {
+			label: t("monitoring.legend.input"),
+			color: "hsl(var(--chart-3))",
+		},
+		output: {
+			label: t("monitoring.legend.output"),
+			color: "hsl(var(--chart-4))",
+		},
+	};
 	const formattedData: FormattedMetric[] = data.map((metric) => ({
 		timestamp: metric.timestamp,
 		input: metric.Network.input,
@@ -67,11 +67,14 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 	return (
 		<Card className="bg-transparent">
 			<CardHeader className="border-b py-5">
-				<CardTitle>Network I/O</CardTitle>
+				<CardTitle>{t("monitoring.card.networkIO")}</CardTitle>
 				<CardDescription>
-					Input: {latestData.input}
-					{latestData.inputUnit} / Output: {latestData.output}
-					{latestData.outputUnit}
+					{t("monitoring.network.latest", {
+						input: latestData.input,
+						inputUnit: latestData.inputUnit,
+						output: latestData.output,
+						outputUnit: latestData.outputUnit,
+					})}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
@@ -126,7 +129,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 											<div className="grid grid-cols-2 gap-2">
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Time
+														{t("monitoring.tooltip.time")}
 													</span>
 													<span className="font-bold">
 														{formatTimestamp(label)}
@@ -134,7 +137,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Input
+														{t("monitoring.tooltip.input")}
 													</span>
 													<span className="font-bold">
 														{data.input}
@@ -143,7 +146,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 												</div>
 												<div className="flex flex-col">
 													<span className="text-[0.70rem] uppercase text-muted-foreground">
-														Output
+														{t("monitoring.tooltip.output")}
 													</span>
 													<span className="font-bold">
 														{data.output}
@@ -158,7 +161,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							}}
 						/>
 						<Area
-							name="Input"
+							name={t("monitoring.legend.input")}
 							dataKey="input"
 							type="monotone"
 							fill="url(#fillInput)"
@@ -166,7 +169,7 @@ export const ContainerNetworkChart = ({ data }: Props) => {
 							strokeWidth={2}
 						/>
 						<Area
-							name="Output"
+							name={t("monitoring.legend.output")}
 							dataKey="output"
 							type="monotone"
 							fill="url(#fillOutput)"

@@ -73,7 +73,7 @@ export const serverSetup = async (
 export const defaultCommand = (isBuildServer = false) => {
 	const bashCommand = `
 set -e;
-DOCKER_VERSION=28.5.0
+DOCKER_VERSION=27.0.3
 OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
 SYS_ARCH=$(uname -m)
 CURRENT_USER=$USER
@@ -524,7 +524,7 @@ if ! [ -x "$(command -v docker)" ]; then
                     echo "Please install Docker manually."
                 exit 1
             fi
-						
+            curl -s https://releases.rancher.com/install-docker/$DOCKER_VERSION.sh | sh 2>&1
             if ! [ -x "$(command -v docker)" ]; then
                 curl -s https://get.docker.com | sh -s -- --version $DOCKER_VERSION 2>&1
                 if ! [ -x "$(command -v docker)" ]; then

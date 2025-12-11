@@ -8,6 +8,7 @@ import { ShowProjects } from "@/components/dashboard/projects/show";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const ShowWelcomeDokploy = dynamic(
 	() =>
@@ -38,6 +39,7 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
+	const locale = getLocale((req as any).cookies ?? {});
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,
@@ -64,6 +66,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale)),
 		},
 	};
 }

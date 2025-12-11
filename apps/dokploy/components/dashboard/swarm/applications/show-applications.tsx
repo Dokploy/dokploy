@@ -1,4 +1,5 @@
 import { Layers, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -9,7 +10,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { type ApplicationList, columns } from "./columns";
+import { type ApplicationList, createSwarmColumns } from "./columns";
 import { DataTable } from "./data-table";
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ShowNodeApplications = ({ serverId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data: NodeApps, isLoading: NodeAppsLoading } =
 		api.swarm.getNodeApps.useQuery({ serverId });
 
@@ -44,7 +46,7 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 	if (!NodeApps || !NodeAppDetails) {
 		return (
 			<span className="text-sm w-full flex text-center justify-center items-center">
-				No data found
+				{t("swarm.applications.empty")}
 			</span>
 		);
 	}
@@ -84,18 +86,21 @@ export const ShowNodeApplications = ({ serverId }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm" className="w-full">
 					<Layers className="h-4 w-4 mr-2" />
-					Services
+					{t("swarm.applications.button.services")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className={"sm:max-w-10xl"}>
 				<DialogHeader>
-					<DialogTitle>Node Applications</DialogTitle>
+					<DialogTitle>{t("swarm.applications.dialog.title")}</DialogTitle>
 					<DialogDescription>
-						See in detail the applications running on this node
+						{t("swarm.applications.dialog.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="max-h-[80vh]">
-					<DataTable columns={columns} data={combinedData ?? []} />
+					<DataTable
+						columns={createSwarmColumns(t)}
+						data={combinedData ?? []}
+					/>
 				</div>
 			</DialogContent>
 		</Dialog>

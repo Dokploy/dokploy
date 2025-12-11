@@ -1,4 +1,5 @@
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useRef, useState } from "react";
 import {
 	Sheet,
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
+	const { t } = useTranslation("common");
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [autoScroll, setAutoScroll] = useState(true);
 	const scrollToBottom = () => {
@@ -49,8 +51,12 @@ export const DrawerLogs = ({ isOpen, onClose, filteredLogs }: Props) => {
 		>
 			<SheetContent className="sm:max-w-[740px] flex flex-col">
 				<SheetHeader>
-					<SheetTitle>Deployment Logs</SheetTitle>
-					<SheetDescription>Details of the request log entry.</SheetDescription>
+					<SheetTitle>{t("logs.modal.title")}</SheetTitle>
+					<SheetDescription>
+						{t("logs.modal.description", {
+							containerId: t("logs.defaultAppName"),
+						})}
+					</SheetDescription>
 				</SheetHeader>
 				<div
 					ref={scrollRef}

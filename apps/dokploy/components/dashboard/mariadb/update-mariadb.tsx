@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,14 +28,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const updateMariadbSchema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-});
+const createUpdateMariadbSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("service.validation.nameRequired"),
+		}),
+		description: z.string().optional(),
+	});
 
-type UpdateMariadb = z.infer<typeof updateMariadbSchema>;
+type UpdateMariadb = z.infer<ReturnType<typeof createUpdateMariadbSchema>>;
 
 interface Props {
 	mariadbId: string;
@@ -42,6 +44,7 @@ interface Props {
 
 export const UpdateMariadb = ({ mariadbId }: Props) => {
 	const utils = api.useUtils();
+	const { t } = useTranslation("common");
 	const { mutateAsync, error, isError, isLoading } =
 		api.mariadb.update.useMutation();
 	const { data } = api.mariadb.one.useQuery(
@@ -57,7 +60,7 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			description: data?.description ?? "",
 			name: data?.name ?? "",
 		},
-		resolver: zodResolver(updateMariadbSchema),
+		resolver: zodResolver(createUpdateMariadbSchema(t)),
 	});
 	useEffect(() => {
 		if (data) {
@@ -75,13 +78,13 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			description: formData.description || "",
 		})
 			.then(() => {
-				toast.success("MariaDB updated successfully");
+				toast.success(t("database.mariadb.update.success"));
 				utils.mariadb.one.invalidate({
 					mariadbId: mariadbId,
 				});
 			})
 			.catch(() => {
-				toast.error("Error updating the Mariadb");
+				toast.error(t("database.mariadb.update.error"));
 			})
 			.finally(() => {});
 	};
@@ -99,8 +102,8 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Modify MariaDB</DialogTitle>
-					<DialogDescription>Update the MariaDB data</DialogDescription>
+					<DialogTitle>{t("database.mariadb.update.dialogTitle")}</DialogTitle>
+					<DialogDescription>{t("database.mariadb.update.dialogDescription")}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -117,9 +120,12 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>{t("service.form.name")}</FormLabel>
 											<FormControl>
-												<Input placeholder="Vandelay Industries" {...field} />
+												<Input
+													placeholder={t("service.form.namePlaceholder")}
+													{...field}
+												/>
 											</FormControl>
 
 											<FormMessage />
@@ -131,10 +137,10 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 									name="description"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Description</FormLabel>
+											<FormLabel>{t("service.form.description")}</FormLabel>
 											<FormControl>
 												<Textarea
-													placeholder="Description about your project..."
+													placeholder={t("service.form.descriptionPlaceholder")}
 													className="resize-none"
 													{...field}
 												/>
@@ -150,7 +156,7 @@ export const UpdateMariadb = ({ mariadbId }: Props) => {
 										form="hook-form-update-mariadb"
 										type="submit"
 									>
-										Update
+										{t("button.update")}
 									</Button>
 								</DialogFooter>
 							</form>

@@ -77,7 +77,7 @@ async function generateOpenAPI() {
 			},
 			license: {
 				name: "Apache 2.0",
-				url: "https://github.com/dokploy/dokploy/blob/canary/LICENSE",
+				url: "https://github.com/Frankieli123/dokploy-i18n/blob/main/LICENSE",
 			},
 		};
 

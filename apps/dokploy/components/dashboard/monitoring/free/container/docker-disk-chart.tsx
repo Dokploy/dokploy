@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "next-i18next";
 import {
 	Area,
 	AreaChart,
@@ -16,10 +17,11 @@ interface Props {
 }
 
 export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
+	const { t } = useTranslation("common");
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
 			time: item.time,
-			name: `Point ${index + 1}`,
+			name: t("monitoring.chart.point", { index: index + 1 }),
 			usedGb: +item.value.diskUsage,
 			totalGb: +item.value.diskTotal,
 			freeGb: item.value.diskFree,
@@ -59,7 +61,7 @@ export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
 						stroke="#6C28D9"
 						fillOpacity={1}
 						fill="url(#colorUsed)"
-						name="Used GB"
+						name={t("monitoring.disk.legend.usedGB")}
 					/>
 					<Area
 						type="monotone"
@@ -67,7 +69,7 @@ export const DockerDiskChart = ({ acummulativeData, diskTotal }: Props) => {
 						stroke="#8884d8"
 						fillOpacity={1}
 						fill="url(#colorFree)"
-						name="Free GB"
+						name={t("monitoring.disk.legend.freeGB")}
 					/>
 				</AreaChart>
 			</ResponsiveContainer>
@@ -90,13 +92,25 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const { t } = useTranslation("common");
 	if (active && payload && payload.length && payload[0]) {
+		const { time, usedGb, freeGb, totalGb } = payload[0].payload;
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
-				<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
-				<p>{`Disk usage: ${payload[0].payload.usedGb} GB`}</p>
-				<p>{`Disk free: ${payload[0].payload.freeGb} GB`}</p>
-				<p>{`Total disk: ${payload[0].payload.totalGb} GB`}</p>
+				<p>
+					{t("monitoring.chart.date", {
+						date: format(new Date(time), "PPpp"),
+					})}
+				</p>
+				<p>
+					{t("monitoring.disk.tooltip.usage", { value: usedGb })}
+				</p>
+				<p>
+					{t("monitoring.disk.tooltip.free", { value: freeGb })}
+				</p>
+				<p>
+					{t("monitoring.disk.tooltip.total", { value: totalGb })}
+				</p>
 			</div>
 		);
 	}

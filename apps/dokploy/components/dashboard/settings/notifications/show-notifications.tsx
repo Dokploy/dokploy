@@ -1,4 +1,5 @@
-import { Bell, Loader2, Mail, PenBoxIcon, Trash2 } from "lucide-react";
+import { Bell, Loader2, Mail, Trash2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { toast } from "sonner";
 import {
 	DiscordIcon,
@@ -21,6 +22,7 @@ import { api } from "@/utils/api";
 import { HandleNotifications } from "./handle-notifications";
 
 export const ShowNotifications = () => {
+	const { t } = useTranslation("settings");
 	const { data, isLoading, refetch } = api.notification.all.useQuery();
 	const { mutateAsync, isLoading: isRemoving } =
 		api.notification.remove.useMutation();
@@ -32,17 +34,16 @@ export const ShowNotifications = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Bell className="size-6 text-muted-foreground self-center" />
-							Notifications
+							{t("settings.notifications.page.title")}
 						</CardTitle>
 						<CardDescription>
-							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Email, Lark.
+							{t("settings.notifications.page.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -51,8 +52,7 @@ export const ShowNotifications = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Bell />
 										<span className="text-base text-muted-foreground text-center">
-											To send notifications it is required to set at least 1
-											provider.
+											{t("settings.notifications.page.empty")}
 										</span>
 										<HandleNotifications />
 									</div>
@@ -96,11 +96,6 @@ export const ShowNotifications = () => {
 																	<NtfyIcon className="size-6" />
 																</div>
 															)}
-															{notification.notificationType === "custom" && (
-																<div className="flex  items-center justify-center rounded-lg ">
-																	<PenBoxIcon className="size-6 text-muted-foreground" />
-																</div>
-															)}
 															{notification.notificationType === "lark" && (
 																<div className="flex  items-center justify-center rounded-lg">
 																	<LarkIcon className="size-7 text-muted-foreground" />
@@ -115,8 +110,8 @@ export const ShowNotifications = () => {
 															/>
 
 															<DialogAction
-																title="Delete Notification"
-																description="Are you sure you want to delete this notification?"
+																title={t("settings.notifications.delete.title")}
+																description={t("settings.notifications.delete.description")}
 																type="destructive"
 																onClick={async () => {
 																	await mutateAsync({
@@ -124,13 +119,13 @@ export const ShowNotifications = () => {
 																	})
 																		.then(() => {
 																			toast.success(
-																				"Notification deleted successfully",
+																				t("settings.notifications.delete.success"),
 																			);
 																			refetch();
 																		})
 																		.catch(() => {
 																			toast.error(
-																				"Error deleting notification",
+																				t("settings.notifications.delete.error"),
 																			);
 																		});
 																}}

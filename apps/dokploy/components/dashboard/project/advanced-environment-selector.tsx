@@ -1,6 +1,7 @@
 import type { findEnvironmentsByProjectId } from "@dokploy/server";
 import { ChevronDownIcon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
@@ -39,6 +40,7 @@ export const AdvancedEnvironmentSelector = ({
 	currentEnvironmentId,
 }: AdvancedEnvironmentSelectorProps) => {
 	const router = useRouter();
+	const { t } = useTranslation("common");
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -96,15 +98,13 @@ export const AdvancedEnvironmentSelector = ({
 				description: description.trim() || null,
 			});
 
-			toast.success("Environment created successfully");
+			toast.success(t("environment.create.success"));
 			utils.environment.byProjectId.invalidate({ projectId });
 			setIsCreateDialogOpen(false);
 			setName("");
 			setDescription("");
 		} catch (error) {
-			toast.error(
-				`Failed to create environment: ${error instanceof Error ? error.message : error}`,
-			);
+			toast.error(t("environment.create.error"));
 		}
 	};
 
@@ -118,16 +118,14 @@ export const AdvancedEnvironmentSelector = ({
 				description: description.trim() || null,
 			});
 
-			toast.success("Environment updated successfully");
+			toast.success(t("environment.update.success"));
 			utils.environment.byProjectId.invalidate({ projectId });
 			setIsEditDialogOpen(false);
 			setSelectedEnvironment(null);
 			setName("");
 			setDescription("");
 		} catch (error) {
-			toast.error(
-				`Failed to update environment: ${error instanceof Error ? error.message : error}`,
-			);
+			toast.error(t("environment.update.error"));
 		}
 	};
 
@@ -139,27 +137,24 @@ export const AdvancedEnvironmentSelector = ({
 				environmentId: selectedEnvironment.environmentId,
 			});
 
-			toast.success("Environment deleted successfully");
+			toast.success(t("environment.delete.success"));
 			utils.environment.byProjectId.invalidate({ projectId });
 			setIsDeleteDialogOpen(false);
 			setSelectedEnvironment(null);
 
-			// Redirect to first available environment if we deleted the current environment
+			// Redirect to production if we deleted the current environment
 			if (selectedEnvironment.environmentId === currentEnvironmentId) {
-				const firstEnv = environments?.find(
-					(env) => env.environmentId !== selectedEnvironment.environmentId,
+				const productionEnv = environments?.find(
+					(env) => env.name === "production",
 				);
-				if (firstEnv) {
+				if (productionEnv) {
 					router.push(
-						`/dashboard/project/${projectId}/environment/${firstEnv.environmentId}`,
+						`/dashboard/project/${projectId}/environment/${productionEnv.environmentId}`,
 					);
-				} else {
-					// No other environments, redirect to project page
-					router.push(`/dashboard/project/${projectId}`);
 				}
 			}
 		} catch (error) {
-			toast.error("Failed to delete environment");
+			toast.error(t("environment.delete.error"));
 		}
 	};
 
@@ -171,7 +166,7 @@ export const AdvancedEnvironmentSelector = ({
 				description: environment.description,
 			});
 
-			toast.success("Environment duplicated successfully");
+			toast.success(t("environment.duplicate.success"));
 			utils.project.one.invalidate({ projectId });
 
 			// Navigate to the new duplicated environment
@@ -179,7 +174,7 @@ export const AdvancedEnvironmentSelector = ({
 				`/dashboard/project/${projectId}/environment/${result.environmentId}`,
 			);
 		} catch (error) {
-			toast.error("Failed to duplicate environment");
+			toast.error(t("environment.duplicate.error"));
 		}
 	};
 
@@ -199,6 +194,9 @@ export const AdvancedEnvironmentSelector = ({
 		(env) => env.environmentId === currentEnvironmentId,
 	);
 
+	const formatEnvName = (envName?: string) =>
+		envName === "production" ? t("environment.default.production") : envName;
+
 	return (
 		<>
 			<DropdownMenu>
@@ -206,13 +204,18 @@ export const AdvancedEnvironmentSelector = ({
 					<Button variant="ghost" className="h-auto p-2 font-normal">
 						<div className="flex items-center gap-1">
 							<span className="text-muted-foreground">/</span>
-							<span>{currentEnv?.name || "Select Environment"}</span>
+							<span>
+								{formatEnvName(currentEnv?.name) ||
+									t("environment.selector.placeholder")}
+							</span>
 							<ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
 						</div>
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent className="w-[300px]" align="start">
-					<DropdownMenuLabel>Environments</DropdownMenuLabel>
+					<DropdownMenuLabel>
+						{t("environment.selector.label")}
+					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 
 					{environments?.map((environment) => {
@@ -239,15 +242,29 @@ export const AdvancedEnvironmentSelector = ({
 								>
 									<div className="flex items-center justify-between w-full">
 										<span>
-											{environment.name} ({servicesCount})
+											{formatEnvName(environment.name)} ({servicesCount})
 										</span>
 										{environment.environmentId === currentEnvironmentId && (
 											<div className="w-2 h-2 bg-blue-500 rounded-full" />
 										)}
 									</div>
 								</DropdownMenuItem>
-								<div className="flex items-center gap-1 px-2">
-									{!environment.isDefault && (
+
+								{/* Action buttons for non-production environments */}
+								{/* <EnvironmentVariables environmentId={environment.environmentId}>
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-6 w-6 p-0"
+										onClick={(e) => {
+											e.stopPropagation();
+										}}
+									>
+										<Terminal className="h-3 w-3" />
+									</Button>
+								</EnvironmentVariables> */}
+								{environment.name !== "production" && (
+									<div className="flex items-center gap-1 px-2">
 										<Button
 											variant="ghost"
 											size="sm"
@@ -259,21 +276,22 @@ export const AdvancedEnvironmentSelector = ({
 										>
 											<PencilIcon className="h-3 w-3" />
 										</Button>
-									)}
-									{canDeleteEnvironments && !environment.isDefault && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
-											onClick={(e) => {
-												e.stopPropagation();
-												openDeleteDialog(environment);
-											}}
-										>
-											<TrashIcon className="h-3 w-3" />
-										</Button>
-									)}
-								</div>
+
+										{canDeleteEnvironments && (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+												onClick={(e) => {
+													e.stopPropagation();
+													openDeleteDialog(environment);
+												}}
+											>
+												<TrashIcon className="h-3 w-3" />
+											</Button>
+										)}
+									</div>
+								)}
 							</div>
 						);
 					})}
@@ -285,7 +303,7 @@ export const AdvancedEnvironmentSelector = ({
 							onClick={() => setIsCreateDialogOpen(true)}
 						>
 							<PlusIcon className="h-4 w-4 mr-2" />
-							Create Environment
+							{t("environment.selector.create")}
 						</DropdownMenuItem>
 					)}
 				</DropdownMenuContent>
@@ -294,29 +312,31 @@ export const AdvancedEnvironmentSelector = ({
 			<Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Create Environment</DialogTitle>
+						<DialogTitle>{t("environment.dialog.createTitle")}</DialogTitle>
 						<DialogDescription>
-							Create a new environment for your project.
+							{t("environment.dialog.createDescription")}
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="space-y-4">
 						<div className="space-y-1">
-							<Label htmlFor="name">Name</Label>
+							<Label htmlFor="name">{t("environment.form.name")}</Label>
 							<Input
 								id="name"
 								value={name}
 								onChange={(e) => setName(e.target.value)}
-								placeholder="Environment name"
+								placeholder={t("environment.form.namePlaceholder")}
 							/>
 						</div>
 						<div className="space-y-1">
-							<Label htmlFor="description">Description (optional)</Label>
+							<Label htmlFor="description">
+								{t("environment.form.descriptionLabel")}
+							</Label>
 							<Textarea
 								id="description"
 								value={description}
 								onChange={(e) => setDescription(e.target.value)}
-								placeholder="Environment description"
+								placeholder={t("environment.form.descriptionPlaceholder")}
 							/>
 						</div>
 					</div>
@@ -330,13 +350,15 @@ export const AdvancedEnvironmentSelector = ({
 								setDescription("");
 							}}
 						>
-							Cancel
+							{t("button.cancel")}
 						</Button>
 						<Button
 							onClick={handleCreateEnvironment}
 							disabled={!name.trim() || createEnvironment.isLoading}
 						>
-							{createEnvironment.isLoading ? "Creating..." : "Create"}
+							{createEnvironment.isLoading
+								? t("environment.create.loading")
+								: t("button.create")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -346,29 +368,31 @@ export const AdvancedEnvironmentSelector = ({
 			<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Edit Environment</DialogTitle>
+						<DialogTitle>{t("environment.dialog.editTitle")}</DialogTitle>
 						<DialogDescription>
-							Update the environment details.
+							{t("environment.dialog.editDescription")}
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="space-y-4">
 						<div className="space-y-1">
-							<Label htmlFor="edit-name">Name</Label>
+							<Label htmlFor="edit-name">{t("environment.form.name")}</Label>
 							<Input
 								id="edit-name"
 								value={name}
 								onChange={(e) => setName(e.target.value)}
-								placeholder="Environment name"
+								placeholder={t("environment.form.namePlaceholder")}
 							/>
 						</div>
 						<div className="space-y-1">
-							<Label htmlFor="edit-description">Description (optional)</Label>
+							<Label htmlFor="edit-description">
+								{t("environment.form.descriptionLabel")}
+							</Label>
 							<Textarea
 								id="edit-description"
 								value={description}
 								onChange={(e) => setDescription(e.target.value)}
-								placeholder="Environment description"
+								placeholder={t("environment.form.descriptionPlaceholder")}
 							/>
 						</div>
 					</div>
@@ -383,33 +407,34 @@ export const AdvancedEnvironmentSelector = ({
 								setDescription("");
 							}}
 						>
-							Cancel
+							{t("button.cancel")}
 						</Button>
 						<Button
 							onClick={handleUpdateEnvironment}
 							disabled={!name.trim() || updateEnvironment.isLoading}
 						>
-							{updateEnvironment.isLoading ? "Updating..." : "Update"}
+							{updateEnvironment.isLoading
+								? t("environment.update.loading")
+								: t("button.update")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
 
-			{/* Delete Environment Dialog */}
 			<Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Delete Environment</DialogTitle>
+						<DialogTitle>{t("environment.delete.title")}</DialogTitle>
 						<DialogDescription>
-							Are you sure you want to delete the environment "
-							{selectedEnvironment?.name}"? This action cannot be undone and
-							will also delete all services in this environment.
+							{t("environment.delete.description", {
+								name: selectedEnvironment?.name ?? "",
+							})}
 						</DialogDescription>
 					</DialogHeader>
 
 					{haveServices && (
 						<AlertBlock type="warning">
-							This environment have active services, please delete them first.
+							{t("environment.delete.hasServicesWarning")}
 						</AlertBlock>
 					)}
 
@@ -421,7 +446,7 @@ export const AdvancedEnvironmentSelector = ({
 								setSelectedEnvironment(null);
 							}}
 						>
-							Cancel
+							{t("button.cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -432,7 +457,9 @@ export const AdvancedEnvironmentSelector = ({
 								!selectedEnvironment
 							}
 						>
-							{deleteEnvironment.isLoading ? "Deleting..." : "Delete"}
+							{deleteEnvironment.isLoading
+								? t("common.deleting")
+								: t("common.delete")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, Plus, X } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -49,32 +50,48 @@ import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { Repository } from "@/utils/gitea-utils";
 
-const GiteaProviderSchema = z.object({
-	composePath: z.string().min(1),
-	repository: z
-		.object({
-			repo: z.string().min(1, "Repo is required"),
-			owner: z.string().min(1, "Owner is required"),
-		})
-		.required(),
-	branch: z.string().min(1, "Branch is required"),
-	giteaId: z.string().min(1, "Gitea Provider is required"),
-	watchPaths: z.array(z.string()).optional(),
-	enableSubmodules: z.boolean().default(false),
-});
+const createGiteaProviderSchema = (t: (key: string) => string) =>
+	z.object({
+		composePath: z
+			.string()
+			.min(1, {
+				message: t("compose.git.validation.composePathRequired"),
+			}),
+		repository: z
+			.object({
+				repo: z.string().min(1, {
+					message: t("compose.git.validation.repoRequired"),
+				}),
+				owner: z.string().min(1, {
+					message: t("compose.git.validation.ownerRequired"),
+				}),
+			})
+			.required(),
+		branch: z.string().min(1, {
+			message: t("compose.git.validation.branchRequired"),
+		}),
+		giteaId: z.string().min(1, {
+			message: t("compose.git.validation.providerRequired"),
+		}),
+		watchPaths: z.array(z.string()).optional(),
+		enableSubmodules: z.boolean().default(false),
+	});
 
-type GiteaProvider = z.infer<typeof GiteaProviderSchema>;
+type GiteaProvider = z.infer<ReturnType<typeof createGiteaProviderSchema>>;
 
 interface Props {
 	composeId: string;
 }
 
 export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data: giteaProviders } = api.gitea.giteaProviders.useQuery();
 	const { data, refetch } = api.compose.one.useQuery({ composeId });
 	const { mutateAsync, isLoading: isSavingGiteaProvider } =
 		api.compose.update.useMutation();
+	const watchPathInputRef = useRef<HTMLInputElement | null>(null);
 
+	const schema = createGiteaProviderSchema(t);
 	const form = useForm<GiteaProvider>({
 		defaultValues: {
 			composePath: "./docker-compose.yml",
@@ -87,7 +104,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			watchPaths: [],
 			enableSubmodules: false,
 		},
-		resolver: zodResolver(GiteaProviderSchema),
+		resolver: zodResolver(schema),
 	});
 
 	const repository = form.watch("repository");
@@ -158,11 +175,11 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 			enableSubmodules: data.enableSubmodules,
 		} as any)
 			.then(async () => {
-				toast.success("Service Provider Saved");
+				toast.success(t("application.git.gitea.toast.saveSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Gitea provider");
+				toast.error(t("application.git.gitea.toast.saveError"));
 			});
 	};
 
@@ -181,7 +198,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							name="giteaId"
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
-									<FormLabel>Gitea Account</FormLabel>
+									<FormLabel>
+										{t("application.git.gitea.form.giteaAccountLabel")}
+									</FormLabel>
 									<Select
 										onValueChange={(value) => {
 											field.onChange(value);
@@ -196,7 +215,11 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a Gitea Account" />
+												<SelectValue
+													placeholder={t(
+														"application.git.gitea.form.giteaAccountPlaceholder",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
@@ -221,7 +244,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							render={({ field }) => (
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
-										<FormLabel>Repository</FormLabel>
+										<FormLabel>
+											{t("application.git.gitea.form.repositoryLabel")}
+										</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
 												href={`${giteaUrl}/${field.value.owner}/${field.value.repo}`}
@@ -230,7 +255,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
 											>
 												<GiteaIcon className="h-4 w-4" />
-												<span>View Repository</span>
+												<span>
+													{t("application.git.gitea.form.viewRepositoryLink")}
+												</span>
 											</Link>
 										)}
 									</div>
@@ -245,12 +272,14 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{isLoadingRepositories
-														? "Loading...."
+														? t("application.git.gitea.state.loadingRepositories")
 														: field.value.owner
 															? repositories?.find(
 																	(repo) => repo.name === field.value.repo,
 																)?.name
-															: "Select repository"}
+															: t(
+																"application.git.gitea.form.repositorySelectPlaceholder",
+															)}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -258,15 +287,19 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search repository..."
+													placeholder={t(
+														"application.git.gitea.form.repositorySearchPlaceholder",
+													)}
 													className="h-9"
 												/>
 												{isLoadingRepositories && (
 													<span className="py-6 text-center text-sm">
-														Loading Repositories....
+														{t("application.git.gitea.state.loadingRepositories")}
 													</span>
 												)}
-												<CommandEmpty>No repositories found.</CommandEmpty>
+												<CommandEmpty>
+													{t("application.git.gitea.state.noRepositories")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{repositories?.map((repo) => (
@@ -304,7 +337,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									</Popover>
 									{form.formState.errors.repository && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											Repository is required
+											{t("application.git.gitea.validation.repositoryRequired")}
 										</p>
 									)}
 								</FormItem>
@@ -316,7 +349,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							name="branch"
 							render={({ field }) => (
 								<FormItem className="block w-full">
-									<FormLabel>Branch</FormLabel>
+									<FormLabel>
+										{t("application.git.gitea.form.branchLabel")}
+									</FormLabel>
 									<Popover>
 										<PopoverTrigger asChild>
 											<FormControl>
@@ -328,12 +363,14 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 													)}
 												>
 													{status === "loading" && fetchStatus === "fetching"
-														? "Loading...."
+														? t("application.git.gitea.state.loadingBranches")
 														: field.value
 															? branches?.find(
 																	(branch) => branch.name === field.value,
 																)?.name
-															: "Select branch"}
+															: t(
+																"application.git.gitea.form.branchSelectPlaceholder",
+															)}
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>
@@ -341,10 +378,14 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 										<PopoverContent className="p-0" align="start">
 											<Command>
 												<CommandInput
-													placeholder="Search branches..."
+													placeholder={t(
+														"application.git.gitea.form.branchSearchPlaceholder",
+													)}
 													className="h-9"
 												/>
-												<CommandEmpty>No branches found.</CommandEmpty>
+												<CommandEmpty>
+													{t("application.git.gitea.state.noBranches")}
+												</CommandEmpty>
 												<ScrollArea className="h-96">
 													<CommandGroup>
 														{branches?.map((branch) => (
@@ -375,7 +416,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									</Popover>
 									{form.formState.errors.branch && (
 										<p className={cn("text-sm font-medium text-destructive")}>
-											Branch is required
+											{t("application.git.gitea.validation.branchRequired")}
 										</p>
 									)}
 								</FormItem>
@@ -387,9 +428,14 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 							name="composePath"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Compose Path</FormLabel>
+									<FormLabel>
+										{t("compose.git.form.composePathLabel")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="docker-compose.yml" {...field} />
+										<Input
+											placeholder={t("compose.git.form.composePathPlaceholder")}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -399,81 +445,89 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 						<FormField
 							control={form.control}
 							name="watchPaths"
-							render={({ field }) => (
-								<FormItem className="md:col-span-2">
-									<div className="flex items-center gap-2">
-										<FormLabel>Watch Paths</FormLabel>
-										<TooltipProvider>
-											<Tooltip>
-												<TooltipTrigger>
-													<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-														?
-													</div>
-												</TooltipTrigger>
-												<TooltipContent>
-													<p>
-														Add paths to watch for changes. When files in these
-														paths change, a new deployment will be triggered.
-													</p>
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
-									</div>
-									<div className="flex flex-wrap gap-2 mb-2">
-										{field.value?.map((path, index) => (
-											<Badge key={index} variant="secondary">
-												{path}
-												<X
-													className="ml-1 size-3 cursor-pointer"
-													onClick={() => {
-														const newPaths = [...(field.value || [])];
-														newPaths.splice(index, 1);
-														form.setValue("watchPaths", newPaths);
+							render={({ field }) => {
+								const watchPathInputRef = useRef<HTMLInputElement>(null);
+
+								return (
+									<FormItem className="md:col-span-2">
+										<div className="flex items-center gap-2">
+											<FormLabel>
+												{t("application.git.gitea.form.watchPathsLabel")}
+											</FormLabel>
+											<TooltipProvider>
+												<Tooltip>
+													<TooltipTrigger>
+														<div className="size-4 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+															?
+														</div>
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															{t("application.git.gitea.form.watchPathsTooltip")}
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+										<div className="flex flex-wrap gap-2 mb-2">
+											{field.value?.map((path, index) => (
+												<Badge key={index} variant="secondary">
+													{path}
+													<X
+														className="ml-1 size-3 cursor-pointer"
+														onClick={() => {
+															const newPaths = [...(field.value || [])];
+															newPaths.splice(index, 1);
+															form.setValue("watchPaths", newPaths);
+														}}
+													/>
+												</Badge>
+											))}
+										</div>
+										<FormControl>
+											<div className="flex gap-2">
+												<Input
+													placeholder={t(
+														"application.git.gitea.form.watchPathsPlaceholder",
+													)}
+													ref={watchPathInputRef}
+													onKeyDown={(e) => {
+														if (e.key === "Enter") {
+															e.preventDefault();
+															const input = e.currentTarget;
+															const value = input.value.trim();
+															if (value) {
+																const newPaths = [...(field.value || []), value];
+																form.setValue("watchPaths", newPaths);
+																input.value = "";
+															}
+														}
 													}}
 												/>
-											</Badge>
-										))}
-									</div>
-									<FormControl>
-										<div className="flex gap-2">
-											<Input
-												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
-												onKeyDown={(e) => {
-													if (e.key === "Enter") {
-														e.preventDefault();
-														const input = e.currentTarget;
-														const value = input.value.trim();
-														if (value) {
-															const newPaths = [...(field.value || []), value];
-															form.setValue("watchPaths", newPaths);
+												<Button
+													type="button"
+													variant="outline"
+													size="icon"
+													onClick={() => {
+														const input = watchPathInputRef.current;
+														if (!input) return;
+														const path = input.value.trim();
+														if (path) {
+															field.onChange([...(field.value || []), path]);
 															input.value = "";
 														}
-													}
-												}}
-											/>
-											<Button
-												type="button"
-												variant="outline"
-												size="icon"
-												onClick={() => {
-													const input = document.querySelector(
-														'input[placeholder*="Enter a path"]',
-													) as HTMLInputElement;
-													const path = input.value.trim();
-													if (path) {
-														field.onChange([...(field.value || []), path]);
-														input.value = "";
-													}
-												}}
-											>
-												<Plus className="size-4" />
-											</Button>
-										</div>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
+													}}
+												>
+													<Plus className="size-4" />
+												</Button>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								);
+							}}
 						/>
+
 						<FormField
 							control={form.control}
 							name="enableSubmodules"
@@ -485,7 +539,9 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 											onCheckedChange={field.onChange}
 										/>
 									</FormControl>
-									<FormLabel className="!mt-0">Enable Submodules</FormLabel>
+									<FormLabel className="!mt-0">
+										{t("application.git.gitea.form.enableSubmodulesLabel")}
+									</FormLabel>
 								</FormItem>
 							)}
 						/>
@@ -493,7 +549,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 
 					<div className="flex justify-end">
 						<Button type="submit" isLoading={isSavingGiteaProvider}>
-							Save
+							{t("button.save")}
 						</Button>
 					</div>
 				</form>

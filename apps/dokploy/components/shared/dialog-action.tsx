@@ -1,3 +1,5 @@
+"use client";
+
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -9,12 +11,14 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { ReactNode } from "react";
+import { useTranslation } from "next-i18next";
 
 interface Props {
-	title?: string | React.ReactNode;
-	description?: string | React.ReactNode;
+	title?: string | ReactNode;
+	description?: string | ReactNode;
 	onClick: () => void;
-	children?: React.ReactNode;
+	children?: ReactNode;
 	disabled?: boolean;
 	type?: "default" | "destructive";
 }
@@ -27,26 +31,28 @@ export const DialogAction = ({
 	disabled,
 	type,
 }: Props) => {
+	const { t } = useTranslation("common");
+
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						{title ?? "Are you absolutely sure?"}
+						{title ?? t("dialog.confirmDefaultTitle")}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						{description ?? "This action cannot be undone."}
+						{description ?? t("dialog.confirmDefaultDescription")}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{t("button.cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={disabled}
 						onClick={onClick}
 						variant={type ?? "destructive"}
 					>
-						Confirm
+						{t("button.confirm")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

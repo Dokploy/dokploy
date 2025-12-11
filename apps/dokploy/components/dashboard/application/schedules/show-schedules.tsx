@@ -6,6 +6,7 @@ import {
 	Terminal,
 	Trash2,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
+	const { t } = useTranslation("common");
 	const [runningSchedules, setRunningSchedules] = useState<Set<string>>(
 		new Set(),
 	);
@@ -59,10 +61,10 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 		setRunningSchedules((prev) => new Set(prev).add(scheduleId));
 		try {
 			await runManually({ scheduleId });
-			toast.success("Schedule run successfully");
+			toast.success(t("schedules.run.success"));
 			await refetchSchedules();
 		} catch {
-			toast.error("Error running schedule");
+			toast.error(t("schedules.run.error"));
 		} finally {
 			setRunningSchedules((prev) => {
 				const newSet = new Set(prev);
@@ -78,10 +80,10 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 				<div className="flex justify-between items-center gap-y-2 flex-wrap">
 					<div className="flex flex-col gap-2">
 						<CardTitle className="text-xl font-bold flex items-center gap-2">
-							Scheduled Tasks
+							{t("schedules.page.title")}
 						</CardTitle>
 						<CardDescription>
-							Schedule tasks to run automatically at specified intervals.
+							{t("schedules.page.description")}
 						</CardDescription>
 					</div>
 					{schedules && schedules.length > 0 && (
@@ -94,7 +96,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 					<div className="flex gap-4 w-full items-center justify-center text-center mx-auto min-h-[45vh]">
 						<Loader2 className="size-4 text-muted-foreground/70 transition-colors animate-spin self-center" />
 						<span className="text-sm text-muted-foreground/70">
-							Loading scheduled tasks...
+							{t("schedules.loading")}
 						</span>
 					</div>
 				) : schedules && schedules.length > 0 ? (
@@ -186,7 +188,7 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 														)}
 													</Button>
 												</TooltipTrigger>
-												<TooltipContent>Run Manual Schedule</TooltipContent>
+												<TooltipContent>{t("schedules.run.tooltip")}</TooltipContent>
 											</Tooltip>
 										</TooltipProvider>
 										<HandleSchedules
@@ -195,8 +197,8 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 											scheduleType={scheduleType}
 										/>
 										<DialogAction
-											title="Delete Schedule"
-											description="Are you sure you want to delete this schedule?"
+											title={t("schedules.delete.title")}
+											description={t("schedules.delete.description")}
 											type="destructive"
 											onClick={async () => {
 												await deleteSchedule({
@@ -207,10 +209,10 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 															id,
 															scheduleType,
 														});
-														toast.success("Schedule deleted successfully");
+														toast.success(t("schedules.delete.success"));
 													})
 													.catch(() => {
-														toast.error("Error deleting schedule");
+														toast.error(t("schedules.delete.error"));
 													});
 											}}
 										>
@@ -232,10 +234,10 @@ export const ShowSchedules = ({ id, scheduleType = "application" }: Props) => {
 					<div className="flex flex-col gap-2 items-center justify-center py-12 rounded-lg">
 						<Clock className="size-8 mb-4 text-muted-foreground" />
 						<p className="text-lg font-medium text-muted-foreground">
-							No scheduled tasks
+							{t("schedules.empty.title")}
 						</p>
 						<p className="text-sm text-muted-foreground mt-1">
-							Create your first scheduled task to automate your workflows
+							{t("schedules.empty.description")}
 						</p>
 						<HandleSchedules id={id} scheduleType={scheduleType} />
 					</div>

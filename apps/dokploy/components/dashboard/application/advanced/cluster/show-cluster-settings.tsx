@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Server } from "lucide-react";
 import Link from "next/link";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -40,14 +41,18 @@ interface Props {
 	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
 }
 
-const AddRedirectchema = z.object({
-	replicas: z.number().min(1, "Replicas must be at least 1"),
-	registryId: z.string().optional(),
-});
+const createSchema = (t: (key: string) => string) =>
+	z.object({
+		replicas: z
+			.number()
+			.min(1, { message: t("settings.cluster.service.validation.replicasMin") }),
+		registryId: z.string().optional(),
+	});
 
-type AddCommand = z.infer<typeof AddRedirectchema>;
+type AddCommand = z.infer<ReturnType<typeof createSchema>>;
 
 export const ShowClusterSettings = ({ id, type }: Props) => {
+	const { t } = useTranslation("settings");
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -77,6 +82,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		? mutationMap[type]()
 		: api.mongo.update.useMutation();
 
+	const ClusterSchema = createSchema(t);
 	const form = useForm<AddCommand>({
 		defaultValues: {
 			...(type === "application" && data && "registryId" in data
@@ -86,7 +92,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 				: {}),
 			replicas: data?.replicas || 1,
 		},
-		resolver: zodResolver(AddRedirectchema),
+		resolver: zodResolver(ClusterSchema),
 	});
 
 	useEffect(() => {
@@ -121,11 +127,15 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 			replicas: data?.replicas,
 		})
 			.then(async () => {
-				toast.success("Command Updated");
+				toast.success(
+						 t("settings.cluster.service.toast.updateSuccess"),
+				);
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the command");
+				toast.error(
+						 t("settings.cluster.service.toast.updateError"),
+				);
 			});
 	};
 
@@ -133,17 +143,18 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between">
 				<div>
-					<CardTitle className="text-xl">Cluster Settings</CardTitle>
+					<CardTitle className="text-xl">
+						{t("settings.cluster.service.cardTitle")}
+					</CardTitle>
 					<CardDescription>
-						Modify swarm settings for the service.
+						{t("settings.cluster.service.cardDescription")}
 					</CardDescription>
 				</div>
 				<AddSwarmSettings id={id} type={type} />
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
 				<AlertBlock type="info">
-					Please remember to click Redeploy after modify the cluster settings to
-					apply the changes.
+					{t("settings.cluster.service.alert.redeploy")}
 				</AlertBlock>
 				<Form {...form}>
 					<form
@@ -156,7 +167,9 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 								name="replicas"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Replicas</FormLabel>
+										<FormLabel>
+											{t("settings.cluster.service.replicas.label")}
+										</FormLabel>
 										<FormControl>
 											<Input
 												placeholder="1"
@@ -183,15 +196,20 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 										<div className="flex flex-col items-center gap-3">
 											<Server className="size-8 text-muted-foreground" />
 											<span className="text-base text-muted-foreground">
-												To use a cluster feature, you need to configure at least
-												a registry first. Please, go to{" "}
+												{t(
+													"settings.cluster.service.noRegistry.descriptionPrefix",
+												)}{" "}
 												<Link
 													href="/dashboard/settings/cluster"
 													className="text-foreground"
 												>
-													Settings
+													{t(
+														"settings.cluster.service.noRegistry.settingsLink",
+													)}
 												</Link>{" "}
-												to do so.
+												{t(
+													"settings.cluster.service.noRegistry.descriptionSuffix",
+												)}
 											</span>
 										</div>
 									</div>
@@ -202,13 +220,19 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 											name="registryId"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Select a registry</FormLabel>
+													<FormLabel>
+														{t("settings.cluster.service.registry.label")}
+													</FormLabel>
 													<Select
 														onValueChange={field.onChange}
 														defaultValue={field.value}
 													>
 														<SelectTrigger>
-															<SelectValue placeholder="Select a registry" />
+															<SelectValue
+																placeholder={t(
+																	"settings.cluster.service.registry.placeholder",
+																)}
+															/>
 														</SelectTrigger>
 														<SelectContent>
 															<SelectGroup>
@@ -220,9 +244,13 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 																		{registry.registryName}
 																	</SelectItem>
 																))}
-																<SelectItem value={"none"}>None</SelectItem>
+																<SelectItem value={"none"}>
+																	{t("settings.cluster.service.registry.none")}
+																</SelectItem>
 																<SelectLabel>
-																	Registries ({registries?.length})
+																	{t(
+																		"settings.cluster.service.registry.groupLabel",
+																	)} ({registries?.length})
 																</SelectLabel>
 															</SelectGroup>
 														</SelectContent>
@@ -237,7 +265,7 @@ export const ShowClusterSettings = ({ id, type }: Props) => {
 
 						<div className="flex justify-end">
 							<Button isLoading={isLoading} type="submit" className="w-fit">
-								Save
+								{t("settings.cluster.service.saveButton")}
 							</Button>
 						</div>
 					</form>

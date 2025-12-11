@@ -40,7 +40,6 @@ export const scheduleJob = (job: QueueJob) => {
 		jobQueue.add(job.scheduleId, job, {
 			repeat: {
 				pattern: job.cronSchedule,
-				tz: job.timezone || "UTC",
 			},
 		});
 	} else if (job.type === "volume-backup") {

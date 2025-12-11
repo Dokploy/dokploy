@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircuitBoard, HelpCircle } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,25 +45,25 @@ import {
 import { slugify } from "@/lib/slug";
 import { api } from "@/utils/api";
 
-const AddComposeSchema = z.object({
-	composeType: z.enum(["docker-compose", "stack"]).optional(),
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appName: z
-		.string()
-		.min(1, {
-			message: "App name is required",
-		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
-			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+const createAddComposeSchema = (t: (key: string) => string) =>
+	z.object({
+		composeType: z.enum(["docker-compose", "stack"]).optional(),
+		name: z.string().min(1, {
+			message: t("service.validation.nameRequired"),
 		}),
-	description: z.string().optional(),
-	serverId: z.string().optional(),
-});
+		appName: z
+			.string()
+			.min(1, {
+				message: t("service.validation.appNameRequired"),
+			})
+			.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+				message: t("service.validation.appNameInvalid"),
+			}),
+		description: z.string().optional(),
+		serverId: z.string().optional(),
+	});
 
-type AddCompose = z.infer<typeof AddComposeSchema>;
+type AddCompose = z.infer<ReturnType<typeof createAddComposeSchema>>;
 
 interface Props {
 	environmentId: string;
@@ -71,6 +72,7 @@ interface Props {
 
 export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const utils = api.useUtils();
+	const { t } = useTranslation("common");
 	const [visible, setVisible] = useState(false);
 	const slug = slugify(projectName);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
@@ -94,7 +96,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 			composeType: "docker-compose",
 			appName: `${slug}-`,
 		},
-		resolver: zodResolver(AddComposeSchema),
+		resolver: zodResolver(createAddComposeSchema(t)),
 	});
 
 	useEffect(() => {
@@ -111,7 +113,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 		})
 			.then(async () => {
-				toast.success("Compose Created");
+				toast.success(t("compose.create.success"));
 				setVisible(false);
 				// Invalidate the project query to refresh the environment data
 				await utils.environment.one.invalidate({
@@ -119,7 +121,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 				});
 			})
 			.catch(() => {
-				toast.error("Error creating the compose");
+				toast.error(t("compose.create.error"));
 			});
 	};
 
@@ -131,14 +133,14 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 					onSelect={(e) => e.preventDefault()}
 				>
 					<CircuitBoard className="size-4 text-muted-foreground" />
-					<span>Compose</span>
+					<span>{t("service.type.compose")}</span>
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-xl">
 				<DialogHeader>
-					<DialogTitle>Create Compose</DialogTitle>
+					<DialogTitle>{t("compose.dialog.createTitle")}</DialogTitle>
 					<DialogDescription>
-						Assign a name and description to your compose
+						{t("compose.dialog.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -155,10 +157,10 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>{t("service.form.name")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="Frontend"
+												placeholder={t("service.form.namePlaceholder")}
 												{...field}
 												onChange={(e) => {
 													const val = e.target.value || "";
@@ -183,7 +185,10 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-														Select a Server {!isCloud ? "(Optional)" : ""}
+														{t("service.form.serverLabel")}
+														{!isCloud
+															? ` ${t("service.form.serverOptionalSuffix")}`
+															: ""}
 														<HelpCircle className="size-4 text-muted-foreground" />
 													</FormLabel>
 												</TooltipTrigger>
@@ -193,8 +198,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 													side="top"
 												>
 													<span>
-														If no server is selected, the application will be
-														deployed on the server where the user is logged in.
+														{t("service.serverDropdown.description")}
 													</span>
 												</TooltipContent>
 											</Tooltip>
@@ -208,7 +212,11 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 										>
 											<SelectTrigger>
 												<SelectValue
-													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+													placeholder={
+														!isCloud
+															? t("services.filter.server.dokploy")
+															: t("service.form.serverPlaceholder")
+													}
 												/>
 											</SelectTrigger>
 											<SelectContent>
@@ -216,9 +224,9 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 													{!isCloud && (
 														<SelectItem value="dokploy">
 															<span className="flex items-center gap-2 justify-between w-full">
-																<span>Dokploy</span>
+																<span>{t("services.filter.server.dokploy")}</span>
 																<span className="text-muted-foreground text-xs self-center">
-																	Default
+																	{t("service.form.defaultServerSuffix")}
 																</span>
 															</span>
 														</SelectItem>
@@ -237,7 +245,9 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 														</SelectItem>
 													))}
 													<SelectLabel>
-														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+														{t("service.form.serversLabel", {
+															count: servers?.length + (!isCloud ? 1 : 0),
+														})}
 													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
@@ -252,9 +262,12 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 							name="appName"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>App Name</FormLabel>
+									<FormLabel>{t("service.form.appName")}</FormLabel>
 									<FormControl>
-										<Input placeholder="my-app" {...field} />
+										<Input
+											placeholder={t("service.form.appNamePlaceholder")}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -265,21 +278,27 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 							name="composeType"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Compose Type</FormLabel>
+									<FormLabel>{t("compose.form.composeTypeLabel")}</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}
 									>
 										<FormControl>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a compose type" />
+												<SelectValue
+													placeholder={t(
+														"compose.form.composeTypePlaceholder",
+													)}
+												/>
 											</SelectTrigger>
 										</FormControl>
 										<SelectContent>
 											<SelectItem value="docker-compose">
-												Docker Compose
+												{t("compose.form.composeType.dockerCompose")}
 											</SelectItem>
-											<SelectItem value="stack">Stack</SelectItem>
+											<SelectItem value="stack">
+												{t("compose.form.composeType.stack")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									<FormMessage />
@@ -291,10 +310,10 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>{t("service.form.description")}</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="Description of your service..."
+											placeholder={t("service.form.descriptionPlaceholder")}
 											className="resize-none"
 											{...field}
 										/>
@@ -308,7 +327,7 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 
 					<DialogFooter>
 						<Button isLoading={isLoading} form="hook-form" type="submit">
-							Create
+							{t("button.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

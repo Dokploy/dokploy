@@ -46,7 +46,7 @@ export const isAdminPresent = async () => {
 	return true;
 };
 
-export const findOwner = async () => {
+export const findAdmin = async () => {
 	const admin = await db.query.member.findFirst({
 		where: eq(member.role, "owner"),
 		with: {
@@ -107,11 +107,11 @@ export const getDokployUrl = async () => {
 	if (IS_CLOUD) {
 		return "https://app.dokploy.com";
 	}
-	const owner = await findOwner();
+	const admin = await findAdmin();
 
-	if (owner.user.host) {
-		const protocol = owner.user.https ? "https" : "http";
-		return `${protocol}://${owner.user.host}`;
+	if (admin.user.host) {
+		const protocol = admin.user.https ? "https" : "http";
+		return `${protocol}://${admin.user.host}`;
 	}
-	return `http://${owner.user.serverIp}:${process.env.PORT}`;
+	return `http://${admin.user.serverIp}:${process.env.PORT}`;
 };

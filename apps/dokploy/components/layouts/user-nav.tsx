@@ -1,5 +1,6 @@
 import { ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/router";
+import { useTranslation } from "next-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -31,7 +32,7 @@ export const UserNav = () => {
 	const router = useRouter();
 	const { data } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
-
+	const { t } = useTranslation("common");
 	const { locale, setLocale } = useLocale();
 	// const { mutateAsync } = api.auth.logout.useMutation();
 
@@ -49,13 +50,13 @@ export const UserNav = () => {
 							alt={data?.user?.image || ""}
 						/>
 						<AvatarFallback className="rounded-lg">
-							{getFallbackAvatarInitials(
-								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
-							)}
+							{getFallbackAvatarInitials(data?.user?.name)}
 						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">Account</span>
+						<span className="truncate font-semibold">
+							{t("common.account")}
+						</span>
 						<span className="truncate text-xs">{data?.user?.email}</span>
 					</div>
 					<ChevronsUpDown className="ml-auto size-4" />
@@ -69,7 +70,7 @@ export const UserNav = () => {
 			>
 				<div className="flex items-center justify-between px-2 py-1.5">
 					<DropdownMenuLabel className="flex flex-col">
-						My Account
+						{t("common.myAccount")}
 						<span className="text-xs font-normal text-muted-foreground">
 							{data?.user?.email}
 						</span>
@@ -84,7 +85,7 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/profile");
 						}}
 					>
-						Profile
+						{t("dashboard.profile")}
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="cursor-pointer"
@@ -92,7 +93,7 @@ export const UserNav = () => {
 							router.push("/dashboard/projects");
 						}}
 					>
-						Projects
+						{t("dashboard.projects")}
 					</DropdownMenuItem>
 					{!isCloud ? (
 						<>
@@ -102,23 +103,19 @@ export const UserNav = () => {
 									router.push("/dashboard/monitoring");
 								}}
 							>
-								Monitoring
+								{t("dashboard.monitoring")}
 							</DropdownMenuItem>
-							{(data?.role === "owner" ||
-								data?.role === "admin" ||
-								data?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
 										router.push("/dashboard/traefik");
 									}}
 								>
-									Traefik
+									{t("common.traefik")}
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" ||
-								data?.role === "admin" ||
-								data?.canAccessToDocker) && (
+							{(data?.role === "owner" || data?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -127,19 +124,19 @@ export const UserNav = () => {
 										});
 									}}
 								>
-									Docker
+									{t("dashboard.docker")}
 								</DropdownMenuItem>
 							)}
 						</>
 					) : (
-						(data?.role === "owner" || data?.role === "admin") && (
+						data?.role === "owner" && (
 							<DropdownMenuItem
 								className="cursor-pointer"
 								onClick={() => {
 									router.push("/dashboard/settings/servers");
 								}}
 							>
-								Servers
+								{t("dashboard.servers")}
 							</DropdownMenuItem>
 						)
 					)}
@@ -151,7 +148,7 @@ export const UserNav = () => {
 							router.push("/dashboard/settings/billing");
 						}}
 					>
-						Billing
+						{t("common.billing")}
 					</DropdownMenuItem>
 				)}
 				<DropdownMenuSeparator />
@@ -167,7 +164,7 @@ export const UserNav = () => {
 							// });
 						}}
 					>
-						Log out
+						{t("dashboard.logout")}
 					</DropdownMenuItem>
 					<div className="w-32">
 						<Select
@@ -176,7 +173,7 @@ export const UserNav = () => {
 							value={locale}
 						>
 							<SelectTrigger>
-								<SelectValue placeholder="Select Language" />
+								<SelectValue placeholder={t("common.selectLanguage")} />
 							</SelectTrigger>
 							<SelectContent>
 								{Object.values(Languages).map((language) => (

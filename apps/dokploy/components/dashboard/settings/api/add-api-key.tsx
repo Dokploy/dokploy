@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import copy from "copy-to-clipboard";
-import { useState } from "react";
+import { useTranslation } from "next-i18next";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -34,51 +35,55 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
-const formSchema = z.object({
-	name: z.string().min(1, "Name is required"),
-	prefix: z.string().optional(),
-	expiresIn: z.number().nullable(),
-	organizationId: z.string().min(1, "Organization is required"),
-	// Rate limiting fields
-	rateLimitEnabled: z.boolean().optional(),
-	rateLimitTimeWindow: z.number().nullable(),
-	rateLimitMax: z.number().nullable(),
-	// Request limiting fields
-	remaining: z.number().nullable().optional(),
-	refillAmount: z.number().nullable().optional(),
-	refillInterval: z.number().nullable().optional(),
-});
+const createFormSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, t("settings.api.keys.validation.nameRequired")),
+		prefix: z.string().optional(),
+		expiresIn: z.number().nullable(),
+		organizationId: z
+			.string()
+			.min(1, t("settings.api.keys.validation.organizationRequired")),
+		// Rate limiting fields
+		rateLimitEnabled: z.boolean().optional(),
+		rateLimitTimeWindow: z.number().nullable(),
+		rateLimitMax: z.number().nullable(),
+		// Request limiting fields
+		remaining: z.number().nullable().optional(),
+		refillAmount: z.number().nullable().optional(),
+		refillInterval: z.number().nullable().optional(),
+	});
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
 const EXPIRATION_OPTIONS = [
-	{ label: "Never", value: "0" },
-	{ label: "1 day", value: String(60 * 60 * 24) },
-	{ label: "7 days", value: String(60 * 60 * 24 * 7) },
-	{ label: "30 days", value: String(60 * 60 * 24 * 30) },
-	{ label: "90 days", value: String(60 * 60 * 24 * 90) },
-	{ label: "1 year", value: String(60 * 60 * 24 * 365) },
+	{ labelKey: "settings.api.keys.expiration.never", value: "0" },
+	{ labelKey: "settings.api.keys.expiration.1day", value: String(60 * 60 * 24) },
+	{ labelKey: "settings.api.keys.expiration.7days", value: String(60 * 60 * 24 * 7) },
+	{ labelKey: "settings.api.keys.expiration.30days", value: String(60 * 60 * 24 * 30) },
+	{ labelKey: "settings.api.keys.expiration.90days", value: String(60 * 60 * 24 * 90) },
+	{ labelKey: "settings.api.keys.expiration.1year", value: String(60 * 60 * 24 * 365) },
 ];
 
 const TIME_WINDOW_OPTIONS = [
-	{ label: "1 minute", value: String(60 * 1000) },
-	{ label: "5 minutes", value: String(5 * 60 * 1000) },
-	{ label: "15 minutes", value: String(15 * 60 * 1000) },
-	{ label: "30 minutes", value: String(30 * 60 * 1000) },
-	{ label: "1 hour", value: String(60 * 60 * 1000) },
-	{ label: "1 day", value: String(24 * 60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.timeWindow.1minute", value: String(60 * 1000) },
+	{ labelKey: "settings.api.keys.timeWindow.5minutes", value: String(5 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.timeWindow.15minutes", value: String(15 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.timeWindow.30minutes", value: String(30 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.timeWindow.1hour", value: String(60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.timeWindow.1day", value: String(24 * 60 * 60 * 1000) },
 ];
 
 const REFILL_INTERVAL_OPTIONS = [
-	{ label: "1 hour", value: String(60 * 60 * 1000) },
-	{ label: "6 hours", value: String(6 * 60 * 60 * 1000) },
-	{ label: "12 hours", value: String(12 * 60 * 60 * 1000) },
-	{ label: "1 day", value: String(24 * 60 * 60 * 1000) },
-	{ label: "7 days", value: String(7 * 24 * 60 * 60 * 1000) },
-	{ label: "30 days", value: String(30 * 24 * 60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.refillInterval.1hour", value: String(60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.refillInterval.6hours", value: String(6 * 60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.refillInterval.12hours", value: String(12 * 60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.refillInterval.1day", value: String(24 * 60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.refillInterval.7days", value: String(7 * 24 * 60 * 60 * 1000) },
+	{ labelKey: "settings.api.keys.refillInterval.30days", value: String(30 * 24 * 60 * 60 * 1000) },
 ];
 
 export const AddApiKey = () => {
+	const { t } = useTranslation("settings");
 	const [open, setOpen] = useState(false);
 	const [showSuccessModal, setShowSuccessModal] = useState(false);
 	const [newApiKey, setNewApiKey] = useState("");
@@ -95,12 +100,14 @@ export const AddApiKey = () => {
 			void refetch();
 		},
 		onError: () => {
-			toast.error("Failed to generate API key");
+			toast.error(t("settings.api.keys.createError"));
 		},
 	});
 
+	const schema = useMemo(() => createFormSchema(t), [t]);
+
 	const form = useForm<FormValues>({
-		resolver: zodResolver(formSchema),
+		resolver: zodResolver(schema),
 		defaultValues: {
 			name: "",
 			prefix: "",
@@ -140,14 +147,13 @@ export const AddApiKey = () => {
 		<>
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogTrigger asChild>
-					<Button>Generate New Key</Button>
+					<Button>{t("settings.api.keys.generateNewKey")}</Button>
 				</DialogTrigger>
 				<DialogContent className="sm:max-w-xl max-h-[90vh]">
 					<DialogHeader>
-						<DialogTitle>Generate API Key</DialogTitle>
+						<DialogTitle>{t("settings.api.keys.dialog.title")}</DialogTitle>
 						<DialogDescription>
-							Create a new API key for accessing the API. You can set an
-							expiration date and a custom prefix for better organization.
+							{t("settings.api.keys.dialog.description")}
 						</DialogDescription>
 					</DialogHeader>
 					<Form {...form}>
@@ -157,9 +163,16 @@ export const AddApiKey = () => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>
+											{t("settings.api.keys.form.name")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="My API Key" {...field} />
+											<Input
+												placeholder={t(
+													"settings.api.keys.form.namePlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -170,9 +183,16 @@ export const AddApiKey = () => {
 								name="prefix"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Prefix</FormLabel>
+										<FormLabel>
+											{t("settings.api.keys.form.prefix")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="my_app" {...field} />
+											<Input
+												placeholder={t(
+													"settings.api.keys.form.prefixPlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 										<FormMessage />
 									</FormItem>
@@ -183,7 +203,9 @@ export const AddApiKey = () => {
 								name="expiresIn"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Expiration</FormLabel>
+										<FormLabel>
+											{t("settings.api.keys.form.expiration")}
+										</FormLabel>
 										<Select
 											value={field.value?.toString() || "0"}
 											onValueChange={(value) =>
@@ -192,13 +214,17 @@ export const AddApiKey = () => {
 										>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder="Select expiration time" />
+													<SelectValue
+														placeholder={t(
+															"settings.api.keys.form.expirationPlaceholder",
+														)}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
 												{EXPIRATION_OPTIONS.map((option) => (
 													<SelectItem key={option.value} value={option.value}>
-														{option.label}
+														{t(option.labelKey)}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -212,11 +238,17 @@ export const AddApiKey = () => {
 								name="organizationId"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Organization</FormLabel>
+										<FormLabel>
+											{t("settings.api.keys.form.organization")}
+										</FormLabel>
 										<Select value={field.value} onValueChange={field.onChange}>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder="Select organization" />
+													<SelectValue
+														placeholder={t(
+															"settings.api.keys.form.organizationPlaceholder",
+														)}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
@@ -234,16 +266,22 @@ export const AddApiKey = () => {
 
 							{/* Rate Limiting Section */}
 							<div className="space-y-4 rounded-lg border p-4">
-								<h3 className="text-lg font-medium">Rate Limiting</h3>
+								<h3 className="text-lg font-medium">
+									{t("settings.api.keys.rateLimit.title")}
+								</h3>
 								<FormField
 									control={form.control}
 									name="rateLimitEnabled"
 									render={({ field }) => (
 										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
 											<div className="space-y-0.5">
-												<FormLabel>Enable Rate Limiting</FormLabel>
+												<FormLabel>
+													{t("settings.api.keys.rateLimit.enable.label")}
+												</FormLabel>
 												<FormDescription>
-													Limit the number of requests within a time window
+													{t(
+														"settings.api.keys.rateLimit.enable.description",
+													)}
 												</FormDescription>
 											</div>
 											<FormControl>
@@ -263,7 +301,9 @@ export const AddApiKey = () => {
 											name="rateLimitTimeWindow"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Time Window</FormLabel>
+													<FormLabel>
+														{t("settings.api.keys.rateLimit.timeWindow.label")}
+													</FormLabel>
 													<Select
 														value={field.value?.toString()}
 														onValueChange={(value) =>
@@ -272,7 +312,11 @@ export const AddApiKey = () => {
 													>
 														<FormControl>
 															<SelectTrigger>
-																<SelectValue placeholder="Select time window" />
+																<SelectValue
+																	placeholder={t(
+																		"settings.api.keys.rateLimit.timeWindow.placeholder",
+																	)}
+																/>
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
@@ -281,13 +325,15 @@ export const AddApiKey = () => {
 																	key={option.value}
 																	value={option.value}
 																>
-																	{option.label}
+																	{t(option.labelKey)}
 																</SelectItem>
 															))}
 														</SelectContent>
 													</Select>
 													<FormDescription>
-														The duration in which requests are counted
+														{t(
+															"settings.api.keys.rateLimit.timeWindow.description",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -298,11 +344,15 @@ export const AddApiKey = () => {
 											name="rateLimitMax"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Maximum Requests</FormLabel>
+													<FormLabel>
+														{t("settings.api.keys.rateLimit.maxRequests.label")}
+													</FormLabel>
 													<FormControl>
 														<Input
 															type="number"
-															placeholder="100"
+															placeholder={t(
+																"settings.api.keys.rateLimit.maxRequests.placeholder",
+															)}
 															value={field.value?.toString() ?? ""}
 															onChange={(e) =>
 																field.onChange(
@@ -314,8 +364,9 @@ export const AddApiKey = () => {
 														/>
 													</FormControl>
 													<FormDescription>
-														Maximum number of requests allowed within the time
-														window
+														{t(
+															"settings.api.keys.rateLimit.maxRequests.description",
+														)}
 													</FormDescription>
 													<FormMessage />
 												</FormItem>
@@ -327,17 +378,23 @@ export const AddApiKey = () => {
 
 							{/* Request Limiting Section */}
 							<div className="space-y-4 rounded-lg border p-4">
-								<h3 className="text-lg font-medium">Request Limiting</h3>
+								<h3 className="text-lg font-medium">
+									{t("settings.api.keys.requestLimit.title")}
+								</h3>
 								<FormField
 									control={form.control}
 									name="remaining"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Total Request Limit</FormLabel>
+											<FormLabel>
+												{t("settings.api.keys.requestLimit.total.label")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
-													placeholder="Leave empty for unlimited"
+													placeholder={t(
+														"settings.api.keys.requestLimit.total.placeholder",
+													)}
 													value={field.value?.toString() ?? ""}
 													onChange={(e) =>
 														field.onChange(
@@ -349,8 +406,9 @@ export const AddApiKey = () => {
 												/>
 											</FormControl>
 											<FormDescription>
-												Total number of requests allowed (leave empty for
-												unlimited)
+												{t(
+													"settings.api.keys.requestLimit.total.description",
+												)}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -362,11 +420,15 @@ export const AddApiKey = () => {
 									name="refillAmount"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Refill Amount</FormLabel>
+											<FormLabel>
+												{t("settings.api.keys.requestLimit.refillAmount.label")}
+											</FormLabel>
 											<FormControl>
 												<Input
 													type="number"
-													placeholder="Amount to refill"
+													placeholder={t(
+														"settings.api.keys.requestLimit.refillAmount.placeholder",
+													)}
 													value={field.value?.toString() ?? ""}
 													onChange={(e) =>
 														field.onChange(
@@ -378,7 +440,9 @@ export const AddApiKey = () => {
 												/>
 											</FormControl>
 											<FormDescription>
-												Number of requests to add on each refill
+												{t(
+													"settings.api.keys.requestLimit.refillAmount.description",
+												)}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -390,7 +454,9 @@ export const AddApiKey = () => {
 									name="refillInterval"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Refill Interval</FormLabel>
+											<FormLabel>
+												{t("settings.api.keys.requestLimit.refillInterval.label")}
+											</FormLabel>
 											<Select
 												value={field.value?.toString()}
 												onValueChange={(value) =>
@@ -399,19 +465,25 @@ export const AddApiKey = () => {
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select refill interval" />
+														<SelectValue
+															placeholder={t(
+																"settings.api.keys.requestLimit.refillInterval.placeholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
 													{REFILL_INTERVAL_OPTIONS.map((option) => (
 														<SelectItem key={option.value} value={option.value}>
-															{option.label}
+															{t(option.labelKey)}
 														</SelectItem>
 													))}
 												</SelectContent>
 											</Select>
 											<FormDescription>
-												How often to refill the request limit
+												{t(
+													"settings.api.keys.requestLimit.refillInterval.description",
+												)}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -425,9 +497,11 @@ export const AddApiKey = () => {
 									variant="outline"
 									onClick={() => setOpen(false)}
 								>
-									Cancel
+									{t("settings.api.keys.dialog.cancel")}
 								</Button>
-								<Button type="submit">Generate</Button>
+								<Button type="submit">
+									{t("settings.api.keys.dialog.generate")}
+								</Button>
 							</div>
 						</form>
 					</Form>
@@ -437,9 +511,11 @@ export const AddApiKey = () => {
 			<Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
-						<DialogTitle>API Key Generated Successfully</DialogTitle>
+						<DialogTitle>
+							{t("settings.api.keys.success.title")}
+						</DialogTitle>
 						<DialogDescription>
-							Please copy your API key now. You won't be able to see it again!
+							{t("settings.api.keys.success.description")}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="mt-4 space-y-4">
@@ -453,16 +529,16 @@ export const AddApiKey = () => {
 							<Button
 								onClick={() => {
 									copy(newApiKey);
-									toast.success("API key copied to clipboard");
+									toast.success(t("settings.api.keys.success.copyToast"));
 								}}
 							>
-								Copy to Clipboard
+								{t("settings.api.keys.success.copyButton")}
 							</Button>
 							<Button
 								variant="outline"
 								onClick={() => setShowSuccessModal(false)}
 							>
-								Close
+								{t("settings.api.keys.success.closeButton")}
 							</Button>
 						</div>
 					</div>

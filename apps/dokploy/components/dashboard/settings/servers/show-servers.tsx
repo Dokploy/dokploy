@@ -64,10 +64,10 @@ export const ShowServers = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<ServerIcon className="size-6 text-muted-foreground self-center" />
-							Servers
+							{t("settings.servers.page.title")}
 						</CardTitle>
 						<CardDescription>
-							Add servers to deploy your applications remotely.
+							{t("settings.servers.page.description")}
 						</CardDescription>
 
 						{isCloud && (
@@ -77,14 +77,14 @@ export const ShowServers = () => {
 									router.push("/dashboard/settings/servers?success=true");
 								}}
 							>
-								Reset Onboarding
+								{t("settings.servers.page.resetOnboarding")}
 							</span>
 						)}
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -93,12 +93,12 @@ export const ShowServers = () => {
 									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 										<KeyIcon className="size-8" />
 										<span className="text-base text-muted-foreground">
-											No SSH Keys found. Add a SSH Key to start adding servers.{" "}
+											{t("settings.servers.page.emptyNoSSHKeys")} {" "}
 											<Link
 												href="/dashboard/settings/ssh-keys"
 												className="text-primary"
 											>
-												Add SSH Key
+												{t("settings.servers.page.addSshKey")}
 											</Link>
 										</span>
 									</div>
@@ -108,8 +108,7 @@ export const ShowServers = () => {
 											<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 												<ServerIcon className="size-8 self-center text-muted-foreground" />
 												<span className="text-base text-muted-foreground">
-													Start adding servers to deploy your applications
-													remotely.
+													{t("settings.servers.page.emptyNoServers")}
 												</span>
 												<HandleServers />
 											</div>
@@ -118,37 +117,39 @@ export const ShowServers = () => {
 												<Table>
 													<TableCaption>
 														<div className="flex flex-col  gap-4">
-															See all servers
+															{t("settings.servers.table.caption")}
 														</div>
 													</TableCaption>
 													<TableHeader>
 														<TableRow>
-															<TableHead className="text-left">Name</TableHead>
+															<TableHead className="text-left">
+																{t("settings.servers.table.name")}
+															</TableHead>
 															{isCloud && (
 																<TableHead className="text-center">
-																	Status
+																	{t("settings.servers.table.status")}
 																</TableHead>
 															)}
 															<TableHead className="text-center">
-																Type
+																{t("settings.servers.table.type")}
 															</TableHead>
 															<TableHead className="text-center">
-																IP Address
+																{t("settings.servers.table.ipAddress")}
 															</TableHead>
 															<TableHead className="text-center">
-																Port
+																{t("settings.servers.table.port")}
 															</TableHead>
 															<TableHead className="text-center">
-																Username
+																{t("settings.servers.table.username")}
 															</TableHead>
 															<TableHead className="text-center">
-																SSH Key
+																{t("settings.servers.table.sshKey")}
 															</TableHead>
 															<TableHead className="text-center">
-																Created
+																{t("settings.servers.table.created")}
 															</TableHead>
 															<TableHead className="text-right">
-																Actions
+																{t("settings.servers.table.actions")}
 															</TableHead>
 														</TableRow>
 													</TableHeader>
@@ -196,7 +197,9 @@ export const ShowServers = () => {
 																	</TableCell>
 																	<TableCell className="text-right">
 																		<span className="text-sm text-muted-foreground">
-																			{server.sshKeyId ? "Yes" : "No"}
+																			{server.sshKeyId
+																				? t("settings.common.yes")
+																				: t("settings.common.no")}
 																		</span>
 																	</TableCell>
 																	<TableCell className="text-right">
@@ -216,14 +219,14 @@ export const ShowServers = () => {
 																					className="h-8 w-8 p-0"
 																				>
 																					<span className="sr-only">
-																						Open menu
+																						{t("settings.common.openMenu")}
 																					</span>
 																					<MoreHorizontal className="h-4 w-4" />
 																				</Button>
 																			</DropdownMenuTrigger>
 																			<DropdownMenuContent align="end">
 																				<DropdownMenuLabel>
-																					Actions
+																					{t("settings.servers.table.actions")}
 																				</DropdownMenuLabel>
 
 																				{isActive && (
@@ -260,22 +263,19 @@ export const ShowServers = () => {
 																					disabled={!canDelete}
 																					title={
 																						canDelete
-																							? "Delete Server"
-																							: "Server has active services"
+																							? t("settings.servers.delete.title")
+																							: t("settings.servers.delete.blockedTitle")
 																					}
 																					description={
 																						canDelete ? (
-																							"This will delete the server and all associated data"
+																									t("settings.servers.delete.description")
 																						) : (
-																							<div className="flex flex-col gap-2">
-																								You can not delete this server
-																								because it has active services.
-																								<AlertBlock type="warning">
-																									You have active services
-																									associated with this server,
-																									please delete them first.
-																								</AlertBlock>
-																							</div>
+																									<div className="flex flex-col gap-2">
+																										{t("settings.servers.delete.blockedDescription")}
+																										<AlertBlock type="warning">
+																											{t("settings.servers.delete.blockedAlert")}
+																										</AlertBlock>
+																									</div>
 																						)
 																					}
 																					onClick={async () => {
@@ -285,11 +285,13 @@ export const ShowServers = () => {
 																							.then(() => {
 																								refetch();
 																								toast.success(
-																									`Server ${server.name} deleted successfully`,
+																									t("settings.servers.delete.success", {
+																										name: server.name,
+																									}),
 																								);
 																							})
-																							.catch((err) => {
-																								toast.error(err.message);
+																							.catch(() => {
+																								toast.error(t("settings.servers.delete.error"));
 																							});
 																					}}
 																				>
@@ -297,7 +299,7 @@ export const ShowServers = () => {
 																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						Delete Server
+																						{t("settings.servers.delete.title")}
 																					</DropdownMenuItem>
 																				</DialogAction>
 
@@ -307,7 +309,7 @@ export const ShowServers = () => {
 																						<>
 																							<DropdownMenuSeparator />
 																							<DropdownMenuLabel>
-																								Extra
+																								{t("settings.servers.menu.extra")}
 																							</DropdownMenuLabel>
 
 																							<ShowTraefikFileSystemModal

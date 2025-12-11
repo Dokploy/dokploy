@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,22 +27,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	appName: z.string().min(1, {
-		message: "App Name is required",
-	}),
-});
+const createSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.gitProviders.validation.nameRequired"),
+		}),
+		appName: z.string().min(1, {
+			message: t("settings.gitProviders.validation.appNameRequired"),
+		}),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = z.infer<ReturnType<typeof createSchema>>;
 
 interface Props {
 	githubId: string;
 }
 
 export const EditGithubProvider = ({ githubId }: Props) => {
+	const { t } = useTranslation("settings");
 	const { data: github } = api.github.one.useQuery(
 		{
 			githubId,
@@ -55,12 +58,13 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 	const { mutateAsync, error, isError } = api.github.update.useMutation();
 	const { mutateAsync: testConnection, isLoading } =
 		api.github.testConnection.useMutation();
+	const schema = createSchema(t);
 	const form = useForm<Schema>({
 		defaultValues: {
 			name: "",
 			appName: "",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(schema),
 	});
 
 	useEffect(() => {
@@ -79,11 +83,11 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
-				toast.success("Github updated successfully");
+				toast.success(t("settings.gitProviders.github.edit.toast.updatedSuccess"));
 				setIsOpen(false);
 			})
 			.catch(() => {
-				toast.error("Error updating Github");
+				toast.error(t("settings.gitProviders.github.edit.toast.updatedError"));
 			});
 	};
 
@@ -101,7 +105,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Update Github <GithubIcon className="size-5" />
+						{t("settings.gitProviders.github.edit.title")} <GithubIcon className="size-5" />
 					</DialogTitle>
 				</DialogHeader>
 
@@ -119,10 +123,14 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.github.edit.nameLabel")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder={t(
+														"settings.gitProviders.github.edit.namePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -135,10 +143,14 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 									name="appName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>App Name</FormLabel>
+											<FormLabel>
+												{t("settings.gitProviders.github.edit.appNameLabel")}
+											</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="pp Name eg(my-personal)"
+													placeholder={t(
+														"settings.gitProviders.github.edit.appNamePlaceholder",
+													)}
 													{...field}
 												/>
 											</FormControl>
@@ -157,17 +169,17 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 												githubId,
 											})
 												.then(async (message) => {
-													toast.info(`Message: ${message}`);
+													toast.info(t("settings.gitProviders.github.edit.testSuccessMessage", { message }));
 												})
 												.catch((error) => {
-													toast.error(`Error: ${error.message}`);
+													toast.error(t("settings.gitProviders.github.edit.testErrorMessage", { error: error.message }));
 												});
 										}}
 									>
-										Test Connection
+										{t("settings.gitProviders.github.edit.testButton")}
 									</Button>
 									<Button type="submit" isLoading={form.formState.isSubmitting}>
-										Update
+										{t("settings.gitProviders.github.edit.updateButton")}
 									</Button>
 								</div>
 							</div>

@@ -49,7 +49,7 @@ export function parseLogs(logString: string): LogLine[] {
 	// { timestamp: new Date("2024-12-10T10:00:00.000Z"),
 	// message: "The server is running on port 8080" }
 	const logRegex =
-		/^(?:(?<lineNumber>\d+)\s+)?(?<timestamp>(?:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC))?\s*(?<message>[\s\S]*)$/;
+		/^(?:(\d+)\s+)?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC)?\s*(.*)$/;
 
 	return logString
 		.split("\n")
@@ -59,7 +59,7 @@ export function parseLogs(logString: string): LogLine[] {
 			const match = line.match(logRegex);
 			if (!match) return null;
 
-			const { timestamp, message } = match.groups ?? {};
+			const [, , timestamp, message] = match;
 
 			if (!message?.trim()) return null;
 

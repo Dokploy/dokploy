@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TrashIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const SaveDragNDrop = ({ applicationId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync, isLoading } =
@@ -52,11 +54,11 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 
 		await mutateAsync(formData)
 			.then(async () => {
-				toast.success("Deployment saved");
+				toast.success(t("application.git.drop.toast.saveSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the deployment");
+				toast.error(t("application.git.drop.toast.saveError"));
 			});
 	};
 
@@ -73,9 +75,16 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 							name="dropBuildPath"
 							render={({ field }) => (
 								<FormItem className="w-full ">
-									<FormLabel>Build Path</FormLabel>
+									<FormLabel>
+										{t("application.git.drop.form.buildPathLabel")}
+									</FormLabel>
 									<FormControl>
-										<Input {...field} placeholder="Build Path" />
+										<Input
+											{...field}
+											placeholder={t(
+												"application.git.drop.form.buildPathPlaceholder",
+											)}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -86,11 +95,13 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 							name="zip"
 							render={({ field }) => (
 								<FormItem className="w-full ">
-									<FormLabel>Zip file</FormLabel>
+									<FormLabel>
+										{t("application.git.drop.form.zipLabel")}
+									</FormLabel>
 									<FormControl>
 										<Dropzone
 											{...field}
-											dropMessage="Drop files or click here"
+											dropMessage={t("application.git.drop.form.dropMessage")}
 											accept=".zip"
 											onChange={(e) => {
 												if (e instanceof FileList) {
@@ -132,7 +143,7 @@ export const SaveDragNDrop = ({ applicationId }: Props) => {
 						isLoading={isLoading}
 						disabled={!zip || isLoading}
 					>
-						Deploy{" "}
+						{t("application.git.drop.form.deployButton")}
 					</Button>
 				</div>
 			</form>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "next-i18next";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import type { RouterOutputs } from "@/utils/api";
@@ -38,6 +39,7 @@ export const ShowDeploymentsModal = ({
 		RouterOutputs["deployment"]["all"][number] | null
 	>(null);
 	const [isOpen, setIsOpen] = useState(false);
+	const { t } = useTranslation("common");
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
@@ -45,7 +47,7 @@ export const ShowDeploymentsModal = ({
 					children
 				) : (
 					<Button className="sm:w-auto w-full" size="sm" variant="outline">
-						View Logs
+						{t("logs.modal.title")}
 					</Button>
 				)}
 			</DialogTrigger>

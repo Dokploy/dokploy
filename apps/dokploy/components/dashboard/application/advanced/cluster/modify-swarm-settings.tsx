@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HelpCircle, Settings } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -214,6 +215,7 @@ interface Props {
 }
 
 export const AddSwarmSettings = ({ id, type }: Props) => {
+	const { t } = useTranslation("settings");
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -322,11 +324,15 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			endpointSpecSwarm: data.endpointSpecSwarm,
 		})
 			.then(async () => {
-				toast.success("Swarm settings updated");
+				toast.success(
+						 t("settings.cluster.swarm.toast.updateSuccess"),
+				);
 				refetch();
 			})
 			.catch(() => {
-				toast.error("Error updating the swarm settings");
+				toast.error(
+						 t("settings.cluster.swarm.toast.updateError"),
+				);
 			});
 	};
 	return (
@@ -334,21 +340,22 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="cursor-pointer w-fit">
 					<Settings className="size-4 text-muted-foreground" />
-					Swarm Settings
+					{t("settings.cluster.swarm.button.open")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-5xl">
 				<DialogHeader>
-					<DialogTitle>Swarm Settings</DialogTitle>
+					<DialogTitle>
+						{t("settings.cluster.swarm.dialog.title")}
+					</DialogTitle>
 					<DialogDescription>
-						Update certain settings using a json object.
+						{t("settings.cluster.swarm.dialog.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<div>
 					<AlertBlock type="info">
-						Changing settings such as placements may cause the logs/monitoring,
-						backups and other features to be unavailable.
+						{t("settings.cluster.swarm.alert.warning")}
 					</AlertBlock>
 				</div>
 
@@ -363,12 +370,14 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="healthCheckSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Health Check</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.healthCheck.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -419,12 +428,14 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="restartPolicySwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Restart Policy</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.restartPolicy.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -473,12 +484,14 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="placementSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Placement</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.placement.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -539,12 +552,14 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="updateConfigSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Update Config</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.updateConfig.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -597,12 +612,16 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="rollbackConfigSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Rollback Config</FormLabel>
+									<FormLabel>
+										{t(
+											"settings.cluster.swarm.form.rollbackConfig.label",
+										)}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -655,18 +674,20 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="modeSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Mode</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.mode.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
 											<TooltipContent
 												className="w-full z-[999]"
-												align="center"
+												align="start"
 												side="bottom"
 											>
 												<code>
@@ -718,12 +739,14 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="networkSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Network</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.network.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -746,6 +769,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
+
 									<FormControl>
 										<CodeEditor
 											language="json"
@@ -777,12 +801,14 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="labelsSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Labels</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.labels.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -801,6 +827,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
+
 									<FormControl>
 										<CodeEditor
 											language="json"
@@ -824,12 +851,18 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="stopGracePeriodSwarm"
 							render={({ field }) => (
 								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
-									<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
+									<FormLabel>
+										{t(
+											"settings.cluster.swarm.form.stopGracePeriod.label",
+										)}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Duration in nanoseconds
+													{t(
+														"settings.cluster.swarm.form.stopGracePeriod.description",
+													)}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -850,6 +883,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
+
 									<FormControl>
 										<Input
 											type="number"
@@ -875,12 +909,14 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 							name="endpointSpecSwarm"
 							render={({ field }) => (
 								<FormItem className="relative ">
-									<FormLabel>Endpoint Spec</FormLabel>
+									<FormLabel>
+										{t("settings.cluster.swarm.form.endpointSpec.label")}
+									</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
-													Check the interface
+													{t("settings.cluster.swarm.form.checkInterface")}
 													<HelpCircle className="size-4 text-muted-foreground" />
 												</FormDescription>
 											</TooltipTrigger>
@@ -937,7 +973,7 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 								form="hook-form-add-permissions"
 								type="submit"
 							>
-								Update
+								{t("settings.cluster.swarm.form.submit")}
 							</Button>
 						</DialogFooter>
 					</form>

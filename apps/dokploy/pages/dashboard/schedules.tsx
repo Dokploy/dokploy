@@ -6,6 +6,7 @@ import { ShowSchedules } from "@/components/dashboard/application/schedules/show
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 function SchedulesPage() {
 	const { data: user } = api.user.get.useQuery();
@@ -40,7 +41,7 @@ export async function getServerSideProps(
 		};
 	}
 	const { user } = await validateRequest(ctx.req);
-	if (!user || (user.role !== "owner" && user.role !== "admin")) {
+	if (!user || user.role !== "owner") {
 		return {
 			redirect: {
 				permanent: true,
@@ -49,7 +50,11 @@ export async function getServerSideProps(
 		};
 	}
 
+	const locale = getLocale((ctx.req as any).cookies ?? {});
+
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale)),
+		},
 	};
 }

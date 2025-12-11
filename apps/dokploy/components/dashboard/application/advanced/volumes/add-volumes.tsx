@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -45,39 +46,47 @@ interface Props {
 	children?: React.ReactNode;
 }
 
-const mountSchema = z.object({
-	mountPath: z.string().min(1, "Mount path required"),
-});
+const mountSchema = (t: (key: string) => string) =>
+	z.object({
+		mountPath: z
+			.string()
+			.min(1, t("volumes.validation.mountPathRequired")),
+	});
 
-const mySchema = z.discriminatedUnion("type", [
-	z
-		.object({
-			type: z.literal("bind"),
-			hostPath: z.string().min(1, "Host path required"),
-		})
-		.merge(mountSchema),
-	z
-		.object({
-			type: z.literal("volume"),
-			volumeName: z
-				.string()
-				.min(1, "Volume name required")
-				.regex(
-					/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
-					"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
-				),
-		})
-		.merge(mountSchema),
-	z
-		.object({
-			type: z.literal("file"),
-			filePath: z.string().min(1, "File path required"),
-			content: z.string().optional(),
-		})
-		.merge(mountSchema),
-]);
+const createSchema = (t: (key: string) => string) =>
+	z.discriminatedUnion("type", [
+		z
+			.object({
+				type: z.literal("bind"),
+				hostPath: z
+					.string()
+					.min(1, t("volumes.validation.hostPathRequired")),
+			})
+			.merge(mountSchema(t)),
+		z
+			.object({
+				type: z.literal("volume"),
+				volumeName: z
+					.string()
+					.min(1, t("volumes.validation.volumeNameRequired"))
+					.regex(
+						/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+						t("volumes.validation.volumeNameInvalid"),
+					),
+			})
+			.merge(mountSchema(t)),
+		z
+			.object({
+				type: z.literal("file"),
+				filePath: z
+					.string()
+					.min(1, t("volumes.validation.filePathRequired")),
+				content: z.string().optional(),
+			})
+			.merge(mountSchema(t)),
+	]);
 
-type AddMount = z.infer<typeof mySchema>;
+type AddMount = z.infer<ReturnType<typeof createSchema>>;
 
 export const AddVolumes = ({
 	serviceId,
@@ -85,8 +94,10 @@ export const AddVolumes = ({
 	refetch,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const { t } = useTranslation("common");
 	const [isOpen, setIsOpen] = useState(false);
 	const { mutateAsync } = api.mounts.create.useMutation();
+	const mySchema = createSchema(t);
 	const form = useForm<AddMount>({
 		defaultValues: {
 			type: serviceType === "compose" ? "file" : "bind",
@@ -111,11 +122,11 @@ export const AddVolumes = ({
 				serviceType,
 			})
 				.then(() => {
-					toast.success("Mount Created");
+					toast.success(t("volumes.toast.mountCreated"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error creating the Bind mount");
+					toast.error(t("volumes.toast.errorCreateBind"));
 				});
 		} else if (data.type === "volume") {
 			await mutateAsync({
@@ -126,11 +137,11 @@ export const AddVolumes = ({
 				serviceType,
 			})
 				.then(() => {
-					toast.success("Mount Created");
+					toast.success(t("volumes.toast.mountCreated"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error creating the Volume mount");
+					toast.error(t("volumes.toast.errorCreateVolume"));
 				});
 		} else if (data.type === "file") {
 			await mutateAsync({
@@ -142,11 +153,11 @@ export const AddVolumes = ({
 				serviceType,
 			})
 				.then(() => {
-					toast.success("Mount Created");
+					toast.success(t("volumes.toast.mountCreated"));
 					setIsOpen(false);
 				})
 				.catch(() => {
-					toast.error("Error creating the File mount");
+					toast.error(t("volumes.toast.errorCreateFile"));
 				});
 		}
 
@@ -160,7 +171,7 @@ export const AddVolumes = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>Volumes / Mounts</DialogTitle>
+					<DialogTitle>{t("volumes.dialog.title")}</DialogTitle>
 				</DialogHeader>
 				{/* {isError && (
         <div className="flex items-center flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
@@ -181,15 +192,11 @@ export const AddVolumes = ({
 							<AlertBlock>
 								<div className="space-y-2">
 									<p>
-										Make sure the host path is a valid path and exists in the
-										host machine.
+										{t("volumes.alert.bindHostPath")}
 									</p>
 									<p className="text-sm text-muted-foreground">
-										<strong>Cluster Warning:</strong> If you're using cluster
-										features, bind mounts may cause deployment failures since
-										the path must exist on all worker/manager nodes. Consider
-										using external tools to distribute the folder across nodes
-										or use named volumes instead.
+										<strong>{t("volumes.alert.clusterWarningTitle")}</strong>
+										{t("volumes.alert.clusterWarningBody")}
 									</p>
 								</div>
 							</AlertBlock>
@@ -201,7 +208,7 @@ export const AddVolumes = ({
 							render={({ field }) => (
 								<FormItem className="space-y-3">
 									<FormLabel className="text-muted-foreground">
-										Select the Mount Type
+										{t("volumes.form.typeLabel")}
 									</FormLabel>
 									<FormControl>
 										<RadioGroup
@@ -222,7 +229,7 @@ export const AddVolumes = ({
 																htmlFor="bind"
 																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
 															>
-																Bind Mount
+																{t("volumes.form.type.bind")}
 															</Label>
 														</div>
 													</FormControl>
@@ -242,7 +249,7 @@ export const AddVolumes = ({
 																htmlFor="volume"
 																className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
 															>
-																Volume Mount
+																{t("volumes.form.type.volume")}
 															</Label>
 														</div>
 													</FormControl>
@@ -266,7 +273,7 @@ export const AddVolumes = ({
 															htmlFor="file"
 															className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
 														>
-															File Mount
+															{t("volumes.form.type.file")}
 														</Label>
 													</div>
 												</FormControl>
@@ -279,7 +286,7 @@ export const AddVolumes = ({
 						/>
 						<div className="flex flex-col gap-4">
 							<FormLabel className="text-lg font-semibold leading-none tracking-tight">
-								Fill the next fields.
+								{t("volumes.form.fieldsTitle")}
 							</FormLabel>
 							<div className="flex flex-col gap-2">
 								{type === "bind" && (
@@ -288,9 +295,12 @@ export const AddVolumes = ({
 										name="hostPath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Host Path</FormLabel>
+												<FormLabel>{t("volumes.form.hostPathLabel")}</FormLabel>
 												<FormControl>
-													<Input placeholder="Host Path" {...field} />
+													<Input
+														placeholder={t("volumes.form.hostPathPlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />
@@ -304,10 +314,10 @@ export const AddVolumes = ({
 										name="volumeName"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Volume Name</FormLabel>
+												<FormLabel>{t("volumes.form.volumeNameLabel")}</FormLabel>
 												<FormControl>
 													<Input
-														placeholder="Volume Name"
+														placeholder={t("volumes.form.volumeNamePlaceholder")}
 														{...field}
 														value={field.value || ""}
 													/>
@@ -325,14 +335,12 @@ export const AddVolumes = ({
 											name="content"
 											render={({ field }) => (
 												<FormItem className="max-w-full max-w-[45rem]">
-													<FormLabel>Content</FormLabel>
+													<FormLabel>{t("volumes.form.contentLabel")}</FormLabel>
 													<FormControl>
 														<FormControl>
 															<CodeEditor
 																language="properties"
-																placeholder={`NODE_ENV=production
-PORT=3000
-`}
+																placeholder={t("volumes.form.contentPlaceholder")}
 																className="h-96 font-mono "
 																{...field}
 															/>
@@ -347,11 +355,11 @@ PORT=3000
 											name="filePath"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>File Path</FormLabel>
+													<FormLabel>{t("volumes.form.filePathLabel")}</FormLabel>
 													<FormControl>
 														<FormControl>
 															<Input
-																placeholder="Name of the file"
+																placeholder={t("volumes.form.filePathPlaceholder")}
 																{...field}
 															/>
 														</FormControl>
@@ -368,9 +376,12 @@ PORT=3000
 										name="mountPath"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Mount Path (In the container)</FormLabel>
+												<FormLabel>{t("volumes.form.mountPathLabel")}</FormLabel>
 												<FormControl>
-													<Input placeholder="Mount Path" {...field} />
+													<Input
+														placeholder={t("volumes.form.mountPathPlaceholder")}
+														{...field}
+													/>
 												</FormControl>
 
 												<FormMessage />
@@ -388,7 +399,7 @@ PORT=3000
 							form="hook-form-volume"
 							type="submit"
 						>
-							Create
+							{t("volumes.form.submit.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

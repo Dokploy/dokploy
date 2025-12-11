@@ -1,4 +1,5 @@
 import { HardDriveDownload, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
 
 export const UpdateWebServer = () => {
+	const { t } = useTranslation("settings");
 	const [updating, setUpdating] = useState(false);
 	const [open, setOpen] = useState(false);
 
@@ -29,7 +31,7 @@ export const UpdateWebServer = () => {
 			}
 
 			toast.success(
-				"The server has been updated. The page will be reloaded to reflect the changes...",
+				 t("settings.server.webServer.update.success"),
 			);
 
 			setTimeout(() => {
@@ -57,7 +59,7 @@ export const UpdateWebServer = () => {
 			setUpdating(false);
 			console.error("Error updating server:", error);
 			toast.error(
-				"An error occurred while updating the server, please try again.",
+				 t("settings.server.webServer.update.error"),
 			);
 		}
 	};
@@ -75,28 +77,25 @@ export const UpdateWebServer = () => {
 						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
 						<span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
 					</span>
-					Update Server
+					{t("settings.server.webServer.update.button")}
 				</Button>
 			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
 						{updating
-							? "Server update in progress"
-							: "Are you absolutely sure?"}
+							? t("settings.server.webServer.update.titleUpdating")
+							: t("settings.server.webServer.update.titleConfirm")}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{updating ? (
 							<span className="flex items-center gap-1">
 								<Loader2 className="animate-spin" />
-								The server is being updated, please wait...
+								{t("settings.server.webServer.update.inProgress")}
 							</span>
 						) : (
 							<>
-								This action cannot be undone. This will update the web server to
-								the new version. You will not be able to use the panel during
-								the update process. The page will be reloaded once the update is
-								finished.
+								{t("settings.server.webServer.update.description")}
 							</>
 						)}
 					</AlertDialogDescription>
@@ -104,10 +103,10 @@ export const UpdateWebServer = () => {
 				{!updating && (
 					<AlertDialogFooter>
 						<AlertDialogCancel onClick={() => setOpen(false)}>
-							Cancel
+							{t("settings.common.cancel")}
 						</AlertDialogCancel>
 						<AlertDialogAction onClick={handleConfirm}>
-							Confirm
+							{t("settings.common.confirm")}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				)}

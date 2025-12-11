@@ -4,8 +4,8 @@ import DockerCleanupEmail from "@dokploy/server/emails/emails/docker-cleanup";
 import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
+import { getDockerCleanupEmailContent } from "../i18n/backend";
 import {
-	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -33,23 +33,26 @@ export const sendDockerCleanupNotifications = async (
 			slack: true,
 			gotify: true,
 			ntfy: true,
-			custom: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
 			notification;
 		try {
 			if (email) {
+				const emailContent = getDockerCleanupEmailContent({
+					message,
+					date: date.toLocaleString(),
+				});
 				const template = await renderAsync(
 					DockerCleanupEmail({ message, date: date.toLocaleString() }),
 				).catch();
 
 				await sendEmailNotification(
 					email,
-					"Docker cleanup for dokploy",
+					emailContent.subject,
 					template,
 				);
 			}
@@ -138,18 +141,6 @@ export const sendDockerCleanupNotifications = async (
 							],
 						},
 					],
-				});
-			}
-
-			if (custom) {
-				await sendCustomNotification(custom, {
-					title: "Docker Cleanup",
-					message: "Docker cleanup completed successfully",
-					cleanupMessage: message,
-					timestamp: date.toISOString(),
-					date: date.toLocaleString(),
-					status: "success",
-					type: "docker-cleanup",
 				});
 			}
 

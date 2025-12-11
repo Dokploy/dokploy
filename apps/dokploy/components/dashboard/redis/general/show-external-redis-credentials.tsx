@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,26 +27,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/utils/api";
 
-const DockerProviderSchema = z.object({
-	externalPort: z.preprocess((a) => {
-		if (a !== null) {
-			const parsed = Number.parseInt(z.string().parse(a), 10);
-			return Number.isNaN(parsed) ? null : parsed;
-		}
-		return null;
-	}, z
-		.number()
-		.gte(0, "Range must be 0 - 65535")
-		.lte(65535, "Range must be 0 - 65535")
-		.nullable()),
-});
+const createDockerProviderSchema = (t: (key: string) => string) =>
+	z.object({
+		externalPort: z.preprocess((a) => {
+			if (a !== null) {
+				const parsed = Number.parseInt(z.string().parse(a), 10);
+				return Number.isNaN(parsed) ? null : parsed;
+			}
+			return null;
+		}, z
+			.number()
+			.gte(0, t("database.externalCredentials.rangeError"))
+			.lte(65535, t("database.externalCredentials.rangeError"))
+			.nullable()),
+	});
 
-type DockerProvider = z.infer<typeof DockerProviderSchema>;
+type DockerProvider = z.infer<ReturnType<typeof createDockerProviderSchema>>;
 
 interface Props {
 	redisId: string;
 }
 export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data: ip } = api.settings.getIp.useQuery();
 	const { data, refetch } = api.redis.one.useQuery({ redisId });
 	const { mutateAsync, isLoading } = api.redis.saveExternalPort.useMutation();
@@ -54,7 +57,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 
 	const form = useForm<DockerProvider>({
 		defaultValues: {},
-		resolver: zodResolver(DockerProviderSchema),
+		resolver: zodResolver(createDockerProviderSchema(t)),
 	});
 
 	useEffect(() => {
@@ -71,11 +74,17 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 			redisId,
 		})
 			.then(async () => {
-				toast.success("External Port updated");
+				toast.success(
+					// database.redis.externalCredentials.toastSuccess
+					t("database.redis.externalCredentials.toastSuccess"),
+				);
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the external port");
+				toast.error(
+					// database.redis.externalCredentials.toastError
+					t("database.redis.externalCredentials.toastError"),
+				);
 			});
 	};
 
@@ -94,26 +103,30 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 			<div className="flex w-full flex-col gap-5 ">
 				<Card className="bg-background">
 					<CardHeader>
-						<CardTitle className="text-xl">External Credentials</CardTitle>
+						<CardTitle className="text-xl">
+							{t("database.redis.externalCredentials.title")}
+						</CardTitle>
 						<CardDescription>
-							In order to make the database reachable through the internet, you
-							must set a port and ensure that the port is not being used by
-							another application or database
+							{t("database.redis.externalCredentials.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">
 						{!getIp && (
 							<AlertBlock type="warning">
-								You need to set an IP address in your{" "}
+								{t("database.redis.externalCredentials.setIpPrefix")} {" "}
 								<Link
 									href="/dashboard/settings/server"
 									className="text-primary"
 								>
 									{data?.serverId
-										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
-										: "Web Server -> Server -> Update Server IP"}
+										? t(
+												"database.redis.externalCredentials.remoteServersLink",
+										  )
+										: t(
+												"database.redis.externalCredentials.webServerLink",
+										  )}
 								</Link>{" "}
-								to fix the database url connection.
+								{t("database.redis.externalCredentials.setIpSuffix")}
 							</AlertBlock>
 						)}
 						<Form {...form}>
@@ -129,10 +142,14 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 											render={({ field }) => {
 												return (
 													<FormItem>
-														<FormLabel>External Port (Internet)</FormLabel>
+														<FormLabel>
+															{t(
+																"database.redis.externalCredentials.externalPortLabel",
+															)}
+														</FormLabel>
 														<FormControl>
 															<Input
-																placeholder="6379"
+																placeholder={t("database.redis.externalCredentials.externalPortPlaceholder")}
 																{...field}
 																value={field.value || ""}
 															/>
@@ -147,7 +164,11 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 								{!!data?.externalPort && (
 									<div className="grid w-full gap-8">
 										<div className="flex flex-col gap-3">
-											<Label>External Host</Label>
+											<Label>
+												{t(
+													"database.redis.externalCredentials.externalHostLabel",
+												)}
+											</Label>
 											<ToggleVisibilityInput value={connectionUrl} disabled />
 										</div>
 									</div>
@@ -155,7 +176,7 @@ export const ShowExternalRedisCredentials = ({ redisId }: Props) => {
 
 								<div className="flex justify-end">
 									<Button type="submit" isLoading={isLoading}>
-										Save
+										{t("button.save")}
 									</Button>
 								</div>
 							</form>

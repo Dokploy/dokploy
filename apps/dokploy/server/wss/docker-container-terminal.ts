@@ -58,12 +58,7 @@ export const setupDockerContainerTerminalWebSocketServer = (
 							`docker exec -it -w / ${containerId} ${activeWay}`,
 							{ pty: true },
 							(err, stream) => {
-								if (err) {
-									console.error("SSH exec error:", err);
-									ws.close();
-									conn.end();
-									return;
-								}
+								if (err) throw err;
 
 								stream
 									.on("close", (code: number, _signal: string) => {
@@ -98,19 +93,9 @@ export const setupDockerContainerTerminalWebSocketServer = (
 
 								ws.on("close", () => {
 									stream.end();
-									// Ensure SSH connection is closed when WebSocket closes
-									conn.end();
 								});
 							},
 						);
-					})
-					.on("error", (err) => {
-						console.error("SSH connection error:", err);
-						if (ws.readyState === ws.OPEN) {
-							ws.send(`SSH error: ${err.message}`);
-							ws.close();
-						}
-						conn.end();
 					})
 					.connect({
 						host: server.ipAddress,

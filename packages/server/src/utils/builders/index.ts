@@ -1,6 +1,6 @@
 import type { InferResultType } from "@dokploy/server/types/with";
 import type { CreateServiceOptions } from "dockerode";
-import { getRegistryTag, uploadImageRemoteCommand } from "../cluster/upload";
+import { uploadImageRemoteCommand } from "../cluster/upload";
 import {
 	calculateResources,
 	generateBindMounts,
@@ -30,45 +30,39 @@ export type ApplicationNested = InferResultType<
 		ports: true;
 		registry: true;
 		buildRegistry: true;
-		rollbackRegistry: true;
-		deployments: true;
 		environment: { with: { project: true } };
 	}
 >;
 
-export const getBuildCommand = async (application: ApplicationNested) => {
+export const getBuildCommand = (application: ApplicationNested) => {
 	let command = "";
+	const { buildType } = application;
 
-	if (application.sourceType !== "docker") {
-		const { buildType } = application;
-		switch (buildType) {
-			case "nixpacks":
-				command = getNixpacksCommand(application);
-				break;
-			case "heroku_buildpacks":
-				command = getHerokuCommand(application);
-				break;
-			case "paketo_buildpacks":
-				command = getPaketoCommand(application);
-				break;
-			case "static":
-				command = getStaticCommand(application);
-				break;
-			case "dockerfile":
-				command = getDockerCommand(application);
-				break;
-			case "railpack":
-				command = getRailpackCommand(application);
-				break;
-		}
+	if (application.sourceType === "docker") {
+		return "";
 	}
-
-	if (
-		application.registry ||
-		application.buildRegistry ||
-		application.rollbackRegistry
-	) {
-		command += await uploadImageRemoteCommand(application);
+	switch (buildType) {
+		case "nixpacks":
+			command = getNixpacksCommand(application);
+			break;
+		case "heroku_buildpacks":
+			command = getHerokuCommand(application);
+			break;
+		case "paketo_buildpacks":
+			command = getPaketoCommand(application);
+			break;
+		case "static":
+			command = getStaticCommand(application);
+			break;
+		case "dockerfile":
+			command = getDockerCommand(application);
+			break;
+		case "railpack":
+			command = getRailpackCommand(application);
+			break;
+	}
+	if (application.registry || application.buildRegistry) {
+		command += uploadImageRemoteCommand(application);
 	}
 
 	return command;
@@ -194,11 +188,17 @@ const getImageName = (application: ApplicationNested) => {
 	}
 
 	if (registry) {
-		const registryTag = getRegistryTag(registry, imageName);
+		const { registryUrl, imagePrefix, username } = registry;
+		const registryTag = imagePrefix
+			? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
+			: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
 		return registryTag;
 	}
 	if (buildRegistry) {
-		const registryTag = getRegistryTag(buildRegistry, imageName);
+		const { registryUrl, imagePrefix, username } = buildRegistry;
+		const registryTag = imagePrefix
+			? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
+			: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
 		return registryTag;
 	}
 

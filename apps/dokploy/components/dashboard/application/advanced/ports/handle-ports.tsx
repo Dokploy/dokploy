@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -33,18 +34,27 @@ import {
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
 
-const AddPortSchema = z.object({
-	publishedPort: z.number().int().min(1).max(65535),
-	publishMode: z.enum(["ingress", "host"], {
-		required_error: "Publish mode is required",
-	}),
-	targetPort: z.number().int().min(1).max(65535),
-	protocol: z.enum(["tcp", "udp"], {
-		required_error: "Protocol is required",
-	}),
-});
+const createSchema = (t: (key: string) => string) =>
+	z.object({
+		publishedPort: z
+			.number()
+			.int()
+			.min(1, t("ports.validation.portRange"))
+			.max(65535, t("ports.validation.portRange")),
+		publishMode: z.enum(["ingress", "host"], {
+			required_error: t("ports.validation.publishModeRequired"),
+		}),
+		targetPort: z
+			.number()
+			.int()
+			.min(1, t("ports.validation.portRange"))
+			.max(65535, t("ports.validation.portRange")),
+		protocol: z.enum(["tcp", "udp"], {
+			required_error: t("ports.validation.protocolRequired"),
+		}),
+	});
 
-type AddPort = z.infer<typeof AddPortSchema>;
+type AddPort = z.infer<ReturnType<typeof createSchema>>;
 
 interface Props {
 	applicationId: string;
@@ -57,6 +67,7 @@ export const HandlePorts = ({
 	portId,
 	children = <PlusIcon className="h-4 w-4" />,
 }: Props) => {
+	const { t } = useTranslation("common");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 
@@ -71,6 +82,8 @@ export const HandlePorts = ({
 	const { mutateAsync, isLoading, error, isError } = portId
 		? api.port.update.useMutation()
 		: api.port.create.useMutation();
+
+	const AddPortSchema = createSchema(t);
 
 	const form = useForm<AddPort>({
 		defaultValues: {
@@ -101,7 +114,11 @@ export const HandlePorts = ({
 			portId: portId || "",
 		})
 			.then(async () => {
-				toast.success(portId ? "Port Updated" : "Port Created");
+				toast.success(
+					portId
+						? t("ports.toast.updateSuccess")
+						: t("ports.toast.createSuccess"),
+				);
 				await utils.application.one.invalidate({
 					applicationId,
 				});
@@ -109,7 +126,9 @@ export const HandlePorts = ({
 			})
 			.catch(() => {
 				toast.error(
-					portId ? "Error updating the port" : "Error creating the port",
+					portId
+						? t("ports.toast.updateError")
+						: t("ports.toast.createError"),
 				);
 			});
 	};
@@ -131,9 +150,9 @@ export const HandlePorts = ({
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Ports</DialogTitle>
+					<DialogTitle>{t("ports.dialog.title")}</DialogTitle>
 					<DialogDescription>
-						Ports are used to expose your application to the internet.
+						{t("ports.dialog.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -150,10 +169,10 @@ export const HandlePorts = ({
 								name="publishedPort"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Published Port</FormLabel>
+										<FormLabel>{t("ports.form.publishedPortLabel")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="1-65535"
+												placeholder={t("ports.form.portPlaceholder")}
 												{...field}
 												value={field.value?.toString() || ""}
 												onChange={(e) => {
@@ -180,19 +199,25 @@ export const HandlePorts = ({
 								render={({ field }) => {
 									return (
 										<FormItem className="md:col-span-2">
-											<FormLabel>Published Port Mode</FormLabel>
+											<FormLabel>
+												{t("ports.form.publishModeLabel")}
+											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a publish mode for the port" />
+														<SelectValue placeholder={t("ports.form.publishModePlaceholder")} />
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value={"ingress"}>Ingress</SelectItem>
-													<SelectItem value={"host"}>Host</SelectItem>
+													<SelectItem value={"ingress"}>
+														{t("ports.form.publishMode.ingress")}
+													</SelectItem>
+													<SelectItem value={"host"}>
+														{t("ports.form.publishMode.host")}
+													</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormMessage />
@@ -205,10 +230,10 @@ export const HandlePorts = ({
 								name="targetPort"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Target Port</FormLabel>
+										<FormLabel>{t("ports.form.targetPortLabel")}</FormLabel>
 										<FormControl>
 											<Input
-												placeholder="1-65535"
+												placeholder={t("ports.form.portPlaceholder")}
 												{...field}
 												value={field.value?.toString() || ""}
 												onChange={(e) => {
@@ -235,14 +260,18 @@ export const HandlePorts = ({
 								render={({ field }) => {
 									return (
 										<FormItem className="md:col-span-2">
-											<FormLabel>Protocol</FormLabel>
+											<FormLabel>{t("ports.form.protocolLabel")}</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												value={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a protocol" />
+														<SelectValue
+															placeholder={t(
+																"ports.form.protocolPlaceholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -260,11 +289,8 @@ export const HandlePorts = ({
 
 					{publishMode === "host" && (
 						<AlertBlock type="warning" className="mt-4">
-							<strong>Host Mode Limitation:</strong> When using Host publish
-							mode, Docker Swarm has limitations that prevent proper container
-							updates during deployments. Old containers may not be replaced
-							automatically. Consider using Ingress mode instead, or be prepared
-							to manually stop/start the application after deployments.
+							<strong>{t("ports.alert.hostModeTitle")}</strong>
+							{t("ports.alert.hostModeBody")}
 						</AlertBlock>
 					)}
 
@@ -274,7 +300,9 @@ export const HandlePorts = ({
 							form="hook-form-add-port"
 							type="submit"
 						>
-							{portId ? "Update" : "Create"}
+							{portId
+								? t("ports.form.submit.update")
+								: t("ports.form.submit.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

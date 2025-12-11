@@ -27,38 +27,92 @@
 </div>
 
 
-Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases.
+Dokploy 是一款免费、可自托管的 PaaS（平台即服务），用于简化应用和数据库的部署与管理。本仓库基于官方 Dokploy，增加了多语言界面（i18n）支持。
+
+## 🌐 选择语言 / Choose Language / 言語を選択 / 선택 언어
+
+多语言 README 已收纳至 `docs/readmes/`，请选择您的语言：
+
+This project provides multi-language README documents. Please select your language from `docs/readmes/`:
+
+このプロジェクトは多言語 README ドキュメントを提供します。`docs/readmes/` から言語を選択してください：
+
+- [简体中文 (Simplified Chinese)](docs/readmes/README-zh-Hans.md)
+- [繁體中文 (Traditional Chinese)](docs/readmes/README-zh-Hant.md)
+- [English](docs/readmes/README-en.md)
+- [Español (Spanish)](docs/readmes/README-es.md)
+- [Deutsch (German)](docs/readmes/README-de.md)
+- [Français (French)](docs/readmes/README-fr.md)
+- [Italiano (Italian)](docs/readmes/README-it.md)
+- [日本語 (Japanese)](docs/readmes/README-ja.md)
+- [한국어 (Korean)](docs/readmes/README-ko.md)
+- [Русский (Russian)](docs/readmes/README-ru.md)
+- [Türkçe (Turkish)](docs/readmes/README-tr.md)
+- [Português (Brasil)](docs/readmes/README-pt-br.md)
+- [Nederlands (Dutch)](docs/readmes/README-nl.md)
+- [Norsk (Norwegian)](docs/readmes/README-no.md)
+- [Polski (Polish)](docs/readmes/README-pl.md)
+- [Українська (Ukrainian)](docs/readmes/README-uk.md)
+- [فارسی (Persian/Farsi)](docs/readmes/README-fa.md)
+- [Bahasa Indonesia](docs/readmes/README-id.md)
+- [Қазақша (Kazakh)](docs/readmes/README-kz.md)
+- [Azərbaycanca (Azerbaijani)](docs/readmes/README-az.md)
+- [മലയാളം (Malayalam)](docs/readmes/README-ml.md)
+
+---
+
+以下是简体中文版本的快速预览：
 
 
-## ✨ Features
 
-Dokploy includes multiple features to make your life easier.
+## ✨ 功能特性
 
-- **Applications**: Deploy any type of application (Node.js, PHP, Python, Go, Ruby, etc.).
-- **Databases**: Create and manage databases with support for MySQL, PostgreSQL, MongoDB, MariaDB, and Redis.
-- **Backups**: Automate backups for databases to an external storage destination.
-- **Docker Compose**: Native support for Docker Compose to manage complex applications.
-- **Multi Node**: Scale applications to multiple nodes using Docker Swarm to manage the cluster.
-- **Templates**: Deploy open-source templates (Plausible, Pocketbase, Calcom, etc.) with a single click.
-- **Traefik Integration**: Automatically integrates with Traefik for routing and load balancing.
-- **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage for every resource.
-- **Docker Management**: Easily deploy and manage Docker containers.
-- **CLI/API**: Manage your applications and databases using the command line or through the API.
-- **Notifications**: Get notified when your deployments succeed or fail (via Slack, Discord, Telegram, Email, etc.).
-- **Multi Server**: Deploy and manage your applications remotely to external servers.
-- **Self-Hosted**: Self-host Dokploy on your VPS.
+Dokploy 提供了一系列能力，帮助你在自己的服务器上更轻松地管理应用和数据库：
 
-## 🚀 Getting Started
+- **应用部署**：支持 Node.js、PHP、Python、Go、Ruby 等多种语言和运行时。
+- **数据库管理**：内置 MySQL、PostgreSQL、MongoDB、MariaDB、Redis 等数据库的创建与管理。
+- **备份**：为数据库配置自动备份到外部存储。
+- **Docker Compose**：原生支持 Docker Compose，适合复杂多服务应用。
+- **多节点集群**：基于 Docker Swarm 管理集群，实现多节点扩缩容。
+- **模板市场**：一键部署开源应用（Plausible、Pocketbase、Cal.com 等）。
+- **Traefik 集成**：自动路由与负载均衡，对接 Traefik。
+- **实时监控**：监控 CPU、内存、磁盘、网络等资源使用情况。
+- **Docker 管理**：方便地部署和管理容器。
+- **CLI / API**：通过命令行或 API 管理资源。
+- **多服务器管理**：统一管理远程服务器上的部署。
+- **自托管**：在你的 VPS / 物理机上完全自托管运行。
 
-To get started, run the following command on a VPS:
+## 🚀 快速开始 / Quick Start
 
-Want to skip the installation process? [Try the Dokploy Cloud](https://app.dokploy.com).
+在一台全新的 Linux 服务器上运行以下命令即可安装 Dokploy：
+
+Run the following command on a fresh Linux server to install Dokploy:
 
 ```bash
-curl -sSL https://dokploy.com/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/Frankieli123/dokploy-i18n/main/install.sh | bash
 ```
 
-For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
+上面的脚本会自动拉取镜像：
+
+- 面板主服务：`a3180623/dokploy-i18n:<版本号>`
+
+如需使用官方 Dokploy Cloud，请访问：[Dokploy Cloud](https://app.dokploy.com)。  
+更多使用文档可参考官方文档：[docs.dokploy.com](https://docs.dokploy.com)。
+
+## 🌐 语言支持 / Language Support
+
+当前版本内置多语言界面（i18n），支持以下语言：
+
+The current version comes with a built-in multi-language interface (i18n) and supports the following languages:
+
+- 简体中文（zh-Hans）| 繁體中文（zh-Hant）| English（en）| Deutsch（de）| Español（es）
+- Français（fr）| Italiano（it）| 日本語（ja）| 한국어（ko）| Русский（ru）
+- Türkçe（tr）| Nederlands（nl）| Norsk（no）| Português (Brasil)（pt-br）| فارسی‎ (Farsi)（fa）
+- Bahasa Indonesia（id）| Українська（uk）| Қазақша（kz）| Azərbaycanca（az）| മലയാളം（ml）| Polski（pl）
+
+你可以从 Dokploy 仪表板的左下角切换语言。
+
+You can switch the language from the bottom-left corner of the Dokploy dashboard.
 
 ## ♥️ Sponsors
 

@@ -103,10 +103,10 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 
 export const deleteEnvironment = async (environmentId: string) => {
 	const currentEnvironment = await findEnvironmentById(environmentId);
-	if (currentEnvironment.isDefault) {
+	if (currentEnvironment.name === "production") {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "You cannot delete the default environment",
+			message: "You cannot delete the production environment",
 		});
 	}
 	const deletedEnvironment = await db
@@ -162,23 +162,9 @@ export const duplicateEnvironment = async (
 };
 
 export const createProductionEnvironment = async (projectId: string) => {
-	const newEnvironment = await db
-		.insert(environments)
-		.values({
-			name: "production",
-			description: "Production environment",
-			projectId,
-			isDefault: true,
-		})
-		.returning()
-		.then((value) => value[0]);
-
-	if (!newEnvironment) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Error creating the production environment",
-		});
-	}
-
-	return newEnvironment;
+	return createEnvironment({
+		name: "production",
+		description: null,
+		projectId,
+	});
 };

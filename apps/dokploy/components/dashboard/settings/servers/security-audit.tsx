@@ -1,4 +1,5 @@
 import { Loader2, LockKeyhole, RefreshCw } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useState } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface Props {
 
 export const SecurityAudit = ({ serverId }: Props) => {
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const { t } = useTranslation("settings");
 	const { data, refetch, error, isLoading, isError } =
 		api.server.security.useQuery(
 			{ serverId },
@@ -36,11 +38,11 @@ export const SecurityAudit = ({ serverId }: Props) => {
 								<div className="flex items-center gap-2">
 									<LockKeyhole className="size-5" />
 									<CardTitle className="text-xl">
-										Setup Security Suggestions
+										{t("settings.servers.security.card.title")}
 									</CardTitle>
 								</div>
 								<CardDescription>
-									Check the security suggestions
+									{t("settings.servers.security.card.description")}
 								</CardDescription>
 							</div>
 							<Button
@@ -52,7 +54,7 @@ export const SecurityAudit = ({ serverId }: Props) => {
 								}}
 							>
 								<RefreshCw className="size-4" />
-								Refresh
+								{t("settings.servers.onboarding.verify.refreshButton")}
 							</Button>
 						</div>
 						<div className="flex items-center gap-2 w-full">
@@ -66,152 +68,198 @@ export const SecurityAudit = ({ serverId }: Props) => {
 
 					<CardContent className="flex flex-col gap-4">
 						<AlertBlock type="info" className="w-full">
-							Ubuntu/Debian OS support is currently supported (Experimental)
+							{t("settings.servers.security.alert.experimental")}
 						</AlertBlock>
 						{isLoading ? (
 							<div className="flex items-center justify-center text-muted-foreground py-4">
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								<span>Checking Server configuration</span>
+								<span>
+									{t("settings.servers.onboarding.verify.loading")}
+								</span>
 							</div>
 						) : (
 							<div className="grid w-full gap-4">
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">UFW</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.servers.security.ufw.title")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										UFW (Uncomplicated Firewall) is a simple firewall that can
-										be used to block incoming and outgoing traffic from your
-										server.
+										{t("settings.servers.security.ufw.description")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="UFW Installed"
+											label={t(
+												"settings.servers.security.ufw.installed.label",
+											)}
 											isEnabled={data?.ufw?.installed}
 											description={
 												data?.ufw?.installed
-													? "Installed (Recommended)"
-													: "Not Installed (UFW should be installed for security)"
+													? t(
+														"settings.servers.security.ufw.installed.installed",
+													)
+													: t(
+														"settings.servers.security.ufw.installed.notInstalled",
+													)
 											}
 										/>
 										<StatusRow
-											label="Status"
+											label={t("settings.servers.security.ufw.status.label")}
 											isEnabled={data?.ufw?.active}
 											description={
 												data?.ufw?.active
-													? "Active (Recommended)"
-													: "Not Active (UFW should be enabled for security)"
+													? t("settings.servers.security.ufw.status.active")
+													: t("settings.servers.security.ufw.status.inactive")
 											}
 										/>
 										<StatusRow
-											label="Default Incoming"
+											label={t(
+												"settings.servers.security.ufw.defaultIncoming.label",
+											)}
 											isEnabled={data?.ufw?.defaultIncoming === "deny"}
 											description={
 												data?.ufw?.defaultIncoming === "deny"
-													? "Default: Deny (Recommended)"
-													: `Default: ${data?.ufw?.defaultIncoming} (Should be set to 'deny' for security)`
+													? t("settings.servers.security.ufw.defaultIncoming.deny")
+													: t(
+														"settings.servers.security.ufw.defaultIncoming.other",
+														{
+															policy: data?.ufw?.defaultIncoming,
+														},
+													)
 											}
 										/>
 									</div>
 								</div>
 
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">SSH</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.servers.security.ssh.title")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										SSH (Secure Shell) is a protocol that allows you to securely
-										connect to a server and execute commands on it.
+										{t("settings.servers.security.ssh.description")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="Enabled"
+											label={t("settings.servers.security.ssh.enabled.label")}
 											isEnabled={data?.ssh?.enabled}
 											description={
 												data?.ssh?.enabled
-													? "Enabled"
-													: "Not Enabled (SSH should be enabled)"
+													? t("settings.servers.security.ssh.enabled.enabled")
+													: t("settings.servers.security.ssh.enabled.disabled")
 											}
 										/>
 										<StatusRow
-											label="Key Auth"
+											label={t("settings.servers.security.ssh.keyAuth.label")}
 											isEnabled={data?.ssh?.keyAuth}
 											description={
 												data?.ssh?.keyAuth
-													? "Enabled (Recommended)"
-													: "Not Enabled (Key Authentication should be enabled)"
+													? t("settings.servers.security.ssh.keyAuth.enabled")
+													: t("settings.servers.security.ssh.keyAuth.disabled")
 											}
 										/>
 										<StatusRow
-											label="Password Auth"
+											label={t("settings.servers.security.ssh.passwordAuth.label")}
 											isEnabled={data?.ssh?.passwordAuth === "no"}
 											description={
 												data?.ssh?.passwordAuth === "no"
-													? "Disabled (Recommended)"
-													: "Enabled (Password Authentication should be disabled)"
+													? t(
+														"settings.servers.security.ssh.passwordAuth.disabled",
+													)
+													: t(
+														"settings.servers.security.ssh.passwordAuth.enabled",
+													)
 											}
 										/>
 										<StatusRow
-											label="Use PAM"
+											label={t("settings.servers.security.ssh.usePam.label")}
 											isEnabled={data?.ssh?.usePam === "no"}
 											description={
 												data?.ssh?.usePam === "no"
-													? "Disabled (Recommended for key-based auth)"
-													: "Enabled (Should be disabled when using key-based auth)"
+													? t(
+														"settings.servers.security.ssh.usePam.disabled",
+													)
+													: t(
+														"settings.servers.security.ssh.usePam.enabled",
+													)
 											}
 										/>
 									</div>
 								</div>
 
 								<div className="border rounded-lg p-4">
-									<h3 className="text-lg font-semibold mb-1">Fail2Ban</h3>
+									<h3 className="text-lg font-semibold mb-1">
+										{t("settings.servers.security.fail2ban.title")}
+									</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										Fail2Ban (Fail2Ban) is a service that can be used to prevent
-										brute force attacks on your server.
+										{t("settings.servers.security.fail2ban.description")}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
-											label="Installed"
+											label={t(
+												"settings.servers.security.fail2ban.installed.label",
+											)}
 											isEnabled={data?.fail2ban?.installed}
 											description={
 												data?.fail2ban?.installed
-													? "Installed (Recommended)"
-													: "Not Installed (Fail2Ban should be installed for protection against brute force attacks)"
+													? t(
+														"settings.servers.security.fail2ban.installed.installed",
+													)
+													: t(
+														"settings.servers.security.fail2ban.installed.notInstalled",
+													)
 											}
 										/>
 
 										<StatusRow
-											label="Enabled"
+											label={t("settings.servers.security.fail2ban.enabled.label")}
 											isEnabled={data?.fail2ban?.enabled}
 											description={
 												data?.fail2ban?.enabled
-													? "Enabled (Recommended)"
-													: "Not Enabled (Fail2Ban service should be enabled)"
+													? t("settings.servers.security.fail2ban.enabled.enabled")
+													: t(
+														"settings.servers.security.fail2ban.enabled.disabled",
+													)
 											}
 										/>
 										<StatusRow
-											label="Active"
+											label={t("settings.servers.security.fail2ban.active.label")}
 											isEnabled={data?.fail2ban?.active}
 											description={
 												data?.fail2ban?.active
-													? "Active (Recommended)"
-													: "Not Active (Fail2Ban service should be running)"
+													? t("settings.servers.security.fail2ban.active.active")
+													: t(
+														"settings.servers.security.fail2ban.active.inactive",
+													)
 											}
 										/>
 
 										<StatusRow
-											label="SSH Protection"
+											label={t(
+												"settings.servers.security.fail2ban.sshProtection.label",
+											)}
 											isEnabled={data?.fail2ban?.sshEnabled === "true"}
 											description={
 												data?.fail2ban?.sshEnabled === "true"
-													? "Enabled (Recommended)"
-													: "Not Enabled (SSH protection should be enabled to prevent brute force attacks)"
+													? t(
+														"settings.servers.security.fail2ban.sshProtection.enabled",
+													)
+													: t(
+														"settings.servers.security.fail2ban.sshProtection.disabled",
+													)
 											}
 										/>
 
 										<StatusRow
-											label="SSH Mode"
+											label={t("settings.servers.security.fail2ban.sshMode.label")}
 											isEnabled={data?.fail2ban?.sshMode === "aggressive"}
 											description={
 												data?.fail2ban?.sshMode === "aggressive"
-													? "Aggressive Mode (Recommended)"
-													: `Mode: ${data?.fail2ban?.sshMode || "Not Set"} (Aggressive mode recommended for better protection)`
+													? t("settings.servers.security.fail2ban.sshMode.aggressive")
+													: t(
+														"settings.servers.security.fail2ban.sshMode.other",
+														{
+															mode: data?.fail2ban?.sshMode || "Not Set",
+														},
+													)
 											}
 										/>
 									</div>

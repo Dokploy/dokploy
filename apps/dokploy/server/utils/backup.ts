@@ -19,7 +19,6 @@ type QueueJob =
 			type: "schedule";
 			cronSchedule: string;
 			scheduleId: string;
-			timezone?: string | null;
 	  }
 	| {
 			type: "volume-backup";

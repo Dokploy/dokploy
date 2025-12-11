@@ -1,4 +1,5 @@
 import { CodeEditor } from "@/components/shared/code-editor";
+import { useTranslation } from "next-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export const ShowNodeData = ({ data }: Props) => {
+	const { t } = useTranslation("settings");
 	return (
 		<Dialog>
 			<DialogTrigger asChild>
@@ -21,14 +23,16 @@ export const ShowNodeData = ({ data }: Props) => {
 					className="w-full cursor-pointer"
 					onSelect={(e) => e.preventDefault()}
 				>
-					View Config
+					{t("settings.cluster.nodes.config.menu")}
 				</DropdownMenuItem>
 			</DialogTrigger>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Node Config</DialogTitle>
+					<DialogTitle>
+						{t("settings.cluster.nodes.config.title")}
+					</DialogTitle>
 					<DialogDescription>
-						See in detail the metadata of this node
+						{t("settings.cluster.nodes.config.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="text-wrap rounded-lg border p-4 text-sm sm:max-w-[59rem] bg-card">

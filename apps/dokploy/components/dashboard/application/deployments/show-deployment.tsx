@@ -1,5 +1,6 @@
 import copy from "copy-to-clipboard";
 import { Check, Copy, Loader2 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ export const ShowDeployment = ({
 	const [autoScroll, setAutoScroll] = useState(true);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [copied, setCopied] = useState(false);
+	const { t } = useTranslation("common");
 
 	const scrollToBottom = () => {
 		if (autoScroll && scrollRef.current) {
@@ -143,12 +145,12 @@ export const ShowDeployment = ({
 		>
 			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
-					<DialogTitle>Deployment</DialogTitle>
+					<DialogTitle>{t("deployments.details.dialog.title")}</DialogTitle>
 					<DialogDescription className="flex items-center gap-2">
 						<span className="flex items-center gap-2">
-							See all the details of this deployment |{" "}
+							{t("deployments.details.dialog.description")} |{" "}
 							<Badge variant="blank" className="text-xs">
-								{filteredLogs.length} lines
+								{t("logs.lines.custom", { count: filteredLogs.length })}
 							</Badge>
 						</span>
 
@@ -179,7 +181,7 @@ export const ShowDeployment = ({
 									htmlFor="show-extra-logs"
 									className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
 								>
-									Show Extra Logs
+									{t("deployments.details.toggleExtraLogs")}
 								</label>
 							</div>
 						)}

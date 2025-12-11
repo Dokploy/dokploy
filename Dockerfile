@@ -11,6 +11,10 @@ WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get install -y python3 make g++ git python3-pip pkg-config libsecret-1-dev && rm -rf /var/lib/apt/lists/*
 
+# Avoid corrupted node-gyp header cache breaking native builds (e.g. node-pty)
+RUN rm -rf /root/.cache/node-gyp
+ENV npm_config_python=/usr/bin/python3
+
 # Install dependencies
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 

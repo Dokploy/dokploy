@@ -4,8 +4,8 @@ import DokployRestartEmail from "@dokploy/server/emails/emails/dokploy-restart";
 import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
+import { getDokployRestartEmailContent } from "../i18n/backend";
 import {
-	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
@@ -27,24 +27,26 @@ export const sendDokployRestartNotifications = async () => {
 			slack: true,
 			gotify: true,
 			ntfy: true,
-			custom: true,
 			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
+		const { email, discord, telegram, slack, gotify, ntfy, lark } =
 			notification;
 
 		try {
 			if (email) {
+				const emailContent = getDokployRestartEmailContent({
+					date: date.toLocaleString(),
+				});
 				const template = await renderAsync(
 					DokployRestartEmail({ date: date.toLocaleString() }),
 				).catch();
 
 				await sendEmailNotification(
 					email,
-					"Dokploy Server Restarted",
+					emailContent.subject,
 					template,
 				);
 			}
@@ -103,10 +105,7 @@ export const sendDokployRestartNotifications = async () => {
 			if (telegram) {
 				await sendTelegramNotification(
 					telegram,
-					`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(
-						date,
-						"PP",
-					)}\n<b>Time:</b> ${format(date, "pp")}`,
+					`<b>✅ Dokploy Server Restarted</b>\n\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}`,
 				);
 			}
 
@@ -128,21 +127,6 @@ export const sendDokployRestartNotifications = async () => {
 						},
 					],
 				});
-			}
-
-			if (custom) {
-				try {
-					await sendCustomNotification(custom, {
-						title: "Dokploy Server Restarted",
-						message: "Dokploy server has been restarted successfully",
-						timestamp: date.toISOString(),
-						date: date.toLocaleString(),
-						status: "success",
-						type: "dokploy-restart",
-					});
-				} catch (error) {
-					console.log(error);
-				}
 			}
 
 			if (lark) {
@@ -201,10 +185,7 @@ export const sendDokployRestartNotifications = async () => {
 											elements: [
 												{
 													tag: "markdown",
-													content: `**Restart Time:**\n${format(
-														date,
-														"PP pp",
-													)}`,
+													content: `**Restart Time:**\n${format(date, "PP pp")}`,
 													text_align: "left",
 													text_size: "normal_v2",
 												},

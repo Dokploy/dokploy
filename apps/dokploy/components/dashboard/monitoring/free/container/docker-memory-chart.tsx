@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useTranslation } from "next-i18next";
 import {
 	Area,
 	AreaChart,
@@ -20,10 +21,11 @@ export const DockerMemoryChart = ({
 	acummulativeData,
 	memoryLimitGB,
 }: Props) => {
+	const { t } = useTranslation("common");
 	const transformedData = acummulativeData.map((item, index) => {
 		return {
 			time: item.time,
-			name: `Point ${index + 1}`,
+			name: t("monitoring.chart.point", { index: index + 1 }),
 			// @ts-ignore
 			usage: (convertMemoryToBytes(item.value.used) / 1024 ** 3).toFixed(2),
 		};
@@ -54,6 +56,7 @@ export const DockerMemoryChart = ({
 					<Area
 						type="monotone"
 						dataKey="usage"
+						name={t("monitoring.legend.memory")}
 						stroke="#27272A"
 						fillOpacity={1}
 						fill="url(#colorUv)"
@@ -77,14 +80,22 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const { t } = useTranslation("common");
 	if (active && payload && payload.length && payload[0] && payload[0].payload) {
+		const usageWithUnit = `${payload[0].payload.usage} GB`;
 		return (
 			<div className="custom-tooltip bg-background p-2 shadow-lg rounded-md text-primary border">
 				{payload[0].payload.time && (
-					<p>{`Date: ${format(new Date(payload[0].payload.time), "PPpp")}`}</p>
+					<p>
+						{t("monitoring.chart.date", {
+							date: format(new Date(payload[0].payload.time), "PPpp"),
+						})}
+					</p>
 				)}
 
-				<p>{`Memory usage: ${payload[0].payload.usage} GB`}</p>
+				<p>
+					{t("monitoring.chart.memoryUsage", { usage: usageWithUnit })}
+				</p>
 			</div>
 		);
 	}

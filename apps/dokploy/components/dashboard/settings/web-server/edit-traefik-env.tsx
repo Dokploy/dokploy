@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ interface Props {
 
 export const EditTraefikEnv = ({ children, serverId }: Props) => {
 	const [canEdit, setCanEdit] = useState(true);
+	const { t } = useTranslation("common");
 
 	const { data } = api.settings.readTraefikEnv.useQuery({
 		serverId,
@@ -68,10 +70,10 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 			serverId,
 		})
 			.then(async () => {
-				toast.success("Traefik Env Updated");
+				toast.success(t("settings.server.webServer.traefik.env.update.success"));
 			})
 			.catch(() => {
-				toast.error("Error updating the Traefik env");
+				toast.error(t("settings.server.webServer.traefik.env.update.error"));
 			});
 	};
 
@@ -95,9 +97,11 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Update Traefik Environment</DialogTitle>
+					<DialogTitle>
+						{t("settings.server.webServer.traefik.env.title")}
+					</DialogTitle>
 					<DialogDescription>
-						Update the traefik environment variables
+						{t("settings.server.webServer.traefik.env.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -114,7 +118,9 @@ export const EditTraefikEnv = ({ children, serverId }: Props) => {
 								name="env"
 								render={({ field }) => (
 									<FormItem className="relative">
-										<FormLabel>Env</FormLabel>
+										<FormLabel>
+											{t("settings.server.webServer.traefik.env.label")}
+										</FormLabel>
 										<FormControl>
 											<CodeEditor
 												language="properties"
@@ -159,7 +165,7 @@ TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_HTTP_CHALLENGE_DNS_PROVIDER=cloudflare
 							form="hook-form-update-server-traefik-config"
 							type="submit"
 						>
-							Update
+							{t("button.update")}
 						</Button>
 					</DialogFooter>
 				</Form>

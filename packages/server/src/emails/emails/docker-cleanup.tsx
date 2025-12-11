@@ -10,6 +10,7 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import { getDockerCleanupEmailContent } from "../../utils/i18n/backend";
 
 export type TemplateProps = {
 	message: string;
@@ -20,10 +21,13 @@ export const DockerCleanupEmail = ({
 	message = "Docker cleanup for dokploy",
 	date = "2023-05-01T00:00:00.000Z",
 }: TemplateProps) => {
-	const previewText = "Docker cleanup for dokploy";
+	const content = getDockerCleanupEmailContent({
+		message,
+		date,
+	});
 	return (
 		<Html>
-			<Preview>{previewText}</Preview>
+			<Preview>{content.previewText}</Preview>
 			<Tailwind
 				config={{
 					theme: {
@@ -42,7 +46,7 @@ export const DockerCleanupEmail = ({
 						<Section className="mt-[32px]">
 							<Img
 								src={
-									"https://raw.githubusercontent.com/Dokploy/dokploy/refs/heads/canary/apps/dokploy/logo.png"
+									"https://raw.githubusercontent.com/Frankieli123/dokploy-i18n/refs/heads/main/apps/dokploy/logo.png"
 								}
 								width="100"
 								height="50"
@@ -51,22 +55,24 @@ export const DockerCleanupEmail = ({
 							/>
 						</Section>
 						<Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
-							Docker cleanup for <strong>dokploy</strong>
+							{content.headingText}
 						</Heading>
 						<Text className="text-black text-[14px] leading-[24px]">
-							Hello,
+							{content.greeting}
 						</Text>
 						<Text className="text-black text-[14px] leading-[24px]">
-							The docker cleanup for <strong>dokploy</strong> was successful ✅
+							{content.bodyText}
 						</Text>
 
 						<Section className="flex text-black text-[14px]  leading-[24px] bg-[#F4F4F5] rounded-lg p-2">
-							<Text className="!leading-3 font-bold">Details: </Text>
-							<Text className="!leading-3">
-								Message: <strong>{message}</strong>
+							<Text className="!leading-3 font-bold">
+								{content.detailsLabel}
 							</Text>
 							<Text className="!leading-3">
-								Date: <strong>{date}</strong>
+								{content.messageLabel} <strong>{message}</strong>
+							</Text>
+							<Text className="!leading-3">
+								{content.dateLabel} <strong>{date}</strong>
 							</Text>
 						</Section>
 					</Container>

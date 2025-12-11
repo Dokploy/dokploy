@@ -25,8 +25,7 @@
     "switch:prod": "node scripts/switchToDist.js",
     "dev": "rm -rf ./dist && pnpm esbuild && tsc --emitDeclarationOnly --outDir dist -p tsconfig.server.json",
     "esbuild": "tsx ./esbuild.config.ts && tsc --project tsconfig.server.json --emitDeclarationOnly ",
-    "typecheck": "tsc --noEmit",
-    "dbml:generate": "npx tsx src/db/schema/dbml.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.5",
@@ -63,7 +62,7 @@
     "micromatch": "4.0.8",
     "nanoid": "3.3.11",
     "node-os-utils": "2.0.1",
-    "node-pty": "1.0.0",
+    "node-pty": "1.1.0-beta39",
     "node-schedule": "2.1.1",
     "nodemailer": "6.9.14",
     "octokit": "3.1.2",

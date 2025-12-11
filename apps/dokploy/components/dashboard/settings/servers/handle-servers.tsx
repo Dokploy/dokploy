@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "next-i18next";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -39,23 +39,24 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	description: z.string().optional(),
-	ipAddress: z.string().min(1, {
-		message: "IP Address is required",
-	}),
-	port: z.number().optional(),
-	username: z.string().optional(),
-	sshKeyId: z.string().min(1, {
-		message: "SSH Key is required",
-	}),
-	serverType: z.enum(["deploy", "build"]).default("deploy"),
-});
+const buildSchema = (t: (key: string) => string) =>
+	z.object({
+		name: z.string().min(1, {
+			message: t("settings.remoteServers.validation.nameRequired"),
+		}),
+		description: z.string().optional(),
+		ipAddress: z.string().min(1, {
+			message: t("settings.remoteServers.validation.ipRequired"),
+		}),
+		port: z.number().optional(),
+		username: z.string().optional(),
+		sshKeyId: z.string().min(1, {
+			message: t("settings.remoteServers.validation.sshKeyRequired"),
+		}),
+		serverType: z.enum(["deploy", "build"]).default("deploy"),
+	});
 
-type Schema = z.infer<typeof Schema>;
+type Schema = z.infer<ReturnType<typeof buildSchema>>;
 
 interface Props {
 	serverId?: string;
@@ -82,6 +83,8 @@ export const HandleServers = ({ serverId }: Props) => {
 	const { mutateAsync, error, isLoading, isError } = serverId
 		? api.server.update.useMutation()
 		: api.server.create.useMutation();
+	const schema = useMemo(() => buildSchema(t), [t]);
+
 	const form = useForm<Schema>({
 		defaultValues: {
 			description: "",
@@ -92,7 +95,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			sshKeyId: "",
 			serverType: "deploy",
 		},
-		resolver: zodResolver(Schema),
+		resolver: zodResolver(schema),
 	});
 
 	useEffect(() => {
@@ -125,12 +128,18 @@ export const HandleServers = ({ serverId }: Props) => {
 			.then(async (_data) => {
 				await utils.server.all.invalidate();
 				refetchServer();
-				toast.success(serverId ? "Server Updated" : "Server Created");
+				toast.success(
+					serverId
+						? t("settings.remoteServers.updated")
+						: t("settings.remoteServers.created"),
+				);
 				setIsOpen(false);
 			})
 			.catch(() => {
 				toast.error(
-					serverId ? "Error updating a server" : "Error creating a server",
+					serverId
+						? t("settings.remoteServers.updateError")
+						: t("settings.remoteServers.createError"),
 				);
 			});
 	};
@@ -143,28 +152,29 @@ export const HandleServers = ({ serverId }: Props) => {
 						className="w-full cursor-pointer "
 						onSelect={(e) => e.preventDefault()}
 					>
-						Edit Server
+						{t("settings.remoteServers.menu.edit")}
 					</DropdownMenuItem>
 				) : (
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
-						Create Server
+						{t("settings.remoteServers.menu.create")}
 					</Button>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-3xl ">
 				<DialogHeader>
-					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
+					<DialogTitle>
+						{serverId
+							? t("settings.remoteServers.dialog.titleEdit")
+							: t("settings.remoteServers.dialog.titleCreate")}
+					</DialogTitle>
 					<DialogDescription>
-						{serverId ? "Edit" : "Create"} a server to deploy your applications
-						remotely.
+						{t("settings.remoteServers.dialog.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div>
 					<p className="text-primary text-sm font-medium">
-						You will need to purchase or rent a Virtual Private Server (VPS) to
-						proceed, we recommend to use one of these providers since has been
-						heavily tested.
+						{t("settings.remoteServers.vps.info")}
 					</p>
 					<ul className="list-inside list-disc pl-4 text-sm text-muted-foreground mt-4">
 						<li>
@@ -172,7 +182,7 @@ export const HandleServers = ({ serverId }: Props) => {
 								href="https://www.hostinger.com/vps-hosting?REFERRALCODE=1SIUMAURICI97"
 								className="text-link underline"
 							>
-								Hostinger - Get 20% Discount
+								{t("settings.remoteServers.vps.hostinger")}
 							</a>
 						</li>
 						<li>
@@ -180,7 +190,7 @@ export const HandleServers = ({ serverId }: Props) => {
 								href=" https://app.americancloud.com/register?ref=dokploy"
 								className="text-link underline"
 							>
-								American Cloud - Get $20 Credits
+								{t("settings.remoteServers.vps.americanCloud")}
 							</a>
 						</li>
 						<li>
@@ -188,7 +198,7 @@ export const HandleServers = ({ serverId }: Props) => {
 								href="https://m.do.co/c/db24efd43f35"
 								className="text-link underline"
 							>
-								DigitalOcean - Get $200 Credits
+								{t("settings.remoteServers.vps.digitalOcean")}
 							</a>
 						</li>
 						<li>
@@ -196,7 +206,7 @@ export const HandleServers = ({ serverId }: Props) => {
 								href="https://hetzner.cloud/?ref=vou4fhxJ1W2D"
 								className="text-link underline"
 							>
-								Hetzner - Get €20 Credits
+								{t("settings.remoteServers.vps.hetzner")}
 							</a>
 						</li>
 						<li>
@@ -204,7 +214,7 @@ export const HandleServers = ({ serverId }: Props) => {
 								href="https://www.vultr.com/?ref=9679828"
 								className="text-link underline"
 							>
-								Vultr
+								{t("settings.remoteServers.vps.vultr")}
 							</a>
 						</li>
 						<li>
@@ -212,20 +222,19 @@ export const HandleServers = ({ serverId }: Props) => {
 								href="https://www.linode.com/es/pricing/#compute-shared"
 								className="text-link underline"
 							>
-								Linode
+								{t("settings.remoteServers.vps.linode")}
 							</a>
 						</li>
 					</ul>
 					<AlertBlock className="mt-4 px-4">
-						You are free to use whatever provider, but we recommend to use one
-						of the above, to avoid issues.
+						{t("settings.remoteServers.vps.notice")}
 					</AlertBlock>
 				</div>
 				{!canCreateMoreServers && (
 					<AlertBlock type="warning" className="mt-4">
-						You cannot create more servers,{" "}
+						{t("settings.remoteServers.limitReached")} {" "}
 						<Link href="/dashboard/settings/billing" className="text-primary">
-							Please upgrade your plan
+							{t("settings.remoteServers.upgradePlan")}
 						</Link>
 					</AlertBlock>
 				)}
@@ -242,9 +251,16 @@ export const HandleServers = ({ serverId }: Props) => {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Name</FormLabel>
+										<FormLabel>
+											{t("settings.remoteServers.form.name")}
+										</FormLabel>
 										<FormControl>
-											<Input placeholder="Hostinger Server" {...field} />
+											<Input
+												placeholder={t(
+													"settings.remoteServers.form.namePlaceholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 
 										<FormMessage />
@@ -257,10 +273,14 @@ export const HandleServers = ({ serverId }: Props) => {
 							name="description"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Description</FormLabel>
+									<FormLabel>
+										{t("settings.remoteServers.form.description")}
+									</FormLabel>
 									<FormControl>
 										<Textarea
-											placeholder="This server is for databases..."
+											placeholder={t(
+												"settings.remoteServers.form.descriptionPlaceholder",
+											)}
 											className="resize-none"
 											{...field}
 										/>
@@ -277,37 +297,43 @@ export const HandleServers = ({ serverId }: Props) => {
 								const serverTypeValue = form.watch("serverType");
 								return (
 									<FormItem>
-										<FormLabel>Server Type</FormLabel>
+										<FormLabel>
+											{t("settings.remoteServers.serverType")}
+										</FormLabel>
 										<Select
 											onValueChange={field.onChange}
 											defaultValue={field.value}
 										>
 											<SelectTrigger>
-												<SelectValue placeholder="Select a server type" />
+												<SelectValue
+													placeholder={t(
+														"settings.remoteServers.serverType.placeholder",
+													)}
+												/>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectGroup>
-													<SelectItem value="deploy">Deploy Server</SelectItem>
-													<SelectItem value="build">Build Server</SelectItem>
-													<SelectLabel>Server Type</SelectLabel>
+													<SelectItem value="deploy">
+														{t("settings.remoteServers.serverType.deploy")}
+													</SelectItem>
+													<SelectItem value="build">
+														{t("settings.remoteServers.serverType.build")}
+													</SelectItem>
+													<SelectLabel>
+														{t("settings.remoteServers.serverType")}
+													</SelectLabel>
 												</SelectGroup>
 											</SelectContent>
 										</Select>
 										<FormMessage />
 										{serverTypeValue === "deploy" && (
 											<AlertBlock type="info" className="mt-2">
-												Deploy servers are used to run your applications,
-												databases, and services. They handle the deployment and
-												execution of your projects.
+												{t("settings.remoteServers.serverType.deploy.info")}
 											</AlertBlock>
 										)}
 										{serverTypeValue === "build" && (
 											<AlertBlock type="info" className="mt-2">
-												Build servers are dedicated to building your
-												applications. They handle the compilation and build
-												process, offloading this work from your deployment
-												servers. Build servers won't appear in deployment
-												options.
+												{t("settings.remoteServers.serverType.build.info")}
 											</AlertBlock>
 										)}
 									</FormItem>
@@ -319,13 +345,19 @@ export const HandleServers = ({ serverId }: Props) => {
 							name="sshKeyId"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Select a SSH Key</FormLabel>
+									<FormLabel>
+										{t("settings.remoteServers.form.sshKey")}
+									</FormLabel>
 									<Select
 										onValueChange={field.onChange}
 										defaultValue={field.value}
 									>
 										<SelectTrigger>
-											<SelectValue placeholder="Select a SSH Key" />
+											<SelectValue
+												placeholder={t(
+													"settings.remoteServers.form.sshKeyPlaceholder",
+												)}
+											/>
 										</SelectTrigger>
 										<SelectContent>
 											<SelectGroup>
@@ -338,7 +370,7 @@ export const HandleServers = ({ serverId }: Props) => {
 													</SelectItem>
 												))}
 												<SelectLabel>
-													Registries ({sshKeys?.length})
+													{t("settings.nav.sshKeys")} ({sshKeys?.length})
 												</SelectLabel>
 											</SelectGroup>
 										</SelectContent>
@@ -399,7 +431,10 @@ export const HandleServers = ({ serverId }: Props) => {
 								<FormItem>
 									<FormLabel>{t("settings.terminal.username")}</FormLabel>
 									<FormControl>
-										<Input placeholder="root" {...field} />
+										<Input
+											placeholder={t("settings.terminal.usernamePlaceholder")}
+											{...field}
+										/>
 									</FormControl>
 
 									<FormMessage />
@@ -415,7 +450,9 @@ export const HandleServers = ({ serverId }: Props) => {
 							form="hook-form-add-server"
 							type="submit"
 						>
-							{serverId ? "Update" : "Create"}
+							{serverId
+								? t("settings.common.update")
+								: t("settings.common.create")}
 						</Button>
 					</DialogFooter>
 				</Form>

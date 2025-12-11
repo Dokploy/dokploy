@@ -1,7 +1,9 @@
 import copy from "copy-to-clipboard";
 import { format, isPast } from "date-fns";
+import { enUS, zhCN, zhTW } from "date-fns/locale";
 import { Loader2, Mail, MoreHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "next-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,8 +34,28 @@ import { api } from "@/utils/api";
 import { AddInvitation } from "./add-invitation";
 
 export const ShowInvitations = () => {
+	const { t, i18n } = useTranslation("settings");
 	const { data, isLoading, refetch } =
 		api.organization.allInvitations.useQuery();
+
+	const locale =
+		i18n?.language === "zh-Hans"
+			? zhCN
+			: i18n?.language === "zh-Hant"
+				? zhTW
+				: enUS;
+
+	const roleLabels: Record<string, string> = {
+		owner: t("settings.invitations.role.owner"),
+		admin: t("settings.invitations.role.admin"),
+		member: t("settings.invitations.role.member"),
+	};
+
+	const statusLabels: Record<string, string> = {
+		pending: t("settings.invitations.status.pending"),
+		accepted: t("settings.invitations.status.accepted"),
+		canceled: t("settings.invitations.status.canceled"),
+	};
 
 	const { mutateAsync: removeInvitation } =
 		api.organization.removeInvitation.useMutation();
@@ -45,16 +67,16 @@ export const ShowInvitations = () => {
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<Mail className="size-6 text-muted-foreground self-center" />
-							Invitations
+							{t("settings.invitations.page.title")}
 						</CardTitle>
 						<CardDescription>
-							Create invitations to your organization.
+							{t("settings.invitations.page.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
+								<span>{t("settings.common.loading")}</span>
 								<Loader2 className="animate-spin size-4" />
 							</div>
 						) : (
@@ -63,23 +85,33 @@ export const ShowInvitations = () => {
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
 										<Users className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground">
-											Invite users to your organization
+											{t("settings.invitations.page.empty")}
 										</span>
 										<AddInvitation />
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<Table>
-											<TableCaption>See all invitations</TableCaption>
+											<TableCaption>
+												{t("settings.invitations.table.caption")}
+											</TableCaption>
 											<TableHeader>
 												<TableRow>
-													<TableHead className="w-[100px]">Email</TableHead>
-													<TableHead className="text-center">Role</TableHead>
-													<TableHead className="text-center">Status</TableHead>
-													<TableHead className="text-center">
-														Expires At
+													<TableHead className="w-[100px]">
+														{t("settings.invitations.table.email")}
 													</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
+													<TableHead className="text-center">
+														{t("settings.invitations.table.role")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.invitations.table.status")}
+													</TableHead>
+													<TableHead className="text-center">
+														{t("settings.invitations.table.expiresAt")}
+													</TableHead>
+													<TableHead className="text-right">
+														{t("settings.invitations.table.actions")}
+													</TableHead>
 												</TableRow>
 											</TableHeader>
 											<TableBody>
@@ -100,7 +132,8 @@ export const ShowInvitations = () => {
 																			: "secondary"
 																	}
 																>
-																	{invitation.role}
+																	{roleLabels[invitation.role] ||
+																		invitation.role}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
@@ -113,14 +146,17 @@ export const ShowInvitations = () => {
 																				: "default"
 																	}
 																>
-																	{invitation.status}
+																	{statusLabels[invitation.status] ||
+																		invitation.status}
 																</Badge>
 															</TableCell>
 															<TableCell className="text-center">
-																{format(new Date(invitation.expiresAt), "PPpp")}{" "}
+																{format(new Date(invitation.expiresAt), "PPpp", {
+																	locale,
+																})}{" "}
 																{isExpired ? (
 																	<span className="text-muted-foreground">
-																		(Expired)
+																		{t("settings.invitations.status.expired")}
 																	</span>
 																) : null}
 															</TableCell>
@@ -132,13 +168,15 @@ export const ShowInvitations = () => {
 																			variant="ghost"
 																			className="h-8 w-8 p-0"
 																		>
-																			<span className="sr-only">Open menu</span>
+																			<span className="sr-only">
+																				{t("settings.common.openMenu")}
+																			</span>
 																			<MoreHorizontal className="h-4 w-4" />
 																		</Button>
 																	</DropdownMenuTrigger>
 																	<DropdownMenuContent align="end">
 																		<DropdownMenuLabel>
-																			Actions
+																			{t("settings.invitations.table.actions")}
 																		</DropdownMenuLabel>
 																		{!isExpired && (
 																			<>
@@ -150,11 +188,11 @@ export const ShowInvitations = () => {
 																								`${origin}/invitation?token=${invitation.id}`,
 																							);
 																							toast.success(
-																								"Invitation Copied to clipboard",
+																								t("settings.invitations.actions.copy.toast"),
 																							);
 																						}}
 																					>
-																						Copy Invitation
+																						{t("settings.invitations.actions.copy.label")}
 																					</DropdownMenuItem>
 																				)}
 
@@ -170,18 +208,16 @@ export const ShowInvitations = () => {
 																								);
 
 																							if (result.error) {
-																								toast.error(
-																									result.error.message,
-																								);
+																								toast.error(result.error.message);
 																							} else {
 																								toast.success(
-																									"Invitation deleted",
+																									t("settings.invitations.actions.cancel.success"),
 																								);
 																								refetch();
 																							}
 																						}}
 																					>
-																						Cancel Invitation
+																						{t("settings.invitations.actions.cancel.label")}
 																					</DropdownMenuItem>
 																				)}
 																			</>
@@ -193,11 +229,13 @@ export const ShowInvitations = () => {
 																					invitationId: invitation.id,
 																				}).then(() => {
 																					refetch();
-																					toast.success("Invitation removed");
+																					toast.success(
+																						t("settings.invitations.actions.remove.success"),
+																					);
 																				});
 																			}}
 																		>
-																			Remove Invitation
+																			{t("settings.invitations.actions.remove.label")}
 																		</DropdownMenuItem>
 																	</DropdownMenuContent>
 																</DropdownMenu>

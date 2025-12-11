@@ -49,6 +49,7 @@ import {
 	updatePreviewDeployment,
 } from "./preview-deployment";
 import { validUniqueServerAppName } from "./project";
+import { createRollback } from "./rollbacks";
 export type Application = typeof applications.$inferSelect;
 
 export const createApplication = async (
@@ -112,7 +113,6 @@ export const findApplicationById = async (applicationId: string) => {
 			server: true,
 			previewDeployments: true,
 			buildRegistry: true,
-			rollbackRegistry: true,
 		},
 	});
 	if (!application) {
@@ -198,7 +198,7 @@ export const deployApplication = async ({
 			command += await buildRemoteDocker(application);
 		}
 
-		command += await getBuildCommand(application);
+		command += getBuildCommand(application);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
@@ -210,6 +210,17 @@ export const deployApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
+			await createRollback({
+				appName: tagImage || "",
+				deploymentId: deployment.deploymentId,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -288,7 +299,7 @@ export const rebuildApplication = async ({
 	try {
 		let command = "set -e;";
 		// Check case for docker only
-		command += await getBuildCommand(application);
+		command += getBuildCommand(application);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
 			await execAsyncRemote(serverId, commandWithLog);
@@ -298,6 +309,17 @@ export const rebuildApplication = async ({
 		await mechanizeDockerContainer(application);
 		await updateDeploymentStatus(deployment.deploymentId, "done");
 		await updateApplicationStatus(applicationId, "done");
+
+		if (application.rollbackActive) {
+			const tagImage =
+				application.sourceType === "docker"
+					? application.dockerImage
+					: application.appName;
+			await createRollback({
+				appName: tagImage || "",
+				deploymentId: deployment.deploymentId,
+			});
+		}
 
 		await sendBuildSuccessNotifications({
 			projectName: application.environment.project.name,
@@ -401,10 +423,6 @@ export const deployPreviewApplication = async ({
 		application.env = `${application.previewEnv}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildArgs = `${application.previewBuildArgs}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
 		application.buildSecrets = `${application.previewBuildSecrets}\nDOKPLOY_DEPLOY_URL=${previewDeployment?.domain?.host}`;
-		application.rollbackActive = false;
-		application.buildRegistry = null;
-		application.rollbackRegistry = null;
-		application.registry = null;
 
 		let command = "set -e;";
 		if (application.sourceType === "github") {
@@ -413,7 +431,7 @@ export const deployPreviewApplication = async ({
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
-			command += await getBuildCommand(application);
+			command += getBuildCommand(application);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
 			if (application.serverId) {

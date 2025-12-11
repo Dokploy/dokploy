@@ -7,6 +7,7 @@ import {
 	Pause,
 	Play,
 } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import React, { useEffect, useRef } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export const DockerLogsId: React.FC<Props> = ({
 	serverId,
 	runType,
 }) => {
+	const { t } = useTranslation("common");
 	const { data } = api.docker.getConfig.useQuery(
 		{
 			containerId,
@@ -227,14 +229,14 @@ export const DockerLogsId: React.FC<Props> = ({
 		const logContent = filteredLogs
 			.map(
 				({ timestamp, message }: { timestamp: Date | null; message: string }) =>
-					`${timestamp?.toISOString() || "No timestamp"} ${message}`,
+					`${timestamp?.toISOString() || t("logs.noTimestamp")} ${message}`,
 			)
 			.join("\n");
 
 		const blob = new Blob([logContent], { type: "text/plain" });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement("a");
-		const appName = data.Name.replace("/", "") || "app";
+		const appName = data.Name.replace("/", "") || t("logs.defaultAppName");
 		const isoDate = new Date().toISOString();
 		a.href = url;
 		a.download = `${appName}-${isoDate.slice(0, 10).replace(/-/g, "")}_${isoDate
@@ -257,7 +259,7 @@ export const DockerLogsId: React.FC<Props> = ({
 					message: string;
 				}) =>
 					showTimestamp
-						? `${timestamp?.toISOString() || "No timestamp"} ${message}`
+						? `${timestamp?.toISOString() || t("logs.noTimestamp")} ${message}`
 						: message,
 			)
 			.join("\n");
@@ -324,13 +326,16 @@ export const DockerLogsId: React.FC<Props> = ({
 							<StatusLogsFilter
 								value={typeFilter}
 								setValue={setTypeFilter}
-								title="Log type"
-								options={priorities}
+								title={t("logs.filter.type")}
+								options={priorities.map((p) => ({
+									...p,
+									label: t(`logs.priority.${p.value}`),
+								}))}
 							/>
 
 							<Input
 								type="search"
-								placeholder="Search logs..."
+								placeholder={t("logs.search.placeholder")}
 								value={search}
 								onChange={handleSearch}
 								className="inline-flex h-9 text-sm placeholder-gray-400 w-full sm:w-auto"
@@ -343,14 +348,14 @@ export const DockerLogsId: React.FC<Props> = ({
 								size="sm"
 								className="h-9"
 								onClick={handlePauseResume}
-								title={isPaused ? "Resume logs" : "Pause logs"}
+								title={isPaused ? t("logs.resume.title") : t("logs.pause.title")}
 							>
 								{isPaused ? (
 									<Play className="mr-2 h-4 w-4" />
 								) : (
 									<Pause className="mr-2 h-4 w-4" />
 								)}
-								{isPaused ? "Resume" : "Pause"}
+								{isPaused ? t("logs.resume") : t("logs.pause")}
 							</Button>
 							<Button
 								variant="outline"
@@ -358,14 +363,14 @@ export const DockerLogsId: React.FC<Props> = ({
 								className="h-9"
 								onClick={handleCopy}
 								disabled={filteredLogs.length === 0}
-								title="Copy logs to clipboard"
+								title={t("logs.copy.title")}
 							>
 								{copied ? (
 									<Check className="mr-2 h-4 w-4" />
 								) : (
 									<Copy className="mr-2 h-4 w-4" />
 								)}
-								Copy
+								{t("logs.copy")}
 							</Button>
 							<Button
 								variant="outline"
@@ -375,7 +380,7 @@ export const DockerLogsId: React.FC<Props> = ({
 								disabled={filteredLogs.length === 0 || !data?.Name}
 							>
 								<DownloadIcon className="mr-2 h-4 w-4" />
-								Download logs
+								{t("logs.download")}
 							</Button>
 						</div>
 					</div>
@@ -384,10 +389,12 @@ export const DockerLogsId: React.FC<Props> = ({
 							<div className="flex items-center gap-2">
 								<Pause className="h-4 w-4" />
 								<span>
-									Logs paused
+									{t("logs.paused")}
 									{messageBuffer.length > 0 && (
 										<span className="ml-1 font-medium">
-											({messageBuffer.length} messages buffered)
+											{t("logs.messagesBuffered", {
+												count: messageBuffer.length,
+											})}
 										</span>
 									)}
 								</span>
@@ -414,7 +421,7 @@ export const DockerLogsId: React.FC<Props> = ({
 							</div>
 						) : (
 							<div className="flex justify-center items-center h-full text-muted-foreground">
-								No logs found
+								{t("logs.noLogsFound")}
 							</div>
 						)}
 					</div>

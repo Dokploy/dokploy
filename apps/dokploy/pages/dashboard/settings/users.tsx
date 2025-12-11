@@ -7,6 +7,7 @@ import { ShowInvitations } from "@/components/dashboard/settings/users/show-invi
 import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
 	return (
@@ -20,7 +21,11 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Users">{page}</DashboardLayout>;
+	return (
+		<DashboardLayout metaName="settings.users.page.title">
+			{page}
+		</DashboardLayout>
+	);
 };
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
@@ -51,9 +56,12 @@ export async function getServerSideProps(
 	await helpers.user.get.prefetch();
 	await helpers.settings.isCloud.prefetch();
 
+	const locale = getLocale((req as any).cookies ?? {});
+
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
+			...(await serverSideTranslations(locale, ["settings"])),
 		},
 	};
 }

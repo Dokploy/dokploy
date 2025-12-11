@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "next-i18next";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -15,25 +16,28 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const DockerProviderSchema = z.object({
-	dockerImage: z.string().min(1, {
-		message: "Docker image is required",
-	}),
-	username: z.string().optional(),
-	password: z.string().optional(),
-	registryURL: z.string().optional(),
-});
+const createDockerProviderSchema = (t: (key: string) => string) =>
+	z.object({
+		dockerImage: z.string().min(1, {
+			message: t("application.git.docker.validation.dockerImageRequired"),
+		}),
+		username: z.string().optional(),
+		password: z.string().optional(),
+		registryURL: z.string().optional(),
+	});
 
-type DockerProvider = z.infer<typeof DockerProviderSchema>;
+type DockerProvider = z.infer<ReturnType<typeof createDockerProviderSchema>>;
 
 interface Props {
 	applicationId: string;
 }
 
 export const SaveDockerProvider = ({ applicationId }: Props) => {
+	const { t } = useTranslation("common");
 	const { data, refetch } = api.application.one.useQuery({ applicationId });
 
 	const { mutateAsync } = api.application.saveDockerProvider.useMutation();
+	const schema = createDockerProviderSchema(t);
 	const form = useForm<DockerProvider>({
 		defaultValues: {
 			dockerImage: "",
@@ -41,7 +45,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 			username: "",
 			registryURL: "",
 		},
-		resolver: zodResolver(DockerProviderSchema),
+		resolver: zodResolver(schema),
 	});
 
 	useEffect(() => {
@@ -64,11 +68,11 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 			registryUrl: values.registryURL || null,
 		})
 			.then(async () => {
-				toast.success("Docker Provider Saved");
+				toast.success(t("application.git.docker.toast.saveSuccess"));
 				await refetch();
 			})
 			.catch(() => {
-				toast.error("Error saving the Docker provider");
+				toast.error(t("application.git.docker.toast.saveError"));
 			});
 	};
 
@@ -85,9 +89,16 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							name="dockerImage"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Docker Image</FormLabel>
+									<FormLabel>
+										{t("application.git.docker.form.dockerImageLabel")}
+									</FormLabel>
 									<FormControl>
-										<Input placeholder="node:16" {...field} />
+										<Input
+											placeholder={t(
+												"application.git.docker.form.dockerImagePlaceholder",
+											)}
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -99,9 +110,16 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 						name="registryURL"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Registry URL</FormLabel>
+								<FormLabel>
+									{t("application.git.docker.form.registryUrlLabel")}
+								</FormLabel>
 								<FormControl>
-									<Input placeholder="Registry URL" {...field} />
+									<Input
+										placeholder={t(
+											"application.git.docker.form.registryUrlPlaceholder",
+										)}
+										{...field}
+									/>
 								</FormControl>
 								<FormMessage />
 							</FormItem>
@@ -113,10 +131,14 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							name="username"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Username</FormLabel>
+									<FormLabel>
+										{t("application.git.docker.form.usernameLabel")}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="Username"
+											placeholder={t(
+												"application.git.docker.form.usernamePlaceholder",
+											)}
 											autoComplete="username"
 											{...field}
 										/>
@@ -132,10 +154,14 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 							name="password"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Password</FormLabel>
+									<FormLabel>
+										{t("application.git.docker.form.passwordLabel")}
+									</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="Password"
+											placeholder={t(
+												"application.git.docker.form.passwordPlaceholder",
+											)}
 											autoComplete="one-time-code"
 											{...field}
 											type="password"
@@ -154,7 +180,7 @@ export const SaveDockerProvider = ({ applicationId }: Props) => {
 						className="w-fit"
 						isLoading={form.formState.isSubmitting}
 					>
-						Save{" "}
+						{t("button.save")}
 					</Button>
 				</div>
 			</form>

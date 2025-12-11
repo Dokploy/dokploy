@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useTranslation } from "next-i18next";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -35,20 +36,28 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
-const addInvitation = z.object({
-	email: z
-		.string()
-		.min(1, "Email is required")
-		.email({ message: "Invalid email" }),
-	role: z.enum(["member", "admin"]),
-	notificationId: z.string().optional(),
-});
+const createAddInvitationSchema = (t: (key: string) => string) =>
+	z.object({
+		email: z
+			.string()
+			.min(1, {
+				message: t("auth.validation.emailRequired"),
+			})
+			.email({
+				message: t("auth.validation.emailInvalid"),
+			}),
+		role: z.enum(["member", "admin"]),
+		notificationId: z.string().optional(),
+	});
 
-type AddInvitation = z.infer<typeof addInvitation>;
+type AddInvitation = z.infer<ReturnType<typeof createAddInvitationSchema>>;
 
 export const AddInvitation = () => {
 	const [open, setOpen] = useState(false);
 	const utils = api.useUtils();
+	const { t } = useTranslation("settings");
+	const { t: tCommon } = useTranslation("common");
+	const schema = useMemo(() => createAddInvitationSchema(tCommon), [tCommon]);
 	const [isLoading, setIsLoading] = useState(false);
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: emailProviders } =
@@ -63,7 +72,7 @@ export const AddInvitation = () => {
 			role: "member",
 			notificationId: "",
 		},
-		resolver: zodResolver(addInvitation),
+		resolver: zodResolver(schema),
 	});
 	useEffect(() => {
 		form.reset();
@@ -86,13 +95,15 @@ export const AddInvitation = () => {
 					notificationId: data.notificationId || "",
 				})
 					.then(() => {
-						toast.success("Invitation created and email sent");
+						toast.success(
+							t("settings.invitations.create.withEmailSuccess"),
+						);
 					})
 					.catch((error: any) => {
 						toast.error(error.message);
 					});
 			} else {
-				toast.success("Invitation created");
+				toast.success(t("settings.invitations.create.success"));
 			}
 			setError(null);
 			setOpen(false);
@@ -105,13 +116,13 @@ export const AddInvitation = () => {
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger className="" asChild>
 				<Button>
-					<PlusIcon className="h-4 w-4" /> Add Invitation
+					<PlusIcon className="h-4 w-4" /> {t("settings.invitations.add.button")}
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Add Invitation</DialogTitle>
-					<DialogDescription>Invite a new user</DialogDescription>
+					<DialogTitle>{t("settings.invitations.add.dialog.title")}</DialogTitle>
+					<DialogDescription>{t("settings.invitations.add.dialog.description")}</DialogDescription>
 				</DialogHeader>
 				{error && <AlertBlock type="error">{error}</AlertBlock>}
 
@@ -127,12 +138,17 @@ export const AddInvitation = () => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Email</FormLabel>
+										<FormLabel>{t("settings.invitations.add.form.email.label")}</FormLabel>
 										<FormControl>
-											<Input placeholder={"email@dokploy.com"} {...field} />
+											<Input
+												placeholder={t(
+													"settings.invitations.add.form.email.placeholder",
+												)}
+												{...field}
+											/>
 										</FormControl>
 										<FormDescription>
-											This will be the email of the new user
+											{t("settings.invitations.add.form.email.description")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -146,23 +162,28 @@ export const AddInvitation = () => {
 							render={({ field }) => {
 								return (
 									<FormItem>
-										<FormLabel>Role</FormLabel>
+										<FormLabel>{t("settings.invitations.add.form.role.label")}</FormLabel>
 										<Select
 											onValueChange={field.onChange}
 											defaultValue={field.value}
 										>
 											<FormControl>
 												<SelectTrigger>
-													<SelectValue placeholder="Select a role" />
+													<SelectValue
+														placeholder={t(
+															"settings.invitations.add.form.role.placeholder",
+														)}
+													/>
 												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
-												<SelectItem value="member">Member</SelectItem>
-												<SelectItem value="admin">Admin</SelectItem>
+												<SelectItem value="member">
+													{t("settings.invitations.add.form.role.member")}
+												</SelectItem>
 											</SelectContent>
 										</Select>
 										<FormDescription>
-											Select the role for the new user
+											{t("settings.invitations.add.form.role.description")}
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -177,14 +198,22 @@ export const AddInvitation = () => {
 								render={({ field }) => {
 									return (
 										<FormItem>
-											<FormLabel>Email Provider</FormLabel>
+											<FormLabel>
+												{t(
+													"settings.invitations.add.form.emailProvider.label",
+												)}
+											</FormLabel>
 											<Select
 												onValueChange={field.onChange}
 												defaultValue={field.value}
 											>
 												<FormControl>
 													<SelectTrigger>
-														<SelectValue placeholder="Select an email provider" />
+														<SelectValue
+															placeholder={t(
+																"settings.invitations.add.form.emailProvider.placeholder",
+															)}
+														/>
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
@@ -197,12 +226,16 @@ export const AddInvitation = () => {
 														</SelectItem>
 													))}
 													<SelectItem value="none" disabled>
-														None
+														{t(
+															"settings.invitations.add.form.emailProvider.none",
+														)}
 													</SelectItem>
 												</SelectContent>
 											</Select>
 											<FormDescription>
-												Select the email provider to send the invitation
+												{t(
+													"settings.invitations.add.form.emailProvider.description",
+												)}
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
@@ -216,7 +249,7 @@ export const AddInvitation = () => {
 								form="hook-form-add-invitation"
 								type="submit"
 							>
-								Create
+								{t("settings.common.create")}
 							</Button>
 						</DialogFooter>
 					</form>

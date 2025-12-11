@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
-import Link from "next/link";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -44,79 +44,89 @@ import { api } from "@/utils/api";
 
 export type CacheType = "fetch" | "cache";
 
-export const domain = z
-	.object({
-		host: z
-			.string()
-			.min(1, { message: "Add a hostname" })
-			.refine((val) => val === val.trim(), {
-				message: "Domain name cannot have leading or trailing spaces",
-			})
-			.transform((val) => val.trim()),
-		path: z.string().min(1).optional(),
-		internalPath: z.string().optional(),
-		stripPath: z.boolean().optional(),
-		port: z
-			.number()
-			.min(1, { message: "Port must be at least 1" })
-			.max(65535, { message: "Port must be 65535 or below" })
-			.optional(),
-		https: z.boolean().optional(),
-		certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
-		customCertResolver: z.string().optional(),
-		serviceName: z.string().optional(),
-		domainType: z.enum(["application", "compose", "preview"]).optional(),
-	})
-	.superRefine((input, ctx) => {
-		if (input.https && !input.certificateType) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["certificateType"],
-				message: "Required",
-			});
-		}
+export const domain = (t: (key: string, opts?: Record<string, unknown>) => string) =>
+	z
+		.object({
+			host: z
+				.string()
+				.min(1, { message: t("application.domains.validation.hostRequired") })
+				.refine((val) => val === val.trim(), {
+					message: t(
+						"application.domains.validation.hostNoLeadingTrailingSpaces",
+					),
+				})
+				.transform((val) => val.trim()),
+			path: z.string().min(1).optional(),
+			internalPath: z.string().optional(),
+			stripPath: z.boolean().optional(),
+			port: z
+				.number()
+				.min(1, {
+					message: t("application.domains.validation.portMin"),
+				})
+				.max(65535, {
+					message: t("application.domains.validation.portMax"),
+				})
+				.optional(),
+			https: z.boolean().optional(),
+			certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
+			customCertResolver: z.string().optional(),
+			serviceName: z.string().optional(),
+			domainType: z.enum(["application", "compose", "preview"]).optional(),
+		})
+		.superRefine((input, ctx) => {
+			if (input.https && !input.certificateType) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["certificateType"],
+					message: t("application.domains.validation.required"),
+				});
+			}
 
-		if (input.certificateType === "custom" && !input.customCertResolver) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["customCertResolver"],
-				message: "Required",
-			});
-		}
+			if (input.certificateType === "custom" && !input.customCertResolver) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["customCertResolver"],
+					message: t("application.domains.validation.required"),
+				});
+			}
 
-		if (input.domainType === "compose" && !input.serviceName) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["serviceName"],
-				message: "Required",
-			});
-		}
+			if (input.domainType === "compose" && !input.serviceName) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["serviceName"],
+					message: t("application.domains.validation.required"),
+				});
+			}
 
-		// Validate stripPath requires a valid path
-		if (input.stripPath && (!input.path || input.path === "/")) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["stripPath"],
-				message:
-					"Strip path can only be enabled when a path other than '/' is specified",
-			});
-		}
+			// Validate stripPath requires a valid path
+			if (input.stripPath && (!input.path || input.path === "/")) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["stripPath"],
+					message: t(
+						"application.domains.validation.stripPathWithValidPath",
+					),
+				});
+			}
 
-		// Validate internalPath starts with /
-		if (
-			input.internalPath &&
-			input.internalPath !== "/" &&
-			!input.internalPath.startsWith("/")
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["internalPath"],
-				message: "Internal path must start with '/'",
-			});
-		}
-	});
+			// Validate internalPath starts with /
+			if (
+				input.internalPath &&
+				input.internalPath !== "/" &&
+				!input.internalPath.startsWith("/")
+			) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ["internalPath"],
+					message: t(
+						"application.domains.validation.internalPathStartsWithSlash",
+					),
+				});
+			}
+		});
 
-type Domain = z.infer<typeof domain>;
+type Domain = z.infer<ReturnType<typeof domain>>;
 
 interface Props {
 	id: string;
@@ -126,9 +136,12 @@ interface Props {
 }
 
 export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
+	const { t } = useTranslation("common");
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
 	const [isManualInput, setIsManualInput] = useState(false);
+
+	const domainSchema = domain(t);
 
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
@@ -189,7 +202,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	);
 
 	const form = useForm<Domain>({
-		resolver: zodResolver(domain),
+		resolver: zodResolver(domainSchema),
 		defaultValues: {
 			host: "",
 			path: undefined,
@@ -208,8 +221,6 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const certificateType = form.watch("certificateType");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
-	const host = form.watch("host");
-	const isTraefikMeDomain = host?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -250,12 +261,18 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	}, [certificateType, form]);
 
 	const dictionary = {
-		success: domainId ? "Domain Updated" : "Domain Created",
-		error: domainId ? "Error updating the domain" : "Error creating the domain",
-		submit: domainId ? "Update" : "Create",
+		success: domainId
+			? t("application.domains.handle.toast.update.success")
+			: t("application.domains.handle.toast.create.success"),
+		error: domainId
+			? t("application.domains.handle.toast.update.error")
+			: t("application.domains.handle.toast.create.error"),
+		submit: domainId
+			? t("application.domains.handle.button.update")
+			: t("application.domains.handle.button.create"),
 		dialogDescription: domainId
-			? "In this section you can edit a domain"
-			: "In this section you can add domains",
+			? t("application.domains.handle.dialog.edit.description")
+			: t("application.domains.handle.dialog.create.description"),
 	};
 
 	const onSubmit = async (data: Domain) => {
@@ -302,7 +319,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle>Domain</DialogTitle>
+					<DialogTitle>
+						{t("application.domains.handle.dialog.title")}
+					</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
@@ -318,239 +337,72 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					<form
 						id="hook-form"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid w-full gap-8 "
+						className="grid w-full gap-6"
 					>
-						<div className="flex flex-col gap-4">
-							<div className="flex flex-col gap-2">
-								<div className="flex flex-row items-end w-full gap-4">
-									{domainType === "compose" && (
-										<div className="flex flex-col gap-2 w-full">
-											{errorServices && (
-												<AlertBlock
-													type="warning"
-													className="[overflow-wrap:anywhere]"
-												>
-													{errorServices?.message}
-												</AlertBlock>
-											)}
-											<FormField
-												control={form.control}
-												name="serviceName"
-												render={({ field }) => (
-													<FormItem className="w-full">
-														<FormLabel>Service Name</FormLabel>
-														<div className="flex gap-2">
-															{isManualInput ? (
-																<FormControl>
-																	<Input
-																		placeholder="Enter service name manually"
-																		{...field}
-																		className="w-full"
-																	/>
-																</FormControl>
-															) : (
-																<Select
-																	onValueChange={field.onChange}
-																	defaultValue={field.value || ""}
-																>
-																	<FormControl>
-																		<SelectTrigger>
-																			<SelectValue placeholder="Select a service name" />
-																		</SelectTrigger>
-																	</FormControl>
-
-																	<SelectContent>
-																		{services?.map((service, index) => (
-																			<SelectItem
-																				value={service}
-																				key={`${service}-${index}`}
-																			>
-																				{service}
-																			</SelectItem>
-																		))}
-																		<SelectItem value="none" disabled>
-																			Empty
-																		</SelectItem>
-																	</SelectContent>
-																</Select>
-															)}
-															{!isManualInput && (
-																<>
-																	<TooltipProvider delayDuration={0}>
-																		<Tooltip>
-																			<TooltipTrigger asChild>
-																				<Button
-																					variant="secondary"
-																					type="button"
-																					isLoading={isLoadingServices}
-																					onClick={() => {
-																						if (cacheType === "fetch") {
-																							refetchServices();
-																						} else {
-																							setCacheType("fetch");
-																						}
-																					}}
-																				>
-																					<RefreshCw className="size-4 text-muted-foreground" />
-																				</Button>
-																			</TooltipTrigger>
-																			<TooltipContent
-																				side="left"
-																				sideOffset={5}
-																				className="max-w-[10rem]"
-																			>
-																				<p>
-																					Fetch: Will clone the repository and
-																					load the services
-																				</p>
-																			</TooltipContent>
-																		</Tooltip>
-																	</TooltipProvider>
-																	<TooltipProvider delayDuration={0}>
-																		<Tooltip>
-																			<TooltipTrigger asChild>
-																				<Button
-																					variant="secondary"
-																					type="button"
-																					isLoading={isLoadingServices}
-																					onClick={() => {
-																						if (cacheType === "cache") {
-																							refetchServices();
-																						} else {
-																							setCacheType("cache");
-																						}
-																					}}
-																				>
-																					<DatabaseZap className="size-4 text-muted-foreground" />
-																				</Button>
-																			</TooltipTrigger>
-																			<TooltipContent
-																				side="left"
-																				sideOffset={5}
-																				className="max-w-[10rem]"
-																			>
-																				<p>
-																					Cache: If you previously deployed this
-																					compose, it will read the services
-																					from the last deployment/fetch from
-																					the repository
-																				</p>
-																			</TooltipContent>
-																		</Tooltip>
-																	</TooltipProvider>
-																</>
-															)}
-															<TooltipProvider delayDuration={0}>
-																<Tooltip>
-																	<TooltipTrigger asChild>
-																		<Button
-																			variant="secondary"
-																			type="button"
-																			onClick={() => {
-																				setIsManualInput(!isManualInput);
-																				if (!isManualInput) {
-																					field.onChange("");
-																				}
-																			}}
-																		>
-																			{isManualInput ? (
-																				<RefreshCw className="size-4 text-muted-foreground" />
-																			) : (
-																				<span className="text-xs text-muted-foreground">
-																					Manual
-																				</span>
-																			)}
-																		</Button>
-																	</TooltipTrigger>
-																	<TooltipContent
-																		side="left"
-																		sideOffset={5}
-																		className="max-w-[10rem]"
-																	>
-																		<p>
-																			{isManualInput
-																				? "Switch to service selection"
-																				: "Enter service name manually"}
-																		</p>
-																	</TooltipContent>
-																</Tooltip>
-															</TooltipProvider>
-														</div>
-
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
-									)}
-								</div>
+						<div className="flex flex-col gap-6">
+							<div className="grid gap-4 md:grid-cols-2">
 								<FormField
 									control={form.control}
 									name="host"
 									render={({ field }) => (
-										<FormItem>
-											{!canGenerateTraefikMeDomains &&
-												field.value.includes("traefik.me") && (
-													<AlertBlock type="warning">
-														You need to set an IP address in your{" "}
-														<Link
-															href="/dashboard/settings/server"
-															className="text-primary"
-														>
-															{application?.serverId
-																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
-																: "Web Server -> Server -> Update Server IP"}
-														</Link>{" "}
-														to make your traefik.me domain work.
-													</AlertBlock>
-												)}
-											{isTraefikMeDomain && (
-												<AlertBlock type="info">
-													<strong>Note:</strong> traefik.me is a public HTTP
-													service and does not support SSL/HTTPS. HTTPS and
-													certificate options will not have any effect.
-												</AlertBlock>
-											)}
-											<FormLabel>Host</FormLabel>
-											<div className="flex gap-2">
-												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
-												</FormControl>
-												<TooltipProvider delayDuration={0}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="secondary"
-																type="button"
-																isLoading={isLoadingGenerate}
-																onClick={() => {
-																	generateDomain({
-																		appName: application?.appName || "",
-																		serverId: application?.serverId || "",
-																	})
-																		.then((domain) => {
-																			field.onChange(domain);
-																		})
-																		.catch((err) => {
-																			toast.error(err.message);
-																		});
-																}}
-															>
-																<Dices className="size-4 text-muted-foreground" />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent
-															side="left"
-															sideOffset={5}
-															className="max-w-[10rem]"
-														>
-															<p>Generate traefik.me domain</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
+										<FormItem className="md:col-span-2">
+											<FormLabel>
+												{t("application.domains.handle.field.host.label")}
+											</FormLabel>
+											<div className="flex flex-col gap-2">
+												<div className="flex gap-2">
+													<FormControl>
+														<Input
+															placeholder={t(
+																"application.domains.handle.field.host.placeholder",
+															)}
+															{...field}
+														/>
+													</FormControl>
+													{canGenerateTraefikMeDomains?.canGenerate && (
+														<TooltipProvider delayDuration={0}>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Button
+																		type="button"
+																		variant="secondary"
+																		isLoading={isLoadingGenerate}
+																		onClick={() => {
+																			generateDomain({
+																				appName:
+																					(application as any)?.appName ||
+																					(application as any)?.name ||
+																					"",
+																				serverId: application?.serverId || "",
+																			})
+																				.then((generated) => {
+																					field.onChange(generated);
+																				})
+																				.catch((err) => {
+																					toast.error(err.message);
+																				});
+																		}}
+																	>
+																		<Dices className="size-4 text-muted-foreground" />
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent
+																	side="left"
+																	sideOffset={5}
+																	className="max-w-[14rem]"
+																>
+																	<p>
+																		{t(
+																			"application.domains.handle.tooltip.generateTraefik",
+																		)}
+																	</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
+												</div>
+												<FormMessage />
 											</div>
-
-											<FormMessage />
 										</FormItem>
 									)}
 								/>
@@ -558,58 +410,46 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 								<FormField
 									control={form.control}
 									name="path"
-									render={({ field }) => {
-										return (
-											<FormItem>
-												<FormLabel>Path</FormLabel>
-												<FormControl>
-													<Input placeholder={"/"} {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										);
-									}}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												{t("application.domains.handle.field.path.label")}
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={t(
+														"application.domains.handle.field.path.placeholder",
+													)}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
 								/>
 
 								<FormField
 									control={form.control}
 									name="internalPath"
-									render={({ field }) => {
-										return (
-											<FormItem>
-												<FormLabel>Internal Path</FormLabel>
-												<FormDescription>
-													The path where your application expects to receive
-													requests internally (defaults to "/")
-												</FormDescription>
-												<FormControl>
-													<Input placeholder={"/"} {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										);
-									}}
-								/>
-
-								<FormField
-									control={form.control}
-									name="stripPath"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
-											<div className="space-y-0.5">
-												<FormLabel>Strip Path</FormLabel>
-												<FormDescription>
-													Remove the external path from the request before
-													forwarding to the application
-												</FormDescription>
-												<FormMessage />
-											</div>
+										<FormItem>
+											<FormLabel>
+												{t("application.domains.handle.field.internalPath.label")}
+											</FormLabel>
+											<FormDescription>
+												{t(
+													"application.domains.handle.field.internalPath.description",
+												)}
+											</FormDescription>
 											<FormControl>
-												<Switch
-													checked={field.value}
-													onCheckedChange={field.onChange}
+												<Input
+													placeholder={t(
+														"application.domains.handle.field.internalPath.placeholder",
+													)}
+													{...field}
 												/>
 											</FormControl>
+											<FormMessage />
 										</FormItem>
 									)}
 								/>
@@ -617,35 +457,43 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 								<FormField
 									control={form.control}
 									name="port"
-									render={({ field }) => {
-										return (
-											<FormItem>
-												<FormLabel>Container Port</FormLabel>
-												<FormDescription>
-													The port where your application is running inside the
-													container (e.g., 3000 for Node.js, 80 for Nginx, 8080
-													for Java)
-												</FormDescription>
-												<FormControl>
-													<NumberInput placeholder={"3000"} {...field} />
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										);
-									}}
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												{t("application.domains.handle.field.port.label")}
+											</FormLabel>
+											<FormDescription>
+												{t("application.domains.handle.field.port.description")}
+											</FormDescription>
+											<FormControl>
+												<NumberInput
+													placeholder={t(
+														"application.domains.handle.field.port.placeholder",
+													)}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
 								/>
+							</div>
 
+							<div className="grid gap-4 md:grid-cols-2">
 								<FormField
 									control={form.control}
-									name="https"
+									name="stripPath"
 									render={({ field }) => (
-										<FormItem className="flex flex-row items-center justify-between p-3 mt-4 border rounded-lg shadow-sm">
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
 											<div className="space-y-0.5">
-												<FormLabel>HTTPS</FormLabel>
+												<FormLabel>
+													{t("application.domains.handle.field.stripPath.label")}
+												</FormLabel>
 												<FormDescription>
-													Automatically provision SSL Certificate.
+													{t(
+														"application.domains.handle.field.stripPath.description",
+													)}
 												</FormDescription>
-												<FormMessage />
 											</div>
 											<FormControl>
 												<Switch
@@ -657,75 +505,237 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 									)}
 								/>
 
-								{https && (
-									<>
-										<FormField
-											control={form.control}
-											name="certificateType"
-											render={({ field }) => {
-												return (
-													<FormItem>
-														<FormLabel>Certificate Provider</FormLabel>
-														<Select
-															onValueChange={(value) => {
-																field.onChange(value);
-																if (value !== "custom") {
-																	form.setValue(
-																		"customCertResolver",
-																		undefined,
-																	);
-																}
-															}}
-															value={field.value}
-														>
-															<FormControl>
-																<SelectTrigger>
-																	<SelectValue placeholder="Select a certificate provider" />
-																</SelectTrigger>
-															</FormControl>
-															<SelectContent>
-																<SelectItem value={"none"}>None</SelectItem>
-																<SelectItem value={"letsencrypt"}>
-																	Let's Encrypt
-																</SelectItem>
-																<SelectItem value={"custom"}>Custom</SelectItem>
-															</SelectContent>
-														</Select>
-														<FormMessage />
-													</FormItem>
-												);
-											}}
-										/>
-
-										{certificateType === "custom" && (
-											<FormField
-												control={form.control}
-												name="customCertResolver"
-												render={({ field }) => {
-													return (
-														<FormItem>
-															<FormLabel>Custom Certificate Resolver</FormLabel>
-															<FormControl>
-																<Input
-																	className="w-full"
-																	placeholder="Enter your custom certificate resolver"
-																	{...field}
-																	value={field.value || ""}
-																	onChange={(e) => {
-																		field.onChange(e);
-																		form.trigger("customCertResolver");
-																	}}
-																/>
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													);
-												}}
-											/>
-										)}
-									</>
-								)}
+								<FormField
+									control={form.control}
+									name="https"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>
+													{t("application.domains.handle.field.https.label")}
+												</FormLabel>
+												<FormDescription>
+													{t(
+														"application.domains.handle.field.https.description",
+													)}
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
 							</div>
+
+							{https && (
+								<FormField
+									control={form.control}
+									name="certificateType"
+									render={({ field }) => (
+										<FormItem className="md:col-span-2">
+											<FormLabel>
+												{t(
+													"application.domains.handle.field.certificateType.label",
+												)}
+											</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue
+															placeholder={t(
+																"application.domains.handle.field.certificateType.placeholder",
+															)}
+														/>
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value="none">
+														{t(
+															"application.domains.handle.field.certificateType.option.none",
+														)}
+													</SelectItem>
+													<SelectItem value="letsencrypt">
+														{t(
+															"application.domains.handle.field.certificateType.option.letsencrypt",
+														)}
+													</SelectItem>
+													<SelectItem value="custom">
+														{t(
+															"application.domains.handle.field.certificateType.option.custom",
+														)}
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
+
+							{certificateType === "custom" && (
+								<FormField
+									control={form.control}
+									name="customCertResolver"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												{t(
+													"application.domains.handle.field.customCertResolver.label",
+												)}
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder={t(
+														"application.domains.handle.field.customCertResolver.placeholder",
+													)}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							)}
+
+							{domainType === "compose" && (
+								<div className="flex flex-col gap-3">
+									<div className="flex items-center justify-between gap-2">
+										<div className="space-y-1">
+											<FormLabel>
+												{t("application.domains.handle.field.serviceName.label")}
+											</FormLabel>
+											<FormDescription>
+												{t("application.domains.handle.tooltip.switchToManual")}
+											</FormDescription>
+										</div>
+										<div className="flex items-center gap-2">
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Button
+															type="button"
+															size="icon"
+															variant="ghost"
+															onClick={() =>
+																setCacheType(
+																	cacheType === "cache" ? "fetch" : "cache",
+																)
+															}
+														>
+															<DatabaseZap className="size-4" />
+														</Button>
+													</TooltipTrigger>
+													<TooltipContent>
+														<p>
+															{cacheType === "cache"
+																? t("application.domains.handle.tooltip.cache")
+																: t("application.domains.handle.tooltip.fetch")}
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+
+											<Button
+												type="button"
+												variant="outline"
+												size="icon"
+												onClick={() => refetchServices()}
+												isLoading={isLoadingServices}
+											>
+												<RefreshCw className="size-4" />
+											</Button>
+
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Switch
+															checked={isManualInput}
+															onCheckedChange={(checked) =>
+																setIsManualInput(!!checked)
+															}
+														/>
+													</TooltipTrigger>
+													<TooltipContent side="left">
+														<p>
+															{isManualInput
+																? t(
+																		"application.domains.handle.tooltip.switchToSelect",
+																	)
+																: t(
+																		"application.domains.handle.tooltip.switchToManual",
+																	)}
+														</p>
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										</div>
+									</div>
+
+									{errorServices && (
+										<AlertBlock type="error">{errorServices.message}</AlertBlock>
+									)}
+
+									<FormField
+										control={form.control}
+										name="serviceName"
+										render={({ field }) =>
+											isManualInput ? (
+												<FormItem>
+													<FormControl>
+														<Input
+															placeholder={t(
+																"application.domains.handle.field.serviceName.manualPlaceholder",
+															)}
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											) : (
+												<FormItem>
+													<Select
+														onValueChange={field.onChange}
+														value={field.value || ""}
+													>
+														<FormControl>
+															<SelectTrigger>
+																<SelectValue
+																	placeholder={t(
+																		"application.domains.handle.field.serviceName.manualPlaceholder",
+																	)}
+																/>
+															</SelectTrigger>
+														</FormControl>
+														<SelectContent>
+															{services?.length ? (
+																services.map((service) => (
+																	<SelectItem key={service} value={service}>
+																		{service}
+																	</SelectItem>
+																))
+															) : (
+																<SelectItem value="" disabled>
+																	{t(
+																		"application.domains.handle.field.serviceName.empty",
+																	)}
+																</SelectItem>
+															)}
+														</SelectContent>
+													</Select>
+													<FormMessage />
+												</FormItem>
+											)
+										}
+									/>
+								</div>
+							)}
 						</div>
 					</form>
 

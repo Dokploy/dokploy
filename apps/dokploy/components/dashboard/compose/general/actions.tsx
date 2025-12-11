@@ -1,5 +1,6 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -19,6 +20,7 @@ interface Props {
 }
 export const ComposeActions = ({ composeId }: Props) => {
 	const router = useRouter();
+	const { t } = useTranslation("common");
 	const { data, refetch } = api.compose.one.useQuery(
 		{
 			composeId,
@@ -36,22 +38,22 @@ export const ComposeActions = ({ composeId }: Props) => {
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
 				<DialogAction
-					title="Deploy Compose"
-					description="Are you sure you want to deploy this compose?"
+					title={t("compose.deploy.title")}
+					description={t("compose.deploy.confirm")}
 					type="default"
 					onClick={async () => {
 						await deploy({
 							composeId: composeId,
 						})
 							.then(() => {
-								toast.success("Compose deployed successfully");
+								toast.success(t("compose.deploy.success"));
 								refetch();
 								router.push(
 									`/dashboard/project/${data?.environment.projectId}/environment/${data?.environmentId}/services/compose/${composeId}?tab=deployments`,
 								);
 							})
 							.catch(() => {
-								toast.error("Error deploying compose");
+								toast.error(t("compose.deploy.error"));
 							});
 					}}
 				>
@@ -76,19 +78,19 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</Button>
 				</DialogAction>
 				<DialogAction
-					title="Reload Compose"
-					description="Are you sure you want to reload this compose?"
+					title={t("compose.reload.title")}
+					description={t("compose.reload.confirm")}
 					type="default"
 					onClick={async () => {
 						await redeploy({
 							composeId: composeId,
 						})
 							.then(() => {
-								toast.success("Compose reloaded successfully");
+								toast.success(t("compose.reload.success"));
 								refetch();
 							})
 							.catch(() => {
-								toast.error("Error reloading compose");
+								toast.error(t("compose.reload.error"));
 							});
 					}}
 				>
@@ -115,19 +117,19 @@ export const ComposeActions = ({ composeId }: Props) => {
 				{data?.composeType === "docker-compose" &&
 				data?.composeStatus === "idle" ? (
 					<DialogAction
-						title="Start Compose"
-						description="Are you sure you want to start this compose?"
+						title={t("compose.start.title")}
+						description={t("compose.start.confirm")}
 						type="default"
 						onClick={async () => {
 							await start({
 								composeId: composeId,
 							})
 								.then(() => {
-									toast.success("Compose started successfully");
+									toast.success(t("compose.start.success"));
 									refetch();
 								})
 								.catch(() => {
-									toast.error("Error starting compose");
+									toast.error(t("compose.start.error"));
 								});
 						}}
 					>
@@ -155,18 +157,18 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</DialogAction>
 				) : (
 					<DialogAction
-						title="Stop Compose"
-						description="Are you sure you want to stop this compose?"
+						title={t("compose.stop.title")}
+						description={t("compose.stop.confirm")}
 						onClick={async () => {
 							await stop({
 								composeId: composeId,
 							})
 								.then(() => {
-									toast.success("Compose stopped successfully");
+									toast.success(t("compose.stop.success"));
 									refetch();
 								})
 								.catch(() => {
-									toast.error("Error stopping compose");
+									toast.error(t("compose.stop.error"));
 								});
 						}}
 					>
@@ -206,7 +208,7 @@ export const ComposeActions = ({ composeId }: Props) => {
 				</Button>
 			</DockerTerminalModal>
 			<div className="flex flex-row items-center gap-2 rounded-md px-4 py-2 border">
-				<span className="text-sm font-medium">Autodeploy</span>
+				<span className="text-sm font-medium">Auto Deploy</span>
 				<Switch
 					aria-label="Toggle autodeploy"
 					checked={data?.autoDeploy || false}
@@ -216,11 +218,11 @@ export const ComposeActions = ({ composeId }: Props) => {
 							autoDeploy: enabled,
 						})
 							.then(async () => {
-								toast.success("Auto Deploy Updated");
+								toast.success(t("compose.autoDeploy.update.success"));
 								await refetch();
 							})
 							.catch(() => {
-								toast.error("Error updating Auto Deploy");
+								toast.error(t("compose.autoDeploy.update.error"));
 							});
 					}}
 					className="flex flex-row gap-2 items-center data-[state=checked]:bg-primary"

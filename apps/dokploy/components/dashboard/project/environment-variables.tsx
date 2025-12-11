@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Terminal } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export const EnvironmentVariables = ({ environmentId, children }: Props) => {
+	const { t } = useTranslation("common");
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = api.useUtils();
 	const { mutateAsync, error, isError, isLoading } =
@@ -73,11 +75,11 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 			environmentId: environmentId,
 		})
 			.then(() => {
-				toast.success("Environment variables updated successfully");
+				toast.success(t("environment.variables.update.success"));
 				utils.environment.one.invalidate({ environmentId });
 			})
 			.catch(() => {
-				toast.error("Error updating the environment variables");
+				toast.error(t("environment.variables.update.error"));
 			})
 			.finally(() => {});
 	};
@@ -106,22 +108,20 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 						onSelect={(e) => e.preventDefault()}
 					>
 						<Terminal className="size-4" />
-						<span>Environment Variables</span>
+						<span>{t("environment.variables")}</span>
 					</DropdownMenuItem>
 				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-6xl">
 				<DialogHeader>
-					<DialogTitle>Environment Variables</DialogTitle>
+					<DialogTitle>{t("environment.variables")}</DialogTitle>
 					<DialogDescription>
-						Update the environment variables that are accessible to all services
-						in this environment.
+						{t("environment.variables.description")}
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 				<AlertBlock type="info">
-					Use this syntax to reference environment-level variables in your
-					service environments:{" "}
+					{t("environment.variables.info")}{" "}
 					<code>API_URL=${"{{environment.API_URL}}"}</code>
 				</AlertBlock>
 				<div className="grid gap-4">
@@ -136,17 +136,13 @@ export const EnvironmentVariables = ({ environmentId, children }: Props) => {
 									name="env"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Environment variables</FormLabel>
+											<FormLabel>{t("environment.variables.label")}</FormLabel>
 											<FormControl>
 												<CodeEditor
 													lineWrapping
 													language="properties"
 													wrapperClassName="h-[35rem] font-mono"
-													placeholder={`NODE_ENV=development
-DATABASE_URL=postgresql://localhost:5432/mydb
-API_KEY=your-api-key-here
-
-                                                    `}
+													placeholder={t("environment.variables.placeholder")}
 													{...field}
 												/>
 											</FormControl>
@@ -159,7 +155,7 @@ API_KEY=your-api-key-here
 								/>
 								<DialogFooter>
 									<Button isLoading={isLoading} type="submit">
-										Update
+										{t("button.update")}
 									</Button>
 								</DialogFooter>
 							</form>

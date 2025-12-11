@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "next-i18next";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,18 +15,19 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
 
-const examples = [
-	"Make a personal blog",
-	"Add a photo studio portfolio",
-	"Create a personal ad blocker",
-	"Build a social media dashboard",
-	"Sendgrid service opensource analogue",
+const exampleKeys = [
+	"ai.examples.personalBlog",
+	"ai.examples.photoPortfolio",
+	"ai.examples.adBlocker",
+	"ai.examples.socialDashboard",
+	"ai.examples.sendgridAlternative",
 ];
 
 export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 	// Get servers from the API
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { t } = useTranslation("common");
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
 	// Cloud: show only if there are remote servers (no Dokploy option)
@@ -39,12 +41,16 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 		<div className="flex flex-col h-full gap-4">
 			<div className="">
 				<div className="space-y-4 ">
-					<h2 className="text-lg font-semibold">Step 1: Describe Your Needs</h2>
+					<h2 className="text-lg font-semibold">
+						{t("ai.stepOne.title")}
+					</h2>
 					<div className="space-y-2">
-						<Label htmlFor="user-needs">Describe your template needs</Label>
+						<Label htmlFor="user-needs">
+							{t("ai.stepOne.describeLabel")}
+						</Label>
 						<Textarea
 							id="user-needs"
-							placeholder="Describe the type of template you need, its purpose, and any specific features you'd like to include."
+							placeholder={t("ai.stepOne.textareaPlaceholder")}
 							value={templateInfo?.userInput}
 							onChange={(e) =>
 								setTemplateInfo({ ...templateInfo, userInput: e.target.value })
@@ -56,7 +62,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 					{shouldShowServerDropdown && (
 						<div className="space-y-2">
 							<Label htmlFor="server-deploy">
-								Select the server where you want to deploy (optional)
+								{t("ai.stepOne.serverDropdown.label")}
 							</Label>
 							<Select
 								value={
@@ -82,7 +88,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 							>
 								<SelectTrigger className="w-full">
 									<SelectValue
-										placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+										placeholder={
+											!isCloud ? "Dokploy" : t("ai.stepOne.serverDropdown.placeholderCloud")
+										}
 									/>
 								</SelectTrigger>
 								<SelectContent>
@@ -92,7 +100,7 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 												<span className="flex items-center gap-2 justify-between w-full">
 													<span>Dokploy</span>
 													<span className="text-muted-foreground text-xs self-center">
-														Default
+														{t("ai.stepOne.serverDropdown.defaultTag")}
 													</span>
 												</span>
 											</SelectItem>
@@ -103,7 +111,9 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 											</SelectItem>
 										))}
 										<SelectLabel>
-											Servers ({servers?.length + (!isCloud ? 1 : 0)})
+											{t("ai.stepOne.serverDropdown.serversLabel", {
+												count: servers?.length + (!isCloud ? 1 : 0),
+											})}
 										</SelectLabel>
 									</SelectGroup>
 								</SelectContent>
@@ -112,16 +122,16 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 					)}
 
 					<div className="space-y-2">
-						<Label>Examples:</Label>
+						<Label>{t("ai.stepOne.examples.label")}</Label>
 						<div className="flex flex-wrap gap-2">
-							{examples.map((example, index) => (
+							{exampleKeys.map((key, index) => (
 								<Button
 									key={index}
 									variant="outline"
 									size="sm"
-									onClick={() => handleExampleClick(example)}
+									onClick={() => handleExampleClick(t(key))}
 								>
-									{example}
+									{t(key)}
 								</Button>
 							))}
 						</div>

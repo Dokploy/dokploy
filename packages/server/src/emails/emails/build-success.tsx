@@ -12,6 +12,7 @@ import {
 	Tailwind,
 	Text,
 } from "@react-email/components";
+import { getBuildSuccessEmailContent } from "../../utils/i18n/backend";
 
 export type TemplateProps = {
 	projectName: string;
@@ -30,11 +31,18 @@ export const BuildSuccessEmail = ({
 	date = "2023-05-01T00:00:00.000Z",
 	environmentName = "production",
 }: TemplateProps) => {
-	const previewText = `Build success for ${applicationName}`;
+	const content = getBuildSuccessEmailContent({
+		projectName,
+		applicationName,
+		applicationType,
+		buildLink,
+		date,
+		environmentName,
+	});
 	return (
 		<Html>
 			<Head />
-			<Preview>{previewText}</Preview>
+			<Preview>{content.previewText}</Preview>
 			<Tailwind
 				config={{
 					theme: {
@@ -51,7 +59,7 @@ export const BuildSuccessEmail = ({
 						<Section className="mt-[32px]">
 							<Img
 								src={
-									"https://raw.githubusercontent.com/Dokploy/dokploy/refs/heads/canary/apps/dokploy/logo.png"
+									"https://raw.githubusercontent.com/Frankieli123/dokploy-i18n/refs/heads/main/apps/dokploy/logo.png"
 								}
 								width="100"
 								height="50"
@@ -60,30 +68,36 @@ export const BuildSuccessEmail = ({
 							/>
 						</Section>
 						<Heading className="text-black text-[24px] font-normal text-center p-0 my-[30px] mx-0">
-							Build success for <strong>{applicationName}</strong>
+							{content.heading.beforeApplicationName}
+							<strong>{applicationName}</strong>
+							{content.heading.afterApplicationName}
 						</Heading>
 						<Text className="text-black text-[14px] leading-[24px]">
-							Hello,
+							{content.greeting}
 						</Text>
 						<Text className="text-black text-[14px] leading-[24px]">
-							Your build for <strong>{applicationName}</strong> was successful
+							{content.mainText.beforeApplicationName}
+							<strong>{applicationName}</strong>
+							{content.mainText.afterApplicationName}
 						</Text>
 						<Section className="flex text-black text-[14px]  leading-[24px] bg-[#F4F4F5] rounded-lg p-2">
-							<Text className="!leading-3 font-bold">Details: </Text>
-							<Text className="!leading-3">
-								Project Name: <strong>{projectName}</strong>
+							<Text className="!leading-3 font-bold">
+								{content.detailsLabel}
 							</Text>
 							<Text className="!leading-3">
-								Application Name: <strong>{applicationName}</strong>
+								{content.projectNameLabel} <strong>{projectName}</strong>
 							</Text>
 							<Text className="!leading-3">
-								Environment: <strong>{environmentName}</strong>
+								{content.applicationNameLabel} <strong>{applicationName}</strong>
 							</Text>
 							<Text className="!leading-3">
-								Application Type: <strong>{applicationType}</strong>
+								{content.environmentLabel} <strong>{environmentName}</strong>
 							</Text>
 							<Text className="!leading-3">
-								Date: <strong>{date}</strong>
+								{content.applicationTypeLabel} <strong>{applicationType}</strong>
+							</Text>
+							<Text className="!leading-3">
+								{content.dateLabel} <strong>{date}</strong>
 							</Text>
 						</Section>
 						<Section className="text-center mt-[32px] mb-[32px]">
@@ -91,11 +105,11 @@ export const BuildSuccessEmail = ({
 								href={buildLink}
 								className="bg-[#000000] rounded text-white text-[12px] font-semibold no-underline text-center px-5 py-3"
 							>
-								View build
+								{content.viewBuildButtonLabel}
 							</Button>
 						</Section>
 						<Text className="text-black text-[14px] leading-[24px]">
-							or copy and paste this URL into your browser:{" "}
+							{content.orCopyUrlText}{" "}
 							<Link href={buildLink} className="text-blue-600 no-underline">
 								{buildLink}
 							</Link>

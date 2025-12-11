@@ -1,6 +1,6 @@
 import { api } from "@/utils/api";
 import { ImpersonationBar } from "../dashboard/impersonation/impersonation-bar";
-import { HubSpotWidget } from "../shared/HubSpotWidget";
+import { ChatwootWidget } from "../shared/ChatwootWidget";
 import Page from "./side";
 
 interface Props {
@@ -25,9 +25,7 @@ export const DashboardLayout = ({ children }: Props) => {
 		<>
 			<Page>{children}</Page>
 			{isCloud === true && isUserSubscribed === true && (
-				<>
-					<HubSpotWidget />
-				</>
+				<ChatwootWidget websiteToken="USCpQRKzHvFMssf3p6Eacae5" />
 			)}
 
 			{haveRootAccess === true && <ImpersonationBar />}

@@ -49,7 +49,6 @@ export const schedules = pgTable("schedule", {
 		onDelete: "cascade",
 	}),
 	enabled: boolean("enabled").notNull().default(true),
-	timezone: text("timezone"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
