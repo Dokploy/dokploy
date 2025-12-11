@@ -18,7 +18,9 @@ const Page = () => {
 		<div className="w-full">
 			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
 				<ProfileForm />
-				{(data?.canAccessToAPI || data?.role === "owner") && <ShowApiKeys />}
+				{(data?.canAccessToAPI ||
+					data?.role === "owner" ||
+					data?.role === "admin") && <ShowApiKeys />}
 
 				{/* {isCloud && <RemoveSelfAccount />} */}
 			</div>

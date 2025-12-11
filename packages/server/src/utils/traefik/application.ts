@@ -162,6 +162,7 @@ export const readMonitoringConfig = async (readAll = false) => {
 						trimmed.endsWith("}")
 					) {
 						const log = JSON.parse(trimmed);
+						// Exclude Dokploy service app and Dashboard requests
 						if (log.ServiceName !== "dokploy-service-app@file") {
 							content += `${line}\n`;
 							validCount++;

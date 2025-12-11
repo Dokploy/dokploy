@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,6 +101,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	});
 
 	const previewHttps = form.watch("previewHttps");
+	const wildcardDomain = form.watch("wildcardDomain");
+	const isTraefikMeDomain = wildcardDomain?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
@@ -168,6 +171,13 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
+						{isTraefikMeDomain && (
+							<AlertBlock type="info">
+								<strong>Note:</strong> traefik.me is a public HTTP service and
+								does not support SSL/HTTPS. HTTPS and certificate options will
+								not have any effect.
+							</AlertBlock>
+						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
