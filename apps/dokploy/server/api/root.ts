@@ -37,6 +37,7 @@ import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
+import { templateRegistryRouter } from "./routers/template-registry";
 import { userRouter } from "./routers/user";
 import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
@@ -86,6 +87,7 @@ export const appRouter = createTRPCRouter({
 	rollback: rollbackRouter,
 	volumeBackups: volumeBackupsRouter,
 	environment: environmentRouter,
+	templateRegistry: templateRegistryRouter,
 });
 
 // export type definition of API
