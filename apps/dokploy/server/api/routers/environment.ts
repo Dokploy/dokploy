@@ -208,6 +208,14 @@ export const environmentRouter = createTRPCRouter({
 					});
 				}
 
+				// Prevent deletion of the default environment
+				if (environment.isDefault) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "You cannot delete the default environment",
+					});
+				}
+
 				// Check environment deletion permission
 				await checkEnvironmentDeletionPermission(
 					ctx.user.id,
