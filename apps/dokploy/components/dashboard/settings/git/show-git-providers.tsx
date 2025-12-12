@@ -45,6 +45,7 @@ export const ShowGitProviders = () => {
 		api.gitProvider.updateSharedInOrg.useMutation();
 	const url = useUrl();
 	const { data: session } = authClient.useSession();
+	const { data: currentUser } = api.user.get.useQuery();
 
 	const getGitlabUrl = (
 		clientId: string,
@@ -227,7 +228,8 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 
-																{gitProvider.userId === session?.user?.id ? (
+																{gitProvider.userId === session?.user?.id &&
+																currentUser?.canShareGitProviders ? (
 																	<label
 																		className="flex items-center gap-2 cursor-pointer select-none"
 																		htmlFor={`switch-org-${gitProvider.gitProviderId}`}

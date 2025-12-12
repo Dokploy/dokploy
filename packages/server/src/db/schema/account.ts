@@ -106,6 +106,9 @@ export const member = pgTable("member", {
 	canAccessToGitProviders: boolean("canAccessToGitProviders")
 		.notNull()
 		.default(false),
+	canShareGitProviders: boolean("canShareGitProviders")
+		.notNull()
+		.default(false),
 	canAccessToTraefikFiles: boolean("canAccessToTraefikFiles")
 		.notNull()
 		.default(false),

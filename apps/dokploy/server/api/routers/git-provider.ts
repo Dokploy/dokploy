@@ -1,5 +1,6 @@
 import {
 	findGitProviderById,
+	findMemberById,
 	removeGitProvider,
 	updateGitProvider,
 } from "@dokploy/server";
@@ -69,6 +70,20 @@ export const gitProviderRouter = createTRPCRouter({
 					message: "You are not allowed to update this Git provider",
 				});
 			}
+
+			// Check if user has permission to share git providers
+			const member = await findMemberById(
+				ctx.session.userId,
+				ctx.session.activeOrganizationId,
+			);
+			if (!member.canShareGitProviders) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message:
+						"You don't have permission to share Git providers in the organization",
+				});
+			}
+
 			return await updateGitProvider(input.gitProviderId, {
 				sharedInOrg: input.sharedInOrg,
 			});
