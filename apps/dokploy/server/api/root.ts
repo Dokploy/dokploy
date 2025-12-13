@@ -16,6 +16,7 @@ import { gitProviderRouter } from "./routers/git-provider";
 import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
 import { gitlabRouter } from "./routers/gitlab";
+import { kubernetesRouter } from "./routers/kubernetes";
 import { mariadbRouter } from "./routers/mariadb";
 import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
@@ -80,6 +81,7 @@ export const appRouter = createTRPCRouter({
 	server: serverRouter,
 	stripe: stripeRouter,
 	swarm: swarmRouter,
+	kubernetes: kubernetesRouter,
 	ai: aiRouter,
 	organization: organizationRouter,
 	schedule: scheduleRouter,

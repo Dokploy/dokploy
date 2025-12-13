@@ -26,6 +26,12 @@ import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 export const serverType = pgEnum("serverType", ["deploy", "build"]);
 
+// NEW: Orchestrator type enum for hybrid Swarm/Kubernetes support
+export const orchestratorType = pgEnum("orchestratorType", [
+	"swarm",
+	"kubernetes",
+]);
+
 export const server = pgTable("server", {
 	serverId: text("serverId")
 		.notNull()
@@ -50,6 +56,38 @@ export const server = pgTable("server", {
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
 	}),
+
+	// NEW: Kubernetes/Orchestrator Configuration
+	orchestratorType: orchestratorType("orchestratorType")
+		.notNull()
+		.default("swarm"), // Auto-detected on connection
+
+	// Kubernetes-specific fields
+	k8sContext: text("k8sContext"), // kubectl context name
+	k8sNamespace: text("k8sNamespace").default("dokploy"), // Default namespace
+	k8sVersion: text("k8sVersion"), // e.g., "v1.28.3"
+	k8sApiEndpoint: text("k8sApiEndpoint"), // e.g., "https://k8s.example.com:6443"
+	k8sKubeconfig: text("k8sKubeconfig"), // Base64 encoded kubeconfig or path
+
+	// Kubernetes capabilities (auto-detected)
+	k8sCapabilities: jsonb("k8sCapabilities")
+		.$type<{
+			supportsHPA: boolean;
+			supportsNetworkPolicies: boolean;
+			metricsServerInstalled: boolean;
+			ingressController: string | null; // "traefik", "nginx", etc.
+			storageClasses: string[];
+			supportsPodDisruptionBudget: boolean;
+		}>()
+		.default({
+			supportsHPA: false,
+			supportsNetworkPolicies: false,
+			metricsServerInstalled: false,
+			ingressController: null,
+			storageClasses: [],
+			supportsPodDisruptionBudget: false,
+		}),
+
 	metricsConfig: jsonb("metricsConfig")
 		.$type<{
 			server: {
@@ -204,4 +242,43 @@ export const apiUpdateServerMonitoring = createSchema
 				}),
 			})
 			.required(),
+	});
+
+// NEW: Kubernetes-specific API schemas
+export const k8sCapabilitiesSchema = z.object({
+	supportsHPA: z.boolean(),
+	supportsNetworkPolicies: z.boolean(),
+	metricsServerInstalled: z.boolean(),
+	ingressController: z.string().nullable(),
+	storageClasses: z.array(z.string()),
+	supportsPodDisruptionBudget: z.boolean(),
+});
+
+export const apiUpdateServerOrchestrator = createSchema
+	.pick({
+		serverId: true,
+	})
+	.required()
+	.extend({
+		orchestratorType: z.enum(["swarm", "kubernetes"]),
+		k8sContext: z.string().optional(),
+		k8sNamespace: z.string().optional(),
+		k8sApiEndpoint: z.string().url().optional(),
+		k8sKubeconfig: z.string().optional(),
+	});
+
+export const apiDetectOrchestrator = createSchema
+	.pick({
+		serverId: true,
+	})
+	.required();
+
+export const apiUpdateK8sCapabilities = createSchema
+	.pick({
+		serverId: true,
+	})
+	.required()
+	.extend({
+		k8sCapabilities: k8sCapabilitiesSchema,
+		k8sVersion: z.string().optional(),
 	});
