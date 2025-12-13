@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM node:20.16.0-slim AS base
+ENV PORT=3000
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
