@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 FROM node:20.16.0-slim AS base
-ENV PORT=3000
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
+RUN corepack enable
+RUN corepack prepare pnpm@9.12.0 --activate
 
 FROM base AS build
-WORKDIR /usr/src/app
 COPY . /usr/src/app
+WORKDIR /usr/src/app
 
 RUN apt-get update && apt-get install -y python3 make g++ git python3-pip pkg-config libsecret-1-dev && rm -rf /var/lib/apt/lists/*
 
@@ -65,4 +65,4 @@ RUN curl -sSL https://railpack.com/install.sh | bash
 COPY --from=buildpacksio/pack:0.35.0 /usr/local/bin/pack /usr/local/bin/pack
 
 EXPOSE 3000
-CMD ["pnpm", "start"]
+CMD [ "pnpm", "start" ]
