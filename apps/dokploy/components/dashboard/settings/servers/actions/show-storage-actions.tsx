@@ -173,7 +173,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned all");
+									toast.success("Cleaning in progress...");
 								})
 								.catch(() => {
 									toast.error("Error cleaning all");
