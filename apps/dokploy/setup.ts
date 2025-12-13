@@ -22,7 +22,7 @@ import {
 		await initializeNetwork();
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
-		await execAsync("docker pull traefik:v3.6.1");
+		await execAsync("docker pull traefik:v3.6.4");
 		await initializeStandaloneTraefik();
 		await initializeRedis();
 		await initializePostgres();
