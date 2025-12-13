@@ -28,6 +28,7 @@ import { ShowGeneralApplication } from "@/components/dashboard/application/gener
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { ShowPreviewDeployments } from "@/components/dashboard/application/preview-deployments/show-preview-deployments";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
+import { ShowWebhooks } from "@/components/dashboard/application/webhooks/show-webhooks";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
@@ -64,7 +65,8 @@ type TabState =
 	| "domains"
 	| "monitoring"
 	| "preview-deployments"
-	| "volume-backups";
+	| "volume-backups"
+	| "webhooks";
 
 const Service = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -232,6 +234,7 @@ const Service = (
 												Preview Deployments
 											</TabsTrigger>
 											<TabsTrigger value="schedules">Schedules</TabsTrigger>
+											<TabsTrigger value="webhooks">Webhooks</TabsTrigger>
 											<TabsTrigger value="volume-backups">
 												Volume Backups
 											</TabsTrigger>
@@ -316,6 +319,11 @@ const Service = (
 												id={applicationId}
 												scheduleType="application"
 											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="webhooks">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowWebhooks applicationId={applicationId} />
 										</div>
 									</TabsContent>
 									<TabsContent value="deployments" className="w-full pt-2.5">
