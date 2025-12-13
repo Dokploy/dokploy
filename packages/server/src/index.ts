@@ -34,6 +34,7 @@ export * from "./services/redirect";
 export * from "./services/redis";
 export * from "./services/registry";
 export * from "./services/rollbacks";
+export * from "./services/template-registry";
 export * from "./services/schedule";
 export * from "./services/security";
 export * from "./services/server";

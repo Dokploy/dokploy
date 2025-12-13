@@ -70,7 +70,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
-const TEMPLATE_BASE_URL_KEY = "dokploy_template_base_url";
+const TEMPLATE_REGISTRY_KEY = "dokploy_template_registry_id";
 
 interface Props {
 	environmentId: string;
@@ -82,26 +82,45 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 	const [open, setOpen] = useState(false);
 	const [viewMode, setViewMode] = useState<"detailed" | "icon">("detailed");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
-	const [customBaseUrl, setCustomBaseUrl] = useState<string | undefined>(() => {
-		// Try to get from props first, then localStorage
-		if (baseUrl) return baseUrl;
+	const [selectedRegistryId, setSelectedRegistryId] = useState<string | undefined>(() => {
 		if (typeof window !== "undefined") {
-			return localStorage.getItem(TEMPLATE_BASE_URL_KEY) || undefined;
+			return localStorage.getItem(TEMPLATE_REGISTRY_KEY) || undefined;
 		}
 		return undefined;
 	});
 
+	// Fetch enabled registries
+	const { data: registries } = api.templateRegistry.enabled.useQuery(undefined, {
+		enabled: open,
+	});
+
+	// Get the selected registry's baseUrl
+	const selectedRegistry = registries?.find(
+		(r) => r.templateRegistryId === selectedRegistryId,
+	);
+	const customBaseUrl = baseUrl || selectedRegistry?.baseUrl;
+
 	// Get environment data to extract projectId
 	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
-	// Save to localStorage when customBaseUrl changes
+	// Save selected registry to localStorage
 	useEffect(() => {
-		if (customBaseUrl) {
-			localStorage.setItem(TEMPLATE_BASE_URL_KEY, customBaseUrl);
-		} else {
-			localStorage.removeItem(TEMPLATE_BASE_URL_KEY);
+		if (selectedRegistryId) {
+			localStorage.setItem(TEMPLATE_REGISTRY_KEY, selectedRegistryId);
 		}
-	}, [customBaseUrl]);
+	}, [selectedRegistryId]);
+
+	// Set default registry when registries are loaded
+	useEffect(() => {
+		if (registries && registries.length > 0 && !selectedRegistryId) {
+			const defaultRegistry = registries.find((r) => r.isDefault);
+			if (defaultRegistry) {
+				setSelectedRegistryId(defaultRegistry.templateRegistryId);
+			} else {
+				setSelectedRegistryId(registries[0].templateRegistryId);
+			}
+		}
+	}, [registries, selectedRegistryId]);
 
 	const {
 		data,
@@ -174,14 +193,36 @@ export const AddTemplate = ({ environmentId, baseUrl }: Props) => {
 									className="w-full"
 									value={query}
 								/>
-								<Input
-									placeholder="Base URL (optional)"
-									onChange={(e) =>
-										setCustomBaseUrl(e.target.value || undefined)
-									}
-									className="w-full sm:w-[300px]"
-									value={customBaseUrl || ""}
-								/>
+								<Select
+									value={selectedRegistryId}
+									onValueChange={setSelectedRegistryId}
+								>
+									<SelectTrigger className="w-full sm:w-[250px]">
+										<SelectValue placeholder="Select Registry" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectGroup>
+											<SelectLabel>
+												Template Registries ({registries?.length || 0})
+											</SelectLabel>
+											{registries?.map((registry) => (
+												<SelectItem
+													key={registry.templateRegistryId}
+													value={registry.templateRegistryId}
+												>
+													<span className="flex items-center gap-2">
+														<span>{registry.name}</span>
+														{registry.isDefault && (
+															<span className="text-xs text-muted-foreground">
+																(Default)
+															</span>
+														)}
+													</span>
+												</SelectItem>
+											))}
+										</SelectGroup>
+									</SelectContent>
+								</Select>
 								<Popover modal={true}>
 									<PopoverTrigger asChild>
 										<Button
