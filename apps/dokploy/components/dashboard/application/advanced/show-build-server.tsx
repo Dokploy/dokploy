@@ -38,10 +38,31 @@ interface Props {
 	applicationId: string;
 }
 
-const schema = z.object({
-	buildServerId: z.string().min(1, "Build server is required"),
-	buildRegistryId: z.string().min(1, "Build registry is required"),
-});
+const schema = z
+	.object({
+		buildServerId: z.string().optional(),
+		buildRegistryId: z.string().optional(),
+	})
+	.refine(
+		(data) => {
+			// Both empty/none is valid
+			const buildServerIsNone =
+				!data.buildServerId || data.buildServerId === "none";
+			const buildRegistryIsNone =
+				!data.buildRegistryId || data.buildRegistryId === "none";
+
+			// Both should be either filled or empty
+			if (buildServerIsNone && buildRegistryIsNone) return true;
+			if (!buildServerIsNone && !buildRegistryIsNone) return true;
+
+			return false;
+		},
+		{
+			message:
+				"Both Build Server and Build Registry must be selected together, or both set to None",
+			path: ["buildServerId"], // Show error on buildServerId field
+		},
+	);
 
 type Schema = z.infer<typeof schema>;
 
@@ -121,6 +142,11 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 					container starts running.
 				</AlertBlock>
 
+				<AlertBlock type="info">
+					<strong>Note:</strong> Build Server and Build Registry must be
+					configured together. You can either select both or set both to None.
+				</AlertBlock>
+
 				{!registries || registries.length === 0 ? (
 					<AlertBlock type="warning">
 						You need to add at least one registry to use build servers. Please
@@ -147,7 +173,13 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Build Server</FormLabel>
 									<Select
-										onValueChange={field.onChange}
+										onValueChange={(value) => {
+											field.onChange(value);
+											// If setting to "none", also reset build registry to "none"
+											if (value === "none") {
+												form.setValue("buildRegistryId", "none");
+											}
+										}}
 										value={field.value || "none"}
 									>
 										<FormControl>
@@ -197,7 +229,13 @@ export const ShowBuildServer = ({ applicationId }: Props) => {
 								<FormItem>
 									<FormLabel>Build Registry</FormLabel>
 									<Select
-										onValueChange={field.onChange}
+										onValueChange={(value) => {
+											field.onChange(value);
+											// If setting to "none", also reset build server to "none"
+											if (value === "none") {
+												form.setValue("buildServerId", "none");
+											}
+										}}
 										value={field.value || "none"}
 									>
 										<FormControl>

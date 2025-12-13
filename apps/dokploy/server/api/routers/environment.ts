@@ -208,6 +208,14 @@ export const environmentRouter = createTRPCRouter({
 					});
 				}
 
+				// Prevent deletion of the default environment
+				if (environment.isDefault) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "You cannot delete the default environment",
+					});
+				}
+
 				// Check environment deletion permission
 				await checkEnvironmentDeletionPermission(
 					ctx.user.id,
@@ -256,10 +264,11 @@ export const environmentRouter = createTRPCRouter({
 				}
 				const currentEnvironment = await findEnvironmentById(environmentId);
 
-				if (currentEnvironment.isDefault) {
+				// Prevent renaming the default environment, but allow updating env and description
+				if (currentEnvironment.isDefault && updateData.name !== undefined) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "You cannot update the default environment",
+						message: "You cannot rename the default environment",
 					});
 				}
 				if (

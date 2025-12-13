@@ -369,6 +369,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					webhookUrl: notification.lark?.webhookUrl,
 					name: notification.name,
 					dockerCleanup: notification.dockerCleanup,
+					volumeBackup: notification.volumeBackup,
 					serverThreshold: notification.serverThreshold,
 				});
 			} else if (notification.notificationType === "custom") {
@@ -388,6 +389,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 							)
 						: [],
 					name: notification.name,
+					volumeBackup: notification.volumeBackup,
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
@@ -522,6 +524,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				webhookUrl: data.webhookUrl,
 				name: data.name,
 				dockerCleanup: dockerCleanup,
@@ -547,6 +550,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				appDeploy: appDeploy,
 				dokployRestart: dokployRestart,
 				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
 				endpoint: data.endpoint,
 				headers: headersRecord,
 				name: data.name,

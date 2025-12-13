@@ -191,9 +191,10 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 									<div className="space-y-0.5">
 										<FormLabel>Create Environment File</FormLabel>
 										<FormDescription>
-											When enabled, an .env file will be created during the
-											build process. Disable this if you don't want to generate
-											an environment file.
+											When enabled, an .env file will be created in the same
+											directory as your Dockerfile during the build process.
+											Disable this if you don't want to generate an environment
+											file.
 										</FormDescription>
 									</div>
 									<FormControl>
