@@ -68,7 +68,10 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
-			...(await serverSideTranslations(locale, [LocaleNamespaces.Settings, LocaleNamespaces.Navigation])),
+			...(await serverSideTranslations(locale, [
+				LocaleNamespaces.Settings,
+				LocaleNamespaces.Navigation,
+			])),
 		},
 	};
 }

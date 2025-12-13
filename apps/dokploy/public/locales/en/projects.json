@@ -1,13 +1,13 @@
 {
-  "projects.title": "Projects",
-  "projects.description": "Create and manage your projects",
+	"projects.title": "Projects",
+	"projects.description": "Create and manage your projects",
 
-  "projects.filter": "Filtering projects...",
+	"projects.filter": "Filtering projects...",
 
-  "projects.sort.nameAsc": "Name (A-Z)",
-  "project.sort.nameDesc": "Name (Z-A)",
-  "projects.sort.createdAtAsc": "Newest First",
-  "projects.sort.createdAtDesc": "Oldest First",
-  "projects.sort.servicesAsc": "Least Services",
-  "projects.sort.servicesDesc": "Most services"
+	"projects.sort.nameAsc": "Name (A-Z)",
+	"project.sort.nameDesc": "Name (Z-A)",
+	"projects.sort.createdAtAsc": "Newest First",
+	"projects.sort.createdAtDesc": "Oldest First",
+	"projects.sort.servicesAsc": "Least Services",
+	"projects.sort.servicesDesc": "Most services"
 }

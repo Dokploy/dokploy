@@ -38,7 +38,6 @@ import {
 import { api } from "@/utils/api";
 import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
-
 interface Props {
 	children: React.ReactNode;
 	serverId?: string;

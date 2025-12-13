@@ -4,13 +4,13 @@ import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
@@ -19,138 +19,138 @@ import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 interface Props {
-  serverId?: string;
+	serverId?: string;
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
-  const { t } = useTranslation(LocaleNamespaces.Settings);
-  const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
-    api.settings.reloadTraefik.useMutation();
+	const { t } = useTranslation(LocaleNamespaces.Settings);
+	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
+		api.settings.reloadTraefik.useMutation();
 
-  const { mutateAsync: toggleDashboard, isLoading: toggleDashboardIsLoading } =
-    api.settings.toggleDashboard.useMutation();
+	const { mutateAsync: toggleDashboard, isLoading: toggleDashboardIsLoading } =
+		api.settings.toggleDashboard.useMutation();
 
-  const { data: haveTraefikDashboardPortEnabled, refetch: refetchDashboard } =
-    api.settings.haveTraefikDashboardPortEnabled.useQuery({
-      serverId,
-    });
+	const { data: haveTraefikDashboardPortEnabled, refetch: refetchDashboard } =
+		api.settings.haveTraefikDashboardPortEnabled.useQuery({
+			serverId,
+		});
 
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        asChild
-        disabled={reloadTraefikIsLoading || toggleDashboardIsLoading}
-      >
-        <Button
-          isLoading={reloadTraefikIsLoading || toggleDashboardIsLoading}
-          variant="outline"
-        >
-          {t("settings.server.webServer.traefik.label")}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="start">
-        <DropdownMenuLabel>
-          {t("settings.server.webServer.actions")}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem
-            onClick={async () => {
-              await reloadTraefik({
-                serverId: serverId,
-              })
-                .then(async () => {
-                  toast.success("Traefik Reloaded");
-                })
-                .catch(() => {});
-            }}
-            className="cursor-pointer"
-          >
-            <span>{t("settings.server.webServer.reload")}</span>
-          </DropdownMenuItem>
-          <ShowModalLogs
-            appName="dokploy-traefik"
-            serverId={serverId}
-            type="standalone"
-          >
-            <DropdownMenuItem
-              onSelect={(e) => e.preventDefault()}
-              className="cursor-pointer"
-            >
-              {t("settings.server.webServer.watchLogs")}
-            </DropdownMenuItem>
-          </ShowModalLogs>
-          <EditTraefikEnv serverId={serverId}>
-            <DropdownMenuItem
-              onSelect={(e) => e.preventDefault()}
-              className="cursor-pointer"
-            >
-              <span>{t("settings.server.webServer.traefik.modifyEnv")}</span>
-            </DropdownMenuItem>
-          </EditTraefikEnv>
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger
+				asChild
+				disabled={reloadTraefikIsLoading || toggleDashboardIsLoading}
+			>
+				<Button
+					isLoading={reloadTraefikIsLoading || toggleDashboardIsLoading}
+					variant="outline"
+				>
+					{t("settings.server.webServer.traefik.label")}
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent className="w-56" align="start">
+				<DropdownMenuLabel>
+					{t("settings.server.webServer.actions")}
+				</DropdownMenuLabel>
+				<DropdownMenuSeparator />
+				<DropdownMenuGroup>
+					<DropdownMenuItem
+						onClick={async () => {
+							await reloadTraefik({
+								serverId: serverId,
+							})
+								.then(async () => {
+									toast.success("Traefik Reloaded");
+								})
+								.catch(() => {});
+						}}
+						className="cursor-pointer"
+					>
+						<span>{t("settings.server.webServer.reload")}</span>
+					</DropdownMenuItem>
+					<ShowModalLogs
+						appName="dokploy-traefik"
+						serverId={serverId}
+						type="standalone"
+					>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="cursor-pointer"
+						>
+							{t("settings.server.webServer.watchLogs")}
+						</DropdownMenuItem>
+					</ShowModalLogs>
+					<EditTraefikEnv serverId={serverId}>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="cursor-pointer"
+						>
+							<span>{t("settings.server.webServer.traefik.modifyEnv")}</span>
+						</DropdownMenuItem>
+					</EditTraefikEnv>
 
-          <DialogAction
-            title={
-              haveTraefikDashboardPortEnabled
-                ? "Disable Traefik Dashboard"
-                : "Enable Traefik Dashboard"
-            }
-            description={
-              <div className="space-y-4">
-                <AlertBlock type="warning">
-                  The Traefik container will be recreated from scratch. This
-                  means the container will be deleted and created again, which
-                  may cause downtime in your applications.
-                </AlertBlock>
-                <p>
-                  Are you sure you want to{" "}
-                  {haveTraefikDashboardPortEnabled ? "disable" : "enable"} the
-                  Traefik dashboard?
-                </p>
-              </div>
-            }
-            onClick={async () => {
-              await toggleDashboard({
-                enableDashboard: !haveTraefikDashboardPortEnabled,
-                serverId: serverId,
-              })
-                .then(async () => {
-                  toast.success(
-                    `${
-                      haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"
-                    } Dashboard`
-                  );
-                  refetchDashboard();
-                })
-                .catch((error) => {
-                  const errorMessage =
-                    error?.message ||
-                    "Failed to toggle dashboard. Please check if port 8080 is available.";
-                  toast.error(errorMessage);
-                });
-            }}
-            disabled={toggleDashboardIsLoading}
-            type="default"
-          >
-            <DropdownMenuItem
-              onSelect={(e) => e.preventDefault()}
-              className="w-full cursor-pointer space-x-3"
-            >
-              <span>
-                {haveTraefikDashboardPortEnabled ? "Disable" : "Enable"}{" "}
-                Dashboard
-              </span>
-            </DropdownMenuItem>
-          </DialogAction>
-          <ManageTraefikPorts serverId={serverId}>
-            <DropdownMenuItem
-              onSelect={(e) => e.preventDefault()}
-              className="cursor-pointer"
-            >
-              <span>{t("settings.server.webServer.traefik.managePorts")}</span>
-            </DropdownMenuItem>
-          </ManageTraefikPorts>
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+					<DialogAction
+						title={
+							haveTraefikDashboardPortEnabled
+								? "Disable Traefik Dashboard"
+								: "Enable Traefik Dashboard"
+						}
+						description={
+							<div className="space-y-4">
+								<AlertBlock type="warning">
+									The Traefik container will be recreated from scratch. This
+									means the container will be deleted and created again, which
+									may cause downtime in your applications.
+								</AlertBlock>
+								<p>
+									Are you sure you want to{" "}
+									{haveTraefikDashboardPortEnabled ? "disable" : "enable"} the
+									Traefik dashboard?
+								</p>
+							</div>
+						}
+						onClick={async () => {
+							await toggleDashboard({
+								enableDashboard: !haveTraefikDashboardPortEnabled,
+								serverId: serverId,
+							})
+								.then(async () => {
+									toast.success(
+										`${
+											haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"
+										} Dashboard`,
+									);
+									refetchDashboard();
+								})
+								.catch((error) => {
+									const errorMessage =
+										error?.message ||
+										"Failed to toggle dashboard. Please check if port 8080 is available.";
+									toast.error(errorMessage);
+								});
+						}}
+						disabled={toggleDashboardIsLoading}
+						type="default"
+					>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="w-full cursor-pointer space-x-3"
+						>
+							<span>
+								{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"}{" "}
+								Dashboard
+							</span>
+						</DropdownMenuItem>
+					</DialogAction>
+					<ManageTraefikPorts serverId={serverId}>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="cursor-pointer"
+						>
+							<span>{t("settings.server.webServer.traefik.managePorts")}</span>
+						</DropdownMenuItem>
+					</ManageTraefikPorts>
+				</DropdownMenuGroup>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
 };
