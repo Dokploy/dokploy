@@ -1,0 +1,1 @@
+ALTER TABLE "git_provider" ADD COLUMN "sharedInOrg" boolean DEFAULT false NOT NULL;

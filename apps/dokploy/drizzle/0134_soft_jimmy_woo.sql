@@ -1,0 +1,1 @@
+ALTER TABLE "member" ADD COLUMN "canShareGitProviders" boolean DEFAULT false NOT NULL;
