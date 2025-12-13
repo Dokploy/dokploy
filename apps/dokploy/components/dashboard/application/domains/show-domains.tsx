@@ -258,14 +258,21 @@ export const ShowDomains = ({ id, type }: Props) => {
 													</div>
 												</div>
 												<div className="w-full break-all">
-													<Link
-														className="flex items-center gap-2 text-base font-medium hover:underline"
-														target="_blank"
-														href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
-													>
-														{item.host}
-														<ExternalLink className="size-4 min-w-4" />
-													</Link>
+													<div className="flex items-center gap-2">
+														<Link
+															className="flex items-center gap-2 text-base font-medium hover:underline"
+															target="_blank"
+															href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
+														>
+															{item.host}
+															<ExternalLink className="size-4 min-w-4" />
+														</Link>
+														{item.host.includes("*") && (
+															<Badge variant="outline" className="text-xs">
+																🌐 Wildcard
+															</Badge>
+														)}
+													</div>
 												</div>
 
 												{/* Domain Details */}
