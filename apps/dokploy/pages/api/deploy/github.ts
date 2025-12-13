@@ -128,7 +128,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(
@@ -165,7 +167,9 @@ export default async function handler(
 
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 
@@ -246,7 +250,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(
@@ -291,7 +297,9 @@ export default async function handler(
 				}
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 
@@ -491,7 +499,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(

@@ -171,9 +171,17 @@ ${exec}
 
 echo "Execution completed."`;
 
+const cleanupCommands = {
+	containers: "docker container prune --force",
+	images: "docker image prune --all --force",
+	builders: "docker builder prune --all --force",
+	system: "docker system prune --all --force",
+	volumes: "docker volume prune --all --force",
+};
+
 export const cleanupContainers = async (serverId?: string) => {
 	try {
-		const command = "docker container prune --force";
+		const command = cleanupCommands.containers;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -189,7 +197,7 @@ export const cleanupContainers = async (serverId?: string) => {
 
 export const cleanupImages = async (serverId?: string) => {
 	try {
-		const command = "docker image prune --all --force";
+		const command = cleanupCommands.images;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -203,7 +211,7 @@ export const cleanupImages = async (serverId?: string) => {
 
 export const cleanupVolumes = async (serverId?: string) => {
 	try {
-		const command = "docker volume prune --all --force";
+		const command = cleanupCommands.volumes;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -219,7 +227,7 @@ export const cleanupVolumes = async (serverId?: string) => {
 
 export const cleanupBuilders = async (serverId?: string) => {
 	try {
-		const command = "docker builder prune --all --force";
+		const command = cleanupCommands.builders;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -235,7 +243,7 @@ export const cleanupBuilders = async (serverId?: string) => {
 
 export const cleanupSystem = async (serverId?: string) => {
 	try {
-		const command = "docker system prune --all --force";
+		const command = cleanupCommands.system;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -254,6 +262,34 @@ export const cleanupAll = async (serverId?: string) => {
 	await cleanupImages(serverId);
 	await cleanupBuilders(serverId);
 	await cleanupSystem(serverId);
+};
+
+export const cleanupAllBackground = async (serverId?: string) => {
+	Promise.allSettled(
+		Object.values(cleanupCommands).map(async (command) => {
+			try {
+				if (serverId) {
+					await execAsyncRemote(serverId, dockerSafeExec(command));
+				} else {
+					await execAsync(dockerSafeExec(command));
+				}
+			} catch (error) {}
+		}),
+	)
+		.then((results) => {
+			const failed = results.filter((r) => r.status === "rejected");
+			if (failed.length > 0) {
+				console.error(`Docker cleanup: ${failed.length} operations failed`);
+			} else {
+				console.log("Docker cleanup completed successfully");
+			}
+		})
+		.catch((error) => console.error("Error in cleanup:", error));
+
+	return {
+		status: "scheduled",
+		message: "Docker cleanup has been initiated in the background",
+	};
 };
 
 export const startService = async (appName: string) => {

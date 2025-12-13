@@ -8,7 +8,6 @@
 	"scripts": {
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
-		"dokploy:dev:turbopack": "pnpm --filter=dokploy run dev-turbopack",
 		"dokploy:build": "pnpm --filter=dokploy run build",
 		"dokploy:start": "pnpm --filter=dokploy run start",
 		"test": "pnpm --filter=dokploy run test",

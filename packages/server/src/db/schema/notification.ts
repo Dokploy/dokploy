@@ -390,6 +390,7 @@ export const apiCreateCustom = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
@@ -416,6 +417,7 @@ export const apiCreateLark = notificationsSchema
 	.pick({
 		appBuildError: true,
 		databaseBackup: true,
+		volumeBackup: true,
 		dokployRestart: true,
 		name: true,
 		appDeploy: true,
