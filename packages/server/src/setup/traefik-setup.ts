@@ -30,12 +30,17 @@ export interface TraefikOptions {
 		publishedPort: number;
 		protocol?: string;
 	}[];
+	additionalVolumes?: {
+		hostPath: string;
+		containerPath: string;
+	}[];
 }
 
 export const initializeStandaloneTraefik = async ({
 	env,
 	serverId,
 	additionalPorts = [],
+	additionalVolumes = [],
 }: TraefikOptions = {}) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
 	const imageName = `traefik:v${TRAEFIK_VERSION}`;
@@ -87,6 +92,9 @@ export const initializeStandaloneTraefik = async ({
 				`${MAIN_TRAEFIK_PATH}/traefik.yml:/etc/traefik/traefik.yml`,
 				`${DYNAMIC_TRAEFIK_PATH}:/etc/dokploy/traefik/dynamic`,
 				"/var/run/docker.sock:/var/run/docker.sock",
+				...additionalVolumes.map(
+					(vol) => `${vol.hostPath}:${vol.containerPath}`,
+				),
 			],
 			PortBindings: portBindings,
 		},
@@ -120,6 +128,7 @@ export const initializeStandaloneTraefik = async ({
 export const initializeTraefikService = async ({
 	env,
 	additionalPorts = [],
+	additionalVolumes = [],
 	serverId,
 }: TraefikOptions) => {
 	const { MAIN_TRAEFIK_PATH, DYNAMIC_TRAEFIK_PATH } = paths(!!serverId);
@@ -148,6 +157,11 @@ export const initializeTraefikService = async ({
 						Source: "/var/run/docker.sock",
 						Target: "/var/run/docker.sock",
 					},
+					...additionalVolumes.map((vol) => ({
+						Type: "bind" as const,
+						Source: vol.hostPath,
+						Target: vol.containerPath,
+					})),
 				],
 			},
 			Networks: [{ Target: "dokploy-network" }],
