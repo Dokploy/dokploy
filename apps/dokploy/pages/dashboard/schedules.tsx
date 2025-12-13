@@ -6,6 +6,7 @@ import { ShowSchedules } from "@/components/dashboard/application/schedules/show
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 function SchedulesPage() {
 	const { data: user } = api.user.get.useQuery();
@@ -31,6 +32,7 @@ SchedulesPage.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	if (IS_CLOUD) {
 		return {
 			redirect: {
@@ -50,6 +52,8 @@ export async function getServerSideProps(
 	}
 
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale)),
+		},
 	};
 }

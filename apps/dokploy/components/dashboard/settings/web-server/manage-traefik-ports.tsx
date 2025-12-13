@@ -36,6 +36,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
+
 
 interface Props {
 	children: React.ReactNode;
@@ -55,7 +57,7 @@ const TraefikPortsSchema = z.object({
 type TraefikPortsForm = z.infer<typeof TraefikPortsSchema>;
 
 export const ManageTraefikPorts = ({ children, serverId }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const [open, setOpen] = useState(false);
 
 	const form = useForm<TraefikPortsForm>({

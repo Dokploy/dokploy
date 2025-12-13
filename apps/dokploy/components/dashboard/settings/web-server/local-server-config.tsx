@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 const Schema = z.object({
 	port: z.number().min(1, "Port must be higher than 0"),
@@ -52,7 +53,7 @@ interface Props {
 }
 
 const LocalServerConfig = ({ onSave }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 
 	const form = useForm<Schema>({
 		defaultValues: getLocalServerData(),

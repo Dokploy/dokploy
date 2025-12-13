@@ -11,12 +11,13 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 interface Props {
 	serverId?: string;
 }
 export const ShowStorageActions = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const { mutateAsync: cleanAll, isLoading: cleanAllIsLoading } =
 		api.settings.cleanAll.useMutation();
 

@@ -1,0 +1,13 @@
+{
+  "projects.title": "Проекты",
+  "projects.description": "Создать или управлять проектом",
+
+  "projects.filter": "Поиск по имени...",
+
+  "projects.sort.nameAsc": "Название (A-Z)",
+  "projects.sort.nameDesc": "Название (Z-A)",
+  "projects.sort.createdAtAsc": "Сначала новые",
+  "projects.sort.createdAtDesc": "Сначала старые",
+  "projects.sort.servicesAsc": "Меньше всего сервисов",
+  "projects.sort.servicesDesc": "Больше всего сервисов"
+}

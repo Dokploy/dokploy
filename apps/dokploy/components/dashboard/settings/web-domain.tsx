@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 const addServerDomain = z
 	.object({
@@ -66,7 +67,7 @@ const addServerDomain = z
 type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();

@@ -7,6 +7,7 @@ import { ShowServers } from "@/components/dashboard/settings/servers/show-server
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { appRouter } from "@/server/api/root";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 const Page = () => {
 	return (
@@ -61,7 +62,7 @@ export async function getServerSideProps(
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
-			...(await serverSideTranslations(locale, ["settings"])),
+			...(await serverSideTranslations(locale, [LocaleNamespaces.Settings, LocaleNamespaces.Navigation])),
 		},
 	};
 }

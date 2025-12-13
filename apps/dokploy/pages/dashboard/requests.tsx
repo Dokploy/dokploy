@@ -4,6 +4,7 @@ import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import { ShowRequests } from "@/components/dashboard/requests/show-requests";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 export default function Requests() {
 	return <ShowRequests />;
@@ -14,6 +15,7 @@ Requests.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	if (IS_CLOUD) {
 		return {
 			redirect: {
@@ -33,6 +35,8 @@ export async function getServerSideProps(
 	}
 
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale)),
+		},
 	};
 }
