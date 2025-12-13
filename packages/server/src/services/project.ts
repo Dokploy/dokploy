@@ -49,6 +49,7 @@ export const findProjectById = async (projectId: string) => {
 	const project = await db.query.projects.findFirst({
 		where: eq(projects.projectId, projectId),
 		with: {
+			organization: true,
 			environments: {
 				with: {
 					applications: true,
@@ -69,6 +70,39 @@ export const findProjectById = async (projectId: string) => {
 		});
 	}
 	return project;
+};
+
+/**
+ * Get the effective wildcard domain for a project.
+ * Returns the project's wildcard domain if set, otherwise falls back to
+ * the organization's wildcard domain if useOrganizationWildcard is true.
+ * Returns null if no custom wildcard domain is configured.
+ */
+export const getProjectWildcardDomain = async (
+	projectId: string,
+): Promise<string | null> => {
+	const project = await db.query.projects.findFirst({
+		where: eq(projects.projectId, projectId),
+		with: {
+			organization: true,
+		},
+	});
+
+	if (!project) {
+		return null;
+	}
+
+	// If the project has its own wildcard domain, use it
+	if (project.wildcardDomain) {
+		return project.wildcardDomain;
+	}
+
+	// If the project should inherit from organization, return organization's wildcard
+	if (project.useOrganizationWildcard && project.organization?.wildcardDomain) {
+		return project.organization.wildcardDomain;
+	}
+
+	return null;
 };
 
 export const deleteProject = async (projectId: string) => {

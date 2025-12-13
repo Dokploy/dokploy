@@ -1,7 +1,10 @@
 import dns from "node:dns";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
-import { generateRandomDomain } from "@dokploy/server/templates";
+import {
+	generateCustomWildcardDomain,
+	generateRandomDomain,
+} from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -9,6 +12,7 @@ import { type apiCreateDomain, domains } from "../db/schema";
 import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import { getProjectWildcardDomain } from "./project";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
@@ -66,6 +70,39 @@ export const generateTraefikMeDomain = async (
 		serverIp: admin?.serverIp || "",
 		projectName: appName,
 	});
+};
+
+/**
+ * Generates a domain for an application.
+ * If the project has a custom wildcard domain configured (at project or organization level),
+ * it will use that pattern. Otherwise, it falls back to the default traefik.me domain.
+ *
+ * @param appName - The name of the application
+ * @param userId - The user ID (used for traefik.me fallback)
+ * @param projectId - Optional project ID to check for custom wildcard domain
+ * @param serverId - Optional server ID for remote servers
+ * @returns The generated domain string
+ */
+export const generateApplicationDomain = async (
+	appName: string,
+	userId: string,
+	projectId?: string,
+	serverId?: string,
+): Promise<string> => {
+	// Check if the project has a custom wildcard domain configured
+	if (projectId) {
+		const wildcardDomain = await getProjectWildcardDomain(projectId);
+
+		if (wildcardDomain) {
+			return generateCustomWildcardDomain({
+				appName,
+				wildcardDomain,
+			});
+		}
+	}
+
+	// Fall back to traefik.me domain
+	return generateTraefikMeDomain(appName, userId, serverId);
 };
 
 export const generateWildcardDomain = (
