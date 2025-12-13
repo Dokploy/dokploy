@@ -37,9 +37,15 @@
 
 	"settings.profile.title": "Account",
 	"settings.profile.description": "Change the details of your profile here.",
+	"settings.profile.firstName": "First Name",
+	"settings.profile.lastName": "Last Name",
 	"settings.profile.email": "Email",
+	"settings.profile.currentPassword": "Current Password",
 	"settings.profile.password": "Password",
 	"settings.profile.avatar": "Avatar",
+
+	"settings.profile.keys.title": "API/CLI Keys",
+	"settings.profile.keys.description": "Generate and manage API keys to access the API/CLI",
 
 	"settings.appearance.title": "Appearance",
 	"settings.appearance.description": "Customize the theme of your dashboard.",

@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 const Schema = z.object({
 	name: z.string().min(1, {
@@ -62,7 +63,7 @@ interface Props {
 }
 
 export const HandleServers = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);

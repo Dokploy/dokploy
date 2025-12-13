@@ -37,9 +37,15 @@
 
 	"settings.profile.title": "Аккаунт",
 	"settings.profile.description": "Измените данные вашего профиля.",
+	"settings.profile.firstName": "Имя",
+	"settings.profile.lastName": "Фамилия",
 	"settings.profile.email": "Email",
+	"settings.profile.currentPassword": "Текущий пароль",
 	"settings.profile.password": "Пароль",
 	"settings.profile.avatar": "Аватар",
+
+	"settings.profile.keys.title": "API/CLI Ключи",
+	"settings.profile.keys.description": "Сгенерировать или управлять существующими API ключами, чтобы иметь доступ к API/CLI",
 
 	"settings.appearance.title": "Внешний вид",
 	"settings.appearance.description": "Настройте тему Dokploy.",

@@ -58,6 +58,8 @@ import { api } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
 import { HandleProject } from "./handle-project";
 import { ProjectEnvironment } from "./project-environment";
+import { useTranslation } from "next-i18next";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 export const ShowProjects = () => {
 	const utils = api.useUtils();
@@ -66,6 +68,7 @@ export const ShowProjects = () => {
 	const { data, isLoading } = api.project.all.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 	const { mutateAsync } = api.project.remove.useMutation();
+	const { t } = useTranslation(LocaleNamespaces.Projects);
 
 	const [searchQuery, setSearchQuery] = useState(
 		router.isReady && typeof router.query.q === "string" ? router.query.q : "",
@@ -184,10 +187,10 @@ export const ShowProjects = () => {
 							<CardHeader className="p-0">
 								<CardTitle className="text-xl flex flex-row gap-2">
 									<FolderInput className="size-6 text-muted-foreground self-center" />
-									Projects
+									{t("projects.title", "Projects")}
 								</CardTitle>
 								<CardDescription>
-									Create and manage your projects
+									{t("projects.description", "Create and manage your projects")}
 								</CardDescription>
 							</CardHeader>
 							{(auth?.role === "owner" || auth?.canCreateProjects) && (
@@ -208,7 +211,10 @@ export const ShowProjects = () => {
 									<div className="flex max-sm:flex-col gap-4 items-center w-full">
 										<div className="flex-1 relative max-sm:w-full">
 											<FocusShortcutInput
-												placeholder="Filter projects..."
+												placeholder={t(
+													"projects.filter",
+													"Filtering projects...",
+												)}
 												value={searchQuery}
 												onChange={(e) => setSearchQuery(e.target.value)}
 												className="pr-10"
@@ -223,19 +229,23 @@ export const ShowProjects = () => {
 													<SelectValue placeholder="Sort by..." />
 												</SelectTrigger>
 												<SelectContent>
-													<SelectItem value="name-asc">Name (A-Z)</SelectItem>
-													<SelectItem value="name-desc">Name (Z-A)</SelectItem>
+													<SelectItem value="name-asc">
+														{t("projects.sort.nameAsc", "Name (A-Z)")}
+													</SelectItem>
+													<SelectItem value="name-desc">
+														{t("projects.sort.nameDesc", "Name (Z-A)")}
+													</SelectItem>
 													<SelectItem value="createdAt-desc">
-														Newest first
+														{t("projects.sort.createdAtDesc", "Newest First")}
 													</SelectItem>
 													<SelectItem value="createdAt-asc">
-														Oldest first
+														{t("projects.sort.createdAtAsc", "Oldest First")}
 													</SelectItem>
 													<SelectItem value="services-desc">
-														Most services
+														{t("projects.sort.servicesAsc", "Most Services")}
 													</SelectItem>
 													<SelectItem value="services-asc">
-														Least services
+														{t("projects.sort.servicesDesc", "Least Services")}
 													</SelectItem>
 												</SelectContent>
 											</Select>

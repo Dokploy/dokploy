@@ -14,8 +14,11 @@ import {
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
 import { AddApiKey } from "./add-api-key";
+import { useTranslation } from "next-i18next";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 export const ShowApiKeys = () => {
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const { data, refetch } = api.user.get.useQuery();
 	const { mutateAsync: deleteApiKey, isLoading: isLoadingDelete } =
 		api.user.deleteApiKey.useMutation();
@@ -28,10 +31,13 @@ export const ShowApiKeys = () => {
 						<div>
 							<CardTitle className="text-xl flex items-center gap-2">
 								<KeyIcon className="size-5" />
-								API/CLI Keys
+								{t("settings.profile.keys.title", "API/CLI Keys")}
 							</CardTitle>
 							<CardDescription>
-								Generate and manage API keys to access the API/CLI
+								{t(
+									"settings.profile.keys.description",
+									"Generate and manage API keys to access the API/CLI",
+								)}
 							</CardDescription>
 						</div>
 						<div className="flex flex-row gap-2 max-sm:flex-wrap items-end">

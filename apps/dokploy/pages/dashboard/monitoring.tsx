@@ -7,8 +7,9 @@ import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { api } from "@/utils/api";
+import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const BASE_URL = "http://localhost:3001/metrics";
 
@@ -91,6 +92,7 @@ Dashboard.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+	const locale = getLocale(ctx.req.cookies);
 	if (IS_CLOUD) {
 		return {
 			redirect: {
@@ -110,6 +112,8 @@ export async function getServerSideProps(
 	}
 
 	return {
-		props: {},
+		props: {
+			...(await serverSideTranslations(locale)),
+		},
 	};
 }

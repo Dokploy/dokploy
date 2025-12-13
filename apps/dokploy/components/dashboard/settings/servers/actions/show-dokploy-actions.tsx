@@ -15,9 +15,10 @@ import { api } from "@/utils/api";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
 import { TerminalModal } from "../../web-server/terminal-modal";
 import { GPUSupportModal } from "../gpu-support-modal";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 export const ShowDokployActions = () => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const { mutateAsync: reloadServer, isLoading } =
 		api.settings.reloadServer.useMutation();
 

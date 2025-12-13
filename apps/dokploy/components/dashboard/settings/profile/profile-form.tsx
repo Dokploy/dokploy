@@ -31,6 +31,7 @@ import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { Configure2FA } from "./configure-2fa";
 import { Enable2FA } from "./enable-2fa";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 const profileSchema = z.object({
 	email: z
@@ -72,7 +73,7 @@ export const ProfileForm = () => {
 		isError,
 		error,
 	} = api.user.update.useMutation();
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
 
 	const availableAvatars = useMemo(() => {
@@ -185,7 +186,9 @@ export const ProfileForm = () => {
 												name="name"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>First Name</FormLabel>
+														<FormLabel>
+															{t("settings.profile.firstName", "First Name")}
+														</FormLabel>
 														<FormControl>
 															<Input placeholder="John" {...field} />
 														</FormControl>
@@ -198,7 +201,9 @@ export const ProfileForm = () => {
 												name="lastName"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Last Name</FormLabel>
+														<FormLabel>
+															{t("settings.profile.lastName", "Last Name")}
+														</FormLabel>
 														<FormControl>
 															<Input placeholder="Doe" {...field} />
 														</FormControl>
@@ -227,7 +232,12 @@ export const ProfileForm = () => {
 												name="currentPassword"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Current Password</FormLabel>
+														<FormLabel>
+															{t(
+																"settings.profile.currentPassword",
+																"Current Password",
+															)}
+														</FormLabel>
 														<FormControl>
 															<Input
 																type="password"

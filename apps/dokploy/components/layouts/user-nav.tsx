@@ -24,6 +24,8 @@ import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
+import { useTranslation } from "next-i18next";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 const _AUTO_CHECK_UPDATES_INTERVAL_MINUTES = 7;
 
@@ -33,6 +35,7 @@ export const UserNav = () => {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
 	const { locale, setLocale } = useLocale();
+	const { t } = useTranslation(LocaleNamespaces.Navigation);
 	// const { mutateAsync } = api.auth.logout.useMutation();
 
 	return (

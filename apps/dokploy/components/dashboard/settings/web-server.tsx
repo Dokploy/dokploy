@@ -13,9 +13,10 @@ import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
 import { ToggleDockerCleanup } from "./servers/actions/toggle-docker-cleanup";
 import { UpdateServer } from "./web-server/update-server";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 export const WebServer = () => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const { data } = api.user.get.useQuery();
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();

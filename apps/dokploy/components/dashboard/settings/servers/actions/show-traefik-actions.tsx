@@ -16,12 +16,13 @@ import { api } from "@/utils/api";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 interface Props {
 	serverId?: string;
 }
 export const ShowTraefikActions = ({ serverId }: Props) => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const { mutateAsync: reloadTraefik, isLoading: reloadTraefikIsLoading } =
 		api.settings.reloadTraefik.useMutation();
 
@@ -114,7 +115,9 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 							})
 								.then(async () => {
 									toast.success(
-										`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
+										`${
+											haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"
+										} Dashboard`,
 									);
 									refetchDashboard();
 								})

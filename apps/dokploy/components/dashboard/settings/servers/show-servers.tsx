@@ -44,9 +44,10 @@ import { ShowSchedulesModal } from "./show-schedules-modal";
 import { ShowSwarmOverviewModal } from "./show-swarm-overview-modal";
 import { ShowTraefikFileSystemModal } from "./show-traefik-file-system-modal";
 import { WelcomeSuscription } from "./welcome-stripe/welcome-suscription";
+import { LocaleNamespaces } from "@/utils/locale-namespaces";
 
 export const ShowServers = () => {
-	const { t } = useTranslation("settings");
+	const { t } = useTranslation(LocaleNamespaces.Settings);
 	const router = useRouter();
 	const query = router.query;
 	const { data, refetch, isLoading } = api.server.all.useQuery();

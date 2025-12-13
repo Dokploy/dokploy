@@ -7,10 +7,11 @@ export function getLocale(cookies: NextApiRequestCookies) {
 
 import { serverSideTranslations as originalServerSideTranslations } from "next-i18next/serverSideTranslations";
 import { Languages } from "@/lib/languages";
+import { LocaleNamespaces } from "./locale-namespaces";
 
 export const serverSideTranslations = (
 	locale: string,
-	namespaces = ["common"],
+	namespaces = Object.values(LocaleNamespaces),
 ) =>
 	originalServerSideTranslations(locale, namespaces, {
 		fallbackLng: "en",
