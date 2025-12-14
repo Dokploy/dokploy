@@ -26,10 +26,10 @@ export const initCronJobs = async () => {
 		return;
 	}
 
-    scheduleJob("dokploy-update-check", "*/10 * * * *", async () => {
-        console.log(`[Update Check] Running at ${new Date().toLocaleString()}`);
-        await checkAndNotifyUpdates();
-    });
+	scheduleJob("dokploy-update-check", "*/10 * * * *", async () => {
+		console.log(`[Update Check] Running at ${new Date().toLocaleString()}`);
+		await checkAndNotifyUpdates();
+	});
 
 	if (admin?.user?.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
