@@ -156,7 +156,7 @@ CHECK_INTERVAL=10
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "docker " | grep -v grep)
+    PROCESSES=$(ps aux | grep -E "^.*docker [a-z]" | grep -v grep)
 
     if [ -z "$PROCESSES" ]; then
         echo "Docker is idle. Starting execution..."
