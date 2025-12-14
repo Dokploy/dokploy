@@ -91,7 +91,7 @@ export const postgresRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newPostgres;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;

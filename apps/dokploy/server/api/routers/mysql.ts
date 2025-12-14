@@ -89,7 +89,7 @@ export const mysqlRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newMysql;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
