@@ -262,35 +262,37 @@ export const cleanupSystem = async (serverId?: string) => {
  *
  * https://github.com/Dokploy/dokploy/pull/3266
  */
-const excludedCleanupAllCommands: (keyof typeof cleanupCommands)[] = ['volumes'];
+const excludedCleanupAllCommands: (keyof typeof cleanupCommands)[] = [
+	"volumes",
+];
 
 export const cleanupAll = async (serverId?: string) => {
-  for (const [key, command] of Object.entries(cleanupCommands)) {
-    if (excludedCleanupAllCommands.includes(key)) continue;
+	for (const [key, command] of Object.entries(cleanupCommands)) {
+		if (excludedCleanupAllCommands.includes(key)) continue;
 
-	try {
-	  if (serverId) {
-	    await execAsyncRemote(serverId, dockerSafeExec(command));
-      } else {
-	    await execAsync(dockerSafeExec(command));
-	  }
-	} catch {}
-  }
+		try {
+			if (serverId) {
+				await execAsyncRemote(serverId, dockerSafeExec(command));
+			} else {
+				await execAsync(dockerSafeExec(command));
+			}
+		} catch {}
+	}
 };
 
 export const cleanupAllBackground = async (serverId?: string) => {
 	Promise.allSettled(
-	  Object.entries(cleanupCommands)
-	    .filter(([key]) => !excludedCleanupAllCommands.includes(key))
-	    .map(async ([, command]) => {
-	      try {
-	        if (serverId) {
-	          await execAsyncRemote(serverId, dockerSafeExec(command));
-	        } else {
-	          await execAsync(dockerSafeExec(command));
-	        }
-	      } catch {}
-	    })
+		Object.entries(cleanupCommands)
+			.filter(([key]) => !excludedCleanupAllCommands.includes(key))
+			.map(async ([, command]) => {
+				try {
+					if (serverId) {
+						await execAsyncRemote(serverId, dockerSafeExec(command));
+					} else {
+						await execAsync(dockerSafeExec(command));
+					}
+				} catch {}
+			}),
 	)
 		.then((results) => {
 			const failed = results.filter((r) => r.status === "rejected");
