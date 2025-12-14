@@ -284,33 +284,34 @@ export const cleanupAll = async (serverId?: string) => {
 };
 
 export const cleanupAllBackground = async (serverId?: string) => {
-	Promise.allSettled(
-		Object.entries(cleanupCommands)
-			.filter(([key]) => !excludedCleanupAllCommands.includes(key))
-			.map(async ([, command]) => {
-				try {
-					if (serverId) {
-						await execAsyncRemote(serverId, dockerSafeExec(command));
-					} else {
-						await execAsync(dockerSafeExec(command));
-					}
-				} catch {}
-			}),
-	)
-		.then((results) => {
-			const failed = results.filter((r) => r.status === "rejected");
-			if (failed.length > 0) {
-				console.error(`Docker cleanup: ${failed.length} operations failed`);
-			} else {
-				console.log("Docker cleanup completed successfully");
-			}
-		})
-		.catch((error) => console.error("Error in cleanup:", error));
+  Promise.allSettled(
+    (Object.entries(cleanupCommands) as [
+      keyof typeof cleanupCommands,
+      string
+    ][])
+      .filter(([key]) => !excludedCleanupAllCommands.includes(key))
+      .map(async ([, command]) => {
+        if (serverId) {
+          await execAsyncRemote(serverId, dockerSafeExec(command));
+        } else {
+          await execAsync(dockerSafeExec(command));
+        }
+      })
+  )
+    .then((results) => {
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length > 0) {
+        console.error(`Docker cleanup: ${failed.length} operations failed`);
+      } else {
+        console.log("Docker cleanup completed successfully");
+      }
+    })
+    .catch((error) => console.error("Error in cleanup:", error));
 
-	return {
-		status: "scheduled",
-		message: "Docker cleanup has been initiated in the background",
-	};
+  return {
+    status: "scheduled",
+    message: "Docker cleanup has been initiated in the background",
+  };
 };
 
 export const startService = async (appName: string) => {
