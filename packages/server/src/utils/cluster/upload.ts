@@ -1,16 +1,24 @@
+import { findAllDeploymentsByApplicationId } from "@dokploy/server/services/deployment";
 import type { Registry } from "@dokploy/server/services/registry";
+import { createRollback } from "@dokploy/server/services/rollbacks";
 import type { ApplicationNested } from "../builders";
 
-export const uploadImageRemoteCommand = (application: ApplicationNested) => {
+export const uploadImageRemoteCommand = async (
+	application: ApplicationNested,
+) => {
 	const registry = application.registry;
 	const buildRegistry = application.buildRegistry;
+	const rollbackRegistry = application.rollbackRegistry;
 
-	if (!registry && !buildRegistry) {
+	if (!registry && !buildRegistry && !rollbackRegistry) {
 		throw new Error("No registry found");
 	}
 
 	const { appName } = application;
-	const imageName = `${appName}:latest`;
+	const imageName =
+		application.sourceType === "docker"
+			? application.dockerImage || ""
+			: `${appName}:latest`;
 
 	const commands: string[] = [];
 	if (registry) {
@@ -35,20 +43,71 @@ export const uploadImageRemoteCommand = (application: ApplicationNested) => {
 			);
 		}
 	}
+
+	if (rollbackRegistry && application.rollbackActive) {
+		const deployment = await findAllDeploymentsByApplicationId(
+			application.applicationId,
+		);
+		if (!deployment || !deployment[0]) {
+			throw new Error("Deployment not found");
+		}
+		const deploymentId = deployment[0].deploymentId;
+		const rollback = await createRollback({
+			appName: appName,
+			deploymentId: deploymentId,
+		});
+
+		const rollbackRegistryTag = getRegistryTag(
+			rollbackRegistry,
+			rollback?.image || "",
+		);
+		if (rollbackRegistryTag) {
+			commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
+			commands.push(
+				getRegistryCommands(rollbackRegistry, imageName, rollbackRegistryTag),
+			);
+		}
+	}
 	try {
 		return commands.join("\n");
 	} catch (error) {
 		throw error;
 	}
 };
-const getRegistryTag = (registry: Registry | null, imageName: string) => {
-	if (!registry) {
-		return null;
+/**
+ * Extract the repository name from imageName by taking the last part after '/'
+ * Examples:
+ * - "nginx" -> "nginx"
+ * - "nginx:latest" -> "nginx:latest"
+ * - "myuser/myrepo" -> "myrepo"
+ * - "myuser/myrepo:tag" -> "myrepo:tag"
+ * - "docker.io/myuser/myrepo" -> "myrepo"
+ */
+const extractRepositoryName = (imageName: string): string => {
+	const lastSlashIndex = imageName.lastIndexOf("/");
+
+	// If no '/', return the imageName as is
+	if (lastSlashIndex === -1) {
+		return imageName;
 	}
+
+	// Extract everything after the last '/'
+	return imageName.substring(lastSlashIndex + 1);
+};
+
+export const getRegistryTag = (registry: Registry, imageName: string) => {
 	const { registryUrl, imagePrefix, username } = registry;
-	return imagePrefix
-		? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
-		: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
+
+	// Extract the repository name (last part after '/')
+	const repositoryName = extractRepositoryName(imageName);
+
+	// Build the final tag using registry's username/prefix
+	const targetPrefix = imagePrefix || username;
+	const finalRegistry = registryUrl || "";
+
+	return finalRegistry
+		? `${finalRegistry}/${targetPrefix}/${repositoryName}`
+		: `${targetPrefix}/${repositoryName}`;
 };
 
 const getRegistryCommands = (

@@ -143,7 +143,7 @@ export const ShowDeployments = ({
 						See the last 10 deployments for this {type}
 					</CardDescription>
 				</div>
-				<div className="flex flex-row items-center gap-2">
+				<div className="flex flex-row items-center flex-wrap gap-2">
 					{(type === "application" || type === "compose") && (
 						<KillBuild id={id} type={type} />
 					)}
@@ -373,7 +373,19 @@ export const ShowDeployments = ({
 												type === "application" && (
 													<DialogAction
 														title="Rollback to this deployment"
-														description="Are you sure you want to rollback to this deployment?"
+														description={
+															<div className="flex flex-col gap-3">
+																<p>
+																	Are you sure you want to rollback to this
+																	deployment?
+																</p>
+																<AlertBlock type="info" className="text-sm">
+																	Please wait a few seconds while the image is
+																	pulled from the registry. Your application
+																	should be running shortly.
+																</AlertBlock>
+															</div>
+														}
 														type="default"
 														onClick={async () => {
 															await rollback({

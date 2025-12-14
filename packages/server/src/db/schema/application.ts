@@ -181,12 +181,19 @@ export const applications = pgTable("application", {
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
 	isStaticSpa: boolean("isStaticSpa"),
+	createEnvFile: boolean("createEnvFile").notNull().default(true),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
+	rollbackRegistryId: text("rollbackRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
 	environmentId: text("environmentId")
 		.notNull()
 		.references(() => environments.environmentId, { onDelete: "cascade" }),
@@ -270,6 +277,11 @@ export const applicationsRelations = relations(
 			relationName: "applicationBuildRegistry",
 		}),
 		previewDeployments: many(previewDeployments),
+		rollbackRegistry: one(registry, {
+			fields: [applications.rollbackRegistryId],
+			references: [registry.registryId],
+			relationName: "applicationRollbackRegistry",
+		}),
 	}),
 );
 
@@ -321,6 +333,7 @@ const createSchema = createInsertSchema(applications, {
 	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
 	isStaticSpa: z.boolean().optional(),
+	createEnvFile: z.boolean().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -490,6 +503,7 @@ export const apiSaveEnvironmentVariables = createSchema
 		env: true,
 		buildArgs: true,
 		buildSecrets: true,
+		createEnvFile: true,
 	})
 	.required();
 

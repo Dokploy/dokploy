@@ -1,5 +1,5 @@
 {
-  "id": "7236ab7e-98c8-420d-8d5d-188a6548758c",
+  "id": "bf1b30e7-7763-4efc-acc4-77e86ad8e530",
   "prevId": "a9f2a5f0-53ee-4522-8cc8-37577ce161b3",
   "version": "7",
   "dialect": "postgresql",
@@ -586,12 +586,6 @@
         },
         "logo": {
           "name": "logo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "lastNotifiedUpdateVersion": {
-          "name": "lastNotifiedUpdateVersion",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1367,6 +1361,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "rollbackRegistryId": {
+          "name": "rollbackRegistryId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "environmentId": {
           "name": "environmentId",
           "type": "text",
@@ -1437,6 +1437,19 @@
           "tableTo": "registry",
           "columnsFrom": [
             "registryId"
+          ],
+          "columnsTo": [
+            "registryId"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "application_rollbackRegistryId_registry_registryId_fk": {
+          "name": "application_rollbackRegistryId_registry_registryId_fk",
+          "tableFrom": "application",
+          "tableTo": "registry",
+          "columnsFrom": [
+            "rollbackRegistryId"
           ],
           "columnsTo": [
             "registryId"
@@ -4359,13 +4372,6 @@
         },
         "dokployRestart": {
           "name": "dokployRestart",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "dokployUpdate": {
-          "name": "dokployUpdate",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,

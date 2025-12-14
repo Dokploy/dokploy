@@ -1,5 +1,6 @@
 import { db } from "@dokploy/server/db";
 import {
+	type apiCreateCustom,
 	type apiCreateDiscord,
 	type apiCreateEmail,
 	type apiCreateGotify,
@@ -7,6 +8,7 @@ import {
 	type apiCreateNtfy,
 	type apiCreateSlack,
 	type apiCreateTelegram,
+	type apiUpdateCustom,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
 	type apiUpdateGotify,
@@ -14,6 +16,7 @@ import {
 	type apiUpdateNtfy,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
+	custom,
 	discord,
 	email,
 	gotify,
@@ -57,6 +60,7 @@ export const createSlackNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -89,6 +93,7 @@ export const updateSlackNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -150,6 +155,7 @@ export const createTelegramNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -182,6 +188,7 @@ export const updateTelegramNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -243,6 +250,7 @@ export const createDiscordNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -275,6 +283,7 @@ export const updateDiscordNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -339,6 +348,7 @@ export const createEmailNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -371,6 +381,7 @@ export const updateEmailNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -437,6 +448,7 @@ export const createGotifyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -468,6 +480,7 @@ export const updateGotifyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -529,6 +542,7 @@ export const createNtfyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -560,6 +574,7 @@ export const updateNtfyNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,
@@ -590,6 +605,95 @@ export const updateNtfyNotification = async (
 	});
 };
 
+export const createCustomNotification = async (
+	input: typeof apiCreateCustom._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newCustom = await tx
+			.insert(custom)
+			.values({
+				endpoint: input.endpoint,
+				headers: input.headers,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newCustom) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting custom",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				customId: newCustom.customId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "custom",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateCustomNotification = async (
+	input: typeof apiUpdateCustom._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(custom)
+			.set({
+				endpoint: input.endpoint,
+				headers: input.headers,
+			})
+			.where(eq(custom.customId, input.customId));
+
+		return newDestination;
+	});
+};
+
 export const findNotificationById = async (notificationId: string) => {
 	const notification = await db.query.notifications.findFirst({
 		where: eq(notifications.notificationId, notificationId),
@@ -600,6 +704,7 @@ export const findNotificationById = async (notificationId: string) => {
 			email: true,
 			gotify: true,
 			ntfy: true,
+			custom: true,
 			lark: true,
 		},
 	});
@@ -681,6 +786,7 @@ export const updateLarkNotification = async (
 				appDeploy: input.appDeploy,
 				appBuildError: input.appBuildError,
 				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
 				dokployRestart: input.dokployRestart,
 				dockerCleanup: input.dockerCleanup,
 				dokployUpdate: input.dokployUpdate,

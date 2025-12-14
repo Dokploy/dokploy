@@ -19,6 +19,7 @@ export const getDockerCommand = (application: ApplicationNested) => {
 		buildSecrets,
 		dockerBuildStage,
 		cleanCache,
+		createEnvFile,
 	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 
@@ -61,25 +62,26 @@ export const getDockerCommand = (application: ApplicationNested) => {
 			.map(([key, value]) => `${key}=${quote([value])}`)
 			.join(" ");
 
-		for (const key in secrets) {
-			// Although buildx is smart enough to know we may be referring to an environment variable name,
-			// we still make sure it doesn't fall back to `type=file`.
-			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
-			commandArgs.push("--secret", `type=env,id=${key}`);
-		}
-
 		/*
 			Do not generate an environment file when publishDirectory is specified,
 			as it could be publicly exposed.
+			Also respect the createEnvFile flag.
 		*/
 		let command = "";
-		if (!publishDirectory) {
+		if (!publishDirectory && createEnvFile) {
 			command += createEnvFileCommand(
 				dockerFilePath,
 				env,
 				application.environment.project.env,
 				application.environment.env,
 			);
+		}
+
+		for (const key in secrets) {
+			// Although buildx is smart enough to know we may be referring to an environment variable name,
+			// we still make sure it doesn't fall back to `type=file`.
+			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
+			commandArgs.push("--secret", `type=env,id=${key}`);
 		}
 
 		command += `

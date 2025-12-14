@@ -7,11 +7,7 @@ import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import { startLogCleanup } from "../access-log/handler";
-import {
-	cleanUpDockerBuilder,
-	cleanUpSystemPrune,
-	cleanUpUnusedImages,
-} from "../docker/utils";
+import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, scheduleBackup } from "./utils";
@@ -30,19 +26,19 @@ export const initCronJobs = async () => {
 		return;
 	}
 
-	scheduleJob("dokploy-update-check", "*/10 * * * *", async () => {
-		console.log(`[Update Check] Running at ${new Date().toLocaleString()}`);
-		await checkAndNotifyUpdates();
-	});
+    scheduleJob("dokploy-update-check", "*/10 * * * *", async () => {
+        console.log(`[Update Check] Running at ${new Date().toLocaleString()}`);
+        await checkAndNotifyUpdates();
+    });
 
-	if (admin.user.enableDockerCleanup) {
+	if (admin?.user?.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
 			);
-			await cleanUpUnusedImages();
-			await cleanUpDockerBuilder();
-			await cleanUpSystemPrune();
+
+			await cleanupAll();
+
 			await sendDockerCleanupNotifications(admin.user.id);
 		});
 	}
@@ -56,9 +52,9 @@ export const initCronJobs = async () => {
 				console.log(
 					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
 				);
-				await cleanUpUnusedImages(serverId);
-				await cleanUpDockerBuilder(serverId);
-				await cleanUpSystemPrune(serverId);
+
+				await cleanupAll(serverId);
+
 				await sendDockerCleanupNotifications(
 					admin.user.id,
 					`Docker cleanup for Server ${name} (${serverId})`,
@@ -92,7 +88,7 @@ export const initCronJobs = async () => {
 		}
 	}
 
-	if (admin?.user.logCleanupCron) {
+	if (admin?.user?.logCleanupCron) {
 		console.log("Starting log requests cleanup", admin.user.logCleanupCron);
 		await startLogCleanup(admin.user.logCleanupCron);
 	}

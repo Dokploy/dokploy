@@ -1,7 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import type { ApplicationNested } from "@dokploy/server/utils/builders";
 import { mechanizeDockerContainer } from "@dokploy/server/utils/builders";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type MockCreateServiceOptions = {
 	TaskTemplate?: {
