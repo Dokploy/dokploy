@@ -267,7 +267,10 @@ const excludedCleanupAllCommands: (keyof typeof cleanupCommands)[] = [
 ];
 
 export const cleanupAll = async (serverId?: string) => {
-	for (const [key, command] of Object.entries(cleanupCommands) as [keyof typeof cleanupCommands, string][]) {
+	for (const [key, command] of Object.entries(cleanupCommands) as [
+		keyof typeof cleanupCommands,
+		string,
+	][]) {
 		if (excludedCleanupAllCommands.includes(key)) continue;
 
 		try {
