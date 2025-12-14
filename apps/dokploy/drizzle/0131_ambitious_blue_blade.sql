@@ -1,1 +1,0 @@
-ALTER TABLE "domain" ADD CONSTRAINT "domain_host_path_unique" UNIQUE("host", "path");

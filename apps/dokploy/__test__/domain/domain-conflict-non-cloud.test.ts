@@ -1,10 +1,26 @@
 import { createDomain, updateDomainById } from "@dokploy/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+	baseDomainInput,
+	mockExistingDomain,
+	mockExistingDomainWithPath,
+	mockOtherDomain,
+	mockOtherDomainWithPath,
+} from "./domain-conflict.helpers";
+
+vi.mock("@dokploy/server/constants", () => ({
+	IS_CLOUD: false,
+}));
 
 vi.mock("@dokploy/server/db", () => ({
 	db: {
 		transaction: vi.fn(),
 		update: vi.fn(),
+		query: {
+			domains: {
+				findFirst: vi.fn(),
+			},
+		},
 	},
 }));
 
@@ -17,27 +33,16 @@ vi.mock("@dokploy/server", async (importOriginal) => {
 	};
 });
 
-const mockError = Object.assign(new Error("duplicate key"), {
-	constraint_name: "domain_host_path_unique",
-});
-
-const baseDomainInput = {
-	domainType: "application" as const,
-	port: 80,
-	https: false,
-	certificateType: "none" as const,
-};
-
 describe("Domain Conflict Validation", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
 	describe("createDomain", () => {
-		it("should throw CONFLICT error for duplicate domain without path", async () => {
+		it("should throw CONFLICT error for duplicate domain without path (non-cloud)", async () => {
 			const { db } = await import("@dokploy/server/db");
 
-			vi.mocked(db.transaction).mockRejectedValue(mockError);
+			vi.mocked(db.query.domains.findFirst).mockResolvedValue(mockExistingDomain);
 
 			await expect(
 				createDomain({
@@ -48,10 +53,10 @@ describe("Domain Conflict Validation", () => {
 			).rejects.toThrow("Host 'example.com' is already in use");
 		});
 
-		it("should throw CONFLICT error for duplicate domain with path", async () => {
+		it("should throw CONFLICT error for duplicate domain with path (non-cloud)", async () => {
 			const { db } = await import("@dokploy/server/db");
 
-			vi.mocked(db.transaction).mockRejectedValue(mockError);
+			vi.mocked(db.query.domains.findFirst).mockResolvedValue(mockExistingDomainWithPath);
 
 			await expect(
 				createDomain({
@@ -63,17 +68,12 @@ describe("Domain Conflict Validation", () => {
 		});
 	});
 
+
 	describe("updateDomainById", () => {
-		it("should throw CONFLICT error for duplicate domain without path", async () => {
+		it("should throw CONFLICT error for duplicate domain without path (non-cloud)", async () => {
 			const { db } = await import("@dokploy/server/db");
 
-			vi.mocked(db.update).mockReturnValue({
-				set: vi.fn().mockReturnValue({
-					where: vi.fn().mockReturnValue({
-						returning: vi.fn().mockRejectedValue(mockError),
-					}),
-				}),
-			} as any);
+			vi.mocked(db.query.domains.findFirst).mockResolvedValue(mockOtherDomain);
 
 			await expect(
 				updateDomainById("domain-id", {
@@ -83,16 +83,10 @@ describe("Domain Conflict Validation", () => {
 			).rejects.toThrow("Host 'example.com' is already in use");
 		});
 
-		it("should throw CONFLICT error for duplicate domain with path", async () => {
+		it("should throw CONFLICT error for duplicate domain with path (non-cloud)", async () => {
 			const { db } = await import("@dokploy/server/db");
 
-			vi.mocked(db.update).mockReturnValue({
-				set: vi.fn().mockReturnValue({
-					where: vi.fn().mockReturnValue({
-						returning: vi.fn().mockRejectedValue(mockError),
-					}),
-				}),
-			} as any);
+			vi.mocked(db.query.domains.findFirst).mockResolvedValue(mockOtherDomainWithPath);
 
 			await expect(
 				updateDomainById("domain-id", {
