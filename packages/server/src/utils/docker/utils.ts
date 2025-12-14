@@ -260,7 +260,7 @@ export const cleanupSystem = async (serverId?: string) => {
 /**
  * Volume cleanup should always be performed manually by the user. The reason is that during automatic cleanup, a volume may be deleted due to a stopped container, which is a dangerous situation.
  *
- * https://github.com/Dokploy/dokploy/pull/3266
+ * https://github.com/Dokploy/dokploy/pull/3267
  */
 const excludedCleanupAllCommands: (keyof typeof cleanupCommands)[] = [
 	"volumes",
