@@ -2,6 +2,7 @@ import { logger } from "@dokploy/server/lib/logger";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import type { Destination } from "@dokploy/server/services/destination";
 import { scheduledJobs, scheduleJob } from "node-schedule";
+import { quote } from "shell-quote";
 import { keepLatestNBackups } from ".";
 import { runComposeBackup } from "./compose";
 import { runMariadbBackup } from "./mariadb";
@@ -77,11 +78,142 @@ export const getS3Credentials = (destination: Destination) => {
 	return rcloneFlags;
 };
 
+/**
+ * Sanitizes extra pg_dump arguments to prevent command injection.
+ * Only allows valid pg_dump flags and their values.
+ */
+export const sanitizePgDumpExtraArgs = (
+	extraArgs: string | null | undefined,
+): string => {
+	if (!extraArgs || extraArgs.trim() === "") {
+		return "";
+	}
+
+	// Allowed pg_dump flags (both short and long forms)
+	const allowedFlags = new Set([
+		// Output content options
+		"-a",
+		"--data-only",
+		"-b",
+		"--blobs",
+		"-B",
+		"--no-blobs",
+		"-c",
+		"--clean",
+		"-C",
+		"--create",
+		"-e",
+		"--extension",
+		"-E",
+		"--encoding",
+		"-n",
+		"--schema",
+		"-N",
+		"--exclude-schema",
+		"-O",
+		"--no-owner",
+		"-s",
+		"--schema-only",
+		"-S",
+		"--superuser",
+		"-t",
+		"--table",
+		"-T",
+		"--exclude-table",
+		"-x",
+		"--no-privileges",
+		"--no-acl",
+		"--binary-upgrade",
+		"--column-inserts",
+		"--disable-dollar-quoting",
+		"--disable-triggers",
+		"--enable-row-security",
+		"--exclude-table-data",
+		"--extra-float-digits",
+		"--if-exists",
+		"--include-foreign-data",
+		"--inserts",
+		"--load-via-partition-root",
+		"--no-comments",
+		"--no-publications",
+		"--no-security-labels",
+		"--no-subscriptions",
+		"--no-sync",
+		"--no-synchronized-snapshots",
+		"--no-tablespaces",
+		"--no-toast-compression",
+		"--no-unlogged-table-data",
+		"--on-conflict-do-nothing",
+		"--quote-all-identifiers",
+		"--rows-per-insert",
+		"--section",
+		"--serializable-deferrable",
+		"--snapshot",
+		"--strict-names",
+		"--table-and-children",
+		"--use-set-session-authorization",
+		// Output format options
+		"-F",
+		"--format",
+		"-j",
+		"--jobs",
+		"-v",
+		"--verbose",
+		"-Z",
+		"--compress",
+		"--lock-wait-timeout",
+		// Extension handling (important for TimescaleDB)
+		"--exclude-extension",
+	]);
+
+	// Parse arguments safely
+	const args = extraArgs.trim().split(/\s+/);
+	const sanitizedArgs: string[] = [];
+
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (!arg) continue;
+
+		// Handle --flag=value format
+		if (arg.includes("=")) {
+			const eqIndex = arg.indexOf("=");
+			const flag = arg.substring(0, eqIndex);
+			const value = arg.substring(eqIndex + 1);
+
+			if (allowedFlags.has(flag)) {
+				// Use shell-quote to safely escape the value
+				const escapedValue = quote([value]);
+				sanitizedArgs.push(`${flag}=${escapedValue}`);
+			}
+			continue;
+		}
+
+		// Handle standalone flags or -flag value format
+		if (allowedFlags.has(arg)) {
+			sanitizedArgs.push(arg);
+
+			// Check if next arg is a value (not another flag)
+			const nextArg = args[i + 1];
+			if (nextArg && !nextArg.startsWith("-")) {
+				// Use shell-quote to safely escape the value
+				const escapedValue = quote([nextArg]);
+				sanitizedArgs.push(escapedValue);
+				i++; // Skip the value in next iteration
+			}
+		}
+	}
+
+	return sanitizedArgs.join(" ");
+};
+
 export const getPostgresBackupCommand = (
 	database: string,
 	databaseUser: string,
+	extraArgs?: string | null,
 ) => {
-	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password '${database}' | gzip"`;
+	const sanitizedArgs = sanitizePgDumpExtraArgs(extraArgs);
+	const extraArgsStr = sanitizedArgs ? ` ${sanitizedArgs}` : "";
+	return `docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password${extraArgsStr} '${database}' | gzip"`;
 };
 
 export const getMariadbBackupCommand = (
@@ -147,12 +279,17 @@ export const generateBackupCommand = (backup: BackupSchedule) => {
 		case "postgres": {
 			const postgres = backup.postgres;
 			if (backupType === "database" && postgres) {
-				return getPostgresBackupCommand(backup.database, postgres.databaseUser);
+				return getPostgresBackupCommand(
+					backup.database,
+					postgres.databaseUser,
+					backup.pgDumpExtraArgs,
+				);
 			}
 			if (backupType === "compose" && backup.metadata?.postgres) {
 				return getPostgresBackupCommand(
 					backup.database,
 					backup.metadata.postgres.databaseUser,
+					backup.pgDumpExtraArgs,
 				);
 			}
 			break;

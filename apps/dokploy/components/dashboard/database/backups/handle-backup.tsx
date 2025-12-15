@@ -80,6 +80,7 @@ const Schema = z
 			.enum(["postgres", "mariadb", "mysql", "mongo", "web-server"])
 			.optional(),
 		backupType: z.enum(["database", "compose"]),
+		pgDumpExtraArgs: z.string().optional(),
 		metadata: z
 			.object({
 				postgres: z
@@ -218,6 +219,7 @@ export const HandleBackup = ({
 			serviceName: null,
 			databaseType: backupType === "compose" ? undefined : databaseType,
 			backupType: backupType,
+			pgDumpExtraArgs: "",
 			metadata: {},
 		},
 		resolver: zodResolver(Schema),
@@ -255,6 +257,7 @@ export const HandleBackup = ({
 			serviceName: backup?.serviceName ?? null,
 			databaseType: backup?.databaseType ?? databaseType,
 			backupType: backup?.backupType ?? backupType,
+			pgDumpExtraArgs: backup?.pgDumpExtraArgs ?? "",
 			metadata: backup?.metadata ?? {},
 		});
 	}, [form, form.reset, backupId, backup]);
@@ -299,6 +302,7 @@ export const HandleBackup = ({
 			...getDatabaseId,
 			backupId: backupId ?? "",
 			backupType,
+			pgDumpExtraArgs: data.pgDumpExtraArgs ?? null,
 			metadata: data.metadata,
 		})
 			.then(async () => {
@@ -624,6 +628,31 @@ export const HandleBackup = ({
 									);
 								}}
 							/>
+							{(databaseType === "postgres" ||
+								form.watch("databaseType") === "postgres") && (
+								<FormField
+									control={form.control}
+									name="pgDumpExtraArgs"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Extra pg_dump Arguments</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="--exclude-extension=timescaledb --inserts"
+														{...field}
+													/>
+												</FormControl>
+												<FormDescription>
+													Optional. Additional flags to pass to pg_dump (e.g.,
+													--exclude-extension=timescaledb, --data-only)
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+							)}
 							<FormField
 								control={form.control}
 								name="enabled"

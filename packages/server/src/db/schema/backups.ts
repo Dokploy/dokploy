@@ -75,6 +75,8 @@ export const backups = pgTable("backup", {
 		onDelete: "cascade",
 	}),
 	userId: text("userId").references(() => user.id),
+	// Extra arguments for pg_dump command (PostgreSQL only)
+	pgDumpExtraArgs: text("pgDumpExtraArgs"),
 	// Only for compose backups
 	metadata: jsonb("metadata").$type<
 		| {
@@ -144,6 +146,7 @@ const createSchema = createInsertSchema(backups, {
 	mongoId: z.string().optional(),
 	userId: z.string().optional(),
 	metadata: z.any().optional(),
+	pgDumpExtraArgs: z.string().optional(),
 });
 
 export const apiCreateBackup = createSchema.pick({
@@ -163,6 +166,7 @@ export const apiCreateBackup = createSchema.pick({
 	composeId: true,
 	serviceName: true,
 	metadata: true,
+	pgDumpExtraArgs: true,
 });
 
 export const apiFindOneBackup = createSchema
@@ -189,6 +193,7 @@ export const apiUpdateBackup = createSchema
 		serviceName: true,
 		metadata: true,
 		databaseType: true,
+		pgDumpExtraArgs: true,
 	})
 	.required();
 
