@@ -229,7 +229,9 @@ export const ShowGitProviders = () => {
 																)}
 
 																{gitProvider.userId === session?.user?.id &&
-																currentUser?.canShareGitProviders ? (
+																(currentUser?.canShareGitProviders ||
+																	currentUser?.role === "owner" ||
+																	currentUser?.role === "admin") ? (
 																	<label
 																		className="flex items-center gap-2 cursor-pointer select-none"
 																		htmlFor={`switch-org-${gitProvider.gitProviderId}`}

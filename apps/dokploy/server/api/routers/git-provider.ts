@@ -76,7 +76,13 @@ export const gitProviderRouter = createTRPCRouter({
 				ctx.session.userId,
 				ctx.session.activeOrganizationId,
 			);
-			if (!member.canShareGitProviders) {
+			// Owner and admin roles have permission to share git providers by default
+			const hasPermission =
+				member.role === "owner" ||
+				member.role === "admin" ||
+				member.canShareGitProviders;
+
+			if (!hasPermission) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message:

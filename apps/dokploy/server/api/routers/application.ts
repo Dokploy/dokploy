@@ -5,7 +5,11 @@ import {
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
+	findBitbucketById,
 	findEnvironmentById,
+	findGiteaById,
+	findGithubById,
+	findGitlabById,
 	findGitProviderById,
 	findProjectById,
 	getApplicationStats,
@@ -405,9 +409,16 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveGithubProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.githubId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Github provider ID is required",
+				});
+			}
+			const githubProvider = await findGithubById(input.githubId);
 			if (
 				!canAccessProvider(
-					application.github?.gitProvider!,
+					githubProvider.gitProvider,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				)
@@ -436,9 +447,16 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveGitlabProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.gitlabId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Gitlab provider ID is required",
+				});
+			}
+			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (
 				!canAccessProvider(
-					application.gitlab?.gitProvider!,
+					gitlabProvider.gitProvider,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				)
@@ -468,9 +486,16 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveBitbucketProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.bitbucketId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Bitbucket provider ID is required",
+				});
+			}
+			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
 				!canAccessProvider(
-					application.bitbucket?.gitProvider!,
+					bitbucketProvider.gitProvider,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				)
@@ -498,9 +523,16 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveGiteaProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.giteaId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Gitea provider ID is required",
+				});
+			}
+			const giteaProvider = await findGiteaById(input.giteaId);
 			if (
 				!canAccessProvider(
-					application.gitea?.gitProvider!,
+					giteaProvider.gitProvider,
 					ctx.session.activeOrganizationId,
 					ctx.session.userId,
 				)
