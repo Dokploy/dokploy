@@ -28,6 +28,8 @@ const chartConfig = {
 
 export function CPUChart({ data }: CPUChartProps) {
 	const latestData = data[data.length - 1] || {};
+	const maxCPU = Math.max(...data.map((d) => d.cpu || 0), 100);
+	const yAxisMax = Math.ceil(maxCPU / 10) * 10;
 
 	return (
 		<Card className="bg-transparent">
@@ -64,7 +66,7 @@ export function CPUChart({ data }: CPUChartProps) {
 							minTickGap={32}
 							tickFormatter={(value) => formatTimestamp(value)}
 						/>
-						<YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
+						<YAxis tickFormatter={(value) => `${value}%`} domain={[0, yAxisMax]} />
 						<ChartTooltip
 							cursor={false}
 							content={({ active, payload, label }) => {

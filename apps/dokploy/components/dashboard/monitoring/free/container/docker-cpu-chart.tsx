@@ -22,6 +22,12 @@ export const DockerCpuChart = ({ acummulativeData }: Props) => {
 			usage: item.value.toString().split("%")[0],
 		};
 	});
+	const maxCPU = Math.max(
+		...transformedData.map((d) => Number(d.usage) || 0),
+		100,
+	);
+	const yAxisMax = Math.ceil(maxCPU / 10) * 10;
+
 	return (
 		<div className="mt-6 w-full h-[10rem]">
 			<ResponsiveContainer>
@@ -40,7 +46,7 @@ export const DockerCpuChart = ({ acummulativeData }: Props) => {
 							<stop offset="95%" stopColor="white" stopOpacity={0} />
 						</linearGradient>
 					</defs>
-					<YAxis stroke="#A1A1AA" domain={[0, 100]} />
+					<YAxis stroke="#A1A1AA" domain={[0, yAxisMax]} />
 					<CartesianGrid strokeDasharray="3 3" stroke="#27272A" />
 					{/* @ts-ignore */}
 					<Tooltip content={<CustomTooltip />} />

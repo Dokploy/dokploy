@@ -41,6 +41,8 @@ export const ContainerCPUChart = ({ data }: Props) => {
 		timestamp: "",
 		cpu: 0,
 	};
+	const maxCPU = Math.max(...formattedData.map((d) => d.cpu), 100);
+	const yAxisMax = Math.ceil(maxCPU / 10) * 10;
 
 	return (
 		<Card className="bg-transparent">
@@ -77,7 +79,7 @@ export const ContainerCPUChart = ({ data }: Props) => {
 							minTickGap={32}
 							tickFormatter={(value) => formatTimestamp(value)}
 						/>
-						<YAxis tickFormatter={(value) => `${value}%`} domain={[0, 100]} />
+						<YAxis tickFormatter={(value) => `${value}%`} domain={[0, yAxisMax]} />
 						<ChartTooltip
 							cursor={false}
 							content={({ active, payload, label }) => {

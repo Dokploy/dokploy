@@ -3,7 +3,6 @@ package database
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 func (db *DB) InitContainerMetricsTable() error {
@@ -48,17 +47,11 @@ func (db *DB) SaveContainerMetric(metric *ContainerMetric) error {
 }
 
 func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]ContainerMetric, error) {
-	name := strings.TrimPrefix(containerName, "/")
-	parts := strings.Split(name, "-")
-	if len(parts) > 1 {
-		containerName = strings.Join(parts[:len(parts)-1], "-")
-	}
-
 	query := `
 		WITH recent_metrics AS (
 			SELECT metrics_json
 			FROM container_metrics
-			WHERE container_name LIKE ? || '%'
+			WHERE container_name = ?
 			ORDER BY timestamp DESC
 			LIMIT ?
 		)
@@ -88,17 +81,11 @@ func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]Conta
 }
 
 func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, error) {
-	name := strings.TrimPrefix(containerName, "/")
-	parts := strings.Split(name, "-")
-	if len(parts) > 1 {
-		containerName = strings.Join(parts[:len(parts)-1], "-")
-	}
-
 	query := `
 		WITH recent_metrics AS (
 			SELECT metrics_json
 			FROM container_metrics
-			WHERE container_name LIKE ? || '%'
+			WHERE container_name = ?
 			ORDER BY timestamp DESC
 		)
 		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
