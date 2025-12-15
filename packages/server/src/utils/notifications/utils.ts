@@ -2,6 +2,7 @@ import type {
 	custom,
 	discord,
 	email,
+	googleChat,
 	gotify,
 	lark,
 	ntfy,
@@ -212,6 +213,21 @@ export const sendCustomNotification = async (
 export const sendLarkNotification = async (
 	connection: typeof lark.$inferInsert,
 	message: any,
+) => {
+	try {
+		await fetch(connection.webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(message),
+		});
+	} catch (err) {
+		console.log(err);
+	}
+};
+
+export const sendGoogleChatNotification = async (
+	connection: typeof googleChat.$inferInsert,
+	message: { text: string },
 ) => {
 	try {
 		await fetch(connection.webhookUrl, {

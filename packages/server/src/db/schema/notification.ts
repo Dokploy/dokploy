@@ -21,6 +21,7 @@ export const notificationType = pgEnum("notificationType", [
 	"ntfy",
 	"custom",
 	"lark",
+	"googleChat",
 ]);
 
 export const notifications = pgTable("notification", {
@@ -62,6 +63,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	larkId: text("larkId").references(() => lark.larkId, {
+		onDelete: "cascade",
+	}),
+	googleChatId: text("googleChatId").references(() => googleChat.googleChatId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -149,6 +153,14 @@ export const lark = pgTable("lark", {
 	webhookUrl: text("webhookUrl").notNull(),
 });
 
+export const googleChat = pgTable("google_chat", {
+	googleChatId: text("googleChatId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	webhookUrl: text("webhookUrl").notNull(),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -181,6 +193,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	lark: one(lark, {
 		fields: [notifications.larkId],
 		references: [lark.larkId],
+	}),
+	googleChat: one(googleChat, {
+		fields: [notifications.googleChatId],
+		references: [googleChat.googleChatId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -436,6 +452,32 @@ export const apiUpdateLark = apiCreateLark.partial().extend({
 });
 
 export const apiTestLarkConnection = apiCreateLark.pick({
+	webhookUrl: true,
+});
+
+export const apiCreateGoogleChat = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		webhookUrl: z.string().min(1),
+	})
+	.required();
+
+export const apiUpdateGoogleChat = apiCreateGoogleChat.partial().extend({
+	notificationId: z.string().min(1),
+	googleChatId: z.string().min(1),
+	organizationId: z.string().optional(),
+});
+
+export const apiTestGoogleChatConnection = apiCreateGoogleChat.pick({
 	webhookUrl: true,
 });
 

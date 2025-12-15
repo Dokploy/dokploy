@@ -8,6 +8,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGoogleChatNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
@@ -48,12 +49,22 @@ export const sendDatabaseBackupNotifications = async ({
 			ntfy: true,
 			custom: true,
 			lark: true,
+			googleChat: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+			googleChat,
+		} = notification;
 		try {
 			if (email) {
 				const template = await renderAsync(
@@ -375,6 +386,26 @@ export const sendDatabaseBackupNotifications = async ({
 							],
 						},
 					},
+				});
+			}
+
+			if (googleChat) {
+				const statusEmoji = type === "success" ? "✅" : "❌";
+				const statusText = type === "success" ? "Successful" : "Failed";
+				const errorMsg =
+					type === "error" && errorMessage
+						? `\n\n*Error:*\n\`\`\`${errorMessage.substring(0, 500)}\`\`\``
+						: "";
+
+				await sendGoogleChatNotification(googleChat, {
+					text:
+						`*${statusEmoji} Database Backup ${statusText}*\n\n` +
+						`*Project:* ${projectName}\n` +
+						`*Application:* ${applicationName}\n` +
+						`*Database Type:* ${databaseType}\n` +
+						`*Database Name:* ${databaseName}\n` +
+						`*Date:* ${format(date, "PP pp")}` +
+						errorMsg,
 				});
 			}
 		} catch (error) {

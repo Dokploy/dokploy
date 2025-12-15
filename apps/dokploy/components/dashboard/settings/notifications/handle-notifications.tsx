@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import {
 	DiscordIcon,
+	GoogleChatIcon,
 	GotifyIcon,
 	LarkIcon,
 	NtfyIcon,
@@ -135,6 +136,12 @@ export const notificationSchema = z.discriminatedUnion("type", [
 			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
 		})
 		.merge(notificationBaseSchema),
+	z
+		.object({
+			type: z.literal("googleChat"),
+			webhookUrl: z.string().min(1, { message: "Webhook URL is required" }),
+		})
+		.merge(notificationBaseSchema),
 ]);
 
 export const notificationsMap = {
@@ -169,6 +176,10 @@ export const notificationsMap = {
 	custom: {
 		icon: <PenBoxIcon size={29} className="text-muted-foreground" />,
 		label: "Custom",
+	},
+	googleChat: {
+		icon: <GoogleChatIcon />,
+		label: "Google Chat",
 	},
 };
 
@@ -205,6 +216,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		api.notification.testNtfyConnection.useMutation();
 	const { mutateAsync: testLarkConnection, isLoading: isLoadingLark } =
 		api.notification.testLarkConnection.useMutation();
+	const {
+		mutateAsync: testGoogleChatConnection,
+		isLoading: isLoadingGoogleChat,
+	} = api.notification.testGoogleChatConnection.useMutation();
 
 	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
@@ -233,6 +248,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
+	const googleChatMutation = notificationId
+		? api.notification.updateGoogleChat.useMutation()
+		: api.notification.createGoogleChat.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -393,6 +411,19 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "googleChat") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					type: notification.notificationType,
+					webhookUrl: notification.googleChat?.webhookUrl,
+					name: notification.name,
+					volumeBackup: notification.volumeBackup,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -408,6 +439,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		ntfy: ntfyMutation,
 		lark: larkMutation,
 		custom: customMutation,
+		googleChat: googleChatMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -558,6 +590,20 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
+			});
+		} else if (data.type === "googleChat") {
+			promise = googleChatMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				webhookUrl: data.webhookUrl,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				notificationId: notificationId || "",
+				googleChatId: notification?.googleChatId || "",
+				serverThreshold: serverThreshold,
 			});
 		}
 
@@ -1255,6 +1301,26 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+								{type === "googleChat" && (
+									<>
+										<FormField
+											control={form.control}
+											name="webhookUrl"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Webhook URL</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="https://chat.googleapis.com/v1/spaces/SPACE_ID/messages?key=KEY&token=TOKEN"
+															{...field}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+									</>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
@@ -1428,7 +1494,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingGotify ||
 								isLoadingNtfy ||
 								isLoadingLark ||
-								isLoadingCustom
+								isLoadingCustom ||
+								isLoadingGoogleChat
 							}
 							variant="secondary"
 							type="button"
@@ -1496,6 +1563,10 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testCustomConnection({
 											endpoint: data.endpoint,
 											headers: headersRecord,
+										});
+									} else if (data.type === "googleChat") {
+										await testGoogleChatConnection({
+											webhookUrl: data.webhookUrl,
 										});
 									}
 									toast.success("Connection Success");

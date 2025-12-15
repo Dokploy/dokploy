@@ -8,6 +8,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGoogleChatNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
@@ -29,12 +30,22 @@ export const sendDokployRestartNotifications = async () => {
 			ntfy: true,
 			custom: true,
 			lark: true,
+			googleChat: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+			googleChat,
+		} = notification;
 
 		try {
 			if (email) {
@@ -217,6 +228,15 @@ export const sendDokployRestartNotifications = async () => {
 							],
 						},
 					},
+				});
+			}
+
+			if (googleChat) {
+				await sendGoogleChatNotification(googleChat, {
+					text:
+						`*✅ Dokploy Server Restarted*\n\n` +
+						`*Status:* Successful\n` +
+						`*Restart Time:* ${format(date, "PP pp")}`,
 				});
 			}
 		} catch (error) {

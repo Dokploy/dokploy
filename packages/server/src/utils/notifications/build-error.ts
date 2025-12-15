@@ -8,6 +8,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGoogleChatNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
@@ -48,12 +49,22 @@ export const sendBuildErrorNotifications = async ({
 			ntfy: true,
 			custom: true,
 			lark: true,
+			googleChat: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+			googleChat,
+		} = notification;
 		try {
 			if (email) {
 				const template = await renderAsync(
@@ -347,6 +358,21 @@ export const sendBuildErrorNotifications = async ({
 							],
 						},
 					},
+				});
+			}
+
+			if (googleChat) {
+				const limitCharacter = 500;
+				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				await sendGoogleChatNotification(googleChat, {
+					text:
+						`*⚠️ Build Failed*\n\n` +
+						`*Project:* ${projectName}\n` +
+						`*Application:* ${applicationName}\n` +
+						`*Type:* ${applicationType}\n` +
+						`*Date:* ${format(date, "PP pp")}\n\n` +
+						`*Error:*\n\`\`\`${truncatedErrorMessage}\`\`\`\n\n` +
+						`Build Details: ${buildLink}`,
 				});
 			}
 		} catch (error) {

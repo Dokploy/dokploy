@@ -4,6 +4,7 @@ import { notifications } from "../../db/schema";
 import {
 	sendCustomNotification,
 	sendDiscordNotification,
+	sendGoogleChatNotification,
 	sendLarkNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
@@ -38,6 +39,7 @@ export const sendServerThresholdNotifications = async (
 			slack: true,
 			custom: true,
 			lark: true,
+			googleChat: true,
 		},
 	});
 
@@ -45,7 +47,7 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, custom, lark } = notification;
+		const { discord, telegram, slack, custom, lark, googleChat } = notification;
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -264,6 +266,19 @@ export const sendServerThresholdNotifications = async (
 						],
 					},
 				},
+			});
+		}
+
+		if (googleChat) {
+			await sendGoogleChatNotification(googleChat, {
+				text:
+					`*⚠️ Server ${payload.Type} Alert*\n\n` +
+					`*Server Name:* ${payload.ServerName}\n` +
+					`*Type:* ${typeEmoji} ${payload.Type}\n` +
+					`*Current Value:* ${payload.Value.toFixed(2)}%\n` +
+					`*Threshold:* ${payload.Threshold.toFixed(2)}%\n` +
+					`*Message:* ${payload.Message}\n` +
+					`*Time:* ${date.toLocaleString()}`,
 			});
 		}
 	}
