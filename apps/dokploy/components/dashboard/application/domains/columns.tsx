@@ -3,6 +3,7 @@ import {
 	ArrowUpDown,
 	CheckCircle2,
 	ExternalLink,
+	HelpCircle,
 	Loader2,
 	MoreHorizontal,
 	PenBoxIcon,
@@ -110,7 +111,7 @@ export const createColumns = ({
 		header: "Port",
 		cell: ({ row }) => {
 			const port = row.getValue("port") as number | null;
-			return <span className="text-sm">{port ?? 3000}</span>;
+			return <span className="text-sm">{port != null ? port : "-"}</span>;
 		},
 	},
 	{
@@ -207,7 +208,15 @@ export const createColumns = ({
 									path: domain.path || undefined,
 								}}
 								serverIp={serverIp}
-							/>
+							>
+								<Button
+									variant="ghost"
+									className="w-full justify-start font-normal h-9 px-2"
+								>
+									<HelpCircle className="size-4 mr-2" />
+									DNS Helper
+								</Button>
+							</DnsHelperModal>
 						)}
 						<AddDomain id={id} type={type} domainId={domain.domainId}>
 							<Button

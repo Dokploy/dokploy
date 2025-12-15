@@ -75,6 +75,16 @@ export type ValidationState = {
 
 export type ValidationStates = Record<string, ValidationState>;
 
+const columnLabels: Record<string, string> = {
+	host: "Host",
+	serviceName: "Service",
+	path: "Path",
+	port: "Port",
+	https: "Protocol",
+	certificateType: "Certificate",
+	dnsStatus: "DNS Status",
+};
+
 interface Props {
 	id: string;
 	type: "application" | "compose";
@@ -377,7 +387,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipTrigger asChild>
 																<Badge variant="secondary">
 																	<InfoIcon className="size-3 mr-1" />
-																	Port: {item.port}
+																	Port: {item.port ?? "-"}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent>
@@ -513,13 +523,12 @@ export const ShowDomains = ({ id, type }: Props) => {
 												return (
 													<DropdownMenuCheckboxItem
 														key={column.id}
-														className="capitalize"
 														checked={column.getIsVisible()}
 														onCheckedChange={(value) =>
 															column.toggleVisibility(!!value)
 														}
 													>
-														{column.id}
+														{columnLabels[column.id] ?? column.id}
 													</DropdownMenuCheckboxItem>
 												);
 											})}
