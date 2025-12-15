@@ -42,7 +42,7 @@ const { handler, api } = betterAuth({
 				},
 			});
 
-			if (admin) {
+			if (admin?.user) {
 				return [
 					...(admin.user.serverIp
 						? [`http://${admin.user.serverIp}:3000`]
