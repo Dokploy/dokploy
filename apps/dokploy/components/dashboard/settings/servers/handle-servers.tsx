@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
@@ -59,9 +59,10 @@ type Schema = z.infer<typeof Schema>;
 
 interface Props {
 	serverId?: string;
+	asButton?: boolean;
 }
 
-export const HandleServers = ({ serverId }: Props) => {
+export const HandleServers = ({ serverId, asButton = false }: Props) => {
 	const { t } = useTranslation("settings");
 
 	const utils = api.useUtils();
@@ -137,21 +138,32 @@ export const HandleServers = ({ serverId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				{serverId ? (
+			{serverId ? (
+				asButton ? (
+					<DialogTrigger asChild>
+						<Button variant="outline" size="icon" className="h-9 w-9">
+							<Pencil className="h-4 w-4" />
+						</Button>
+					</DialogTrigger>
+				) : (
 					<DropdownMenuItem
 						className="w-full cursor-pointer "
-						onSelect={(e) => e.preventDefault()}
+						onSelect={(e) => {
+							e.preventDefault();
+							setIsOpen(true);
+						}}
 					>
 						Edit Server
 					</DropdownMenuItem>
-				) : (
+				)
+			) : (
+				<DialogTrigger asChild>
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
 						Create Server
 					</Button>
-				)}
-			</DialogTrigger>
+				</DialogTrigger>
+			)}
 			<DialogContent className="sm:max-w-3xl ">
 				<DialogHeader>
 					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>

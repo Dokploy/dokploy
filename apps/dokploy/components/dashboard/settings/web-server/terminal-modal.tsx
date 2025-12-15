@@ -24,10 +24,12 @@ const getTerminalKey = () => {
 interface Props {
 	children?: React.ReactNode;
 	serverId: string;
+	asButton?: boolean;
 }
 
-export const TerminalModal = ({ children, serverId }: Props) => {
+export const TerminalModal = ({ children, serverId, asButton = false }: Props) => {
 	const [terminalKey, setTerminalKey] = useState<string>(getTerminalKey());
+	const [isOpen, setIsOpen] = useState(false);
 	const isLocalServer = serverId === "local";
 
 	const { data } = api.server.one.useQuery(
@@ -43,15 +45,22 @@ export const TerminalModal = ({ children, serverId }: Props) => {
 	};
 
 	return (
-		<Dialog>
-			<DialogTrigger asChild>
+		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+			{asButton ? (
+				<DialogTrigger asChild>
+					{children}
+				</DialogTrigger>
+			) : (
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
-					onSelect={(e) => e.preventDefault()}
+					onSelect={(e) => {
+						e.preventDefault();
+						setIsOpen(true);
+					}}
 				>
 					{children}
 				</DropdownMenuItem>
-			</DialogTrigger>
+			)}
 			<DialogContent
 				className="sm:max-w-7xl"
 				onEscapeKeyDown={(event) => event.preventDefault()}
