@@ -137,7 +137,7 @@ func (cm *ContainerMonitor) collectMetrics() {
 		// log.Printf("Container: %+v", container)
 
 		// Process metrics
-		metric := processContainerMetrics(container)
+		metric := processContainerMetrics(container, serviceName)
 
 		// log.Printf("Saving metrics for %s: %+v", serviceName, metric)
 
@@ -147,7 +147,7 @@ func (cm *ContainerMonitor) collectMetrics() {
 	}
 }
 
-func processContainerMetrics(container Container) *database.ContainerMetric {
+func processContainerMetrics(container Container, serviceName string) *database.ContainerMetric {
 
 	// Process CPU
 	cpu, _ := strconv.ParseFloat(strings.TrimSuffix(container.CPUPerc, "%"), 64)
@@ -255,7 +255,7 @@ func processContainerMetrics(container Container) *database.ContainerMetric {
 		},
 		Container: container.ID,
 		ID:        container.ID,
-		Name:      container.Name,
+		Name:      serviceName,
 	}
 }
 

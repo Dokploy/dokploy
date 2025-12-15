@@ -41,7 +41,7 @@ export const ContainerCPUChart = ({ data }: Props) => {
 		timestamp: "",
 		cpu: 0,
 	};
-	const maxCPU = Math.max(...formattedData.map((d) => d.cpu), 100);
+	const maxCPU = Math.max(...formattedData.map((d) => d.cpu || 0), 100);
 	const yAxisMax = Math.ceil(maxCPU / 10) * 10;
 
 	return (
