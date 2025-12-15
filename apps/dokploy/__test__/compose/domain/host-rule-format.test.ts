@@ -32,8 +32,8 @@ describe("Host rule format regression tests", () => {
 		previewDeploymentId: "",
 		internalPath: "/",
 		stripPath: false,
-    customEntrypoint: null
-  };
+		customEntrypoint: null,
+	};
 
 	describe("Host rule format validation", () => {
 		it("should generate Host rule with correct parentheses format", async () => {
