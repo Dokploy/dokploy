@@ -177,7 +177,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
-	railpackVersion: text("railpackVersion").default("0.2.2"),
+	railpackVersion: text("railpackVersion").default("0.15.1"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
 	isStaticSpa: boolean("isStaticSpa"),

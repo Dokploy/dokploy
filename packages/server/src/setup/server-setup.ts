@@ -73,7 +73,7 @@ export const serverSetup = async (
 export const defaultCommand = (isBuildServer = false) => {
 	const bashCommand = `
 set -e;
-DOCKER_VERSION=28.5.0
+DOCKER_VERSION=29.1.3
 OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
 SYS_ARCH=$(uname -m)
 CURRENT_USER=$USER
@@ -629,7 +629,7 @@ const installNixpacks = () => `
 	if command_exists nixpacks; then
 		echo "Nixpacks already installed ✅"
 	else
-	    export NIXPACKS_VERSION=1.39.0
+	    export NIXPACKS_VERSION=1.41.0
         bash -c "$(curl -fsSL https://nixpacks.com/install.sh)"
 		echo "Nixpacks version $NIXPACKS_VERSION installed ✅"
 	fi
@@ -639,7 +639,7 @@ const installRailpack = () => `
 	if command_exists railpack; then
 		echo "Railpack already installed ✅"
 	else
-	    export RAILPACK_VERSION=0.2.2
+	    export RAILPACK_VERSION=0.15.1
 		bash -c "$(curl -fsSL https://railpack.com/install.sh)"
 		echo "Railpack version $RAILPACK_VERSION installed ✅"
 	fi
@@ -653,8 +653,8 @@ const installBuildpacks = () => `
 	if command_exists pack; then
 		echo "Buildpacks already installed ✅"
 	else
-		BUILDPACKS_VERSION=0.35.0
-		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+		BUILDPACKS_VERSION=0.39.1
+		curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v$BUILDPACKS_VERSION-linux$SUFFIX.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 		echo "Buildpacks version $BUILDPACKS_VERSION installed ✅"
 	fi
 `;

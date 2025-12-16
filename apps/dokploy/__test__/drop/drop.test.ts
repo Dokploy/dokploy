@@ -25,7 +25,7 @@ if (typeof window === "undefined") {
 }
 
 const baseApp: ApplicationNested = {
-	railpackVersion: "0.2.2",
+	railpackVersion: "0.15.1",
 	applicationId: "",
 	previewLabels: [],
 	createEnvFile: true,
