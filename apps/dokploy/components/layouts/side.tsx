@@ -358,15 +358,7 @@ const MENU: Menu = {
 			// Only enabled for admins
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
-		{
-			isSingle: true,
-			key: "dns-providers",
-			title: "DNS Providers",
-			url: "/dashboard/settings/dns-providers",
-			icon: Globe,
-			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
-		},
+	
 		{
 			isSingle: true,
 			key: "cluster",
