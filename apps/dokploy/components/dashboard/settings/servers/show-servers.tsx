@@ -173,26 +173,41 @@ export const ShowServers = () => {
 																			</DropdownMenu>
 																		)}
 																	</div>
-																	<div className="flex gap-2 mt-2 flex-wrap">
-																		{isCloud && (
+																	<TooltipProvider>
+																		<div className="flex gap-2 mt-2 flex-wrap">
+																			{isCloud && (
+																				<>
+																					{server.serverStatus === "active" ? (
+																						<Badge variant="default">
+																							{server.serverStatus}
+																						</Badge>
+																					) : (
+																						<Tooltip delayDuration={0}>
+																							<TooltipTrigger asChild>
+																								<span className="inline-block">
+																									<Badge variant="destructive" className="cursor-help">
+																										{server.serverStatus}
+																									</Badge>
+																								</span>
+																							</TooltipTrigger>
+																							<TooltipContent className="max-w-xs" side="bottom">
+																								<p className="text-sm">
+																									This server is deactivated due to lack of payment. Please pay your invoice to reactivate it. If you think this is an error, please contact support.
+																								</p>
+																							</TooltipContent>
+																						</Tooltip>
+																					)}
+																				</>
+																			)}
 																			<Badge
 																				variant={
-																					server.serverStatus === "active"
-																						? "default"
-																						: "destructive"
+																					isBuildServer ? "secondary" : "default"
 																				}
 																			>
-																				{server.serverStatus}
+																				{server.serverType}
 																			</Badge>
-																		)}
-																		<Badge
-																			variant={
-																				isBuildServer ? "secondary" : "default"
-																			}
-																		>
-																			{server.serverType}
-																		</Badge>
-																	</div>
+																		</div>
+																	</TooltipProvider>
 																</CardHeader>
 																<CardContent className="space-y-3 flex-1 flex flex-col">
 																	<div className="flex items-center gap-2 text-sm">
