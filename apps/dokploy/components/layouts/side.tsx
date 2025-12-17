@@ -396,9 +396,9 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
-			key: "cloud-providers",
-			title: "Cloud Providers",
-			url: "/dashboard/settings/cloud-providers",
+			key: "providers",
+			title: "Providers",
+			url: "/dashboard/settings/providers",
 			icon: Cloud,
 			// Only enabled for admins
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
