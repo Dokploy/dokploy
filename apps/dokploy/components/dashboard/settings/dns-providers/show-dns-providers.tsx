@@ -167,18 +167,23 @@ const ShowDnsProviders = () => {
 
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex items-center justify-between">
-				<div>
-					<h3 className="text-lg font-semibold">DNS Providers</h3>
-					<p className="text-sm text-muted-foreground">
-						Manage DNS providers for wildcard domain SSL certificate support
-					</p>
-				</div>
-				<Button onClick={() => setIsOpen(true)}>
-					<Server className="mr-2 h-4 w-4" />
-					Add DNS Provider
-				</Button>
-			</div>
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
+				<div className="rounded-xl bg-background shadow-md">
+					<CardHeader>
+						<div className="flex items-center justify-between">
+							<div>
+								<CardTitle className="text-lg">DNS Providers</CardTitle>
+								<CardDescription>
+									Manage DNS providers for wildcard domain SSL certificate support
+								</CardDescription>
+							</div>
+							<Button onClick={() => setIsOpen(true)}>
+								<Server className="mr-2 h-4 w-4" />
+								Add DNS Provider
+							</Button>
+						</div>
+					</CardHeader>
+					<CardContent className="space-y-4">
 
 			{dnsProviders.length === 0 ? (
 				<Card>
