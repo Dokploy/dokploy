@@ -3,6 +3,7 @@ import {
 	checkGPUStatus,
 	checkPortInUse,
 	cleanupAll,
+	cleanupAllBackground,
 	cleanupBuilders,
 	cleanupContainers,
 	cleanupImages,
@@ -193,9 +194,10 @@ export const settingsRouter = createTRPCRouter({
 	cleanAll: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanupAll(input?.serverId);
+			// Execute cleanup in background and return immediately to avoid gateway timeouts
+			const result = await cleanupAllBackground(input?.serverId);
 
-			return true;
+			return result;
 		}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {

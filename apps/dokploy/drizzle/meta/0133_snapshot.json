@@ -1,5 +1,5 @@
 {
-  "id": "fcbc5f29-78e8-4df5-9547-f571ee121334",
+  "id": "270301b8-dcad-4be1-ad3b-8604472c388a",
   "prevId": "cff546ae-01ea-40d4-b32d-0512e05c3856",
   "version": "7",
   "dialect": "postgresql",
@@ -607,6 +607,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "wildcardDomain": {
+          "name": "wildcardDomain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -1348,13 +1354,6 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": false
-        },
-        "createEnvFile": {
-          "name": "createEnvFile",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "createdAt": {
           "name": "createdAt",
@@ -5213,6 +5212,19 @@
           "primaryKey": false,
           "notNull": true,
           "default": "''"
+        },
+        "wildcardDomain": {
+          "name": "wildcardDomain",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "useOrganizationWildcard": {
+          "name": "useOrganizationWildcard",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         }
       },
       "indexes": {},

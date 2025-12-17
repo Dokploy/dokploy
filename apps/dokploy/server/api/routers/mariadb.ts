@@ -87,7 +87,7 @@ export const mariadbRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newMariadb;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
