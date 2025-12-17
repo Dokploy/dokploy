@@ -185,165 +185,150 @@ const ShowDnsProviders = () => {
 					</CardHeader>
 					<CardContent className="space-y-4">
 
-			{dnsProviders.length === 0 ? (
-				<Card>
-					<CardHeader>
-						<CardTitle className="flex items-center gap-2">
-							<ShieldCheck className="h-5 w-5" />
-							No DNS Providers
-						</CardTitle>
-						<CardDescription>
-							Add a DNS provider to enable automatic wildcard SSL certificates for your domains
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<div className="grid gap-4">
-							<Alert>
-								<CircleCheck className="h-4 w-4" />
-								<AlertTitle>Wildcard SSL Support</AlertTitle>
-								<AlertDescription>
-									When you add a DNS provider, Dokploy can automatically request wildcard SSL
-									certificates (e.g., *.example.com) using DNS challenges, which are required for
-									wildcard domains by Let's Encrypt.
-								</AlertDescription>
-							</Alert>
-						</div>
-					</CardContent>
-					<CardFooter>
-						<Button onClick={() => setIsOpen(true)} className="w-full">
-							Add Your First DNS Provider
-						</Button>
-					</CardFooter>
-				</Card>
-			) : (
-				<Card>
-					<CardHeader>
-						<CardTitle>Configured DNS Providers</CardTitle>
-						<CardDescription>
-							These DNS providers are used to solve ACME challenges for wildcard SSL certificates
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Provider</TableHead>
-									<TableHead>Type</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Created</TableHead>
-									<TableHead className="text-right">Actions</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{dnsProviders.map((dnsProvider) => (
-									<TableRow key={dnsProvider.dnsProviderId}>
-										<TableCell>
-											<div className="flex items-center gap-2">
-												<span className="text-lg">{getProviderIcon(dnsProvider.type)}</span>
-												<div>
-													<div className="font-medium">{dnsProvider.name}</div>
-													<div className="text-sm text-muted-foreground">
-														{getProviderDescription(dnsProvider.type)}
+						{dnsProviders.length === 0 ? (
+							<div className="text-center py-8">
+								<ShieldCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+								<h3 className="text-lg font-semibold mb-2">No DNS Providers</h3>
+								<p className="text-muted-foreground mb-4">
+									Add a DNS provider to enable automatic wildcard SSL certificates for your domains
+								</p>
+								<Alert className="text-left mb-4">
+									<CircleCheck className="h-4 w-4" />
+									<AlertTitle>Wildcard SSL Support</AlertTitle>
+									<AlertDescription>
+										When you add a DNS provider, Dokploy can automatically request wildcard SSL
+										certificates (e.g., *.example.com) using DNS challenges, which are required for
+										wildcard domains by Let's Encrypt.
+									</AlertDescription>
+								</Alert>
+								<Button onClick={() => setIsOpen(true)}>
+									Add Your First DNS Provider
+								</Button>
+							</div>
+						) : (
+							<div>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Provider</TableHead>
+											<TableHead>Type</TableHead>
+											<TableHead>Status</TableHead>
+											<TableHead>Created</TableHead>
+											<TableHead className="text-right">Actions</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{dnsProviders.map((dnsProvider) => (
+											<TableRow key={dnsProvider.dnsProviderId}>
+												<TableCell>
+													<div className="flex items-center gap-2">
+														<span className="text-lg">{getProviderIcon(dnsProvider.type)}</span>
+														<div>
+															<div className="font-medium">{dnsProvider.name}</div>
+															<div className="text-sm text-muted-foreground">
+																{getProviderDescription(dnsProvider.type)}
+															</div>
+														</div>
 													</div>
-												</div>
-											</div>
-										</TableCell>
-										<TableCell>
-											<Badge variant="outline">
-												{getProviderDisplayName(dnsProvider.type)}
-											</Badge>
-										</TableCell>
-										<TableCell>
-											<div className="flex items-center gap-2">
-												{dnsProvider.active ? (
-													<>
-														<CircleCheck className="h-4 w-4 text-green-500" />
-														<span className="text-sm">Active</span>
-													</>
-												) : (
-													<>
-														<CircleX className="h-4 w-4 text-red-500" />
-														<span className="text-sm">Inactive</span>
-													</>
-												)}
-											</div>
-										</TableCell>
-										<TableCell className="text-sm text-muted-foreground">
-											{formatDistanceToNow(new Date(dnsProvider.createdAt), {
-												addSuffix: true,
-											})}
-										</TableCell>
-										<TableCell className="text-right">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button variant="ghost" size="icon">
-														<MoreHorizontal className="h-4 w-4" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuItem
-														onClick={() => handleToggleStatus(dnsProvider)}
-														disabled={isToggling}
-													>
-														<CircleCheck className="mr-2 h-4 w-4" />
-														{dnsProvider.active ? "Deactivate" : "Activate"}
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														onClick={() => {
-															// TODO: Implement edit functionality
-															toast.info("Edit functionality coming soon");
-														}}
-													>
-														<Edit className="mr-2 h-4 w-4" />
-														Edit
-													</DropdownMenuItem>
-													<DropdownMenuSeparator />
-													<DropdownMenuItem
-														onClick={() => handleDelete(dnsProvider)}
-														disabled={isDeleting}
-														className="text-destructive"
-													>
-														<Trash2 className="mr-2 h-4 w-4" />
-														Delete
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+												</TableCell>
+												<TableCell>
+													<Badge variant="outline">
+														{getProviderDisplayName(dnsProvider.type)}
+													</Badge>
+												</TableCell>
+												<TableCell>
+													<div className="flex items-center gap-2">
+														{dnsProvider.active ? (
+															<>
+																<CircleCheck className="h-4 w-4 text-green-500" />
+																<span className="text-sm">Active</span>
+															</>
+														) : (
+															<>
+																<CircleX className="h-4 w-4 text-red-500" />
+																<span className="text-sm">Inactive</span>
+															</>
+														)}
+													</div>
+												</TableCell>
+												<TableCell className="text-sm text-muted-foreground">
+													{formatDistanceToNow(new Date(dnsProvider.createdAt), {
+														addSuffix: true,
+													})}
+												</TableCell>
+												<TableCell className="text-right">
+													<DropdownMenu>
+														<DropdownMenuTrigger asChild>
+															<Button variant="ghost" size="icon">
+																<MoreHorizontal className="h-4 w-4" />
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuItem
+																onClick={() => handleToggleStatus(dnsProvider)}
+																disabled={isToggling}
+															>
+																<CircleCheck className="mr-2 h-4 w-4" />
+																{dnsProvider.active ? "Deactivate" : "Activate"}
+															</DropdownMenuItem>
+															<DropdownMenuItem
+																onClick={() => {
+																	// TODO: Implement edit functionality
+																	toast.info("Edit functionality coming soon");
+																}}
+															>
+																<Edit className="mr-2 h-4 w-4" />
+																Edit
+															</DropdownMenuItem>
+															<DropdownMenuSeparator />
+															<DropdownMenuItem
+																onClick={() => handleDelete(dnsProvider)}
+																disabled={isDeleting}
+																className="text-destructive"
+															>
+																<Trash2 className="mr-2 h-4 w-4" />
+																Delete
+															</DropdownMenuItem>
+														</DropdownMenuContent>
+													</DropdownMenu>
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
+						)}
+
+						<Alert>
+							<ShieldCheck className="h-4 w-4" />
+							<AlertTitle>How DNS Providers Work</AlertTitle>
+							<AlertDescription>
+								<ul className="list-disc list-inside space-y-1 mt-2 text-sm">
+									<li>
+										DNS providers are used to solve ACME DNS challenges for wildcard SSL certificates
+									</li>
+									<li>
+										Only wildcard domains (e.g., *.example.com) require DNS challenge validation
+									</li>
+									<li>
+										Regular domains continue to use HTTP challenge validation
+									</li>
+									<li>Make sure your API credentials have DNS management permissions</li>
+									<li>
+										Sensitive credentials are encrypted and stored securely in the database
+									</li>
+								</ul>
+							</AlertDescription>
+						</Alert>
+
+						<AddDNSProvider
+							open={isOpen}
+							setOpen={setIsOpen}
+							dnsProviders={dnsProviders}
+						/>
 					</CardContent>
-				</Card>
-			)}
-
-			<Alert>
-				<ShieldCheck className="h-4 w-4" />
-				<AlertTitle>How DNS Providers Work</AlertTitle>
-				<AlertDescription>
-					<ul className="list-disc list-inside space-y-1 mt-2 text-sm">
-						<li>
-							DNS providers are used to solve ACME DNS challenges for wildcard SSL certificates
-						</li>
-						<li>
-							Only wildcard domains (e.g., *.example.com) require DNS challenge validation
-						</li>
-						<li>
-							Regular domains continue to use HTTP challenge validation
-						</li>
-						<li>Make sure your API credentials have DNS management permissions</li>
-						<li>
-							Sensitive credentials are encrypted and stored securely in the database
-						</li>
-					</ul>
-				</AlertDescription>
-			</Alert>
-
-			<AddDNSProvider
-				open={isOpen}
-				setOpen={setIsOpen}
-				dnsProviders={dnsProviders}
-			/>
+				</div>
+			</Card>
 		</div>
 	);
 };
