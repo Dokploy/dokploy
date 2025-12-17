@@ -2,18 +2,19 @@ import {
 	createDomain,
 	findApplicationById,
 	findComposeById,
-	findDomainById,
-	findDomainsByApplicationId,
-	findDomainsByComposeId,
-	findOrganizationById,
-	findPreviewDeploymentById,
-	findServerById,
-	generateApplicationDomain,
-	generateTraefikMeDomain,
-	getProjectWildcardDomain,
-	manageDomain,
-	removeDomain,
-	removeDomainById,
+        findDomainById,
+        findDomainsByApplicationId,
+        findDomainsByComposeId,
+        findOrganizationById,
+        findPreviewDeploymentById,
+        findServerById,
+        generateApplicationDomain,
+        generatePreviewDeploymentDomain,
+        generateTraefikMeDomain,
+        getProjectWildcardDomain,
+        manageDomain,
+        removeDomain,
+        removeDomainById,
 	updateDomainById,
 	validateDomain,
 } from "@dokploy/server";
@@ -98,23 +99,37 @@ export const domainRouter = createTRPCRouter({
 			}
 			return await findDomainsByComposeId(input.composeId);
 		}),
-	generateDomain: protectedProcedure
-		.input(
-			z.object({
-				appName: z.string(),
-				serverId: z.string().optional(),
-				projectId: z.string().optional(),
-			}),
-		)
-		.mutation(async ({ input, ctx }) => {
-			// Use the new generateApplicationDomain which supports custom wildcard domains
-			return generateApplicationDomain(
-				input.appName,
-				ctx.user.ownerId,
-				input.projectId,
-				input.serverId,
-			);
-		}),
+        generateDomain: protectedProcedure
+                .input(
+                        z.object({
+                                appName: z.string(),
+                                serverId: z.string().optional(),
+                                projectId: z.string().optional(),
+                                domainType: z
+                                        .enum(["application", "preview"])
+                                        .default("application"),
+                                previewWildcard: z.string().optional().nullable(),
+                        }),
+                )
+                .mutation(async ({ input, ctx }) => {
+                        if (input.domainType === "preview") {
+                                return generatePreviewDeploymentDomain(
+                                        input.appName,
+                                        ctx.user.ownerId,
+                                        input.projectId,
+                                        input.serverId,
+                                        input.previewWildcard ?? undefined,
+                                );
+                        }
+
+                        // Use the new generateApplicationDomain which supports custom wildcard domains
+                        return generateApplicationDomain(
+                                input.appName,
+                                ctx.user.ownerId,
+                                input.projectId,
+                                input.serverId,
+                        );
+                }),
 	canGenerateTraefikMeDomains: protectedProcedure
 		.input(z.object({ serverId: z.string() }))
 		.query(async ({ input, ctx }) => {
