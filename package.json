@@ -33,10 +33,10 @@
 		"lint-staged": "^15.5.2",
 		"tsx": "4.16.2"
 	},
-	"packageManager": "pnpm@10.26.0",
+	"packageManager": "pnpm@9.15.9",
 	"engines": {
 		"node": "^20.16.0",
-		"pnpm": ">=10.26.0"
+		"pnpm": ">=9.15.9"
 	},
 	"lint-staged": {
 		"*": [
