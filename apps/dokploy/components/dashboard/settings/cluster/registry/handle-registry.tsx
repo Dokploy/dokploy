@@ -127,7 +127,10 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			AddRegistrySchema.refine(
 				(data) => {
 					// When creating a new registry, password is required
-					if (!data.isEditing && (!data.password || data.password.length === 0)) {
+					if (
+						!data.isEditing &&
+						(!data.password || data.password.length === 0)
+					) {
 						return false;
 					}
 					return true;
@@ -285,12 +288,11 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>
-											Password{registryId && " (Optional)"}
-										</FormLabel>
+										<FormLabel>Password{registryId && " (Optional)"}</FormLabel>
 										{registryId && (
 											<FormDescription>
-												Leave blank to keep existing password. Enter new password to test or update it.
+												Leave blank to keep existing password. Enter new
+												password to test or update it.
 											</FormDescription>
 										)}
 										<FormControl>
