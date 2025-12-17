@@ -62,7 +62,7 @@ export const ShowCloudProviders = () => {
 					<CardHeader>
 						<CardTitle className="text-xl flex flex-row gap-2">
 							<CloudProviderIcon className="size-6 text-muted-foreground self-center" />
-							Cloud Providers
+							Server Provisioning
 						</CardTitle>
 						<CardDescription>
 							Connect cloud providers to enable one-click server provisioning
