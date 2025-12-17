@@ -11,7 +11,7 @@ import { getLocale, serverSideTranslations } from "@/utils/i18n";
 const Page = () => {
 	return (
 		<div className="flex flex-col gap-4 w-full">
-			<ShowCloudProviders />
+			<ShowProviders />
 		</div>
 	);
 };
@@ -19,7 +19,7 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Cloud Providers">{page}</DashboardLayout>;
+	return <DashboardLayout metaName="Providers">{page}</DashboardLayout>;
 };
 
 export async function getServerSideProps(
