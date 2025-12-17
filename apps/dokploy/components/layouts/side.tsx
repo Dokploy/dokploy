@@ -358,7 +358,6 @@ const MENU: Menu = {
 			// Only enabled for admins
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
-	
 		{
 			isSingle: true,
 			key: "cluster",
