@@ -42,9 +42,7 @@ const AddRegistrySchema = z.object({
 	username: z.string().min(1, {
 		message: "Username is required",
 	}),
-	password: z.string().min(1, {
-		message: "Password is required",
-	}),
+	password: z.string(),
 	registryUrl: z
 		.string()
 		.optional()
@@ -75,6 +73,7 @@ const AddRegistrySchema = z.object({
 		),
 	imagePrefix: z.string(),
 	serverId: z.string().optional(),
+	isEditing: z.boolean().optional(),
 });
 
 type AddRegistry = z.infer<typeof AddRegistrySchema>;
@@ -108,6 +107,12 @@ export const HandleRegistry = ({ registryId }: Props) => {
 		error: testRegistryError,
 		isError: testRegistryIsError,
 	} = api.registry.testRegistry.useMutation();
+	const {
+		mutateAsync: testRegistryById,
+		isLoading: isLoadingById,
+		error: testRegistryByIdError,
+		isError: testRegistryByIdIsError,
+	} = api.registry.testRegistryById.useMutation();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
 			username: "",
@@ -116,8 +121,26 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			imagePrefix: "",
 			registryName: "",
 			serverId: "",
+			isEditing: !!registryId,
 		},
-		resolver: zodResolver(AddRegistrySchema),
+		resolver: zodResolver(
+			AddRegistrySchema.refine(
+				(data) => {
+					// When creating a new registry, password is required
+					if (
+						!data.isEditing &&
+						(!data.password || data.password.length === 0)
+					) {
+						return false;
+					}
+					return true;
+				},
+				{
+					message: "Password is required",
+					path: ["password"],
+				},
+			),
+		),
 	});
 
 	const password = form.watch("password");
@@ -138,6 +161,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				registryUrl: registry.registryUrl,
 				imagePrefix: registry.imagePrefix || "",
 				registryName: registry.registryName,
+				isEditing: true,
 			});
 		} else {
 			form.reset({
@@ -146,13 +170,13 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				registryUrl: "",
 				imagePrefix: "",
 				serverId: "",
+				isEditing: false,
 			});
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, registry]);
 
 	const onSubmit = async (data: AddRegistry) => {
-		await mutateAsync({
-			password: data.password,
+		const payload: any = {
 			registryName: data.registryName,
 			username: data.username,
 			registryUrl: data.registryUrl || "",
@@ -160,7 +184,15 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			imagePrefix: data.imagePrefix,
 			serverId: data.serverId,
 			registryId: registryId || "",
-		})
+		};
+
+		// Only include password if it's been provided (not empty)
+		// When editing, empty password means "keep the existing password"
+		if (data.password && data.password.length > 0) {
+			payload.password = data.password;
+		}
+
+		await mutateAsync(payload)
 			.then(async (_data) => {
 				await utils.registry.all.invalidate();
 				toast.success(registryId ? "Registry updated" : "Registry added");
@@ -198,11 +230,14 @@ export const HandleRegistry = ({ registryId }: Props) => {
 						Fill the next fields to add a external registry.
 					</DialogDescription>
 				</DialogHeader>
-				{(isError || testRegistryIsError) && (
+				{(isError || testRegistryIsError || testRegistryByIdIsError) && (
 					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 						<AlertTriangle className="text-red-600 dark:text-red-400" />
 						<span className="text-sm text-red-600 dark:text-red-400">
-							{testRegistryError?.message || error?.message || ""}
+							{testRegistryError?.message ||
+								testRegistryByIdError?.message ||
+								error?.message ||
+								""}
 						</span>
 					</div>
 				)}
@@ -253,10 +288,20 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>Password{registryId && " (Optional)"}</FormLabel>
+										{registryId && (
+											<FormDescription>
+												Leave blank to keep existing password. Enter new
+												password to test or update it.
+											</FormDescription>
+										)}
 										<FormControl>
 											<Input
-												placeholder="Password"
+												placeholder={
+													registryId
+														? "Leave blank to keep existing"
+														: "Password"
+												}
 												autoComplete="one-time-code"
 												{...field}
 												type="password"
@@ -387,8 +432,37 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								<Button
 									type="button"
 									variant={"secondary"}
-									isLoading={isLoading}
+									isLoading={isLoading || isLoadingById}
 									onClick={async () => {
+										// When editing with empty password, use the existing password from DB
+										if (registryId && (!password || password.length === 0)) {
+											await testRegistryById({
+												registryId: registryId || "",
+												...(serverId && { serverId }),
+											})
+												.then((data) => {
+													if (data) {
+														toast.success("Registry Tested Successfully");
+													} else {
+														toast.error("Registry Test Failed");
+													}
+												})
+												.catch(() => {
+													toast.error("Error testing the registry");
+												});
+											return;
+										}
+
+										// When creating, password is required
+										if (!registryId && (!password || password.length === 0)) {
+											form.setError("password", {
+												type: "manual",
+												message: "Password is required",
+											});
+											return;
+										}
+
+										// When creating or editing with new password, validate and test with provided credentials
 										const validationResult = AddRegistrySchema.safeParse({
 											username,
 											password,
@@ -396,6 +470,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 											registryName: "Dokploy Registry",
 											imagePrefix,
 											serverId,
+											isEditing: !!registryId,
 										});
 
 										if (!validationResult.success) {
