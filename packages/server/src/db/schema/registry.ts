@@ -80,6 +80,14 @@ export const apiTestRegistry = createSchema.pick({}).extend({
 	serverId: z.string().optional(),
 });
 
+export const apiTestRegistryById = createSchema
+	.pick({
+		registryId: true,
+	})
+	.extend({
+		serverId: z.string().optional(),
+	});
+
 export const apiRemoveRegistry = createSchema
 	.pick({
 		registryId: true,
