@@ -139,21 +139,38 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 									</Tooltip>
 								</Button>
 							</DialogAction>
-							{data?.applicationStatus === "idle" ? (
+							{data?.applicationStatus === "idle" ||
+							data?.applicationStatus === "paused" ? (
 								<DialogAction
-									title="Start MySQL"
-									description="Are you sure you want to start this mysql?"
+									title={
+										data?.applicationStatus === "paused"
+											? "Resume MySQL"
+											: "Start MySQL"
+									}
+									description={
+										data?.applicationStatus === "paused"
+											? "Are you sure you want to resume this mysql?"
+											: "Are you sure you want to start this mysql?"
+									}
 									type="default"
 									onClick={async () => {
 										await start({
 											mysqlId: mysqlId,
 										})
 											.then(() => {
-												toast.success("MySQL started successfully");
+												toast.success(
+													data?.applicationStatus === "paused"
+														? "MySQL resumed successfully"
+														: "MySQL started successfully",
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting MySQL");
+												toast.error(
+													data?.applicationStatus === "paused"
+														? "Error resuming MySQL"
+														: "Error starting MySQL",
+												);
 											});
 									}}
 								>
@@ -166,14 +183,17 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<CheckCircle2 className="size-4 mr-1" />
-													Start
+													{data?.applicationStatus === "paused"
+														? "Resume"
+														: "Start"}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
 													<p>
-														Start the MySQL database (requires a previous
-														successful setup)
+														{data?.applicationStatus === "paused"
+															? "Resume the paused MySQL database with its original configuration"
+															: "Start the MySQL database (requires a previous successful setup)"}
 													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -182,23 +202,23 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 								</DialogAction>
 							) : (
 								<DialogAction
-									title="Stop MySQL"
-									description="Are you sure you want to stop this mysql?"
+									title="Pause MySQL"
+									description="This will temporarily stop the database without data loss. You can resume it later with the same configuration."
 									onClick={async () => {
 										await stop({
 											mysqlId: mysqlId,
 										})
 											.then(() => {
-												toast.success("MySQL stopped successfully");
+												toast.success("MySQL paused successfully");
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping MySQL");
+												toast.error("Error pausing MySQL");
 											});
 									}}
 								>
 									<Button
-										variant="destructive"
+										variant="warning"
 										isLoading={isStopping}
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
@@ -206,12 +226,12 @@ export const ShowGeneralMysql = ({ mysqlId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Ban className="size-4 mr-1" />
-													Stop
+													Pause
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Stop the currently running MySQL database</p>
+													<p>Pause the MySQL database (can be resumed later)</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>

@@ -73,6 +73,7 @@ export const mongo = pgTable("mongo", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	pausedAt: text("pausedAt"),
 
 	environmentId: text("environmentId")
 		.notNull()
@@ -99,6 +100,7 @@ export const mongoRelations = relations(mongo, ({ one, many }) => ({
 const createSchema = createInsertSchema(mongo, {
 	appName: z.string().min(1),
 	createdAt: z.string(),
+	pausedAt: z.string().optional(),
 	mongoId: z.string(),
 	name: z.string().min(1),
 	databasePassword: z
@@ -116,7 +118,7 @@ const createSchema = createInsertSchema(mongo, {
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	environmentId: z.string(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(["idle", "running", "done", "error", "paused"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),

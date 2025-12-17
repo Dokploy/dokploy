@@ -278,12 +278,19 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to stop this application",
 				});
 			}
+
+			// Stop the service (scale to 0)
 			if (service.serverId) {
 				await stopServiceRemote(service.serverId, service.appName);
 			} else {
 				await stopService(service.appName);
 			}
-			await updateApplicationStatus(input.applicationId, "idle");
+
+			// Update status to paused and record the timestamp
+			await updateApplication(input.applicationId, {
+				applicationStatus: "paused",
+				pausedAt: new Date().toISOString(),
+			});
 
 			return service;
 		}),
@@ -302,12 +309,24 @@ export const applicationRouter = createTRPCRouter({
 				});
 			}
 
+			// Get the replica count to restore (defaults to 1 if not set)
+			const replicaCount = service.replicas || 1;
+
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					replicaCount,
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, replicaCount);
 			}
-			await updateApplicationStatus(input.applicationId, "done");
+
+			// Resume service and clear pausedAt timestamp
+			await updateApplication(input.applicationId, {
+				applicationStatus: "done",
+				pausedAt: null,
+			});
 
 			return service;
 		}),

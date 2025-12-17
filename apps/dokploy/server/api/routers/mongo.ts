@@ -139,13 +139,21 @@ export const mongoRouter = createTRPCRouter({
 				});
 			}
 
+			// Get the replica count to restore (defaults to 1 if not set)
+			const replicaCount = service.replicas || 1;
+
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					replicaCount,
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, replicaCount);
 			}
 			await updateMongoById(input.mongoId, {
 				applicationStatus: "done",
+				pausedAt: null,
 			});
 
 			return service;
@@ -165,13 +173,17 @@ export const mongoRouter = createTRPCRouter({
 				});
 			}
 
+			// Stop the service (scale to 0)
 			if (mongo.serverId) {
 				await stopServiceRemote(mongo.serverId, mongo.appName);
 			} else {
 				await stopService(mongo.appName);
 			}
+
+			// Update status to paused and record the timestamp
 			await updateMongoById(input.mongoId, {
-				applicationStatus: "idle",
+				applicationStatus: "paused",
+				pausedAt: new Date().toISOString(),
 			});
 
 			return mongo;

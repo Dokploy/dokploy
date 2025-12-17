@@ -68,6 +68,7 @@ export const postgres = pgTable("postgres", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	pausedAt: text("pausedAt"),
 
 	environmentId: text("environmentId")
 		.notNull()
@@ -109,9 +110,10 @@ const createSchema = createInsertSchema(postgres, {
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	environmentId: z.string(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(["idle", "running", "done", "error", "paused"]),
 	externalPort: z.number(),
 	createdAt: z.string(),
+	pausedAt: z.string().optional(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),

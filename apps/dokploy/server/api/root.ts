@@ -10,6 +10,7 @@ import { clusterRouter } from "./routers/cluster";
 import { composeRouter } from "./routers/compose";
 import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
+import { dnsProviderRouter } from "./routers/dns-provider";
 import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
 import { environmentRouter } from "./routers/environment";
@@ -34,11 +35,13 @@ import { rollbackRouter } from "./routers/rollbacks";
 import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
+import { serviceMigrationRouter } from "./routers/service-migration";
 import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
+import { userPreferencesRouter } from "./routers/user-preferences";
 import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
  * This is the primary router for your server.
@@ -58,7 +61,9 @@ export const appRouter = createTRPCRouter({
 	mariadb: mariadbRouter,
 	compose: composeRouter,
 	user: userRouter,
+	userPreferences: userPreferencesRouter,
 	domain: domainRouter,
+	dnsProvider: dnsProviderRouter,
 	destination: destinationRouter,
 	backup: backupRouter,
 	deployment: deploymentRouter,
@@ -80,6 +85,7 @@ export const appRouter = createTRPCRouter({
 	gitlab: gitlabRouter,
 	github: githubRouter,
 	server: serverRouter,
+	serviceMigration: serviceMigrationRouter,
 	stripe: stripeRouter,
 	swarm: swarmRouter,
 	ai: aiRouter,

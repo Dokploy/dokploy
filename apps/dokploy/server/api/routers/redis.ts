@@ -130,13 +130,17 @@ export const redisRouter = createTRPCRouter({
 				});
 			}
 
+			// Get the replica count to restore (defaults to 1 if not set)
+			const replicaCount = redis.replicas || 1;
+
 			if (redis.serverId) {
-				await startServiceRemote(redis.serverId, redis.appName);
+				await startServiceRemote(redis.serverId, redis.appName, replicaCount);
 			} else {
-				await startService(redis.appName);
+				await startService(redis.appName, replicaCount);
 			}
 			await updateRedisById(input.redisId, {
 				applicationStatus: "done",
+				pausedAt: null,
 			});
 
 			return redis;
@@ -187,13 +191,18 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to stop this Redis",
 				});
 			}
+
+			// Stop the service (scale to 0)
 			if (redis.serverId) {
 				await stopServiceRemote(redis.serverId, redis.appName);
 			} else {
 				await stopService(redis.appName);
 			}
+
+			// Update status to paused and record the timestamp
 			await updateRedisById(input.redisId, {
-				applicationStatus: "idle",
+				applicationStatus: "paused",
+				pausedAt: new Date().toISOString(),
 			});
 
 			return redis;

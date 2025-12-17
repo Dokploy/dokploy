@@ -141,21 +141,38 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 									</Tooltip>
 								</Button>
 							</DialogAction>
-							{data?.applicationStatus === "idle" ? (
+							{data?.applicationStatus === "idle" ||
+							data?.applicationStatus === "paused" ? (
 								<DialogAction
-									title="Start Mongo"
-									description="Are you sure you want to start this mongo?"
+									title={
+										data?.applicationStatus === "paused"
+											? "Resume Mongo"
+											: "Start Mongo"
+									}
+									description={
+										data?.applicationStatus === "paused"
+											? "Are you sure you want to resume this mongo?"
+											: "Are you sure you want to start this mongo?"
+									}
 									type="default"
 									onClick={async () => {
 										await start({
 											mongoId: mongoId,
 										})
 											.then(() => {
-												toast.success("Mongo started successfully");
+												toast.success(
+													data?.applicationStatus === "paused"
+														? "Mongo resumed successfully"
+														: "Mongo started successfully",
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting Mongo");
+												toast.error(
+													data?.applicationStatus === "paused"
+														? "Error resuming Mongo"
+														: "Error starting Mongo",
+												);
 											});
 									}}
 								>
@@ -168,14 +185,17 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<CheckCircle2 className="size-4 mr-1" />
-													Start
+													{data?.applicationStatus === "paused"
+														? "Resume"
+														: "Start"}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
 													<p>
-														Start the MongoDB database (requires a previous
-														successful setup)
+														{data?.applicationStatus === "paused"
+															? "Resume the paused MongoDB database with its original configuration"
+															: "Start the MongoDB database (requires a previous successful setup)"}
 													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -184,23 +204,23 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 								</DialogAction>
 							) : (
 								<DialogAction
-									title="Stop Mongo"
-									description="Are you sure you want to stop this mongo?"
+									title="Pause Mongo"
+									description="This will temporarily stop the database without data loss. You can resume it later with the same configuration."
 									onClick={async () => {
 										await stop({
 											mongoId: mongoId,
 										})
 											.then(() => {
-												toast.success("Mongo stopped successfully");
+												toast.success("Mongo paused successfully");
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping Mongo");
+												toast.error("Error pausing Mongo");
 											});
 									}}
 								>
 									<Button
-										variant="destructive"
+										variant="warning"
 										isLoading={isStopping}
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
@@ -208,12 +228,14 @@ export const ShowGeneralMongo = ({ mongoId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Ban className="size-4 mr-1" />
-													Stop
+													Pause
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Stop the currently running MongoDB database</p>
+													<p>
+														Pause the MongoDB database (can be resumed later)
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>

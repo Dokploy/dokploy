@@ -68,6 +68,7 @@ export const mysql = pgTable("mysql", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	pausedAt: text("pausedAt"),
 
 	environmentId: text("environmentId")
 		.notNull()
@@ -94,6 +95,7 @@ const createSchema = createInsertSchema(mysql, {
 	mysqlId: z.string(),
 	appName: z.string().min(1),
 	createdAt: z.string(),
+	pausedAt: z.string().optional(),
 	name: z.string().min(1),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
@@ -117,7 +119,7 @@ const createSchema = createInsertSchema(mysql, {
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(["idle", "running", "done", "error", "paused"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),

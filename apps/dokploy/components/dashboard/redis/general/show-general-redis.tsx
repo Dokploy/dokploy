@@ -140,21 +140,38 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 									</Tooltip>
 								</Button>
 							</DialogAction>
-							{data?.applicationStatus === "idle" ? (
+							{data?.applicationStatus === "idle" ||
+							data?.applicationStatus === "paused" ? (
 								<DialogAction
-									title="Start Redis"
-									description="Are you sure you want to start this redis?"
+									title={
+										data?.applicationStatus === "paused"
+											? "Resume Redis"
+											: "Start Redis"
+									}
+									description={
+										data?.applicationStatus === "paused"
+											? "Are you sure you want to resume this redis?"
+											: "Are you sure you want to start this redis?"
+									}
 									type="default"
 									onClick={async () => {
 										await start({
 											redisId: redisId,
 										})
 											.then(() => {
-												toast.success("Redis started successfully");
+												toast.success(
+													data?.applicationStatus === "paused"
+														? "Redis resumed successfully"
+														: "Redis started successfully",
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting Redis");
+												toast.error(
+													data?.applicationStatus === "paused"
+														? "Error resuming Redis"
+														: "Error starting Redis",
+												);
 											});
 									}}
 								>
@@ -167,14 +184,17 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<CheckCircle2 className="size-4 mr-1" />
-													Start
+													{data?.applicationStatus === "paused"
+														? "Resume"
+														: "Start"}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
 													<p>
-														Start the Redis database (requires a previous
-														successful setup)
+														{data?.applicationStatus === "paused"
+															? "Resume the paused Redis database with its original configuration"
+															: "Start the Redis database (requires a previous successful setup)"}
 													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -183,23 +203,23 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 								</DialogAction>
 							) : (
 								<DialogAction
-									title="Stop Redis"
-									description="Are you sure you want to stop this redis?"
+									title="Pause Redis"
+									description="This will temporarily stop the database without data loss. You can resume it later with the same configuration."
 									onClick={async () => {
 										await stop({
 											redisId: redisId,
 										})
 											.then(() => {
-												toast.success("Redis stopped successfully");
+												toast.success("Redis paused successfully");
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping Redis");
+												toast.error("Error pausing Redis");
 											});
 									}}
 								>
 									<Button
-										variant="destructive"
+										variant="warning"
 										isLoading={isStopping}
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
@@ -207,12 +227,12 @@ export const ShowGeneralRedis = ({ redisId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Ban className="size-4 mr-1" />
-													Stop
+													Pause
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Stop the currently running Redis database</p>
+													<p>Pause the Redis database (can be resumed later)</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>

@@ -183,6 +183,7 @@ export const applications = pgTable("application", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	pausedAt: text("pausedAt"),
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
@@ -254,6 +255,7 @@ export const applicationsRelations = relations(
 const createSchema = createInsertSchema(applications, {
 	appName: z.string(),
 	createdAt: z.string(),
+	pausedAt: z.string().optional(),
 	applicationId: z.string(),
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
@@ -285,7 +287,7 @@ const createSchema = createInsertSchema(applications, {
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(["idle", "running", "done", "error", "paused"]),
 	buildType: z.enum([
 		"dockerfile",
 		"heroku_buildpacks",
@@ -482,3 +484,5 @@ export const apiUpdateApplication = createSchema
 		applicationId: z.string().min(1),
 	})
 	.omit({ serverId: true });
+
+export type Application = typeof applications.$inferSelect;

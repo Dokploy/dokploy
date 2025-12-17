@@ -139,13 +139,21 @@ export const postgresRouter = createTRPCRouter({
 				});
 			}
 
+			// Get the replica count to restore (defaults to 1 if not set)
+			const replicaCount = service.replicas || 1;
+
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					replicaCount,
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, replicaCount);
 			}
 			await updatePostgresById(input.postgresId, {
 				applicationStatus: "done",
+				pausedAt: null,
 			});
 
 			return service;
@@ -163,13 +171,18 @@ export const postgresRouter = createTRPCRouter({
 					message: "You are not authorized to stop this Postgres",
 				});
 			}
+
+			// Stop the service (scale to 0)
 			if (postgres.serverId) {
 				await stopServiceRemote(postgres.serverId, postgres.appName);
 			} else {
 				await stopService(postgres.appName);
 			}
+
+			// Update status to paused and record the timestamp
 			await updatePostgresById(input.postgresId, {
-				applicationStatus: "idle",
+				applicationStatus: "paused",
+				pausedAt: new Date().toISOString(),
 			});
 
 			return postgres;

@@ -113,21 +113,37 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</Button>
 				</DialogAction>
 				{data?.composeType === "docker-compose" &&
-				data?.composeStatus === "idle" ? (
+				(data?.composeStatus === "idle" || data?.composeStatus === "paused") ? (
 					<DialogAction
-						title="Start Compose"
-						description="Are you sure you want to start this compose?"
+						title={
+							data?.composeStatus === "paused"
+								? "Resume Compose"
+								: "Start Compose"
+						}
+						description={
+							data?.composeStatus === "paused"
+								? "Are you sure you want to resume this compose?"
+								: "Are you sure you want to start this compose?"
+						}
 						type="default"
 						onClick={async () => {
 							await start({
 								composeId: composeId,
 							})
 								.then(() => {
-									toast.success("Compose started successfully");
+									toast.success(
+										data?.composeStatus === "paused"
+											? "Compose resumed successfully"
+											: "Compose started successfully",
+									);
 									refetch();
 								})
 								.catch(() => {
-									toast.error("Error starting compose");
+									toast.error(
+										data?.composeStatus === "paused"
+											? "Error resuming compose"
+											: "Error starting compose",
+									);
 								});
 						}}
 					>
@@ -140,13 +156,15 @@ export const ComposeActions = ({ composeId }: Props) => {
 								<TooltipTrigger asChild>
 									<div className="flex items-center">
 										<CheckCircle2 className="size-4 mr-1" />
-										Start
+										{data?.composeStatus === "paused" ? "Resume" : "Start"}
 									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
 									<TooltipContent sideOffset={5} className="z-[60]">
 										<p>
-											Start the compose (requires a previous successful build)
+											{data?.composeStatus === "paused"
+												? "Resume the paused compose with its original configuration"
+												: "Start the compose (requires a previous successful build)"}
 										</p>
 									</TooltipContent>
 								</TooltipPrimitive.Portal>
@@ -155,23 +173,23 @@ export const ComposeActions = ({ composeId }: Props) => {
 					</DialogAction>
 				) : (
 					<DialogAction
-						title="Stop Compose"
-						description="Are you sure you want to stop this compose?"
+						title="Pause Compose"
+						description="This will temporarily stop the compose without data loss. You can resume it later with the same configuration."
 						onClick={async () => {
 							await stop({
 								composeId: composeId,
 							})
 								.then(() => {
-									toast.success("Compose stopped successfully");
+									toast.success("Compose paused successfully");
 									refetch();
 								})
 								.catch(() => {
-									toast.error("Error stopping compose");
+									toast.error("Error pausing compose");
 								});
 						}}
 					>
 						<Button
-							variant="destructive"
+							variant="warning"
 							isLoading={isStopping}
 							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
 						>
@@ -179,12 +197,12 @@ export const ComposeActions = ({ composeId }: Props) => {
 								<TooltipTrigger asChild>
 									<div className="flex items-center">
 										<Ban className="size-4 mr-1" />
-										Stop
+										Pause
 									</div>
 								</TooltipTrigger>
 								<TooltipPrimitive.Portal>
 									<TooltipContent sideOffset={5} className="z-[60]">
-										<p>Stop the currently running compose</p>
+										<p>Pause the compose (can be resumed later)</p>
 									</TooltipContent>
 								</TooltipPrimitive.Portal>
 							</Tooltip>

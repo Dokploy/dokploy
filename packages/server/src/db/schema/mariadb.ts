@@ -70,6 +70,7 @@ export const mariadb = pgTable("mariadb", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	pausedAt: text("pausedAt"),
 
 	environmentId: text("environmentId")
 		.notNull()
@@ -97,6 +98,7 @@ const createSchema = createInsertSchema(mariadb, {
 	name: z.string().min(1),
 	appName: z.string().min(1),
 	createdAt: z.string(),
+	pausedAt: z.string().optional(),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
 	databasePassword: z
@@ -120,7 +122,7 @@ const createSchema = createInsertSchema(mariadb, {
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	environmentId: z.string(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(["idle", "running", "done", "error", "paused"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),

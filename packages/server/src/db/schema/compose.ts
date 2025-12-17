@@ -90,6 +90,7 @@ export const compose = pgTable("compose", {
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
+	pausedAt: text("pausedAt"),
 	watchPaths: text("watchPaths").array(),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",

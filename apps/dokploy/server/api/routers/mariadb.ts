@@ -132,13 +132,22 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to start this Mariadb",
 				});
 			}
+
+			// Get the replica count to restore (defaults to 1 if not set)
+			const replicaCount = service.replicas || 1;
+
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					replicaCount,
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, replicaCount);
 			}
 			await updateMariadbById(input.mariadbId, {
 				applicationStatus: "done",
+				pausedAt: null,
 			});
 
 			return service;
@@ -148,13 +157,17 @@ export const mariadbRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
 
+			// Stop the service (scale to 0)
 			if (mariadb.serverId) {
 				await stopServiceRemote(mariadb.serverId, mariadb.appName);
 			} else {
 				await stopService(mariadb.appName);
 			}
+
+			// Update status to paused and record the timestamp
 			await updateMariadbById(input.mariadbId, {
-				applicationStatus: "idle",
+				applicationStatus: "paused",
+				pausedAt: new Date().toISOString(),
 			});
 
 			return mariadb;

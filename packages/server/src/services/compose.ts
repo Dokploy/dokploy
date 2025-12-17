@@ -419,6 +419,7 @@ export const startCompose = async (composeId: string) => {
 
 		await updateCompose(composeId, {
 			composeStatus: "done",
+			pausedAt: null,
 		});
 	} catch (error) {
 		await updateCompose(composeId, {
@@ -464,14 +465,10 @@ export const stopCompose = async (composeId: string) => {
 		}
 
 		await updateCompose(composeId, {
-			composeStatus: "idle",
+			composeStatus: "paused",
+			pausedAt: new Date().toISOString(),
 		});
 	} catch (error) {
-		await updateCompose(composeId, {
-			composeStatus: "error",
-		});
 		throw error;
 	}
-
-	return true;
 };

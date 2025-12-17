@@ -139,13 +139,21 @@ export const mysqlRouter = createTRPCRouter({
 				});
 			}
 
+			// Get the replica count to restore (defaults to 1 if not set)
+			const replicaCount = service.replicas || 1;
+
 			if (service.serverId) {
-				await startServiceRemote(service.serverId, service.appName);
+				await startServiceRemote(
+					service.serverId,
+					service.appName,
+					replicaCount,
+				);
 			} else {
-				await startService(service.appName);
+				await startService(service.appName, replicaCount);
 			}
 			await updateMySqlById(input.mysqlId, {
 				applicationStatus: "done",
+				pausedAt: null,
 			});
 
 			return service;
@@ -153,9 +161,9 @@ export const mysqlRouter = createTRPCRouter({
 	stop: protectedProcedure
 		.input(apiFindOneMySql)
 		.mutation(async ({ input, ctx }) => {
-			const mongo = await findMySqlById(input.mysqlId);
+			const mysql = await findMySqlById(input.mysqlId);
 			if (
-				mongo.environment.project.organizationId !==
+				mysql.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
@@ -163,16 +171,21 @@ export const mysqlRouter = createTRPCRouter({
 					message: "You are not authorized to stop this MySQL",
 				});
 			}
-			if (mongo.serverId) {
-				await stopServiceRemote(mongo.serverId, mongo.appName);
+
+			// Stop the service (scale to 0)
+			if (mysql.serverId) {
+				await stopServiceRemote(mysql.serverId, mysql.appName);
 			} else {
-				await stopService(mongo.appName);
+				await stopService(mysql.appName);
 			}
+
+			// Update status to paused and record the timestamp
 			await updateMySqlById(input.mysqlId, {
-				applicationStatus: "idle",
+				applicationStatus: "paused",
+				pausedAt: new Date().toISOString(),
 			});
 
-			return mongo;
+			return mysql;
 		}),
 	saveExternalPort: protectedProcedure
 		.input(apiSaveExternalPortMySql)

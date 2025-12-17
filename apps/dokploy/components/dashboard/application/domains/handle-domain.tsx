@@ -44,9 +44,42 @@ import { api } from "@/utils/api";
 
 export type CacheType = "fetch" | "cache";
 
+const isWildcardDomain = (host: string) => {
+	return host.startsWith('*.');
+};
+
+const validateCertificateType = (data: any, ctx: any) => {
+	if (data.https && !data.certificateType) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["certificateType"],
+			message: "Required",
+		});
+	}
+
+	
+	if (data.certificateType === "custom" && !data.customCertResolver) {
+		ctx.addIssue({
+			code: z.ZodIssueCode.custom,
+			path: ["customCertResolver"],
+			message: "Required",
+		});
+	}
+};
+
 export const domain = z
 	.object({
-		host: z.string().min(1, { message: "Add a hostname" }),
+		host: z
+			.string()
+			.min(1, { message: "Add a hostname" })
+			.refine(
+				(host) => {
+					// Basic domain validation including wildcard domains
+					const domainRegex = /^(\*\.)?[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+					return domainRegex.test(host);
+				},
+				{ message: "Invalid domain format. Use format like example.com or *.example.com for wildcards" }
+			),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
@@ -62,21 +95,7 @@ export const domain = z
 		domainType: z.enum(["application", "compose", "preview"]).optional(),
 	})
 	.superRefine((input, ctx) => {
-		if (input.https && !input.certificateType) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["certificateType"],
-				message: "Required",
-			});
-		}
-
-		if (input.certificateType === "custom" && !input.customCertResolver) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["customCertResolver"],
-				message: "Required",
-			});
-		}
+		validateCertificateType(input, ctx);
 
 		if (input.domainType === "compose" && !input.serviceName) {
 			ctx.addIssue({
@@ -152,6 +171,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 						enabled: !!id,
 					},
 				);
+
+	const { data: dnsProviders } = api.dnsProvider.byOrganizationActive.useQuery();
+	const hasActiveDnsProviders = dnsProviders && dnsProviders.length > 0;
 
 	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
@@ -251,6 +273,12 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	};
 
 	const onSubmit = async (data: Domain) => {
+		// Validate wildcard domain + Let's Encrypt combination
+		if (isWildcardDomain(data.host) && data.certificateType === "letsencrypt" && !hasActiveDnsProviders) {
+			toast.error("Wildcard domains require DNS challenge. Please configure a DNS provider first.");
+			return;
+		}
+
 		await mutateAsync({
 			domainId,
 			...(data.domainType === "application" && {
@@ -472,28 +500,51 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 								<FormField
 									control={form.control}
 									name="host"
-									render={({ field }) => (
-										<FormItem>
-											{!canGenerateTraefikMeDomains &&
-												field.value.includes("traefik.me") && (
-													<AlertBlock type="warning">
-														You need to set an IP address in your{" "}
-														<Link
-															href="/dashboard/settings/server"
-															className="text-primary"
-														>
-															{application?.serverId
-																? "Remote Servers -> Server -> Edit Server -> Update IP Address"
-																: "Web Server -> Server -> Update Server IP"}
-														</Link>{" "}
-														to make your traefik.me domain work.
+									render={({ field }) => {
+										const isWildcard = isWildcardDomain(field.value || "");
+										return (
+											<FormItem>
+												{!canGenerateTraefikMeDomains &&
+													field.value?.includes("traefik.me") && (
+														<AlertBlock type="warning">
+															You need to set an IP address in your{" "}
+															<Link
+																href="/dashboard/settings/server"
+																className="text-primary"
+															>
+																{application?.serverId
+																	? "Remote Servers -> Server -> Edit Server -> Update IP Address"
+																	: "Web Server -> Server -> Update Server IP"}
+															</Link>{" "}
+															to make your traefik.me domain work.
+														</AlertBlock>
+													)}
+												{isWildcard && (
+													<AlertBlock type="info">
+														<strong>Wildcard Domain Detected:</strong> This will cover all subdomains (e.g.,
+														{field.value?.replace("*.", "app.",) || "app.example.com"},
+														{field.value?.replace("*.", "api.",) || "api.example.com"}, etc.).
+														{hasActiveDnsProviders
+															? ` ✅ ${dnsProviders?.length || 0} DNS provider(s) configured - SSL ready!`
+															: " ⚠️ Requires DNS provider setup for SSL certificates."}
+														{!hasActiveDnsProviders && (
+															<Link
+																href="/dashboard/settings/dns-providers"
+																className="text-primary underline ml-1"
+															>
+																Configure DNS Providers
+															</Link>
+														)}
 													</AlertBlock>
 												)}
-											<FormLabel>Host</FormLabel>
-											<div className="flex gap-2">
-												<FormControl>
-													<Input placeholder="api.dokploy.com" {...field} />
-												</FormControl>
+												<FormLabel>Host</FormLabel>
+												<div className="flex gap-2">
+													<FormControl>
+														<Input
+															placeholder="example.com or *.example.com"
+															{...field}
+														/>
+													</FormControl>
 												<TooltipProvider delayDuration={0}>
 													<Tooltip>
 														<TooltipTrigger asChild>
@@ -530,10 +581,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 
 											<FormMessage />
 										</FormItem>
-									)}
-								/>
+									);
+								}}
+							/>
 
-								<FormField
+							<FormField
 									control={form.control}
 									name="path"
 									render={({ field }) => {
@@ -641,9 +693,17 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											control={form.control}
 											name="certificateType"
 											render={({ field }) => {
+												const hostValue = form.getValues("host");
+												const isWildcard = isWildcardDomain(hostValue || "");
+
 												return (
 													<FormItem>
 														<FormLabel>Certificate Provider</FormLabel>
+														{isWildcard && !hasActiveDnsProviders && (
+															<FormDescription className="text-amber-600">
+																⚠️ Wildcard domains require DNS challenge. Configure a DNS provider in settings first.
+															</FormDescription>
+														)}
 														<Select
 															onValueChange={(value) => {
 																field.onChange(value);
@@ -655,6 +715,7 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																}
 															}}
 															value={field.value}
+															disabled={isWildcard && !hasActiveDnsProviders && field.value === "letsencrypt"}
 														>
 															<FormControl>
 																<SelectTrigger>
@@ -663,10 +724,20 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															</FormControl>
 															<SelectContent>
 																<SelectItem value={"none"}>None</SelectItem>
-																<SelectItem value={"letsencrypt"}>
-																	Let's Encrypt
+																<SelectItem
+																	value={"letsencrypt"}
+																	disabled={isWildcard && !hasActiveDnsProviders}
+																>
+																	{isWildcard && !hasActiveDnsProviders
+																		? "Let's Encrypt (Requires DNS Setup)"
+																		: isWildcard && hasActiveDnsProviders
+																			? "Let's Encrypt (DNS Challenge Ready)"
+																			: "Let's Encrypt"
+																	}
 																</SelectItem>
-																<SelectItem value={"custom"}>Custom</SelectItem>
+																<SelectItem value={"custom"}>
+																	Custom Certificate
+																</SelectItem>
 															</SelectContent>
 														</Select>
 														<FormMessage />

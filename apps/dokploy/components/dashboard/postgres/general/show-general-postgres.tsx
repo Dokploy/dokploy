@@ -141,21 +141,38 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 									</Tooltip>
 								</Button>
 							</DialogAction>
-							{data?.applicationStatus === "idle" ? (
+							{data?.applicationStatus === "idle" ||
+							data?.applicationStatus === "paused" ? (
 								<DialogAction
-									title="Start PostgreSQL"
-									description="Are you sure you want to start this postgres?"
+									title={
+										data?.applicationStatus === "paused"
+											? "Resume PostgreSQL"
+											: "Start PostgreSQL"
+									}
+									description={
+										data?.applicationStatus === "paused"
+											? "Are you sure you want to resume this postgres?"
+											: "Are you sure you want to start this postgres?"
+									}
 									type="default"
 									onClick={async () => {
 										await start({
 											postgresId: postgresId,
 										})
 											.then(() => {
-												toast.success("PostgreSQL started successfully");
+												toast.success(
+													data?.applicationStatus === "paused"
+														? "PostgreSQL resumed successfully"
+														: "PostgreSQL started successfully",
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting PostgreSQL");
+												toast.error(
+													data?.applicationStatus === "paused"
+														? "Error resuming PostgreSQL"
+														: "Error starting PostgreSQL",
+												);
 											});
 									}}
 								>
@@ -168,14 +185,17 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<CheckCircle2 className="size-4 mr-1" />
-													Start
+													{data?.applicationStatus === "paused"
+														? "Resume"
+														: "Start"}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
 													<p>
-														Start the PostgreSQL database (requires a previous
-														successful setup)
+														{data?.applicationStatus === "paused"
+															? "Resume the paused PostgreSQL database with its original configuration"
+															: "Start the PostgreSQL database (requires a previous successful setup)"}
 													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -184,23 +204,23 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 								</DialogAction>
 							) : (
 								<DialogAction
-									title="Stop PostgreSQL"
-									description="Are you sure you want to stop this postgres?"
+									title="Pause PostgreSQL"
+									description="This will temporarily stop the database without data loss. You can resume it later with the same configuration."
 									onClick={async () => {
 										await stop({
 											postgresId: postgresId,
 										})
 											.then(() => {
-												toast.success("PostgreSQL stopped successfully");
+												toast.success("PostgreSQL paused successfully");
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping PostgreSQL");
+												toast.error("Error pausing PostgreSQL");
 											});
 									}}
 								>
 									<Button
-										variant="destructive"
+										variant="warning"
 										isLoading={isStopping}
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
@@ -208,12 +228,14 @@ export const ShowGeneralPostgres = ({ postgresId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Ban className="size-4 mr-1" />
-													Stop
+													Pause
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Stop the currently running PostgreSQL database</p>
+													<p>
+														Pause the PostgreSQL database (can be resumed later)
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>

@@ -25,11 +25,14 @@ import {
 	Package,
 	PieChart,
 	Server,
+	Settings2,
 	ShieldCheck,
 	Star,
 	Trash2,
 	User,
 	Users,
+	Cloud,
+	Globe,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -92,6 +95,7 @@ type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
 
 type SingleNavItem = {
 	isSingle?: true;
+	key?: string; // Unique key for user preferences
 	title: string;
 	url: string;
 	icon?: LucideIcon;
@@ -140,12 +144,14 @@ const MENU: Menu = {
 	home: [
 		{
 			isSingle: true,
+			key: "projects",
 			title: "Projects",
 			url: "/dashboard/projects",
 			icon: Folder,
 		},
 		{
 			isSingle: true,
+			key: "monitoring",
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
@@ -154,6 +160,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "schedules",
 			title: "Schedules",
 			url: "/dashboard/schedules",
 			icon: Clock,
@@ -162,6 +169,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "traefik",
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
@@ -174,6 +182,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "docker",
 			title: "Docker",
 			url: "/dashboard/docker",
 			icon: BlocksIcon,
@@ -183,6 +192,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "swarm",
 			title: "Swarm",
 			url: "/dashboard/swarm",
 			icon: PieChart,
@@ -192,6 +202,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "requests",
 			title: "Requests",
 			url: "/dashboard/requests",
 			icon: Forward,
@@ -260,6 +271,7 @@ const MENU: Menu = {
 	settings: [
 		{
 			isSingle: true,
+			key: "web-server",
 			title: "Web Server",
 			url: "/dashboard/settings/server",
 			icon: Activity,
@@ -268,12 +280,14 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "profile",
 			title: "Profile",
 			url: "/dashboard/settings/profile",
 			icon: User,
 		},
 		{
 			isSingle: true,
+			key: "remote-servers",
 			title: "Remote Servers",
 			url: "/dashboard/settings/servers",
 			icon: Server,
@@ -282,6 +296,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "users",
 			title: "Users",
 			icon: Users,
 			url: "/dashboard/settings/users",
@@ -290,6 +305,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "ssh-keys",
 			title: "SSH Keys",
 			icon: KeyRound,
 			url: "/dashboard/settings/ssh-keys",
@@ -298,14 +314,16 @@ const MENU: Menu = {
 				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
 		},
 		{
+			isSingle: true,
+			key: "ai",
 			title: "AI",
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
-			isSingle: true,
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
 		{
 			isSingle: true,
+			key: "git",
 			title: "Git",
 			url: "/dashboard/settings/git-providers",
 			icon: GitBranch,
@@ -315,6 +333,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "registry",
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
@@ -323,15 +342,16 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "s3-destinations",
 			title: "S3 Destinations",
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			// Only enabled for admins
 			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
 		},
-
 		{
 			isSingle: true,
+			key: "certificates",
 			title: "Certificates",
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
@@ -340,6 +360,16 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "dns-providers",
+			title: "DNS Providers",
+			url: "/dashboard/settings/dns-providers",
+			icon: Globe,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+		},
+		{
+			isSingle: true,
+			key: "cluster",
 			title: "Cluster",
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
@@ -348,6 +378,7 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "notifications",
 			title: "Notifications",
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
@@ -356,11 +387,27 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			key: "billing",
 			title: "Billing",
 			url: "/dashboard/settings/billing",
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
 			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
+		},
+		{
+			isSingle: true,
+			key: "cloud-providers",
+			title: "Cloud Providers",
+			url: "/dashboard/settings/cloud-providers",
+			icon: Cloud,
+			// Only enabled for admins
+			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+		},
+		{
+			isSingle: true,
+			title: "Configuration",
+			url: "/dashboard/settings/configuration",
+			icon: Settings2,
 		},
 	],
 
@@ -397,28 +444,43 @@ const MENU: Menu = {
 function createMenuForAuthUser(opts: {
 	auth?: AuthQueryOutput;
 	isCloud: boolean;
+	hiddenItems?: string[];
 }): Menu {
+	const hiddenKeys = opts.hiddenItems || [];
+
 	return {
-		// Filter the home items based on the user's role and permissions
+		// Filter the home items based on the user's role, permissions, and preferences
 		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		home: MENU.home.filter((item) =>
-			!item.isEnabled
+		home: MENU.home.filter((item) => {
+			// Check if user has hidden this item
+			if (item.key && hiddenKeys.includes(item.key)) {
+				return false;
+			}
+
+			// Check permissions
+			return !item.isEnabled
 				? true
 				: item.isEnabled({
 						auth: opts.auth,
 						isCloud: opts.isCloud,
-					}),
-		),
-		// Filter the settings items based on the user's role and permissions
+					});
+		}),
+		// Filter the settings items based on the user's role, permissions, and preferences
 		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
-		settings: MENU.settings.filter((item) =>
-			!item.isEnabled
+		settings: MENU.settings.filter((item) => {
+			// Check if user has hidden this item
+			if (item.key && hiddenKeys.includes(item.key)) {
+				return false;
+			}
+
+			// Check permissions
+			return !item.isEnabled
 				? true
 				: item.isEnabled({
 						auth: opts.auth,
 						isCloud: opts.isCloud,
-					}),
-		),
+					});
+		}),
 		// Filter the help items based on the user's role and permissions
 		// Calls the `isEnabled` function if it exists to determine if the item should be displayed
 		help: MENU.help.filter((item) =>
@@ -834,15 +896,18 @@ export default function Page({ children }: Props) {
 	const pathname = usePathname();
 	const { data: auth } = api.user.get.useQuery();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
+	const { data: preferences } = api.userPreferences.get.useQuery();
 
 	const includesProjects = pathname?.includes("/dashboard/project");
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+
+	const hiddenItems = (preferences?.hiddenSidebarItems as string[]) || [];
 
 	const {
 		home: filteredHome,
 		settings: filteredSettings,
 		help,
-	} = createMenuForAuthUser({ auth, isCloud: !!isCloud });
+	} = createMenuForAuthUser({ auth, isCloud: !!isCloud, hiddenItems });
 
 	const activeItem = findActiveNavItem(
 		[...filteredHome, ...filteredSettings],

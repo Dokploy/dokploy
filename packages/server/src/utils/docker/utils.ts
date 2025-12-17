@@ -221,18 +221,25 @@ export const cleanUpSystemPrune = async (serverId?: string) => {
 	}
 };
 
-export const startService = async (appName: string) => {
+export const startService = async (appName: string, replicas = 1) => {
 	try {
-		await execAsync(`docker service scale ${appName}=1 `);
+		await execAsync(`docker service scale ${appName}=${replicas}`);
 	} catch (error) {
 		console.error(error);
 		throw error;
 	}
 };
 
-export const startServiceRemote = async (serverId: string, appName: string) => {
+export const startServiceRemote = async (
+	serverId: string,
+	appName: string,
+	replicas = 1,
+) => {
 	try {
-		await execAsyncRemote(serverId, `docker service scale ${appName}=1 `);
+		await execAsyncRemote(
+			serverId,
+			`docker service scale ${appName}=${replicas}`,
+		);
 	} catch (error) {
 		console.error(error);
 		throw error;

@@ -144,22 +144,39 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 								</Button>
 							</DialogAction>
 						</TooltipProvider>
-						{data?.applicationStatus === "idle" ? (
+						{data?.applicationStatus === "idle" ||
+						data?.applicationStatus === "paused" ? (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Start Mariadb"
-									description="Are you sure you want to start this mariadb?"
+									title={
+										data?.applicationStatus === "paused"
+											? "Resume Mariadb"
+											: "Start Mariadb"
+									}
+									description={
+										data?.applicationStatus === "paused"
+											? "Are you sure you want to resume this mariadb?"
+											: "Are you sure you want to start this mariadb?"
+									}
 									type="default"
 									onClick={async () => {
 										await start({
 											mariadbId: mariadbId,
 										})
 											.then(() => {
-												toast.success("Mariadb started successfully");
+												toast.success(
+													data?.applicationStatus === "paused"
+														? "Mariadb resumed successfully"
+														: "Mariadb started successfully",
+												);
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error starting Mariadb");
+												toast.error(
+													data?.applicationStatus === "paused"
+														? "Error resuming Mariadb"
+														: "Error starting Mariadb",
+												);
 											});
 									}}
 								>
@@ -172,14 +189,17 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<CheckCircle2 className="size-4 mr-1" />
-													Start
+													{data?.applicationStatus === "paused"
+														? "Resume"
+														: "Start"}
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
 													<p>
-														Start the MariaDB database (requires a previous
-														successful setup)
+														{data?.applicationStatus === "paused"
+															? "Resume the paused MariaDB database with its original configuration"
+															: "Start the MariaDB database (requires a previous successful setup)"}
 													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
@@ -190,23 +210,23 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 						) : (
 							<TooltipProvider delayDuration={0}>
 								<DialogAction
-									title="Stop Mariadb"
-									description="Are you sure you want to stop this mariadb?"
+									title="Pause Mariadb"
+									description="This will temporarily stop the database without data loss. You can resume it later with the same configuration."
 									onClick={async () => {
 										await stop({
 											mariadbId: mariadbId,
 										})
 											.then(() => {
-												toast.success("Mariadb stopped successfully");
+												toast.success("Mariadb paused successfully");
 												refetch();
 											})
 											.catch(() => {
-												toast.error("Error stopping Mariadb");
+												toast.error("Error pausing Mariadb");
 											});
 									}}
 								>
 									<Button
-										variant="destructive"
+										variant="warning"
 										isLoading={isStopping}
 										className="flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-offset-2"
 									>
@@ -214,12 +234,14 @@ export const ShowGeneralMariadb = ({ mariadbId }: Props) => {
 											<TooltipTrigger asChild>
 												<div className="flex items-center">
 													<Ban className="size-4 mr-1" />
-													Stop
+													Pause
 												</div>
 											</TooltipTrigger>
 											<TooltipPrimitive.Portal>
 												<TooltipContent sideOffset={5} className="z-[60]">
-													<p>Stop the currently running MariaDB database</p>
+													<p>
+														Pause the MariaDB database (can be resumed later)
+													</p>
 												</TooltipContent>
 											</TooltipPrimitive.Portal>
 										</Tooltip>

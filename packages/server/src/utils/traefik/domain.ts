@@ -11,6 +11,12 @@ import {
 } from "./application";
 import type { FileConfig, HttpRouter } from "./file-types";
 import { createPathMiddlewares, removePathMiddlewares } from "./middleware";
+import {
+	isWildcardDomain,
+	getCertificateType,
+	generateResolverName,
+	canUseHttpChallenge,
+} from "../../utils/wildcard-domain";
 
 export const manageDomain = async (app: ApplicationNested, domain: Domain) => {
 	const { appName } = app;
@@ -114,8 +120,20 @@ export const createRouterConfig = async (
 
 	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
 		domain;
+
+	// Check if this is a wildcard domain
+	const isWildcard = isWildcardDomain(host);
+	const certType = getCertificateType(host);
+
+	// Adjust the rule for wildcard domains
+	let hostRule = `Host(\`${host}\`)`;
+	if (isWildcard) {
+		// For wildcard domains, we need to use a more specific rule
+		hostRule = `HostRegexp(\`${host.replace("*.", "{subdomain:[a-zA-Z0-9-]+}.")}\`)`;
+	}
+
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		rule: `${hostRule}${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],
@@ -133,7 +151,10 @@ export const createRouterConfig = async (
 	}
 
 	if (entryPoint === "web" && https) {
-		routerConfig.middlewares = ["redirect-to-https"];
+		// Only add redirect if we can actually get certificates
+		if (canUseHttpChallenge(host) || certificateType === "custom") {
+			routerConfig.middlewares = ["redirect-to-https"];
+		}
 	}
 
 	if ((entryPoint === "websecure" && https) || !https) {
@@ -164,7 +185,18 @@ export const createRouterConfig = async (
 
 	if (entryPoint === "websecure") {
 		if (certificateType === "letsencrypt") {
-			routerConfig.tls = { certResolver: "letsencrypt" };
+			if (isWildcard) {
+				// For wildcard domains, we need to use DNS challenge resolver
+				// For now, we'll use a generic DNS resolver - this should be enhanced
+				// to select the appropriate DNS provider
+				routerConfig.tls = {
+					certResolver: "letsencrypt-dns-cloudflare-0", // Default to first cloudflare DNS resolver
+					domains: [{ main: host, sans: [] }]
+				};
+			} else {
+				// For regular domains, use HTTP challenge
+				routerConfig.tls = { certResolver: "letsencrypt" };
+			}
 		} else if (certificateType === "custom" && domain.customCertResolver) {
 			routerConfig.tls = { certResolver: domain.customCertResolver };
 		} else if (certificateType === "none") {

@@ -64,6 +64,7 @@ export const redis = pgTable("redis", {
 	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
 	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	replicas: integer("replicas").default(1).notNull(),
+	pausedAt: text("pausedAt"),
 
 	environmentId: text("environmentId")
 		.notNull()
@@ -89,6 +90,7 @@ const createSchema = createInsertSchema(redis, {
 	redisId: z.string(),
 	appName: z.string().min(1),
 	createdAt: z.string(),
+	pausedAt: z.string().optional(),
 	name: z.string().min(1),
 	databasePassword: z.string(),
 	dockerImage: z.string().default("redis:8"),
@@ -99,7 +101,7 @@ const createSchema = createInsertSchema(redis, {
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
 	environmentId: z.string(),
-	applicationStatus: z.enum(["idle", "running", "done", "error"]),
+	applicationStatus: z.enum(["idle", "running", "done", "error", "paused"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),

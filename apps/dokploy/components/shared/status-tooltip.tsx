@@ -13,6 +13,7 @@ interface Props {
 		| "done"
 		| "idle"
 		| "cancelled"
+		| "paused"
 		| undefined
 		| null;
 	className?: string;
@@ -49,6 +50,11 @@ export const StatusTooltip = ({ status, className }: Props) => {
 							)}
 						/>
 					)}
+					{status === "paused" && (
+						<div
+							className={cn("size-3.5 rounded-full bg-blue-500", className)}
+						/>
+					)}
 					{status === "running" && (
 						<div
 							className={cn("size-3.5 rounded-full bg-yellow-500", className)}
@@ -62,6 +68,7 @@ export const StatusTooltip = ({ status, className }: Props) => {
 						{status === "done" && "Done"}
 						{status === "running" && "Running"}
 						{status === "cancelled" && "Cancelled"}
+						{status === "paused" && "Paused"}
 					</span>
 				</TooltipContent>
 			</Tooltip>

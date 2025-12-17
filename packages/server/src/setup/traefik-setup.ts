@@ -250,7 +250,79 @@ export const createDefaultServerTraefikConfig = () => {
 	);
 };
 
-export const getDefaultTraefikConfig = () => {
+interface DnsProviderConfig {
+	type: string;
+	apiToken?: string;
+	secretAccessKey?: string;
+	accessKeyId?: string;
+	region?: string;
+	ttl?: string;
+}
+
+export const createCertificateResolvers = (dnsProviders?: DnsProviderConfig[]) => {
+	const resolvers: Record<string, any> = {
+		letsencrypt: {
+			acme: {
+				email: process.env.LETS_ENCRYPT_EMAIL || "test@localhost.com",
+				storage: "/etc/dokploy/traefik/dynamic/acme.json",
+				httpChallenge: {
+					entryPoint: "web",
+				},
+			},
+		},
+	};
+
+	// Add DNS challenge resolvers for each DNS provider
+	if (dnsProviders && dnsProviders.length > 0) {
+		dnsProviders.forEach((provider, index) => {
+			const resolverName = `letsencrypt-dns-${provider.type}-${index}`;
+			const acmeConfig: any = {
+				email: process.env.LETS_ENCRYPT_EMAIL || "test@localhost.com",
+				storage: "/etc/dokploy/traefik/dynamic/acme.json",
+				dnsChallenge: {
+					provider: provider.type,
+					delayBeforeCheck: "0",
+					resolvers: ["1.1.1.1:53", "8.8.8.8:53"],
+				},
+			};
+
+			// Add provider-specific environment variables reference
+			switch (provider.type) {
+				case "cloudflare":
+					if (provider.apiToken) {
+						acmeConfig.dnsChallenge = {
+							...acmeConfig.dnsChallenge,
+							resolvers: ["1.1.1.1:53", "8.8.8.8:53"],
+						};
+					}
+					break;
+				case "digitalocean":
+					if (provider.apiToken) {
+						acmeConfig.dnsChallenge = {
+							...acmeConfig.dnsChallenge,
+							resolvers: ["1.1.1.1:53", "8.8.8.8:53"],
+						};
+					}
+					break;
+				case "route53":
+					if (provider.accessKeyId && provider.secretAccessKey && provider.region) {
+						acmeConfig.dnsChallenge = {
+							...acmeConfig.dnsChallenge,
+							resolvers: ["1.1.1.1:53", "8.8.8.8:53"],
+						};
+					}
+					break;
+				// Add other providers as needed
+			}
+
+			resolvers[resolverName] = { acme: acmeConfig };
+		});
+	}
+
+	return resolvers;
+};
+
+export const getDefaultTraefikConfig = (dnsProviders?: DnsProviderConfig[]) => {
 	const configObject: MainTraefikConfig = {
 		global: {
 			sendAnonymousUsage: false,
@@ -301,17 +373,7 @@ export const getDefaultTraefikConfig = () => {
 			insecure: true,
 		},
 		...(process.env.NODE_ENV === "production" && {
-			certificatesResolvers: {
-				letsencrypt: {
-					acme: {
-						email: "test@localhost.com",
-						storage: "/etc/dokploy/traefik/dynamic/acme.json",
-						httpChallenge: {
-							entryPoint: "web",
-						},
-					},
-				},
-			},
+			certificatesResolvers: createCertificateResolvers(dnsProviders),
 		}),
 	};
 
@@ -320,7 +382,7 @@ export const getDefaultTraefikConfig = () => {
 	return yamlStr;
 };
 
-export const getDefaultServerTraefikConfig = () => {
+export const getDefaultServerTraefikConfig = (dnsProviders?: DnsProviderConfig[]) => {
 	const configObject: MainTraefikConfig = {
 		providers: {
 			swarm: {
@@ -356,17 +418,7 @@ export const getDefaultServerTraefikConfig = () => {
 		api: {
 			insecure: true,
 		},
-		certificatesResolvers: {
-			letsencrypt: {
-				acme: {
-					email: "test@localhost.com",
-					storage: "/etc/dokploy/traefik/dynamic/acme.json",
-					httpChallenge: {
-						entryPoint: "web",
-					},
-				},
-			},
-		},
+		certificatesResolvers: createCertificateResolvers(dnsProviders),
 	};
 
 	const yamlStr = stringify(configObject);

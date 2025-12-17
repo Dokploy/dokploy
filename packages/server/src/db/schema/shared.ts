@@ -6,6 +6,7 @@ export const applicationStatus = pgEnum("applicationStatus", [
 	"running",
 	"done",
 	"error",
+	"paused",
 ]);
 
 export const certificateType = pgEnum("certificateType", [
