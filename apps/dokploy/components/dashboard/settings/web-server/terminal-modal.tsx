@@ -27,7 +27,11 @@ interface Props {
 	asButton?: boolean;
 }
 
-export const TerminalModal = ({ children, serverId, asButton = false }: Props) => {
+export const TerminalModal = ({
+	children,
+	serverId,
+	asButton = false,
+}: Props) => {
 	const [terminalKey, setTerminalKey] = useState<string>(getTerminalKey());
 	const [isOpen, setIsOpen] = useState(false);
 	const isLocalServer = serverId === "local";
@@ -47,9 +51,7 @@ export const TerminalModal = ({ children, serverId, asButton = false }: Props) =
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			{asButton ? (
-				<DialogTrigger asChild>
-					{children}
-				</DialogTrigger>
+				<DialogTrigger asChild>{children}</DialogTrigger>
 			) : (
 				<DropdownMenuItem
 					className="w-full cursor-pointer space-x-3"
