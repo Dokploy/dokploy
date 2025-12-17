@@ -13,10 +13,9 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
-import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain } from "./domain";
+import { createDomain, generatePreviewDeploymentDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
@@ -135,15 +134,16 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
-	const org = await db.query.organization.findFirst({
-		where: eq(organization.id, application.environment.project.organizationId),
-	});
-	const generateDomain = await generateWildcardDomain(
-		application.previewWildcard || "*.traefik.me",
-		appName,
-		application.server?.ipAddress || "",
-		org?.ownerId || "",
-	);
+        const org = await db.query.organization.findFirst({
+                where: eq(organization.id, application.environment.project.organizationId),
+        });
+        const generateDomain = await generatePreviewDeploymentDomain(
+                appName,
+                org?.ownerId || "",
+                application.environment.projectId,
+                application.serverId || undefined,
+                application.previewWildcard,
+        );
 
 	const octokit = authGithub(application?.github as Github);
 
@@ -204,7 +204,7 @@ export const createPreviewDeployment = async (
 			),
 		);
 
-	return previewDeployment;
+        return previewDeployment;
 };
 
 export const findPreviewDeploymentsByPullRequestId = async (
@@ -231,38 +231,3 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
-const generateWildcardDomain = async (
-	baseDomain: string,
-	appName: string,
-	serverIp: string,
-	userId: string,
-): Promise<string> => {
-	if (!baseDomain.startsWith("*.")) {
-		throw new Error('The base domain must start with "*."');
-	}
-	const hash = `${appName}`;
-	if (baseDomain.includes("traefik.me")) {
-		let ip = "";
-
-		if (process.env.NODE_ENV === "development") {
-			ip = "127.0.0.1";
-		}
-
-		if (serverIp) {
-			ip = serverIp;
-		}
-
-		if (!ip) {
-			const admin = await findUserById(userId);
-			ip = admin?.serverIp || "";
-		}
-
-		const slugIp = ip.replaceAll(".", "-");
-		return baseDomain.replace(
-			"*",
-			`${hash}${slugIp === "" ? "" : `-${slugIp}`}`,
-		);
-	}
-
-	return baseDomain.replace("*", hash);
-};

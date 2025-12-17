@@ -66,21 +66,30 @@ export const AddPreviewDomain = ({
 		},
 	);
 
-	const { data: previewDeployment } = api.previewDeployment.one.useQuery(
-		{
-			previewDeploymentId,
-		},
-		{
-			enabled: !!previewDeploymentId,
-		},
-	);
+        const { data: previewDeployment } = api.previewDeployment.one.useQuery(
+                {
+                        previewDeploymentId,
+                },
+                {
+                        enabled: !!previewDeploymentId,
+                },
+        );
 
-	const { mutateAsync, isError, error, isLoading } = domainId
-		? api.domain.update.useMutation()
-		: api.domain.create.useMutation();
+        const projectId =
+                previewDeployment?.application.environment.projectId ?? undefined;
 
-	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
-		api.domain.generateDomain.useMutation();
+        const { mutateAsync, isError, error, isLoading } = domainId
+                ? api.domain.update.useMutation()
+                : api.domain.create.useMutation();
+
+        const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
+                api.domain.generateDomain.useMutation();
+
+        const { data: effectiveWildcard } = api.domain.getEffectiveWildcardDomain
+                .useQuery(
+                        { projectId: projectId || "" },
+                        { enabled: !!projectId },
+                );
 
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
@@ -172,41 +181,52 @@ export const AddPreviewDomain = ({
 												<FormControl>
 													<Input placeholder="api.dokploy.com" {...field} />
 												</FormControl>
-												<TooltipProvider delayDuration={0}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<Button
-																variant="secondary"
-																type="button"
-																isLoading={isLoadingGenerate}
-																onClick={() => {
-																	generateDomain({
-																		appName: previewDeployment?.appName || "",
-																		serverId:
-																			previewDeployment?.application
-																				?.serverId || "",
-																	})
-																		.then((domain) => {
-																			field.onChange(domain);
-																		})
-																		.catch((err) => {
-																			toast.error(err.message);
-																		});
-																}}
-															>
-																<Dices className="size-4 text-muted-foreground" />
-															</Button>
-														</TooltipTrigger>
-														<TooltipContent
-															side="left"
-															sideOffset={5}
-															className="max-w-[10rem]"
-														>
-															<p>Generate traefik.me domain</p>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											</div>
+												                                                                                                <TooltipProvider delayDuration={0}>
+                                                                                                        <Tooltip>
+                                                                                                                <TooltipTrigger asChild>
+                                                                                                                        <Button
+                                                                                                                                variant="secondary"
+                                                                                                                                type="button"
+                                                                                                                                isLoading={isLoadingGenerate}
+                                                                                                                                onClick={() => {
+                                                                                                                                        generateDomain({
+                                                                                                                                                appName: previewDeployment?.appName || "",
+                                                                                                                                                serverId:
+                                                                                                                                                        previewDeployment?.application?.serverId || "",
+                                                                                                                                                projectId,
+                                                                                                                                                domainType: "preview",
+                                                                                                                                                previewWildcard:
+                                                                                                                                                        previewDeployment?.application?.previewWildcard || undefined,
+                                                                                                                                        })
+                                                                                                                                                .then((domain) => {
+                                                                                                                                                        field.onChange(domain);
+                                                                                                                                                })
+                                                                                                                                                .catch((err) => {
+                                                                                                                                                        toast.error(err.message);
+                                                                                                                                                });
+                                                                                                                                }}
+                                                                                                                        >
+                                                                                                                                <Dices className="size-4 text-muted-foreground" />
+                                                                                                                        </Button>
+                                                                                                                </TooltipTrigger>
+                                                                                                                <TooltipContent
+                                                                                                                        side="left"
+                                                                                                                        sideOffset={5}
+                                                                                                                        className="max-w-[12rem]"
+                                                                                                                >
+                                                                                                                        {effectiveWildcard ? (
+                                                                                                                                <p>
+                                                                                                                                        Generate domain using: <br />
+                                                                                                                                        <code className="text-xs">{effectiveWildcard}</code>
+                                                                                                                                </p>
+                                                                                                                        ) : (
+                                                                                                                                <p>Generate traefik.me domain</p>
+                                                                                                                        )}
+                                                                                                                </TooltipContent>
+                                                                                                        </Tooltip>
+                                                                                                </TooltipProvider>
+
+                                                                                       </div>
 
 											<FormMessage />
 										</FormItem>
