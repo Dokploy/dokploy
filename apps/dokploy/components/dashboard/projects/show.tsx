@@ -286,13 +286,17 @@ export const ShowProjects = () => {
 												)
 												.some(Boolean);
 
+											const productionEnvironment = project?.environments.find(
+												(env) => env.isDefault,
+											);
+
 											return (
 												<div
 													key={project.projectId}
 													className="w-full lg:max-w-md"
 												>
 													<Link
-														href={`/dashboard/project/${project.projectId}/environment/${project?.environments?.[0]?.environmentId}`}
+														href={`/dashboard/project/${project.projectId}/environment/${productionEnvironment?.environmentId}`}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
 															{haveServicesWithDomains ? (

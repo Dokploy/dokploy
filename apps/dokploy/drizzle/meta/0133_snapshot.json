@@ -1,5 +1,5 @@
 {
-  "id": "fcbc5f29-78e8-4df5-9547-f571ee121334",
+  "id": "a3b4c5d6-e7f8-9a0b-1c2d-3e4f5a6b7c8d",
   "prevId": "cff546ae-01ea-40d4-b32d-0512e05c3856",
   "version": "7",
   "dialect": "postgresql",
@@ -1349,13 +1349,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "createEnvFile": {
-          "name": "createEnvFile",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "text",
@@ -2675,6 +2668,39 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "encryptionEnabled": {
+          "name": "encryptionEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "encryptionKey": {
+          "name": "encryptionKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "encryptionPassword2": {
+          "name": "encryptionPassword2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filenameEncryption": {
+          "name": "filenameEncryption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'off'"
+        },
+        "directoryNameEncryption": {
+          "name": "directoryNameEncryption",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},

@@ -1,5 +1,5 @@
 import copy from "copy-to-clipboard";
-import { CopyIcon, ExternalLinkIcon, ServerIcon } from "lucide-react";
+import { CopyIcon, ExternalLinkIcon, ServerIcon, Settings } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -36,9 +36,10 @@ import { ValidateServer } from "./validate-server";
 
 interface Props {
 	serverId: string;
+	asButton?: boolean;
 }
 
-export const SetupServer = ({ serverId }: Props) => {
+export const SetupServer = ({ serverId, asButton = false }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: server } = api.server.one.useQuery(
 		{
@@ -81,14 +82,23 @@ export const SetupServer = ({ serverId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
+			{asButton ? (
+				<DialogTrigger asChild>
+					<Button variant="outline" size="icon" className="h-9 w-9">
+						<Settings className="h-4 w-4" />
+					</Button>
+				</DialogTrigger>
+			) : (
 				<DropdownMenuItem
 					className="w-full cursor-pointer "
-					onSelect={(e) => e.preventDefault()}
+					onSelect={(e) => {
+						e.preventDefault();
+						setIsOpen(true);
+					}}
 				>
 					Setup Server
 				</DropdownMenuItem>
-			</DialogTrigger>
+			)}
 			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
