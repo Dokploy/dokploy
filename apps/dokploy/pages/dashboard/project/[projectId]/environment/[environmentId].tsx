@@ -279,6 +279,16 @@ const EnvironmentPage = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
+
+	const { data: environments } = api.environment.byProjectId.useQuery({
+		projectId: projectId,
+	});
+	const environmentDropdownItems =
+		environments?.map((env) => ({
+			name: env.name,
+			href: `/dashboard/project/${projectId}/environment/${env.environmentId}`,
+		})) || [];
+
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
 			return localStorage.getItem("servicesSort") || "lastDeploy-desc";
@@ -863,6 +873,7 @@ const EnvironmentPage = (
 					},
 					{
 						name: currentEnvironment.name,
+						dropdownItems: environmentDropdownItems,
 					},
 				]}
 			/>
