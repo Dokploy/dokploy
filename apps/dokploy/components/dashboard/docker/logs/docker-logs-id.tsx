@@ -431,6 +431,7 @@ export const DockerLogsId: React.FC<Props> = ({
 								const command = input.value;
 
 								if (!ws || ws.readyState !== WebSocket.OPEN) return;
+								if (isPaused) return;
 								if (!command.trim()) return;
 
 								ws.send(command);
@@ -442,13 +443,14 @@ export const DockerLogsId: React.FC<Props> = ({
 									className="rounded-t-none rounded-r-none bg-background border border-t-0"
 									placeholder="Send a command"
 									name="command"
+									disabled={!ws || ws.readyState !== WebSocket.OPEN || isPaused}
 								/>
 								<Button
 									variant="outline"
 									size="icon"
 									type="submit"
 									className="rounded-t-none border-border border-t-0"
-									disabled={!ws || ws.readyState !== WebSocket.OPEN}
+									disabled={!ws || ws.readyState !== WebSocket.OPEN || isPaused}
 								>
 									<SendIcon className="size-4" />
 								</Button>
