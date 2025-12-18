@@ -100,7 +100,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const { mutateAsync, error, isError } = registryId
 		? api.registry.update.useMutation()
 		: api.registry.create.useMutation();
-	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: deployServers } = api.server.withSSHKey.useQuery();
+	const { data: buildServers } = api.server.buildServers.useQuery();
+	const servers = [...(deployServers || []), ...(buildServers || [])];
 	const {
 		mutateAsync: testRegistry,
 		isLoading,
@@ -405,16 +407,33 @@ export const HandleRegistry = ({ registryId }: Props) => {
 													<SelectValue placeholder="Select a server" />
 												</SelectTrigger>
 												<SelectContent>
+													{deployServers && deployServers.length > 0 && (
+														<SelectGroup>
+															<SelectLabel>Deploy Servers</SelectLabel>
+															{deployServers.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+														</SelectGroup>
+													)}
+													{buildServers && buildServers.length > 0 && (
+														<SelectGroup>
+															<SelectLabel>Build Servers</SelectLabel>
+															{buildServers.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+														</SelectGroup>
+													)}
 													<SelectGroup>
-														<SelectLabel>Servers</SelectLabel>
-														{servers?.map((server) => (
-															<SelectItem
-																key={server.serverId}
-																value={server.serverId}
-															>
-																{server.name}
-															</SelectItem>
-														))}
 														<SelectItem value={"none"}>None</SelectItem>
 													</SelectGroup>
 												</SelectContent>

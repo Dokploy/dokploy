@@ -1,20 +1,34 @@
 import Link from "next/link";
 import { Fragment } from "react";
+import { ChevronDown } from "lucide-react";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
 	BreadcrumbSeparator,
+	BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-interface Props {
-	list: {
+interface BreadcrumbEntry {
+	name: string;
+	href?: string;
+	dropdownItems?: {
 		name: string;
-		href?: string;
+		href: string;
 	}[];
+}
+
+interface Props {
+	list: BreadcrumbEntry[];
 }
 
 export const BreadcrumbSidebar = ({ list }: Props) => {
@@ -29,13 +43,29 @@ export const BreadcrumbSidebar = ({ list }: Props) => {
 							{list.map((item, index) => (
 								<Fragment key={item.name}>
 									<BreadcrumbItem className="block">
-										<BreadcrumbLink href={item?.href} asChild={!!item?.href}>
-											{item.href ? (
-												<Link href={item?.href}>{item?.name}</Link>
-											) : (
-												item?.name
-											)}
-										</BreadcrumbLink>
+										{item.dropdownItems && item.dropdownItems.length > 0 ? (
+											<DropdownMenu>
+												<DropdownMenuTrigger className="flex items-center gap-1 hover:text-foreground transition-colors outline-none">
+													{item.name}
+													<ChevronDown className="h-4 w-4 opacity-50" />
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="start">
+													{item.dropdownItems.map((subItem) => (
+														<DropdownMenuItem key={subItem.href} asChild>
+															<Link href={subItem.href}>{subItem.name}</Link>
+														</DropdownMenuItem>
+													))}
+												</DropdownMenuContent>
+											</DropdownMenu>
+										) : (
+											<BreadcrumbLink href={item?.href} asChild={!!item?.href}>
+												{item.href ? (
+													<Link href={item?.href}>{item?.name}</Link>
+												) : (
+													<BreadcrumbPage>{item?.name}</BreadcrumbPage>
+												)}
+											</BreadcrumbLink>
+										)}
 									</BreadcrumbItem>
 									{index + 1 < list.length && (
 										<BreadcrumbSeparator className="block" />
