@@ -21,16 +21,20 @@ export interface EncryptionConfig {
 }
 
 export const getEncryptionConfigFromDestination = (
-	destination: Destination,
+        destination: Destination,
 ): EncryptionConfig => {
-	return {
+        return {
 		enabled: destination.encryptionEnabled ?? false,
 		key: destination.encryptionKey,
 		password2: destination.encryptionPassword2,
 		filenameEncryption:
 			(destination.filenameEncryption as FilenameEncryption) ?? "off",
 		directoryNameEncryption: destination.directoryNameEncryption ?? false,
-	};
+        };
+};
+
+export const buildRcloneCommand = (command: string, envVars?: string) => {
+        return envVars ? `${envVars} ${command}` : command;
 };
 
 /**
@@ -137,10 +141,15 @@ export const removeScheduleBackup = (backupId: string) => {
 };
 
 export const normalizeS3Path = (prefix: string) => {
-	// Trim whitespace and remove leading/trailing slashes
-	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
-	// Return empty string if prefix is empty, otherwise append trailing slash
-	return normalizedPrefix ? `${normalizedPrefix}/` : "";
+        // Trim whitespace and remove leading/trailing slashes
+        const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
+        // Return empty string if prefix is empty, otherwise append trailing slash
+        return normalizedPrefix ? `${normalizedPrefix}/` : "";
+};
+
+export const getBackupRemotePath = (remote: string, prefix?: string | null) => {
+        const normalizedPrefix = normalizeS3Path(prefix || "");
+        return normalizedPrefix ? `${remote}/${normalizedPrefix}` : remote;
 };
 
 export const getS3Credentials = (destination: Destination) => {
