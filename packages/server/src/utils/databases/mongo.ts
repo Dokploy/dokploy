@@ -54,7 +54,7 @@ if [ "$REPLICA_STATUS" != "1" ]; then
 	mongosh --eval '
 	rs.initiate({
 		_id: "rs0",
-		members: [{ _id: 0, host: "localhost:27017", priority: 1 }]
+		members: [{ _id: 0, host: "${appName}:27017", priority: 1 }]
 	});
 
     // Wait for the replica set to initialize
