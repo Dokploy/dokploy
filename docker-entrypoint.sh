@@ -25,13 +25,12 @@ require_env() {
 }
 
 # Uses Node + runtime deps in node_modules to test REAL connectivity:
-# - Postgres: require('pg') and connect using DATABASE_URL/POSTGRES_URL
-# - Redis: require('redis') or require('ioredis') and ping using REDIS_URL or REDIS_HOST
+# - Postgres: require('postgres') and connect using DATABASE_URL/POSTGRES_URL
 wait_for_postgres() {
   require_env "DATABASE_URL"
 
   node <<'NODE'
-const { Client } = require('pg');
+const postgres = require('postgres');
 
 const url = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 const timeoutSeconds = Number(process.env.DOKPLOY_WAIT_TIMEOUT_SECONDS || 600);
@@ -56,16 +55,21 @@ function redact(u) {
 
   while (true) {
     attempt += 1;
-    const client = new Client({ connectionString: url });
+    const sql = postgres(url, {
+      // keep timeouts tight so retries are responsive
+      connect_timeout: 5,          // seconds
+      idle_timeout: 5,             // seconds
+      max_lifetime: 10,            // seconds
+      max: 1
+    });
+
     try {
-      await client.connect();
-      // A trivial query verifies not only TCP but session usability
-      await client.query('SELECT 1');
-      await client.end();
+      await sql`select 1`;
+      await sql.end({ timeout: 5 });
       console.log(`[entrypoint] Postgres ready: ${redact(url)}`);
       process.exit(0);
     } catch (e) {
-      try { await client.end(); } catch {}
+      try { await sql.end({ timeout: 5 }); } catch {}
       const elapsed = Math.floor((Date.now() - start) / 1000);
       const remaining = timeoutSeconds - elapsed;
       const msg = (e && e.code) ? `${e.code}` : (e && e.message ? e.message : 'unknown error');
