@@ -28,7 +28,7 @@ export const backupVolume = async (
 	echo "Starting volume backup" 
 	echo "Dir: ${volumeBackupPath}"
 	echo "Ensuring ubuntu image is available..."
-	docker pull ubuntu:latest
+	docker image inspect ubuntu:latest > /dev/null 2>&1 || docker pull ubuntu:latest
 	echo "Ubuntu image ready ✅"
     docker run --rm \
   -v ${volumeName}:/volume_data \
