@@ -13,14 +13,11 @@ import { createOllama } from "ai-sdk-ollama";
  * to avoid duplicate paths in the final URL (e.g., /v1/v1/chat/completions)
  */
 export function normalizeAzureUrl(url: string): string {
-	let normalized = url;
-	// Remove trailing /openai/v1 if present
-	normalized = normalized.replace(/\/openai\/v1\/?$/, "");
-	// Remove trailing /v1 if present
-	normalized = normalized.replace(/\/v1\/?$/, "");
-	// Remove trailing slash
-	normalized = normalized.replace(/\/$/, "");
-	return normalized;
+	// Use a single regex to handle all variations in one pass
+	// This matches: /openai/v1 or /v1 at the end, with optional trailing slash
+	let normalized = url.replace(/\/(?:openai\/v1|v1)\/?$/, "");
+	// Remove any remaining trailing slash
+	return normalized.replace(/\/$/, "");
 }
 
 export function getProviderName(apiUrl: string) {

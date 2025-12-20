@@ -60,4 +60,12 @@ describe("Azure OpenAI URL Normalization", () => {
 		// Should only strip trailing /v1, not /v1 in the middle
 		expect(result).toBe("https://workspacename.openai.azure.com/v1/something");
 	});
+
+	it("should handle edge case with multiple trailing /v1", () => {
+		const input = "https://workspacename.openai.azure.com/openai/v1/v1";
+		const result = normalizeAzureUrl(input);
+
+		// Should only strip the last /v1
+		expect(result).toBe("https://workspacename.openai.azure.com/openai/v1");
+	});
 });

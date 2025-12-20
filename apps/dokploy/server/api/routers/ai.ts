@@ -61,6 +61,18 @@ export const aiRouter = createTRPCRouter({
 				let response = null;
 				let apiUrl = input.apiUrl;
 
+				// Validate API key for providers that require it
+				if (
+					providerName !== "ollama" &&
+					providerName !== "gemini" &&
+					!input.apiKey
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "API key must contain at least 1 character(s)",
+					});
+				}
+
 				switch (providerName) {
 					case "ollama":
 						response = await fetch(`${apiUrl}/api/tags`, { headers });
@@ -76,11 +88,6 @@ export const aiRouter = createTRPCRouter({
 						// Normalize the URL to remove trailing /openai/v1 or /v1
 						apiUrl = normalizeAzureUrl(apiUrl);
 
-						if (!input.apiKey)
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: "API key must contain at least 1 character(s)",
-							});
 						// Azure uses deployments endpoint to list models
 						response = await fetch(
 							`${apiUrl}/openai/deployments?api-version=2023-05-15`,
@@ -88,11 +95,6 @@ export const aiRouter = createTRPCRouter({
 						);
 						break;
 					default:
-						if (!input.apiKey)
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: "API key must contain at least 1 character(s)",
-							});
 						response = await fetch(`${apiUrl}/models`, { headers });
 				}
 
