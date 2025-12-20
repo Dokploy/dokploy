@@ -15,22 +15,36 @@ import { createOllama } from "ai-sdk-ollama";
 export function normalizeAzureUrl(url: string): string {
 	// Use a single regex to handle all variations in one pass
 	// This matches: /openai/v1 or /v1 at the end, with optional trailing slash
-	let normalized = url.replace(/\/(?:openai\/v1|v1)\/?$/, "");
+	const normalized = url.replace(/\/(?:openai\/v1|v1)\/?$/, "");
 	// Remove any remaining trailing slash
 	return normalized.replace(/\/$/, "");
 }
 
 export function getProviderName(apiUrl: string) {
-	if (apiUrl.includes("api.openai.com")) return "openai";
-	if (apiUrl.includes("azure.com")) return "azure";
-	if (apiUrl.includes("api.anthropic.com")) return "anthropic";
-	if (apiUrl.includes("api.cohere.ai")) return "cohere";
-	if (apiUrl.includes("api.perplexity.ai")) return "perplexity";
-	if (apiUrl.includes("api.mistral.ai")) return "mistral";
-	if (apiUrl.includes(":11434") || apiUrl.includes("ollama")) return "ollama";
-	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
-	if (apiUrl.includes("generativelanguage.googleapis.com")) return "gemini";
-	return "custom";
+	try {
+		const url = new URL(apiUrl);
+		const hostname = url.hostname.toLowerCase();
+
+		if (hostname === "api.openai.com") return "openai";
+		// Azure OpenAI uses *.openai.azure.com subdomain
+		if (
+			hostname.endsWith(".openai.azure.com") ||
+			hostname === "openai.azure.com"
+		)
+			return "azure";
+		if (hostname === "api.anthropic.com") return "anthropic";
+		if (hostname === "api.cohere.ai") return "cohere";
+		if (hostname === "api.perplexity.ai") return "perplexity";
+		if (hostname === "api.mistral.ai") return "mistral";
+		if (url.port === "11434" || hostname.includes("ollama")) return "ollama";
+		if (hostname === "api.deepinfra.com") return "deepinfra";
+		if (hostname === "generativelanguage.googleapis.com") return "gemini";
+		return "custom";
+	} catch {
+		// If URL parsing fails, treat as custom provider
+		// This is safe because custom providers still require valid authentication
+		return "custom";
+	}
 }
 
 export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
@@ -109,32 +123,45 @@ export const getProviderHeaders = (
 	apiUrl: string,
 	apiKey: string,
 ): Record<string, string> => {
-	// Azure OpenAI
-	if (apiUrl.includes("azure.com")) {
+	try {
+		const url = new URL(apiUrl);
+		const hostname = url.hostname.toLowerCase();
+
+		// Azure OpenAI uses *.openai.azure.com subdomain
+		if (
+			hostname.endsWith(".openai.azure.com") ||
+			hostname === "openai.azure.com"
+		) {
+			return {
+				"api-key": apiKey,
+			};
+		}
+
+		// Anthropic
+		if (hostname === "api.anthropic.com") {
+			return {
+				"x-api-key": apiKey,
+				"anthropic-version": "2023-06-01",
+			};
+		}
+
+		// Mistral
+		if (hostname === "api.mistral.ai") {
+			return {
+				Authorization: apiKey,
+			};
+		}
+
+		// Default (OpenAI style)
 		return {
-			"api-key": apiKey,
+			Authorization: `Bearer ${apiKey}`,
+		};
+	} catch {
+		// Fallback to OpenAI-style headers if URL parsing fails
+		return {
+			Authorization: `Bearer ${apiKey}`,
 		};
 	}
-
-	// Anthropic
-	if (apiUrl.includes("anthropic")) {
-		return {
-			"x-api-key": apiKey,
-			"anthropic-version": "2023-06-01",
-		};
-	}
-
-	// Mistral
-	if (apiUrl.includes("mistral")) {
-		return {
-			Authorization: apiKey,
-		};
-	}
-
-	// Default (OpenAI style)
-	return {
-		Authorization: `Bearer ${apiKey}`,
-	};
 };
 export interface Model {
 	id: string;
