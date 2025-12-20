@@ -146,17 +146,17 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 };
 
 /**
- * Docker commands passed through this method are held during Docker's build or pull process.
+ * Docker commands sent using this method are held in a hold when Docker is busy.
  *
  * https://github.com/Dokploy/dokploy/pull/3064
- * https://github.com/fir4tozden
  */
-export const dockerSafeExec = (exec: string) => `CHECK_INTERVAL=10
+export const dockerSafeExec = (exec: string) => `
+CHECK_INTERVAL=10
 
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
+    PROCESSES=$(ps aux | grep -E "^.*docker [A-Za-z]" | grep -v grep)
 
     if [ -z "$PROCESSES" ]; then
         echo "Docker is idle. Starting execution..."
@@ -169,7 +169,8 @@ done
 
 ${exec}
 
-echo "Execution completed."`;
+echo "Execution completed."
+`;
 
 const cleanupCommands = {
 	containers: "docker container prune --force",
