@@ -65,4 +65,19 @@ RUN curl -sSL https://railpack.com/install.sh | bash
 COPY --from=buildpacksio/pack:0.35.0 /usr/local/bin/pack /usr/local/bin/pack
 
 EXPOSE 3000
+
+# Add a docker-entrypoint to manage startup dependencies
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Add Healthcheck to allow for service and container restart by orchestrator restart policies
+HEALTHCHECK \
+  --interval=10s \
+  --timeout=3s \
+  --start-period=30s \
+  --retries=5 \
+  CMD curl -fsS http://127.0.0.1:3000/api/health >/dev/null || exit 1
+
 CMD [ "pnpm", "start" ]
