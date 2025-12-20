@@ -7,6 +7,22 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOllama } from "ai-sdk-ollama";
 
+/**
+ * Normalize Azure OpenAI base URL by removing trailing /openai/v1 or /v1 paths
+ * Azure OpenAI SDK handles path construction internally, so these need to be stripped
+ * to avoid duplicate paths in the final URL (e.g., /v1/v1/chat/completions)
+ */
+export function normalizeAzureUrl(url: string): string {
+	let normalized = url;
+	// Remove trailing /openai/v1 if present
+	normalized = normalized.replace(/\/openai\/v1\/?$/, "");
+	// Remove trailing /v1 if present
+	normalized = normalized.replace(/\/v1\/?$/, "");
+	// Remove trailing slash
+	normalized = normalized.replace(/\/$/, "");
+	return normalized;
+}
+
 export function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.openai.com")) return "openai";
 	if (apiUrl.includes("azure.com")) return "azure";
@@ -32,13 +48,7 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 		case "azure": {
 			// Azure OpenAI endpoints should not include /openai/v1 or /v1 at the end
 			// The SDK handles the path construction internally
-			let azureBaseUrl = config.apiUrl;
-			// Remove trailing /openai/v1 if present
-			azureBaseUrl = azureBaseUrl.replace(/\/openai\/v1\/?$/, "");
-			// Remove trailing /v1 if present
-			azureBaseUrl = azureBaseUrl.replace(/\/v1\/?$/, "");
-			// Remove trailing slash
-			azureBaseUrl = azureBaseUrl.replace(/\/$/, "");
+			const azureBaseUrl = normalizeAzureUrl(config.apiUrl);
 
 			return createAzure({
 				apiKey: config.apiKey,

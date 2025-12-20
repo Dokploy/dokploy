@@ -26,6 +26,7 @@ import {
 	getProviderHeaders,
 	getProviderName,
 	type Model,
+	normalizeAzureUrl,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -72,10 +73,8 @@ export const aiRouter = createTRPCRouter({
 						break;
 					case "azure":
 						// Azure OpenAI uses deployments endpoint
-						// Remove trailing /openai/v1 or /v1 if present
-						apiUrl = apiUrl.replace(/\/openai\/v1\/?$/, "");
-						apiUrl = apiUrl.replace(/\/v1\/?$/, "");
-						apiUrl = apiUrl.replace(/\/$/, "");
+						// Normalize the URL to remove trailing /openai/v1 or /v1
+						apiUrl = normalizeAzureUrl(apiUrl);
 
 						if (!input.apiKey)
 							throw new TRPCError({
