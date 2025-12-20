@@ -29,11 +29,22 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 				apiKey: config.apiKey,
 				baseURL: config.apiUrl,
 			});
-		case "azure":
+		case "azure": {
+			// Azure OpenAI endpoints should not include /openai/v1 or /v1 at the end
+			// The SDK handles the path construction internally
+			let azureBaseUrl = config.apiUrl;
+			// Remove trailing /openai/v1 if present
+			azureBaseUrl = azureBaseUrl.replace(/\/openai\/v1\/?$/, "");
+			// Remove trailing /v1 if present
+			azureBaseUrl = azureBaseUrl.replace(/\/v1\/?$/, "");
+			// Remove trailing slash
+			azureBaseUrl = azureBaseUrl.replace(/\/$/, "");
+
 			return createAzure({
 				apiKey: config.apiKey,
-				baseURL: config.apiUrl,
+				baseURL: azureBaseUrl,
 			});
+		}
 		case "anthropic":
 			return createAnthropic({
 				apiKey: config.apiKey,
@@ -91,6 +102,13 @@ export const getProviderHeaders = (
 	apiUrl: string,
 	apiKey: string,
 ): Record<string, string> => {
+	// Azure OpenAI
+	if (apiUrl.includes("azure.com")) {
+		return {
+			"api-key": apiKey,
+		};
+	}
+
 	// Anthropic
 	if (apiUrl.includes("anthropic")) {
 		return {
