@@ -1,6 +1,6 @@
 {
-  "id": "270301b8-dcad-4be1-ad3b-8604472c388a",
-  "prevId": "cff546ae-01ea-40d4-b32d-0512e05c3856",
+  "id": "a134e891-1b2c-4f5d-8e3a-9876543210ab",
+  "prevId": "d612e417-72a3-4619-829e-62daa3a5bf9c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1354,6 +1354,13 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": false
+        },
+        "createEnvFile": {
+          "name": "createEnvFile",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "createdAt": {
           "name": "createdAt",
@@ -2896,6 +2903,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "isDefault": {
+          "name": "isDefault",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},
