@@ -73,7 +73,7 @@ export const serverSetup = async (
 export const defaultCommand = (isBuildServer = false) => {
 	const bashCommand = `
 set -e;
-DOCKER_VERSION=29.1.3
+DOCKER_VERSION=28.5.0
 OS_TYPE=$(grep -w "ID" /etc/os-release | cut -d "=" -f 2 | tr -d '"')
 SYS_ARCH=$(uname -m)
 CURRENT_USER=$USER
