@@ -36,47 +36,53 @@ if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 	console.log("✅ Critical initialization complete");
 }
 
-const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
-const handle = app.getRequestHandler();
-void app.prepare().then(async () => {
-	try {
-		const server = http.createServer((req, res) => {
-			handle(req, res);
-		});
-
-		// WEBSOCKET
-		setupDrawerLogsWebSocketServer(server);
-		setupDeploymentLogsWebSocketServer(server);
-		setupDockerContainerLogsWebSocketServer(server);
-		setupDockerContainerTerminalWebSocketServer(server);
-		setupTerminalWebSocketServer(server);
-		if (!IS_CLOUD) {
-			setupDockerStatsMonitoringSocketServer(server);
-		}
-
-		if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
-			createDefaultMiddlewares();
-			await initializeNetwork();
-			await migration();
-			await initCronJobs();
-			await initSchedules();
-			await initCancelDeployments();
-			await initVolumeBackupsCronJobs();
-			await sendDokployRestartNotifications();
-		}
-
-		if (IS_CLOUD && process.env.NODE_ENV === "production") {
-			await migration();
-		}
-
-		server.listen(PORT, HOST);
-		console.log(`Server Started on: http://${HOST}:${PORT}`);
-		if (!IS_CLOUD) {
-			console.log("Starting Deployment Worker");
-			const { deploymentWorker } = await import("./queues/deployments-queue");
-			await deploymentWorker.run();
-		}
-	} catch (e) {
-		console.error("Main Server Error", e);
+// Run database migrations BEFORE Next.js app prepares
+// This ensures schema changes are applied before any queries are made
+const runMigrations = async () => {
+	if (process.env.NODE_ENV === "production") {
+		console.log("Running database migrations...");
+		await migration();
 	}
+};
+
+runMigrations().then(() => {
+	const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
+	const handle = app.getRequestHandler();
+	void app.prepare().then(async () => {
+		try {
+			const server = http.createServer((req, res) => {
+				handle(req, res);
+			});
+
+			// WEBSOCKET
+			setupDrawerLogsWebSocketServer(server);
+			setupDeploymentLogsWebSocketServer(server);
+			setupDockerContainerLogsWebSocketServer(server);
+			setupDockerContainerTerminalWebSocketServer(server);
+			setupTerminalWebSocketServer(server);
+			if (!IS_CLOUD) {
+				setupDockerStatsMonitoringSocketServer(server);
+			}
+
+			if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
+				createDefaultMiddlewares();
+				await initializeNetwork();
+				await initCronJobs();
+				await initSchedules();
+				await initCancelDeployments();
+				await initVolumeBackupsCronJobs();
+				await sendDokployRestartNotifications();
+			}
+
+			server.listen(PORT, HOST);
+			console.log(`Server Started on: http://${HOST}:${PORT}`);
+			if (!IS_CLOUD) {
+				console.log("Starting Deployment Worker");
+				const { deploymentWorker } = await import("./queues/deployments-queue");
+				await deploymentWorker.run();
+			}
+		} catch (e) {
+			console.error("Main Server Error", e);
+		}
+	});
 });
