@@ -68,4 +68,14 @@ describe("Azure OpenAI URL Normalization", () => {
 		// Should only strip the last /v1
 		expect(result).toBe("https://workspacename.openai.azure.com/openai/v1");
 	});
+
+	it("should not strip partial matches in path segments", () => {
+		const input = "https://workspacename.openai.azure.com/myopenai/v1service";
+		const result = normalizeAzureUrl(input);
+
+		// Should not modify paths that don't end with /openai/v1 or /v1
+		expect(result).toBe(
+			"https://workspacename.openai.azure.com/myopenai/v1service",
+		);
+	});
 });
