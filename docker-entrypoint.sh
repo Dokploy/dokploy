@@ -81,85 +81,35 @@ function redact(u) {
 NODE
 }
 
+## Using redis-cli as in the dokploy build, there is no reliable way to use ioredis/redis node libs.
 wait_for_redis() {
-  require_env "REDIS_HOST"
+  : "${REDIS_HOST:?REDIS_HOST is required}"
+  : "${REDIS_PORT:=6379}"
 
-  node <<'NODE'
-const timeoutSeconds = Number(process.env.DOKPLOY_WAIT_TIMEOUT_SECONDS || 600);
-const intervalSeconds = Number(process.env.DOKPLOY_WAIT_INTERVAL_SECONDS || 2);
+  start_ts="$(date +%s)"
+  attempt=0
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  while true; do
+    attempt=$((attempt + 1))
+    if redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" ping 2>/dev/null | grep -q PONG; then
+      echo "[entrypoint] Redis ready: ${REDIS_HOST}:${REDIS_PORT}"
+      return 0
+    fi
 
-function buildRedisUrl() {
-  if (process.env.REDIS_URL) return process.env.REDIS_URL;
-  const host = process.env.REDIS_HOST;
-  const port = process.env.REDIS_PORT || '6379';
-  // If your Dokploy supports auth/user, you can extend this safely later.
-  return `redis://${host}:${port}`;
+    now="$(date +%s)"
+    elapsed="$((now - start_ts))"
+    remaining="$((DOKPLOY_WAIT_TIMEOUT_SECONDS - elapsed))"
+
+    echo "[entrypoint] Waiting for Redis... attempt=${attempt} elapsed=${elapsed}s remaining=${remaining}s"
+    if [ "$remaining" -le 0 ]; then
+      echo "[entrypoint] Timeout waiting for Redis after ${elapsed}s"
+      return 1
+    fi
+
+    sleep "${DOKPLOY_WAIT_INTERVAL_SECONDS}"
+  done
 }
 
-function redact(u) {
-  try {
-    const x = new URL(u);
-    if (x.password) x.password = '***';
-    if (x.username) x.username = '***';
-    return x.toString();
-  } catch {
-    return '(invalid url)';
-  }
-}
-
-async function tryWithRedisPackage(url) {
-  // Prefer node-redis if present; fallback to ioredis if present.
-  try {
-    const { createClient } = require('redis');
-    const client = createClient({ url });
-    client.on('error', () => {}); // suppress noisy logs during retries
-    await client.connect();
-    await client.ping();
-    await client.quit();
-    return true;
-  } catch (e1) {
-    try {
-      const IORedis = require('ioredis');
-      const client = new IORedis(url, { lazyConnect: true });
-      await client.connect();
-      await client.ping();
-      await client.quit();
-      return true;
-    } catch (e2) {
-      // surface the most relevant error
-      throw e2 || e1;
-    }
-  }
-}
-
-(async () => {
-  const url = buildRedisUrl();
-  const start = Date.now();
-  let attempt = 0;
-
-  while (true) {
-    attempt += 1;
-    try {
-      await tryWithRedisPackage(url);
-      console.log(`[entrypoint] Redis ready: ${redact(url)}`);
-      process.exit(0);
-    } catch (e) {
-      const elapsed = Math.floor((Date.now() - start) / 1000);
-      const remaining = timeoutSeconds - elapsed;
-      const msg = (e && e.code) ? `${e.code}` : (e && e.message ? e.message : 'unknown error');
-      console.log(`[entrypoint] Waiting for Redis... attempt=${attempt} elapsed=${elapsed}s remaining=${remaining}s err=${msg}`);
-      if (remaining <= 0) {
-        console.error(`[entrypoint] Timeout waiting for Redis after ${elapsed}s: ${redact(url)}`);
-        process.exit(1);
-      }
-      await sleep(intervalSeconds * 1000);
-    }
-  }
-})();
-NODE
-}
 
 if [ "$DOKPLOY_WAIT_FOR_DEPS" = "1" ]; then
   log "Dependency wait enabled. timeout=${DOKPLOY_WAIT_TIMEOUT_SECONDS}s interval=${DOKPLOY_WAIT_INTERVAL_SECONDS}s"

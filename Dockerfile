@@ -66,6 +66,10 @@ COPY --from=buildpacksio/pack:0.35.0 /usr/local/bin/pack /usr/local/bin/pack
 
 EXPOSE 3000
 
+# Install redis-tools: the Debian package that provides redis-cli.
+# This is a small, targeted addition (much smaller than adding full DB client stacks)
+RUN apt-get update && apt-get install -y --no-install-recommends redis-tools
+
 # Add a docker-entrypoint to manage startup dependencies
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
