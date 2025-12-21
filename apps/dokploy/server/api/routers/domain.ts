@@ -9,6 +9,7 @@ import {
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,
+	getWebServerSettings,
 	manageDomain,
 	removeDomain,
 	removeDomainById,
@@ -107,16 +108,13 @@ export const domainRouter = createTRPCRouter({
 		}),
 	canGenerateTraefikMeDomains: protectedProcedure
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input, ctx }) => {
-			const organization = await findOrganizationById(
-				ctx.session.activeOrganizationId,
-			);
-
+		.query(async ({ input }) => {
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				return server.ipAddress;
 			}
-			return organization?.owner.serverIp;
+			const settings = await getWebServerSettings();
+			return settings?.serverIp || "";
 		}),
 
 	update: protectedProcedure
