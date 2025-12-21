@@ -1,5 +1,8 @@
 import { paths } from "@dokploy/server/constants";
-import { updateWebServerSettings } from "@dokploy/server/services/web-server-settings";
+import {
+	getWebServerSettings,
+	updateWebServerSettings,
+} from "@dokploy/server/services/web-server-settings";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import { execAsync } from "../process/execAsync";
 
@@ -57,8 +60,6 @@ export const stopLogCleanup = async (): Promise<boolean> => {
 		return false;
 	}
 };
-
-import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 
 export const getLogCleanupStatus = async (): Promise<{
 	enabled: boolean;
