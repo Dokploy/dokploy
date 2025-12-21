@@ -17,32 +17,16 @@ export function TimeBadge() {
 		const timer = setInterval(() => {
 			setTime((prevTime) => {
 				if (!prevTime) return null;
-				const newTime = new Date(prevTime.getTime() + 1000);
-				return newTime;
+				return new Date(prevTime.getTime() + 1000);
 			});
 		}, 1000);
 
-		return () => {
-			clearInterval(timer);
-		};
+		return () => clearInterval(timer);
 	}, []);
 
 	if (!time || !serverTime?.timezone) {
 		return null;
 	}
-
-	const getUtcOffset = (timeZone: string) => {
-		const date = new Date();
-		const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-		const tzDate = new Date(date.toLocaleString("en-US", { timeZone }));
-		const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
-		const sign = offset >= 0 ? "+" : "-";
-		const hours = Math.floor(Math.abs(offset));
-		const minutes = (Math.abs(offset) * 60) % 60;
-		return `UTC${sign}${hours.toString().padStart(2, "0")}:${minutes
-			.toString()
-			.padStart(2, "0")}`;
-	};
 
 	const formattedTime = new Intl.DateTimeFormat("en-US", {
 		timeZone: serverTime.timezone,
@@ -57,7 +41,7 @@ export function TimeBadge() {
 				<span className="font-medium tabular-nums">{formattedTime}</span>
 			</div>
 			<span className="hidden sm:inline text-primary/70 border rounded-full bg-foreground/5 px-1.5 py-0.5">
-				{serverTime.timezone} | {getUtcOffset(serverTime.timezone)}
+				{serverTime.timezone} | {serverTime.offset}
 			</span>
 		</div>
 	);
