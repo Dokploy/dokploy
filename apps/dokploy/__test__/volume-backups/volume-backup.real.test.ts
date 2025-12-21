@@ -183,7 +183,7 @@ describe(
 				const mock = createMockVolumeBackup(currentVolumeName, currentAppName);
 				const command = await backupVolume(mock);
 
-				// Verify logging messages for Issue #3301
+				// Verify logging messages
 				expect(command).toContain("Volume name:");
 				expect(command).toContain("Starting volume backup");
 				expect(command).toContain("Volume backup done ✅");
@@ -196,7 +196,7 @@ describe(
 		);
 
 		it(
-			"should backup 1GB volume using real backupVolume - Issue #3301",
+			"should backup 1GB volume using real backupVolume",
 			async () => {
 				console.log(
 					`\n🚀 Test 1GB backup with real code: ${currentVolumeName}`,

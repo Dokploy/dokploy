@@ -247,7 +247,7 @@ describe(
 						"application",
 					);
 
-					// Verify error detection messages for Issue #3301
+					// Verify error detection messages for
 					expect(command).toContain("CONTAINERS_USING_VOLUME=");
 					expect(command).toContain(
 						"Cannot restore volume as it is currently in use",
@@ -404,7 +404,7 @@ describe(
 		);
 
 		it(
-			"should restore 15k files using real restoreVolume - Issue #3301",
+			"should restore 15k files using real restoreVolume",
 			async () => {
 				console.log(
 					`\n🚀 Test 15k files restore with real code: ${currentVolumeName}`,
