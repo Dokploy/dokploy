@@ -38,7 +38,7 @@ export function ModeToggle() {
 	if (!mounted) {
 		return (
 			<Button variant="outline" size="icon" aria-label="Loading theme toggle">
-				<SunMoon className="h-[1.2rem] w-[1.2rem]" />
+				<Laptop className="h-[1.2rem] w-[1.2rem]" />
 				<span className="sr-only">Toggle theme</span>
 			</Button>
 		);
