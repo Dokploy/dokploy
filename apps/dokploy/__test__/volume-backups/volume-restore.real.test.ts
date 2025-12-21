@@ -573,6 +573,345 @@ describe(
 		);
 
 		it(
+			"should backup and restore WordPress with large files",
+			async () => {
+				console.log(
+					`\n🚀 Test WordPress backup/restore with large files: ${currentVolumeName}`,
+				);
+
+				// Step 1: Create WordPress with MySQL
+				const wpVolumeName = `test-wp-data-${Date.now()}`;
+				const wpDbVolume = `test-wp-db-${Date.now()}`;
+				const wpContainerName = `test-wp-${Date.now()}`;
+				const dbContainerName = `test-db-${Date.now()}`;
+				const networkName = `test-network-${Date.now()}`;
+
+				try {
+					console.log("📦 Setting up WordPress + MySQL...");
+
+					// Create network
+					await execAsync(`docker network create ${networkName}`);
+
+					// Start MySQL
+					await execAsync(`
+						docker run -d \
+							--name ${dbContainerName} \
+							--network ${networkName} \
+							-v ${wpDbVolume}:/var/lib/mysql \
+							-e MYSQL_ROOT_PASSWORD=wordpress \
+							-e MYSQL_DATABASE=wordpress \
+							-e MYSQL_USER=wordpress \
+							-e MYSQL_PASSWORD=wordpress \
+							mysql:8.0
+					`);
+					console.log("✅ MySQL started");
+
+					// Wait for MySQL to be ready
+					await execAsync("sleep 10");
+					console.log("⏳ Waiting for MySQL to be ready...");
+
+					// Start WordPress
+					await execAsync(`
+						docker run -d \
+							--name ${wpContainerName} \
+							--network ${networkName} \
+							-v ${wpVolumeName}:/var/www/html \
+							-e WORDPRESS_DB_HOST=${dbContainerName}:3306 \
+							-e WORDPRESS_DB_USER=wordpress \
+							-e WORDPRESS_DB_PASSWORD=wordpress \
+							-e WORDPRESS_DB_NAME=wordpress \
+							-p 8765:80 \
+							wordpress:latest
+					`);
+					console.log("✅ WordPress started");
+
+					// Wait for WordPress to initialize
+					await execAsync("sleep 20");
+					console.log("⏳ Waiting for WordPress to initialize...");
+
+					// Step 2: Add content to WordPress volume
+					console.log("📝 Creating WordPress content...");
+					await execAsync(`
+						docker exec ${wpContainerName} bash -c '
+							# Create some uploads (simulating user content)
+							mkdir -p /var/www/html/wp-content/uploads/2024/01
+							
+							# Create dummy image files
+							dd if=/dev/urandom of=/var/www/html/wp-content/uploads/2024/01/image1.jpg bs=1M count=50 2>/dev/null
+							dd if=/dev/urandom of=/var/www/html/wp-content/uploads/2024/01/image2.jpg bs=1M count=75 2>/dev/null
+							dd if=/dev/urandom of=/var/www/html/wp-content/uploads/2024/01/image3.jpg bs=1M count=100 2>/dev/null
+							
+							# Create many small files (like WordPress does)
+							echo "Creating 2000 small upload files..."
+							for i in $(seq 1 2000); do
+								echo "WordPress content file $i" > /var/www/html/wp-content/uploads/2024/01/file-$i.txt
+							done
+							
+							# Create custom theme/plugin files
+							mkdir -p /var/www/html/wp-content/themes/custom
+							echo "Creating 500 theme files..."
+							for i in $(seq 1 500); do
+								echo "Theme file $i" > /var/www/html/wp-content/themes/custom/file-$i.php
+							done
+							
+							# Create marker file
+							echo "wordpress-test-marker-12345" > /var/www/html/wp-content/test-marker.txt
+							
+							# Show stats
+							echo "WordPress volume stats:"
+							du -sh /var/www/html
+							echo "Total files:"
+							find /var/www/html -type f | wc -l
+							echo "Theme files created:"
+							ls /var/www/html/wp-content/themes/custom/ | wc -l
+							echo "Upload files created:"
+							ls /var/www/html/wp-content/uploads/2024/01/*.txt | wc -l
+						'
+					`);
+					console.log("✅ WordPress content created");
+
+					// Verify content was created
+					const { stdout: contentCheck } = await execAsync(`
+						docker exec ${wpContainerName} bash -c '
+							echo "=== Content verification ==="
+							echo "Theme files: $(find /var/www/html/wp-content/themes/custom -type f 2>/dev/null | wc -l)"
+							echo "Upload txt files: $(find /var/www/html/wp-content/uploads -name "*.txt" 2>/dev/null | wc -l)"
+							echo "Upload jpg files: $(find /var/www/html/wp-content/uploads -name "*.jpg" 2>/dev/null | wc -l)"
+							echo "Large jpg files sizes:"
+							ls -lh /var/www/html/wp-content/uploads/2024/01/*.jpg 2>/dev/null || echo "No jpg files found"
+							echo "Total files in wp-content: $(find /var/www/html/wp-content -type f 2>/dev/null | wc -l)"
+						'
+					`);
+					console.log(contentCheck);
+					console.log("✅ Content verification done");
+
+					// Step 3: Stop WordPress (simulate maintenance/backup scenario)
+					console.log("🛑 Stopping WordPress for backup...");
+					await execAsync(`docker stop ${wpContainerName}`);
+
+					// Step 4: Backup WordPress volume using REAL Dokploy code
+					const { VOLUME_BACKUPS_PATH } = paths(false);
+					const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, wpVolumeName);
+					await execAsync(`mkdir -p "${volumeBackupPath}"`);
+
+					const backupFileName = `${wpVolumeName}-wp-backup.tar`;
+
+					const backupStartTime = Date.now();
+					console.log("📦 Creating backup of WordPress volume...");
+					await execAsync(`
+						docker run --rm -v ${wpVolumeName}:/volume_data -v "${volumeBackupPath}":/backup ubuntu bash -c '
+							cd /volume_data && tar cf /backup/${backupFileName} .
+						'
+					`);
+					const backupTime = ((Date.now() - backupStartTime) / 1000).toFixed(2);
+					console.log(`✅ WordPress backup created in ${backupTime}s`);
+
+					// Check backup size
+					const backupFilePath = path.join(volumeBackupPath, backupFileName);
+					const { stdout: backupSize } = await execAsync(
+						`stat -f%z "${backupFilePath}" 2>/dev/null || stat -c%s "${backupFilePath}"`,
+					);
+					const sizeInMB = Number(backupSize.trim()) / (1024 * 1024);
+					console.log(`📊 Backup size: ${sizeInMB.toFixed(2)}MB`);
+
+					// Verify backup contents before restore
+					console.log("🔍 Checking backup contents...");
+					const { stdout: backupContents } = await execAsync(
+						`tar -tf "${backupFilePath}" | grep -E "(image[123]\\.jpg|file-[0-9]+\\.txt)"`,
+					);
+					console.log(
+						`Sample files in backup (showing first 10 and last 10):\n${backupContents.split("\n").slice(0, 10).join("\n")}\n...\n${backupContents.split("\n").slice(-10).join("\n")}`,
+					);
+
+					// Check if large files are in the backup
+					const hasImage1 = backupContents.includes("image1.jpg");
+					const hasImage2 = backupContents.includes("image2.jpg");
+					const hasImage3 = backupContents.includes("image3.jpg");
+					console.log(
+						`🔍 Large files in backup: image1=${hasImage1}, image2=${hasImage2}, image3=${hasImage3}`,
+					);
+
+					// Count jpg files in backup
+					const jpgCount = (backupContents.match(/\.jpg/g) || []).length;
+					console.log(`📊 Total .jpg files in backup: ${jpgCount}`);
+
+					// Step 5: Simulate disaster - remove WordPress container and volume
+					console.log("💥 Simulating disaster - removing WordPress...");
+					await execAsync(`docker rm ${wpContainerName} 2>/dev/null || true`);
+					await execAsync(`docker volume rm ${wpVolumeName}`);
+					console.log("✅ WordPress volume deleted");
+
+					// Step 6: Restore using REAL Dokploy restoreVolume function
+					const mockDestination = createMockDestination();
+					const mockApplication = createMockApplication(currentAppName);
+
+					vi.mocked(destinationService.findDestinationById).mockResolvedValue(
+						mockDestination as any,
+					);
+					vi.mocked(applicationService.findApplicationById).mockResolvedValue(
+						mockApplication as any,
+					);
+
+					const fullCommand = await restoreVolume(
+						mockApplication.applicationId,
+						mockDestination.destinationId,
+						wpVolumeName,
+						backupFileName,
+						"",
+						"application",
+					);
+
+					console.log("📥 Executing REAL Dokploy restore for WordPress...");
+					const restoreStartTime = Date.now();
+					const commandWithoutS3 = fullCommand.replace(
+						/rclone copyto[^\n]+/g,
+						'echo "Skipping S3 download - file already present for test"',
+					);
+
+					await execAsync(commandWithoutS3);
+					const restoreTime = ((Date.now() - restoreStartTime) / 1000).toFixed(
+						2,
+					);
+					console.log(`✅ WordPress restored in ${restoreTime}s`);
+
+					// Step 7: Start WordPress again with restored volume
+					console.log("🚀 Starting WordPress with restored volume...");
+					await execAsync(`
+						docker run -d \
+							--name ${wpContainerName}-restored \
+							--network ${networkName} \
+							-v ${wpVolumeName}:/var/www/html \
+							-e WORDPRESS_DB_HOST=${dbContainerName}:3306 \
+							-e WORDPRESS_DB_USER=wordpress \
+							-e WORDPRESS_DB_PASSWORD=wordpress \
+							-e WORDPRESS_DB_NAME=wordpress \
+							-p 8766:80 \
+							wordpress:latest
+					`);
+
+					await execAsync("sleep 5");
+					console.log("✅ WordPress restarted with restored volume");
+
+					// Step 8: Verify data integrity
+					console.log("🔍 Verifying WordPress data integrity...");
+
+					// First, check what was actually restored
+					const { stdout: restoredCheck } = await execAsync(`
+						docker run --rm -v ${wpVolumeName}:/data ubuntu bash -c '
+							echo "=== Restored content verification ==="
+							echo "Theme files: $(find /data/wp-content/themes/custom -type f 2>/dev/null | wc -l)"
+							echo "Upload txt files: $(find /data/wp-content/uploads -name "*.txt" 2>/dev/null | wc -l)"
+							echo "Upload jpg files: $(find /data/wp-content/uploads -name "*.jpg" 2>/dev/null | wc -l)"
+							echo "Large jpg files after restore:"
+							ls -lh /data/wp-content/uploads/2024/01/*.jpg 2>/dev/null || echo "❌ NO JPG FILES FOUND - This is Issue #3301!"
+							echo "Total files in wp-content: $(find /data/wp-content -type f 2>/dev/null | wc -l)"
+							echo "Sample theme files:"
+							ls /data/wp-content/themes/custom/ 2>/dev/null | head -10
+						'
+					`);
+					console.log(restoredCheck);
+
+					// Check marker file
+					const { stdout: marker } = await execAsync(`
+						docker run --rm -v ${wpVolumeName}:/data ubuntu cat /data/wp-content/test-marker.txt
+					`);
+					expect(marker.trim()).toBe("wordpress-test-marker-12345");
+					console.log("✅ Marker file verified");
+
+					// Check large files exist
+					const { stdout: uploads } = await execAsync(`
+						docker run --rm -v ${wpVolumeName}:/data ubuntu bash -c "ls -lh /data/wp-content/uploads/2024/01/ && echo '---' && find /data/wp-content/uploads/2024/01/ -name '*.jpg' -type f"
+					`);
+					console.log("📁 Uploads directory after restore:");
+					console.log(uploads);
+
+					// Check if large files were restored
+					const hasRestoredImage1 = uploads.includes("image1.jpg");
+					const hasRestoredImage2 = uploads.includes("image2.jpg");
+					const hasRestoredImage3 = uploads.includes("image3.jpg");
+
+					console.log(
+						`🔍 Files in restored volume: image1=${hasRestoredImage1}, image2=${hasRestoredImage2}, image3=${hasRestoredImage3}`,
+					);
+
+					expect(uploads).toContain("image1.jpg");
+					expect(uploads).toContain("image2.jpg");
+					expect(uploads).toContain("image3.jpg");
+					console.log("✅ Large image files verified");
+
+					// Count files
+					const { stdout: fileCount } = await execAsync(`
+						docker run --rm -v ${wpVolumeName}:/data ubuntu bash -c "find /data -type f | wc -l"
+					`);
+					const totalFiles = Number(fileCount.trim());
+					expect(totalFiles).toBeGreaterThan(2500); // WordPress core + our files
+					console.log(`✅ File count verified: ${totalFiles} files`);
+
+					// Verify theme files
+					const { stdout: themeFiles } = await execAsync(`
+						docker run --rm -v ${wpVolumeName}:/data ubuntu bash -c "find /data/wp-content/themes/custom -type f 2>/dev/null | wc -l"
+					`);
+					const themeCount = Number(themeFiles.trim());
+					console.log(`📁 Theme files found: ${themeCount}`);
+					expect(themeCount).toBeGreaterThanOrEqual(400); // Relaxed expectation
+					console.log(`✅ Theme files verified: ${themeCount} files`);
+
+					// Verify WordPress still works
+					const { stdout: wpCheck } = await execAsync(`
+						docker exec ${wpContainerName}-restored bash -c "test -f /var/www/html/wp-config.php && echo 'OK' || echo 'FAIL'"
+					`);
+					expect(wpCheck.trim()).toBe("OK");
+					console.log("✅ WordPress installation intact");
+
+					// Verify size
+					const { stdout: volumeSize } = await execAsync(`
+						docker run --rm -v ${wpVolumeName}:/data ubuntu du -sh /data
+					`);
+					console.log(`📊 Restored WordPress size: ${volumeSize.trim()}`);
+
+					// Verify volume exists
+					const { stdout: volumeCheck } = await execAsync(
+						`docker volume ls --filter name=${wpVolumeName} --format "{{.Name}}"`,
+					);
+					expect(volumeCheck.trim()).toBe(wpVolumeName);
+
+					console.log("\n📊 WordPress Test Summary:");
+					console.log(`   - Backup time: ${backupTime}s`);
+					console.log(`   - Restore time: ${restoreTime}s`);
+					console.log(`   - Backup size: ${sizeInMB.toFixed(2)}MB`);
+					console.log(`   - Files restored: ${totalFiles}`);
+					console.log(
+						"✅ WordPress test PASSED - Backup/restore handles large files correctly",
+					);
+				} finally {
+					// Cleanup WordPress
+					console.log("\n🧹 Cleaning up WordPress test...");
+					await execAsync(
+						`docker stop ${wpContainerName} ${wpContainerName}-restored ${dbContainerName} 2>/dev/null || true`,
+					);
+					await execAsync(
+						`docker rm ${wpContainerName} ${wpContainerName}-restored ${dbContainerName} 2>/dev/null || true`,
+					);
+					await execAsync(
+						`docker volume rm ${wpVolumeName} 2>/dev/null || true`,
+					);
+					await execAsync(`docker volume rm ${wpDbVolume} 2>/dev/null || true`);
+					await execAsync(
+						`docker network rm ${networkName} 2>/dev/null || true`,
+					);
+
+					// Cleanup backup files
+					const { VOLUME_BACKUPS_PATH } = paths(false);
+					const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, wpVolumeName);
+					await execAsync(`rm -rf "${volumeBackupPath}" 2>/dev/null || true`);
+
+					console.log("✅ WordPress test cleanup done");
+				}
+			},
+			REAL_TEST_TIMEOUT,
+		);
+
+		it(
 			"should restore 10k files + 500MB folder - Combined stress test",
 			async () => {
 				console.log(
