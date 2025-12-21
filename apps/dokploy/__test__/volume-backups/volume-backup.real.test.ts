@@ -46,10 +46,7 @@ const createMockDestination = () => ({
 	endpoint: "s3.amazonaws.com",
 });
 
-const createMockVolumeBackup = (
-	volumeName: string,
-	appName: string,
-): Partial<VolumeBackupData> => ({
+const createMockVolumeBackup = (volumeName: string, appName: string): any => ({
 	volumeBackupId: "id",
 	name: "Test",
 	volumeName,
@@ -241,10 +238,11 @@ describe(
 
 				// Extract and execute just the backup part of the command (tar creation)
 				// This is what Dokploy really does
-				const commandWithoutS3 = fullCommand.replace(
-					/rclone copyto[^\n]+/g,
-					'echo "Skipping S3 upload - keeping file locally for test"',
-				);
+				const commandWithoutS3 =
+					fullCommand?.replace(
+						/rclone copyto[^\n]+/g,
+						'echo "Skipping S3 upload - keeping file locally for test"',
+					) || "";
 
 				// Also prevent the cleanup of the backup file so we can verify it
 				const commandWithoutCleanup = commandWithoutS3.replace(
@@ -273,6 +271,10 @@ describe(
 					`find "${volumeBackupPath}" -name "*.tar" -type f`,
 				);
 				const backupFilePath = backupFiles.trim().split("\n")[0];
+
+				if (!backupFilePath) {
+					throw new Error("No backup file found");
+				}
 
 				expect(existsSync(backupFilePath)).toBe(true);
 				console.log(`✅ Backup file created: ${path.basename(backupFilePath)}`);
