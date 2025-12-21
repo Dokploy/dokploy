@@ -253,8 +253,11 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const admin = await findUserById(userId);
-			ip = admin?.serverIp || "";
+			const { getWebServerSettings } = await import(
+				"../services/web-server-settings"
+			);
+			const settings = await getWebServerSettings();
+			ip = settings?.serverIp || "";
 		}
 
 		const slugIp = ip.replaceAll(".", "-");

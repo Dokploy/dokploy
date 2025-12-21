@@ -12,11 +12,11 @@ import {
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
-	findUserById,
 	getDokployImage,
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
+	getWebServerSettings,
 	IS_CLOUD,
 	parseRawConfig,
 	paths,
@@ -40,7 +40,7 @@ import {
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
-	updateUser,
+	updateWebServerSettings,
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
@@ -77,6 +77,13 @@ import {
 } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
+	getWebServerSettings: protectedProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getWebServerSettings();
+		return settings;
+	}),
 	reloadServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
@@ -209,11 +216,11 @@ export const settingsRouter = createTRPCRouter({
 	}),
 	saveSSHPrivateKey: adminProcedure
 		.input(apiSaveSSHKey)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({ input }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
-			await updateUser(ctx.user.ownerId, {
+			await updateWebServerSettings({
 				sshPrivateKey: input.sshPrivateKey,
 			});
 
@@ -221,36 +228,36 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	assignDomainServer: adminProcedure
 		.input(apiAssignDomain)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ input }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
-			const user = await updateUser(ctx.user.ownerId, {
+			const settings = await updateWebServerSettings({
 				host: input.host,
 				letsEncryptEmail: input.letsEncryptEmail,
 				certificateType: input.certificateType,
 				https: input.https,
 			});
 
-			if (!user) {
+			if (!settings) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "User not found",
+					message: "Web server settings not found",
 				});
 			}
 
-			updateServerTraefik(user, input.host);
+			updateServerTraefik(settings, input.host);
 			if (input.letsEncryptEmail) {
 				updateLetsEncryptEmail(input.letsEncryptEmail);
 			}
 
-			return user;
+			return settings;
 		}),
-	cleanSSHPrivateKey: adminProcedure.mutation(async ({ ctx }) => {
+	cleanSSHPrivateKey: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
-		await updateUser(ctx.user.ownerId, {
+		await updateWebServerSettings({
 			sshPrivateKey: null,
 		});
 		return true;
@@ -310,11 +317,11 @@ export const settingsRouter = createTRPCRouter({
 					}
 				}
 			} else if (!IS_CLOUD) {
-				const userUpdated = await updateUser(ctx.user.ownerId, {
+				const settingsUpdated = await updateWebServerSettings({
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
 
-				if (userUpdated?.enableDockerCleanup) {
+				if (settingsUpdated?.enableDockerCleanup) {
 					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
@@ -488,13 +495,28 @@ export const settingsRouter = createTRPCRouter({
 
 			return readConfigInPath(input.path, input.serverId);
 		}),
-	getIp: protectedProcedure.query(async ({ ctx }) => {
+	getIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
-		const user = await findUserById(ctx.user.ownerId);
-		return user.serverIp;
+		const settings = await getWebServerSettings();
+		return settings?.serverIp || "";
 	}),
+	updateServerIp: adminProcedure
+		.input(
+			z.object({
+				serverIp: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			const settings = await updateWebServerSettings({
+				serverIp: input.serverIp,
+			});
+			return settings;
+		}),
 
 	getOpenApiDocument: protectedProcedure.query(
 		async ({ ctx }): Promise<unknown> => {
