@@ -44,18 +44,20 @@ const LOG_STYLES: Record<LogType, LogStyle> = {
 // Collapse Docker progress lines that update the same image (same hash prefix)
 function collapseProgressLines(lines: string[]): string[] {
 	const result: string[] = [];
-	
+
 	for (const line of lines) {
 		// Detect Docker progress lines: start with 12-char hash followed by space and [
 		// Pattern: <hash> [progress bar] or just <hash>
 		const progressMatch = line.match(/^([a-f0-9]{12})(\s+\[.*\].*)?$/i);
-		
+
 		if (progressMatch) {
 			const hash = progressMatch[1];
 			// Search backwards for the last line with the same hash
 			let found = false;
 			for (let i = result.length - 1; i >= 0; i--) {
-				const existingMatch = result[i]?.match(/^([a-f0-9]{12})(\s+\[.*\].*)?$/i);
+				const existingMatch = result[i]?.match(
+					/^([a-f0-9]{12})(\s+\[.*\].*)?$/i,
+				);
 				if (existingMatch && existingMatch[1] === hash) {
 					// Replace the existing line with the new progress update
 					result[i] = line;
@@ -72,7 +74,7 @@ function collapseProgressLines(lines: string[]): string[] {
 			result.push(line);
 		}
 	}
-	
+
 	return result;
 }
 
@@ -88,15 +90,19 @@ export function parseLogs(logString: string): LogLine[] {
 
 	// Normalize \r\n to \n, then handle \r (progress updates) by splitting and processing
 	const normalized = logString.replace(/\r\n/g, "\n");
-	const lines = normalized.split(/\r/).flatMap(segment => segment.split("\n"));
-	
-	const trimmedLines = lines.map((line) => line.trim()).filter((line) => line !== "");
+	const lines = normalized
+		.split(/\r/)
+		.flatMap((segment) => segment.split("\n"));
+
+	const trimmedLines = lines
+		.map((line) => line.trim())
+		.filter((line) => line !== "");
 	const collapsedLines = collapseProgressLines(trimmedLines);
 
 	return collapsedLines
 		.map((line) => {
 			const match = line.match(logRegex);
-			
+
 			if (!match) {
 				// If line doesn't match the standard format but has content, treat it as a message without timestamp
 				// This handles progress lines and other output without standard format
