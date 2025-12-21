@@ -38,6 +38,7 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
+import { getUtcOffset } from "@/server/utils/time";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -409,9 +410,12 @@ export const serverRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return null;
 		}
+
+		const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 		return {
 			time: new Date(),
-			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+			timezone,
+			offset: getUtcOffset(timezone),
 		};
 	}),
 	getServerMetrics: protectedProcedure
