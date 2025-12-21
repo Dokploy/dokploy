@@ -103,30 +103,6 @@ describe(
 			await cleanupDocker(currentVolumeName);
 			await cleanupFiles(currentAppName);
 
-			// Clean all test volumes
-			try {
-				const { stdout } = await execAsync(
-					`docker volume ls -q --filter "name=test-vol-" || true`,
-				);
-				if (stdout.trim()) {
-					for (const vol of stdout.trim().split("\n")) {
-						await execAsync(`docker volume rm ${vol} 2>/dev/null || true`);
-					}
-				}
-			} catch {
-				// Ignore
-			}
-
-			// Clean all test backup directories
-			try {
-				const { VOLUME_BACKUPS_PATH } = paths(false);
-				await execAsync(
-					`find "${VOLUME_BACKUPS_PATH}" -maxdepth 1 -type d -name "test-*" -exec rm -rf {} + 2>/dev/null || true`,
-				);
-			} catch {
-				// Ignore
-			}
-
 			console.log("✅ Cleanup done\n");
 		});
 
