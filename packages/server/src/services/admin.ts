@@ -110,9 +110,9 @@ export const getDokployUrl = async () => {
 	}
 	const settings = await getWebServerSettings();
 
-	if (settings.host) {
-		const protocol = settings.https ? "https" : "http";
-		return `${protocol}://${settings.host}`;
+	if (settings?.host) {
+		const protocol = settings?.https ? "https" : "http";
+		return `${protocol}://${settings?.host}`;
 	}
-	return `http://${settings.serverIp}:${process.env.PORT}`;
+	return `http://${settings?.serverIp}:${process.env.PORT}`;
 };
