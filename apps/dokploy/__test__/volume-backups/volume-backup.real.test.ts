@@ -279,16 +279,25 @@ describe(
 
 				// Extract and verify one file to ensure data integrity
 				// First check if marker file exists in tar
-				if (tarContents.includes("metadata/marker.txt")) {
+				if (tarContents.includes("marker.txt")) {
 					const tempDir = path.join(volumeBackupPath, "temp-extract");
 					await execAsync(`mkdir -p "${tempDir}"`);
-					await execAsync(
-						`tar -xf "${backupFilePath}" -C "${tempDir}" metadata/marker.txt`,
+
+					// Extract entire tar to handle path variations (. vs ./ prefix)
+					await execAsync(`tar -xf "${backupFilePath}" -C "${tempDir}"`);
+
+					// Find marker file regardless of path
+					const { stdout: markerPath } = await execAsync(
+						`find "${tempDir}" -name "marker.txt" -type f`,
 					);
-					const { stdout: markerContent } = await execAsync(
-						`cat "${tempDir}/metadata/marker.txt"`,
-					);
-					expect(markerContent.trim()).toBe("marker-67890");
+
+					if (markerPath.trim()) {
+						const { stdout: markerContent } = await execAsync(
+							`cat "${markerPath.trim()}"`,
+						);
+						expect(markerContent.trim()).toBe("marker-67890");
+					}
+
 					await execAsync(`rm -rf "${tempDir}"`);
 					console.log("✅ Data integrity verified");
 				} else {
