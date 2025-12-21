@@ -497,7 +497,7 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	getIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
-			return true;
+			return "";
 		}
 		const settings = await getWebServerSettings();
 		return settings?.serverIp || "";
