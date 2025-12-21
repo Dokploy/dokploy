@@ -13,11 +13,11 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
-import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
+import { getWebServerSettings } from "./web-server-settings";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 
@@ -253,9 +253,6 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const { getWebServerSettings } = await import(
-				"../services/web-server-settings"
-			);
 			const settings = await getWebServerSettings();
 			ip = settings?.serverIp || "";
 		}

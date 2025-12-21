@@ -9,7 +9,10 @@ import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
-import { getWebServerSettings } from "../services/web-server-settings";
+import {
+	getWebServerSettings,
+	updateWebServerSettings,
+} from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
@@ -124,9 +127,6 @@ const { handler, api } = betterAuth({
 					});
 
 					if (!IS_CLOUD) {
-						const { updateWebServerSettings } = await import(
-							"../services/web-server-settings"
-						);
 						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});
