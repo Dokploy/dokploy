@@ -86,7 +86,10 @@ export const initCronJobs = async () => {
 	}
 
 	if (webServerSettings?.logCleanupCron) {
-		console.log("Starting log requests cleanup", webServerSettings.logCleanupCron);
+		console.log(
+			"Starting log requests cleanup",
+			webServerSettings.logCleanupCron,
+		);
 		await startLogCleanup(webServerSettings.logCleanupCron);
 	}
 };
