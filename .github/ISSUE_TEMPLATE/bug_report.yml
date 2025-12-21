@@ -50,7 +50,6 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: affected-areas
     attributes:
       label: Which area(s) are affected? (Select all that apply)
       multiple: true
@@ -66,38 +65,6 @@ body:
         - "Cloud Version"
     validations:
       required: true
-  - type: dropdown
-    id: application-git-provider
-    attributes:
-      label: Git Provider (for Application)
-      description: Which git provider are you using for your Application?
-      options:
-        - "GitHub"
-        - "GitLab"
-        - "Gitea"
-        - "Bitbucket"
-        - "Git"
-        - "Docker"
-    validations:
-      required: false
-    show:
-      affected-areas: ["Application"]
-  - type: dropdown
-    id: compose-git-provider
-    attributes:
-      label: Git Provider (for Docker Compose)
-      description: Which git provider are you using for your Docker Compose?
-      options:
-        - "GitHub"
-        - "GitLab"
-        - "Gitea"
-        - "Bitbucket"
-        - "Git"
-        - "Raw"
-    validations:
-      required: false
-    show:
-      affected-areas: ["Docker Compose"]
   - type: dropdown
     attributes:
       label: Are you deploying the applications where Dokploy is installed or on a remote server?
