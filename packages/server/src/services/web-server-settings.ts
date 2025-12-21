@@ -32,13 +32,6 @@ export const updateWebServerSettings = async (
 ) => {
 	const current = await getWebServerSettings();
 
-	if (!current) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Web server settings not found",
-		});
-	}
-
 	const [updated] = await db
 		.update(webServerSettings)
 		.set({
