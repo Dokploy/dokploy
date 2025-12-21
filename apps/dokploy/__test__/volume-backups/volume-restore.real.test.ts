@@ -691,12 +691,8 @@ describe(
 					console.log(`📊 Backup size: ${sizeInMB.toFixed(2)}MB`);
 
 					// Verify backup contents before restore
-					console.log("🔍 Checking backup contents...");
 					const { stdout: backupContents } = await execAsync(
 						`tar -tf "${backupFilePath}" | grep -E "(image[123]\\.jpg|file-[0-9]+\\.txt)"`,
-					);
-					console.log(
-						`Sample files in backup (showing first 10 and last 10):\n${backupContents.split("\n").slice(0, 10).join("\n")}\n...\n${backupContents.split("\n").slice(-10).join("\n")}`,
 					);
 
 					// Check if large files are in the backup
@@ -796,10 +792,8 @@ describe(
 
 					// Check large files exist
 					const { stdout: uploads } = await execAsync(`
-						docker run --rm -v ${wpVolumeName}:/data ubuntu bash -c "ls -lh /data/wp-content/uploads/2024/01/ && echo '---' && find /data/wp-content/uploads/2024/01/ -name '*.jpg' -type f"
+						docker run --rm -v ${wpVolumeName}:/data ubuntu bash -c "find /data/wp-content/uploads/2024/01/ -name '*.jpg' -type f"
 					`);
-					console.log("📁 Uploads directory after restore:");
-					console.log(uploads);
 
 					// Check if large files were restored
 					const hasRestoredImage1 = uploads.includes("image1.jpg");

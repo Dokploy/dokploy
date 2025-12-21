@@ -237,12 +237,6 @@ describe(
 				}
 
 				// Verify the backup file was actually created by Dokploy's command
-				const { stdout: files } = await execAsync(
-					`ls -lh "${volumeBackupPath}"`,
-				);
-				console.log(`Files in backup directory:\n${files}`);
-
-				// Find the actual backup file created
 				const { stdout: backupFiles } = await execAsync(
 					`find "${volumeBackupPath}" -name "*.tar" -type f`,
 				);
@@ -268,8 +262,6 @@ describe(
 				const { stdout: tarContents } = await execAsync(
 					`tar -tf "${backupFilePath}"`,
 				);
-				console.log("📋 Tar contents preview (first 30 lines):");
-				console.log(tarContents.split("\n").slice(0, 30).join("\n"));
 
 				expect(tarContents).toContain("large-file-1.dat");
 				expect(tarContents).toContain("large-file-2.dat");
@@ -310,7 +302,6 @@ describe(
 					const { stdout: extractedFiles } = await execAsync(
 						`find "${tempDir}" -type f`,
 					);
-					console.log("Extracted files:", extractedFiles);
 
 					// Verify marker file exists somewhere
 					const markerFiles = extractedFiles
