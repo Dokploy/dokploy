@@ -41,3 +41,24 @@ export const updateGitProvider = async (
 		.returning()
 		.then((response) => response[0]);
 };
+
+export function canAccessProvider(
+	gitProvider: GitProvider,
+	activeOrganizationId: string,
+	userId: string,
+): boolean {
+	const isInOrg = gitProvider.organizationId === activeOrganizationId;
+	const isOwner = gitProvider.userId === userId;
+	const isShared = gitProvider.sharedInOrg;
+	return isInOrg && (isOwner || isShared);
+}
+
+export function filterVisibleProviders<T extends { gitProvider: GitProvider }>(
+	providers: T[],
+	activeOrganizationId: string,
+	userId: string,
+): T[] {
+	return providers.filter((provider) =>
+		canAccessProvider(provider.gitProvider, activeOrganizationId, userId),
+	);
+}

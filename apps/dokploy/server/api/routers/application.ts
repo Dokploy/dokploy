@@ -1,10 +1,15 @@
 import {
 	addNewService,
+	canAccessProvider,
 	checkServiceAccess,
 	createApplication,
 	deleteAllMiddlewares,
 	findApplicationById,
+	findBitbucketById,
 	findEnvironmentById,
+	findGiteaById,
+	findGithubById,
+	findGitlabById,
 	findGitProviderById,
 	findProjectById,
 	getApplicationStats,
@@ -165,7 +170,10 @@ export const applicationRouter = createTRPCRouter({
 			if (gitProviderId) {
 				try {
 					const gitProvider = await findGitProviderById(gitProviderId);
-					if (gitProvider.userId !== ctx.session.userId) {
+					if (
+						gitProvider.userId !== ctx.session.userId &&
+						!gitProvider.sharedInOrg
+					) {
 						hasGitProviderAccess = false;
 						unauthorizedProvider = application.sourceType;
 					}
@@ -401,9 +409,19 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveGithubProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.githubId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Github provider ID is required",
+				});
+			}
+			const githubProvider = await findGithubById(input.githubId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					githubProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -429,9 +447,19 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveGitlabProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.gitlabId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Gitlab provider ID is required",
+				});
+			}
+			const gitlabProvider = await findGitlabById(input.gitlabId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					gitlabProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -458,9 +486,19 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveBitbucketProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.bitbucketId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Bitbucket provider ID is required",
+				});
+			}
+			const bitbucketProvider = await findBitbucketById(input.bitbucketId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					bitbucketProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -485,9 +523,19 @@ export const applicationRouter = createTRPCRouter({
 		.input(apiSaveGiteaProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
+			if (!input.giteaId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Gitea provider ID is required",
+				});
+			}
+			const giteaProvider = await findGiteaById(input.giteaId);
 			if (
-				application.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
+				!canAccessProvider(
+					giteaProvider.gitProvider,
+					ctx.session.activeOrganizationId,
+					ctx.session.userId,
+				)
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
