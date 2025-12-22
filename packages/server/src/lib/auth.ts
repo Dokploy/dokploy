@@ -188,7 +188,9 @@ const { handler, api } = betterAuth({
 							desc(schema.member.createdAt),
 						],
 						with: {
-							organization: true,
+							organization: {
+								columns: { id: true },
+							},
 						},
 					});
 
@@ -325,7 +327,9 @@ export const validateRequest = async (request: IncomingMessage) => {
 					eq(schema.member.organizationId, organizationId),
 				),
 				with: {
-					organization: true,
+					organization: {
+						columns: { ownerId: true },
+					},
 				},
 			});
 
@@ -388,7 +392,9 @@ export const validateRequest = async (request: IncomingMessage) => {
 				),
 			),
 			with: {
-				organization: true,
+				organization: {
+					columns: { ownerId: true },
+				},
 			},
 		});
 
