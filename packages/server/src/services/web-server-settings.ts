@@ -1,6 +1,5 @@
 import { db } from "@dokploy/server/db";
 import { webServerSettings } from "@dokploy/server/db/schema";
-import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 /**
@@ -38,7 +37,7 @@ export const updateWebServerSettings = async (
 			...updates,
 			updatedAt: new Date(),
 		})
-		.where(eq(webServerSettings.id, current.id))
+		.where(eq(webServerSettings.id, current?.id ?? ""))
 		.returning();
 
 	return updated;
