@@ -1,4 +1,5 @@
 import type { Domain } from "@dokploy/server/services/domain";
+import { wildcardToHostRegexp } from "@dokploy/server/utils/domain/wildcard";
 import type { ApplicationNested } from "../builders";
 import {
 	createServiceConfig,
@@ -114,8 +115,20 @@ export const createRouterConfig = async (
 
 	const { host, path, https, uniqueConfigKey, internalPath, stripPath } =
 		domain;
+	
+	// Generate rule with wildcard support
+	let hostRule: string;
+	if (host.startsWith("*.")) {
+		// Use HostRegexp for wildcard domains
+		hostRule = wildcardToHostRegexp(host);
+	} else {
+		// Use regular Host rule for exact matches
+		hostRule = `Host(\`${host}\`)`;
+	}
+	
+	const pathRule = path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : "";
 	const routerConfig: HttpRouter = {
-		rule: `Host(\`${host}\`)${path !== null && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		rule: `${hostRule}${pathRule}`,
 		service: `${appName}-service-${uniqueConfigKey}`,
 		middlewares: [],
 		entryPoints: [entryPoint],
