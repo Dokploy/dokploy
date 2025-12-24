@@ -5,6 +5,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateNetworkMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -59,6 +60,7 @@ export const buildRedis = async (redis: RedisNested) => {
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
+	const networkMounts = generateNetworkMounts(mounts);
 	const filesMount = generateFileMounts(appName, redis);
 
 	const docker = await getRemoteDocker(redis.serverId);
@@ -70,7 +72,12 @@ export const buildRedis = async (redis: RedisNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...networkMounts,
+					...filesMount,
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command || args

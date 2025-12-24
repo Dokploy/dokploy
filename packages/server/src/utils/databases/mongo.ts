@@ -5,6 +5,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateNetworkMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -110,6 +111,7 @@ ${command ?? "wait $MONGOD_PID"}`;
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
+	const networkMounts = generateNetworkMounts(mounts);
 	const filesMount = generateFileMounts(appName, mongo);
 
 	const docker = await getRemoteDocker(mongo.serverId);
@@ -121,7 +123,12 @@ ${command ?? "wait $MONGOD_PID"}`;
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...networkMounts,
+					...filesMount,
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(replicaSets

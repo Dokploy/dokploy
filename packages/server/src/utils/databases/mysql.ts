@@ -5,6 +5,7 @@ import {
 	generateBindMounts,
 	generateConfigContainer,
 	generateFileMounts,
+	generateNetworkMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
 } from "../docker/utils";
@@ -68,6 +69,7 @@ export const buildMysql = async (mysql: MysqlNested) => {
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
+	const networkMounts = generateNetworkMounts(mounts);
 	const filesMount = generateFileMounts(appName, mysql);
 
 	const docker = await getRemoteDocker(mysql.serverId);
@@ -79,7 +81,12 @@ export const buildMysql = async (mysql: MysqlNested) => {
 				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
-				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				Mounts: [
+					...volumesMount,
+					...bindsMount,
+					...networkMounts,
+					...filesMount,
+				],
 				...(StopGracePeriod !== null &&
 					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(command && {
