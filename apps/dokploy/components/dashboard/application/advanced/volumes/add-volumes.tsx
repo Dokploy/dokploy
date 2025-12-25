@@ -120,13 +120,12 @@ export const AddVolumes = ({
 
 	const onSubmit = async (data: AddMount) => {
 		if (isRawCompose && data.type !== "file") {
+			if (!serviceName) {
+				toast.error("Please select a service");
+				return;
+			}
 			const source = data.type === "bind" ? data.hostPath : data.volumeName;
-			await addComposeVolume({
-				composeId: serviceId,
-				serviceName,
-				source,
-				target: data.mountPath,
-			})
+			await addComposeVolume({ composeId: serviceId, serviceName, source, target: data.mountPath })
 				.then(() => {
 					toast.success("Volume created successfully");
 					setIsOpen(false);
