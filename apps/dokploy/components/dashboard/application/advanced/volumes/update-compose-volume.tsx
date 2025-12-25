@@ -44,7 +44,7 @@ export const UpdateComposeVolume = ({ composeId, volume, refetch }: Props) => {
 				source,
 				target,
 			});
-			toast.success("Volume updated");
+			toast.success("Volume updated successfully");
 			setIsOpen(false);
 			refetch();
 		} catch {
