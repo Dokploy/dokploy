@@ -1,8 +1,10 @@
 import {
 	addDomainToCompose,
 	addNewService,
+	addVolumeToService,
 	checkServiceAccess,
 	cloneCompose,
+	type ComposeSpecification,
 	createCommand,
 	createCompose,
 	createComposeByTemplate,
@@ -11,7 +13,9 @@ import {
 	deleteMount,
 	execAsync,
 	execAsyncRemote,
+	extractServiceVolumes,
 	findComposeById,
+	removeVolumeFromService,
 	findDomainsByComposeId,
 	findEnvironmentById,
 	findGitProviderById,
@@ -20,6 +24,8 @@ import {
 	findUserById,
 	getComposeContainer,
 	IS_CLOUD,
+	loadDockerCompose,
+	loadDockerComposeRemote,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
@@ -43,7 +49,7 @@ import { eq } from "drizzle-orm";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { parse } from "toml";
-import { stringify } from "yaml";
+import { parse as parseYaml, stringify } from "yaml";
 import { z } from "zod";
 import { slugify } from "@/lib/slug";
 import { db } from "@/server/db";
@@ -281,6 +287,21 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to load this compose",
 				});
 			}
+
+			// For raw sourceType, read directly from DB (the source of truth)
+			if (compose.sourceType === "raw" && compose.composeFile) {
+				const composeData = parseYaml(
+					compose.composeFile,
+				) as ComposeSpecification;
+				if (!composeData?.services) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Services not found",
+					});
+				}
+				return Object.keys(composeData.services);
+			}
+
 			return await loadServices(input.composeId, input.type);
 		}),
 	loadMountsByService: protectedProcedure
@@ -306,6 +327,78 @@ export const composeRouter = createTRPCRouter({
 				(mount) => mount.Type === "volume" && mount.Source !== "",
 			);
 			return mounts;
+		}),
+	getComposeVolumes: protectedProcedure
+		.input(apiFindCompose)
+		.query(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
+			let composeData: ComposeSpecification | null;
+
+			if (compose.sourceType === "raw") {
+				// For raw sourceType, read directly from DB (the source of truth)
+				composeData = compose.composeFile
+					? (parseYaml(compose.composeFile) as ComposeSpecification)
+					: null;
+			} else {
+				// For git-sourced, read from filesystem
+				composeData = compose.serverId
+					? await loadDockerComposeRemote(compose)
+					: await loadDockerCompose(compose);
+			}
+
+			return composeData ? extractServiceVolumes(composeData) : [];
+		}),
+	addComposeVolume: protectedProcedure
+		.input(
+			apiFindCompose.extend({
+				serviceName: z.string().min(1),
+				source: z.string().min(1),
+				target: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.sourceType !== "raw") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Cannot edit git-sourced compose",
+				});
+			}
+			const composeData = parseYaml(
+				compose.composeFile,
+			) as ComposeSpecification;
+			const volume = `${input.source}:${input.target}`;
+			const updated = addVolumeToService(
+				composeData,
+				input.serviceName,
+				volume,
+			);
+			await updateCompose(input.composeId, { composeFile: stringify(updated) });
+		}),
+	removeComposeVolume: protectedProcedure
+		.input(
+			apiFindCompose.extend({
+				serviceName: z.string().min(1),
+				target: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const compose = await findComposeById(input.composeId);
+			if (compose.sourceType !== "raw") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Cannot edit git-sourced compose",
+				});
+			}
+			const composeData = parseYaml(
+				compose.composeFile,
+			) as ComposeSpecification;
+			const updated = removeVolumeFromService(
+				composeData,
+				input.serviceName,
+				input.target,
+			);
+			await updateCompose(input.composeId, { composeFile: stringify(updated) });
 		}),
 	fetchSourceType: protectedProcedure
 		.input(apiFindCompose)

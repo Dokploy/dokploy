@@ -2,6 +2,7 @@ import { Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -13,6 +14,7 @@ import {
 import { api } from "@/utils/api";
 import type { ServiceType } from "../show-resources";
 import { AddVolumes } from "./add-volumes";
+import { UpdateComposeVolume } from "./update-compose-volume";
 import { UpdateVolume } from "./update-volume";
 
 interface Props {
@@ -39,6 +41,20 @@ export const ShowVolumes = ({ id, type }: Props) => {
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 	const { mutateAsync: deleteVolume, isLoading: isRemoving } =
 		api.mounts.remove.useMutation();
+	const { data: composeVolumes, refetch: refetchComposeVolumes } =
+		api.compose.getComposeVolumes.useQuery(
+			{ composeId: id },
+			{ enabled: !!id && type === "compose" },
+		);
+	const { mutateAsync: removeComposeVolume, isLoading: isRemovingCompose } =
+		api.compose.removeComposeVolume.useMutation();
+	const sourceType =
+		data && "sourceType" in data ? data.sourceType : undefined;
+	const isRawCompose = type === "compose" && sourceType === "raw";
+	const dbMounts = data?.mounts ?? [];
+	const yamlVolumes = composeVolumes ?? [];
+	const hasAny = dbMounts.length > 0 || yamlVolumes.length > 0;
+
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-row justify-between flex-wrap gap-4">
@@ -50,20 +66,30 @@ export const ShowVolumes = ({ id, type }: Props) => {
 					</CardDescription>
 				</div>
 
-				{data && data?.mounts.length > 0 && (
-					<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
+				{hasAny && (
+					<AddVolumes
+						serviceId={id}
+						refetch={refetch}
+						serviceType={type}
+						sourceType={sourceType}
+					>
 						Add Volume
 					</AddVolumes>
 				)}
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				{data?.mounts.length === 0 ? (
+				{!hasAny ? (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Package className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
 							No volumes/mounts configured
 						</span>
-						<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
+						<AddVolumes
+							serviceId={id}
+							refetch={refetch}
+							serviceType={type}
+							sourceType={sourceType}
+						>
 							Add Volume
 						</AddVolumes>
 					</div>
@@ -73,63 +99,46 @@ export const ShowVolumes = ({ id, type }: Props) => {
 							Please remember to click Redeploy after adding, editing, or
 							deleting a mount to apply the changes.
 						</AlertBlock>
-						<div className="flex flex-col gap-6">
-							{data?.mounts.map((mount) => (
-								<div key={mount.mountId}>
+
+						{/* DB Mounts (file mounts stored in database) */}
+						{dbMounts.length > 0 && (
+							<div className="flex flex-col gap-4">
+								{dbMounts.map((mount) => (
 									<div
 										key={mount.mountId}
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
-										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 flex-col gap-4 sm:gap-8">
+										<div className="grid grid-cols-1 sm:grid-cols-3 flex-1 gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
-												<span className="font-medium">Mount Type</span>
+												<span className="font-medium">Type</span>
 												<span className="text-sm text-muted-foreground">
 													{mount.type.toUpperCase()}
 												</span>
 											</div>
-											{mount.type === "volume" && (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">Volume Name</span>
-													<span className="text-sm text-muted-foreground">
-														{mount.volumeName}
-													</span>
-												</div>
-											)}
-
-											{mount.type === "file" && (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">Content</span>
-													<span className="text-sm text-muted-foreground line-clamp-[10] whitespace-break-spaces">
-														{mount.content}
-													</span>
-												</div>
-											)}
-											{mount.type === "bind" && (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">Host Path</span>
-													<span className="text-sm text-muted-foreground">
-														{mount.hostPath}
-													</span>
-												</div>
-											)}
-											{mount.type === "file" && (
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">File Path</span>
-													<span className="text-sm text-muted-foreground">
-														{mount.filePath}
-													</span>
-												</div>
-											)}
-
+											<div className="flex flex-col gap-1">
+												<span className="font-medium">
+													{mount.type === "bind"
+														? "Host Path"
+														: mount.type === "volume"
+															? "Volume Name"
+															: "File Path"}
+												</span>
+												<span className="text-sm text-muted-foreground break-all">
+													{mount.type === "bind"
+														? mount.hostPath
+														: mount.type === "volume"
+															? mount.volumeName
+															: mount.filePath}
+												</span>
+											</div>
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Mount Path</span>
-												<span className="text-sm text-muted-foreground">
-													{mount.mountPath}
+												<span className="text-sm text-muted-foreground break-all">
+													{mount.mountPath || "/"}
 												</span>
 											</div>
 										</div>
-										<div className="flex flex-row gap-1">
+										<div className="flex flex-row gap-1 shrink-0">
 											<UpdateVolume
 												mountId={mount.mountId}
 												type={mount.type}
@@ -137,19 +146,17 @@ export const ShowVolumes = ({ id, type }: Props) => {
 												serviceType={type}
 											/>
 											<DialogAction
-												title="Delete Volume"
-												description="Are you sure you want to delete this volume?"
+												title="Delete Mount"
+												description="Are you sure you want to delete this mount?"
 												type="destructive"
 												onClick={async () => {
-													await deleteVolume({
-														mountId: mount.mountId,
-													})
+													await deleteVolume({ mountId: mount.mountId })
 														.then(() => {
 															refetch();
-															toast.success("Volume deleted successfully");
+															toast.success("Mount deleted successfully");
 														})
 														.catch(() => {
-															toast.error("Error deleting volume");
+															toast.error("Error deleting mount");
 														});
 												}}
 											>
@@ -164,9 +171,79 @@ export const ShowVolumes = ({ id, type }: Props) => {
 											</DialogAction>
 										</div>
 									</div>
-								</div>
-							))}
-						</div>
+								))}
+							</div>
+						)}
+
+						{/* YAML Volumes (from docker-compose.yml) */}
+						{yamlVolumes.length > 0 && (
+							<div className="flex flex-col gap-4">
+								{yamlVolumes.map((vol, i) => (
+									<div
+										key={`yaml-${vol.serviceName}-${i}`}
+										className={`flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4 ${!isRawCompose ? "opacity-50" : ""}`}
+									>
+										<div className="flex flex-col flex-1 gap-3">
+											<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">Source</span>
+													<span className="text-sm text-muted-foreground break-all">
+														{vol.source}
+													</span>
+												</div>
+												<div className="flex flex-col gap-1">
+													<span className="font-medium">Target</span>
+													<span className="text-sm text-muted-foreground break-all">
+														{vol.target}
+													</span>
+												</div>
+											</div>
+											<div className="flex flex-row gap-2">
+												<Badge variant="secondary">{vol.type}</Badge>
+												<Badge variant="secondary">{vol.serviceName}</Badge>
+											</div>
+										</div>
+										{isRawCompose && (
+											<div className="flex flex-row gap-1 shrink-0">
+												<UpdateComposeVolume
+													composeId={id}
+													volume={vol}
+													refetch={refetchComposeVolumes}
+												/>
+												<DialogAction
+													title="Delete Volume"
+													description="Are you sure you want to delete this volume from the compose file?"
+													type="destructive"
+													onClick={async () => {
+														await removeComposeVolume({
+															composeId: id,
+															serviceName: vol.serviceName,
+															target: vol.target,
+														})
+															.then(() => {
+																refetchComposeVolumes();
+																toast.success("Volume deleted successfully");
+															})
+															.catch(() => {
+																toast.error("Error deleting volume");
+															});
+													}}
+												>
+													<Button
+														variant="ghost"
+														size="icon"
+														className="group hover:bg-red-500/10"
+														isLoading={isRemovingCompose}
+													>
+														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+													</Button>
+												</DialogAction>
+											</div>
+										)}
+									</div>
+								))}
+							</div>
+						)}
 					</div>
 				)}
 			</CardContent>
