@@ -7,6 +7,7 @@ describe("createDomainLabels", () => {
 	const baseDomain: Domain = {
 		host: "example.com",
 		port: 8080,
+		customEntrypoint: null,
 		https: false,
 		uniqueConfigKey: 1,
 		customCertResolver: null,
@@ -239,5 +240,39 @@ describe("createDomainLabels", () => {
 		expect(websecureLabels).toContain(
 			"traefik.http.routers.test-app-1-websecure.middlewares=stripprefix-test-app-1,addprefix-test-app-1",
 		);
+	});
+
+	it("should create basic labels for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{ ...baseDomain, customEntrypoint: "custom" },
+			"custom",
+		);
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-custom.rule=Host(`example.com`)",
+			"traefik.http.routers.test-app-1-custom.entrypoints=custom",
+			"traefik.http.services.test-app-1-custom.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-custom.service=test-app-1-custom",
+		]);
+	});
+
+	it("should create https labels for custom entrypoint", async () => {
+		const labels = await createDomainLabels(
+			appName,
+			{
+				...baseDomain,
+				https: true,
+				customEntrypoint: "custom",
+				certificateType: "letsencrypt",
+			},
+			"custom",
+		);
+		expect(labels).toEqual([
+			"traefik.http.routers.test-app-1-custom.rule=Host(`example.com`)",
+			"traefik.http.routers.test-app-1-custom.entrypoints=custom",
+			"traefik.http.services.test-app-1-custom.loadbalancer.server.port=8080",
+			"traefik.http.routers.test-app-1-custom.service=test-app-1-custom",
+			"traefik.http.routers.test-app-1-custom.tls.certresolver=letsencrypt",
+		]);
 	});
 });
