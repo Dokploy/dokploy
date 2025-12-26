@@ -54,9 +54,9 @@ const AddComposeSchema = z.object({
 		.min(1, {
 			message: "App name is required",
 		})
-		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z])?$/, {
+		.regex(/^[a-z](?!.*--)([a-z0-9-]*[a-z0-9])?$/, {
 			message:
-				"App name supports lowercase letters, numbers, '-' and can only start and end letters, and does not support continuous '-'",
+				"App name supports lowercase letters, numbers, '-' and must start with a letter, end with a letter or number, and cannot contain consecutive '-'",
 		}),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
@@ -77,9 +77,6 @@ export const AddCompose = ({ environmentId, projectName }: Props) => {
 	const { data: servers } = api.server.withSSHKey.useQuery();
 	const { mutateAsync, isLoading, error, isError } =
 		api.compose.create.useMutation();
-
-	// Get environment data to extract projectId
-	const { data: environment } = api.environment.one.useQuery({ environmentId });
 
 	const hasServers = servers && servers.length > 0;
 	// Show dropdown logic based on cloud environment
