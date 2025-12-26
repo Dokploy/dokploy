@@ -2,6 +2,7 @@ import path from "node:path";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { getAllServers } from "@dokploy/server/services/server";
+import { checkAndNotifyUpdates } from "@dokploy/server/services/settings";
 import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
@@ -24,6 +25,11 @@ export const initCronJobs = async () => {
 	if (!admin) {
 		return;
 	}
+
+	scheduleJob("dokploy-update-check", "*/10 * * * *", async () => {
+		console.log(`[Update Check] Running at ${new Date().toLocaleString()}`);
+		await checkAndNotifyUpdates();
+	});
 
 	if (admin?.user?.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
