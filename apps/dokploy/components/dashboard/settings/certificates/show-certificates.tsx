@@ -11,7 +11,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { AddCertificate } from "./add-certificate";
+import { HandleCertificate } from "./handle-certificate";
 import { getCertificateChainInfo, getExpirationStatus } from "./utils";
 
 export const ShowCertificates = () => {
@@ -53,7 +53,7 @@ export const ShowCertificates = () => {
 										<span className="text-base text-muted-foreground text-center">
 											You don't have any certificates created
 										</span>
-										<AddCertificate />
+										<HandleCertificate />
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
@@ -102,6 +102,10 @@ export const ShowCertificates = () => {
 															</div>
 
 															<div className="flex flex-row gap-1">
+																<HandleCertificate
+																	certificateId={certificate.certificateId}
+																/>
+
 																<DialogAction
 																	title="Delete Certificate"
 																	description="Are you sure you want to delete this certificate?"
@@ -126,7 +130,7 @@ export const ShowCertificates = () => {
 																	<Button
 																		variant="ghost"
 																		size="icon"
-																		className="group hover:bg-red-500/10 "
+																		className="group hover:bg-red-500/10"
 																		isLoading={isRemoving}
 																	>
 																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
@@ -140,7 +144,7 @@ export const ShowCertificates = () => {
 										</div>
 
 										<div className="flex flex-row gap-2 flex-wrap w-full justify-end mr-4">
-											<AddCertificate />
+											<HandleCertificate />
 										</div>
 									</div>
 								)}
