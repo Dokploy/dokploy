@@ -128,37 +128,37 @@ const createCertificateFiles = async (certificate: Certificate) => {
 };
 
 export const updateCertificate = async (
-    certificateId: string,
-    updates: {
-        name?: string;
-        certificateData?: string;
-        privateKey?: string;
-        autoRenew?: boolean;
-    },
+	certificateId: string,
+	updates: {
+		name?: string;
+		certificateData?: string;
+		privateKey?: string;
+		autoRenew?: boolean;
+	},
 ) => {
-    const existing = await findCertificateById(certificateId);
+	const existing = await findCertificateById(certificateId);
 
-    const updated = await db
-        .update(certificates)
-        .set({
-            ...updates,
-        })
-        .where(eq(certificates.certificateId, certificateId))
-        .returning();
+	const updated = await db
+		.update(certificates)
+		.set({
+			...updates,
+		})
+		.where(eq(certificates.certificateId, certificateId))
+		.returning();
 
-    if (!updated || updated[0] === undefined) {
-        throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Failed to update the certificate",
-        });
-    }
+	if (!updated || updated[0] === undefined) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Failed to update the certificate",
+		});
+	}
 
-    const cert = updated[0];
+	const cert = updated[0];
 
-    // If cert data or private key changed, rewrite files
-    if (updates.certificateData || updates.privateKey) {
-        await createCertificateFiles(cert);
-    }
+	// If cert data or private key changed, rewrite files
+	if (updates.certificateData || updates.privateKey) {
+		await createCertificateFiles(cert);
+	}
 
-    return cert;
+	return cert;
 };
