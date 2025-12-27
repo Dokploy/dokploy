@@ -406,9 +406,6 @@ importers:
       recharts:
         specifier: ^2.15.3
         version: 2.15.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      rotating-file-stream:
-        specifier: 3.2.3
-        version: 3.2.3
       shell-quote:
         specifier: ^1.8.1
         version: 1.8.2
@@ -732,9 +729,6 @@ importers:
       react-dom:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
-      rotating-file-stream:
-        specifier: 3.2.3
-        version: 3.2.3
       shell-quote:
         specifier: ^1.8.1
         version: 1.8.2
@@ -7063,10 +7057,6 @@ packages:
     resolution: {integrity: sha512-cPmwD3FnFv8rKMBc1MxWCwVQFxwf1JEmSX3iQXrRVVG15zerAIXRjMFVWnd5Q5QvgKF7Aj+5ykXFhUl+QGnyOw==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
-
-  rotating-file-stream@3.2.3:
-    resolution: {integrity: sha512-cfmm3tqdnbuYw2FBmRTPBDaohYEbMJ3211T35o6eZdr4d7v69+ZeK1Av84Br7FLj2dlzyeZSbN6qTuXXE6dawQ==}
-    engines: {node: '>=14.0'}
 
   rou3@0.5.1:
     resolution: {integrity: sha512-OXMmJ3zRk2xeXFGfA3K+EOPHC5u7RDFG7lIOx0X1pdnhUkI8MdVrbV+sNsD80ElpUZ+MRHdyxPnFthq9VHs8uQ==}
@@ -14659,8 +14649,6 @@ snapshots:
       '@rollup/rollup-win32-ia32-msvc': 4.41.1
       '@rollup/rollup-win32-x64-msvc': 4.41.1
       fsevents: 2.3.3
-
-  rotating-file-stream@3.2.3: {}
 
   rou3@0.5.1: {}
 
