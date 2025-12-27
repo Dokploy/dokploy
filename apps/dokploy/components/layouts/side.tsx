@@ -20,6 +20,7 @@ import {
 	GitBranch,
 	HeartIcon,
 	KeyRound,
+	LayoutTemplate,
 	Loader2,
 	type LucideIcon,
 	Package,
@@ -348,6 +349,15 @@ const MENU: Menu = {
 			title: "Registry",
 			url: "/dashboard/settings/registry",
 			icon: Package,
+			// Only enabled for admins
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
+		},
+		{
+			isSingle: true,
+			title: "Template Registries",
+			url: "/dashboard/settings/template-registries",
+			icon: LayoutTemplate,
 			// Only enabled for admins
 			isEnabled: ({ auth }) =>
 				!!(auth?.role === "owner" || auth?.role === "admin"),
