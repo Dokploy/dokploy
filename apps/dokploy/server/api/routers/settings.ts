@@ -204,9 +204,9 @@ export const settingsRouter = createTRPCRouter({
 			void cleanupAll(input?.serverId);
 
 			return {
-		      status: "scheduled",
-		      message: "Docker cleanup has been initiated in the background",
-	        };
+				status: "scheduled",
+				message: "Docker cleanup has been initiated in the background",
+			};
 		}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
