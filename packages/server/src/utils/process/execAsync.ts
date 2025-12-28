@@ -15,12 +15,12 @@ const MAX_EXEC_BUFFER_SIZE = 100 * 1024 * 1024;
 
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options?: ExecOptions & { shell?: string },
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
 		const result = await execAsyncBase(command, {
 			...options,
-			maxBuffer: MAX_EXEC_BUFFER_SIZE,
+			maxBuffer: options?.maxBuffer ?? MAX_EXEC_BUFFER_SIZE,
 		});
 		return {
 			stdout: result.stdout.toString(),
@@ -64,7 +64,7 @@ export const execAsyncStream = (
 
 		const childProcess = exec(
 			command,
-			{ maxBuffer: MAX_EXEC_BUFFER_SIZE, ...options },
+			{ ...options, maxBuffer: options?.maxBuffer ?? MAX_EXEC_BUFFER_SIZE },
 			(error) => {
 				if (error) {
 					reject(
