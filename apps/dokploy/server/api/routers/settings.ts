@@ -3,7 +3,6 @@ import {
 	checkGPUStatus,
 	checkPortInUse,
 	cleanupAll,
-	cleanupAllBackground,
 	cleanupBuilders,
 	cleanupContainers,
 	cleanupImages,
@@ -202,9 +201,12 @@ export const settingsRouter = createTRPCRouter({
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
 			// Execute cleanup in background and return immediately to avoid gateway timeouts
-			const result = await cleanupAllBackground(input?.serverId);
+			void cleanupAll(input?.serverId);
 
-			return result;
+			return {
+		      status: "scheduled",
+		      message: "Docker cleanup has been initiated in the background",
+	        };
 		}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
