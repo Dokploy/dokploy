@@ -38,24 +38,14 @@ const { handler, api } = betterAuth({
 	},
 	...(!IS_CLOUD && {
 		async trustedOrigins() {
-			const admin = await db.query.member.findFirst({
-				where: eq(schema.member.role, "owner"),
-				with: {
-					user: true,
-				},
-			});
-
-			if (admin?.user) {
-				const settings = await getWebServerSettings();
-				if (!settings) {
-					return [];
-				}
-				return [
-					...(settings.serverIp ? [`http://${settings.serverIp}:3000`] : []),
-					...(settings.host ? [`https://${settings.host}`] : []),
-				];
+			const settings = await getWebServerSettings();
+			if (!settings) {
+				return [];
 			}
-			return [];
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+			];
 		},
 	}),
 	emailVerification: {
