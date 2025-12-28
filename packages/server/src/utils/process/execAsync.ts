@@ -14,7 +14,12 @@ export const execAsync = async (
 	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
-		const result = await execAsyncBase(command, options);
+		// Set maxBuffer to 100MB to handle large backup restore operations
+		// Default is 1MB which can cause "maxBuffer length exceeded" errors
+		const result = await execAsyncBase(command, {
+			...options,
+			maxBuffer: 100 * 1024 * 1024,
+		});
 		return {
 			stdout: result.stdout.toString(),
 			stderr: result.stderr.toString(),
@@ -54,22 +59,28 @@ export const execAsyncStream = (
 		let stdoutComplete = "";
 		let stderrComplete = "";
 
-		const childProcess = exec(command, options, (error) => {
-			if (error) {
-				reject(
-					new ExecError(`Command execution failed: ${error.message}`, {
-						command,
-						stdout: stdoutComplete,
-						stderr: stderrComplete,
-						// @ts-ignore
-						exitCode: error.code,
-						originalError: error,
-					}),
-				);
-				return;
-			}
-			resolve({ stdout: stdoutComplete, stderr: stderrComplete });
-		});
+		// Set maxBuffer to 100MB to handle large backup restore operations
+		// Default is 1MB which can cause "maxBuffer length exceeded" errors
+		const childProcess = exec(
+			command,
+			{ ...options, maxBuffer: 100 * 1024 * 1024 },
+			(error) => {
+				if (error) {
+					reject(
+						new ExecError(`Command execution failed: ${error.message}`, {
+							command,
+							stdout: stdoutComplete,
+							stderr: stderrComplete,
+							// @ts-ignore
+							exitCode: error.code,
+							originalError: error,
+						}),
+					);
+					return;
+				}
+				resolve({ stdout: stdoutComplete, stderr: stderrComplete });
+			},
+		);
 
 		childProcess.stdout?.on("data", (data: Buffer | string) => {
 			const stringData = data.toString();
