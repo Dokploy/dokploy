@@ -156,7 +156,7 @@ CHECK_INTERVAL=10
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "^.*docker [A-Za-z]" | grep -v grep)
+    PROCESSES=$(ps aux | grep -E "^.*docker [a-zA-Z]" | grep -v grep)
 
     if [ -z "$PROCESSES" ]; then
         echo "Docker is idle. Starting execution..."
@@ -282,39 +282,6 @@ export const cleanupAll = async (serverId?: string) => {
 			}
 		} catch {}
 	}
-};
-
-export const cleanupAllBackground = async (serverId?: string) => {
-	Promise.allSettled(
-		(
-			Object.entries(cleanupCommands) as [
-				keyof typeof cleanupCommands,
-				string,
-			][]
-		)
-			.filter(([key]) => !excludedCleanupAllCommands.includes(key))
-			.map(async ([, command]) => {
-				if (serverId) {
-					await execAsyncRemote(serverId, dockerSafeExec(command));
-				} else {
-					await execAsync(dockerSafeExec(command));
-				}
-			}),
-	)
-		.then((results) => {
-			const failed = results.filter((r) => r.status === "rejected");
-			if (failed.length > 0) {
-				console.error(`Docker cleanup: ${failed.length} operations failed`);
-			} else {
-				console.log("Docker cleanup completed successfully");
-			}
-		})
-		.catch((error) => console.error("Error in cleanup:", error));
-
-	return {
-		status: "scheduled",
-		message: "Docker cleanup has been initiated in the background",
-	};
 };
 
 export const startService = async (appName: string) => {
