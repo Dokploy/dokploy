@@ -9,16 +9,18 @@ export { ExecError } from "./ExecError";
 
 const execAsyncBase = util.promisify(exec);
 
+// Set maxBuffer to 100MB to handle large backup restore operations
+// Default is 1MB which can cause "maxBuffer length exceeded" errors
+const MAX_EXEC_BUFFER_SIZE = 100 * 1024 * 1024;
+
 export const execAsync = async (
 	command: string,
 	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
-		// Set maxBuffer to 100MB to handle large backup restore operations
-		// Default is 1MB which can cause "maxBuffer length exceeded" errors
 		const result = await execAsyncBase(command, {
 			...options,
-			maxBuffer: 100 * 1024 * 1024,
+			maxBuffer: MAX_EXEC_BUFFER_SIZE,
 		});
 		return {
 			stdout: result.stdout.toString(),
@@ -48,6 +50,7 @@ export const execAsync = async (
 interface ExecOptions {
 	cwd?: string;
 	env?: NodeJS.ProcessEnv;
+	maxBuffer?: number;
 }
 
 export const execAsyncStream = (
@@ -59,11 +62,9 @@ export const execAsyncStream = (
 		let stdoutComplete = "";
 		let stderrComplete = "";
 
-		// Set maxBuffer to 100MB to handle large backup restore operations
-		// Default is 1MB which can cause "maxBuffer length exceeded" errors
 		const childProcess = exec(
 			command,
-			{ ...options, maxBuffer: 100 * 1024 * 1024 },
+			{ maxBuffer: MAX_EXEC_BUFFER_SIZE, ...options },
 			(error) => {
 				if (error) {
 					reject(
