@@ -8,11 +8,24 @@ import {
 	getServiceContainersByAppName,
 	getStackContainersByAppName,
 } from "@dokploy/server";
+import { validateContainerId } from "@dokploy/server/utils/security/shell-escape";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
+// Legacy regex for app names (not container IDs)
 export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
+
+// Zod schema for validating Docker container IDs
+const containerIdSchema = z
+	.string()
+	.min(1)
+	.refine(
+		(id) => validateContainerId(id),
+		{
+			message: "Invalid container ID format. Must be 12-64 hexadecimal characters.",
+		},
+	);
 
 export const dockerRouter = createTRPCRouter({
 	getContainers: protectedProcedure
@@ -34,10 +47,7 @@ export const dockerRouter = createTRPCRouter({
 	restartContainer: protectedProcedure
 		.input(
 			z.object({
-				containerId: z
-					.string()
-					.min(1)
-					.regex(containerIdRegex, "Invalid container id."),
+				containerId: containerIdSchema,
 			}),
 		)
 		.mutation(async ({ input }) => {
@@ -47,10 +57,7 @@ export const dockerRouter = createTRPCRouter({
 	getConfig: protectedProcedure
 		.input(
 			z.object({
-				containerId: z
-					.string()
-					.min(1)
-					.regex(containerIdRegex, "Invalid container id."),
+				containerId: containerIdSchema,
 				serverId: z.string().optional(),
 			}),
 		)

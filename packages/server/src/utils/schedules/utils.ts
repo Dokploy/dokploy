@@ -8,6 +8,12 @@ import {
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
 import { findScheduleById } from "@dokploy/server/services/schedule";
+import {
+	shEscape,
+	validateContainerId,
+	validateShellType,
+} from "@dokploy/server/utils/security/shell-escape";
+import { validateLogPath } from "@dokploy/server/utils/security/path-validation";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
@@ -71,18 +77,35 @@ export const runCommand = async (scheduleId: string) => {
 			serverId = compose.serverId || "";
 		}
 
+		// Validate inputs
+		if (!validateContainerId(containerId)) {
+			throw new Error(`Invalid container ID: ${containerId}`);
+		}
+		if (!validateShellType(shellType || "")) {
+			throw new Error(`Invalid shell type: ${shellType}`);
+		}
+		if (!validateLogPath(deployment.logPath, serverId || null)) {
+			throw new Error(`Invalid log path: ${deployment.logPath}`);
+		}
+
 		if (serverId) {
 			try {
+				// Escape all variables for safe shell execution
+				const escapedContainerId = shEscape(containerId);
+				const escapedShellType = shEscape(shellType);
+				const escapedCommand = shEscape(command);
+				const escapedLogPath = shEscape(deployment.logPath);
+
 				await execAsyncRemote(
 					serverId,
 					`
 					set -e
-					echo "Running command: docker exec ${containerId} ${shellType} -c '${command}'" >> ${deployment.logPath};
-					docker exec ${containerId} ${shellType} -c '${command}' >> ${deployment.logPath} 2>> ${deployment.logPath} || { 
-						echo "❌ Command failed" >> ${deployment.logPath};
+					echo "Running command: docker exec ${escapedContainerId} ${escapedShellType} -c ${escapedCommand}" >> ${escapedLogPath};
+					docker exec ${escapedContainerId} ${escapedShellType} -c ${escapedCommand} >> ${escapedLogPath} 2>> ${escapedLogPath} || { 
+						echo "❌ Command failed" >> ${escapedLogPath};
 						exit 1;
 					}
-					echo "✅ Command executed successfully" >> ${deployment.logPath};
+					echo "✅ Command executed successfully" >> ${escapedLogPath};
 					`,
 				);
 			} catch (error) {
@@ -94,8 +117,9 @@ export const runCommand = async (scheduleId: string) => {
 
 			try {
 				writeStream.write(
-					`docker exec ${containerId} ${shellType} -c ${command}\n`,
+					`docker exec ${containerId} ${shellType} -c ${shEscape(command)}\n`,
 				);
+				// spawnAsync with array arguments is safe - no shell interpretation
 				await spawnAsync(
 					"docker",
 					["exec", containerId, shellType, "-c", command],
@@ -149,16 +173,26 @@ export const runCommand = async (scheduleId: string) => {
 		}
 	} else if (scheduleType === "server") {
 		try {
+			// Validate log path
+			if (!validateLogPath(deployment.logPath, serverId || null)) {
+				throw new Error(`Invalid log path: ${deployment.logPath}`);
+			}
+
 			const { SCHEDULES_PATH } = paths(true);
 			const fullPath = path.join(SCHEDULES_PATH, appName || "");
+			
+			// Escape paths and log path for safe shell execution
+			const escapedFullPath = shEscape(fullPath);
+			const escapedLogPath = shEscape(deployment.logPath);
+
 			const command = `
 				set -e
-				echo "Running script" >> ${deployment.logPath};
-				bash -c ${fullPath}/script.sh 2>&1 | tee -a ${deployment.logPath} || { 
-					echo "❌ Command failed" >> ${deployment.logPath};
+				echo "Running script" >> ${escapedLogPath};
+				bash -c ${escapedFullPath}/script.sh 2>&1 | tee -a ${escapedLogPath} || { 
+					echo "❌ Command failed" >> ${escapedLogPath};
 					exit 1;
 				  }
-				echo "✅ Command executed successfully" >> ${deployment.logPath};
+				echo "✅ Command executed successfully" >> ${escapedLogPath};
 			`;
 			await execAsyncRemote(serverId, command, async (data) => {
 				// we need to extract the PID and Schedule ID from the data
