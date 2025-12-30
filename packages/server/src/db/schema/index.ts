@@ -33,6 +33,7 @@ export * from "./session";
 export * from "./shared";
 export * from "./ssh-key";
 export * from "./user";
+export * from "./user-interface-settings";
 export * from "./utils";
 export * from "./volume-backups";
 export * from "./web-server-settings";
