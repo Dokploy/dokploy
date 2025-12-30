@@ -22,6 +22,7 @@ import {
 	KeyRound,
 	Loader2,
 	type LucideIcon,
+	Palette,
 	Package,
 	PieChart,
 	Server,
@@ -396,6 +397,12 @@ const MENU: Menu = {
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
 			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
+		},
+		{
+			isSingle: true,
+			title: "User interface",
+			url: "/dashboard/settings/user-interface",
+			icon: Palette,
 		},
 	],
 

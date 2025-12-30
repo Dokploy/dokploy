@@ -16,6 +16,7 @@ import {
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
+	getUserInterfaceSettings,
 	getWebServerSettings,
 	IS_CLOUD,
 	parseRawConfig,
@@ -40,6 +41,7 @@ import {
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
+	updateUserInterfaceSettings,
 	updateWebServerSettings,
 	writeConfig,
 	writeMainConfig,
@@ -907,4 +909,34 @@ export const settingsRouter = createTRPCRouter({
 		const ips = process.env.DOKPLOY_CLOUD_IPS?.split(",");
 		return ips;
 	}),
+
+	getUserInterfaceSettings: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getUserInterfaceSettings();
+		return {
+			loginPageImage: settings?.loginPageImage || null,
+		};
+	}),
+
+	updateUserInterfaceSettings: adminProcedure
+		.input(
+			z.object({
+				loginPageImage: z.string().url().optional().nullable(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return null;
+			}
+			
+			const settings = await updateUserInterfaceSettings({
+				loginPageImage: input.loginPageImage,
+			});
+			
+			return {
+				loginPageImage: settings?.loginPageImage || null,
+			};
+		}),
 });
