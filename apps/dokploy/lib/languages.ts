@@ -23,6 +23,7 @@ export const Languages = {
 	norwegian: { code: "no", name: "Norsk" },
 	azerbaijani: { code: "az", name: "Azərbaycan" },
 	malayalam: { code: "ml", name: "മലയാളം" },
+	catalan: { code: "ca", name: "Català" },
 };
 
 export type Language = keyof typeof Languages;
