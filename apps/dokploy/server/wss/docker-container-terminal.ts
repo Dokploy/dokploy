@@ -68,11 +68,11 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				const conn = new Client();
 				let _stdout = "";
 				let _stderr = "";
-				
+
 				// Escape containerId and activeWay for safe shell execution
 				const escapedContainerId = shEscape(containerId);
 				const escapedActiveWay = shEscape(activeWay);
-				
+
 				conn
 					.once("ready", () => {
 						conn.exec(
@@ -145,7 +145,10 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				// docker exec -it -w / <containerId> <shell>
 				const ptyProcess = spawn(
 					shell,
-					["-c", `docker exec -it -w / ${shEscape(containerId)} ${shEscape(activeWay)}`],
+					[
+						"-c",
+						`docker exec -it -w / ${shEscape(containerId)} ${shEscape(activeWay)}`,
+					],
 					{},
 				);
 

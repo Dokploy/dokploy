@@ -325,7 +325,7 @@ export const deleteFileMount = async (mountId: string) => {
 	const basePath = await getBaseFilesPath(mountId);
 
 	const fullPath = path.join(basePath, mount.filePath);
-	
+
 	// Validate path is within allowed directory
 	if (!validateFilePath(mount.filePath, basePath)) {
 		throw new TRPCError({

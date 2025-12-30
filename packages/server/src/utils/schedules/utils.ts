@@ -180,7 +180,7 @@ export const runCommand = async (scheduleId: string) => {
 
 			const { SCHEDULES_PATH } = paths(true);
 			const fullPath = path.join(SCHEDULES_PATH, appName || "");
-			
+
 			// Escape paths and log path for safe shell execution
 			const escapedFullPath = shEscape(fullPath);
 			const escapedLogPath = shEscape(deployment.logPath);

@@ -55,7 +55,15 @@ export function validateContainerId(id: string): boolean {
  * @returns true if valid, false otherwise
  */
 export function validateShellType(type: string): boolean {
-	const allowedShells = ["sh", "bash", "zsh", "ash", "dash", "fish", "csh", "tcsh"];
+	const allowedShells = [
+		"sh",
+		"bash",
+		"zsh",
+		"ash",
+		"dash",
+		"fish",
+		"csh",
+		"tcsh",
+	];
 	return allowedShells.includes(type.toLowerCase());
 }
-

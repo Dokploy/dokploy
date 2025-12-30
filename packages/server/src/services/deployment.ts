@@ -629,7 +629,7 @@ const removeLastTenDeployments = async (
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
-				
+
 				// Validate log path before deletion to prevent path traversal
 				if (logPath !== "." && validateLogPath(logPath, serverId)) {
 					if (oldDeployment.rollbackId) {
@@ -666,7 +666,7 @@ const removeLastTenDeployments = async (
 					await removeRollbackById(oldDeployment.rollbackId);
 				}
 				const logPath = path.join(oldDeployment.logPath);
-				
+
 				// Validate log path before deletion to prevent path traversal
 				if (
 					logPath !== "." &&

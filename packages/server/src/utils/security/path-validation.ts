@@ -35,7 +35,10 @@ export function validatePath(userPath: string, basePath: string): boolean {
 
 		// Ensure the resolved user path starts with the resolved base path
 		// This prevents directory traversal
-		return resolvedUser.startsWith(resolvedBase + path.sep) || resolvedUser === resolvedBase;
+		return (
+			resolvedUser.startsWith(resolvedBase + path.sep) ||
+			resolvedUser === resolvedBase
+		);
 	} catch {
 		// If path resolution fails, it's not safe
 		return false;
@@ -85,7 +88,9 @@ export function resolveSafePath(userPath: string, basePath: string): string {
 	try {
 		return path.resolve(basePath, userPath);
 	} catch (error) {
-		throw new Error(`Failed to resolve path: ${error instanceof Error ? error.message : String(error)}`);
+		throw new Error(
+			`Failed to resolve path: ${error instanceof Error ? error.message : String(error)}`,
+		);
 	}
 }
 
@@ -95,7 +100,10 @@ export function resolveSafePath(userPath: string, basePath: string): string {
  * @param serverId - Optional server ID to determine if remote or local
  * @returns true if valid, false otherwise
  */
-export function validateLogPath(logPath: string, serverId?: string | null): boolean {
+export function validateLogPath(
+	logPath: string,
+	serverId?: string | null,
+): boolean {
 	if (!logPath || logPath === ".") {
 		return false;
 	}
@@ -117,4 +125,3 @@ export function validateFilePath(filePath: string, basePath: string): boolean {
 
 	return validatePath(filePath, basePath);
 }
-

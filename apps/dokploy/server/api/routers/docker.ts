@@ -20,12 +20,10 @@ export const containerIdRegex = /^[a-zA-Z0-9.\-_]+$/;
 const containerIdSchema = z
 	.string()
 	.min(1)
-	.refine(
-		(id) => validateContainerId(id),
-		{
-			message: "Invalid container ID format. Must be 12-64 hexadecimal characters.",
-		},
-	);
+	.refine((id) => validateContainerId(id), {
+		message:
+			"Invalid container ID format. Must be 12-64 hexadecimal characters.",
+	});
 
 export const dockerRouter = createTRPCRouter({
 	getContainers: protectedProcedure
