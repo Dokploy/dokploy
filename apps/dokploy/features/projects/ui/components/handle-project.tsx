@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusIcon, SquarePen } from "lucide-react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,7 +27,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/utils/api";
+import { createProjectUseCase } from "../../application/use-cases/create-project.use-case";
+import { updateProjectUseCase } from "../../application/use-cases/update-project.use-case";
+import { useProjectsRepository } from "../../infrastructure/api/projects-api.repository";
 
 const AddProjectSchema = z.object({
 	name: z
@@ -58,70 +60,67 @@ interface Props {
 	projectId?: string;
 }
 
+/**
+ * Handle project component.
+ */
 export const HandleProject = ({ projectId }: Props) => {
-	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-
-	const { mutateAsync, error, isError } = projectId
-		? api.project.update.useMutation()
-		: api.project.create.useMutation();
-
-	const { data, refetch } = api.project.one.useQuery(
-		{
-			projectId: projectId || "",
-		},
-		{
-			enabled: !!projectId,
-		},
-	);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
+	const projectsRepository = useProjectsRepository();
+	
+	const { data } = projectsRepository.getOne(projectId || "", !!projectId);
+	
 	const form = useForm<AddProject>({
 		defaultValues: {
-			description: "",
-			name: "",
+			description: data?.description ?? "",
+			name: data?.name ?? "",
+		},
+		values: {
+			description: data?.description ?? "",
+			name: data?.name ?? "",
 		},
 		resolver: zodResolver(AddProjectSchema),
 	});
 
-	useEffect(() => {
-		form.reset({
-			description: data?.description ?? "",
-			name: data?.name ?? "",
-		});
-	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
+	const onSubmit = async (formData: AddProject) => {
+		try {
+			setIsLoading(true);
+			setError(null);
 
-	const onSubmit = async (data: AddProject) => {
-		await mutateAsync({
-			name: data.name,
-			description: data.description,
-			projectId: projectId || "",
-		})
-			.then(async (data) => {
-				await utils.project.all.invalidate();
-				toast.success(projectId ? "Project Updated" : "Project Created");
-				setIsOpen(false);
-				if (!projectId) {
-					const projectIdToUse =
-						data && "project" in data ? data.project.projectId : undefined;
-					const environmentIdToUse =
-						data && "environment" in data
-							? data.environment.environmentId
-							: undefined;
-
-					if (environmentIdToUse && projectIdToUse) {
-						router.push(
-							`/dashboard/project/${projectIdToUse}/environment/${environmentIdToUse}`,
-						);
-					}
-				} else {
-					refetch();
-				}
-			})
-			.catch(() => {
-				toast.error(
-					projectId ? "Error updating a project" : "Error creating a project",
+			if (projectId) {
+				// Update existing project
+				await updateProjectUseCase(					
+					projectId,
+					formData.name,
+					formData.description,
+					projectsRepository
 				);
-			});
+			} else {
+				// Create new project
+				const result = await createProjectUseCase(
+					formData.name,
+					formData.description,
+					projectsRepository
+				);
+
+				// Handle navigation for new projects
+				if (result.shouldNavigate && result.navigationPath) {
+					router.push(result.navigationPath);
+				}
+			}
+
+			toast.success(projectId ? "Project Updated" : "Project Created");
+			setIsOpen(false);
+		} catch (error) {
+			setError(error instanceof Error ? error.message : "Unknown error");
+			toast.error(
+				projectId ? "Error updating a project" : "Error creating a project"
+			);
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
@@ -147,7 +146,7 @@ export const HandleProject = ({ projectId }: Props) => {
 					<DialogTitle>{projectId ? "Update" : "Add a"} project</DialogTitle>
 					<DialogDescription>The home of something big!</DialogDescription>
 				</DialogHeader>
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				{error && <AlertBlock type="error">{error}</AlertBlock>}
 				<Form {...form}>
 					<form
 						id="hook-form-add-project"
@@ -193,7 +192,7 @@ export const HandleProject = ({ projectId }: Props) => {
 
 					<DialogFooter>
 						<Button
-							isLoading={form.formState.isSubmitting}
+							isLoading={isLoading}
 							form="hook-form-add-project"
 							type="submit"
 						>

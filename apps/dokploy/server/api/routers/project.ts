@@ -280,6 +280,7 @@ export const projectRouter = createTRPCRouter({
 	remove: protectedProcedure
 		.input(apiRemoveProject)
 		.mutation(async ({ input, ctx }) => {
+			console.log("Deleting project...", input);
 			try {
 				if (ctx.user.role === "member") {
 					await checkProjectAccess(
@@ -301,6 +302,7 @@ export const projectRouter = createTRPCRouter({
 
 				return deletedProject;
 			} catch (error) {
+				console.error("Error deleting project:", error);
 				throw error;
 			}
 		}),
