@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, User } from "lucide-react";
+import { Loader2, Palette, User } from "lucide-react";
 import { useTranslation } from "next-i18next";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { getAvatarType, isSolidColorAvatar } from "@/lib/avatar-utils";
 import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
 import { Configure2FA } from "./configure-2fa";
@@ -74,6 +75,7 @@ export const ProfileForm = () => {
 	} = api.user.update.useMutation();
 	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
+	const colorInputRef = useRef<HTMLInputElement>(null);
 
 	const availableAvatars = useMemo(() => {
 		if (gravatarHash === null) return randomImages;
@@ -274,16 +276,8 @@ export const ProfileForm = () => {
 																onValueChange={(e) => {
 																	field.onChange(e);
 																}}
-																defaultValue={
-																	field.value?.startsWith("data:")
-																		? "upload"
-																		: field.value
-																}
-																value={
-																	field.value?.startsWith("data:")
-																		? "upload"
-																		: field.value
-																}
+																defaultValue={getAvatarType(field.value)}
+																value={getAvatarType(field.value)}
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
 																<FormItem key="no-avatar">
@@ -367,6 +361,34 @@ export const ProfileForm = () => {
 																					reader.readAsDataURL(file);
 																				}
 																			}}
+																		/>
+																	</FormLabel>
+																</FormItem>
+																<FormItem key="color-avatar">
+																	<FormLabel className="[&:has([data-state=checked])>.color-avatar]:border-primary [&:has([data-state=checked])>.color-avatar]:border-1 [&:has([data-state=checked])>.color-avatar]:p-px cursor-pointer relative">
+																		<FormControl>
+																			<RadioGroupItem
+																				value="color"
+																				className="sr-only"
+																			/>
+																		</FormControl>
+																		<div
+																			className="color-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-colors flex items-center justify-center overflow-hidden cursor-pointer"
+																			style={{
+																				backgroundColor: isSolidColorAvatar(field.value) ? field.value : undefined,
+																			}}
+																				onClick={() => colorInputRef.current?.click()}
+																		>
+																			{!isSolidColorAvatar(field.value) && (
+																				<Palette className="h-5 w-5 text-muted-foreground" />
+																			)}
+																		</div>
+																		<input
+																			ref={colorInputRef}
+																			type="color"
+																			className="absolute opacity-0 pointer-events-none w-12 h-12 top-0 left-0"
+																			value={field.value}
+																			onChange={field.onChange}
 																		/>
 																	</FormLabel>
 																</FormItem>
