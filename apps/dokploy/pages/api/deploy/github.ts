@@ -11,6 +11,7 @@ import {
 } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
@@ -117,6 +118,7 @@ export default async function handler(
 			});
 
 			for (const app of apps) {
+				const jobId = nanoid();
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
@@ -124,6 +126,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					jobId,
 				};
 
 				if (IS_CLOUD && app.serverId) {
@@ -156,6 +159,7 @@ export default async function handler(
 			});
 
 			for (const composeApp of composeApps) {
+				const jobId = nanoid();
 				const jobData: DeploymentJob = {
 					composeId: composeApp.composeId as string,
 					titleLog: deploymentTitle,
@@ -163,6 +167,7 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
+					jobId,
 				};
 
 				if (IS_CLOUD && composeApp.serverId) {
@@ -230,6 +235,7 @@ export default async function handler(
 			});
 
 			for (const app of apps) {
+				const jobId = nanoid();
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: deploymentTitle,
@@ -237,6 +243,7 @@ export default async function handler(
 					type: "deploy",
 					applicationType: "application",
 					server: !!app.serverId,
+					jobId,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -278,6 +285,7 @@ export default async function handler(
 			});
 
 			for (const composeApp of composeApps) {
+				const jobId = nanoid();
 				const jobData: DeploymentJob = {
 					composeId: composeApp.composeId as string,
 					titleLog: deploymentTitle,
@@ -285,6 +293,7 @@ export default async function handler(
 					applicationType: "compose",
 					descriptionLog: `Hash: ${deploymentHash}`,
 					server: !!composeApp.serverId,
+					jobId,
 				};
 
 				const shouldDeployPaths = shouldDeploy(
@@ -487,6 +496,7 @@ export default async function handler(
 					previewDeploymentId = previewDeployment.previewDeploymentId;
 				}
 
+				const jobId = nanoid();
 				const jobData: DeploymentJob = {
 					applicationId: app.applicationId as string,
 					titleLog: "Preview Deployment",
@@ -495,6 +505,7 @@ export default async function handler(
 					applicationType: "application-preview",
 					server: !!app.serverId,
 					previewDeploymentId,
+					jobId,
 				};
 
 				if (IS_CLOUD && app.serverId) {

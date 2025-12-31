@@ -231,6 +231,8 @@ export default async function handler(
 		}
 
 		try {
+			const { nanoid } = await import("nanoid");
+			const jobId = nanoid();
 			const jobData: DeploymentJob = {
 				applicationId: application.applicationId as string,
 				titleLog: deploymentTitle,
@@ -238,6 +240,7 @@ export default async function handler(
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				jobId,
 			};
 
 			if (IS_CLOUD && application.serverId) {

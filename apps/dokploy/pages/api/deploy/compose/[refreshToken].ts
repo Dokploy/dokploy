@@ -168,6 +168,8 @@ export default async function handler(
 		}
 
 		try {
+			const { nanoid } = await import("nanoid");
+			const jobId = nanoid();
 			const jobData: DeploymentJob = {
 				composeId: composeResult.composeId as string,
 				titleLog: deploymentTitle,
@@ -175,6 +177,7 @@ export default async function handler(
 				applicationType: "compose",
 				descriptionLog: `Hash: ${deploymentHash}`,
 				server: !!composeResult.serverId,
+				jobId,
 			};
 
 			if (IS_CLOUD && composeResult.serverId) {
