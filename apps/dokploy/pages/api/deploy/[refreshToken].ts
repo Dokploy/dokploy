@@ -5,6 +5,7 @@ import {
 	shouldDeploy,
 } from "@dokploy/server";
 import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { applications } from "@/server/db/schema";
@@ -231,7 +232,6 @@ export default async function handler(
 		}
 
 		try {
-			const { nanoid } = await import("nanoid");
 			const jobId = nanoid();
 			const jobData: DeploymentJob = {
 				applicationId: application.applicationId as string,
