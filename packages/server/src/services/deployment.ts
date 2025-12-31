@@ -71,7 +71,7 @@ export const createDeployment = async (
 	deployment: Omit<
 		typeof apiCreateDeployment._type,
 		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	> & { jobId?: string },
 ) => {
 	const application = await findApplicationById(deployment.applicationId);
 	try {
@@ -107,6 +107,7 @@ export const createDeployment = async (
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
+				...(deployment.jobId && { deploymentId: deployment.jobId }),
 				applicationId: deployment.applicationId,
 				title: deployment.title || "Deployment",
 				status: "running",
@@ -152,7 +153,7 @@ export const createDeploymentPreview = async (
 	deployment: Omit<
 		typeof apiCreateDeploymentPreview._type,
 		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	> & { jobId?: string },
 ) => {
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
@@ -191,6 +192,7 @@ export const createDeploymentPreview = async (
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
+				...(deployment.jobId && { deploymentId: deployment.jobId }),
 				title: deployment.title || "Deployment",
 				status: "running",
 				logPath: logFilePath,
@@ -235,7 +237,7 @@ export const createDeploymentCompose = async (
 	deployment: Omit<
 		typeof apiCreateDeploymentCompose._type,
 		"deploymentId" | "createdAt" | "status" | "logPath"
-	>,
+	> & { jobId?: string },
 ) => {
 	const compose = await findComposeById(deployment.composeId);
 	try {
@@ -268,6 +270,7 @@ echo "Initializing deployment\n" >> ${logFilePath};
 		const deploymentCreate = await db
 			.insert(deployments)
 			.values({
+				...(deployment.jobId && { deploymentId: deployment.jobId }),
 				composeId: deployment.composeId,
 				title: deployment.title || "Deployment",
 				description: deployment.description || "",

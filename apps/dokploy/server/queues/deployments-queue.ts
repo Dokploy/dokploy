@@ -24,12 +24,14 @@ export const deploymentWorker = new Worker(
 						applicationId: job.data.applicationId,
 						titleLog: job.data.titleLog,
 						descriptionLog: job.data.descriptionLog,
+						jobId: job.data.jobId,
 					});
 				} else if (job.data.type === "deploy") {
 					await deployApplication({
 						applicationId: job.data.applicationId,
 						titleLog: job.data.titleLog,
 						descriptionLog: job.data.descriptionLog,
+						jobId: job.data.jobId,
 					});
 				}
 			} else if (job.data.applicationType === "compose") {
@@ -41,12 +43,14 @@ export const deploymentWorker = new Worker(
 						composeId: job.data.composeId,
 						titleLog: job.data.titleLog,
 						descriptionLog: job.data.descriptionLog,
+						jobId: job.data.jobId,
 					});
 				} else if (job.data.type === "redeploy") {
 					await rebuildCompose({
 						composeId: job.data.composeId,
 						titleLog: job.data.titleLog,
 						descriptionLog: job.data.descriptionLog,
+						jobId: job.data.jobId,
 					});
 				}
 			} else if (job.data.applicationType === "application-preview") {
@@ -60,6 +64,7 @@ export const deploymentWorker = new Worker(
 						titleLog: job.data.titleLog,
 						descriptionLog: job.data.descriptionLog,
 						previewDeploymentId: job.data.previewDeploymentId,
+						jobId: job.data.jobId,
 					});
 				}
 			}

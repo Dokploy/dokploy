@@ -406,6 +406,7 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to deploy this compose",
 				});
 			}
+			const jobId = nanoid();
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: input.title || "Manual deployment",
@@ -413,6 +414,7 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				jobId,
 			};
 
 			if (IS_CLOUD && compose.serverId) {
@@ -420,7 +422,7 @@ export const composeRouter = createTRPCRouter({
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
-				return true;
+				return { jobId };
 			}
 			await myQueue.add(
 				"deployments",
@@ -430,7 +432,7 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			return { success: true, message: "Deployment queued" };
+			return { jobId };
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -445,6 +447,7 @@ export const composeRouter = createTRPCRouter({
 					message: "You are not authorized to redeploy this compose",
 				});
 			}
+			const jobId = nanoid();
 			const jobData: DeploymentJob = {
 				composeId: input.composeId,
 				titleLog: input.title || "Rebuild deployment",
@@ -452,13 +455,14 @@ export const composeRouter = createTRPCRouter({
 				applicationType: "compose",
 				descriptionLog: input.description || "",
 				server: !!compose.serverId,
+				jobId,
 			};
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
-				return true;
+				return { jobId };
 			}
 			await myQueue.add(
 				"deployments",
@@ -468,7 +472,7 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			return { success: true, message: "Redeployment queued" };
+			return { jobId };
 		}),
 	stop: protectedProcedure
 		.input(apiFindCompose)

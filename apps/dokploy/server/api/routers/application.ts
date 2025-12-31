@@ -325,6 +325,7 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to redeploy this application",
 				});
 			}
+			const jobId = nanoid();
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: input.title || "Rebuild deployment",
@@ -332,6 +333,7 @@ export const applicationRouter = createTRPCRouter({
 				type: "redeploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				jobId,
 			};
 
 			if (IS_CLOUD && application.serverId) {
@@ -339,7 +341,7 @@ export const applicationRouter = createTRPCRouter({
 				deploy(jobData).catch((error) => {
 					console.error("Background deployment failed:", error);
 				});
-				return true;
+				return { jobId };
 			}
 			await myQueue.add(
 				"deployments",
@@ -349,6 +351,7 @@ export const applicationRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+			return { jobId };
 		}),
 	saveEnvironment: protectedProcedure
 		.input(apiSaveEnvironmentVariables)
@@ -693,6 +696,7 @@ export const applicationRouter = createTRPCRouter({
 					message: "You are not authorized to deploy this application",
 				});
 			}
+			const jobId = nanoid();
 			const jobData: DeploymentJob = {
 				applicationId: input.applicationId,
 				titleLog: input.title || "Manual deployment",
@@ -700,6 +704,7 @@ export const applicationRouter = createTRPCRouter({
 				type: "deploy",
 				applicationType: "application",
 				server: !!application.serverId,
+				jobId,
 			};
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
@@ -707,7 +712,7 @@ export const applicationRouter = createTRPCRouter({
 					console.error("Background deployment failed:", error);
 				});
 
-				return true;
+				return { jobId };
 			}
 			await myQueue.add(
 				"deployments",
@@ -717,6 +722,7 @@ export const applicationRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
+			return { jobId };
 		}),
 
 	cleanQueues: protectedProcedure
