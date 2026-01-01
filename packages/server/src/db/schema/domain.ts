@@ -53,6 +53,7 @@ export const domains = pgTable("domain", {
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	internalPath: text("internalPath").default("/"),
 	stripPath: boolean("stripPath").notNull().default(false),
+	middlewares: text("middlewares").array(),
 });
 
 export const domainsRelations = relations(domains, ({ one }) => ({
@@ -86,6 +87,7 @@ export const apiCreateDomain = createSchema.pick({
 	previewDeploymentId: true,
 	internalPath: true,
 	stripPath: true,
+	middlewares: true,
 });
 
 export const apiFindDomain = createSchema
@@ -118,5 +120,6 @@ export const apiUpdateDomain = createSchema
 		domainType: true,
 		internalPath: true,
 		stripPath: true,
+		middlewares: true,
 	})
 	.merge(createSchema.pick({ domainId: true }).required());

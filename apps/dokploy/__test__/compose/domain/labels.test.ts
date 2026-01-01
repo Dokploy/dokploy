@@ -21,6 +21,7 @@ describe("createDomainLabels", () => {
 		previewDeploymentId: "",
 		internalPath: "/",
 		stripPath: false,
+		middlewares: null,
 	};
 
 	it("should create basic labels for web entrypoint", async () => {
@@ -239,5 +240,94 @@ describe("createDomainLabels", () => {
 		expect(websecureLabels).toContain(
 			"traefik.http.routers.test-app-1-websecure.middlewares=stripprefix-test-app-1,addprefix-test-app-1",
 		);
+	});
+
+	it("should add single custom middleware to router", async () => {
+		const customMiddlewareDomain = {
+			...baseDomain,
+			middlewares: ["auth@file"],
+		};
+		const labels = await createDomainLabels(appName, customMiddlewareDomain, "web");
+
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-web.middlewares=auth@file",
+		);
+	});
+
+	it("should add multiple custom middlewares to router", async () => {
+		const customMiddlewareDomain = {
+			...baseDomain,
+			middlewares: ["auth@file", "rate-limit@file"],
+		};
+		const labels = await createDomainLabels(appName, customMiddlewareDomain, "web");
+
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-web.middlewares=auth@file,rate-limit@file",
+		);
+	});
+
+	it("should combine custom middlewares with HTTPS redirect in correct order", async () => {
+		const combinedDomain = {
+			...baseDomain,
+			https: true,
+			middlewares: ["auth@file"],
+		};
+		const labels = await createDomainLabels(appName, combinedDomain, "web");
+
+		// HTTPS redirect should come before custom middleware
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-web.middlewares=redirect-to-https@file,auth@file",
+		);
+	});
+
+	it("should combine custom middlewares with stripPath middleware", async () => {
+		const combinedDomain = {
+			...baseDomain,
+			path: "/api",
+			stripPath: true,
+			middlewares: ["auth@file"],
+		};
+		const labels = await createDomainLabels(appName, combinedDomain, "web");
+
+		// stripprefix should come before custom middleware
+		expect(labels).toContain(
+			"traefik.http.routers.test-app-1-web.middlewares=stripprefix-test-app-1,auth@file",
+		);
+	});
+
+	it("should combine all built-in middlewares with custom middlewares in correct order", async () => {
+		const fullDomain = {
+			...baseDomain,
+			https: true,
+			path: "/api",
+			stripPath: true,
+			internalPath: "/hello",
+			middlewares: ["auth@file", "rate-limit@file"],
+		};
+		const webLabels = await createDomainLabels(appName, fullDomain, "web");
+
+		// Order: redirect-to-https, stripprefix, addprefix, then custom middlewares
+		expect(webLabels).toContain(
+			"traefik.http.routers.test-app-1-web.middlewares=redirect-to-https@file,stripprefix-test-app-1,addprefix-test-app-1,auth@file,rate-limit@file",
+		);
+	});
+
+	it("should include custom middlewares on websecure entrypoint", async () => {
+		const customMiddlewareDomain = {
+			...baseDomain,
+			https: true,
+			middlewares: ["auth@file"],
+		};
+		const websecureLabels = await createDomainLabels(
+			appName,
+			customMiddlewareDomain,
+			"websecure",
+		);
+
+		// Websecure should have custom middleware but not redirect-to-https
+		expect(websecureLabels).toContain(
+			"traefik.http.routers.test-app-1-websecure.middlewares=auth@file",
+		);
+		expect(websecureLabels).not.toContain("redirect-to-https");
 	});
 });

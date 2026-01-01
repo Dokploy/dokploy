@@ -143,6 +143,7 @@ const baseDomain: Domain = {
 	previewDeploymentId: "",
 	internalPath: "/",
 	stripPath: false,
+	middlewares: null,
 };
 
 const baseRedirect: Redirect = {
@@ -260,6 +261,80 @@ test("Websecure entrypoint on https domain with redirect", async () => {
 
 	expect(router.middlewares).not.toContain("redirect-to-https");
 	expect(router.middlewares).toContain("redirect-test-1");
+});
+
+/** Custom Middlewares */
+
+test("Web entrypoint with single custom middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, middlewares: ["auth@file"] },
+		"web",
+	);
+
+	expect(router.middlewares).toContain("auth@file");
+});
+
+test("Web entrypoint with multiple custom middlewares", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, middlewares: ["auth@file", "rate-limit@file"] },
+		"web",
+	);
+
+	expect(router.middlewares).toContain("auth@file");
+	expect(router.middlewares).toContain("rate-limit@file");
+});
+
+test("Web entrypoint on https domain with custom middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: true, middlewares: ["auth@file"] },
+		"web",
+	);
+
+	// Should only have HTTPS redirect - custom middleware applies on websecure
+	expect(router.middlewares).toContain("redirect-to-https");
+	expect(router.middlewares).not.toContain("auth@file");
+});
+
+test("Websecure entrypoint with custom middleware", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: true, middlewares: ["auth@file"] },
+		"websecure",
+	);
+
+	// Should have custom middleware but not HTTPS redirect
+	expect(router.middlewares).not.toContain("redirect-to-https");
+	expect(router.middlewares).toContain("auth@file");
+});
+
+test("Web entrypoint with redirect and custom middleware", async () => {
+	const router = await createRouterConfig(
+		{
+			...baseApp,
+			appName: "test",
+			redirects: [{ ...baseRedirect, uniqueConfigKey: 1 }],
+		},
+		{ ...baseDomain, middlewares: ["auth@file"] },
+		"web",
+	);
+
+	// Should have both redirect middleware and custom middleware
+	expect(router.middlewares).toContain("redirect-test-1");
+	expect(router.middlewares).toContain("auth@file");
+});
+
+test("Web entrypoint with empty middlewares array", async () => {
+	const router = await createRouterConfig(
+		baseApp,
+		{ ...baseDomain, https: false, middlewares: [] },
+		"web",
+	);
+
+	// Should behave same as no middlewares - no redirect for http
+	expect(router.middlewares).not.toContain("redirect-to-https");
 });
 
 /** Certificates */
