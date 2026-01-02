@@ -8,6 +8,7 @@ import {
 	createSlackNotification,
 	createTelegramNotification,
 	findNotificationById,
+	getWebServerSettings,
 	IS_CLOUD,
 	removeNotificationById,
 	sendCustomNotification,
@@ -66,7 +67,6 @@ import {
 	apiUpdateTelegram,
 	notifications,
 	server,
-	user,
 } from "@/server/db/schema";
 
 export const notificationRouter = createTRPCRouter({
@@ -364,21 +364,20 @@ export const notificationRouter = createTRPCRouter({
 				let organizationId = "";
 				let ServerName = "";
 				if (input.ServerType === "Dokploy") {
-					const result = await db
-						.select()
-						.from(user)
-						.where(
-							sql`${user.metricsConfig}::jsonb -> 'server' ->> 'token' = ${input.Token}`,
-						);
-
-					if (!result?.[0]?.id) {
+					const settings = await getWebServerSettings();
+					if (
+						!settings?.metricsConfig?.server?.token ||
+						settings.metricsConfig.server.token !== input.Token
+					) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Token not found",
 						});
 					}
 
-					organizationId = result?.[0]?.id;
+					// For Dokploy server type, we don't have a specific organizationId
+					// This might need to be adjusted based on your business logic
+					organizationId = "";
 					ServerName = "Dokploy";
 				} else {
 					const result = await db

@@ -87,7 +87,7 @@ export const mongoRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newMongo;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
