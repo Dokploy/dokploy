@@ -43,7 +43,7 @@ export const mariadb = pgTable("mariadb", {
 	databaseUser: text("databaseUser").notNull(),
 	databasePassword: text("databasePassword").notNull(),
 	databaseRootPassword: text("rootPassword").notNull(),
-	dockerImage: text("dockerImage").notNull().default("mariadb:8"),
+	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
 	args: text("args").array(),
 	env: text("env"),
