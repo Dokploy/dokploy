@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, HelpCircle, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -59,6 +59,7 @@ const GithubProviderSchema = z.object({
 	githubId: z.string().min(1, "Github Provider is required"),
 	watchPaths: z.array(z.string()).optional(),
 	triggerType: z.enum(["push", "tag"]).default("push"),
+	tagPatterns: z.array(z.string()).optional().default([]),
 	enableSubmodules: z.boolean().default(false),
 });
 
@@ -86,6 +87,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			branch: "",
 			watchPaths: [],
 			triggerType: "push",
+			tagPatterns: [],
 			enableSubmodules: false,
 		},
 		resolver: zodResolver(GithubProviderSchema),
@@ -119,6 +121,22 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 		},
 	);
 
+	const { data: tags, isLoading: isLoadingTags } =
+		api.github.getGithubTags.useQuery(
+			{
+				owner: repository?.owner || "",
+				repo: repository?.repo || "",
+				githubId: githubId || "",
+			},
+			{
+				enabled:
+					!!repository?.owner &&
+					!!repository?.repo &&
+					!!githubId &&
+					triggerType === "tag",
+			},
+		);
+
 	useEffect(() => {
 		if (data) {
 			form.reset({
@@ -131,6 +149,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 				githubId: data.githubId || "",
 				watchPaths: data.watchPaths || [],
 				triggerType: data.triggerType || "push",
+				tagPatterns: data.tagPatterns || [],
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
@@ -149,6 +168,7 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 			watchPaths: data.watchPaths,
 			enableSubmodules: data.enableSubmodules,
 			triggerType: data.triggerType,
+			tagPatterns: data.tagPatterns,
 		})
 			.then(async () => {
 				toast.success("Service Provider Saved");
@@ -431,6 +451,141 @@ export const SaveGithubProviderCompose = ({ composeId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						{triggerType === "tag" && (
+							<FormField
+								control={form.control}
+								name="tagPatterns"
+								render={({ field }) => {
+									const [open, setOpen] = useState(false);
+									const [inputValue, setInputValue] = useState("");
+
+									const handleSelect = (value: string) => {
+										const currentValues = field.value || [];
+										if (!currentValues.includes(value)) {
+											field.onChange([...currentValues, value]);
+										}
+										setInputValue("");
+									};
+
+									const handleRemove = (value: string) => {
+										const currentValues = field.value || [];
+										field.onChange(currentValues.filter((v) => v !== value));
+									};
+
+									const handleKeyDown = (
+										e: React.KeyboardEvent<HTMLInputElement>,
+									) => {
+										if (e.key === "Enter" && inputValue.trim()) {
+											e.preventDefault();
+											handleSelect(inputValue.trim());
+										}
+									};
+
+									const availableTags = tags?.map((t) => t.name) || [];
+									const selectedValues = field.value || [];
+
+									return (
+										<FormItem className="md:col-span-2">
+											<div className="flex items-center gap-2">
+												<FormLabel>Tag Patterns</FormLabel>
+												<TooltipProvider delayDuration={0}>
+													<Tooltip>
+														<TooltipTrigger type="button">
+															<HelpCircle className="size-4 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
+														</TooltipTrigger>
+														<TooltipContent className="max-w-xs">
+															<p>
+																Select existing tags or type glob patterns (e.g.,
+																v*, release-*, v[0-9].*). Leave empty to deploy on
+																any tag.
+															</p>
+														</TooltipContent>
+													</Tooltip>
+												</TooltipProvider>
+											</div>
+
+											<Popover open={open} onOpenChange={setOpen}>
+												<PopoverTrigger asChild>
+													<FormControl>
+														<div className="flex min-h-10 w-full flex-wrap gap-1 rounded-md border border-input bg-input px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 cursor-pointer">
+															{selectedValues.length > 0 ? (
+																selectedValues.map((value) => (
+																	<Badge
+																		key={value}
+																		variant="secondary"
+																		className="flex items-center gap-1"
+																	>
+																		{value}
+																		<X
+																			className="size-3 cursor-pointer hover:text-destructive"
+																			onClick={(e) => {
+																				e.stopPropagation();
+																				handleRemove(value);
+																			}}
+																		/>
+																	</Badge>
+																))
+															) : (
+																<span className="text-muted-foreground">
+																	{isLoadingTags
+																		? "Loading tags..."
+																		: "Select tags or type patterns (empty = any tag)"}
+																</span>
+															)}
+														</div>
+													</FormControl>
+												</PopoverTrigger>
+												<PopoverContent className="w-[400px] p-0" align="start">
+													<Command>
+														<CommandInput
+															placeholder="Search tags or type a pattern..."
+															value={inputValue}
+															onValueChange={setInputValue}
+															onKeyDown={handleKeyDown}
+														/>
+														<CommandEmpty>
+															{inputValue ? (
+																<button
+																	type="button"
+																	className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent"
+																	onClick={() => handleSelect(inputValue)}
+																>
+																	Add pattern: "{inputValue}"
+																</button>
+															) : (
+																"No tags found. Type a pattern and press Enter."
+															)}
+														</CommandEmpty>
+														<ScrollArea className="h-64">
+															<CommandGroup>
+																{availableTags
+																	.filter((tag) => !selectedValues.includes(tag))
+																	.map((tag) => (
+																		<CommandItem
+																			key={tag}
+																			value={tag}
+																			onSelect={() => handleSelect(tag)}
+																		>
+																			{tag}
+																		</CommandItem>
+																	))}
+															</CommandGroup>
+														</ScrollArea>
+													</Command>
+												</PopoverContent>
+											</Popover>
+
+											{selectedValues.length === 0 && (
+												<p className="text-xs text-muted-foreground">
+													No patterns configured - will deploy on any tag
+												</p>
+											)}
+											<FormMessage />
+										</FormItem>
+									);
+								}}
+							/>
+						)}
 						{triggerType === "push" && (
 							<FormField
 								control={form.control}

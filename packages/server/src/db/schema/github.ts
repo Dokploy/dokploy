@@ -48,6 +48,12 @@ export const apiFindGithubBranches = z.object({
 	githubId: z.string().optional(),
 });
 
+export const apiFindGithubTags = z.object({
+	repo: z.string().min(1),
+	owner: z.string().min(1),
+	githubId: z.string().optional(),
+});
+
 export const apiFindOneGithub = createSchema
 	.extend({
 		githubId: z.string().min(1),
