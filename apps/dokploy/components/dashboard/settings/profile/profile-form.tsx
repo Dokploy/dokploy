@@ -375,9 +375,15 @@ export const ProfileForm = () => {
 																		<div
 																			className="color-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-colors flex items-center justify-center overflow-hidden cursor-pointer"
 																			style={{
-																				backgroundColor: isSolidColorAvatar(field.value) ? field.value : undefined,
+																				backgroundColor: isSolidColorAvatar(
+																					field.value,
+																				)
+																					? field.value
+																					: undefined,
 																			}}
-																				onClick={() => colorInputRef.current?.click()}
+																			onClick={() =>
+																				colorInputRef.current?.click()
+																			}
 																		>
 																			{!isSolidColorAvatar(field.value) && (
 																				<Palette className="h-5 w-5 text-muted-foreground" />
