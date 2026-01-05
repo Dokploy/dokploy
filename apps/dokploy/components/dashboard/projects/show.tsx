@@ -288,9 +288,11 @@ export const ShowProjects = () => {
 												)
 												.some(Boolean);
 
-											const productionEnvironment = project?.environments.find(
-												(env) => env.isDefault,
-											);
+											// Find default environment from accessible environments, or fall back to first accessible environment
+											const accessibleEnvironment =
+												project?.environments.find(
+													(env) => env.isDefault,
+												) || project?.environments?.[0];
 
 											return (
 												<div
@@ -298,7 +300,7 @@ export const ShowProjects = () => {
 													className="w-full lg:max-w-md"
 												>
 													<Link
-														href={`/dashboard/project/${project.projectId}/environment/${productionEnvironment?.environmentId}`}
+														href={`/dashboard/project/${project.projectId}/environment/${accessibleEnvironment?.environmentId}`}
 													>
 														<Card className="group relative w-full h-full bg-transparent transition-colors hover:bg-border">
 															{haveServicesWithDomains ? (
