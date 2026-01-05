@@ -1,10 +1,11 @@
 import {
 	createApiKey,
-	findAdmin,
 	findNotificationById,
 	findOrganizationById,
 	findUserById,
+	getDokployUrl,
 	getUserByToken,
+	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
 	sendEmailNotification,
@@ -86,7 +87,11 @@ export const userRouter = createTRPCRouter({
 			// Allow access if:
 			// 1. User is requesting their own information
 			// 2. User has owner role (admin permissions) AND user is in the same organization
-			if (memberResult.userId !== ctx.user.id && ctx.user.role !== "owner") {
+			if (
+				memberResult.userId !== ctx.user.id &&
+				ctx.user.role !== "owner" &&
+				ctx.user.role !== "admin"
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this user",
@@ -210,10 +215,11 @@ export const userRouter = createTRPCRouter({
 		}),
 	getMetricsToken: protectedProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
+		const settings = await getWebServerSettings();
 		return {
-			serverIp: user.serverIp,
+			serverIp: settings?.serverIp,
 			enabledFeatures: user.enablePaidFeatures,
-			metricsConfig: user?.metricsConfig,
+			metricsConfig: settings?.metricsConfig,
 		};
 	}),
 	remove: protectedProcedure
@@ -222,10 +228,61 @@ export const userRouter = createTRPCRouter({
 				userId: z.string(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
+
+			// Ensure the acting user has admin privileges in the active organization
+			if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners or admins can delete users",
+				});
+			}
+
+			// Fetch target member within the active organization
+			const targetMember = await db.query.member.findFirst({
+				where: and(
+					eq(member.userId, input.userId),
+					eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+				),
+			});
+
+			if (!targetMember) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Target user is not a member of this organization",
+				});
+			}
+
+			// Never allow deleting the organization owner via this endpoint
+			if (targetMember.role === "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You cannot delete the organization owner",
+				});
+			}
+
+			// Admin self-protection: an admin cannot delete themselves
+			if (targetMember.role === "admin" && input.userId === ctx.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Admins cannot delete themselves. Ask the owner or another admin.",
+				});
+			}
+
+			// Only owners can delete admins
+			// Admins can only delete members
+			if (ctx.user.role === "admin" && targetMember.role === "admin") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"Only the organization owner can delete admins. Admins can only delete members.",
+				});
+			}
+
 			return await removeUserById(input.userId);
 		}),
 	assignPermissions: adminProcedure
@@ -375,6 +432,23 @@ export const userRouter = createTRPCRouter({
 	createApiKey: protectedProcedure
 		.input(apiCreateApiKey)
 		.mutation(async ({ input, ctx }) => {
+			// Verify user is a member of the organization specified in metadata
+			if (input.metadata?.organizationId) {
+				const userMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.organizationId, input.metadata.organizationId),
+						eq(member.userId, ctx.user.id),
+					),
+				});
+
+				if (!userMember) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not a member of this organization",
+					});
+				}
+			}
+
 			const apiKey = await createApiKey(ctx.user.id, input);
 			return apiKey;
 		}),
@@ -385,7 +459,35 @@ export const userRouter = createTRPCRouter({
 				userId: z.string(),
 			}),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
+			// Users can check their own organizations
+			// Admins and owners can check organizations of members in their active organization
+			if (input.userId !== ctx.user.id) {
+				// Verify the target user is a member of the active organization
+				const targetMember = await db.query.member.findFirst({
+					where: and(
+						eq(member.userId, input.userId),
+						eq(member.organizationId, ctx.session?.activeOrganizationId || ""),
+					),
+				});
+
+				if (!targetMember) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "User is not a member of your active organization",
+					});
+				}
+
+				// Only admins and owners can check other users' organizations
+				if (ctx.user.role !== "owner" && ctx.user.role !== "admin") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message:
+							"Only admins and owners can check other users' organizations",
+					});
+				}
+			}
+
 			const organizations = await db.query.member.findMany({
 				where: eq(member.userId, input.userId),
 			});
@@ -419,11 +521,10 @@ export const userRouter = createTRPCRouter({
 				});
 			}
 
-			const admin = await findAdmin();
 			const host =
 				process.env.NODE_ENV === "development"
 					? "http://localhost:3000"
-					: admin.user.host;
+					: await getDokployUrl();
 			const inviteLink = `${host}/invitation?token=${input.invitationId}`;
 
 			const organization = await findOrganizationById(

@@ -58,7 +58,11 @@ import {
 	applications,
 } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
-import { cleanQueuesByApplication, myQueue } from "@/server/queues/queueSetup";
+import {
+	cleanQueuesByApplication,
+	killDockerBuild,
+	myQueue,
+} from "@/server/queues/queueSetup";
 import { cancelDeployment, deploy } from "@/server/utils/deploy";
 import { uploadFileSchema } from "@/utils/schema";
 
@@ -332,7 +336,9 @@ export const applicationRouter = createTRPCRouter({
 
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 			await myQueue.add(
@@ -360,6 +366,8 @@ export const applicationRouter = createTRPCRouter({
 			await updateApplication(input.applicationId, {
 				env: input.env,
 				buildArgs: input.buildArgs,
+				buildSecrets: input.buildSecrets,
+				createEnvFile: input.createEnvFile,
 			});
 			return true;
 		}),
@@ -524,7 +532,7 @@ export const applicationRouter = createTRPCRouter({
 
 			return true;
 		}),
-	saveGitProdiver: protectedProcedure
+	saveGitProvider: protectedProcedure
 		.input(apiSaveGitProvider)
 		.mutation(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
@@ -695,7 +703,9 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 
 				return true;
 			}
@@ -724,7 +734,21 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await cleanQueuesByApplication(input.applicationId);
 		}),
-
+	killBuild: protectedProcedure
+		.input(apiFindOneApplication)
+		.mutation(async ({ input, ctx }) => {
+			const application = await findApplicationById(input.applicationId);
+			if (
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to kill this build",
+				});
+			}
+			await killDockerBuild("application", application.serverId);
+		}),
 	readTraefikConfig: protectedProcedure
 		.input(apiFindOneApplication)
 		.query(async ({ input, ctx }) => {
@@ -793,7 +817,9 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && app.serverId) {
 				jobData.serverId = app.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 

@@ -8,7 +8,6 @@
 	"scripts": {
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
-		"dokploy:dev:turbopack": "pnpm --filter=dokploy run dev-turbopack",
 		"dokploy:build": "pnpm --filter=dokploy run build",
 		"dokploy:start": "pnpm --filter=dokploy run start",
 		"test": "pnpm --filter=dokploy run test",
@@ -20,7 +19,8 @@
 		"build": "pnpm -r run build",
 		"format-and-lint": "biome check .",
 		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-		"format-and-lint:fix": "biome check . --write"
+		"format-and-lint:fix": "biome check . --write",
+		"generate:openapi": "pnpm --filter=dokploy run generate:openapi"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.1.1",

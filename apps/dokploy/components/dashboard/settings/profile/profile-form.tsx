@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, User } from "lucide-react";
+import { Loader2, Palette, User } from "lucide-react";
 import { useTranslation } from "next-i18next";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -27,9 +27,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { getAvatarType, isSolidColorAvatar } from "@/lib/avatar-utils";
 import { generateSHA256Hash, getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { Disable2FA } from "./disable-2fa";
+import { Configure2FA } from "./configure-2fa";
 import { Enable2FA } from "./enable-2fa";
 
 const profileSchema = z.object({
@@ -41,6 +42,7 @@ const profileSchema = z.object({
 	currentPassword: z.string().nullable(),
 	image: z.string().optional(),
 	name: z.string().optional(),
+	lastName: z.string().optional(),
 	allowImpersonation: z.boolean().optional().default(false),
 });
 
@@ -62,7 +64,6 @@ const randomImages = [
 ];
 
 export const ProfileForm = () => {
-	const _utils = api.useUtils();
 	const { data, refetch, isLoading } = api.user.get.useQuery();
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 
@@ -74,6 +75,7 @@ export const ProfileForm = () => {
 	} = api.user.update.useMutation();
 	const { t } = useTranslation("settings");
 	const [gravatarHash, setGravatarHash] = useState<string | null>(null);
+	const colorInputRef = useRef<HTMLInputElement>(null);
 
 	const availableAvatars = useMemo(() => {
 		if (gravatarHash === null) return randomImages;
@@ -89,7 +91,8 @@ export const ProfileForm = () => {
 			image: data?.user?.image || "",
 			currentPassword: "",
 			allowImpersonation: data?.user?.allowImpersonation || false,
-			name: data?.user?.name || "",
+			name: data?.user?.firstName || "",
+			lastName: data?.user?.lastName || "",
 		},
 		resolver: zodResolver(profileSchema),
 	});
@@ -103,7 +106,8 @@ export const ProfileForm = () => {
 					image: data?.user?.image || "",
 					currentPassword: form.getValues("currentPassword") || "",
 					allowImpersonation: data?.user?.allowImpersonation,
-					name: data?.user?.name || "",
+					name: data?.user?.firstName || "",
+					lastName: data?.user?.lastName || "",
 				},
 				{
 					keepValues: true,
@@ -120,28 +124,29 @@ export const ProfileForm = () => {
 	}, [form, data]);
 
 	const onSubmit = async (values: Profile) => {
-		await mutateAsync({
-			email: values.email.toLowerCase(),
-			password: values.password || undefined,
-			image: values.image,
-			currentPassword: values.currentPassword || undefined,
-			allowImpersonation: values.allowImpersonation,
-			name: values.name || undefined,
-		})
-			.then(async () => {
-				await refetch();
-				toast.success("Profile Updated");
-				form.reset({
-					email: values.email,
-					password: "",
-					image: values.image,
-					currentPassword: "",
-					name: values.name || "",
-				});
-			})
-			.catch(() => {
-				toast.error("Error updating the profile");
+		try {
+			await mutateAsync({
+				email: values.email.toLowerCase(),
+				password: values.password || undefined,
+				image: values.image,
+				currentPassword: values.currentPassword || undefined,
+				allowImpersonation: values.allowImpersonation,
+				name: values.name || undefined,
+				lastName: values.lastName || undefined,
 			});
+			await refetch();
+			toast.success("Profile Updated");
+			form.reset({
+				email: values.email,
+				password: "",
+				image: values.image,
+				currentPassword: "",
+				name: values.name || "",
+				lastName: values.lastName || "",
+			});
+		} catch (error) {
+			toast.error("Error updating the profile");
+		}
 	};
 
 	return (
@@ -158,7 +163,8 @@ export const ProfileForm = () => {
 								{t("settings.profile.description")}
 							</CardDescription>
 						</div>
-						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Disable2FA />}
+
+						{!data?.user.twoFactorEnabled ? <Enable2FA /> : <Configure2FA />}
 					</CardHeader>
 
 					<CardContent className="space-y-2 py-8 border-t">
@@ -181,9 +187,22 @@ export const ProfileForm = () => {
 												name="name"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Name</FormLabel>
+														<FormLabel>First Name</FormLabel>
 														<FormControl>
-															<Input placeholder="Name" {...field} />
+															<Input placeholder="John" {...field} />
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+											<FormField
+												control={form.control}
+												name="lastName"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Last Name</FormLabel>
+														<FormControl>
+															<Input placeholder="Doe" {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
@@ -257,8 +276,8 @@ export const ProfileForm = () => {
 																onValueChange={(e) => {
 																	field.onChange(e);
 																}}
-																defaultValue={field.value}
-																value={field.value}
+																defaultValue={getAvatarType(field.value)}
+																value={getAvatarType(field.value)}
 																className="flex flex-row flex-wrap gap-2 max-xl:justify-center"
 															>
 																<FormItem key="no-avatar">
@@ -273,10 +292,110 @@ export const ProfileForm = () => {
 																		<Avatar className="default-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-transform">
 																			<AvatarFallback className="rounded-lg">
 																				{getFallbackAvatarInitials(
-																					data?.user?.name,
+																					`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
 																				)}
 																			</AvatarFallback>
 																		</Avatar>
+																	</FormLabel>
+																</FormItem>
+																<FormItem key="custom-upload">
+																	<FormLabel className="[&:has([data-state=checked])>.upload-avatar]:border-primary [&:has([data-state=checked])>.upload-avatar]:border-1 [&:has([data-state=checked])>.upload-avatar]:p-px cursor-pointer">
+																		<FormControl>
+																			<RadioGroupItem
+																				value="upload"
+																				className="sr-only"
+																			/>
+																		</FormControl>
+																		<div
+																			className="upload-avatar h-12 w-12 rounded-full border border-dashed border-muted-foreground hover:border-primary transition-colors flex items-center justify-center bg-muted/50 hover:bg-muted overflow-hidden"
+																			onClick={() =>
+																				document
+																					.getElementById("avatar-upload")
+																					?.click()
+																			}
+																		>
+																			{field.value?.startsWith("data:") ? (
+																				// biome-ignore lint/performance/noImgElement: this is an justified use of img element
+																				<img
+																					src={field.value}
+																					alt="Custom avatar"
+																					className="h-full w-full object-cover rounded-full"
+																				/>
+																			) : (
+																				<svg
+																					className="h-5 w-5 text-muted-foreground"
+																					fill="none"
+																					stroke="currentColor"
+																					viewBox="0 0 24 24"
+																				>
+																					<path
+																						strokeLinecap="round"
+																						strokeLinejoin="round"
+																						strokeWidth={2}
+																						d="M12 4v16m8-8H4"
+																					/>
+																				</svg>
+																			)}
+																		</div>
+																		<input
+																			id="avatar-upload"
+																			type="file"
+																			accept="image/*"
+																			className="hidden"
+																			onChange={async (e) => {
+																				const file = e.target.files?.[0];
+																				if (file) {
+																					// max file size 2mb
+																					if (file.size > 2 * 1024 * 1024) {
+																						toast.error(
+																							"Image size must be less than 2MB",
+																						);
+																						return;
+																					}
+																					const reader = new FileReader();
+																					reader.onload = (event) => {
+																						const result = event.target
+																							?.result as string;
+																						field.onChange(result);
+																					};
+																					reader.readAsDataURL(file);
+																				}
+																			}}
+																		/>
+																	</FormLabel>
+																</FormItem>
+																<FormItem key="color-avatar">
+																	<FormLabel className="[&:has([data-state=checked])>.color-avatar]:border-primary [&:has([data-state=checked])>.color-avatar]:border-1 [&:has([data-state=checked])>.color-avatar]:p-px cursor-pointer relative">
+																		<FormControl>
+																			<RadioGroupItem
+																				value="color"
+																				className="sr-only"
+																			/>
+																		</FormControl>
+																		<div
+																			className="color-avatar h-12 w-12 rounded-full border hover:p-px hover:border-primary transition-colors flex items-center justify-center overflow-hidden cursor-pointer"
+																			style={{
+																				backgroundColor: isSolidColorAvatar(
+																					field.value,
+																				)
+																					? field.value
+																					: undefined,
+																			}}
+																			onClick={() =>
+																				colorInputRef.current?.click()
+																			}
+																		>
+																			{!isSolidColorAvatar(field.value) && (
+																				<Palette className="h-5 w-5 text-muted-foreground" />
+																			)}
+																		</div>
+																		<input
+																			ref={colorInputRef}
+																			type="color"
+																			className="absolute opacity-0 pointer-events-none w-12 h-12 top-0 left-0"
+																			value={field.value}
+																			onChange={field.onChange}
+																		/>
 																	</FormLabel>
 																</FormItem>
 																{availableAvatars.map((image) => (
@@ -289,6 +408,7 @@ export const ProfileForm = () => {
 																				/>
 																			</FormControl>
 
+																			{/* biome-ignore lint/performance/noImgElement: this is an justified use of img element */}
 																			<img
 																				key={image}
 																				src={image}

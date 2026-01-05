@@ -62,6 +62,46 @@ export const aiRouter = createTRPCRouter({
 					case "ollama":
 						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
 						break;
+					case "gemini":
+						response = await fetch(
+							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
+							{ headers: {} },
+						);
+						break;
+					case "perplexity":
+						// Perplexity doesn't have a /models endpoint, return hardcoded list
+						return [
+							{
+								id: "sonar-deep-research",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar-reasoning-pro",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar-reasoning",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar-pro",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+						] as Model[];
 					default:
 						if (!input.apiKey)
 							throw new TRPCError({

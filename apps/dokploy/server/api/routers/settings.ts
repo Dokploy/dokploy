@@ -1,19 +1,22 @@
 import {
 	canAccessToTraefikFiles,
 	checkGPUStatus,
-	cleanStoppedContainers,
-	cleanUpDockerBuilder,
-	cleanUpSystemPrune,
-	cleanUpUnusedImages,
-	cleanUpUnusedVolumes,
+	checkPortInUse,
+	cleanupAll,
+	cleanupAllBackground,
+	cleanupBuilders,
+	cleanupContainers,
+	cleanupImages,
+	cleanupSystem,
+	cleanupVolumes,
 	DEFAULT_UPDATE_DATA,
 	execAsync,
 	findServerById,
-	findUserById,
 	getDokployImage,
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
+	getWebServerSettings,
 	IS_CLOUD,
 	parseRawConfig,
 	paths,
@@ -37,7 +40,7 @@ import {
 	updateLetsEncryptEmail,
 	updateServerById,
 	updateServerTraefik,
-	updateUser,
+	updateWebServerSettings,
 	writeConfig,
 	writeMainConfig,
 	writeTraefikConfigInPath,
@@ -74,6 +77,13 @@ import {
 } from "../trpc";
 
 export const settingsRouter = createTRPCRouter({
+	getWebServerSettings: protectedProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getWebServerSettings();
+		return settings;
+	}),
 	reloadServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
@@ -130,6 +140,17 @@ export const settingsRouter = createTRPCRouter({
 			let newPorts = ports;
 			// If receive true, add 8080 to ports
 			if (input.enableDashboard) {
+				// Check if port 8080 is already in use before enabling dashboard
+				const portCheck = await checkPortInUse(8080, input.serverId);
+				if (portCheck.isInUse) {
+					const conflictingContainer = portCheck.conflictingContainer
+						? ` by container "${portCheck.conflictingContainer}"`
+						: "";
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Port 8080 is already in use${conflictingContainer}. Please stop the conflicting service or use a different port for the Traefik dashboard.`,
+					});
+				}
 				newPorts.push({
 					targetPort: 8080,
 					publishedPort: 8080,
@@ -149,43 +170,41 @@ export const settingsRouter = createTRPCRouter({
 	cleanUnusedImages: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpUnusedImages(input?.serverId);
+			await cleanupImages(input?.serverId);
 			return true;
 		}),
 	cleanUnusedVolumes: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpUnusedVolumes(input?.serverId);
+			await cleanupVolumes(input?.serverId);
 			return true;
 		}),
 	cleanStoppedContainers: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanStoppedContainers(input?.serverId);
+			await cleanupContainers(input?.serverId);
 			return true;
 		}),
 	cleanDockerBuilder: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpDockerBuilder(input?.serverId);
+			await cleanupBuilders(input?.serverId);
 		}),
 	cleanDockerPrune: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpSystemPrune(input?.serverId);
-			await cleanUpDockerBuilder(input?.serverId);
+			await cleanupSystem(input?.serverId);
+			await cleanupBuilders(input?.serverId);
 
 			return true;
 		}),
 	cleanAll: adminProcedure
 		.input(apiServerSchema)
 		.mutation(async ({ input }) => {
-			await cleanUpUnusedImages(input?.serverId);
-			await cleanStoppedContainers(input?.serverId);
-			await cleanUpDockerBuilder(input?.serverId);
-			await cleanUpSystemPrune(input?.serverId);
+			// Execute cleanup in background and return immediately to avoid gateway timeouts
+			const result = await cleanupAllBackground(input?.serverId);
 
-			return true;
+			return result;
 		}),
 	cleanMonitoring: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
@@ -197,11 +216,11 @@ export const settingsRouter = createTRPCRouter({
 	}),
 	saveSSHPrivateKey: adminProcedure
 		.input(apiSaveSSHKey)
-		.mutation(async ({ input, ctx }) => {
+		.mutation(async ({ input }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
-			await updateUser(ctx.user.id, {
+			await updateWebServerSettings({
 				sshPrivateKey: input.sshPrivateKey,
 			});
 
@@ -209,38 +228,36 @@ export const settingsRouter = createTRPCRouter({
 		}),
 	assignDomainServer: adminProcedure
 		.input(apiAssignDomain)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ input }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
-			const user = await updateUser(ctx.user.id, {
+			const settings = await updateWebServerSettings({
 				host: input.host,
-				...(input.letsEncryptEmail && {
-					letsEncryptEmail: input.letsEncryptEmail,
-				}),
+				letsEncryptEmail: input.letsEncryptEmail,
 				certificateType: input.certificateType,
 				https: input.https,
 			});
 
-			if (!user) {
+			if (!settings) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
-					message: "User not found",
+					message: "Web server settings not found",
 				});
 			}
 
-			updateServerTraefik(user, input.host);
+			updateServerTraefik(settings, input.host);
 			if (input.letsEncryptEmail) {
 				updateLetsEncryptEmail(input.letsEncryptEmail);
 			}
 
-			return user;
+			return settings;
 		}),
-	cleanSSHPrivateKey: adminProcedure.mutation(async ({ ctx }) => {
+	cleanSSHPrivateKey: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
-		await updateUser(ctx.user.id, {
+		await updateWebServerSettings({
 			sshPrivateKey: null,
 		});
 		return true;
@@ -281,9 +298,9 @@ export const settingsRouter = createTRPCRouter({
 							console.log(
 								`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 							);
-							await cleanUpUnusedImages(server.serverId);
-							await cleanUpDockerBuilder(server.serverId);
-							await cleanUpSystemPrune(server.serverId);
+
+							await cleanupAll(server.serverId);
+
 							await sendDockerCleanupNotifications(server.organizationId);
 						});
 					}
@@ -300,18 +317,18 @@ export const settingsRouter = createTRPCRouter({
 					}
 				}
 			} else if (!IS_CLOUD) {
-				const userUpdated = await updateUser(ctx.user.id, {
+				const settingsUpdated = await updateWebServerSettings({
 					enableDockerCleanup: input.enableDockerCleanup,
 				});
 
-				if (userUpdated?.enableDockerCleanup) {
+				if (settingsUpdated?.enableDockerCleanup) {
 					scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 						console.log(
 							`Docker Cleanup ${new Date().toLocaleString()}] Running...`,
 						);
-						await cleanUpUnusedImages();
-						await cleanUpDockerBuilder();
-						await cleanUpSystemPrune();
+
+						await cleanupAll();
+
 						await sendDockerCleanupNotifications(
 							ctx.session.activeOrganizationId,
 						);
@@ -478,13 +495,28 @@ export const settingsRouter = createTRPCRouter({
 
 			return readConfigInPath(input.path, input.serverId);
 		}),
-	getIp: protectedProcedure.query(async ({ ctx }) => {
+	getIp: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
-			return true;
+			return "";
 		}
-		const user = await findUserById(ctx.user.ownerId);
-		return user.serverIp;
+		const settings = await getWebServerSettings();
+		return settings?.serverIp || "";
 	}),
+	updateServerIp: adminProcedure
+		.input(
+			z.object({
+				serverIp: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			const settings = await updateWebServerSettings({
+				serverIp: input.serverIp,
+			});
+			return settings;
+		}),
 
 	getOpenApiDocument: protectedProcedure.query(
 		async ({ ctx }): Promise<unknown> => {
@@ -587,7 +619,7 @@ export const settingsRouter = createTRPCRouter({
 			return ports.some((port) => port.targetPort === 8080);
 		}),
 
-	readStatsLogs: adminProcedure
+	readStatsLogs: protectedProcedure
 		.meta({
 			openapi: {
 				path: "/read-stats-logs",
@@ -650,7 +682,7 @@ export const settingsRouter = createTRPCRouter({
 			const processedLogs = processLogs(rawConfig as string, input?.dateRange);
 			return processedLogs || [];
 		}),
-	haveActivateRequests: adminProcedure.query(async () => {
+	haveActivateRequests: protectedProcedure.query(async () => {
 		if (IS_CLOUD) {
 			return true;
 		}
@@ -665,7 +697,7 @@ export const settingsRouter = createTRPCRouter({
 
 		return !!parsedConfig?.accessLog?.filePath;
 	}),
-	toggleRequests: adminProcedure
+	toggleRequests: protectedProcedure
 		.input(
 			z.object({
 				enable: z.boolean(),
@@ -810,6 +842,19 @@ export const settingsRouter = createTRPCRouter({
 					"dokploy-traefik",
 					input?.serverId,
 				);
+
+				for (const port of input.additionalPorts) {
+					const portCheck = await checkPortInUse(
+						port.publishedPort,
+						input.serverId,
+					);
+					if (portCheck.isInUse) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: `Port ${port.targetPort} is already in use by ${portCheck.conflictingContainer}`,
+						});
+					}
+				}
 				const preparedEnv = prepareEnvironmentVariables(env);
 
 				await writeTraefikSetup({
@@ -835,7 +880,7 @@ export const settingsRouter = createTRPCRouter({
 			const ports = await readPorts("dokploy-traefik", input?.serverId);
 			return ports;
 		}),
-	updateLogCleanup: adminProcedure
+	updateLogCleanup: protectedProcedure
 		.input(
 			z.object({
 				cronExpression: z.string().nullable(),
@@ -851,7 +896,7 @@ export const settingsRouter = createTRPCRouter({
 			return stopLogCleanup();
 		}),
 
-	getLogCleanupStatus: adminProcedure.query(async () => {
+	getLogCleanupStatus: protectedProcedure.query(async () => {
 		return getLogCleanupStatus();
 	}),
 

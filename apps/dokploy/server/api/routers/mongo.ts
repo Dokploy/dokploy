@@ -5,8 +5,8 @@ import {
 	createMount,
 	deployMongo,
 	findBackupsByDbId,
-	findMongoById,
 	findEnvironmentById,
+	findMongoById,
 	findProjectById,
 	IS_CLOUD,
 	rebuildDatabase,
@@ -87,7 +87,7 @@ export const mongoRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newMongo;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;

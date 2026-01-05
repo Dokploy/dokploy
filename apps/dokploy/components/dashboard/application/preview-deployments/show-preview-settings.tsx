@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +47,7 @@ const schema = z
 	.object({
 		env: z.string(),
 		buildArgs: z.string(),
+		buildSecrets: z.string(),
 		wildcardDomain: z.string(),
 		port: z.number(),
 		previewLimit: z.number(),
@@ -99,6 +101,8 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 	});
 
 	const previewHttps = form.watch("previewHttps");
+	const wildcardDomain = form.watch("wildcardDomain");
+	const isTraefikMeDomain = wildcardDomain?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		setIsEnabled(data?.isPreviewDeploymentsActive || false);
@@ -109,6 +113,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 			form.reset({
 				env: data.previewEnv || "",
 				buildArgs: data.previewBuildArgs || "",
+				buildSecrets: data.previewBuildSecrets || "",
 				wildcardDomain: data.previewWildcard || "*.traefik.me",
 				port: data.previewPort || 3000,
 				previewLabels: data.previewLabels || [],
@@ -118,7 +123,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewCertificateType: data.previewCertificateType || "none",
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
 				previewRequireCollaboratorPermissions:
-					data.previewRequireCollaboratorPermissions || true,
+					data.previewRequireCollaboratorPermissions ?? true,
 			});
 		}
 	}, [data]);
@@ -127,6 +132,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 		updateApplication({
 			previewEnv: formData.env,
 			previewBuildArgs: formData.buildArgs,
+			previewBuildSecrets: formData.buildSecrets,
 			previewWildcard: formData.wildcardDomain,
 			previewPort: formData.port,
 			previewLabels: formData.previewLabels,
@@ -165,6 +171,13 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-4">
+						{isTraefikMeDomain && (
+							<AlertBlock type="info">
+								<strong>Note:</strong> traefik.me is a public HTTP service and
+								does not support SSL/HTTPS. HTTPS and certificate options will
+								not have any effect.
+							</AlertBlock>
+						)}
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
@@ -467,13 +480,37 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 								{data?.buildType === "dockerfile" && (
 									<Secrets
 										name="buildArgs"
-										title="Build-time Variables"
+										title="Build-time Arguments"
 										description={
 											<span>
-												Available only at build-time. See documentation&nbsp;
+												Arguments are available only at build-time. See
+												documentation&nbsp;
 												<a
 													className="text-primary"
-													href="https://docs.docker.com/build/guide/build-args/"
+													href="https://docs.docker.com/build/building/variables/"
+													target="_blank"
+													rel="noopener noreferrer"
+												>
+													here
+												</a>
+												.
+											</span>
+										}
+										placeholder="NPM_TOKEN=xyz"
+									/>
+								)}
+								{data?.buildType === "dockerfile" && (
+									<Secrets
+										name="buildSecrets"
+										title="Build-time Secrets"
+										description={
+											<span>
+												Secrets are specially designed for sensitive information
+												and are only available at build-time. See
+												documentation&nbsp;
+												<a
+													className="text-primary"
+													href="https://docs.docker.com/build/building/secrets/"
 													target="_blank"
 													rel="noopener noreferrer"
 												>

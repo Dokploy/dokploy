@@ -17,6 +17,7 @@ import { AddCommand } from "@/components/dashboard/application/advanced/general/
 import { ShowPorts } from "@/components/dashboard/application/advanced/ports/show-port";
 import { ShowRedirects } from "@/components/dashboard/application/advanced/redirects/show-redirects";
 import { ShowSecurity } from "@/components/dashboard/application/advanced/security/show-security";
+import { ShowBuildServer } from "@/components/dashboard/application/advanced/show-build-server";
 import { ShowResources } from "@/components/dashboard/application/advanced/show-resources";
 import { ShowTraefikConfig } from "@/components/dashboard/application/advanced/traefik/show-traefik-config";
 import { ShowVolumes } from "@/components/dashboard/application/advanced/volumes/show-volumes";
@@ -90,6 +91,15 @@ const Service = (
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 
+	const { data: environments } = api.environment.byProjectId.useQuery({
+		projectId: data?.environment?.project?.projectId || "",
+	});
+	const environmentDropdownItems =
+		environments?.map((env) => ({
+			name: env.name,
+			href: `/dashboard/project/${projectId}/environment/${env.environmentId}`,
+		})) || [];
+
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="application" />
@@ -97,11 +107,11 @@ const Service = (
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.environment.project.name || "",
+						name: data?.environment?.project?.name || "",
 					},
 					{
 						name: data?.environment?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
+						dropdownItems: environmentDropdownItems,
 					},
 					{
 						name: data?.name || "",
@@ -353,7 +363,7 @@ const Service = (
 												id={applicationId}
 												type="application"
 											/>
-
+											<ShowBuildServer applicationId={applicationId} />
 											<ShowResources id={applicationId} type="application" />
 											<ShowVolumes id={applicationId} type="application" />
 											<ShowRedirects applicationId={applicationId} />

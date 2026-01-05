@@ -1,6 +1,8 @@
 import {
 	addNewEnvironment,
 	checkEnvironmentAccess,
+	checkEnvironmentCreationPermission,
+	checkEnvironmentDeletionPermission,
 	createEnvironment,
 	deleteEnvironment,
 	duplicateEnvironment,
@@ -54,17 +56,22 @@ export const environmentRouter = createTRPCRouter({
 		.input(apiCreateEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				// Check if user has access to the project
-				// This would typically involve checking project ownership/membership
-				// For now, we'll use a basic organization check
+				// Check if user has permission to create environments
+				await checkEnvironmentCreationPermission(
+					ctx.user.id,
+					input.projectId,
+					ctx.session.activeOrganizationId,
+				);
 
 				if (input.name === "production") {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Environment name cannot be production",
+						message:
+							"You cannot create a environment with the name 'production'",
 					});
 				}
 
+				// Allow users to create environments with any name, including "production"
 				const environment = await createEnvironment(input);
 
 				if (ctx.user.role === "member") {
@@ -76,6 +83,9 @@ export const environmentRouter = createTRPCRouter({
 				}
 				return environment;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error creating the environment: ${error instanceof Error ? error.message : error}`,
@@ -187,14 +197,6 @@ export const environmentRouter = createTRPCRouter({
 		.input(apiRemoveEnvironment)
 		.mutation(async ({ input, ctx }) => {
 			try {
-				if (ctx.user.role === "member") {
-					await checkEnvironmentAccess(
-						ctx.user.id,
-						input.environmentId,
-						ctx.session.activeOrganizationId,
-						"access",
-					);
-				}
 				const environment = await findEnvironmentById(input.environmentId);
 				if (
 					environment.project.organizationId !==
@@ -206,27 +208,41 @@ export const environmentRouter = createTRPCRouter({
 					});
 				}
 
-				// Check environment access for members
-				if (ctx.user.role === "member") {
-					const { accessedEnvironments } = await findMemberById(
-						ctx.user.id,
-						ctx.session.activeOrganizationId,
-					);
+				// Prevent deletion of the default environment
+				if (environment.isDefault) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "You cannot delete the default environment",
+					});
+				}
 
-					if (!accessedEnvironments.includes(environment.environmentId)) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "You are not allowed to delete this environment",
-						});
-					}
+				// Check environment deletion permission
+				await checkEnvironmentDeletionPermission(
+					ctx.user.id,
+					environment.projectId,
+					ctx.session.activeOrganizationId,
+				);
+
+				// Additional check for environment access for members
+				if (ctx.user.role === "member") {
+					await checkEnvironmentAccess(
+						ctx.user.id,
+						input.environmentId,
+						ctx.session.activeOrganizationId,
+						"access",
+					);
 				}
 
 				const deletedEnvironment = await deleteEnvironment(input.environmentId);
 				return deletedEnvironment;
 			} catch (error) {
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "BAD_REQUEST",
 					message: `Error deleting the environment: ${error instanceof Error ? error.message : error}`,
+					cause: error,
 				});
 			}
 		}),
@@ -237,13 +253,7 @@ export const environmentRouter = createTRPCRouter({
 			try {
 				const { environmentId, ...updateData } = input;
 
-				if (updateData.name === "production") {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Environment name cannot be production",
-					});
-				}
-
+				// Allow users to rename environments to any name, including "production"
 				if (ctx.user.role === "member") {
 					await checkEnvironmentAccess(
 						ctx.user.id,
@@ -253,6 +263,14 @@ export const environmentRouter = createTRPCRouter({
 					);
 				}
 				const currentEnvironment = await findEnvironmentById(environmentId);
+
+				// Prevent renaming the default environment, but allow updating env and description
+				if (currentEnvironment.isDefault && updateData.name !== undefined) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "You cannot rename the default environment",
+					});
+				}
 				if (
 					currentEnvironment.project.organizationId !==
 					ctx.session.activeOrganizationId

@@ -122,6 +122,9 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 			.then(async () => {
 				toast.success(`Destination ${destinationId ? "Updated" : "Created"}`);
 				await utils.destination.all.invalidate();
+				if (destinationId) {
+					await utils.destination.one.invalidate({ destinationId });
+				}
 				setOpen(false);
 			})
 			.catch(() => {
@@ -217,7 +220,7 @@ export const HandleDestinations = ({ destinationId }: Props) => {
 					</DialogDescription>
 				</DialogHeader>
 				{(isError || isErrorConnection) && (
-					<AlertBlock type="error" className="break-words">
+					<AlertBlock type="error" className="w-full">
 						{connectionError?.message || error?.message}
 					</AlertBlock>
 				)}

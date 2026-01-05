@@ -60,6 +60,14 @@ const MySql = (
 	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: environments } = api.environment.byProjectId.useQuery({
+		projectId: data?.environment?.projectId || "",
+	});
+	const environmentDropdownItems =
+		environments?.map((env) => ({
+			name: env.name,
+			href: `/dashboard/project/${projectId}/environment/${env.environmentId}`,
+		})) || [];
 
 	return (
 		<div className="pb-10">
@@ -72,7 +80,7 @@ const MySql = (
 					},
 					{
 						name: data?.environment?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
+						dropdownItems: environmentDropdownItems,
 					},
 					{
 						name: data?.name || "",

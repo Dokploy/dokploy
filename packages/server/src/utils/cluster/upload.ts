@@ -1,106 +1,136 @@
-import type { WriteStream } from "node:fs";
+import { findAllDeploymentsByApplicationId } from "@dokploy/server/services/deployment";
+import type { Registry } from "@dokploy/server/services/registry";
+import { createRollback } from "@dokploy/server/services/rollbacks";
 import type { ApplicationNested } from "../builders";
-import { spawnAsync } from "../process/spawnAsync";
 
-export const uploadImage = async (
+export const uploadImageRemoteCommand = async (
 	application: ApplicationNested,
-	writeStream: WriteStream,
 ) => {
 	const registry = application.registry;
+	const buildRegistry = application.buildRegistry;
+	const rollbackRegistry = application.rollbackRegistry;
 
-	if (!registry) {
-		throw new Error("Registry not found");
+	if (!registry && !buildRegistry && !rollbackRegistry) {
+		throw new Error("No registry found");
 	}
 
-	const { registryUrl, imagePrefix, username } = registry;
 	const { appName } = application;
-	const imageName = `${appName}:latest`;
+	const imageName =
+		application.sourceType === "docker"
+			? application.dockerImage || ""
+			: `${appName}:latest`;
 
-	const finalURL = registryUrl;
+	const commands: string[] = [];
+	if (registry) {
+		const registryTag = getRegistryTag(registry, imageName);
+		if (registryTag) {
+			commands.push(`echo "📦 [Enabled Registry Swarm]"`);
+			commands.push(getRegistryCommands(registry, imageName, registryTag));
+		}
+	}
+	if (buildRegistry) {
+		const buildRegistryTag = getRegistryTag(buildRegistry, imageName);
+		if (buildRegistryTag) {
+			commands.push(`echo "🔑 [Enabled Build Registry]"`);
+			commands.push(
+				getRegistryCommands(buildRegistry, imageName, buildRegistryTag),
+			);
+			commands.push(
+				`echo "⚠️ INFO: After the build is finished, you need to wait a few seconds for the server to download the image and run the container."`,
+			);
+			commands.push(
+				`echo "📊 Check the Logs tab to see when the container starts running."`,
+			);
+		}
+	}
 
-	// Build registry tag in correct format: registry.com/owner/image:tag
-	// For ghcr.io: ghcr.io/username/image:tag
-	// For docker.io: docker.io/username/image:tag
-	const registryTag = imagePrefix
-		? `${registryUrl ? `${registryUrl}/` : ""}${imagePrefix}/${imageName}`
-		: `${registryUrl ? `${registryUrl}/` : ""}${username}/${imageName}`;
+	if (rollbackRegistry && application.rollbackActive) {
+		const deployment = await findAllDeploymentsByApplicationId(
+			application.applicationId,
+		);
+		if (!deployment || !deployment[0]) {
+			throw new Error("Deployment not found");
+		}
+		const deploymentId = deployment[0].deploymentId;
+		const rollback = await createRollback({
+			appName: appName,
+			deploymentId: deploymentId,
+		});
 
+		const rollbackRegistryTag = getRegistryTag(
+			rollbackRegistry,
+			rollback?.image || "",
+		);
+		if (rollbackRegistryTag) {
+			commands.push(`echo "🔄 [Enabled Rollback Registry]"`);
+			commands.push(
+				getRegistryCommands(rollbackRegistry, imageName, rollbackRegistryTag),
+			);
+		}
+	}
 	try {
-		writeStream.write(
-			`📦 [Enabled Registry] Uploading image to ${registry.registryType} | ${imageName} | ${finalURL} | ${registryTag}\n`,
-		);
-		const loginCommand = spawnAsync(
-			"docker",
-			["login", finalURL, "-u", registry.username, "--password-stdin"],
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-		);
-		loginCommand.child?.stdin?.write(registry.password);
-		loginCommand.child?.stdin?.end();
-		await loginCommand;
-
-		await spawnAsync("docker", ["tag", imageName, registryTag], (data) => {
-			if (writeStream.writable) {
-				writeStream.write(data);
-			}
-		});
-
-		await spawnAsync("docker", ["push", registryTag], (data) => {
-			if (writeStream.writable) {
-				writeStream.write(data);
-			}
-		});
+		return commands.join("\n");
 	} catch (error) {
-		console.log(error);
 		throw error;
 	}
 };
+/**
+ * Extract the repository name from imageName by taking the last part after '/'
+ * Examples:
+ * - "nginx" -> "nginx"
+ * - "nginx:latest" -> "nginx:latest"
+ * - "myuser/myrepo" -> "myrepo"
+ * - "myuser/myrepo:tag" -> "myrepo:tag"
+ * - "docker.io/myuser/myrepo" -> "myrepo"
+ */
+const extractRepositoryName = (imageName: string): string => {
+	const lastSlashIndex = imageName.lastIndexOf("/");
 
-export const uploadImageRemoteCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
-	const registry = application.registry;
-
-	if (!registry) {
-		throw new Error("Registry not found");
+	// If no '/', return the imageName as is
+	if (lastSlashIndex === -1) {
+		return imageName;
 	}
 
+	// Extract everything after the last '/'
+	return imageName.substring(lastSlashIndex + 1);
+};
+
+export const getRegistryTag = (registry: Registry, imageName: string) => {
 	const { registryUrl, imagePrefix, username } = registry;
-	const { appName } = application;
-	const imageName = `${appName}:latest`;
 
-	const finalURL = registryUrl;
+	// Extract the repository name (last part after '/')
+	const repositoryName = extractRepositoryName(imageName);
 
-	// Build registry tag in correct format: registry.com/owner/image:tag
-	const registryTag = imagePrefix
-		? `${registryUrl}/${imagePrefix}/${imageName}`
-		: `${registryUrl}/${username}/${imageName}`;
+	// Build the final tag using registry's username/prefix
+	const targetPrefix = imagePrefix || username;
+	const finalRegistry = registryUrl || "";
 
-	try {
-		const command = `
-		echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" >> ${logPath};
-		echo "${registry.password}" | docker login ${finalURL} -u ${registry.username} --password-stdin >> ${logPath} 2>> ${logPath} || { 
-			echo "❌ DockerHub Failed" >> ${logPath};
-			exit 1;
-		}
-		echo "✅ Registry Login Success" >> ${logPath};
-		docker tag ${imageName} ${registryTag} >> ${logPath} 2>> ${logPath} || { 
-			echo "❌ Error tagging image" >> ${logPath};
-			exit 1;
-		}
-		echo "✅ Image Tagged" >> ${logPath};
-		docker push ${registryTag} 2>> ${logPath} || { 
-			echo "❌ Error pushing image" >> ${logPath};
-			exit 1;
-		}
-			echo "✅ Image Pushed" >> ${logPath};
-		`;
-		return command;
-	} catch (error) {
-		throw error;
-	}
+	return finalRegistry
+		? `${finalRegistry}/${targetPrefix}/${repositoryName}`
+		: `${targetPrefix}/${repositoryName}`;
+};
+
+const getRegistryCommands = (
+	registry: Registry,
+	imageName: string,
+	registryTag: string,
+): string => {
+	return `
+echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
+echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin || { 
+	echo "❌ DockerHub Failed" ;
+	exit 1;
+}
+echo "✅ Registry Login Success" ;
+docker tag ${imageName} ${registryTag} || { 
+	echo "❌ Error tagging image" ;
+	exit 1;
+}
+echo "✅ Image Tagged" ;
+docker push ${registryTag} || { 
+	echo "❌ Error pushing image" ;
+	exit 1;
+}
+	echo "✅ Image Pushed" ;
+`;
 };

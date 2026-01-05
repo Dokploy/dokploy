@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon } from "lucide-react";
+import { Pencil, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "next-i18next";
 import { useEffect, useState } from "react";
@@ -52,15 +52,17 @@ const Schema = z.object({
 	sshKeyId: z.string().min(1, {
 		message: "SSH Key is required",
 	}),
+	serverType: z.enum(["deploy", "build"]).default("deploy"),
 });
 
 type Schema = z.infer<typeof Schema>;
 
 interface Props {
 	serverId?: string;
+	asButton?: boolean;
 }
 
-export const HandleServers = ({ serverId }: Props) => {
+export const HandleServers = ({ serverId, asButton = false }: Props) => {
 	const { t } = useTranslation("settings");
 
 	const utils = api.useUtils();
@@ -89,6 +91,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			port: 22,
 			username: "root",
 			sshKeyId: "",
+			serverType: "deploy",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -101,6 +104,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			port: data?.port || 22,
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
+			serverType: data?.serverType || "deploy",
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
@@ -116,6 +120,7 @@ export const HandleServers = ({ serverId }: Props) => {
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
+			serverType: data.serverType || "deploy",
 			serverId: serverId || "",
 		})
 			.then(async (_data) => {
@@ -133,21 +138,32 @@ export const HandleServers = ({ serverId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				{serverId ? (
+			{serverId ? (
+				asButton ? (
+					<DialogTrigger asChild>
+						<Button variant="outline" size="icon" className="h-9 w-9">
+							<Pencil className="h-4 w-4" />
+						</Button>
+					</DialogTrigger>
+				) : (
 					<DropdownMenuItem
 						className="w-full cursor-pointer "
-						onSelect={(e) => e.preventDefault()}
+						onSelect={(e) => {
+							e.preventDefault();
+							setIsOpen(true);
+						}}
 					>
 						Edit Server
 					</DropdownMenuItem>
-				) : (
+				)
+			) : (
+				<DialogTrigger asChild>
 					<Button className="cursor-pointer space-x-3">
 						<PlusIcon className="h-4 w-4" />
 						Create Server
 					</Button>
-				)}
-			</DialogTrigger>
+				</DialogTrigger>
+			)}
 			<DialogContent className="sm:max-w-3xl ">
 				<DialogHeader>
 					<DialogTitle>{serverId ? "Edit" : "Create"} Server</DialogTitle>
@@ -265,6 +281,50 @@ export const HandleServers = ({ serverId }: Props) => {
 									<FormMessage />
 								</FormItem>
 							)}
+						/>
+						<FormField
+							control={form.control}
+							name="serverType"
+							render={({ field }) => {
+								const serverTypeValue = form.watch("serverType");
+								return (
+									<FormItem>
+										<FormLabel>Server Type</FormLabel>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Select a server type" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													<SelectItem value="deploy">Deploy Server</SelectItem>
+													<SelectItem value="build">Build Server</SelectItem>
+													<SelectLabel>Server Type</SelectLabel>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+										<FormMessage />
+										{serverTypeValue === "deploy" && (
+											<AlertBlock type="info" className="mt-2">
+												Deploy servers are used to run your applications,
+												databases, and services. They handle the deployment and
+												execution of your projects.
+											</AlertBlock>
+										)}
+										{serverTypeValue === "build" && (
+											<AlertBlock type="info" className="mt-2">
+												Build servers are dedicated to building your
+												applications. They handle the compilation and build
+												process, offloading this work from your deployment
+												servers. Build servers won't appear in deployment
+												options.
+											</AlertBlock>
+										)}
+									</FormItem>
+								);
+							}}
 						/>
 						<FormField
 							control={form.control}

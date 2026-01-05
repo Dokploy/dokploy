@@ -1,15 +1,8 @@
 import type { findEnvironmentsByProjectId } from "@dokploy/server";
-import {
-	ChevronDownIcon,
-	PencilIcon,
-	PlusIcon,
-	Terminal,
-	TrashIcon,
-} from "lucide-react";
+import { ChevronDownIcon, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,13 +56,20 @@ export const AdvancedEnvironmentSelector = ({
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 
-	// API mutations
-	const { data: environment } = api.environment.one.useQuery(
-		{ environmentId: currentEnvironmentId || "" },
-		{
-			enabled: !!currentEnvironmentId,
-		},
-	);
+	// Get current user's permissions
+	const { data: currentUser } = api.user.get.useQuery();
+
+	// Check if user can create environments
+	const canCreateEnvironments =
+		currentUser?.role === "owner" ||
+		currentUser?.role === "admin" ||
+		currentUser?.canCreateEnvironments === true;
+
+	// Check if user can delete environments
+	const canDeleteEnvironments =
+		currentUser?.role === "owner" ||
+		currentUser?.role === "admin" ||
+		currentUser?.canDeleteEnvironments === true;
 
 	const haveServices =
 		selectedEnvironment &&
@@ -102,7 +102,9 @@ export const AdvancedEnvironmentSelector = ({
 			setName("");
 			setDescription("");
 		} catch (error) {
-			toast.error("Failed to create environment");
+			toast.error(
+				`Failed to create environment: ${error instanceof Error ? error.message : error}`,
+			);
 		}
 	};
 
@@ -123,7 +125,9 @@ export const AdvancedEnvironmentSelector = ({
 			setName("");
 			setDescription("");
 		} catch (error) {
-			toast.error("Failed to update environment");
+			toast.error(
+				`Failed to update environment: ${error instanceof Error ? error.message : error}`,
+			);
 		}
 	};
 
@@ -140,15 +144,18 @@ export const AdvancedEnvironmentSelector = ({
 			setIsDeleteDialogOpen(false);
 			setSelectedEnvironment(null);
 
-			// Redirect to production if we deleted the current environment
+			// Redirect to first available environment if we deleted the current environment
 			if (selectedEnvironment.environmentId === currentEnvironmentId) {
-				const productionEnv = environments?.find(
-					(env) => env.name === "production",
+				const firstEnv = environments?.find(
+					(env) => env.environmentId !== selectedEnvironment.environmentId,
 				);
-				if (productionEnv) {
+				if (firstEnv) {
 					router.push(
-						`/dashboard/project/${projectId}/environment/${productionEnv.environmentId}`,
+						`/dashboard/project/${projectId}/environment/${firstEnv.environmentId}`,
 					);
+				} else {
+					// No other environments, redirect to project page
+					router.push(`/dashboard/project/${projectId}`);
 				}
 			}
 		} catch (error) {
@@ -239,22 +246,8 @@ export const AdvancedEnvironmentSelector = ({
 										)}
 									</div>
 								</DropdownMenuItem>
-
-								{/* Action buttons for non-production environments */}
-								<EnvironmentVariables environmentId={environment.environmentId}>
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-6 w-6 p-0"
-										onClick={(e) => {
-											e.stopPropagation();
-										}}
-									>
-										<Terminal className="h-3 w-3" />
-									</Button>
-								</EnvironmentVariables>
-								{environment.name !== "production" && (
-									<div className="flex items-center gap-1 px-2">
+								<div className="flex items-center gap-1 px-2">
+									{!environment.isDefault && (
 										<Button
 											variant="ghost"
 											size="sm"
@@ -266,7 +259,8 @@ export const AdvancedEnvironmentSelector = ({
 										>
 											<PencilIcon className="h-3 w-3" />
 										</Button>
-
+									)}
+									{canDeleteEnvironments && !environment.isDefault && (
 										<Button
 											variant="ghost"
 											size="sm"
@@ -278,20 +272,22 @@ export const AdvancedEnvironmentSelector = ({
 										>
 											<TrashIcon className="h-3 w-3" />
 										</Button>
-									</div>
-								)}
+									)}
+								</div>
 							</div>
 						);
 					})}
 
 					<DropdownMenuSeparator />
-					<DropdownMenuItem
-						className="cursor-pointer"
-						onClick={() => setIsCreateDialogOpen(true)}
-					>
-						<PlusIcon className="h-4 w-4 mr-2" />
-						Create Environment
-					</DropdownMenuItem>
+					{canCreateEnvironments && (
+						<DropdownMenuItem
+							className="cursor-pointer"
+							onClick={() => setIsCreateDialogOpen(true)}
+						>
+							<PlusIcon className="h-4 w-4 mr-2" />
+							Create Environment
+						</DropdownMenuItem>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 

@@ -29,6 +29,7 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		cpuLimit,
 		cpuReservation,
 		command,
+		args,
 		mounts,
 	} = mariadb;
 
@@ -45,6 +46,8 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(mariadb);
 	const resources = calculateResources({
 		memoryLimit,
@@ -71,12 +74,16 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(command
-					? {
-							Command: ["/bin/sh"],
-							Args: ["-c", command],
-						}
-					: {}),
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
+				...(command && {
+					Command: command.split(" "),
+				}),
+				...(args &&
+					args.length > 0 && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,
@@ -88,19 +95,21 @@ export const buildMariadb = async (mariadb: MariadbNested) => {
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 3306,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 3306,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
 	};
 	try {

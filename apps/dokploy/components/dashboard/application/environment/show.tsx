@@ -5,13 +5,23 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Form } from "@/components/ui/form";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+} from "@/components/ui/form";
 import { Secrets } from "@/components/ui/secrets";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
 
 const addEnvironmentSchema = z.object({
 	env: z.string(),
 	buildArgs: z.string(),
+	buildSecrets: z.string(),
+	createEnvFile: z.boolean(),
 });
 
 type EnvironmentSchema = z.infer<typeof addEnvironmentSchema>;
@@ -37,6 +47,8 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		defaultValues: {
 			env: "",
 			buildArgs: "",
+			buildSecrets: "",
+			createEnvFile: true,
 		},
 		resolver: zodResolver(addEnvironmentSchema),
 	});
@@ -44,15 +56,21 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 	// Watch form values
 	const currentEnv = form.watch("env");
 	const currentBuildArgs = form.watch("buildArgs");
+	const currentBuildSecrets = form.watch("buildSecrets");
+	const currentCreateEnvFile = form.watch("createEnvFile");
 	const hasChanges =
 		currentEnv !== (data?.env || "") ||
-		currentBuildArgs !== (data?.buildArgs || "");
+		currentBuildArgs !== (data?.buildArgs || "") ||
+		currentBuildSecrets !== (data?.buildSecrets || "") ||
+		currentCreateEnvFile !== (data?.createEnvFile ?? true);
 
 	useEffect(() => {
 		if (data) {
 			form.reset({
 				env: data.env || "",
 				buildArgs: data.buildArgs || "",
+				buildSecrets: data.buildSecrets || "",
+				createEnvFile: data.createEnvFile ?? true,
 			});
 		}
 	}, [data, form]);
@@ -61,6 +79,8 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		mutateAsync({
 			env: formData.env,
 			buildArgs: formData.buildArgs,
+			buildSecrets: formData.buildSecrets,
+			createEnvFile: formData.createEnvFile,
 			applicationId,
 		})
 			.then(async () => {
@@ -76,8 +96,25 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 		form.reset({
 			env: data?.env || "",
 			buildArgs: data?.buildArgs || "",
+			buildSecrets: data?.buildSecrets || "",
+			createEnvFile: data?.createEnvFile ?? true,
 		});
 	};
+
+	// Add keyboard shortcut for Ctrl+S/Cmd+S
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading) {
+				e.preventDefault();
+				form.handleSubmit(onSubmit)();
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [form, onSubmit, isLoading]);
 
 	return (
 		<Card className="bg-background px-6 pb-6">
@@ -104,13 +141,14 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 					{data?.buildType === "dockerfile" && (
 						<Secrets
 							name="buildArgs"
-							title="Build-time Variables"
+							title="Build-time Arguments"
 							description={
 								<span>
-									Available only at build-time. See documentation&nbsp;
+									Arguments are available only at build-time. See
+									documentation&nbsp;
 									<a
 										className="text-primary"
-										href="https://docs.docker.com/build/guide/build-args/"
+										href="https://docs.docker.com/build/building/variables/"
 										target="_blank"
 										rel="noopener noreferrer"
 									>
@@ -120,6 +158,53 @@ export const ShowEnvironment = ({ applicationId }: Props) => {
 								</span>
 							}
 							placeholder="NPM_TOKEN=xyz"
+						/>
+					)}
+					{data?.buildType === "dockerfile" && (
+						<Secrets
+							name="buildSecrets"
+							title="Build-time Secrets"
+							description={
+								<span>
+									Secrets are specially designed for sensitive information and
+									are only available at build-time. See documentation&nbsp;
+									<a
+										className="text-primary"
+										href="https://docs.docker.com/build/building/secrets/"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										here
+									</a>
+									.
+								</span>
+							}
+							placeholder="NPM_TOKEN=xyz"
+						/>
+					)}
+					{data?.buildType === "dockerfile" && (
+						<FormField
+							control={form.control}
+							name="createEnvFile"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+									<div className="space-y-0.5">
+										<FormLabel>Create Environment File</FormLabel>
+										<FormDescription>
+											When enabled, an .env file will be created in the same
+											directory as your Dockerfile during the build process.
+											Disable this if you don't want to generate an environment
+											file.
+										</FormDescription>
+									</div>
+									<FormControl>
+										<Switch
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+								</FormItem>
+							)}
 						/>
 					)}
 					<div className="flex flex-row justify-end gap-2">

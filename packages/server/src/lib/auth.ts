@@ -9,7 +9,11 @@ import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
-import { updateUser } from "../services/user";
+import {
+	getWebServerSettings,
+	updateWebServerSettings,
+} from "../services/web-server-settings";
+import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
@@ -34,22 +38,14 @@ const { handler, api } = betterAuth({
 	},
 	...(!IS_CLOUD && {
 		async trustedOrigins() {
-			const admin = await db.query.member.findFirst({
-				where: eq(schema.member.role, "owner"),
-				with: {
-					user: true,
-				},
-			});
-
-			if (admin) {
-				return [
-					...(admin.user.serverIp
-						? [`http://${admin.user.serverIp}:3000`]
-						: []),
-					...(admin.user.host ? [`https://${admin.user.host}`] : []),
-				];
+			const settings = await getWebServerSettings();
+			if (!settings) {
+				return [];
 			}
-			return [];
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+			];
 		},
 	}),
 	emailVerification: {
@@ -115,15 +111,40 @@ const { handler, api } = betterAuth({
 						}
 					}
 				},
-				after: async (user) => {
+				after: async (user, context) => {
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
 
 					if (!IS_CLOUD) {
-						await updateUser(user.id, {
+						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});
+					}
+
+					if (IS_CLOUD) {
+						try {
+							const hutk = getHubSpotUTK(
+								context?.request?.headers?.get("cookie") || undefined,
+							);
+							// Cast to include additional fields
+							const userWithFields = user as typeof user & {
+								lastName?: string;
+							};
+							const hubspotSuccess = await submitToHubSpot(
+								{
+									email: user.email,
+									firstName: user.name || "", // name is mapped to firstName column
+									lastName: userWithFields.lastName || "",
+								},
+								hutk,
+							);
+							if (!hubspotSuccess) {
+								console.error("Failed to submit to HubSpot");
+							}
+						} catch (error) {
+							console.error("Error submitting to HubSpot", error);
+						}
 					}
 
 					if (IS_CLOUD || !isAdminPresent) {
@@ -143,6 +164,7 @@ const { handler, api } = betterAuth({
 								organizationId: organization?.id || "",
 								role: "owner",
 								createdAt: new Date(),
+								isDefault: true, // Mark first organization as default
 							});
 						});
 					}
@@ -152,9 +174,14 @@ const { handler, api } = betterAuth({
 		session: {
 			create: {
 				before: async (session) => {
+					// Find the default organization for this user
+					// Priority: 1) isDefault=true, 2) most recently created
 					const member = await db.query.member.findFirst({
 						where: eq(schema.member.userId, session.userId),
-						orderBy: desc(schema.member.createdAt),
+						orderBy: [
+							desc(schema.member.isDefault),
+							desc(schema.member.createdAt),
+						],
 						with: {
 							organization: true,
 						},
@@ -175,7 +202,10 @@ const { handler, api } = betterAuth({
 		updateAge: 60 * 60 * 24,
 	},
 	user: {
-		modelName: "users_temp",
+		modelName: "user",
+		fields: {
+			name: "firstName", // Map better-auth's default 'name' field to 'firstName' column
+		},
 		additionalFields: {
 			role: {
 				type: "string",
@@ -191,6 +221,12 @@ const { handler, api } = betterAuth({
 				fieldName: "allowImpersonation",
 				type: "boolean",
 				defaultValue: false,
+			},
+			lastName: {
+				type: "string",
+				required: false,
+				input: true,
+				defaultValue: "",
 			},
 		},
 	},
@@ -288,16 +324,11 @@ export const validateRequest = async (request: IncomingMessage) => {
 				},
 			});
 
-			const {
-				id,
-				name,
-				email,
-				emailVerified,
-				image,
-				createdAt,
-				updatedAt,
-				twoFactorEnabled,
-			} = apiKeyRecord.user;
+			// When accessing from DB, use actual column names
+			const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
+				firstName: string;
+				lastName: string;
+			};
 
 			const mockSession = {
 				session: {
@@ -305,14 +336,14 @@ export const validateRequest = async (request: IncomingMessage) => {
 					activeOrganizationId: organizationId || "",
 				},
 				user: {
-					id,
-					name,
-					email,
-					emailVerified,
-					image,
-					createdAt,
-					updatedAt,
-					twoFactorEnabled,
+					id: userFromDb.id,
+					name: userFromDb.firstName, // Map firstName back to name for better-auth
+					email: userFromDb.email,
+					emailVerified: userFromDb.emailVerified,
+					image: userFromDb.image,
+					createdAt: userFromDb.createdAt,
+					updatedAt: userFromDb.updatedAt,
+					twoFactorEnabled: userFromDb.twoFactorEnabled,
 					role: member?.role || "member",
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
 				},

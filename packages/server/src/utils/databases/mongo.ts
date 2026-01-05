@@ -28,6 +28,7 @@ export const buildMongo = async (mongo: MongoNested) => {
 		databaseUser,
 		databasePassword,
 		command,
+		args,
 		mounts,
 		replicaSets,
 	} = mongo;
@@ -53,7 +54,7 @@ if [ "$REPLICA_STATUS" != "1" ]; then
 	mongosh --eval '
 	rs.initiate({
 		_id: "rs0",
-		members: [{ _id: 0, host: "localhost:27017", priority: 1 }]
+		members: [{ _id: 0, host: "${appName}:27017", priority: 1 }]
 	});
 
     // Wait for the replica set to initialize
@@ -91,6 +92,8 @@ ${command ?? "wait $MONGOD_PID"}`;
 		RollbackConfig,
 		UpdateConfig,
 		Networks,
+		StopGracePeriod,
+		EndpointSpec,
 	} = generateConfigContainer(mongo);
 
 	const resources = calculateResources({
@@ -119,17 +122,24 @@ ${command ?? "wait $MONGOD_PID"}`;
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(replicaSets
 					? {
 							Command: ["/bin/bash"],
 							Args: ["-c", startupScript],
 						}
-					: {
-							...(command && {
-								Command: ["/bin/bash"],
-								Args: ["-c", command],
-							}),
-						}),
+					: {}),
+				...(command &&
+					!replicaSets && {
+						Command: command.split(" "),
+					}),
+				...(args &&
+					args.length > 0 &&
+					!replicaSets && {
+						Args: args,
+					}),
+
 				Labels,
 			},
 			Networks,
@@ -141,19 +151,21 @@ ${command ?? "wait $MONGOD_PID"}`;
 		},
 		Mode,
 		RollbackConfig,
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 27017,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 27017,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
 		UpdateConfig,
 	};
 
