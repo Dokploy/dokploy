@@ -1628,9 +1628,10 @@ export async function getServerSideProps(
 				});
 			} catch (error) {
 				// If user doesn't have access to requested environment, redirect to accessible one
-				const accessibleEnvironments = await helpers.environment.byProjectId.fetch({
-					projectId: params.projectId,
-				});
+				const accessibleEnvironments =
+					await helpers.environment.byProjectId.fetch({
+						projectId: params.projectId,
+					});
 
 				if (accessibleEnvironments.length > 0) {
 					// Try to find default, otherwise use first accessible

@@ -290,9 +290,8 @@ export const ShowProjects = () => {
 
 											// Find default environment from accessible environments, or fall back to first accessible environment
 											const accessibleEnvironment =
-												project?.environments.find(
-													(env) => env.isDefault,
-												) || project?.environments?.[0];
+												project?.environments.find((env) => env.isDefault) ||
+												project?.environments?.[0];
 
 											return (
 												<div
