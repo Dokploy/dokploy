@@ -1,8 +1,60 @@
 import path from "node:path";
+import fs from "node:fs";
 import Docker from "dockerode";
 
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
-export const docker = new Docker();
+
+type DockerSocketCandidate = {
+	label: string;
+	path: string;
+};
+
+// Support for Rancher Desktop and other Docker environments
+const getDockerConfig = () => {
+	const dockerSocketCandidates: Array<DockerSocketCandidate> = [];
+	if (process.env.DOCKER_HOST) {
+		dockerSocketCandidates.push({
+			label: "DOCKER_HOST environment variable",
+			path: process.env.DOCKER_HOST.replace("unix://", ""),
+		});
+	}
+
+	if (process.env.HOME) {
+		dockerSocketCandidates.push({
+			label: "Rancher Desktop socket",
+			path: `${process.env.HOME}/.rd/docker.sock`,
+		});
+	}
+
+	dockerSocketCandidates.push({
+		label: "Standard Docker socket",
+		path: "/var/run/docker.sock",
+	});
+
+	for (const candidate of dockerSocketCandidates) {
+		try {
+			if (candidate.path && fs.existsSync(candidate.path)) {
+				console.info(
+					`Using Docker socket (${candidate.label}): ${candidate.path}`,
+				);
+
+				return new Docker({ socketPath: candidate.path });
+			}
+		} catch (e) {
+			console.info(
+				`Docker socket initialization failed for ${candidate.label} (${candidate.path}): ${e instanceof Error ? e.message : "Unknown error"
+				}`,
+			);
+		}
+	}
+
+	console.info(
+		"Using default Docker configuration. You can set the DOCKER_HOST environment variable to specify a custom Docker socket path.",
+	);
+	return new Docker();
+};
+
+export const docker = getDockerConfig();
 
 export const paths = (isServer = false) => {
 	const BASE_PATH =
