@@ -309,6 +309,7 @@ table backup {
   mongoId text
   userId text
   metadata jsonb
+  additionalOptions jsonb
 }
 
 table bitbucket {
