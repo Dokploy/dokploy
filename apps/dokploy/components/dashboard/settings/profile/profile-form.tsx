@@ -236,6 +236,7 @@ export const ProfileForm = () => {
 																placeholder={t("settings.profile.password")}
 																{...field}
 																value={field.value || ""}
+																enablePasswordGenerator={false}
 															/>
 														</FormControl>
 														<FormMessage />
