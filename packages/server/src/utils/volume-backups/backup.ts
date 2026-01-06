@@ -3,7 +3,7 @@ import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
 import {
-	getEncryptionConfigFromDestination,
+	buildRcloneCommand,
 	getRcloneS3Remote,
 	normalizeS3Path,
 } from "../backups/utils";
@@ -19,21 +19,21 @@ export const backupVolume = async (
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 
-	// Get encryption config and build rclone remote with optional crypt overlay
-	const encryptionConfig = getEncryptionConfigFromDestination(destination);
-	const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+	// Get rclone remote (encryption is handled transparently if enabled)
+	const { remote, envVars } = getRcloneS3Remote(destination);
 	const rcloneDestination = `${remote}${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `${envVars ? `${envVars} ` : ""}rclone copyto "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const rcloneCommand = buildRcloneCommand(
+		`rclone copyto "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`,
+		envVars,
+	);
 
-	const isEncrypted = encryptionConfig.enabled && encryptionConfig.key;
 	const baseCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
-	${isEncrypted ? 'echo "🔐 Encryption enabled (rclone crypt)"' : ""}
 	echo "Starting volume backup"
 	echo "Dir: ${volumeBackupPath}"
     docker run --rm \
@@ -42,7 +42,7 @@ export const backupVolume = async (
   ubuntu \
   bash -c "cd /volume_data && tar cvf /backup/${backupFileName} ."
   echo "Volume backup done ✅"
-  echo "Starting upload to S3${isEncrypted ? " (encrypted)" : ""}..."
+  echo "Starting upload to S3..."
   ${rcloneCommand}
   echo "Upload to S3 done ✅"
   echo "Cleaning up local backup file..."

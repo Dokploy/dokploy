@@ -29,7 +29,6 @@ import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
         buildRcloneCommand,
         getBackupRemotePath,
-        getEncryptionConfigFromDestination,
         getRcloneS3Remote,
         normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
@@ -301,12 +300,8 @@ export const backupRouter = createTRPCRouter({
 		.query(async ({ input }) => {
                         try {
                                 const destination = await findDestinationById(input.destinationId);
-                                const encryptionConfig =
-                                        getEncryptionConfigFromDestination(destination);
-                                const { remote, envVars } = getRcloneS3Remote(
-                                        destination,
-                                        encryptionConfig,
-                                );
+                                // Get rclone remote (encryption is handled transparently if enabled)
+                                const { remote, envVars } = getRcloneS3Remote(destination);
 
                                 const lastSlashIndex = input.search.lastIndexOf("/");
                                 const baseDir =

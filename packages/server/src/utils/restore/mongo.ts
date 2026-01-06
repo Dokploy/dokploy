@@ -2,10 +2,7 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Mongo } from "@dokploy/server/services/mongo";
 import type { z } from "zod";
-import {
-	getEncryptionConfigFromDestination,
-	getRcloneS3Remote,
-} from "../backups/utils";
+import { buildRcloneCommand, getRcloneS3Remote } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -18,13 +15,15 @@ export const restoreMongoBackup = async (
 	try {
 		const { appName, databasePassword, databaseUser, serverId } = mongo;
 
-		const encryptionConfig = getEncryptionConfigFromDestination(destination);
-		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		// Get rclone remote (decryption is handled transparently if encryption is enabled)
+		const { remote, envVars } = getRcloneS3Remote(destination);
 		const backupPath = `${remote}/${backupInput.backupFile}`;
+
 		// With rclone crypt, decryption happens automatically when reading from the crypt remote
-		const rcloneCommand = envVars
-			? `${envVars} rclone copy "${backupPath}"`
-			: `rclone copy "${backupPath}"`;
+		const rcloneCommand = buildRcloneCommand(
+			`rclone copy "${backupPath}"`,
+			envVars,
+		);
 
 		const command = getRestoreCommand({
 			appName,
@@ -40,10 +39,6 @@ export const restoreMongoBackup = async (
 		});
 
 		emit("Starting restore...");
-		if (encryptionConfig.enabled) {
-			emit("🔐 Encryption enabled - will decrypt during restore (rclone crypt)");
-		}
-
 		emit(`Executing command: ${command}`);
 
 		if (serverId) {

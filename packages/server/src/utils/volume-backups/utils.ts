@@ -11,7 +11,7 @@ import {
 } from "@dokploy/server/utils/process/execAsync";
 import { scheduledJobs, scheduleJob } from "node-schedule";
 import {
-	getEncryptionConfigFromDestination,
+	buildRcloneCommand,
 	getRcloneS3Remote,
 	normalizeS3Path,
 } from "../backups/utils";
@@ -84,20 +84,21 @@ const cleanupOldVolumeBackups = async (
 	if (!keepLatestCount) return;
 
 	try {
-		// Get encryption config and build rclone remote with optional crypt overlay
-		const encryptionConfig = getEncryptionConfigFromDestination(destination);
-		const { remote, envVars } = getRcloneS3Remote(
-			destination,
-			encryptionConfig,
-		);
+		// Get rclone remote (encryption is handled transparently if enabled)
+		const { remote, envVars } = getRcloneS3Remote(destination);
 		const normalizedPrefix = normalizeS3Path(prefix);
 		const backupFilesPath = `${remote}${normalizedPrefix}`;
 
 		// When using rclone crypt, filenames are automatically decrypted during listing
-		const envPrefix = envVars ? `${envVars} ` : "";
-		const listCommand = `${envPrefix}rclone lsf --include "${volumeName}-*.tar" "${backupFilesPath}"`;
+		const listCommand = buildRcloneCommand(
+			`rclone lsf --include "${volumeName}-*.tar" "${backupFilesPath}"`,
+			envVars,
+		);
 		const sortAndPick = `sort -r | tail -n +$((${keepLatestCount}+1)) | xargs -I{}`;
-		const deleteCommand = `${envPrefix}rclone delete "${backupFilesPath}{}"`;
+		const deleteCommand = buildRcloneCommand(
+			`rclone delete "${backupFilesPath}{}"`,
+			envVars,
+		);
 		const fullCommand = `${listCommand} | ${sortAndPick} ${deleteCommand}`;
 
 		if (serverId) {

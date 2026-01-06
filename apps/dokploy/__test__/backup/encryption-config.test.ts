@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
         buildRcloneCommand,
         getBackupRemotePath,
-        getEncryptionConfigFromDestination,
         getRcloneS3Remote,
 } from "@dokploy/server/utils/backups/utils";
 import type { Destination } from "@dokploy/server/services/destination";
@@ -29,9 +28,8 @@ const createDestination = (overrides: Partial<Destination> = {}): Destination =>
 describe("rclone encryption helpers", () => {
         it("builds a plain S3 remote without encryption", () => {
                 const destination = createDestination();
-                const encryptionConfig = getEncryptionConfigFromDestination(destination);
 
-                const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+                const { remote, envVars } = getRcloneS3Remote(destination);
 
                 expect(envVars).toBe("");
                 expect(remote).toContain(":s3,");
@@ -46,9 +44,8 @@ describe("rclone encryption helpers", () => {
                         filenameEncryption: "standard",
                         directoryNameEncryption: true,
                 });
-                const encryptionConfig = getEncryptionConfigFromDestination(destination);
 
-                const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+                const { remote, envVars } = getRcloneS3Remote(destination);
 
                 expect(remote.startsWith(":crypt")).toBe(true);
                 expect(remote).toContain("remote=\":s3,");
@@ -59,8 +56,7 @@ describe("rclone encryption helpers", () => {
 
         it("returns the correct remote path for nested prefixes", () => {
                 const destination = createDestination();
-                const encryptionConfig = getEncryptionConfigFromDestination(destination);
-                const { remote } = getRcloneS3Remote(destination, encryptionConfig);
+                const { remote } = getRcloneS3Remote(destination);
 
                 const remotePath = getBackupRemotePath(remote, "daily/db");
 

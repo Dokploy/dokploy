@@ -10,49 +10,18 @@ import { runMySqlBackup } from "./mysql";
 import { runPostgresBackup } from "./postgres";
 import { runWebServerBackup } from "./web-server";
 
-export type FilenameEncryption = "standard" | "obfuscate" | "off";
-
-export interface EncryptionConfig {
-	enabled: boolean;
-	key?: string | null;
-	password2?: string | null;
-	filenameEncryption?: FilenameEncryption | null;
-	directoryNameEncryption?: boolean | null;
-}
-
-export const getEncryptionConfigFromDestination = (
-        destination: Destination,
-): EncryptionConfig => {
-        return {
-		enabled: destination.encryptionEnabled ?? false,
-		key: destination.encryptionKey,
-		password2: destination.encryptionPassword2,
-		filenameEncryption:
-			(destination.filenameEncryption as FilenameEncryption) ?? "off",
-		directoryNameEncryption: destination.directoryNameEncryption ?? false,
-        };
-};
-
-export const buildRcloneCommand = (command: string, envVars?: string) => {
-        return envVars ? `${envVars} ${command}` : command;
-};
-
 /**
- * Get rclone flags for S3 credentials with optional crypt encryption overlay.
- * When encryption is enabled, uses rclone's native crypt backend which provides
+ * Get rclone remote configuration for S3 with optional transparent crypt encryption overlay.
+ * When encryption is enabled on the destination, uses rclone's native crypt backend which provides
  * file name and content encryption using NaCl SecretBox (XSalsa20 cipher + Poly1305).
  *
- * Rclone crypt options:
- * - password: Main encryption password (required)
- * - password2: Salt password for additional security (optional but recommended)
- * - filename_encryption: "standard" (encrypt), "obfuscate", or "off"
- * - directory_name_encryption: true/false (only applies if filename_encryption is not "off")
+ * The encryption is completely transparent to the caller - they just use the returned remote
+ * and rclone handles encryption/decryption automatically.
  *
  * @see https://rclone.org/crypt/
  */
 export const getRcloneS3Remote = (
 	destination: Destination,
-	encryptionConfig?: EncryptionConfig,
 ): { remote: string; envVars: string } => {
 	const { accessKey, secretAccessKey, region, endpoint, provider, bucket } =
 		destination;
@@ -63,24 +32,24 @@ export const getRcloneS3Remote = (
 		s3Remote = `:s3,provider="${provider}",access_key_id="${accessKey}",secret_access_key="${secretAccessKey}",region="${region}",endpoint="${endpoint}",no_check_bucket=true,force_path_style=true`;
 	}
 
-	// If encryption is enabled, wrap the S3 remote with crypt
-	if (encryptionConfig?.enabled && encryptionConfig?.key) {
-		const escapedKey = encryptionConfig.key.replace(/'/g, "'\\''");
+	// If encryption is enabled, wrap the S3 remote with crypt (transparent encryption)
+	if (destination.encryptionEnabled && destination.encryptionKey) {
+		const escapedKey = destination.encryptionKey.replace(/'/g, "'\\''");
 
-		// Build crypt options
-		const filenameEncryption = encryptionConfig.filenameEncryption || "off";
+		// Build crypt options from destination settings
+		const filenameEncryption = destination.filenameEncryption || "off";
 		const directoryNameEncryption =
-			encryptionConfig.directoryNameEncryption ?? false;
+			destination.directoryNameEncryption ?? false;
 
-		// Build the crypt remote string with all options
+		// Build the crypt remote string - this wraps the S3 remote transparently
 		const cryptRemote = `:crypt,remote="${s3Remote}:${bucket}",filename_encryption=${filenameEncryption},directory_name_encryption=${directoryNameEncryption}:`;
 
-		// Build environment variables for passwords
+		// Build environment variables for passwords (more secure than command line args)
 		let envVars = `RCLONE_CRYPT_PASSWORD='${escapedKey}'`;
 
-		// Add password2 (salt) if provided
-		if (encryptionConfig.password2) {
-			const escapedPassword2 = encryptionConfig.password2.replace(
+		// Add password2 (salt) if provided for additional security
+		if (destination.encryptionPassword2) {
+			const escapedPassword2 = destination.encryptionPassword2.replace(
 				/'/g,
 				"'\\''",
 			);
@@ -93,10 +62,18 @@ export const getRcloneS3Remote = (
 		};
 	}
 
+	// No encryption - return plain S3 remote
 	return {
 		remote: `${s3Remote}:${bucket}`,
 		envVars: "",
 	};
+};
+
+/**
+ * Helper to build rclone command with optional environment variables prefix.
+ */
+export const buildRcloneCommand = (command: string, envVars?: string) => {
+	return envVars ? `${envVars} ${command}` : command;
 };
 
 export const scheduleBackup = (backup: BackupSchedule) => {
@@ -141,15 +118,15 @@ export const removeScheduleBackup = (backupId: string) => {
 };
 
 export const normalizeS3Path = (prefix: string) => {
-        // Trim whitespace and remove leading/trailing slashes
-        const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
-        // Return empty string if prefix is empty, otherwise append trailing slash
-        return normalizedPrefix ? `${normalizedPrefix}/` : "";
+	// Trim whitespace and remove leading/trailing slashes
+	const normalizedPrefix = prefix.trim().replace(/^\/+|\/+$/g, "");
+	// Return empty string if prefix is empty, otherwise append trailing slash
+	return normalizedPrefix ? `${normalizedPrefix}/` : "";
 };
 
 export const getBackupRemotePath = (remote: string, prefix?: string | null) => {
-        const normalizedPrefix = normalizeS3Path(prefix || "");
-        return normalizedPrefix ? `${remote}/${normalizedPrefix}` : remote;
+	const normalizedPrefix = normalizeS3Path(prefix || "");
+	return normalizedPrefix ? `${remote}/${normalizedPrefix}` : remote;
 };
 
 export const getS3Credentials = (destination: Destination) => {
@@ -314,11 +291,9 @@ export const getBackupCommand = (
 	backup: BackupSchedule,
 	rcloneCommand: string,
 	logPath: string,
-	encryptionConfig?: EncryptionConfig,
 ) => {
 	const containerSearch = getContainerSearchCommand(backup);
 	const backupCommand = generateBackupCommand(backup);
-	const isEncrypted = encryptionConfig?.enabled && encryptionConfig?.key;
 
 	logger.info(
 		{
@@ -326,22 +301,15 @@ export const getBackupCommand = (
 			backupCommand,
 			rcloneCommand,
 			logPath,
-			encryptionEnabled: isEncrypted,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
 	);
 
-	// With rclone crypt, encryption is handled by the rclone remote itself
 	const pipelineCommand = `${backupCommand} | ${rcloneCommand}`;
-
-	const encryptionLogMessage = isEncrypted
-		? `echo "[$(date)] 🔐 Encryption enabled (rclone crypt)" >> ${logPath};`
-		: "";
 
 	return `
 	set -eo pipefail;
 	echo "[$(date)] Starting backup process..." >> ${logPath};
-	${encryptionLogMessage}
 	echo "[$(date)] Executing backup command..." >> ${logPath};
 	CONTAINER_ID=$(${containerSearch})
 
@@ -360,7 +328,7 @@ export const getBackupCommand = (
 	}
 
 	echo "[$(date)] ✅ backup completed successfully" >> ${logPath};
-	echo "[$(date)] Starting upload to S3${isEncrypted ? " (encrypted)" : ""}..." >> ${logPath};
+	echo "[$(date)] Starting upload to S3..." >> ${logPath};
 
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${pipelineCommand} 2>&1 >/dev/null) || {

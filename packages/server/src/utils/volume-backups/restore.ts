@@ -5,10 +5,7 @@ import {
 	findDestinationById,
 	paths,
 } from "../..";
-import {
-	getEncryptionConfigFromDestination,
-	getRcloneS3Remote,
-} from "../backups/utils";
+import { buildRcloneCommand, getRcloneS3Remote } from "../backups/utils";
 
 export const restoreVolume = async (
 	id: string,
@@ -22,14 +19,15 @@ export const restoreVolume = async (
 	const { VOLUME_BACKUPS_PATH } = paths(!!serverId);
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeName);
 
-	// Get encryption config and build rclone remote with optional crypt overlay
-	const encryptionConfig = getEncryptionConfigFromDestination(destination);
-	const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+	// Get rclone remote (decryption is handled transparently if encryption is enabled)
+	const { remote, envVars } = getRcloneS3Remote(destination);
 	const backupPath = `${remote}${backupFileName}`;
-	const isEncrypted = encryptionConfig.enabled && encryptionConfig.key;
 
 	// Command to download backup file from S3 (decryption happens automatically with rclone crypt)
-	const downloadCommand = `${envVars ? `${envVars} ` : ""}rclone copyto "${backupPath}" "${volumeBackupPath}/${backupFileName}"`;
+	const downloadCommand = buildRcloneCommand(
+		`rclone copyto "${backupPath}" "${volumeBackupPath}/${backupFileName}"`,
+		envVars,
+	);
 
 	// Base restore command that creates the volume and restores data
 	const baseRestoreCommand = `
@@ -37,8 +35,7 @@ export const restoreVolume = async (
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Volume backup path: ${volumeBackupPath}"
-	${isEncrypted ? 'echo "🔐 Decryption enabled (rclone crypt)"' : ""}
-	echo "Downloading backup from S3${isEncrypted ? " (decrypting)" : ""}..."
+	echo "Downloading backup from S3..."
 	mkdir -p ${volumeBackupPath}
 	${downloadCommand}
 	echo "Download completed ✅"
@@ -56,16 +53,16 @@ export const restoreVolume = async (
 	# Check if volume exists
 	VOLUME_EXISTS=$(docker volume ls -q --filter name="^${volumeName}$" | wc -l)
 	echo "Volume exists: $VOLUME_EXISTS"
-	
+
 	if [ "$VOLUME_EXISTS" = "0" ]; then
 		echo "Volume doesn't exist, proceeding with direct restore"
 		${baseRestoreCommand}
 	else
 		echo "Volume exists, checking for containers using it (including stopped ones)..."
-		
+
 		# Get ALL containers (running and stopped) using this volume - much simpler with native filter!
 		CONTAINERS_USING_VOLUME=$(docker ps -a --filter "volume=${volumeName}" --format "{{.ID}}|{{.Names}}|{{.State}}|{{.Labels}}")
-		
+
 		if [ -z "$CONTAINERS_USING_VOLUME" ]; then
 			echo "Volume exists but no containers are using it"
 			echo "Removing existing volume and proceeding with restore"
@@ -77,11 +74,11 @@ export const restoreVolume = async (
 			echo ""
 			echo "📋 The following containers are using volume '${volumeName}':"
 			echo ""
-			
+
 			echo "$CONTAINERS_USING_VOLUME" | while IFS='|' read container_id container_name container_state labels; do
 				echo "   🐳 Container: $container_name ($container_id)"
 				echo "      Status: $container_state"
-				
+
 				# Determine container type
 				if echo "$labels" | grep -q "com.docker.swarm.service.name="; then
 					SERVICE_NAME=$(echo "$labels" | grep -o "com.docker.swarm.service.name=[^,]*" | cut -d'=' -f2)
@@ -94,7 +91,7 @@ export const restoreVolume = async (
 				fi
 				echo ""
 			done
-			
+
 			echo ""
 			echo "🔧 To restore this volume, please:"
 			echo "   1. Stop all containers/services using this volume"
@@ -102,7 +99,7 @@ export const restoreVolume = async (
 			echo "   3. Run the restore operation again"
 			echo ""
 			echo "❌ Volume restore aborted - volume is in use"
-			
+
 			exit 1
 		fi
 	fi

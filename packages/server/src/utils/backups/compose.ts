@@ -9,8 +9,8 @@ import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import {
+	buildRcloneCommand,
 	getBackupCommand,
-	getEncryptionConfigFromDestination,
 	getRcloneS3Remote,
 	normalizeS3Path,
 } from "./utils";
@@ -24,7 +24,6 @@ export const runComposeBackup = async (
 	const project = await findProjectById(environment.projectId);
 	const { prefix, databaseType } = backup;
 	const destination = backup.destination;
-	const encryptionConfig = getEncryptionConfigFromDestination(destination);
 	const backupFileName = `${new Date().toISOString()}.sql.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
@@ -34,17 +33,18 @@ export const runComposeBackup = async (
 	});
 
 	try {
-		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		// Get rclone remote (encryption is handled transparently if enabled)
+		const { remote, envVars } = getRcloneS3Remote(destination);
 		const rcloneDestination = `${remote}/${bucketDestination}`;
-		const rcloneCommand = envVars
-			? `${envVars} rclone rcat "${rcloneDestination}"`
-			: `rclone rcat "${rcloneDestination}"`;
+		const rcloneCommand = buildRcloneCommand(
+			`rclone rcat "${rcloneDestination}"`,
+			envVars,
+		);
 
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
 			deployment.logPath,
-			encryptionConfig,
 		);
 		if (compose.serverId) {
 			await execAsyncRemote(compose.serverId, backupCommand);

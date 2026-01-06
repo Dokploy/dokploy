@@ -2,10 +2,7 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { z } from "zod";
-import {
-	getEncryptionConfigFromDestination,
-	getRcloneS3Remote,
-} from "../backups/utils";
+import { buildRcloneCommand, getRcloneS3Remote } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -26,21 +23,23 @@ export const restoreComposeBackup = async (
 		}
 		const { serverId, appName, composeType } = compose;
 
-		const encryptionConfig = getEncryptionConfigFromDestination(destination);
-		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		// Get rclone remote (decryption is handled transparently if encryption is enabled)
+		const { remote, envVars } = getRcloneS3Remote(destination);
 		const backupPath = `${remote}/${backupInput.backupFile}`;
 
 		let rcloneCommand: string;
 		if (backupInput.metadata?.mongo) {
 			// Mongo uses rclone copy
-			rcloneCommand = envVars
-				? `${envVars} rclone copy "${backupPath}"`
-				: `rclone copy "${backupPath}"`;
+			rcloneCommand = buildRcloneCommand(
+				`rclone copy "${backupPath}"`,
+				envVars,
+			);
 		} else {
 			// With rclone crypt, decryption happens automatically when reading from the crypt remote
-			rcloneCommand = envVars
-				? `${envVars} rclone cat "${backupPath}" | gunzip`
-				: `rclone cat "${backupPath}" | gunzip`;
+			rcloneCommand = buildRcloneCommand(
+				`rclone cat "${backupPath}" | gunzip`,
+				envVars,
+			);
 		}
 
 		let credentials: DatabaseCredentials;
@@ -85,10 +84,6 @@ export const restoreComposeBackup = async (
 
 		emit("Starting restore...");
 		emit(`Backup file: ${backupInput.backupFile}`);
-		if (encryptionConfig.enabled) {
-			emit("🔐 Encryption enabled - will decrypt during restore (rclone crypt)");
-		}
-
 		emit(`Executing command: ${restoreCommand}`);
 
 		if (serverId) {

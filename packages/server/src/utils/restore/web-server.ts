@@ -3,10 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_CLOUD, paths } from "@dokploy/server/constants";
 import type { Destination } from "@dokploy/server/services/destination";
-import {
-	getEncryptionConfigFromDestination,
-	getRcloneS3Remote,
-} from "../backups/utils";
+import { buildRcloneCommand, getRcloneS3Remote } from "../backups/utils";
 import { execAsync } from "../process/execAsync";
 
 export const restoreWebServerBackup = async (
@@ -18,8 +15,8 @@ export const restoreWebServerBackup = async (
 		return;
 	}
 	try {
-		const encryptionConfig = getEncryptionConfigFromDestination(destination);
-		const { remote, envVars } = getRcloneS3Remote(destination, encryptionConfig);
+		// Get rclone remote (decryption is handled transparently if encryption is enabled)
+		const { remote, envVars } = getRcloneS3Remote(destination);
 		const backupPath = `${remote}/${backupFile}`;
 		const { BASE_PATH } = paths();
 
@@ -30,9 +27,6 @@ export const restoreWebServerBackup = async (
 			emit("Starting restore...");
 			emit(`Backup file: ${backupFile}`);
 			emit(`Temp directory: ${tempDir}`);
-			if (encryptionConfig.enabled) {
-				emit("🔐 Encryption enabled - will decrypt during download (rclone crypt)");
-			}
 
 			// Create temp directory
 			emit("Creating temporary directory...");
@@ -40,9 +34,10 @@ export const restoreWebServerBackup = async (
 
 			// Download backup from S3 (with rclone crypt, decryption happens automatically)
 			emit("Downloading backup from S3...");
-			const downloadCommand = envVars
-				? `${envVars} rclone copyto "${backupPath}" "${tempDir}/${backupFile}"`
-				: `rclone copyto "${backupPath}" "${tempDir}/${backupFile}"`;
+			const downloadCommand = buildRcloneCommand(
+				`rclone copyto "${backupPath}" "${tempDir}/${backupFile}"`,
+				envVars,
+			);
 			await execAsync(downloadCommand);
 
 			// List files before extraction

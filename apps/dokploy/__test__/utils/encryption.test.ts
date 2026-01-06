@@ -1,9 +1,5 @@
 import type { Destination } from "@dokploy/server/services/destination";
-import {
-	type EncryptionConfig,
-	getEncryptionConfigFromDestination,
-	getRcloneS3Remote,
-} from "@dokploy/server/utils/backups/utils";
+import { getRcloneS3Remote } from "@dokploy/server/utils/backups/utils";
 import { describe, expect, test } from "vitest";
 
 // Mock destination factory for testing
@@ -26,79 +22,6 @@ const createMockDestination = (
 	filenameEncryption: "off",
 	directoryNameEncryption: false,
 	...overrides,
-});
-
-describe("getEncryptionConfigFromDestination", () => {
-	test("should return disabled config when encryption is not enabled", () => {
-		const destination = createMockDestination({
-			encryptionEnabled: false,
-			encryptionKey: null,
-		});
-
-		const config = getEncryptionConfigFromDestination(destination);
-
-		expect(config.enabled).toBe(false);
-		expect(config.key).toBeNull();
-		expect(config.password2).toBeNull();
-		expect(config.filenameEncryption).toBe("off");
-		expect(config.directoryNameEncryption).toBe(false);
-	});
-
-	test("should return enabled config with all encryption options", () => {
-		const destination = createMockDestination({
-			encryptionEnabled: true,
-			encryptionKey: "my-secret-encryption-key",
-			encryptionPassword2: "my-salt-password",
-			filenameEncryption: "standard",
-			directoryNameEncryption: true,
-		});
-
-		const config = getEncryptionConfigFromDestination(destination);
-
-		expect(config.enabled).toBe(true);
-		expect(config.key).toBe("my-secret-encryption-key");
-		expect(config.password2).toBe("my-salt-password");
-		expect(config.filenameEncryption).toBe("standard");
-		expect(config.directoryNameEncryption).toBe(true);
-	});
-
-	test("should handle obfuscate filename encryption", () => {
-		const destination = createMockDestination({
-			encryptionEnabled: true,
-			encryptionKey: "my-key",
-			filenameEncryption: "obfuscate",
-		});
-
-		const config = getEncryptionConfigFromDestination(destination);
-
-		expect(config.filenameEncryption).toBe("obfuscate");
-	});
-
-	test("should handle null/undefined values with defaults", () => {
-		const destination = createMockDestination({
-			encryptionEnabled: true,
-			encryptionKey: "my-key",
-			encryptionPassword2: null,
-			filenameEncryption: null as unknown as string,
-			directoryNameEncryption: null as unknown as boolean,
-		});
-
-		const config = getEncryptionConfigFromDestination(destination);
-
-		expect(config.password2).toBeNull();
-		expect(config.filenameEncryption).toBe("off");
-		expect(config.directoryNameEncryption).toBe(false);
-	});
-
-	test("should handle undefined encryptionEnabled as false", () => {
-		const destination = createMockDestination();
-		// @ts-expect-error Testing undefined value
-		destination.encryptionEnabled = undefined;
-
-		const config = getEncryptionConfigFromDestination(destination);
-
-		expect(config.enabled).toBe(false);
-	});
 });
 
 describe("getRcloneS3Remote", () => {
@@ -137,27 +60,25 @@ describe("getRcloneS3Remote", () => {
 			expect(result.remote).toContain(`provider="${destination.provider}"`);
 		});
 
-		test("should return S3 remote when encryption config is disabled", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: false,
-				key: "some-key",
-			};
+		test("should return S3 remote when encryption is disabled", () => {
+			const destination = createMockDestination({
+				encryptionEnabled: false,
+				encryptionKey: "some-key",
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.envVars).toBe("");
 			expect(result.remote).not.toContain(":crypt,");
 		});
 
 		test("should return S3 remote when encryption enabled but no key", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: null,
-			};
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: null,
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.envVars).toBe("");
 			expect(result.remote).not.toContain(":crypt,");
@@ -168,13 +89,11 @@ describe("getRcloneS3Remote", () => {
 		test("should return crypt-wrapped remote with basic encryption", () => {
 			const destination = createMockDestination({
 				provider: "aws",
+				encryptionEnabled: true,
+				encryptionKey: "my-encryption-key",
 			});
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-encryption-key",
-			};
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.remote).toContain(":crypt,");
 			expect(result.remote).toContain("filename_encryption=off");
@@ -183,14 +102,13 @@ describe("getRcloneS3Remote", () => {
 		});
 
 		test("should include password2 when provided", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-encryption-key",
-				password2: "my-salt-password",
-			};
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-encryption-key",
+				encryptionPassword2: "my-salt-password",
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.envVars).toContain(
 				"RCLONE_CRYPT_PASSWORD='my-encryption-key'",
@@ -201,40 +119,37 @@ describe("getRcloneS3Remote", () => {
 		});
 
 		test("should handle standard filename encryption", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
 				filenameEncryption: "standard",
-			};
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.remote).toContain("filename_encryption=standard");
 		});
 
 		test("should handle obfuscate filename encryption", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
 				filenameEncryption: "obfuscate",
-			};
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.remote).toContain("filename_encryption=obfuscate");
 		});
 
 		test("should handle directory name encryption", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
 				directoryNameEncryption: true,
-			};
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.remote).toContain("directory_name_encryption=true");
 		});
@@ -242,16 +157,14 @@ describe("getRcloneS3Remote", () => {
 		test("should handle all encryption options together", () => {
 			const destination = createMockDestination({
 				provider: "aws",
-			});
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "encryption-key",
-				password2: "salt-password",
+				encryptionEnabled: true,
+				encryptionKey: "encryption-key",
+				encryptionPassword2: "salt-password",
 				filenameEncryption: "standard",
 				directoryNameEncryption: true,
-			};
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.remote).toContain(":crypt,");
 			expect(result.remote).toContain("filename_encryption=standard");
@@ -265,26 +178,24 @@ describe("getRcloneS3Remote", () => {
 		});
 
 		test("should escape single quotes in encryption key", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "key'with'quotes",
-			};
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "key'with'quotes",
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.envVars).toContain("key'\\''with'\\''quotes");
 		});
 
 		test("should escape single quotes in password2", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
-				password2: "salt'with'quotes",
-			};
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
+				encryptionPassword2: "salt'with'quotes",
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.envVars).toContain(
 				"RCLONE_CRYPT_PASSWORD2='salt'\\''with'\\''quotes'",
@@ -295,13 +206,11 @@ describe("getRcloneS3Remote", () => {
 			const destination = createMockDestination({
 				bucket: "test-bucket",
 				provider: "aws",
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
 			});
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
-			};
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			// The crypt remote should contain the S3 remote and bucket
 			expect(result.remote).toMatch(/:crypt,remote=":s3,.*:test-bucket",/);
@@ -340,51 +249,39 @@ describe("getRcloneS3Remote", () => {
 		});
 
 		test("should handle empty password2", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
-				password2: "",
-			};
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
+				encryptionPassword2: "",
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			// Empty string is falsy, so password2 should not be included
 			expect(result.envVars).toBe("RCLONE_CRYPT_PASSWORD='my-key'");
 			expect(result.envVars).not.toContain("RCLONE_CRYPT_PASSWORD2");
 		});
 
-		test("should handle undefined encryptionConfig", () => {
-			const destination = createMockDestination();
-
-			const result = getRcloneS3Remote(destination, undefined);
-
-			expect(result.envVars).toBe("");
-			expect(result.remote).not.toContain(":crypt,");
-		});
-
 		test("should handle null filenameEncryption with default", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
-				filenameEncryption: null,
-			};
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
+				filenameEncryption: null as unknown as string,
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.remote).toContain("filename_encryption=off");
 		});
 
 		test("should handle null directoryNameEncryption with default", () => {
-			const destination = createMockDestination();
-			const encryptionConfig: EncryptionConfig = {
-				enabled: true,
-				key: "my-key",
-				directoryNameEncryption: null,
-			};
+			const destination = createMockDestination({
+				encryptionEnabled: true,
+				encryptionKey: "my-key",
+				directoryNameEncryption: null as unknown as boolean,
+			});
 
-			const result = getRcloneS3Remote(destination, encryptionConfig);
+			const result = getRcloneS3Remote(destination);
 
 			expect(result.remote).toContain("directory_name_encryption=false");
 		});
