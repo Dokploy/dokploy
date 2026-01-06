@@ -1,6 +1,6 @@
 {
-  "id": "b5cddb89-e0bc-42fd-8994-6609f672ee0c",
-  "prevId": "d612e417-72a3-4619-829e-62daa3a5bf9c",
+  "id": "c6deec9a-f1cd-53ge-9a05-7710f783ff1e",
+  "prevId": "b5cddb89-e0bc-42fd-8994-6609f672ee0c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2675,6 +2675,39 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "encryptionEnabled": {
+          "name": "encryptionEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "encryptionKey": {
+          "name": "encryptionKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "encryptionPassword2": {
+          "name": "encryptionPassword2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filenameEncryption": {
+          "name": "filenameEncryption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'off'"
+        },
+        "directoryNameEncryption": {
+          "name": "directoryNameEncryption",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},

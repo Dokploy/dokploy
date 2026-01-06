@@ -67,7 +67,7 @@ type AddServerDomain = z.infer<typeof addServerDomain>;
 
 export const WebDomain = () => {
 	const { t } = useTranslation("settings");
-	const { data, refetch } = api.user.get.useQuery();
+	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 	const { mutateAsync, isLoading } =
 		api.settings.assignDomainServer.useMutation();
 
@@ -82,15 +82,15 @@ export const WebDomain = () => {
 	});
 	const https = form.watch("https");
 	const domain = form.watch("domain") || "";
-	const host = data?.user?.host || "";
+	const host = data?.host || "";
 	const hasChanged = domain !== host;
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				domain: data?.user?.host || "",
-				certificateType: data?.user?.certificateType,
-				letsEncryptEmail: data?.user?.letsEncryptEmail || "",
-				https: data?.user?.https || false,
+				domain: data?.host || "",
+				certificateType: data?.certificateType || "none",
+				letsEncryptEmail: data?.letsEncryptEmail || "",
+				https: data?.https || false,
 			});
 		}
 	}, [form, form.reset, data]);

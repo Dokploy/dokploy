@@ -123,7 +123,7 @@ export const ShowPreviewSettings = ({ applicationId }: Props) => {
 				previewCertificateType: data.previewCertificateType || "none",
 				previewCustomCertResolver: data.previewCustomCertResolver || "",
 				previewRequireCollaboratorPermissions:
-					data.previewRequireCollaboratorPermissions || true,
+					data.previewRequireCollaboratorPermissions ?? true,
 			});
 		}
 	}, [data]);

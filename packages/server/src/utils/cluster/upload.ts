@@ -117,7 +117,7 @@ const getRegistryCommands = (
 ): string => {
 	return `
 echo "📦 [Enabled Registry] Uploading image to '${registry.registryType}' | '${registryTag}'" ;
-echo "${registry.password}" | docker login ${registry.registryUrl} -u ${registry.username} --password-stdin || { 
+echo "${registry.password}" | docker login ${registry.registryUrl} -u '${registry.username}' --password-stdin || { 
 	echo "❌ DockerHub Failed" ;
 	exit 1;
 }

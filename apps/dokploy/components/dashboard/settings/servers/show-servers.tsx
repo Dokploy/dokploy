@@ -1,17 +1,17 @@
 import { format } from "date-fns";
 import {
+	Clock,
+	Key,
 	KeyIcon,
 	Loader2,
 	MoreHorizontal,
-	ServerIcon,
-	Clock,
-	User,
-	Key,
 	Network,
-	Terminal,
-	Settings,
 	Pencil,
+	ServerIcon,
+	Settings,
+	Terminal,
 	Trash2,
+	User,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";

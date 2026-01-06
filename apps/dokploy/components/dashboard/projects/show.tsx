@@ -190,7 +190,9 @@ export const ShowProjects = () => {
 									Create and manage your projects
 								</CardDescription>
 							</CardHeader>
-							{(auth?.role === "owner" || auth?.canCreateProjects) && (
+							{(auth?.role === "owner" ||
+								auth?.role === "admin" ||
+								auth?.canCreateProjects) && (
 								<div className="">
 									<HandleProject />
 								</div>

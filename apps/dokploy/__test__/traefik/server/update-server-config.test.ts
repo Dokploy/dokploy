@@ -5,21 +5,27 @@ vi.mock("node:fs", () => ({
 	default: fs,
 }));
 
-import type { FileConfig, User } from "@dokploy/server";
+import type { FileConfig } from "@dokploy/server";
 import {
 	createDefaultServerTraefikConfig,
 	loadOrCreateConfig,
 	updateServerTraefik,
 } from "@dokploy/server";
+import type { webServerSettings } from "@dokploy/server/db/schema";
 import { beforeEach, expect, test, vi } from "vitest";
 
-const baseAdmin: User = {
+type WebServerSettings = typeof webServerSettings.$inferSelect;
+
+const baseSettings: WebServerSettings = {
+	id: "",
 	https: false,
-	enablePaidFeatures: false,
-	allowImpersonation: false,
-	role: "user",
-	firstName: "",
-	lastName: "",
+	certificateType: "none",
+	host: null,
+	serverIp: null,
+	letsEncryptEmail: null,
+	sshPrivateKey: null,
+	enableDockerCleanup: false,
+	logCleanupCron: null,
 	metricsConfig: {
 		containers: {
 			refreshRate: 20,
@@ -45,29 +51,8 @@ const baseAdmin: User = {
 	cleanupCacheApplications: false,
 	cleanupCacheOnCompose: false,
 	cleanupCacheOnPreviews: false,
-	createdAt: new Date(),
-	serverIp: null,
-	certificateType: "none",
-	host: null,
-	letsEncryptEmail: null,
-	sshPrivateKey: null,
-	enableDockerCleanup: false,
-	logCleanupCron: null,
-	serversQuantity: 0,
-	stripeCustomerId: "",
-	stripeSubscriptionId: "",
-	banExpires: new Date(),
-	banned: true,
-	banReason: "",
-	email: "",
-	expirationDate: "",
-	id: "",
-	isRegistered: false,
-	createdAt2: new Date().toISOString(),
-	emailVerified: false,
-	image: "",
+	createdAt: null,
 	updatedAt: new Date(),
-	twoFactorEnabled: false,
 };
 
 beforeEach(() => {
@@ -85,7 +70,7 @@ test("Should read the configuration file", () => {
 test("Should apply redirect-to-https", () => {
 	updateServerTraefik(
 		{
-			...baseAdmin,
+			...baseSettings,
 			https: true,
 			certificateType: "letsencrypt",
 		},
@@ -100,7 +85,7 @@ test("Should apply redirect-to-https", () => {
 });
 
 test("Should change only host when no certificate", () => {
-	updateServerTraefik(baseAdmin, "example.com");
+	updateServerTraefik(baseSettings, "example.com");
 
 	const config: FileConfig = loadOrCreateConfig("dokploy");
 
@@ -110,7 +95,7 @@ test("Should change only host when no certificate", () => {
 test("Should not touch config without host", () => {
 	const originalConfig: FileConfig = loadOrCreateConfig("dokploy");
 
-	updateServerTraefik(baseAdmin, null);
+	updateServerTraefik(baseSettings, null);
 
 	const config: FileConfig = loadOrCreateConfig("dokploy");
 
@@ -119,11 +104,14 @@ test("Should not touch config without host", () => {
 
 test("Should remove websecure if https rollback to http", () => {
 	updateServerTraefik(
-		{ ...baseAdmin, certificateType: "letsencrypt" },
+		{ ...baseSettings, certificateType: "letsencrypt" },
 		"example.com",
 	);
 
-	updateServerTraefik({ ...baseAdmin, certificateType: "none" }, "example.com");
+	updateServerTraefik(
+		{ ...baseSettings, certificateType: "none" },
+		"example.com",
+	);
 
 	const config: FileConfig = loadOrCreateConfig("dokploy");
 
