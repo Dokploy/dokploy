@@ -224,9 +224,7 @@ export const getGithubBranches = async (
 	return branches;
 };
 
-export const getGithubTags = async (
-	input: typeof apiFindGithubTags._type,
-) => {
+export const getGithubTags = async (input: typeof apiFindGithubTags._type) => {
 	if (!input.githubId) {
 		return [];
 	}

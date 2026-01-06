@@ -10,8 +10,8 @@ import {
 	shouldDeploy,
 } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
-import micromatch from "micromatch";
 import { and, eq } from "drizzle-orm";
+import micromatch from "micromatch";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { applications, compose, github } from "@/server/db/schema";
@@ -185,7 +185,10 @@ export default async function handler(
 				// Pattern matching with backwards compatibility
 				if (composeApp.tagPatterns && composeApp.tagPatterns.length > 0) {
 					try {
-						const matchesPattern = micromatch.isMatch(tagName, composeApp.tagPatterns);
+						const matchesPattern = micromatch.isMatch(
+							tagName,
+							composeApp.tagPatterns,
+						);
 						if (!matchesPattern) {
 							console.log(
 								`[GitHub Webhook] Tag "${tagName}" does not match patterns [${composeApp.tagPatterns.join(", ")}] for compose "${composeApp.name}", skipping deployment`,

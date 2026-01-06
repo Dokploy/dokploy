@@ -8,7 +8,12 @@ import {
 	CommandInput,
 	CommandItem,
 } from "@/components/ui/command";
-import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+	FormControl,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import {
 	Popover,
 	PopoverContent,
@@ -70,8 +75,8 @@ export const TagPatternsField = ({
 						</TooltipTrigger>
 						<TooltipContent className="max-w-xs">
 							<p>
-								Select existing tags or type glob patterns (e.g., v*,
-								release-*, v[0-9].*). Leave empty to deploy on any tag.
+								Select existing tags or type glob patterns (e.g., v*, release-*,
+								v[0-9].*). Leave empty to deploy on any tag.
 							</p>
 						</TooltipContent>
 					</Tooltip>

@@ -160,7 +160,6 @@
 	},
 	"devDependencies": {
 		"@types/semver": "7.7.1",
-		"@types/shell-quote": "^1.7.5",
 		"@types/adm-zip": "^0.5.7",
 		"@types/bcrypt": "5.0.2",
 		"@types/js-cookie": "^3.0.6",
