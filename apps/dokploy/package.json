@@ -98,7 +98,6 @@
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
 		"bullmq": "5.4.2",
-		"shell-quote": "^1.8.1",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^0.2.1",
@@ -138,6 +137,7 @@
 		"react-i18next": "^15.5.2",
 		"react-markdown": "^9.1.0",
 		"recharts": "^2.15.3",
+		"shell-quote": "^1.8.1",
 		"slugify": "^1.6.6",
 		"sonner": "^1.7.4",
 		"ssh2": "1.15.0",
@@ -156,7 +156,6 @@
 		"zod-form-data": "^2.0.7"
 	},
 	"devDependencies": {
-		"@types/shell-quote": "^1.7.5",
 		"@types/adm-zip": "^0.5.7",
 		"@types/bcrypt": "5.0.2",
 		"@types/js-cookie": "^3.0.6",
@@ -168,6 +167,7 @@
 		"@types/qrcode": "^1.5.5",
 		"@types/react": "^18.3.5",
 		"@types/react-dom": "^18.3.0",
+		"@types/shell-quote": "^1.7.5",
 		"@types/ssh2": "1.15.1",
 		"@types/swagger-ui-react": "^4.19.0",
 		"@types/ws": "8.5.10",

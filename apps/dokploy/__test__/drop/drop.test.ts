@@ -48,6 +48,7 @@ const baseApp: ApplicationNested = {
 	enableSubmodules: false,
 	applicationStatus: "done",
 	triggerType: "push",
+	tagPatterns: [],
 	appName: "",
 	autoDeploy: true,
 	endpointSpecSwarm: null,

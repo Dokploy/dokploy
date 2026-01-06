@@ -121,6 +121,7 @@ export const applications = pgTable("application", {
 	branch: text("branch"),
 	buildPath: text("buildPath").default("/"),
 	triggerType: triggerType("triggerType").default("push"),
+	tagPatterns: text("tagPatterns").array().default([]),
 	autoDeploy: boolean("autoDeploy").$defaultFn(() => true),
 	// Gitlab
 	gitlabProjectId: integer("gitlabProjectId"),
@@ -428,6 +429,7 @@ export const apiSaveGithubProvider = createSchema
 	.required()
 	.extend({
 		triggerType: z.enum(["push", "tag"]).default("push"),
+		tagPatterns: z.array(z.string()).optional().default([]),
 	});
 
 export const apiSaveGitlabProvider = createSchema

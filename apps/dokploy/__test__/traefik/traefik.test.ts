@@ -39,6 +39,7 @@ const baseApp: ApplicationNested = {
 	previewBuildArgs: null,
 	previewBuildSecrets: null,
 	triggerType: "push",
+	tagPatterns: [],
 	previewCertificateType: "none",
 	previewEnv: null,
 	previewHttps: false,

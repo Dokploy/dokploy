@@ -2,6 +2,7 @@ import {
 	findGithubById,
 	getGithubBranches,
 	getGithubRepositories,
+	getGithubTags,
 	haveGithubRequirements,
 	updateGithub,
 	updateGitProvider,
@@ -11,6 +12,7 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	apiFindGithubBranches,
+	apiFindGithubTags,
 	apiFindOneGithub,
 	apiUpdateGithub,
 } from "@/server/db/schema";
@@ -64,6 +66,22 @@ export const githubRouter = createTRPCRouter({
 				});
 			}
 			return await getGithubBranches(input);
+		}),
+	getGithubTags: protectedProcedure
+		.input(apiFindGithubTags)
+		.query(async ({ input, ctx }) => {
+			const githubProvider = await findGithubById(input.githubId || "");
+			if (
+				githubProvider.gitProvider.organizationId !==
+					ctx.session.activeOrganizationId &&
+				githubProvider.gitProvider.userId === ctx.session.userId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to access this github provider",
+				});
+			}
+			return await getGithubTags(input);
 		}),
 	githubProviders: protectedProcedure.query(async ({ ctx }) => {
 		let result = await db.query.github.findMany({
