@@ -15,6 +15,8 @@
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
+		"migration:new": "tsx scripts/generate-migration.ts",
+		"migration:convert": "tsx scripts/convert-migrations-to-timestamp.ts",
 		"migration:run": "tsx -r dotenv/config migration.ts",
 		"manual-migration:run": "tsx -r dotenv/config migrate.ts",
 		"migration:up": "drizzle-kit up --config ./server/db/drizzle.config.ts",
