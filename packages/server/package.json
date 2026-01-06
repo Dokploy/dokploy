@@ -57,7 +57,6 @@
     "drizzle-dbml-generator": "0.10.0",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "0.5.1",
-    "hi-base32": "^0.5.1",
     "yaml": "2.8.1",
     "lodash": "4.17.21",
     "micromatch": "4.0.8",
