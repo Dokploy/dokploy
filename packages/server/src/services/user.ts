@@ -204,10 +204,13 @@ export const canPerformDeleteEnvironment = async (
 	projectId: string,
 	organizationId: string,
 ) => {
-	const { accessedProjects, canDeleteEnvironments } = await findMemberById(
-		userId,
-		organizationId,
-	);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { accessedProjects, canDeleteEnvironments } = member;
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
 	if (canDeleteEnvironments && haveAccessToProject) {
@@ -304,13 +307,6 @@ export const checkEnvironmentDeletionPermission = async (
 ) => {
 	const member = await findMemberById(userId, organizationId);
 
-	if (!member) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "User not found in organization",
-		});
-	}
-
 	if (member.role === "owner" || member.role === "admin") {
 		return true;
 	}
@@ -370,22 +366,12 @@ export const checkEnvironmentCreationPermission = async (
 	projectId: string,
 	organizationId: string,
 ) => {
-	// Get user's member record
 	const member = await findMemberById(userId, organizationId);
 
-	if (!member) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "User not found in organization",
-		});
-	}
-
-	// Owners and admins can always create environments
 	if (member.role === "owner" || member.role === "admin") {
 		return true;
 	}
 
-	// Check if user has canCreateEnvironments permission
 	if (!member.canCreateEnvironments) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
@@ -393,7 +379,6 @@ export const checkEnvironmentCreationPermission = async (
 		});
 	}
 
-	// Check if user has access to the project
 	const hasProjectAccess = member.accessedProjects.includes(projectId);
 	if (!hasProjectAccess) {
 		throw new TRPCError({
@@ -429,16 +414,20 @@ export const findMemberById = async (
 };
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
-	// Validate email if it's being updated
 	if (userData.email !== undefined) {
 		if (!userData.email || userData.email.trim() === "") {
-			throw new Error("Email is required and cannot be empty");
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Email is required and cannot be empty",
+			});
 		}
 
-		// Basic email format validation
 		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		if (!emailRegex.test(userData.email)) {
-			throw new Error("Please enter a valid email address");
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Please enter a valid email address",
+			});
 		}
 	}
 
