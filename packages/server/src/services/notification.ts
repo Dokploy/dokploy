@@ -3,6 +3,7 @@ import {
 	type apiCreateCustom,
 	type apiCreateDiscord,
 	type apiCreateEmail,
+	type apiCreateGoogleChat,
 	type apiCreateGotify,
 	type apiCreateLark,
 	type apiCreateNtfy,
@@ -11,6 +12,7 @@ import {
 	type apiUpdateCustom,
 	type apiUpdateDiscord,
 	type apiUpdateEmail,
+	type apiUpdateGoogleChat,
 	type apiUpdateGotify,
 	type apiUpdateLark,
 	type apiUpdateNtfy,
@@ -19,6 +21,7 @@ import {
 	custom,
 	discord,
 	email,
+	googleChat,
 	gotify,
 	lark,
 	notifications,
@@ -694,6 +697,7 @@ export const findNotificationById = async (notificationId: string) => {
 			ntfy: true,
 			custom: true,
 			lark: true,
+			googleChat: true,
 		},
 	});
 	if (!notification) {
@@ -796,6 +800,96 @@ export const updateLarkNotification = async (
 				webhookUrl: input.webhookUrl,
 			})
 			.where(eq(lark.larkId, input.larkId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
+};
+
+export const createGoogleChatNotification = async (
+	input: typeof apiCreateGoogleChat._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newGoogleChat = await tx
+			.insert(googleChat)
+			.values({
+				webhookUrl: input.webhookUrl,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newGoogleChat) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting Google Chat",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				googleChatId: newGoogleChat.googleChatId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "googleChat",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateGoogleChatNotification = async (
+	input: typeof apiUpdateGoogleChat._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(googleChat)
+			.set({
+				webhookUrl: input.webhookUrl,
+			})
+			.where(eq(googleChat.googleChatId, input.googleChatId))
 			.returning()
 			.then((value) => value[0]);
 

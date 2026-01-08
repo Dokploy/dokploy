@@ -231,3 +231,30 @@ export const NtfyIcon = ({ className }: Props) => {
 		</svg>
 	);
 };
+
+export const GoogleChatIcon = ({ className }: Props) => {
+	return (
+		<svg
+			viewBox="0 0 48 48"
+			className={cn("size-9", className)}
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<path
+				fill="#00AC47"
+				d="M12 24V14c0-1.1.9-2 2-2h20c1.1 0 2 .9 2 2v10l6-6V8c0-2.2-1.8-4-4-4H10C7.8 4 6 5.8 6 8v20l6-4z"
+			/>
+			<path
+				fill="#FFBA00"
+				d="M40 18l-4 4v8c0 1.1-.9 2-2 2H22l-6 6v2c0 2.2 1.8 4 4 4h14l10 6V24c0-2.2-1.8-4-4-4h-2l2-2z"
+			/>
+			<path
+				fill="#4285F4"
+				d="M16 40h-2c-2.2 0-4-1.8-4-4v-2l6 6z"
+			/>
+			<path
+				fill="#00832D"
+				d="M22 32H14c-1.1 0-2-.9-2-2V14l-6 4v18c0 2.2 1.8 4 4 4h18l-6-6V32z"
+			/>
+		</svg>
+	);
+};

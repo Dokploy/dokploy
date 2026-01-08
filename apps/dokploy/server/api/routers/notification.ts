@@ -2,6 +2,7 @@ import {
 	createCustomNotification,
 	createDiscordNotification,
 	createEmailNotification,
+	createGoogleChatNotification,
 	createGotifyNotification,
 	createLarkNotification,
 	createNtfyNotification,
@@ -14,6 +15,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGoogleChatNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
@@ -23,6 +25,7 @@ import {
 	updateCustomNotification,
 	updateDiscordNotification,
 	updateEmailNotification,
+	updateGoogleChatNotification,
 	updateGotifyNotification,
 	updateLarkNotification,
 	updateNtfyNotification,
@@ -43,6 +46,7 @@ import {
 	apiCreateCustom,
 	apiCreateDiscord,
 	apiCreateEmail,
+	apiCreateGoogleChat,
 	apiCreateGotify,
 	apiCreateLark,
 	apiCreateNtfy,
@@ -52,6 +56,7 @@ import {
 	apiTestCustomConnection,
 	apiTestDiscordConnection,
 	apiTestEmailConnection,
+	apiTestGoogleChatConnection,
 	apiTestGotifyConnection,
 	apiTestLarkConnection,
 	apiTestNtfyConnection,
@@ -60,6 +65,7 @@ import {
 	apiUpdateCustom,
 	apiUpdateDiscord,
 	apiUpdateEmail,
+	apiUpdateGoogleChat,
 	apiUpdateGotify,
 	apiUpdateLark,
 	apiUpdateNtfy,
@@ -342,6 +348,7 @@ export const notificationRouter = createTRPCRouter({
 				ntfy: true,
 				custom: true,
 				lark: true,
+				googleChat: true,
 			},
 			orderBy: desc(notifications.createdAt),
 			where: eq(notifications.organizationId, ctx.session.activeOrganizationId),
@@ -624,6 +631,60 @@ export const notificationRouter = createTRPCRouter({
 					content: {
 						text: "Hi, From Dokploy 👋",
 					},
+				});
+				return true;
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error testing the notification",
+					cause: error,
+				});
+			}
+		}),
+	createGoogleChat: adminProcedure
+		.input(apiCreateGoogleChat)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				return await createGoogleChatNotification(
+					input,
+					ctx.session.activeOrganizationId,
+				);
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Error creating the notification",
+					cause: error,
+				});
+			}
+		}),
+	updateGoogleChat: adminProcedure
+		.input(apiUpdateGoogleChat)
+		.mutation(async ({ input, ctx }) => {
+			try {
+				const notification = await findNotificationById(input.notificationId);
+				if (
+					IS_CLOUD &&
+					notification.organizationId !== ctx.session.activeOrganizationId
+				) {
+					throw new TRPCError({
+						code: "UNAUTHORIZED",
+						message: "You are not authorized to update this notification",
+					});
+				}
+				return await updateGoogleChatNotification({
+					...input,
+					organizationId: ctx.session.activeOrganizationId,
+				});
+			} catch (error) {
+				throw error;
+			}
+		}),
+	testGoogleChatConnection: adminProcedure
+		.input(apiTestGoogleChatConnection)
+		.mutation(async ({ input }) => {
+			try {
+				await sendGoogleChatNotification(input, {
+					text: "Hi, From Dokploy 👋",
 				});
 				return true;
 			} catch (error) {

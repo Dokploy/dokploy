@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import {
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGoogleChatNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
 	sendSlackNotification,
@@ -53,11 +54,13 @@ export const sendVolumeBackupNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			googleChat: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, googleChat } =
+			notification;
 
 		if (email) {
 			const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
@@ -268,6 +271,27 @@ export const sendVolumeBackupNotifications = async ({
 						],
 					},
 				],
+			});
+		}
+
+		if (googleChat) {
+			const statusEmoji = type === "success" ? "✅" : "❌";
+			const statusText = type === "success" ? "Successful" : "Failed";
+			const sizeInfo = backupSize ? `\n*Backup Size:* ${backupSize}` : "";
+			const errorMsg =
+				type === "error" && errorMessage
+					? `\n\n*Error:*\n\`\`\`${errorMessage.substring(0, 500)}\`\`\``
+					: "";
+
+			await sendGoogleChatNotification(googleChat, {
+				text:
+					`*${statusEmoji} Volume Backup ${statusText}*\n\n` +
+					`*Project:* ${projectName}\n` +
+					`*Application:* ${applicationName}\n` +
+					`*Volume Name:* ${volumeName}\n` +
+					`*Service Type:* ${serviceType}${sizeInfo}\n` +
+					`*Date:* ${format(date, "PP pp")}` +
+					errorMsg,
 			});
 		}
 	}

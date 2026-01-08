@@ -8,6 +8,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
+	sendGoogleChatNotification,
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
@@ -35,12 +36,22 @@ export const sendDockerCleanupNotifications = async (
 			ntfy: true,
 			custom: true,
 			lark: true,
+			googleChat: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+			googleChat,
+		} = notification;
 		try {
 			if (email) {
 				const template = await renderAsync(
@@ -228,6 +239,16 @@ export const sendDockerCleanupNotifications = async (
 							],
 						},
 					},
+				});
+			}
+
+			if (googleChat) {
+				await sendGoogleChatNotification(googleChat, {
+					text:
+						`*✅ Docker Cleanup*\n\n` +
+						`*Status:* Successful\n` +
+						`*Date:* ${format(date, "PP pp")}\n\n` +
+						`*Message:*\n${message}`,
 				});
 			}
 		} catch (error) {
