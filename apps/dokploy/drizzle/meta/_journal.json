@@ -939,6 +939,13 @@
       "when": 1766301478005,
       "tag": "0133_striped_the_order",
       "breakpoints": true
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1767871040249,
+      "tag": "0134_strong_hercules",
+      "breakpoints": true
     }
   ]
 }

@@ -65,7 +65,7 @@ const mySchema = z.discriminatedUnion("buildType", [
 	}),
 	z.object({
 		buildType: z.literal(BuildType.railpack),
-		railpackVersion: z.string().nullable().default("0.15.1"),
+		railpackVersion: z.string().nullable().default("0.15.4"),
 	}),
 	z.object({
 		buildType: z.literal(BuildType.static),
@@ -186,7 +186,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 				data.buildType === BuildType.static ? data.isStaticSpa : null,
 			railpackVersion:
 				data.buildType === BuildType.railpack
-					? data.railpackVersion || "0.15.1"
+					? data.railpackVersion || "0.15.4"
 					: null,
 		})
 			.then(async () => {

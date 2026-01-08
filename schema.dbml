@@ -276,7 +276,7 @@ table application {
   replicas integer [not null, default: 1]
   applicationStatus applicationStatus [not null, default: 'idle']
   buildType buildType [not null, default: 'nixpacks']
-  railpackVersion text [default: '0.15.1']
+  railpackVersion text [default: '0.15.4']
   herokuVersion text [default: '24']
   publishDirectory text
   isStaticSpa boolean
