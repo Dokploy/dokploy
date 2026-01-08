@@ -44,10 +44,13 @@ export const canPerformCreationService = async (
 	projectId: string,
 	organizationId: string,
 ) => {
-	const { accessedProjects, canCreateServices } = await findMemberById(
-		userId,
-		organizationId,
-	);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { accessedProjects, canCreateServices } = member;
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
 	if (canCreateServices && haveAccessToProject) {
@@ -62,7 +65,13 @@ export const canPerformAccessService = async (
 	serviceId: string,
 	organizationId: string,
 ) => {
-	const { accessedServices } = await findMemberById(userId, organizationId);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { accessedServices } = member;
 	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (haveAccessToService) {
@@ -77,10 +86,13 @@ export const canPeformDeleteService = async (
 	serviceId: string,
 	organizationId: string,
 ) => {
-	const { accessedServices, canDeleteServices } = await findMemberById(
-		userId,
-		organizationId,
-	);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { accessedServices, canDeleteServices } = member;
 	const haveAccessToService = accessedServices.includes(serviceId);
 
 	if (canDeleteServices && haveAccessToService) {
@@ -94,7 +106,13 @@ export const canPerformCreationProject = async (
 	userId: string,
 	organizationId: string,
 ) => {
-	const { canCreateProjects } = await findMemberById(userId, organizationId);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { canCreateProjects } = member;
 
 	if (canCreateProjects) {
 		return true;
@@ -107,7 +125,13 @@ export const canPerformDeleteProject = async (
 	userId: string,
 	organizationId: string,
 ) => {
-	const { canDeleteProjects } = await findMemberById(userId, organizationId);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { canDeleteProjects } = member;
 
 	if (canDeleteProjects) {
 		return true;
@@ -121,7 +145,13 @@ export const canPerformAccessProject = async (
 	projectId: string,
 	organizationId: string,
 ) => {
-	const { accessedProjects } = await findMemberById(userId, organizationId);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { accessedProjects } = member;
 
 	const haveAccessToProject = accessedProjects.includes(projectId);
 
@@ -135,10 +165,13 @@ export const canAccessToTraefikFiles = async (
 	userId: string,
 	organizationId: string,
 ) => {
-	const { canAccessToTraefikFiles } = await findMemberById(
-		userId,
-		organizationId,
-	);
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { canAccessToTraefikFiles } = member;
 	return canAccessToTraefikFiles;
 };
 
@@ -182,6 +215,83 @@ export const checkServiceAccess = async (
 	}
 };
 
+export const checkEnvironmentAccess = async (
+	userId: string,
+	environmentId: string,
+	organizationId: string,
+	action = "access" as const,
+) => {
+	let hasPermission = false;
+	switch (action) {
+		case "access":
+			hasPermission = await canPerformAccessEnvironment(
+				userId,
+				environmentId,
+				organizationId,
+			);
+			break;
+		default:
+			hasPermission = false;
+	}
+	if (!hasPermission) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Permission denied",
+		});
+	}
+};
+
+export const canPerformAccessEnvironment = async (
+	userId: string,
+	environmentId: string,
+	organizationId: string,
+) => {
+	const { accessedEnvironments } = await findMemberById(userId, organizationId);
+	const haveAccessToEnvironment = accessedEnvironments.includes(environmentId);
+
+	if (haveAccessToEnvironment) {
+		return true;
+	}
+
+	return false;
+};
+
+export const checkEnvironmentDeletionPermission = async (
+	userId: string,
+	projectId: string,
+	organizationId: string,
+) => {
+	const member = await findMemberById(userId, organizationId);
+
+	if (!member) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "User not found in organization",
+		});
+	}
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	if (!member.canDeleteEnvironments) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have permission to delete environments",
+		});
+	}
+
+	const hasProjectAccess = member.accessedProjects.includes(projectId);
+	if (!hasProjectAccess) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this project",
+		});
+	}
+
+	return true;
+};
+
 export const checkProjectAccess = async (
 	authId: string,
 	action: "create" | "delete" | "access",
@@ -214,6 +324,46 @@ export const checkProjectAccess = async (
 	}
 };
 
+export const checkEnvironmentCreationPermission = async (
+	userId: string,
+	projectId: string,
+	organizationId: string,
+) => {
+	// Get user's member record
+	const member = await findMemberById(userId, organizationId);
+
+	if (!member) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "User not found in organization",
+		});
+	}
+
+	// Owners and admins can always create environments
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	// Check if user has canCreateEnvironments permission
+	if (!member.canCreateEnvironments) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have permission to create environments",
+		});
+	}
+
+	// Check if user has access to the project
+	const hasProjectAccess = member.accessedProjects.includes(projectId);
+	if (!hasProjectAccess) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You don't have access to this project",
+		});
+	}
+
+	return true;
+};
+
 export const findMemberById = async (
 	userId: string,
 	organizationId: string,
@@ -238,7 +388,20 @@ export const findMemberById = async (
 };
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
-	const user = await db
+	// Validate email if it's being updated
+	if (userData.email !== undefined) {
+		if (!userData.email || userData.email.trim() === "") {
+			throw new Error("Email is required and cannot be empty");
+		}
+
+		// Basic email format validation
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(userData.email)) {
+			throw new Error("Please enter a valid email address");
+		}
+	}
+
+	const userResult = await db
 		.update(users_temp)
 		.set({
 			...userData,
@@ -247,7 +410,7 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 		.returning()
 		.then((res) => res[0]);
 
-	return user;
+	return userResult;
 };
 
 export const createApiKey = async (
