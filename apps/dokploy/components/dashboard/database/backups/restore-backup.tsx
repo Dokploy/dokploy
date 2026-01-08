@@ -1,3 +1,18 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import copy from "copy-to-clipboard";
+import _ from "lodash";
+import {
+	CheckIcon,
+	ChevronsUpDown,
+	Copy,
+	DatabaseZap,
+	RefreshCw,
+	RotateCcw,
+} from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,31 +54,16 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import copy from "copy-to-clipboard";
-import { debounce } from "lodash";
-import {
-	CheckIcon,
-	ChevronsUpDown,
-	Copy,
-	RotateCcw,
-	RefreshCw,
-	DatabaseZap,
-} from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
-import type { ServiceType } from "../../application/advanced/show-resources";
-import { type LogLine, parseLogs } from "../../docker/logs/utils";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
+import type { ServiceType } from "../../application/advanced/show-resources";
+import { type LogLine, parseLogs } from "../../docker/logs/utils";
 
 type DatabaseType =
 	| Exclude<ServiceType, "application" | "redis">
@@ -199,7 +199,7 @@ const RestoreBackupSchema = z
 		}
 	});
 
-const formatBytes = (bytes: number): string => {
+export const formatBytes = (bytes: number): string => {
 	if (bytes === 0) return "0 Bytes";
 	const k = 1024;
 	const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
@@ -236,7 +236,7 @@ export const RestoreBackup = ({
 	const currentDatabaseType = form.watch("databaseType");
 	const metadata = form.watch("metadata");
 
-	const debouncedSetSearch = debounce((value: string) => {
+	const debouncedSetSearch = _.debounce((value: string) => {
 		setDebouncedSearchTerm(value);
 	}, 350);
 
@@ -324,7 +324,7 @@ export const RestoreBackup = ({
 					Restore Backup
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle className="flex items-center">
 						<RotateCcw className="mr-2 size-4" />
@@ -415,7 +415,7 @@ export const RestoreBackup = ({
 									<FormLabel className="flex items-center justify-between">
 										Search Backup Files
 										{field.value && (
-											<Badge variant="outline">
+											<Badge variant="outline" className="truncate">
 												{field.value}
 												<Copy
 													className="ml-2 size-4 cursor-pointer"
@@ -439,7 +439,9 @@ export const RestoreBackup = ({
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{field.value || "Search and select a backup file"}
+													<span className="truncate text-left flex-1 w-52">
+														{field.value || "Search and select a backup file"}
+													</span>
 													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 												</Button>
 											</FormControl>

@@ -3,6 +3,7 @@ import type { CreateServiceOptions } from "dockerode";
 import {
 	calculateResources,
 	generateBindMounts,
+	generateConfigContainer,
 	generateFileMounts,
 	generateVolumeMounts,
 	prepareEnvironmentVariables,
@@ -11,7 +12,7 @@ import { getRemoteDocker } from "../servers/remote-docker";
 
 export type MongoNested = InferResultType<
 	"mongo",
-	{ mounts: true; project: true }
+	{ mounts: true; environment: { with: { project: true } } }
 >;
 
 export const buildMongo = async (mongo: MongoNested) => {
@@ -27,6 +28,7 @@ export const buildMongo = async (mongo: MongoNested) => {
 		databaseUser,
 		databasePassword,
 		command,
+		args,
 		mounts,
 		replicaSets,
 	} = mongo;
@@ -52,7 +54,7 @@ if [ "$REPLICA_STATUS" != "1" ]; then
 	mongosh --eval '
 	rs.initiate({
 		_id: "rs0",
-		members: [{ _id: 0, host: "localhost:27017", priority: 1 }]
+		members: [{ _id: 0, host: "${appName}:27017", priority: 1 }]
 	});
 
     // Wait for the replica set to initialize
@@ -81,6 +83,19 @@ ${command ?? "wait $MONGOD_PID"}`;
 		env ? `\n${env}` : ""
 	}`;
 
+	const {
+		HealthCheck,
+		RestartPolicy,
+		Placement,
+		Labels,
+		Mode,
+		RollbackConfig,
+		UpdateConfig,
+		Networks,
+		StopGracePeriod,
+		EndpointSpec,
+	} = generateConfigContainer(mongo);
+
 	const resources = calculateResources({
 		memoryLimit,
 		memoryReservation,
@@ -90,7 +105,8 @@ ${command ?? "wait $MONGOD_PID"}`;
 
 	const envVariables = prepareEnvironmentVariables(
 		defaultMongoEnv,
-		mongo.project.env,
+		mongo.environment.project.env,
+		mongo.environment.env,
 	);
 	const volumesMount = generateVolumeMounts(mounts);
 	const bindsMount = generateBindMounts(mounts);
@@ -102,47 +118,55 @@ ${command ?? "wait $MONGOD_PID"}`;
 		Name: appName,
 		TaskTemplate: {
 			ContainerSpec: {
+				HealthCheck,
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
+				...(StopGracePeriod !== null &&
+					StopGracePeriod !== undefined && { StopGracePeriod }),
 				...(replicaSets
 					? {
 							Command: ["/bin/bash"],
 							Args: ["-c", startupScript],
 						}
-					: {
-							...(command && {
-								Command: ["/bin/bash"],
-								Args: ["-c", command],
-							}),
-						}),
+					: {}),
+				...(command &&
+					!replicaSets && {
+						Command: command.split(" "),
+					}),
+				...(args &&
+					args.length > 0 &&
+					!replicaSets && {
+						Args: args,
+					}),
+
+				Labels,
 			},
-			Networks: [{ Target: "dokploy-network" }],
+			Networks,
+			RestartPolicy,
+			Placement,
 			Resources: {
 				...resources,
 			},
-			Placement: {
-				Constraints: ["node.role==manager"],
-			},
 		},
-		Mode: {
-			Replicated: {
-				Replicas: 1,
-			},
-		},
-		EndpointSpec: {
-			Mode: "dnsrr",
-			Ports: externalPort
-				? [
-						{
-							Protocol: "tcp",
-							TargetPort: 27017,
-							PublishedPort: externalPort,
-							PublishMode: "host",
-						},
-					]
-				: [],
-		},
+		Mode,
+		RollbackConfig,
+		EndpointSpec: EndpointSpec
+			? EndpointSpec
+			: {
+					Mode: "dnsrr" as const,
+					Ports: externalPort
+						? [
+								{
+									Protocol: "tcp" as const,
+									TargetPort: 27017,
+									PublishedPort: externalPort,
+									PublishMode: "host" as const,
+								},
+							]
+						: [],
+				},
+		UpdateConfig,
 	};
 
 	try {
@@ -151,8 +175,12 @@ ${command ?? "wait $MONGOD_PID"}`;
 		await service.update({
 			version: Number.parseInt(inspect.Version.Index),
 			...settings,
+			TaskTemplate: {
+				...settings.TaskTemplate,
+				ForceUpdate: inspect.Spec.TaskTemplate.ForceUpdate + 1,
+			},
 		});
-	} catch (_error) {
+	} catch {
 		await docker.createService(settings);
 	}
 };

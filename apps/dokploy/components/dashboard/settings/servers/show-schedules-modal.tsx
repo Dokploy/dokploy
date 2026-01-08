@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 
 interface Props {
 	serverId: string;
@@ -20,7 +20,7 @@ export const ShowSchedulesModal = ({ serverId }: Props) => {
 					Show Schedules
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-5xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-5xl  ">
 				<ShowSchedules id={serverId} scheduleType="server" />
 			</DialogContent>
 		</Dialog>

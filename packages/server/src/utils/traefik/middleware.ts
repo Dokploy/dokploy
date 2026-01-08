@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import { dump, load } from "js-yaml";
+import type { Domain } from "@dokploy/server/services/domain";
+import { parse, stringify } from "yaml";
 import type { ApplicationNested } from "../builders";
 import { execAsyncRemote } from "../process/execAsync";
 import { writeTraefikConfigRemote } from "./application";
@@ -45,8 +46,14 @@ export const deleteMiddleware = (
 };
 
 export const deleteAllMiddlewares = async (application: ApplicationNested) => {
-	const config = loadMiddlewares<FileConfig>();
-	const { security, appName, redirects } = application;
+	const { security, appName, redirects, serverId } = application;
+	let config: FileConfig;
+
+	if (serverId) {
+		config = await loadRemoteMiddlewares(serverId);
+	} else {
+		config = loadMiddlewares<FileConfig>();
+	}
 
 	if (config.http?.middlewares) {
 		if (security.length > 0) {
@@ -61,8 +68,8 @@ export const deleteAllMiddlewares = async (application: ApplicationNested) => {
 		}
 	}
 
-	if (application.serverId) {
-		await writeTraefikConfigRemote(config, "middlewares", application.serverId);
+	if (serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", serverId);
 	} else {
 		writeMiddleware(config);
 	}
@@ -75,7 +82,7 @@ export const loadMiddlewares = <T>() => {
 		throw new Error(`File not found: ${configPath}`);
 	}
 	const yamlStr = readFileSync(configPath, "utf8");
-	const config = load(yamlStr) as T;
+	const config = parse(yamlStr) as T;
 	return config;
 };
 
@@ -93,15 +100,141 @@ export const loadRemoteMiddlewares = async (serverId: string) => {
 			console.error(`Error: ${stderr}`);
 			throw new Error(`File not found: ${configPath}`);
 		}
-		const config = load(stdout) as FileConfig;
+		const config = parse(stdout) as FileConfig;
 		return config;
 	} catch (_) {
 		throw new Error(`File not found: ${configPath}`);
 	}
 };
-export const writeMiddleware = <T>(config: T) => {
+export const writeMiddleware = (config: FileConfig) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = join(DYNAMIC_TRAEFIK_PATH, "middlewares.yml");
-	const newYamlContent = dump(config);
+	const newYamlContent = stringify(config);
 	writeFileSync(configPath, newYamlContent, "utf8");
+};
+
+export const createPathMiddlewares = async (
+	app: ApplicationNested,
+	domain: Domain,
+) => {
+	const { appName } = app;
+	const { uniqueConfigKey, internalPath, stripPath, path } = domain;
+
+	// Early return if there's no path middleware to create
+	const needsInternalPathMiddleware =
+		internalPath && internalPath !== "/" && internalPath !== path;
+	const needsStripPathMiddleware = stripPath && path && path !== "/";
+
+	if (!needsInternalPathMiddleware && !needsStripPathMiddleware) {
+		return;
+	}
+
+	let config: FileConfig;
+
+	if (app.serverId) {
+		try {
+			config = await loadRemoteMiddlewares(app.serverId);
+		} catch {
+			config = { http: { middlewares: {} } };
+		}
+	} else {
+		try {
+			config = loadMiddlewares<FileConfig>();
+		} catch {
+			config = { http: { middlewares: {} } };
+		}
+	}
+
+	if (!config) {
+		config = { http: { middlewares: {} } };
+	} else if (!config.http) {
+		config.http = { middlewares: {} };
+	}
+	if (!config.http?.middlewares) {
+		config.http!.middlewares = {};
+	}
+
+	// Add internal path prefix middleware
+	if (internalPath && internalPath !== "/" && internalPath !== path) {
+		const middlewareName = `addprefix-${appName}-${uniqueConfigKey}`;
+		config.http!.middlewares[middlewareName] = {
+			addPrefix: {
+				prefix: internalPath,
+			},
+		};
+	}
+
+	// Strip external path middleware if needed
+	if (stripPath && path && path !== "/") {
+		const middlewareName = `stripprefix-${appName}-${uniqueConfigKey}`;
+		config.http!.middlewares[middlewareName] = {
+			stripPrefix: {
+				prefixes: [path],
+			},
+		};
+	}
+
+	if (app.serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
+	} else {
+		writeMiddleware(config);
+	}
+};
+
+export const removePathMiddlewares = async (
+	app: ApplicationNested,
+	uniqueConfigKey: number,
+) => {
+	let config: FileConfig;
+
+	if (app.serverId) {
+		try {
+			config = await loadRemoteMiddlewares(app.serverId);
+		} catch {
+			return;
+		}
+	} else {
+		try {
+			config = loadMiddlewares<FileConfig>();
+		} catch {
+			return;
+		}
+	}
+
+	if (!config) {
+		return;
+	}
+
+	const { appName } = app;
+
+	if (config.http?.middlewares) {
+		const addPrefixMiddleware = `addprefix-${appName}-${uniqueConfigKey}`;
+		const stripPrefixMiddleware = `stripprefix-${appName}-${uniqueConfigKey}`;
+
+		delete config.http.middlewares[addPrefixMiddleware];
+		delete config.http.middlewares[stripPrefixMiddleware];
+	}
+
+	if (
+		config?.http?.middlewares &&
+		Object.keys(config.http.middlewares).length === 0
+	) {
+		// if there aren't any middlewares, remove the whole section
+		delete config.http.middlewares;
+	}
+
+	// // If http section is empty, remove it completely
+	if (config?.http && Object.keys(config?.http).length === 0) {
+		delete config.http;
+	}
+
+	if (config && Object.keys(config || {}).length === 0) {
+		config = {};
+	}
+
+	if (app.serverId) {
+		await writeTraefikConfigRemote(config, "middlewares", app.serverId);
+	} else {
+		writeMiddleware(config);
+	}
 };

@@ -1,4 +1,3 @@
-import { getPublicIpWithFallback } from "@/server/wss/terminal";
 import {
 	type DockerNode,
 	execAsync,
@@ -8,6 +7,7 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { getLocalServerIp } from "@/server/wss/terminal";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 export const clusterRouter = createTRPCRouter({
 	getNodes: protectedProcedure
@@ -61,7 +61,7 @@ export const clusterRouter = createTRPCRouter({
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
 
-			let ip = await getPublicIpWithFallback();
+			let ip = await getLocalServerIp();
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				ip = server?.ipAddress;
@@ -85,7 +85,7 @@ export const clusterRouter = createTRPCRouter({
 			const result = await docker.swarmInspect();
 			const docker_version = await docker.version();
 
-			let ip = await getPublicIpWithFallback();
+			let ip = await getLocalServerIp();
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				ip = server?.ipAddress;

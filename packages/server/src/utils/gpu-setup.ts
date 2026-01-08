@@ -1,6 +1,5 @@
 import * as fs from "node:fs/promises";
-import { execAsync, sleep } from "../utils/process/execAsync";
-import { execAsyncRemote } from "../utils/process/execAsync";
+import { execAsync, execAsyncRemote, sleep } from "../utils/process/execAsync";
 
 interface GPUInfo {
 	driverInstalled: boolean;
@@ -34,7 +33,7 @@ export async function checkGPUStatus(serverId?: string): Promise<GPUInfo> {
 			...gpuInfo,
 			...cudaInfo,
 		};
-	} catch (_error) {
+	} catch {
 		return {
 			driverInstalled: false,
 			driverVersion: undefined,
@@ -186,7 +185,7 @@ const checkCudaSupport = async (serverId?: string) => {
 			? await execAsyncRemote(serverId, cudaCommand)
 			: await execAsync(cudaCommand);
 
-		const cudaMatch = cudaInfo.match(/CUDA Version\s*:\s*([\d\.]+)/);
+		const cudaMatch = cudaInfo.match(/CUDA Version\s*:\s*([\d.]+)/);
 		cudaVersion = cudaMatch ? cudaMatch[1] : undefined;
 		cudaSupport = !!cudaVersion;
 	} catch (error) {
@@ -315,7 +314,7 @@ const setupLocalServer = async (daemonConfig: any) => {
 
 	try {
 		await execAsync(setupCommands);
-	} catch (_error) {
+	} catch {
 		throw new Error(
 			"Failed to configure GPU support. Please ensure you have sudo privileges and try again.",
 		);

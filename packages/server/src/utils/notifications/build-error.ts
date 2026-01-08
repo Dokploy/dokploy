@@ -5,9 +5,12 @@ import { renderAsync } from "@react-email/components";
 import { format } from "date-fns";
 import { and, eq } from "drizzle-orm";
 import {
+	sendCustomNotification,
 	sendDiscordNotification,
 	sendEmailNotification,
 	sendGotifyNotification,
+	sendLarkNotification,
+	sendNtfyNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -42,156 +45,312 @@ export const sendBuildErrorNotifications = async ({
 			telegram: true,
 			slack: true,
 			gotify: true,
+			ntfy: true,
+			custom: true,
+			lark: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify } = notification;
-		if (email) {
-			const template = await renderAsync(
-				BuildFailedEmail({
+		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
+			notification;
+		try {
+			if (email) {
+				const template = await renderAsync(
+					BuildFailedEmail({
+						projectName,
+						applicationName,
+						applicationType,
+						errorMessage: errorMessage,
+						buildLink,
+						date: date.toLocaleString(),
+					}),
+				).catch();
+				await sendEmailNotification(
+					email,
+					"Build failed for dokploy",
+					template,
+				);
+			}
+
+			if (discord) {
+				const decorate = (decoration: string, text: string) =>
+					`${discord.decoration ? decoration : ""} ${text}`.trim();
+
+				const limitCharacter = 800;
+				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				await sendDiscordNotification(discord, {
+					title: decorate(">", "`⚠️` Build Failed"),
+					color: 0xed4245,
+					fields: [
+						{
+							name: decorate("`🛠️`", "Project"),
+							value: projectName,
+							inline: true,
+						},
+						{
+							name: decorate("`⚙️`", "Application"),
+							value: applicationName,
+							inline: true,
+						},
+						{
+							name: decorate("`❔`", "Type"),
+							value: applicationType,
+							inline: true,
+						},
+						{
+							name: decorate("`📅`", "Date"),
+							value: `<t:${unixDate}:D>`,
+							inline: true,
+						},
+						{
+							name: decorate("`⌚`", "Time"),
+							value: `<t:${unixDate}:t>`,
+							inline: true,
+						},
+						{
+							name: decorate("`❓`", "Type"),
+							value: "Failed",
+							inline: true,
+						},
+						{
+							name: decorate("`⚠️`", "Error Message"),
+							value: `\`\`\`${truncatedErrorMessage}\`\`\``,
+						},
+						{
+							name: decorate("`🧷`", "Build Link"),
+							value: `[Click here to access build link](${buildLink})`,
+						},
+					],
+					timestamp: date.toISOString(),
+					footer: {
+						text: "Dokploy Build Notification",
+					},
+				});
+			}
+
+			if (gotify) {
+				const decorate = (decoration: string, text: string) =>
+					`${gotify.decoration ? decoration : ""} ${text}\n`;
+				await sendGotifyNotification(
+					gotify,
+					decorate("⚠️", "Build Failed"),
+					`${decorate("🛠️", `Project: ${projectName}`)}` +
+						`${decorate("⚙️", `Application: ${applicationName}`)}` +
+						`${decorate("❔", `Type: ${applicationType}`)}` +
+						`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
+						`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
+						`${decorate("🔗", `Build details:\n${buildLink}`)}`,
+				);
+			}
+
+			if (ntfy) {
+				await sendNtfyNotification(
+					ntfy,
+					"Build Failed",
+					"warning",
+					`view, Build details, ${buildLink}, clear=true;`,
+					`🛠️Project: ${projectName}\n` +
+						`⚙️Application: ${applicationName}\n` +
+						`❔Type: ${applicationType}\n` +
+						`🕒Date: ${date.toLocaleString()}\n` +
+						`⚠️Error:\n${errorMessage}`,
+				);
+			}
+
+			if (telegram) {
+				const inlineButton = [
+					[
+						{
+							text: "Deployment Logs",
+							url: buildLink,
+						},
+					],
+				];
+
+				await sendTelegramNotification(
+					telegram,
+					`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
+					inlineButton,
+				);
+			}
+
+			if (slack) {
+				const { channel } = slack;
+				await sendSlackNotification(slack, {
+					channel: channel,
+					attachments: [
+						{
+							color: "#FF0000",
+							pretext: ":warning: *Build Failed*",
+							fields: [
+								{
+									title: "Project",
+									value: projectName,
+									short: true,
+								},
+								{
+									title: "Application",
+									value: applicationName,
+									short: true,
+								},
+								{
+									title: "Type",
+									value: applicationType,
+									short: true,
+								},
+								{
+									title: "Time",
+									value: date.toLocaleString(),
+									short: true,
+								},
+								{
+									title: "Error",
+									value: `\`\`\`${errorMessage}\`\`\``,
+									short: false,
+								},
+							],
+							actions: [
+								{
+									type: "button",
+									text: "View Build Details",
+									url: buildLink,
+								},
+							],
+						},
+					],
+				});
+			}
+
+			if (custom) {
+				await sendCustomNotification(custom, {
+					title: "Build Error",
+					message: "Build failed with errors",
 					projectName,
 					applicationName,
 					applicationType,
-					errorMessage: errorMessage,
+					errorMessage,
 					buildLink,
+					timestamp: date.toISOString(),
 					date: date.toLocaleString(),
-				}),
-			).catch();
-			await sendEmailNotification(email, "Build failed for dokploy", template);
-		}
+					status: "error",
+					type: "build",
+				});
+			}
 
-		if (discord) {
-			const decorate = (decoration: string, text: string) =>
-				`${discord.decoration ? decoration : ""} ${text}`.trim();
-
-			await sendDiscordNotification(discord, {
-				title: decorate(">", "`⚠️` Build Failed"),
-				color: 0xed4245,
-				fields: [
-					{
-						name: decorate("`🛠️`", "Project"),
-						value: projectName,
-						inline: true,
-					},
-					{
-						name: decorate("`⚙️`", "Application"),
-						value: applicationName,
-						inline: true,
-					},
-					{
-						name: decorate("`❔`", "Type"),
-						value: applicationType,
-						inline: true,
-					},
-					{
-						name: decorate("`📅`", "Date"),
-						value: `<t:${unixDate}:D>`,
-						inline: true,
-					},
-					{
-						name: decorate("`⌚`", "Time"),
-						value: `<t:${unixDate}:t>`,
-						inline: true,
-					},
-					{
-						name: decorate("`❓`", "Type"),
-						value: "Failed",
-						inline: true,
-					},
-					{
-						name: decorate("`⚠️`", "Error Message"),
-						value: `\`\`\`${errorMessage}\`\`\``,
-					},
-					{
-						name: decorate("`🧷`", "Build Link"),
-						value: `[Click here to access build link](${buildLink})`,
-					},
-				],
-				timestamp: date.toISOString(),
-				footer: {
-					text: "Dokploy Build Notification",
-				},
-			});
-		}
-
-		if (gotify) {
-			const decorate = (decoration: string, text: string) =>
-				`${gotify.decoration ? decoration : ""} ${text}\n`;
-			await sendGotifyNotification(
-				gotify,
-				decorate("⚠️", "Build Failed"),
-				`${decorate("🛠️", `Project: ${projectName}`)}` +
-					`${decorate("⚙️", `Application: ${applicationName}`)}` +
-					`${decorate("❔", `Type: ${applicationType}`)}` +
-					`${decorate("🕒", `Date: ${date.toLocaleString()}`)}` +
-					`${decorate("⚠️", `Error:\n${errorMessage}`)}` +
-					`${decorate("🔗", `Build details:\n${buildLink}`)}`,
-			);
-		}
-
-		if (telegram) {
-			const inlineButton = [
-				[
-					{
-						text: "Deployment Logs",
-						url: buildLink,
-					},
-				],
-			];
-
-			await sendTelegramNotification(
-				telegram,
-				`<b>⚠️ Build Failed</b>\n\n<b>Project:</b> ${projectName}\n<b>Application:</b> ${applicationName}\n<b>Type:</b> ${applicationType}\n<b>Date:</b> ${format(date, "PP")}\n<b>Time:</b> ${format(date, "pp")}\n\n<b>Error:</b>\n<pre>${errorMessage}</pre>`,
-				inlineButton,
-			);
-		}
-
-		if (slack) {
-			const { channel } = slack;
-			await sendSlackNotification(slack, {
-				channel: channel,
-				attachments: [
-					{
-						color: "#FF0000",
-						pretext: ":warning: *Build Failed*",
-						fields: [
-							{
-								title: "Project",
-								value: projectName,
-								short: true,
+			if (lark) {
+				const limitCharacter = 800;
+				const truncatedErrorMessage = errorMessage.substring(0, limitCharacter);
+				await sendLarkNotification(lark, {
+					msg_type: "interactive",
+					card: {
+						schema: "2.0",
+						config: {
+							update_multi: true,
+							style: {
+								text_size: {
+									normal_v2: {
+										default: "normal",
+										pc: "normal",
+										mobile: "heading",
+									},
+								},
 							},
-							{
-								title: "Application",
-								value: applicationName,
-								short: true,
+						},
+						header: {
+							title: {
+								tag: "plain_text",
+								content: "⚠️ Build Failed",
 							},
-							{
-								title: "Type",
-								value: applicationType,
-								short: true,
+							subtitle: {
+								tag: "plain_text",
+								content: "",
 							},
-							{
-								title: "Time",
-								value: date.toLocaleString(),
-								short: true,
-							},
-							{
-								title: "Error",
-								value: `\`\`\`${errorMessage}\`\`\``,
-								short: false,
-							},
-						],
-						actions: [
-							{
-								type: "button",
-								text: "View Build Details",
-								url: buildLink,
-							},
-						],
+							template: "red",
+							padding: "12px 12px 12px 12px",
+						},
+						body: {
+							direction: "vertical",
+							padding: "12px 12px 12px 12px",
+							elements: [
+								{
+									tag: "column_set",
+									columns: [
+										{
+											tag: "column",
+											width: "weighted",
+											elements: [
+												{
+													tag: "markdown",
+													content: `**Project:**\n${projectName}`,
+													text_align: "left",
+													text_size: "normal_v2",
+												},
+												{
+													tag: "markdown",
+													content: `**Type:**\n${applicationType}`,
+													text_align: "left",
+													text_size: "normal_v2",
+												},
+												{
+													tag: "markdown",
+													content: `**Error Message:**\n\`\`\`\n${truncatedErrorMessage}\n\`\`\``,
+													text_align: "left",
+													text_size: "normal_v2",
+												},
+											],
+											vertical_align: "top",
+											weight: 1,
+										},
+										{
+											tag: "column",
+											width: "weighted",
+											elements: [
+												{
+													tag: "markdown",
+													content: `**Application:**\n${applicationName}`,
+													text_align: "left",
+													text_size: "normal_v2",
+												},
+												{
+													tag: "markdown",
+													content: `**Date:**\n${format(date, "PP pp")}`,
+													text_align: "left",
+													text_size: "normal_v2",
+												},
+											],
+											vertical_align: "top",
+											weight: 1,
+										},
+									],
+								},
+								{
+									tag: "button",
+									text: {
+										tag: "plain_text",
+										content: "View Build Details",
+									},
+									type: "danger",
+									width: "default",
+									size: "medium",
+									behaviors: [
+										{
+											type: "open_url",
+											default_url: buildLink,
+											pc_url: "",
+											ios_url: "",
+											android_url: "",
+										},
+									],
+									margin: "0px 0px 0px 0px",
+								},
+							],
+						},
 					},
-				],
-			});
+				});
+			}
+		} catch (error) {
+			console.log(error);
 		}
 	}
 };

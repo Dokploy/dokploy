@@ -1,3 +1,41 @@
+import {
+	addNewEnvironment,
+	addNewProject,
+	checkProjectAccess,
+	createApplication,
+	createBackup,
+	createCompose,
+	createDomain,
+	createMariadb,
+	createMongo,
+	createMount,
+	createMysql,
+	createPort,
+	createPostgres,
+	createPreviewDeployment,
+	createProject,
+	createRedirect,
+	createRedis,
+	createSecurity,
+	deleteProject,
+	findApplicationById,
+	findComposeById,
+	findEnvironmentById,
+	findMariadbById,
+	findMemberById,
+	findMongoById,
+	findMySqlById,
+	findPostgresById,
+	findProjectById,
+	findRedisById,
+	findUserById,
+	IS_CLOUD,
+	updateProjectById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, sql } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -7,6 +45,7 @@ import {
 	apiUpdateProject,
 	applications,
 	compose,
+	environments,
 	mariadb,
 	mongo,
 	mysql,
@@ -14,43 +53,6 @@ import {
 	projects,
 	redis,
 } from "@/server/db/schema";
-import { z } from "zod";
-
-import {
-	IS_CLOUD,
-	addNewProject,
-	checkProjectAccess,
-	createApplication,
-	createCompose,
-	createMariadb,
-	createMongo,
-	createMysql,
-	createPostgres,
-	createProject,
-	createRedis,
-	deleteProject,
-	findApplicationById,
-	findComposeById,
-	findMongoById,
-	findMemberById,
-	findRedisById,
-	findProjectById,
-	findUserById,
-	updateProjectById,
-	findPostgresById,
-	findMariadbById,
-	findMySqlById,
-	createDomain,
-	createPort,
-	createMount,
-	createRedirect,
-	createPreviewDeployment,
-	createBackup,
-	createSecurity,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
-import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 export const projectRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -81,7 +83,13 @@ export const projectRouter = createTRPCRouter({
 				if (ctx.user.role === "member") {
 					await addNewProject(
 						ctx.user.id,
-						project.projectId,
+						project.project.projectId,
+						ctx.session.activeOrganizationId,
+					);
+
+					await addNewEnvironment(
+						ctx.user.id,
+						project?.environment?.environmentId || "",
 						ctx.session.activeOrganizationId,
 					);
 				}
@@ -118,29 +126,42 @@ export const projectRouter = createTRPCRouter({
 						eq(projects.organizationId, ctx.session.activeOrganizationId),
 					),
 					with: {
-						applications: {
-							where: buildServiceFilter(
-								applications.applicationId,
-								accessedServices,
-							),
-						},
-						compose: {
-							where: buildServiceFilter(compose.composeId, accessedServices),
-						},
-						mariadb: {
-							where: buildServiceFilter(mariadb.mariadbId, accessedServices),
-						},
-						mongo: {
-							where: buildServiceFilter(mongo.mongoId, accessedServices),
-						},
-						mysql: {
-							where: buildServiceFilter(mysql.mysqlId, accessedServices),
-						},
-						postgres: {
-							where: buildServiceFilter(postgres.postgresId, accessedServices),
-						},
-						redis: {
-							where: buildServiceFilter(redis.redisId, accessedServices),
+						environments: {
+							with: {
+								applications: {
+									where: buildServiceFilter(
+										applications.applicationId,
+										accessedServices,
+									),
+								},
+								compose: {
+									where: buildServiceFilter(
+										compose.composeId,
+										accessedServices,
+									),
+								},
+								mariadb: {
+									where: buildServiceFilter(
+										mariadb.mariadbId,
+										accessedServices,
+									),
+								},
+								mongo: {
+									where: buildServiceFilter(mongo.mongoId, accessedServices),
+								},
+								mysql: {
+									where: buildServiceFilter(mysql.mysqlId, accessedServices),
+								},
+								postgres: {
+									where: buildServiceFilter(
+										postgres.postgresId,
+										accessedServices,
+									),
+								},
+								redis: {
+									where: buildServiceFilter(redis.redisId, accessedServices),
+								},
+							},
 						},
 					},
 				});
@@ -165,14 +186,21 @@ export const projectRouter = createTRPCRouter({
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		if (ctx.user.role === "member") {
-			const { accessedProjects, accessedServices } = await findMemberById(
-				ctx.user.id,
-				ctx.session.activeOrganizationId,
-			);
+			const { accessedProjects, accessedEnvironments, accessedServices } =
+				await findMemberById(ctx.user.id, ctx.session.activeOrganizationId);
 
 			if (accessedProjects.length === 0) {
 				return [];
 			}
+
+			// Build environment filter
+			const environmentFilter =
+				accessedEnvironments.length === 0
+					? sql`false`
+					: sql`${environments.environmentId} IN (${sql.join(
+							accessedEnvironments.map((envId) => sql`${envId}`),
+							sql`, `,
+						)})`;
 
 			return await db.query.projects.findMany({
 				where: and(
@@ -183,31 +211,39 @@ export const projectRouter = createTRPCRouter({
 					eq(projects.organizationId, ctx.session.activeOrganizationId),
 				),
 				with: {
-					applications: {
-						where: buildServiceFilter(
-							applications.applicationId,
-							accessedServices,
-						),
-						with: { domains: true },
-					},
-					mariadb: {
-						where: buildServiceFilter(mariadb.mariadbId, accessedServices),
-					},
-					mongo: {
-						where: buildServiceFilter(mongo.mongoId, accessedServices),
-					},
-					mysql: {
-						where: buildServiceFilter(mysql.mysqlId, accessedServices),
-					},
-					postgres: {
-						where: buildServiceFilter(postgres.postgresId, accessedServices),
-					},
-					redis: {
-						where: buildServiceFilter(redis.redisId, accessedServices),
-					},
-					compose: {
-						where: buildServiceFilter(compose.composeId, accessedServices),
-						with: { domains: true },
+					environments: {
+						where: environmentFilter,
+						with: {
+							applications: {
+								where: buildServiceFilter(
+									applications.applicationId,
+									accessedServices,
+								),
+								with: { domains: true },
+							},
+							mariadb: {
+								where: buildServiceFilter(mariadb.mariadbId, accessedServices),
+							},
+							mongo: {
+								where: buildServiceFilter(mongo.mongoId, accessedServices),
+							},
+							mysql: {
+								where: buildServiceFilter(mysql.mysqlId, accessedServices),
+							},
+							postgres: {
+								where: buildServiceFilter(
+									postgres.postgresId,
+									accessedServices,
+								),
+							},
+							redis: {
+								where: buildServiceFilter(redis.redisId, accessedServices),
+							},
+							compose: {
+								where: buildServiceFilter(compose.composeId, accessedServices),
+								with: { domains: true },
+							},
+						},
 					},
 				},
 				orderBy: desc(projects.createdAt),
@@ -216,19 +252,23 @@ export const projectRouter = createTRPCRouter({
 
 		return await db.query.projects.findMany({
 			with: {
-				applications: {
+				environments: {
 					with: {
-						domains: true,
-					},
-				},
-				mariadb: true,
-				mongo: true,
-				mysql: true,
-				postgres: true,
-				redis: true,
-				compose: {
-					with: {
-						domains: true,
+						applications: {
+							with: {
+								domains: true,
+							},
+						},
+						mariadb: true,
+						mongo: true,
+						mysql: true,
+						postgres: true,
+						redis: true,
+						compose: {
+							with: {
+								domains: true,
+							},
+						},
 					},
 				},
 			},
@@ -289,7 +329,7 @@ export const projectRouter = createTRPCRouter({
 	duplicate: protectedProcedure
 		.input(
 			z.object({
-				sourceProjectId: z.string(),
+				sourceEnvironmentId: z.string(),
 				name: z.string(),
 				description: z.string().optional(),
 				includeServices: z.boolean().default(true),
@@ -309,6 +349,7 @@ export const projectRouter = createTRPCRouter({
 						}),
 					)
 					.optional(),
+				duplicateInSameProject: z.boolean().default(false),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -322,24 +363,34 @@ export const projectRouter = createTRPCRouter({
 				}
 
 				// Get source project
-				const sourceProject = await findProjectById(input.sourceProjectId);
+				const sourceEnvironment = input.duplicateInSameProject
+					? await findEnvironmentById(input.sourceEnvironmentId)
+					: null;
 
-				if (sourceProject.organizationId !== ctx.session.activeOrganizationId) {
+				if (
+					input.duplicateInSameProject &&
+					sourceEnvironment?.project.organizationId !==
+						ctx.session.activeOrganizationId
+				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
 				}
 
-				// Create new project
-				const newProject = await createProject(
-					{
-						name: input.name,
-						description: input.description,
-						env: sourceProject.env,
-					},
-					ctx.session.activeOrganizationId,
-				);
+				// Create new project or use existing one
+				const targetProject = input.duplicateInSameProject
+					? sourceEnvironment
+					: await createProject(
+							{
+								name: input.name,
+								description: input.description,
+								env: sourceEnvironment?.project.env,
+							},
+							ctx.session.activeOrganizationId,
+						).then((value) => value.environment);
+
+				console.log("targetProject", targetProject);
 
 				if (input.includeServices) {
 					const servicesToDuplicate = input.selectedServices || [];
@@ -357,12 +408,22 @@ export const projectRouter = createTRPCRouter({
 									redirects,
 									previewDeployments,
 									mounts,
+									appName,
+									refreshToken,
 									...application
 								} = await findApplicationById(id);
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
 
 								const newApplication = await createApplication({
 									...application,
-									projectId: newProject.projectId,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${application.name} (copy)`
+										: application.name,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const domain of domains) {
@@ -418,12 +479,21 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "postgres": {
-								const { postgresId, mounts, backups, ...postgres } =
+								const { postgresId, mounts, backups, appName, ...postgres } =
 									await findPostgresById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
 
 								const newPostgres = await createPostgres({
 									...postgres,
-									projectId: newProject.projectId,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${postgres.name} (copy)`
+										: postgres.name,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -445,11 +515,21 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mariadb": {
-								const { mariadbId, mounts, backups, ...mariadb } =
+								const { mariadbId, mounts, backups, appName, ...mariadb } =
 									await findMariadbById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newMariadb = await createMariadb({
 									...mariadb,
-									projectId: newProject.projectId,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${mariadb.name} (copy)`
+										: mariadb.name,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -471,11 +551,21 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mongo": {
-								const { mongoId, mounts, backups, ...mongo } =
+								const { mongoId, mounts, backups, appName, ...mongo } =
 									await findMongoById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newMongo = await createMongo({
 									...mongo,
-									projectId: newProject.projectId,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${mongo.name} (copy)`
+										: mongo.name,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -497,11 +587,21 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "mysql": {
-								const { mysqlId, mounts, backups, ...mysql } =
+								const { mysqlId, mounts, backups, appName, ...mysql } =
 									await findMySqlById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newMysql = await createMysql({
 									...mysql,
-									projectId: newProject.projectId,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${mysql.name} (copy)`
+										: mysql.name,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -523,10 +623,21 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "redis": {
-								const { redisId, mounts, ...redis } = await findRedisById(id);
+								const { redisId, mounts, appName, ...redis } =
+									await findRedisById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newRedis = await createRedis({
 									...redis,
-									projectId: newProject.projectId,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${redis.name} (copy)`
+										: redis.name,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -541,11 +652,27 @@ export const projectRouter = createTRPCRouter({
 								break;
 							}
 							case "compose": {
-								const { composeId, mounts, domains, ...compose } =
-									await findComposeById(id);
+								const {
+									composeId,
+									mounts,
+									domains,
+									appName,
+									refreshToken,
+									...compose
+								} = await findComposeById(id);
+
+								const newAppName = appName.substring(
+									0,
+									appName.lastIndexOf("-"),
+								);
+
 								const newCompose = await createCompose({
 									...compose,
-									projectId: newProject.projectId,
+									appName: newAppName,
+									name: input.duplicateInSameProject
+										? `${compose.name} (copy)`
+										: compose.name,
+									environmentId: targetProject?.environmentId || "",
 								});
 
 								for (const mount of mounts) {
@@ -572,21 +699,20 @@ export const projectRouter = createTRPCRouter({
 					};
 
 					// Duplicate selected services
-
 					for (const service of servicesToDuplicate) {
 						await duplicateService(service.id, service.type);
 					}
 				}
 
-				if (ctx.user.role === "member") {
+				if (!input.duplicateInSameProject && ctx.user.role === "member") {
 					await addNewProject(
 						ctx.user.id,
-						newProject.projectId,
+						targetProject?.projectId || "",
 						ctx.session.activeOrganizationId,
 					);
 				}
 
-				return newProject;
+				return targetProject;
 			} catch (error) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",

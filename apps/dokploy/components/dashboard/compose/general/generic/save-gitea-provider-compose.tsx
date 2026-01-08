@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckIcon, ChevronsUpDown, Plus, X } from "lucide-react";
+import Link from "next/link";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -41,13 +48,6 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { Repository } from "@/utils/gitea-utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, Plus, X } from "lucide-react";
-import Link from "next/link";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const GiteaProviderSchema = z.object({
 	composePath: z.string().min(1),
@@ -142,7 +142,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.composeId, form]);
 
 	const onSubmit = async (data: GiteaProvider) => {
 		await mutateAsync({
@@ -437,7 +437,7 @@ export const SaveGiteaProviderCompose = ({ composeId }: Props) => {
 									<FormControl>
 										<div className="flex gap-2">
 											<Input
-												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();

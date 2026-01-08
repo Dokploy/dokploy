@@ -1,8 +1,7 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToSecretsRoot } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import { addSuffixToSecretsRoot, generateRandomHash } from "@dokploy/server";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();
@@ -24,7 +23,7 @@ secrets:
 `;
 
 test("Add suffix to secrets in root property", () => {
-	const composeData = load(composeFileSecretsRoot) as ComposeSpecification;
+	const composeData = parse(composeFileSecretsRoot) as ComposeSpecification;
 	const suffix = generateRandomHash();
 
 	if (!composeData?.secrets) {
@@ -53,7 +52,7 @@ secrets:
 `;
 
 test("Add suffix to secrets in root property (Test 1)", () => {
-	const composeData = load(composeFileSecretsRoot1) as ComposeSpecification;
+	const composeData = parse(composeFileSecretsRoot1) as ComposeSpecification;
 	const suffix = generateRandomHash();
 
 	if (!composeData?.secrets) {
@@ -85,7 +84,7 @@ secrets:
 `;
 
 test("Add suffix to secrets in root property (Test 2)", () => {
-	const composeData = load(composeFileSecretsRoot2) as ComposeSpecification;
+	const composeData = parse(composeFileSecretsRoot2) as ComposeSpecification;
 	const suffix = generateRandomHash();
 
 	if (!composeData?.secrets) {

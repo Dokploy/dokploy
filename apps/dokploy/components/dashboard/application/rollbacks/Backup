@@ -1,0 +1,108 @@
+Backup
+# license-namedbackups-abxelc
+1. docker ps --filter "label=com.docker.swarm.service.name=license-namedbackups-abxelc" --format "{{.Names}}"
+2. docker run --rm \
+--volumes-from "license-namedbackups-abxelc.1.m3cxy78ocj3w0zu42kmgamc5y" \
+-v $(pwd):/backup \
+ubuntu \
+tar cvf /backup/backup.tar /var/lib/postgresql/data
+
+
+# Official Command Backup
+
+1. Backup
+
+docker run --rm \
+  -v license-namedbackups-abxelc-data:/volume_data \
+  -v $(pwd):/backup \
+  ubuntu \
+  bash -c "cd /volume_data && tar cvf /backup/generic_backup.tar ."
+
+
+2. Restore
+
+docker service scale license-namedbackups-abxelc=0
+
+docker volume rm license-namedbackups-abxelc-data
+
+2. docker run --rm \
+-v license-namedbackups-abxelc-data:/volume_data \
+-v $(pwd):/backup \
+ubuntu \
+bash -c "cd /volume_data && tar xvf /backup/generic_backup.tar ."
+
+docker service scale license-namedbackups-abxelc=1
+
+
+root@srv594061:~# docker volume inspect  n8n_data-data
+[
+    {
+        "CreatedAt": "2025-06-28T18:07:44Z",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/n8n_data-data/_data",
+        "Name": "n8n_data-data",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+
+Archivos funcuionando creados por N8N
+
+# root@srv594061:~# cd /var/lib/docker/volumes/n8n_data-data/_data
+# root@srv594061:/var/lib/docker/volumes/n8n_data-data/_data# ls
+# binaryData  config  crash.journal  database.sqlite  git  n8nEventLog.log  ssh
+
+Luego que intente hacer el backup con el comando de backup
+
+
+root@srv594061:~# docker run --rm   -v n8n_data-data:/volume_data   -v $(pwd):/backup   ubuntu   bash -c "cd /volume_data && tar cvf /backup/generic_backup6.tar ."
+./
+./config
+./crash.journal
+./binaryData/
+./git/
+./database.sqlite
+./ssh/
+./n8nEventLog.log
+root@srv594061:~# 
+
+# Paramos la aplicacion
+docker service scale n8n=0
+
+# Haciendo el restore
+root@srv594061:~# docker volume rm n8n_data-data
+n8n_data-data
+root@srv594061:~# docker run --rm -v n8n_data-data:/volume_data -v $(pwd):/backup ubuntu bash -c "cd /volume_data && tar xvf /backup/generic_backup6.tar && chown -R 999:999 ."
+./
+./config
+./crash.journal
+./binaryData/
+./git/
+./database.sqlite
+./ssh/
+./n8nEventLog.log
+
+# Tenemos los archivos en el volumen
+root@srv594061:~# ls /var/lib/docker/volumes/n8n_data-data/_data
+binaryData  config  crash.journal  database.sqlite  git  n8nEventLog.log  ssh
+root@srv594061:~# 
+
+docker service scale n8n=1
+
+# Luego en N8N Cuando se que el volumen tiene la data 
+Permissions 0644 for n8n settings file /home/node/.n8n/config are too wide. This is ignored for now, but in the future n8n will attempt to change the permissions automatically. To automatically enforce correct permissions now set N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true (recommended), or turn this check off set N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false.
+User settings loaded from: /home/node/.n8n/config
+Last session crashed
+Error: EACCES: permission denied, open '/home/node/.n8n/crash.journal'
+at open (node:internal/fs/promises:639:25)
+at touchFile (/usr/local/lib/node_modules/n8n/dist/crash-journal.js:18:20)
+at Object.init (/usr/local/lib/node_modules/n8n/dist/crash-journal.js:32:5)
+at Start.initCrashJournal (/usr/local/lib/node_modules/n8n/dist/commands/base-command.js:113:9)
+at Start.init (/usr/local/lib/node_modules/n8n/dist/commands/start.js:141:9)
+at Start._run (/usr/local/lib/node_modules/n8n/node_modules/@oclif/core/lib/command.js:301:13)
+at Config.runCommand (/usr/local/lib/node_modules/n8n/node_modules/@oclif/core/lib/config/config.js:424:25)
+at run (/usr/local/lib/node_modules/n8n/node_modules/@oclif/core/lib/main.js:94:16)
+at /usr/local/lib/node_modules/n8n/bin/n8n:71:2
+TypeError: Cannot read properties of undefined (reading 'error')
+

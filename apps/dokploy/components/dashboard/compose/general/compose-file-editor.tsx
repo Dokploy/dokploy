@@ -1,3 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,13 +13,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 import { validateAndFormatYAML } from "../../application/advanced/traefik/update-traefik-config";
-import { ShowUtilities } from "./show-utilities";
 
 interface Props {
 	composeId: string;
@@ -36,6 +35,7 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	);
 
 	const { mutateAsync, isLoading } = api.compose.update.useMutation();
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
 	const form = useForm<AddComposeFile>({
 		defaultValues: {
@@ -44,13 +44,21 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		resolver: zodResolver(AddComposeFile),
 	});
 
+	const composeFile = form.watch("composeFile");
+
 	useEffect(() => {
-		if (data) {
+		if (data && !composeFile) {
 			form.reset({
 				composeFile: data.composeFile || "",
 			});
 		}
 	}, [form, form.reset, data]);
+
+	useEffect(() => {
+		if (data?.composeFile !== undefined) {
+			setHasUnsavedChanges(composeFile !== data.composeFile);
+		}
+	}, [composeFile, data?.composeFile]);
 
 	const onSubmit = async (data: AddComposeFile) => {
 		const { valid, error } = validateAndFormatYAML(data.composeFile);
@@ -66,16 +74,18 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			composeFile: data.composeFile,
+			composePath: "./docker-compose.yml",
 			sourceType: "raw",
 		})
 			.then(async () => {
 				toast.success("Compose config Updated");
+				setHasUnsavedChanges(false);
 				refetch();
 				await utils.compose.getConvertedCompose.invalidate({
 					composeId,
 				});
 			})
-			.catch((_e) => {
+			.catch(() => {
 				toast.error("Error updating the Compose config");
 			});
 	};
@@ -98,6 +108,19 @@ export const ComposeFileEditor = ({ composeId }: Props) => {
 	return (
 		<>
 			<div className="w-full flex flex-col gap-4 ">
+				<div className="flex items-center justify-between">
+					<div>
+						<h3 className="text-lg font-medium">Compose File</h3>
+						<p className="text-sm text-muted-foreground">
+							Configure your Docker Compose file for this service.
+							{hasUnsavedChanges && (
+								<span className="text-yellow-500 ml-2">
+									(You have unsaved changes)
+								</span>
+							)}
+						</p>
+					</div>
+				</div>
 				<Form {...form}>
 					<form
 						id="hook-form-save-compose-file"
@@ -140,9 +163,7 @@ services:
 					</form>
 				</Form>
 				<div className="flex justify-between flex-col lg:flex-row gap-2">
-					<div className="w-full flex flex-col lg:flex-row gap-4 items-end">
-						<ShowUtilities composeId={composeId} />
-					</div>
+					<div className="w-full flex flex-col lg:flex-row gap-4 items-end" />
 					<Button
 						type="submit"
 						form="hook-form-save-compose-file"

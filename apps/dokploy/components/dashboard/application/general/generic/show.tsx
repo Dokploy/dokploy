@@ -1,3 +1,7 @@
+import { GitBranch, Loader2, UploadCloud } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { SaveDockerProvider } from "@/components/dashboard/application/general/generic/save-docker-provider";
 import { SaveGitProvider } from "@/components/dashboard/application/general/generic/save-git-provider";
 import { SaveGiteaProvider } from "@/components/dashboard/application/general/generic/save-gitea-provider";
@@ -5,20 +9,18 @@ import { SaveGithubProvider } from "@/components/dashboard/application/general/g
 import {
 	BitbucketIcon,
 	DockerIcon,
-	GitIcon,
 	GiteaIcon,
 	GithubIcon,
+	GitIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
-import { GitBranch, Loader2, UploadCloud } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 import { SaveBitbucketProvider } from "./save-bitbucket-provider";
 import { SaveDragNDrop } from "./save-drag-n-drop";
 import { SaveGitlabProvider } from "./save-gitlab-provider";
+import { UnauthorizedGitProvider } from "./unauthorized-git-provider";
 
 type TabState =
 	| "github"
@@ -43,11 +45,30 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 	const { data: giteaProviders, isLoading: isLoadingGitea } =
 		api.gitea.giteaProviders.useQuery();
 
-	const { data: application } = api.application.one.useQuery({ applicationId });
+	const { data: application, refetch } = api.application.one.useQuery({
+		applicationId,
+	});
+	const { mutateAsync: disconnectGitProvider } =
+		api.application.disconnectGitProvider.useMutation();
+
 	const [tab, setSab] = useState<TabState>(application?.sourceType || "github");
 
 	const isLoading =
 		isLoadingGithub || isLoadingGitlab || isLoadingBitbucket || isLoadingGitea;
+
+	const handleDisconnect = async () => {
+		try {
+			await disconnectGitProvider({ applicationId });
+			toast.success("Repository disconnected successfully");
+			await refetch();
+		} catch (error) {
+			toast.error(
+				`Failed to disconnect repository: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`,
+			);
+		}
+	};
 
 	if (isLoading) {
 		return (
@@ -77,6 +98,38 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 		);
 	}
 
+	// Check if user doesn't have access to the current git provider
+	if (
+		application &&
+		!application.hasGitProviderAccess &&
+		application.sourceType !== "docker" &&
+		application.sourceType !== "drop"
+	) {
+		return (
+			<Card className="group relative w-full bg-transparent">
+				<CardHeader>
+					<CardTitle className="flex items-start justify-between">
+						<div className="flex flex-col gap-2">
+							<span className="flex flex-col space-y-0.5">Provider</span>
+							<p className="flex items-center text-sm font-normal text-muted-foreground">
+								Repository connection through unauthorized provider
+							</p>
+						</div>
+						<div className="hidden space-y-1 text-sm font-normal md:block">
+							<GitBranch className="size-6 text-muted-foreground" />
+						</div>
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<UnauthorizedGitProvider
+						service={application}
+						onDisconnect={handleDisconnect}
+					/>
+				</CardContent>
+			</Card>
+		);
+	}
+
 	return (
 		<Card className="group relative w-full bg-transparent">
 			<CardHeader>
@@ -100,8 +153,8 @@ export const ShowProviderForm = ({ applicationId }: Props) => {
 						setSab(e as TabState);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between w-full gap-4">
-						<TabsList className="md:grid md:w-fit md:grid-cols-7 max-md:overflow-x-scroll justify-start bg-transparent overflow-y-hidden">
+					<div className="flex flex-row items-center justify-between w-full overflow-auto">
+						<TabsList className="flex gap-4 justify-start bg-transparent">
 							<TabsTrigger
 								value="github"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"

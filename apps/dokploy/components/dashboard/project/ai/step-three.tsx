@@ -1,5 +1,5 @@
-import { CodeEditor } from "@/components/shared/code-editor";
 import ReactMarkdown from "react-markdown";
+import { CodeEditor } from "@/components/shared/code-editor";
 import type { StepProps } from "./step-two";
 
 export const StepThree = ({ templateInfo }: StepProps) => {
@@ -88,7 +88,7 @@ export const StepThree = ({ templateInfo }: StepProps) => {
 						<div>
 							<h3 className="text-sm font-semibold">Configuration Files</h3>
 							<ul className="list-disc pl-5">
-								{templateInfo?.details?.configFiles.map((file, index) => (
+								{templateInfo?.details?.configFiles?.map((file, index) => (
 									<li key={index}>
 										<strong className="text-sm font-semibold">
 											{file.filePath}

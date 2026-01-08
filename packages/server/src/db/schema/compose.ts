@@ -3,21 +3,20 @@ import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { backups } from "./backups";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { environments } from "./environment";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
-import { projects } from "./project";
+import { schedules } from "./schedule";
 import { server } from "./server";
 import { applicationStatus, triggerType } from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { backups } from "./backups";
-
-import { schedules } from "./schedule";
 export const sourceTypeCompose = pgEnum("sourceTypeCompose", [
 	"git",
 	"github",
@@ -79,11 +78,15 @@ export const compose = pgTable("compose", {
 	suffix: text("suffix").notNull().default(""),
 	randomize: boolean("randomize").notNull().default(false),
 	isolatedDeployment: boolean("isolatedDeployment").notNull().default(false),
+	// Keep this for backward compatibility since we will not add the prefix anymore to volumes
+	isolatedDeploymentsVolume: boolean("isolatedDeploymentsVolume")
+		.notNull()
+		.default(false),
 	triggerType: triggerType("triggerType").default("push"),
 	composeStatus: applicationStatus("composeStatus").notNull().default("idle"),
-	projectId: text("projectId")
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -106,9 +109,9 @@ export const compose = pgTable("compose", {
 });
 
 export const composeRelations = relations(compose, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [compose.projectId],
-		references: [projects.projectId],
+	environment: one(environments, {
+		fields: [compose.environmentId],
+		references: [environments.environmentId],
 	}),
 	deployments: many(deployments),
 	mounts: many(mounts),
@@ -146,7 +149,7 @@ const createSchema = createInsertSchema(compose, {
 	description: z.string(),
 	env: z.string().optional(),
 	composeFile: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	customGitSSHKeyId: z.string().optional(),
 	command: z.string().optional(),
 	composePath: z.string().min(1),
@@ -157,7 +160,7 @@ const createSchema = createInsertSchema(compose, {
 export const apiCreateCompose = createSchema.pick({
 	name: true,
 	description: true,
-	projectId: true,
+	environmentId: true,
 	composeType: true,
 	appName: true,
 	serverId: true,
@@ -166,7 +169,7 @@ export const apiCreateCompose = createSchema.pick({
 
 export const apiCreateComposeByTemplate = createSchema
 	.pick({
-		projectId: true,
+		environmentId: true,
 	})
 	.extend({
 		id: z.string().min(1),
@@ -175,6 +178,18 @@ export const apiCreateComposeByTemplate = createSchema
 
 export const apiFindCompose = z.object({
 	composeId: z.string().min(1),
+});
+
+export const apiDeployCompose = z.object({
+	composeId: z.string().min(1),
+	title: z.string().optional(),
+	description: z.string().optional(),
+});
+
+export const apiRedeployCompose = z.object({
+	composeId: z.string().min(1),
+	title: z.string().optional(),
+	description: z.string().optional(),
 });
 
 export const apiDeleteCompose = z.object({

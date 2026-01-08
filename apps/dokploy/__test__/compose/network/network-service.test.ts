@@ -1,8 +1,10 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToServiceNetworks } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import {
+	addSuffixToServiceNetworks,
+	generateRandomHash,
+} from "@dokploy/server";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile = `
 version: "3.8"
@@ -21,7 +23,7 @@ services:
 `;
 
 test("Add suffix to networks in services", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -65,7 +67,7 @@ networks:
 `;
 
 test("Add suffix to networks in services with aliases", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -105,7 +107,7 @@ networks:
 `;
 
 test("Add suffix to networks in services (Object with simple networks)", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -151,7 +153,7 @@ networks:
 `;
 
 test("Add suffix to networks in services (combined case)", () => {
-	const composeData = load(composeFileCombined) as ComposeSpecification;
+	const composeData = parse(composeFileCombined) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -194,7 +196,7 @@ services:
 `;
 
 test("It shoudn't add suffix to dokploy-network in services", () => {
-	const composeData = load(composeFile7) as ComposeSpecification;
+	const composeData = parse(composeFile7) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -243,7 +245,7 @@ services:
 `;
 
 test("It shoudn't add suffix to dokploy-network in services multiples cases", () => {
-	const composeData = load(composeFile8) as ComposeSpecification;
+	const composeData = parse(composeFile8) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 

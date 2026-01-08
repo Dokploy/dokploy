@@ -1,20 +1,3 @@
-import {
-	BitbucketIcon,
-	GiteaIcon,
-	GithubIcon,
-	GitlabIcon,
-} from "@/components/icons/data-tools-icons";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { useUrl } from "@/utils/hooks/use-url";
 import { formatDate } from "date-fns";
 import {
 	ExternalLinkIcon,
@@ -25,6 +8,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import {
+	BitbucketIcon,
+	GiteaIcon,
+	GithubIcon,
+	GitlabIcon,
+} from "@/components/icons/data-tools-icons";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { api } from "@/utils/api";
+import { useUrl } from "@/utils/hooks/use-url";
 import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
 import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
 import { AddGiteaProvider } from "./gitea/add-gitea-provider";
@@ -47,13 +48,13 @@ export const ShowGitProviders = () => {
 	) => {
 		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
 		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}`;
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}`;
 		return authUrl;
 	};
 
 	return (
 		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+			<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -73,14 +74,14 @@ export const ShowGitProviders = () => {
 						) : (
 							<>
 								{data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
+									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
 										<GitBranch className="size-8 self-center text-muted-foreground" />
 										<span className="text-base text-muted-foreground text-center">
 											Create your first Git Provider
 										</span>
 										<div>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
-												<div className="flex items-center gap-4 p-3.5 rounded-lg bg-background border  w-full">
+												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
 													<AddGithubProvider />
 													<AddGitlabProvider />
 													<AddBitbucketProvider />
@@ -90,13 +91,13 @@ export const ShowGitProviders = () => {
 										</div>
 									</div>
 								) : (
-									<div className="flex flex-col gap-4  min-h-[25vh]">
+									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<div className="flex flex-col gap-2 rounded-lg ">
 											<span className="text-base font-medium">
 												Available Providers
 											</span>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
-												<div className="flex items-center gap-4 p-3.5 rounded-lg bg-background border  w-full">
+												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
 													<AddGithubProvider />
 													<AddGitlabProvider />
 													<AddBitbucketProvider />
@@ -156,9 +157,21 @@ export const ShowGitProviders = () => {
 																</div>
 															</div>
 
-															<div className="flex flex-row gap-1">
+															<div className="flex flex-row gap-1 items-center">
+																{isBitbucket &&
+																gitProvider.bitbucket?.appPassword &&
+																!gitProvider.bitbucket?.apiToken ? (
+																	<Badge variant="yellow">Deprecated</Badge>
+																) : null}
+
 																{!haveGithubRequirements && isGithub && (
-																	<div className="flex flex-col  gap-1">
+																	<div className="flex flex-row gap-1 items-center">
+																		<Badge
+																			variant="outline"
+																			className="text-xs"
+																		>
+																			Action Required
+																		</Badge>
 																		<Link
 																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
 																			className={buttonVariants({
@@ -171,7 +184,7 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 																{haveGithubRequirements && isGithub && (
-																	<div className="flex flex-col  gap-1">
+																	<div className="flex flex-col gap-1">
 																		<Link
 																			href={`${gitProvider?.github?.githubAppName}`}
 																			target="_blank"
@@ -185,7 +198,13 @@ export const ShowGitProviders = () => {
 																	</div>
 																)}
 																{!haveGitlabRequirements && isGitlab && (
-																	<div className="flex flex-col  gap-1">
+																	<div className="flex flex-row gap-1 items-center">
+																		<Badge
+																			variant="outline"
+																			className="text-xs"
+																		>
+																			Action Required
+																		</Badge>
 																		<Link
 																			href={getGitlabUrl(
 																				gitProvider.gitlab?.applicationId || "",

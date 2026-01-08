@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PlusIcon, SquarePen } from "lucide-react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,17 +25,9 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusIcon, SquarePen } from "lucide-react";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const AddProjectSchema = z.object({
 	name: z
@@ -38,7 +37,7 @@ const AddProjectSchema = z.object({
 			(name) => {
 				const trimmedName = name.trim();
 				const validNameRegex =
-					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_-]*[\p{L}\p{N}_-]$/u;
+					/^[\p{L}\p{N}_-][\p{L}\p{N}\s_.-]*[\p{L}\p{N}_-]$/u;
 				return validNameRegex.test(trimmedName);
 			},
 			{
@@ -102,7 +101,18 @@ export const HandleProject = ({ projectId }: Props) => {
 				toast.success(projectId ? "Project Updated" : "Project Created");
 				setIsOpen(false);
 				if (!projectId) {
-					router.push(`/dashboard/project/${data?.projectId}`);
+					const projectIdToUse =
+						data && "project" in data ? data.project.projectId : undefined;
+					const environmentIdToUse =
+						data && "environment" in data
+							? data.environment.environmentId
+							: undefined;
+
+					if (environmentIdToUse && projectIdToUse) {
+						router.push(
+							`/dashboard/project/${projectIdToUse}/environment/${environmentIdToUse}`,
+						);
+					}
 				} else {
 					refetch();
 				}

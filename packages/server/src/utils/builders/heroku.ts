@@ -1,59 +1,15 @@
-import type { WriteStream } from "node:fs";
-import type { ApplicationNested } from ".";
-import { prepareEnvironmentVariables } from "../docker/utils";
+import { prepareEnvironmentVariablesForShell } from "../docker/utils";
 import { getBuildAppDirectory } from "../filesystem/directory";
-import { spawnAsync } from "../process/spawnAsync";
+import type { ApplicationNested } from ".";
 
-// TODO: integrate in the vps sudo chown -R $(whoami) ~/.docker
-export const buildHeroku = async (
-	application: ApplicationNested,
-	writeStream: WriteStream,
-) => {
-	const { env, appName, cleanCache } = application;
-	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(
-		env,
-		application.project.env,
-	);
-	try {
-		const args = [
-			"build",
-			appName,
-			"--path",
-			buildAppDirectory,
-			"--builder",
-			`heroku/builder:${application.herokuVersion || "24"}`,
-		];
-
-		for (const env of envVariables) {
-			args.push("--env", env);
-		}
-
-		if (cleanCache) {
-			args.push("--clear-cache");
-		}
-
-		await spawnAsync("pack", args, (data) => {
-			if (writeStream.writable) {
-				writeStream.write(data);
-			}
-		});
-		return true;
-	} catch (e) {
-		throw e;
-	}
-};
-
-export const getHerokuCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
+export const getHerokuCommand = (application: ApplicationNested) => {
 	const { env, appName, cleanCache } = application;
 
 	const buildAppDirectory = getBuildAppDirectory(application);
-	const envVariables = prepareEnvironmentVariables(
+	const envVariables = prepareEnvironmentVariablesForShell(
 		env,
-		application.project.env,
+		application.environment.project.env,
+		application.environment.env,
 	);
 
 	const args = [
@@ -70,17 +26,17 @@ export const getHerokuCommand = (
 	}
 
 	for (const env of envVariables) {
-		args.push("--env", `'${env}'`);
+		args.push("--env", env);
 	}
 
 	const command = `pack ${args.join(" ")}`;
 	const bashCommand = `
-echo "Starting heroku build..." >> ${logPath};
-${command} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ Heroku build failed" >> ${logPath};
+echo "Starting heroku build..." ;
+${command} || { 
+  echo "❌ Heroku build failed" ;
   exit 1;
 }
-echo "✅ Heroku build completed." >> ${logPath};
+echo "✅ Heroku build completed." ;
 		`;
 
 	return bashCommand;

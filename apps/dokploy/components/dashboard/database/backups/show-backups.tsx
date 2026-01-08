@@ -1,3 +1,20 @@
+import {
+	ClipboardList,
+	Database,
+	DatabaseBackup,
+	Play,
+	Trash2,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+	MariadbIcon,
+	MongodbIcon,
+	MysqlIcon,
+	PostgresqlIcon,
+} from "@/components/icons/data-tools-icons";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,29 +30,12 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
-import {
-	ClipboardList,
-	Database,
-	DatabaseBackup,
-	Play,
-	Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
-import type { ServiceType } from "../../application/advanced/show-resources";
-import { RestoreBackup } from "./restore-backup";
-import { HandleBackup } from "./handle-backup";
 import { cn } from "@/lib/utils";
-import {
-	MariadbIcon,
-	MongodbIcon,
-	MysqlIcon,
-	PostgresqlIcon,
-} from "@/components/icons/data-tools-icons";
-import { AlertBlock } from "@/components/shared/alert-block";
+import { api } from "@/utils/api";
+import type { ServiceType } from "../../application/advanced/show-resources";
 import { ShowDeploymentsModal } from "../../application/deployments/show-deployments-modal";
+import { HandleBackup } from "./handle-backup";
+import { RestoreBackup } from "./restore-backup";
 
 interface Props {
 	id: string;

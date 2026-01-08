@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	bigint,
 	boolean,
 	integer,
 	json,
@@ -13,21 +14,40 @@ import { z } from "zod";
 import { bitbucket } from "./bitbucket";
 import { deployments } from "./deployment";
 import { domains } from "./domain";
+import { environments } from "./environment";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
-import { projects } from "./project";
 import { redirects } from "./redirects";
 import { registry } from "./registry";
 import { security } from "./security";
 import { server } from "./server";
-import { applicationStatus, certificateType, triggerType } from "./shared";
+import {
+	applicationStatus,
+	certificateType,
+	type EndpointSpecSwarm,
+	EndpointSpecSwarmSchema,
+	type HealthCheckSwarm,
+	HealthCheckSwarmSchema,
+	type LabelsSwarm,
+	LabelsSwarmSchema,
+	type NetworkSwarm,
+	NetworkSwarmSchema,
+	type PlacementSwarm,
+	PlacementSwarmSchema,
+	type RestartPolicySwarm,
+	RestartPolicySwarmSchema,
+	type ServiceModeSwarm,
+	ServiceModeSwarmSchema,
+	triggerType,
+	type UpdateConfigSwarm,
+	UpdateConfigSwarmSchema,
+} from "./shared";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -47,64 +67,6 @@ export const buildType = pgEnum("buildType", [
 	"railpack",
 ]);
 
-export interface HealthCheckSwarm {
-	Test?: string[] | undefined;
-	Interval?: number | undefined;
-	Timeout?: number | undefined;
-	StartPeriod?: number | undefined;
-	Retries?: number | undefined;
-}
-
-export interface RestartPolicySwarm {
-	Condition?: string | undefined;
-	Delay?: number | undefined;
-	MaxAttempts?: number | undefined;
-	Window?: number | undefined;
-}
-
-export interface PlacementSwarm {
-	Constraints?: string[] | undefined;
-	Preferences?: Array<{ Spread: { SpreadDescriptor: string } }> | undefined;
-	MaxReplicas?: number | undefined;
-	Platforms?:
-		| Array<{
-				Architecture: string;
-				OS: string;
-		  }>
-		| undefined;
-}
-
-export interface UpdateConfigSwarm {
-	Parallelism: number;
-	Delay?: number | undefined;
-	FailureAction?: string | undefined;
-	Monitor?: number | undefined;
-	MaxFailureRatio?: number | undefined;
-	Order: string;
-}
-
-export interface ServiceModeSwarm {
-	Replicated?: { Replicas?: number | undefined } | undefined;
-	Global?: {} | undefined;
-	ReplicatedJob?:
-		| {
-				MaxConcurrent?: number | undefined;
-				TotalCompletions?: number | undefined;
-		  }
-		| undefined;
-	GlobalJob?: {} | undefined;
-}
-
-export interface NetworkSwarm {
-	Target?: string | undefined;
-	Aliases?: string[] | undefined;
-	DriverOpts?: { [key: string]: string } | undefined;
-}
-
-export interface LabelsSwarm {
-	[name: string]: string;
-}
-
 export const applications = pgTable("application", {
 	applicationId: text("applicationId")
 		.notNull()
@@ -120,6 +82,8 @@ export const applications = pgTable("application", {
 	previewEnv: text("previewEnv"),
 	watchPaths: text("watchPaths").array(),
 	previewBuildArgs: text("previewBuildArgs"),
+	previewBuildSecrets: text("previewBuildSecrets"),
+	previewLabels: text("previewLabels").array(),
 	previewWildcard: text("previewWildcard"),
 	previewPort: integer("previewPort").default(3000),
 	previewHttps: boolean("previewHttps").notNull().default(false),
@@ -132,7 +96,13 @@ export const applications = pgTable("application", {
 	isPreviewDeploymentsActive: boolean("isPreviewDeploymentsActive").default(
 		false,
 	),
+	// Security: Require collaborator permissions for preview deployments
+	previewRequireCollaboratorPermissions: boolean(
+		"previewRequireCollaboratorPermissions",
+	).default(true),
+	rollbackActive: boolean("rollbackActive").default(false),
 	buildArgs: text("buildArgs"),
+	buildSecrets: text("buildSecrets"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
@@ -141,6 +111,7 @@ export const applications = pgTable("application", {
 	enabled: boolean("enabled"),
 	subtitle: text("subtitle"),
 	command: text("command"),
+	args: text("args").array(),
 	refreshToken: text("refreshToken").$defaultFn(() => nanoid()),
 	sourceType: sourceType("sourceType").notNull().default("github"),
 	cleanCache: boolean("cleanCache").default(false),
@@ -198,23 +169,34 @@ export const applications = pgTable("application", {
 	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
 	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
 	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
 	//
 	replicas: integer("replicas").default(1).notNull(),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
+	railpackVersion: text("railpackVersion").default("0.2.2"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
+	isStaticSpa: boolean("isStaticSpa"),
+	createEnvFile: boolean("createEnvFile").notNull().default(true),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
 	registryId: text("registryId").references(() => registry.registryId, {
 		onDelete: "set null",
 	}),
-	projectId: text("projectId")
+	rollbackRegistryId: text("rollbackRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	githubId: text("githubId").references(() => github.githubId, {
 		onDelete: "set null",
 	}),
@@ -230,14 +212,23 @@ export const applications = pgTable("application", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	buildServerId: text("buildServerId").references(() => server.serverId, {
+		onDelete: "set null",
+	}),
+	buildRegistryId: text("buildRegistryId").references(
+		() => registry.registryId,
+		{
+			onDelete: "set null",
+		},
+	),
 });
 
 export const applicationsRelations = relations(
 	applications,
 	({ one, many }) => ({
-		project: one(projects, {
-			fields: [applications.projectId],
-			references: [projects.projectId],
+		environment: one(environments, {
+			fields: [applications.environmentId],
+			references: [environments.environmentId],
 		}),
 		deployments: many(deployments),
 		customGitSSHKey: one(sshKeys, {
@@ -252,6 +243,7 @@ export const applicationsRelations = relations(
 		registry: one(registry, {
 			fields: [applications.registryId],
 			references: [registry.registryId],
+			relationName: "applicationRegistry",
 		}),
 		github: one(github, {
 			fields: [applications.githubId],
@@ -272,98 +264,26 @@ export const applicationsRelations = relations(
 		server: one(server, {
 			fields: [applications.serverId],
 			references: [server.serverId],
+			relationName: "applicationServer",
+		}),
+		buildServer: one(server, {
+			fields: [applications.buildServerId],
+			references: [server.serverId],
+			relationName: "applicationBuildServer",
+		}),
+		buildRegistry: one(registry, {
+			fields: [applications.buildRegistryId],
+			references: [registry.registryId],
+			relationName: "applicationBuildRegistry",
 		}),
 		previewDeployments: many(previewDeployments),
+		rollbackRegistry: one(registry, {
+			fields: [applications.rollbackRegistryId],
+			references: [registry.registryId],
+			relationName: "applicationRollbackRegistry",
+		}),
 	}),
 );
-
-const HealthCheckSwarmSchema = z
-	.object({
-		Test: z.array(z.string()).optional(),
-		Interval: z.number().optional(),
-		Timeout: z.number().optional(),
-		StartPeriod: z.number().optional(),
-		Retries: z.number().optional(),
-	})
-	.strict();
-
-const RestartPolicySwarmSchema = z
-	.object({
-		Condition: z.string().optional(),
-		Delay: z.number().optional(),
-		MaxAttempts: z.number().optional(),
-		Window: z.number().optional(),
-	})
-	.strict();
-
-const PreferenceSchema = z
-	.object({
-		Spread: z.object({
-			SpreadDescriptor: z.string(),
-		}),
-	})
-	.strict();
-
-const PlatformSchema = z
-	.object({
-		Architecture: z.string(),
-		OS: z.string(),
-	})
-	.strict();
-
-const PlacementSwarmSchema = z
-	.object({
-		Constraints: z.array(z.string()).optional(),
-		Preferences: z.array(PreferenceSchema).optional(),
-		MaxReplicas: z.number().optional(),
-		Platforms: z.array(PlatformSchema).optional(),
-	})
-	.strict();
-
-const UpdateConfigSwarmSchema = z
-	.object({
-		Parallelism: z.number(),
-		Delay: z.number().optional(),
-		FailureAction: z.string().optional(),
-		Monitor: z.number().optional(),
-		MaxFailureRatio: z.number().optional(),
-		Order: z.string(),
-	})
-	.strict();
-
-const ReplicatedSchema = z
-	.object({
-		Replicas: z.number().optional(),
-	})
-	.strict();
-
-const ReplicatedJobSchema = z
-	.object({
-		MaxConcurrent: z.number().optional(),
-		TotalCompletions: z.number().optional(),
-	})
-	.strict();
-
-const ServiceModeSwarmSchema = z
-	.object({
-		Replicated: ReplicatedSchema.optional(),
-		Global: z.object({}).optional(),
-		ReplicatedJob: ReplicatedJobSchema.optional(),
-		GlobalJob: z.object({}).optional(),
-	})
-	.strict();
-
-const NetworkSwarmSchema = z.array(
-	z
-		.object({
-			Target: z.string().optional(),
-			Aliases: z.array(z.string()).optional(),
-			DriverOpts: z.object({}).optional(),
-		})
-		.strict(),
-);
-
-const LabelsSwarmSchema = z.record(z.string());
 
 const createSchema = createInsertSchema(applications, {
 	appName: z.string(),
@@ -372,6 +292,7 @@ const createSchema = createInsertSchema(applications, {
 	autoDeploy: z.boolean(),
 	env: z.string().optional(),
 	buildArgs: z.string().optional(),
+	buildSecrets: z.string().optional(),
 	name: z.string().min(1),
 	description: z.string().optional(),
 	memoryReservation: z.string().optional(),
@@ -385,6 +306,7 @@ const createSchema = createInsertSchema(applications, {
 	username: z.string().optional(),
 	isPreviewDeploymentsActive: z.boolean().optional(),
 	password: z.string().optional(),
+	args: z.array(z.string()).optional(),
 	registryUrl: z.string().optional(),
 	customGitSSHKeyId: z.string().optional(),
 	repository: z.string().optional(),
@@ -394,7 +316,7 @@ const createSchema = createInsertSchema(applications, {
 	customGitBuildPath: z.string().optional(),
 	customGitUrl: z.string().optional(),
 	buildPath: z.string().optional(),
-	projectId: z.string(),
+	environmentId: z.string(),
 	sourceType: z
 		.enum(["github", "docker", "git", "gitlab", "bitbucket", "gitea", "drop"])
 		.optional(),
@@ -407,8 +329,11 @@ const createSchema = createInsertSchema(applications, {
 		"static",
 		"railpack",
 	]),
+	railpackVersion: z.string().optional(),
 	herokuVersion: z.string().optional(),
 	publishDirectory: z.string().optional(),
+	isStaticSpa: z.boolean().optional(),
+	createEnvFile: z.boolean().optional(),
 	owner: z.string(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
 	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
@@ -421,20 +346,25 @@ const createSchema = createInsertSchema(applications, {
 	previewPort: z.number().optional(),
 	previewEnv: z.string().optional(),
 	previewBuildArgs: z.string().optional(),
+	previewBuildSecrets: z.string().optional(),
 	previewWildcard: z.string().optional(),
 	previewLimit: z.number().optional(),
 	previewHttps: z.boolean().optional(),
 	previewPath: z.string().optional(),
 	previewCertificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
+	previewRequireCollaboratorPermissions: z.boolean().optional(),
 	watchPaths: z.array(z.string()).optional(),
+	previewLabels: z.array(z.string()).optional(),
 	cleanCache: z.boolean().optional(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
 export const apiCreateApplication = createSchema.pick({
 	name: true,
 	appName: true,
 	description: true,
-	projectId: true,
+	environmentId: true,
 	serverId: true,
 });
 
@@ -443,6 +373,26 @@ export const apiFindOneApplication = createSchema
 		applicationId: true,
 	})
 	.required();
+
+export const apiDeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
+
+export const apiRedeployApplication = createSchema
+	.pick({
+		applicationId: true,
+	})
+	.extend({
+		applicationId: z.string().min(1),
+		title: z.string().optional(),
+		description: z.string().optional(),
+	});
 
 export const apiReloadApplication = createSchema
 	.pick({
@@ -459,9 +409,10 @@ export const apiSaveBuildType = createSchema
 		dockerContextPath: true,
 		dockerBuildStage: true,
 		herokuVersion: true,
+		railpackVersion: true,
 	})
 	.required()
-	.merge(createSchema.pick({ publishDirectory: true }));
+	.merge(createSchema.pick({ publishDirectory: true, isStaticSpa: true }));
 
 export const apiSaveGithubProvider = createSchema
 	.pick({
@@ -551,6 +502,8 @@ export const apiSaveEnvironmentVariables = createSchema
 		applicationId: true,
 		env: true,
 		buildArgs: true,
+		buildSecrets: true,
+		createEnvFile: true,
 	})
 	.required();
 

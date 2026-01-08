@@ -1,8 +1,8 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateGithub,
-	gitProvider,
 	github,
+	gitProvider,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -13,6 +13,7 @@ export type Github = typeof github.$inferSelect;
 export const createGithub = async (
 	input: typeof apiCreateGithub._type,
 	organizationId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -21,6 +22,7 @@ export const createGithub = async (
 				providerType: "github",
 				organizationId: organizationId,
 				name: input.name,
+				userId: userId,
 			})
 			.returning()
 			.then((response) => response[0]);
@@ -119,7 +121,7 @@ export const issueCommentExists = async ({
 			comment_id: comment_id,
 		});
 		return true;
-	} catch (_error) {
+	} catch {
 		return false;
 	}
 };
@@ -189,4 +191,157 @@ export const createPreviewDeploymentComment = async ({
 	return await updatePreviewDeployment(previewDeploymentId, {
 		pullRequestCommentId: `${issue.data.id}`,
 	}).then((response) => response[0]);
+};
+
+/**
+ * Generate security notification message for blocked PR deployments
+ */
+export const getSecurityBlockedMessage = (
+	prAuthor: string,
+	repositoryName: string,
+	permission: string | null,
+) => {
+	return `### 🚨 Preview Deployment Blocked - Security Protection
+
+**Your pull request was blocked from triggering preview deployments**
+
+#### Why was this blocked?
+- **User**: \`${prAuthor}\`
+- **Repository**: \`${repositoryName}\`
+- **Permission Level**: \`${permission || "none"}\`
+- **Required Level**: \`write\`, \`maintain\`, or \`admin\`
+
+#### How to resolve this:
+
+**Option 1: Get Collaborator Access (Recommended)**
+Ask a repository maintainer to invite you as a collaborator with **write permissions** or higher.
+
+**Option 2: Request Permission Override**
+Ask a repository administrator to disable security validation for this specific application if appropriate.
+
+#### For Repository Administrators:
+To disable this security check (⚠️ **not recommended for public repositories**):
+Enter to preview settings and disable the security check.
+
+---
+*This security measure protects against malicious code execution in preview deployments. Only trusted collaborators should have the ability to trigger deployments.*
+
+<details>
+<summary>🛡️ Learn more about this security feature</summary>
+
+This protection prevents unauthorized users from:
+- Executing malicious code on the deployment server
+- Accessing environment variables and secrets
+- Potentially compromising the infrastructure
+
+Preview deployments are powerful but require trust. Only users with repository write access can trigger them.
+</details>`;
+};
+
+/**
+ * Check if a security notification comment already exists on a GitHub PR
+ * This prevents creating duplicate security comments on subsequent pushes
+ */
+export const hasExistingSecurityComment = async ({
+	owner,
+	repository,
+	prNumber,
+	githubId,
+}: {
+	owner: string;
+	repository: string;
+	prNumber: number;
+	githubId: string;
+}): Promise<boolean> => {
+	try {
+		const github = await findGithubById(githubId);
+		const octokit = authGithub(github);
+
+		// Get all comments for this PR
+		const { data: comments } = await octokit.rest.issues.listComments({
+			owner,
+			repo: repository,
+			issue_number: prNumber,
+		});
+
+		// Check if any comment contains our security notification marker
+		const securityCommentExists = comments.some((comment) =>
+			comment.body?.includes(
+				"🚨 Preview Deployment Blocked - Security Protection",
+			),
+		);
+
+		return securityCommentExists;
+	} catch (error) {
+		console.error(
+			`❌ Failed to check existing comments on PR #${prNumber}:`,
+			error,
+		);
+		// If we can't check, assume no comment exists to avoid blocking functionality
+		return false;
+	}
+};
+
+/**
+ * Create a security notification comment on a GitHub PR
+ */
+export const createSecurityBlockedComment = async ({
+	owner,
+	repository,
+	prNumber,
+	prAuthor,
+	permission,
+	githubId,
+}: {
+	owner: string;
+	repository: string;
+	prNumber: number;
+	prAuthor: string;
+	permission: string | null;
+	githubId: string;
+}) => {
+	try {
+		// Check if a security comment already exists to prevent duplicates
+		const commentExists = await hasExistingSecurityComment({
+			owner,
+			repository,
+			prNumber,
+			githubId,
+		});
+
+		if (commentExists) {
+			console.log(
+				`ℹ️  Security notification comment already exists on PR #${prNumber}, skipping duplicate`,
+			);
+			return null;
+		}
+
+		const github = await findGithubById(githubId);
+		const octokit = authGithub(github);
+
+		const securityMessage = getSecurityBlockedMessage(
+			prAuthor,
+			repository,
+			permission,
+		);
+
+		const issue = await octokit.rest.issues.createComment({
+			owner,
+			repo: repository,
+			issue_number: prNumber,
+			body: securityMessage,
+		});
+
+		console.log(
+			`✅ Security notification comment created on PR #${prNumber}: ${issue.data.html_url}`,
+		);
+		return issue.data;
+	} catch (error) {
+		console.error(
+			`❌ Failed to create security comment on PR #${prNumber}:`,
+			error,
+		);
+		// Don't throw error - security comment is nice-to-have, not critical
+		return null;
+	}
 };

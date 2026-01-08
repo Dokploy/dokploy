@@ -1,8 +1,10 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToConfigsInServices } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import {
+	addSuffixToConfigsInServices,
+	generateRandomHash,
+} from "@dokploy/server";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile = `
 version: "3.8"
@@ -20,7 +22,7 @@ configs:
 `;
 
 test("Add suffix to configs in services", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -52,7 +54,7 @@ configs:
 `;
 
 test("Add suffix to configs in services with single config", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileSingleServiceConfig,
 	) as ComposeSpecification;
 
@@ -106,7 +108,7 @@ configs:
 `;
 
 test("Add suffix to configs in services with multiple configs", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileMultipleServicesConfigs,
 	) as ComposeSpecification;
 
@@ -155,7 +157,7 @@ services:
 `;
 
 // Expected compose file con el prefijo `testhash`
-const expectedComposeFileConfigServices = load(`
+const expectedComposeFileConfigServices = parse(`
 version: "3.8"
 
 services:
@@ -180,7 +182,7 @@ services:
 `) as ComposeSpecification;
 
 test("Add suffix to configs in services", () => {
-	const composeData = load(composeFileConfigServices) as ComposeSpecification;
+	const composeData = parse(composeFileConfigServices) as ComposeSpecification;
 
 	const suffix = "testhash";
 

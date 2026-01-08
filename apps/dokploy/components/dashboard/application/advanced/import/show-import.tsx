@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Code2, Globe2, HardDrive } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -27,12 +33,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Code2, Globe2, HardDrive } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const ImportSchema = z.object({
 	base64: z.string(),
@@ -107,7 +107,7 @@ export const ShowImport = ({ composeId }: Props) => {
 				composeId,
 			});
 			setShowModal(false);
-		} catch (_error) {
+		} catch {
 			toast.error("Error importing template");
 		}
 	};
@@ -126,7 +126,7 @@ export const ShowImport = ({ composeId }: Props) => {
 			});
 			setTemplateInfo(result);
 			setShowModal(true);
-		} catch (_error) {
+		} catch {
 			toast.error("Error processing template");
 		}
 	};
@@ -185,7 +185,7 @@ export const ShowImport = ({ composeId }: Props) => {
 								</Button>
 							</div>
 							<Dialog open={showModal} onOpenChange={setShowModal}>
-								<DialogContent className="max-h-[80vh] max-w-[50vw] overflow-y-auto">
+								<DialogContent className="max-w-[50vw]">
 									<DialogHeader>
 										<DialogTitle className="text-2xl font-bold">
 											Template Information
@@ -263,7 +263,7 @@ export const ShowImport = ({ composeId }: Props) => {
 														{templateInfo.template.envs.map((env, index) => (
 															<div
 																key={index}
-																className="rounded-lg border bg-card p-2 font-mono text-sm"
+																className="rounded-lg truncate border bg-card p-2 font-mono text-sm"
 															>
 																{env}
 															</div>
@@ -328,7 +328,7 @@ export const ShowImport = ({ composeId }: Props) => {
 						<DialogDescription>Mount File Content</DialogDescription>
 					</DialogHeader>
 
-					<ScrollArea className="h-[25vh] pr-4">
+					<ScrollArea className="h-[45vh] pr-4">
 						<CodeEditor
 							language="yaml"
 							value={selectedMount?.content || ""}

@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 import { ShowTraefikSystem } from "../../file-system/show-traefik-system";
 
 interface Props {
@@ -20,7 +20,7 @@ export const ShowTraefikFileSystemModal = ({ serverId }: Props) => {
 					Show Traefik File System
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-7xl  ">
 				<ShowTraefikSystem serverId={serverId} />
 			</DialogContent>
 		</Dialog>

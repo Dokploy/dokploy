@@ -1,8 +1,8 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateGitea,
-	gitProvider,
 	gitea,
+	gitProvider,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -12,6 +12,7 @@ export type Gitea = typeof gitea.$inferSelect;
 export const createGitea = async (
 	input: typeof apiCreateGitea._type,
 	organizationId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -20,6 +21,7 @@ export const createGitea = async (
 				providerType: "gitea",
 				organizationId: organizationId,
 				name: input.name,
+				userId: userId,
 			})
 			.returning()
 			.then((response) => response[0]);

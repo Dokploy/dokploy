@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ShowBilling } from "@/components/dashboard/settings/billing/show-billing";
 import {
 	Dialog,
@@ -6,7 +7,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
 
 export const ShowWelcomeDokploy = () => {
 	const { data } = api.user.get.useQuery();
@@ -41,7 +41,7 @@ export const ShowWelcomeDokploy = () => {
 	return (
 		<>
 			<Dialog open={open} onOpenChange={handleClose}>
-				<DialogContent className="sm:max-w-xl max-h-screen overflow-y-auto">
+				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
 						<DialogTitle className="text-2xl font-semibold text-center">
 							Welcome to Dokploy Cloud 🎉

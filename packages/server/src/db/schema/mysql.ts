@@ -1,13 +1,31 @@
 import { relations } from "drizzle-orm";
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { bigint, integer, json, pgTable, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { backups } from "./backups";
+import { environments } from "./environment";
 import { mounts } from "./mount";
-import { projects } from "./project";
 import { server } from "./server";
-import { applicationStatus } from "./shared";
+import {
+	applicationStatus,
+	type EndpointSpecSwarm,
+	EndpointSpecSwarmSchema,
+	type HealthCheckSwarm,
+	HealthCheckSwarmSchema,
+	type LabelsSwarm,
+	LabelsSwarmSchema,
+	type NetworkSwarm,
+	NetworkSwarmSchema,
+	type PlacementSwarm,
+	PlacementSwarmSchema,
+	type RestartPolicySwarm,
+	RestartPolicySwarmSchema,
+	type ServiceModeSwarm,
+	ServiceModeSwarmSchema,
+	type UpdateConfigSwarm,
+	UpdateConfigSwarmSchema,
+} from "./shared";
 import { generateAppName } from "./utils";
 
 export const mysql = pgTable("mysql", {
@@ -27,6 +45,7 @@ export const mysql = pgTable("mysql", {
 	databaseRootPassword: text("rootPassword").notNull(),
 	dockerImage: text("dockerImage").notNull(),
 	command: text("command"),
+	args: text("args").array(),
 	env: text("env"),
 	memoryReservation: text("memoryReservation"),
 	memoryLimit: text("memoryLimit"),
@@ -36,21 +55,33 @@ export const mysql = pgTable("mysql", {
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
+	healthCheckSwarm: json("healthCheckSwarm").$type<HealthCheckSwarm>(),
+	restartPolicySwarm: json("restartPolicySwarm").$type<RestartPolicySwarm>(),
+	placementSwarm: json("placementSwarm").$type<PlacementSwarm>(),
+	updateConfigSwarm: json("updateConfigSwarm").$type<UpdateConfigSwarm>(),
+	rollbackConfigSwarm: json("rollbackConfigSwarm").$type<UpdateConfigSwarm>(),
+	modeSwarm: json("modeSwarm").$type<ServiceModeSwarm>(),
+	labelsSwarm: json("labelsSwarm").$type<LabelsSwarm>(),
+	networkSwarm: json("networkSwarm").$type<NetworkSwarm[]>(),
+	stopGracePeriodSwarm: bigint("stopGracePeriodSwarm", { mode: "bigint" }),
+	endpointSpecSwarm: json("endpointSpecSwarm").$type<EndpointSpecSwarm>(),
+	replicas: integer("replicas").default(1).notNull(),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
-	projectId: text("projectId")
+
+	environmentId: text("environmentId")
 		.notNull()
-		.references(() => projects.projectId, { onDelete: "cascade" }),
+		.references(() => environments.environmentId, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
 });
 
 export const mysqlRelations = relations(mysql, ({ one, many }) => ({
-	project: one(projects, {
-		fields: [mysql.projectId],
-		references: [projects.projectId],
+	environment: one(environments, {
+		fields: [mysql.environmentId],
+		references: [environments.environmentId],
 	}),
 	backups: many(backups),
 	mounts: many(mounts),
@@ -67,20 +98,41 @@ const createSchema = createInsertSchema(mysql, {
 	name: z.string().min(1),
 	databaseName: z.string().min(1),
 	databaseUser: z.string().min(1),
-	databasePassword: z.string(),
-	databaseRootPassword: z.string().optional(),
+	databasePassword: z
+		.string()
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		}),
+	databaseRootPassword: z
+		.string()
+		.regex(/^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$/, {
+			message:
+				"Password contains invalid characters. Please avoid: $ ! ' \" \\ / and space characters for database compatibility",
+		})
+		.optional(),
 	dockerImage: z.string().default("mysql:8"),
 	command: z.string().optional(),
+	args: z.array(z.string()).optional(),
 	env: z.string().optional(),
 	memoryReservation: z.string().optional(),
 	memoryLimit: z.string().optional(),
 	cpuReservation: z.string().optional(),
 	cpuLimit: z.string().optional(),
-	projectId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
+	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
+	restartPolicySwarm: RestartPolicySwarmSchema.nullable(),
+	placementSwarm: PlacementSwarmSchema.nullable(),
+	updateConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	rollbackConfigSwarm: UpdateConfigSwarmSchema.nullable(),
+	modeSwarm: ServiceModeSwarmSchema.nullable(),
+	labelsSwarm: LabelsSwarmSchema.nullable(),
+	networkSwarm: NetworkSwarmSchema.nullable(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
 export const apiCreateMySql = createSchema
@@ -88,7 +140,7 @@ export const apiCreateMySql = createSchema
 		name: true,
 		appName: true,
 		dockerImage: true,
-		projectId: true,
+		environmentId: true,
 		description: true,
 		databaseName: true,
 		databaseUser: true,

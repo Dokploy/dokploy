@@ -1,8 +1,7 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToNetworksRoot } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import { addSuffixToNetworksRoot, generateRandomHash } from "@dokploy/server";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFile = `
 version: "3.8"
@@ -36,7 +35,7 @@ test("Generate random hash with 8 characters", () => {
 });
 
 test("Add suffix to networks root property", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -80,7 +79,7 @@ networks:
 `;
 
 test("Add suffix to advanced networks root property (2 TRY)", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -121,7 +120,7 @@ networks:
 `;
 
 test("Add suffix to networks with external properties", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -161,7 +160,7 @@ networks:
 `;
 
 test("Add suffix to networks with IPAM configurations", () => {
-	const composeData = load(composeFile4) as ComposeSpecification;
+	const composeData = parse(composeFile4) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -202,7 +201,7 @@ networks:
 `;
 
 test("Add suffix to networks with custom options", () => {
-	const composeData = load(composeFile5) as ComposeSpecification;
+	const composeData = parse(composeFile5) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -265,7 +264,7 @@ networks:
 `;
 
 test("Add suffix to networks with static suffix", () => {
-	const composeData = load(composeFile6) as ComposeSpecification;
+	const composeData = parse(composeFile6) as ComposeSpecification;
 
 	const suffix = "testhash";
 
@@ -274,7 +273,7 @@ test("Add suffix to networks with static suffix", () => {
 	}
 	const networks = addSuffixToNetworksRoot(composeData.networks, suffix);
 
-	const expectedComposeData = load(
+	const expectedComposeData = parse(
 		expectedComposeFile6,
 	) as ComposeSpecification;
 	expect(networks).toStrictEqual(expectedComposeData.networks);
@@ -294,7 +293,7 @@ networks:
 `;
 
 test("It shoudn't add suffix to dokploy-network", () => {
-	const composeData = load(composeFile7) as ComposeSpecification;
+	const composeData = parse(composeFile7) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 

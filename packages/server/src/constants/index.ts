@@ -24,5 +24,6 @@ export const paths = (isServer = false) => {
 		MONITORING_PATH: `${BASE_PATH}/monitoring`,
 		REGISTRY_PATH: `${BASE_PATH}/registry`,
 		SCHEDULES_PATH: `${BASE_PATH}/schedules`,
+		VOLUME_BACKUPS_PATH: `${BASE_PATH}/volume-backups`,
 	};
 };

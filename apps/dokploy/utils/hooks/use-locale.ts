@@ -1,5 +1,5 @@
-import type { LanguageCode } from "@/lib/languages";
 import Cookies from "js-cookie";
+import type { LanguageCode } from "@/lib/languages";
 
 export default function useLocale() {
 	const currentLocale = (Cookies.get("DOKPLOY_LOCALE") ?? "en") as LanguageCode;

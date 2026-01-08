@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -18,12 +24,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 interface Props {
 	composeId: string;
@@ -77,8 +77,8 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 			randomize: formData?.randomize || false,
 		})
 			.then(async (_data) => {
-				randomizeCompose();
-				refetch();
+				await randomizeCompose();
+				await refetch();
 				toast.success("Compose updated");
 			})
 			.catch(() => {
@@ -90,15 +90,10 @@ export const RandomizeCompose = ({ composeId }: Props) => {
 		await mutateAsync({
 			composeId,
 			suffix,
-		})
-			.then(async (data) => {
-				await utils.project.all.invalidate();
-				setCompose(data);
-				toast.success("Compose randomized");
-			})
-			.catch(() => {
-				toast.error("Error randomizing the compose");
-			});
+		}).then(async (data) => {
+			await utils.project.all.invalidate();
+			setCompose(data);
+		});
 	};
 
 	return (

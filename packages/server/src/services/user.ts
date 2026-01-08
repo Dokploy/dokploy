@@ -1,10 +1,10 @@
 import { db } from "@dokploy/server/db";
-import { apikey, member, users_temp } from "@dokploy/server/db/schema";
+import { apikey, member, user } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
 
-export type User = typeof users_temp.$inferSelect;
+export type User = typeof user.$inferSelect;
 
 export const addNewProject = async (
 	userId: string,
@@ -17,6 +17,23 @@ export const addNewProject = async (
 		.update(member)
 		.set({
 			accessedProjects: [...userR.accessedProjects, projectId],
+		})
+		.where(
+			and(eq(member.id, userR.id), eq(member.organizationId, organizationId)),
+		);
+};
+
+export const addNewEnvironment = async (
+	userId: string,
+	environmentId: string,
+	organizationId: string,
+) => {
+	const userR = await findMemberById(userId, organizationId);
+
+	await db
+		.update(member)
+		.set({
+			accessedEnvironments: [...userR.accessedEnvironments, environmentId],
 		})
 		.where(
 			and(eq(member.id, userR.id), eq(member.organizationId, organizationId)),
@@ -161,6 +178,45 @@ export const canPerformAccessProject = async (
 	return false;
 };
 
+export const canPerformAccessEnvironment = async (
+	userId: string,
+	environmentId: string,
+	organizationId: string,
+) => {
+	const member = await findMemberById(userId, organizationId);
+
+	if (member.role === "owner" || member.role === "admin") {
+		return true;
+	}
+
+	const { accessedEnvironments } = member;
+	const haveAccessToEnvironment = accessedEnvironments.includes(environmentId);
+
+	if (haveAccessToEnvironment) {
+		return true;
+	}
+
+	return false;
+};
+
+export const canPerformDeleteEnvironment = async (
+	userId: string,
+	projectId: string,
+	organizationId: string,
+) => {
+	const { accessedProjects, canDeleteEnvironments } = await findMemberById(
+		userId,
+		organizationId,
+	);
+	const haveAccessToProject = accessedProjects.includes(projectId);
+
+	if (canDeleteEnvironments && haveAccessToProject) {
+		return true;
+	}
+
+	return false;
+};
+
 export const canAccessToTraefikFiles = async (
 	userId: string,
 	organizationId: string,
@@ -239,21 +295,6 @@ export const checkEnvironmentAccess = async (
 			message: "Permission denied",
 		});
 	}
-};
-
-export const canPerformAccessEnvironment = async (
-	userId: string,
-	environmentId: string,
-	organizationId: string,
-) => {
-	const { accessedEnvironments } = await findMemberById(userId, organizationId);
-	const haveAccessToEnvironment = accessedEnvironments.includes(environmentId);
-
-	if (haveAccessToEnvironment) {
-		return true;
-	}
-
-	return false;
 };
 
 export const checkEnvironmentDeletionPermission = async (
@@ -402,11 +443,11 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 	}
 
 	const userResult = await db
-		.update(users_temp)
+		.update(user)
 		.set({
 			...userData,
 		})
-		.where(eq(users_temp.id, userId))
+		.where(eq(user.id, userId))
 		.returning()
 		.then((res) => res[0]);
 

@@ -11,6 +11,7 @@ import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
 import { dockerRouter } from "./routers/docker";
 import { domainRouter } from "./routers/domain";
+import { environmentRouter } from "./routers/environment";
 import { gitProviderRouter } from "./routers/git-provider";
 import { giteaRouter } from "./routers/gitea";
 import { githubRouter } from "./routers/github";
@@ -28,6 +29,8 @@ import { projectRouter } from "./routers/project";
 import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
+import { rollbackRouter } from "./routers/rollbacks";
+import { scheduleRouter } from "./routers/schedule";
 import { securityRouter } from "./routers/security";
 import { serverRouter } from "./routers/server";
 import { settingsRouter } from "./routers/settings";
@@ -35,7 +38,7 @@ import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
 import { userRouter } from "./routers/user";
-import { scheduleRouter } from "./routers/schedule";
+import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
  * This is the primary router for your server.
  *
@@ -80,6 +83,9 @@ export const appRouter = createTRPCRouter({
 	ai: aiRouter,
 	organization: organizationRouter,
 	schedule: scheduleRouter,
+	rollback: rollbackRouter,
+	volumeBackups: volumeBackupsRouter,
+	environment: environmentRouter,
 });
 
 // export type definition of API

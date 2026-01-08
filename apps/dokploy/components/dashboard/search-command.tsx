@@ -1,5 +1,12 @@
 "use client";
 
+import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import React from "react";
+import {
+	extractServices,
+	type Services,
+} from "@/components/dashboard/settings/users/add-permissions";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -17,15 +24,33 @@ import {
 	CommandSeparator,
 } from "@/components/ui/command";
 import { authClient } from "@/lib/auth-client";
-import {
-	type Services,
-	extractServices,
-} from "@/pages/dashboard/project/[projectId]";
 import { api } from "@/utils/api";
-import { BookIcon, CircuitBoard, GlobeIcon } from "lucide-react";
-import { useRouter } from "next/router";
-import React from "react";
 import { StatusTooltip } from "../shared/status-tooltip";
+
+// Extended Services type to include environmentId and environmentName for search navigation
+type SearchServices = Services & {
+	environmentId: string;
+	environmentName: string;
+};
+
+const extractAllServicesFromProject = (project: any): SearchServices[] => {
+	const allServices: SearchServices[] = [];
+
+	// Iterate through all environments in the project
+	project.environments?.forEach((environment: any) => {
+		const environmentServices = extractServices(environment);
+		const servicesWithEnvironmentId: SearchServices[] = environmentServices.map(
+			(service) => ({
+				...service,
+				environmentId: environment.environmentId,
+				environmentName: environment.name,
+			}),
+		);
+		allServices.push(...servicesWithEnvironmentId);
+	});
+
+	return allServices;
+};
 
 export const SearchCommand = () => {
 	const router = useRouter();
@@ -63,31 +88,44 @@ export const SearchCommand = () => {
 					</CommandEmpty>
 					<CommandGroup heading={"Projects"}>
 						<CommandList>
-							{data?.map((project) => (
-								<CommandItem
-									key={project.projectId}
-									onSelect={() => {
-										router.push(`/dashboard/project/${project.projectId}`);
-										setOpen(false);
-									}}
-								>
-									<BookIcon className="size-4 text-muted-foreground mr-2" />
-									{project.name}
-								</CommandItem>
-							))}
+							{data?.map((project) => {
+								// Find default environment, or fall back to first environment
+								const defaultEnvironment =
+									project.environments.find(
+										(environment) => environment.isDefault,
+									) || project?.environments?.[0];
+
+								if (!defaultEnvironment) return null;
+
+								return (
+									<CommandItem
+										key={project.projectId}
+										onSelect={() => {
+											router.push(
+												`/dashboard/project/${project.projectId}/environment/${defaultEnvironment.environmentId}`,
+											);
+											setOpen(false);
+										}}
+									>
+										<BookIcon className="size-4 text-muted-foreground mr-2" />
+										{project.name} / {defaultEnvironment.name}
+									</CommandItem>
+								);
+							})}
 						</CommandList>
 					</CommandGroup>
 					<CommandSeparator />
 					<CommandGroup heading={"Services"}>
 						<CommandList>
 							{data?.map((project) => {
-								const applications: Services[] = extractServices(project);
+								const applications: SearchServices[] =
+									extractAllServicesFromProject(project);
 								return applications.map((application) => (
 									<CommandItem
 										key={application.id}
 										onSelect={() => {
 											router.push(
-												`/dashboard/project/${project.projectId}/services/${application.type}/${application.id}`,
+												`/dashboard/project/${project.projectId}/environment/${application.environmentId}/services/${application.type}/${application.id}`,
 											);
 											setOpen(false);
 										}}
@@ -114,7 +152,8 @@ export const SearchCommand = () => {
 											<CircuitBoard className="h-6 w-6 mr-2" />
 										)}
 										<span className="flex-grow">
-											{project.name} / {application.name}{" "}
+											{project.name} / {application.environmentName} /{" "}
+											{application.name}{" "}
 											<div style={{ display: "none" }}>{application.id}</div>
 										</span>
 										<div>

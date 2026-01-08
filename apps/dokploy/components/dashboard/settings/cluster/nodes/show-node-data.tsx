@@ -24,7 +24,7 @@ export const ShowNodeData = ({ data }: Props) => {
 					View Config
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
 					<DialogTitle>Node Config</DialogTitle>
 					<DialogDescription>

@@ -1,3 +1,12 @@
+import { getUserByToken, IS_CLOUD } from "@dokploy/server";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { GetServerSidePropsContext } from "next";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { type ReactElement, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { OnboardingLayout } from "@/components/layouts/onboarding-layout";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Logo } from "@/components/shared/logo";
@@ -14,20 +23,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import { IS_CLOUD, getUserByToken } from "@dokploy/server";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { GetServerSidePropsContext } from "next";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { type ReactElement, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const registerSchema = z
 	.object({
 		name: z.string().min(1, {
-			message: "Name is required",
+			message: "First name is required",
+		}),
+		lastName: z.string().min(1, {
+			message: "Last name is required",
 		}),
 		email: z
 			.string()
@@ -92,6 +95,7 @@ const Invitation = ({
 	const form = useForm<Register>({
 		defaultValues: {
 			name: "",
+			lastName: "",
 			email: "",
 			password: "",
 			confirmPassword: "",
@@ -115,6 +119,7 @@ const Invitation = ({
 				email: values.email,
 				password: values.password,
 				name: values.name,
+				lastName: values.lastName,
 				fetchOptions: {
 					headers: {
 						"x-dokploy-token": token,
@@ -133,7 +138,7 @@ const Invitation = ({
 
 			toast.success("Account created successfully");
 			router.push("/dashboard/projects");
-		} catch (_error) {
+		} catch {
 			toast.error("An error occurred while creating your account");
 		}
 	};
@@ -197,12 +202,22 @@ const Invitation = ({
 													name="name"
 													render={({ field }) => (
 														<FormItem>
-															<FormLabel>Name</FormLabel>
+															<FormLabel>First Name</FormLabel>
 															<FormControl>
-																<Input
-																	placeholder="Enter your name"
-																	{...field}
-																/>
+																<Input placeholder="John" {...field} />
+															</FormControl>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="lastName"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel>Last Name</FormLabel>
+															<FormControl>
+																<Input placeholder="Doe" {...field} />
 															</FormControl>
 															<FormMessage />
 														</FormItem>

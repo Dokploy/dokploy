@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 import { ShowContainers } from "../../docker/show/show-containers";
 
 interface Props {
@@ -20,7 +20,7 @@ export const ShowDockerContainersModal = ({ serverId }: Props) => {
 					Show Docker Containers
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-7xl  ">
 				<div className="grid w-full gap-1">
 					<ShowContainers serverId={serverId} />
 				</div>

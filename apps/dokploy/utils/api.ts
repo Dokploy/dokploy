@@ -4,7 +4,7 @@
  *
  * We also create a few inference helpers for input and output types.
  */
-import type { AppRouter } from "@/server/api/root";
+
 import {
 	createWSClient,
 	experimental_formDataLink,
@@ -15,6 +15,7 @@ import {
 import { createTRPCNext } from "@trpc/next";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
+import type { AppRouter } from "@/server/api/root";
 
 const getBaseUrl = () => {
 	if (typeof window !== "undefined") return ""; // browser should use relative url
@@ -30,12 +31,41 @@ const getWsUrl = () => {
 	return `${protocol}${host}/drawer-logs`;
 };
 
-const wsClient =
-	typeof window !== "undefined"
-		? createWSClient({
-				url: getWsUrl() || "",
-			})
-		: null;
+// Create WebSocket client with delayed connection
+const createLazyWSClient = () => {
+	if (typeof window === "undefined") return null;
+
+	let actualClient: ReturnType<typeof createWSClient> | null = null;
+
+	return {
+		request: (op: any, callbacks: any) => {
+			if (!actualClient) {
+				const wsUrl = getWsUrl();
+				if (wsUrl) {
+					actualClient = createWSClient({ url: wsUrl });
+				}
+			}
+			return actualClient?.request(op, callbacks) || (() => {});
+		},
+		close: () => {
+			if (actualClient) {
+				actualClient.close();
+				actualClient = null;
+			}
+		},
+		getConnection: () => {
+			if (!actualClient) {
+				const wsUrl = getWsUrl();
+				if (wsUrl) {
+					actualClient = createWSClient({ url: wsUrl });
+				}
+			}
+			return actualClient!.getConnection();
+		},
+	};
+};
+
+const wsClient = createLazyWSClient();
 
 /** A set of type-safe react-query hooks for your tRPC API. */
 export const api = createTRPCNext<AppRouter>({

@@ -1,11 +1,13 @@
 {
 	"name": "dokploy",
 	"private": true,
-	"workspaces": ["apps/*", "packages/*"],
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
 	"scripts": {
 		"dokploy:setup": "pnpm --filter=dokploy run setup",
 		"dokploy:dev": "pnpm --filter=dokploy run dev",
-		"dokploy:dev:turbopack": "pnpm --filter=dokploy run dev-turbopack",
 		"dokploy:build": "pnpm --filter=dokploy run build",
 		"dokploy:start": "pnpm --filter=dokploy run start",
 		"test": "pnpm --filter=dokploy run test",
@@ -17,23 +19,24 @@
 		"build": "pnpm -r run build",
 		"format-and-lint": "biome check .",
 		"check": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true",
-		"format-and-lint:fix": "biome check . --write"
+		"format-and-lint:fix": "biome check . --write",
+		"generate:openapi": "pnpm --filter=dokploy run generate:openapi"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "2.1.1",
+		"@commitlint/cli": "^19.8.1",
+		"@commitlint/config-conventional": "^19.8.1",
+		"@types/node": "^18.19.104",
 		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
-		"tsx": "4.16.2",
-		"lint-staged": "^15.2.7",
-		"@biomejs/biome": "1.9.4",
 		"lefthook": "1.8.4",
-		"@commitlint/cli": "^19.3.0",
-		"@commitlint/config-conventional": "^19.2.2",
-		"@types/node": "^18.17.0"
+		"lint-staged": "^15.5.2",
+		"tsx": "4.16.2"
 	},
-	"packageManager": "pnpm@9.5.0",
+	"packageManager": "pnpm@9.12.0",
 	"engines": {
-		"node": "^20.9.0",
-		"pnpm": ">=9.5.0"
+		"node": "^20.16.0",
+		"pnpm": ">=9.12.0"
 	},
 	"lint-staged": {
 		"*": [
@@ -41,7 +44,9 @@
 		]
 	},
 	"commitlint": {
-		"extends": ["@commitlint/config-conventional"]
+		"extends": [
+			"@commitlint/config-conventional"
+		]
 	},
 	"resolutions": {
 		"@types/react": "18.3.5",

@@ -1,3 +1,13 @@
+import {
+	ExternalLink,
+	FileText,
+	GitPullRequest,
+	Loader2,
+	PenSquare,
+	RocketIcon,
+	Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -13,20 +23,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import {
-	ExternalLink,
-	FileText,
-	GitPullRequest,
-	Loader2,
-	PenSquare,
-	RocketIcon,
-	Trash2,
-} from "lucide-react";
-import { toast } from "sonner";
 import { ShowModalLogs } from "../../settings/web-server/show-modal-logs";
+import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 import { AddPreviewDomain } from "./add-preview-domain";
 import { ShowPreviewSettings } from "./show-preview-settings";
-import { ShowDeploymentsModal } from "../deployments/show-deployments-modal";
 
 interface Props {
 	applicationId: string;
@@ -182,7 +182,16 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 															id={deployment.previewDeploymentId}
 															type="previewDeployment"
 															serverId={data?.serverId || ""}
-														/>
+														>
+															<Button
+																variant="outline"
+																size="sm"
+																className="gap-2"
+															>
+																<RocketIcon className="size-4" />
+																Deployments
+															</Button>
+														</ShowDeploymentsModal>
 
 														<AddPreviewDomain
 															previewDeploymentId={`${deployment.previewDeploymentId}`}

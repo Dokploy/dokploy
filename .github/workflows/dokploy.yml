@@ -2,7 +2,8 @@ name: Dokploy Docker Build
 
 on:
   push:
-    branches: [main, canary, "1061-custom-docker-service-hostname"]
+    branches: [main, canary, "fix/re-apply-database-migration-fix"]
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: dokploy/dokploy

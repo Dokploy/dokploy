@@ -11,7 +11,7 @@ import {
 } from "./queue.js";
 import { jobQueueSchema } from "./schema.js";
 import { initializeJobs } from "./utils.js";
-import { firstWorker, secondWorker } from "./workers.js";
+import { firstWorker, secondWorker, thirdWorker } from "./workers.js";
 
 const app = new Hono();
 
@@ -61,6 +61,12 @@ app.post("/update-backup", zValidator("json", jobQueueSchema), async (c) => {
 				type: "schedule",
 				cronSchedule: job.pattern,
 			});
+		} else if (data.type === "volume-backup") {
+			result = await removeJob({
+				volumeBackupId: data.volumeBackupId,
+				type: "volume-backup",
+				cronSchedule: job.pattern,
+			});
 		}
 		logger.info({ result }, "Job removed");
 	}
@@ -85,6 +91,7 @@ export const gracefulShutdown = async (signal: string) => {
 	logger.warn(`Received ${signal}, closing server...`);
 	await firstWorker.close();
 	await secondWorker.close();
+	await thirdWorker.close();
 	process.exit(0);
 };
 

@@ -25,6 +25,12 @@ const examples = [
 export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 	// Get servers from the API
 	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const handleExampleClick = (example: string) => {
 		setTemplateInfo({ ...templateInfo, userInput: example });
@@ -47,37 +53,63 @@ export const StepOne = ({ setTemplateInfo, templateInfo }: any) => {
 						/>
 					</div>
 
-					<div className="space-y-2">
-						<Label htmlFor="server-deploy">
-							Select the server where you want to deploy (optional)
-						</Label>
-						<Select
-							value={templateInfo.server?.serverId}
-							onValueChange={(value) => {
-								const server = servers?.find((s) => s.serverId === value);
-								if (server) {
-									setTemplateInfo({
-										...templateInfo,
-										server: server,
-									});
+					{shouldShowServerDropdown && (
+						<div className="space-y-2">
+							<Label htmlFor="server-deploy">
+								Select the server where you want to deploy (optional)
+							</Label>
+							<Select
+								value={
+									templateInfo.server?.serverId ||
+									(!isCloud ? "dokploy" : undefined)
 								}
-							}}
-						>
-							<SelectTrigger className="w-full">
-								<SelectValue placeholder="Select a server" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									{servers?.map((server) => (
-										<SelectItem key={server.serverId} value={server.serverId}>
-											{server.name}
-										</SelectItem>
-									))}
-									<SelectLabel>Servers ({servers?.length})</SelectLabel>
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					</div>
+								onValueChange={(value) => {
+									if (value === "dokploy") {
+										setTemplateInfo({
+											...templateInfo,
+											server: undefined,
+										});
+									} else {
+										const server = servers?.find((s) => s.serverId === value);
+										if (server) {
+											setTemplateInfo({
+												...templateInfo,
+												server: server,
+											});
+										}
+									}
+								}}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue
+										placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+									/>
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										{!isCloud && (
+											<SelectItem value="dokploy">
+												<span className="flex items-center gap-2 justify-between w-full">
+													<span>Dokploy</span>
+													<span className="text-muted-foreground text-xs self-center">
+														Default
+													</span>
+												</span>
+											</SelectItem>
+										)}
+										{servers?.map((server) => (
+											<SelectItem key={server.serverId} value={server.serverId}>
+												{server.name}
+											</SelectItem>
+										))}
+										<SelectLabel>
+											Servers ({servers?.length + (!isCloud ? 1 : 0)})
+										</SelectLabel>
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 
 					<div className="space-y-2">
 						<Label>Examples:</Label>

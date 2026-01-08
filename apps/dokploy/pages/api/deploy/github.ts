@@ -1,19 +1,22 @@
-import { db } from "@/server/db";
-import { applications, compose, github } from "@/server/db/schema";
-import type { DeploymentJob } from "@/server/queues/queue-types";
-import { myQueue } from "@/server/queues/queueSetup";
-import { deploy } from "@/server/utils/deploy";
 import {
-	IS_CLOUD,
+	checkUserRepositoryPermissions,
 	createPreviewDeployment,
+	createSecurityBlockedComment,
+	findGithubById,
 	findPreviewDeploymentByApplicationId,
 	findPreviewDeploymentsByPullRequestId,
+	IS_CLOUD,
 	removePreviewDeployment,
 	shouldDeploy,
 } from "@dokploy/server";
 import { Webhooks } from "@octokit/webhooks";
 import { and, eq } from "drizzle-orm";
 import type { NextApiRequest, NextApiResponse } from "next";
+import { db } from "@/server/db";
+import { applications, compose, github } from "@/server/db/schema";
+import type { DeploymentJob } from "@/server/queues/queue-types";
+import { myQueue } from "@/server/queues/queueSetup";
+import { deploy } from "@/server/utils/deploy";
 import { extractCommitMessage, extractHash } from "./[refreshToken]";
 
 export default async function handler(
@@ -125,7 +128,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(
@@ -162,7 +167,9 @@ export default async function handler(
 
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 
@@ -243,7 +250,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(
@@ -288,7 +297,9 @@ export default async function handler(
 				}
 				if (IS_CLOUD && composeApp.serverId) {
 					jobData.serverId = composeApp.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 
@@ -340,12 +351,26 @@ export default async function handler(
 		if (
 			action === "opened" ||
 			action === "synchronize" ||
-			action === "reopened"
+			action === "reopened" ||
+			action === "labeled" ||
+			action === "unlabeled"
 		) {
 			const repository = githubBody?.repository?.name;
 			const deploymentHash = githubBody?.pull_request?.head?.sha;
 			const branch = githubBody?.pull_request?.base?.ref;
 			const owner = githubBody?.repository?.owner?.login;
+			const prAuthor = githubBody?.pull_request?.user?.login;
+
+			// Validate PR author information is present
+			if (!prAuthor) {
+				console.warn(
+					"⚠️ SECURITY: PR author information missing in webhook payload",
+				);
+				res.status(400).json({
+					message: "PR author information missing",
+				});
+				return;
+			}
 
 			const apps = await db.query.applications.findMany({
 				where: and(
@@ -361,13 +386,85 @@ export default async function handler(
 				},
 			});
 
+			// SECURITY: Check collaborator permissions per application setting
+			const secureApps: typeof apps = [];
+			const blockedApps: string[] = [];
+			let userPermission: string | null = null;
+
+			for (const app of apps) {
+				// If the app requires collaborator permissions, verify them
+				if (app.previewRequireCollaboratorPermissions !== false) {
+					try {
+						const githubProvider = await findGithubById(githubResult.githubId);
+						const { hasWriteAccess, permission } =
+							await checkUserRepositoryPermissions(
+								githubProvider,
+								owner,
+								repository,
+								prAuthor,
+							);
+
+						userPermission = permission; // Store permission for comment
+
+						if (!hasWriteAccess) {
+							console.warn(
+								`🚨 SECURITY: Blocked preview deployment for ${app.name} from unauthorized user ${prAuthor} on ${owner}/${repository}. Permission: ${permission || "none"}`,
+							);
+							blockedApps.push(app.name);
+							continue;
+						}
+
+						console.log(
+							`✅ SECURITY: Preview deployment authorized for ${app.name} from user ${prAuthor} on ${owner}/${repository}. Permission: ${permission}`,
+						);
+					} catch (error) {
+						console.error(
+							`Error validating PR author permissions for ${app.name}:`,
+							error,
+						);
+						blockedApps.push(app.name);
+						continue; // Skip this app on error
+					}
+				} else {
+					console.warn(
+						`⚠️  SECURITY: Preview deployment for ${app.name} allows deployment from any PR author (security check disabled)`,
+					);
+				}
+				secureApps.push(app);
+			}
+
 			const prBranch = githubBody?.pull_request?.head?.ref;
 
 			const prNumber = githubBody?.pull_request?.number;
 			const prTitle = githubBody?.pull_request?.title;
 			const prURL = githubBody?.pull_request?.html_url;
 
-			for (const app of apps) {
+			// Create security notification comment if any apps were blocked
+			if (blockedApps.length > 0) {
+				await createSecurityBlockedComment({
+					owner,
+					repository,
+					prNumber: Number.parseInt(prNumber),
+					prAuthor,
+					permission: userPermission,
+					githubId: githubResult.githubId,
+				});
+			}
+
+			for (const app of secureApps) {
+				// check for labels
+				if (app?.previewLabels && app?.previewLabels?.length > 0) {
+					let hasLabel = false;
+					const labels = githubBody?.pull_request?.labels;
+					for (const label of labels) {
+						if (app?.previewLabels?.includes(label.name)) {
+							hasLabel = true;
+							break;
+						}
+					}
+					if (!hasLabel) continue;
+				}
+
 				const previewLimit = app?.previewLimit || 0;
 				if (app?.previewDeployments?.length > previewLimit) {
 					continue;
@@ -402,7 +499,9 @@ export default async function handler(
 
 				if (IS_CLOUD && app.serverId) {
 					jobData.serverId = app.serverId;
-					await deploy(jobData);
+					deploy(jobData).catch((error) => {
+						console.error("Background deployment failed:", error);
+					});
 					continue;
 				}
 				await myQueue.add(

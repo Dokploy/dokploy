@@ -1,5 +1,4 @@
-import { findAdmin } from "@dokploy/server";
-import { generateRandomPassword } from "@dokploy/server";
+import { findOwner, generateRandomPassword } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
 import { account } from "@dokploy/server/db/schema";
 import { eq } from "drizzle-orm";
@@ -8,7 +7,7 @@ import { eq } from "drizzle-orm";
 	try {
 		const randomPassword = await generateRandomPassword();
 
-		const result = await findAdmin();
+		const result = await findOwner();
 
 		const update = await db
 			.update(account)

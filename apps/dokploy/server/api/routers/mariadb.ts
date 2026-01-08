@@ -1,3 +1,27 @@
+import {
+	addNewService,
+	checkServiceAccess,
+	createMariadb,
+	createMount,
+	deployMariadb,
+	findBackupsByDbId,
+	findEnvironmentById,
+	findMariadbById,
+	findProjectById,
+	IS_CLOUD,
+	rebuildDatabase,
+	removeMariadbById,
+	removeService,
+	startService,
+	startServiceRemote,
+	stopService,
+	stopServiceRemote,
+	updateMariadbById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -13,38 +37,19 @@ import {
 	mariadb as mariadbTable,
 } from "@/server/db/schema";
 import { cancelJobs } from "@/server/utils/backup";
-import {
-	IS_CLOUD,
-	addNewService,
-	checkServiceAccess,
-	createMariadb,
-	createMount,
-	deployMariadb,
-	findBackupsByDbId,
-	findMariadbById,
-	findProjectById,
-	removeMariadbById,
-	removeService,
-	startService,
-	startServiceRemote,
-	stopService,
-	stopServiceRemote,
-	updateMariadbById,
-} from "@dokploy/server";
-import { rebuildDatabase } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
-import { z } from "zod";
 export const mariadbRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(apiCreateMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			try {
+				// Get project from environment
+				const environment = await findEnvironmentById(input.environmentId);
+				const project = await findProjectById(environment.projectId);
+
 				if (ctx.user.role === "member") {
 					await checkServiceAccess(
 						ctx.user.id,
-						input.projectId,
+						project.projectId,
 						ctx.session.activeOrganizationId,
 						"create",
 					);
@@ -57,14 +62,15 @@ export const mariadbRouter = createTRPCRouter({
 					});
 				}
 
-				const project = await findProjectById(input.projectId);
 				if (project.organizationId !== ctx.session.activeOrganizationId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
 						message: "You are not authorized to access this project",
 					});
 				}
-				const newMariadb = await createMariadb(input);
+				const newMariadb = await createMariadb({
+					...input,
+				});
 				if (ctx.user.role === "member") {
 					await addNewService(
 						ctx.user.id,
@@ -81,7 +87,7 @@ export const mariadbRouter = createTRPCRouter({
 					type: "volume",
 				});
 
-				return true;
+				return newMariadb;
 			} catch (error) {
 				if (error instanceof TRPCError) {
 					throw error;
@@ -101,7 +107,10 @@ export const mariadbRouter = createTRPCRouter({
 				);
 			}
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this Mariadb",
@@ -114,7 +123,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiFindOneMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			const service = await findMariadbById(input.mariadbId);
-			if (service.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				service.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to start this Mariadb",
@@ -151,7 +163,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiSaveExternalPortMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMariadbById(input.mariadbId);
-			if (mongo.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to save this external port",
@@ -167,7 +182,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiDeployMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to deploy this Mariadb",
@@ -188,7 +206,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiDeployMariaDB)
 		.subscription(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to deploy this Mariadb",
@@ -205,7 +226,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiChangeMariaDBStatus)
 		.mutation(async ({ input, ctx }) => {
 			const mongo = await findMariadbById(input.mariadbId);
-			if (mongo.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to change this Mariadb status",
@@ -229,7 +253,10 @@ export const mariadbRouter = createTRPCRouter({
 			}
 
 			const mongo = await findMariadbById(input.mariadbId);
-			if (mongo.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mongo.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to delete this Mariadb",
@@ -255,7 +282,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiSaveEnvironmentVariablesMariaDB)
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to save this environment",
@@ -278,7 +308,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiResetMariadb)
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to reload this Mariadb",
@@ -308,7 +341,10 @@ export const mariadbRouter = createTRPCRouter({
 		.mutation(async ({ input, ctx }) => {
 			const { mariadbId, ...rest } = input;
 			const mariadb = await findMariadbById(mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to update this Mariadb",
@@ -331,23 +367,31 @@ export const mariadbRouter = createTRPCRouter({
 		.input(
 			z.object({
 				mariadbId: z.string(),
-				targetProjectId: z.string(),
+				targetEnvironmentId: z.string(),
 			}),
 		)
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to move this mariadb",
 				});
 			}
 
-			const targetProject = await findProjectById(input.targetProjectId);
-			if (targetProject.organizationId !== ctx.session.activeOrganizationId) {
+			const targetEnvironment = await findEnvironmentById(
+				input.targetEnvironmentId,
+			);
+			if (
+				targetEnvironment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message: "You are not authorized to move to this project",
+					message: "You are not authorized to move to this environment",
 				});
 			}
 
@@ -355,7 +399,7 @@ export const mariadbRouter = createTRPCRouter({
 			const updatedMariadb = await db
 				.update(mariadbTable)
 				.set({
-					projectId: input.targetProjectId,
+					environmentId: input.targetEnvironmentId,
 				})
 				.where(eq(mariadbTable.mariadbId, input.mariadbId))
 				.returning()
@@ -374,7 +418,10 @@ export const mariadbRouter = createTRPCRouter({
 		.input(apiRebuildMariadb)
 		.mutation(async ({ input, ctx }) => {
 			const mariadb = await findMariadbById(input.mariadbId);
-			if (mariadb.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				mariadb.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to rebuild this MariaDB database",

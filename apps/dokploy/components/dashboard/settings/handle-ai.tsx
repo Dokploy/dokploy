@@ -1,6 +1,19 @@
 "use client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, ChevronDown, PenBoxIcon, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
 import {
 	Dialog,
 	DialogContent,
@@ -20,25 +33,18 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const Schema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 	apiUrl: z.string().url({ message: "Please enter a valid URL" }),
-	apiKey: z.string().min(1, { message: "API Key is required" }),
+	apiKey: z.string(),
 	model: z.string().min(1, { message: "Model is required" }),
 	isEnabled: z.boolean(),
 });
@@ -53,6 +59,8 @@ export const HandleAi = ({ aiId }: Props) => {
 	const utils = api.useUtils();
 	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
+	const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
+	const [modelSearch, setModelSearch] = useState("");
 	const { data, refetch } = api.ai.one.useQuery(
 		{
 			aiId: aiId || "",
@@ -71,24 +79,29 @@ export const HandleAi = ({ aiId }: Props) => {
 			name: "",
 			apiUrl: "",
 			apiKey: "",
-			model: "gpt-3.5-turbo",
+			model: "",
 			isEnabled: true,
 		},
 	});
 
 	useEffect(() => {
-		form.reset({
-			name: data?.name ?? "",
-			apiUrl: data?.apiUrl ?? "https://api.openai.com/v1",
-			apiKey: data?.apiKey ?? "",
-			model: data?.model ?? "gpt-3.5-turbo",
-			isEnabled: data?.isEnabled ?? true,
-		});
+		if (data) {
+			form.reset({
+				name: data?.name ?? "",
+				apiUrl: data?.apiUrl ?? "https://api.openai.com/v1",
+				apiKey: data?.apiKey ?? "",
+				model: data?.model ?? "",
+				isEnabled: data?.isEnabled ?? true,
+			});
+		}
+		setModelSearch("");
+		setModelPopoverOpen(false);
 	}, [aiId, form, data]);
 
 	const apiUrl = form.watch("apiUrl");
 	const apiKey = form.watch("apiKey");
 
+	const isOllama = apiUrl.includes(":11434") || apiUrl.includes("ollama");
 	const { data: models, isLoading: isLoadingServerModels } =
 		api.ai.getModels.useQuery(
 			{
@@ -96,20 +109,12 @@ export const HandleAi = ({ aiId }: Props) => {
 				apiKey: apiKey ?? "",
 			},
 			{
-				enabled: !!apiUrl && !!apiKey,
+				enabled: !!apiUrl && (isOllama || !!apiKey),
 				onError: (error) => {
 					setError(`Failed to fetch models: ${error.message}`);
 				},
 			},
 		);
-
-	useEffect(() => {
-		const apiUrl = form.watch("apiUrl");
-		const apiKey = form.watch("apiKey");
-		if (apiUrl && apiKey) {
-			form.setValue("model", "");
-		}
-	}, [form.watch("apiUrl"), form.watch("apiKey")]);
 
 	const onSubmit = async (data: Schema) => {
 		try {
@@ -130,7 +135,16 @@ export const HandleAi = ({ aiId }: Props) => {
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={(isOpen) => {
+				setOpen(isOpen);
+				if (!isOpen) {
+					setModelSearch("");
+					setModelPopoverOpen(false);
+				}
+			}}
+		>
 			<DialogTrigger className="" asChild>
 				{aiId ? (
 					<Button
@@ -181,7 +195,17 @@ export const HandleAi = ({ aiId }: Props) => {
 								<FormItem>
 									<FormLabel>API URL</FormLabel>
 									<FormControl>
-										<Input placeholder="https://api.openai.com/v1" {...field} />
+										<Input
+											placeholder="https://api.openai.com/v1"
+											{...field}
+											onChange={(e) => {
+												field.onChange(e);
+												// Reset model when user changes API URL
+												if (form.getValues("model")) {
+													form.setValue("model", "");
+												}
+											}}
+										/>
 									</FormControl>
 									<FormDescription>
 										The base URL for your AI provider's API
@@ -191,22 +215,36 @@ export const HandleAi = ({ aiId }: Props) => {
 							)}
 						/>
 
-						<FormField
-							control={form.control}
-							name="apiKey"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>API Key</FormLabel>
-									<FormControl>
-										<Input type="password" placeholder="sk-..." {...field} />
-									</FormControl>
-									<FormDescription>
-										Your API key for authentication
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						{!isOllama && (
+							<FormField
+								control={form.control}
+								name="apiKey"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>API Key</FormLabel>
+										<FormControl>
+											<Input
+												type="password"
+												placeholder="sk-..."
+												autoComplete="one-time-code"
+												{...field}
+												onChange={(e) => {
+													field.onChange(e);
+													// Reset model when user changes API Key
+													if (form.getValues("model")) {
+														form.setValue("model", "");
+													}
+												}}
+											/>
+										</FormControl>
+										<FormDescription>
+											Your API key for authentication
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 
 						{isLoadingServerModels && (
 							<span className="text-sm text-muted-foreground">
@@ -214,34 +252,99 @@ export const HandleAi = ({ aiId }: Props) => {
 							</span>
 						)}
 
+						{!isLoadingServerModels && !models?.length && (
+							<span className="text-sm text-muted-foreground">
+								No models available
+							</span>
+						)}
+
 						{!isLoadingServerModels && models && models.length > 0 && (
 							<FormField
 								control={form.control}
 								name="model"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Model</FormLabel>
-										<Select
-											onValueChange={field.onChange}
-											value={field.value || ""}
-										>
-											<FormControl>
-												<SelectTrigger>
-													<SelectValue placeholder="Select a model" />
-												</SelectTrigger>
-											</FormControl>
-											<SelectContent>
-												{models.map((model) => (
-													<SelectItem key={model.id} value={model.id}>
-														{model.id}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-										<FormDescription>Select an AI model to use</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
+								render={({ field }) => {
+									const selectedModel = models.find(
+										(m) => m.id === field.value,
+									);
+									const filteredModels = models.filter((model) =>
+										model.id.toLowerCase().includes(modelSearch.toLowerCase()),
+									);
+
+									// Ensure selected model is always in the filtered list
+									const displayModels =
+										field.value &&
+										!filteredModels.find((m) => m.id === field.value) &&
+										selectedModel
+											? [selectedModel, ...filteredModels]
+											: filteredModels;
+
+									return (
+										<FormItem>
+											<FormLabel>Model</FormLabel>
+											<Popover
+												open={modelPopoverOpen}
+												onOpenChange={setModelPopoverOpen}
+											>
+												<PopoverTrigger asChild>
+													<FormControl>
+														<Button
+															variant="outline"
+															className={cn(
+																"w-full justify-between",
+																!field.value && "text-muted-foreground",
+															)}
+														>
+															{field.value
+																? (selectedModel?.id ?? field.value)
+																: "Select a model"}
+															<ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+														</Button>
+													</FormControl>
+												</PopoverTrigger>
+												<PopoverContent className="w-[400px] p-0" align="start">
+													<Command>
+														<CommandInput
+															placeholder="Search models..."
+															value={modelSearch}
+															onValueChange={setModelSearch}
+														/>
+														<CommandList>
+															<CommandEmpty>No models found.</CommandEmpty>
+															{displayModels.map((model) => {
+																const isSelected = field.value === model.id;
+																return (
+																	<CommandItem
+																		key={model.id}
+																		value={model.id}
+																		onSelect={() => {
+																			field.onChange(model.id);
+																			setModelPopoverOpen(false);
+																			setModelSearch("");
+																		}}
+																	>
+																		<Check
+																			className={cn(
+																				"mr-2 h-4 w-4",
+																				isSelected
+																					? "opacity-100"
+																					: "opacity-0",
+																			)}
+																		/>
+																		{model.id}
+																	</CommandItem>
+																);
+															})}
+														</CommandList>
+													</Command>
+												</PopoverContent>
+											</Popover>
+											<FormDescription>
+												Select an AI model to use
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
 							/>
 						)}
 

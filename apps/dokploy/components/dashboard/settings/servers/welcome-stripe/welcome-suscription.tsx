@@ -1,3 +1,18 @@
+import { defineStepper } from "@stepperize/react";
+import {
+	BookIcon,
+	Code2,
+	Database,
+	GitMerge,
+	Globe,
+	Plug,
+	Puzzle,
+	Users,
+} from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import React, { useEffect, useState } from "react";
+import ConfettiExplosion from "react-confetti-explosion";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -10,14 +25,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { defineStepper } from "@stepperize/react";
-import { BookIcon, Puzzle } from "lucide-react";
-import { Code2, Database, GitMerge, Globe, Plug, Users } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import React from "react";
-import ConfettiExplosion from "react-confetti-explosion";
 import { CreateServer } from "./create-server";
 import { CreateSSHKey } from "./create-ssh-key";
 import { Setup } from "./setup";
@@ -60,7 +67,7 @@ export const WelcomeSuscription = () => {
 
 	return (
 		<Dialog open={isOpen}>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-7xl min-h-[75vh]">
+			<DialogContent className="sm:max-w-7xl min-h-[75vh]">
 				{showConfetti ?? "Flaso"}
 				<div className="flex justify-center items-center w-full">
 					{showConfetti && (
@@ -179,6 +186,14 @@ export const WelcomeSuscription = () => {
 											</li>
 											<li>
 												<a
+													href=" https://app.americancloud.com/register?ref=dokploy"
+													className="text-link underline"
+												>
+													American Cloud - Get $20 Credits
+												</a>
+											</li>
+											<li>
+												<a
 													href="https://m.do.co/c/db24efd43f35"
 													className="text-link underline"
 												>
@@ -281,7 +296,7 @@ export const WelcomeSuscription = () => {
 									<div className="flex flex-col gap-6">
 										<div className="flex flex-col gap-2">
 											<h2 className="text-lg font-semibold">You're All Set!</h2>
-											<p className=" text-muted-foreground">
+											<p className="text-muted-foreground">
 												Did you know you can deploy any number of applications
 												that your server can handle?
 											</p>

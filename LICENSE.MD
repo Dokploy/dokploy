@@ -2,7 +2,7 @@
 
 ## Core License (Apache License 2.0)
 
-Copyright 2024 Mauricio Siu.
+Copyright 2025 Mauricio Siu.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

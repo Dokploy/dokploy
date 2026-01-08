@@ -1,14 +1,14 @@
+import { IS_CLOUD } from "@dokploy/server/constants";
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { Loader2 } from "lucide-react";
+import type { GetServerSidePropsContext } from "next";
+import type { ReactElement } from "react";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ShowPaidMonitoring } from "@/components/dashboard/monitoring/paid/servers/show-paid-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
-import { IS_CLOUD } from "@dokploy/server/constants";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { Loader2 } from "lucide-react";
-import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
 
 const BASE_URL = "http://localhost:3001/metrics";
 

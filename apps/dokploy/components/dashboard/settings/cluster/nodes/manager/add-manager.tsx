@@ -1,3 +1,6 @@
+import copy from "copy-to-clipboard";
+import { CopyIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CardContent } from "@/components/ui/card";
 import {
@@ -6,9 +9,6 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
-import { CopyIcon, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 interface Props {
 	serverId?: string;

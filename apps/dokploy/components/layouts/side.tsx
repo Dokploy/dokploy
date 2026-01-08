@@ -1,4 +1,5 @@
 "use client";
+import type { inferRouterOutputs } from "@trpc/server";
 import {
 	Activity,
 	BarChartHorizontalBigIcon,
@@ -25,14 +26,15 @@ import {
 	PieChart,
 	Server,
 	ShieldCheck,
+	Star,
 	Trash2,
 	User,
 	Users,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type * as React from "react";
 import { useEffect, useState } from "react";
-
+import { toast } from "sonner";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -77,14 +79,11 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
-import type { inferRouterOutputs } from "@trpc/server";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { toast } from "sonner";
 import { AddOrganization } from "../dashboard/organization/handle-organization";
 import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
+import { TimeBadge } from "../ui/time-badge";
 import { UpdateServerButton } from "./update-server";
 import { UserNav } from "./user-nav";
 
@@ -96,10 +95,7 @@ type SingleNavItem = {
 	title: string;
 	url: string;
 	icon?: LucideIcon;
-	isEnabled?: (opts: {
-		auth?: AuthQueryOutput;
-		isCloud: boolean;
-	}) => boolean;
+	isEnabled?: (opts: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean;
 };
 
 // NavItem type
@@ -125,10 +121,7 @@ type ExternalLink = {
 	name: string;
 	url: string;
 	icon: React.ComponentType<{ className?: string }>;
-	isEnabled?: (opts: {
-		auth?: AuthQueryOutput;
-		isCloud: boolean;
-	}) => boolean;
+	isEnabled?: (opts: { auth?: AuthQueryOutput; isCloud: boolean }) => boolean;
 };
 
 // Menu type
@@ -165,7 +158,8 @@ const MENU: Menu = {
 			url: "/dashboard/schedules",
 			icon: Clock,
 			// Only enabled in non-cloud environments
-			isEnabled: ({ isCloud, auth }) => !isCloud && auth?.role === "owner",
+			isEnabled: ({ isCloud, auth }) =>
+				!isCloud && (auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,
@@ -175,7 +169,9 @@ const MENU: Menu = {
 			// Only enabled for admins and users with access to Traefik files in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
 				!!(
-					(auth?.role === "owner" || auth?.canAccessToTraefikFiles) &&
+					(auth?.role === "owner" ||
+						auth?.role === "admin" ||
+						auth?.canAccessToTraefikFiles) &&
 					!isCloud
 				),
 		},
@@ -186,7 +182,12 @@ const MENU: Menu = {
 			icon: BlocksIcon,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
+				!!(
+					(auth?.role === "owner" ||
+						auth?.role === "admin" ||
+						auth?.canAccessToDocker) &&
+					!isCloud
+				),
 		},
 		{
 			isSingle: true,
@@ -195,7 +196,12 @@ const MENU: Menu = {
 			icon: PieChart,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
+				!!(
+					(auth?.role === "owner" ||
+						auth?.role === "admin" ||
+						auth?.canAccessToDocker) &&
+					!isCloud
+				),
 		},
 		{
 			isSingle: true,
@@ -204,7 +210,12 @@ const MENU: Menu = {
 			icon: Forward,
 			// Only enabled for admins and users with access to Docker in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.canAccessToDocker) && !isCloud),
+				!!(
+					(auth?.role === "owner" ||
+						auth?.role === "admin" ||
+						auth?.canAccessToDocker) &&
+					!isCloud
+				),
 		},
 
 		// Legacy unused menu, adjusted to the new structure
@@ -271,7 +282,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/server",
 			icon: Activity,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -285,7 +297,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/servers",
 			icon: Server,
 			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,
@@ -293,7 +306,8 @@ const MENU: Menu = {
 			icon: Users,
 			url: "/dashboard/settings/users",
 			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,
@@ -302,14 +316,19 @@ const MENU: Menu = {
 			url: "/dashboard/settings/ssh-keys",
 			// Only enabled for admins and users with access to SSH keys
 			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.canAccessToSSHKeys),
+				!!(
+					auth?.role === "owner" ||
+					auth?.canAccessToSSHKeys ||
+					auth?.role === "admin"
+				),
 		},
 		{
 			title: "AI",
 			icon: BotIcon,
 			url: "/dashboard/settings/ai",
 			isSingle: true,
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,
@@ -318,7 +337,11 @@ const MENU: Menu = {
 			icon: GitBranch,
 			// Only enabled for admins and users with access to Git providers
 			isEnabled: ({ auth }) =>
-				!!(auth?.role === "owner" || auth?.canAccessToGitProviders),
+				!!(
+					auth?.role === "owner" ||
+					auth?.canAccessToGitProviders ||
+					auth?.role === "admin"
+				),
 		},
 		{
 			isSingle: true,
@@ -326,7 +349,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/registry",
 			icon: Package,
 			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,
@@ -334,7 +358,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/destinations",
 			icon: Database,
 			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 
 		{
@@ -343,7 +368,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/certificates",
 			icon: ShieldCheck,
 			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,
@@ -351,7 +377,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/cluster",
 			icon: Boxes,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && !isCloud),
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
 		},
 		{
 			isSingle: true,
@@ -359,7 +386,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/notifications",
 			icon: Bell,
 			// Only enabled for admins
-			isEnabled: ({ auth }) => !!(auth?.role === "owner"),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,
@@ -506,7 +534,6 @@ function SidebarLogo() {
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: user } = api.user.get.useQuery();
 	const { data: session } = authClient.useSession();
-
 	const {
 		data: organizations,
 		refetch,
@@ -514,6 +541,8 @@ function SidebarLogo() {
 	} = api.organization.all.useQuery();
 	const { mutateAsync: deleteOrganization, isLoading: isRemoving } =
 		api.organization.delete.useMutation();
+	const { mutateAsync: setDefaultOrganization, isLoading: isSettingDefault } =
+		api.organization.setDefault.useMutation();
 	const { isMobile } = useSidebar();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const _utils = api.useUtils();
@@ -603,67 +632,130 @@ function SidebarLogo() {
 								<DropdownMenuLabel className="text-xs text-muted-foreground">
 									Organizations
 								</DropdownMenuLabel>
-								{organizations?.map((org) => (
-									<div className="flex flex-row justify-between" key={org.name}>
-										<DropdownMenuItem
-											onClick={async () => {
-												await authClient.organization.setActive({
-													organizationId: org.id,
-												});
-												window.location.reload();
-											}}
-											className="w-full gap-2 p-2"
+								{organizations?.map((org) => {
+									const isDefault = org.members?.[0]?.isDefault ?? false;
+									return (
+										<div
+											className="flex flex-row justify-between"
+											key={org.name}
 										>
-											<div className="flex flex-col gap-4">{org.name}</div>
-											<div className="flex size-6 items-center justify-center rounded-sm border">
-												<Logo
-													className={cn(
-														"transition-all",
-														state === "collapsed" ? "size-6" : "size-10",
-													)}
-													logoUrl={org.logo ?? undefined}
-												/>
-											</div>
-										</DropdownMenuItem>
-										{org.ownerId === session?.user?.id && (
+											<DropdownMenuItem
+												onClick={async () => {
+													await authClient.organization.setActive({
+														organizationId: org.id,
+													});
+													window.location.reload();
+												}}
+												className="w-full gap-2 p-2"
+											>
+												<div className="flex flex-col gap-1">
+													<div className="flex items-center gap-2">
+														{org.name}
+													</div>
+												</div>
+												<div className="flex size-6 items-center justify-center rounded-sm border">
+													<Logo
+														className={cn(
+															"transition-all",
+															state === "collapsed" ? "size-6" : "size-10",
+														)}
+														logoUrl={org.logo ?? undefined}
+													/>
+												</div>
+											</DropdownMenuItem>
+
 											<div className="flex items-center gap-2">
-												<AddOrganization organizationId={org.id} />
-												<DialogAction
-													title="Delete Organization"
-													description="Are you sure you want to delete this organization?"
-													type="destructive"
-													onClick={async () => {
-														await deleteOrganization({
+												<Button
+													variant="ghost"
+													size="icon"
+													className={cn(
+														"group",
+														isDefault
+															? "hover:bg-yellow-500/10"
+															: "hover:bg-blue-500/10",
+													)}
+													isLoading={isSettingDefault && !isDefault}
+													disabled={isDefault}
+													onClick={async (e) => {
+														if (isDefault) return;
+														e.stopPropagation();
+														await setDefaultOrganization({
 															organizationId: org.id,
 														})
 															.then(() => {
 																refetch();
-																toast.success(
-																	"Organization deleted successfully",
-																);
+																toast.success("Default organization updated");
 															})
 															.catch((error) => {
 																toast.error(
 																	error?.message ||
-																		"Error deleting organization",
+																		"Error setting default organization",
 																);
 															});
 													}}
+													title={
+														isDefault
+															? "Default organization"
+															: "Set as default"
+													}
 												>
-													<Button
-														variant="ghost"
-														size="icon"
-														className="group hover:bg-red-500/10"
-														isLoading={isRemoving}
-													>
-														<Trash2 className="size-4 text-primary group-hover:text-red-500" />
-													</Button>
-												</DialogAction>
+													{isDefault ? (
+														<Star
+															fill="#eab308"
+															stroke="#eab308"
+															className="size-4 text-yellow-500"
+														/>
+													) : (
+														<Star
+															fill="none"
+															stroke="currentColor"
+															className="size-4 text-gray-400 group-hover:text-blue-500 transition-colors"
+														/>
+													)}
+												</Button>
+												{org.ownerId === session?.user?.id && (
+													<>
+														<AddOrganization organizationId={org.id} />
+														<DialogAction
+															title="Delete Organization"
+															description="Are you sure you want to delete this organization?"
+															type="destructive"
+															onClick={async () => {
+																await deleteOrganization({
+																	organizationId: org.id,
+																})
+																	.then(() => {
+																		refetch();
+																		toast.success(
+																			"Organization deleted successfully",
+																		);
+																	})
+																	.catch((error) => {
+																		toast.error(
+																			error?.message ||
+																				"Error deleting organization",
+																		);
+																	});
+															}}
+														>
+															<Button
+																variant="ghost"
+																size="icon"
+																className="group hover:bg-red-500/10"
+																isLoading={isRemoving}
+															>
+																<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+															</Button>
+														</DialogAction>
+													</>
+												)}
 											</div>
-										)}
-									</div>
-								))}
-								{(user?.role === "owner" || isCloud) && (
+										</div>
+									);
+								})}
+								{(user?.role === "owner" ||
+									user?.role === "admin" ||
+									isCloud) && (
 									<>
 										<DropdownMenuSeparator />
 										<AddOrganization />
@@ -776,9 +868,7 @@ export default function Page({ children }: Props) {
 		setIsLoaded(true);
 	}, []);
 
-	const router = useRouter();
 	const pathname = usePathname();
-	const _currentPath = router.pathname;
 	const { data: auth } = api.user.get.useQuery();
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
@@ -1029,7 +1119,7 @@ export default function Page({ children }: Props) {
 				</SidebarContent>
 				<SidebarFooter>
 					<SidebarMenu className="flex flex-col gap-2">
-						{!isCloud && auth?.role === "owner" && (
+						{!isCloud && (auth?.role === "owner" || auth?.role === "admin") && (
 							<SidebarMenuItem>
 								<UpdateServerButton />
 							</SidebarMenuItem>
@@ -1073,6 +1163,7 @@ export default function Page({ children }: Props) {
 									</BreadcrumbList>
 								</Breadcrumb>
 							</div>
+							{!isCloud && <TimeBadge />}
 						</div>
 					</header>
 				)}

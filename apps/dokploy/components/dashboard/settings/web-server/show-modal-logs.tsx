@@ -1,3 +1,7 @@
+import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import type React from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
 	Dialog,
@@ -18,10 +22,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { Loader2 } from "lucide-react";
-import dynamic from "next/dynamic";
-import type React from "react";
-import { useEffect, useState } from "react";
 import { badgeStateColor } from "../../application/logs/show";
 
 export const DockerLogsId = dynamic(
@@ -67,7 +67,7 @@ export const ShowModalLogs = ({
 	return (
 		<Dialog>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-7xl">
+			<DialogContent className="max-h-[85vh]  sm:max-w-7xl">
 				<DialogHeader>
 					<DialogTitle>View Logs</DialogTitle>
 					<DialogDescription>View the logs for {appName}</DialogDescription>

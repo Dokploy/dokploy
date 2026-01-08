@@ -1,8 +1,10 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToVolumesInServices } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import {
+	addSuffixToVolumesInServices,
+	generateRandomHash,
+} from "@dokploy/server";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();
@@ -22,7 +24,7 @@ services:
 `;
 
 test("Add suffix to volumes declared directly in services", () => {
-	const composeData = load(composeFile1) as ComposeSpecification;
+	const composeData = parse(composeFile1) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -57,7 +59,7 @@ volumes:
 `;
 
 test("Add suffix to volumes declared directly in services (Case 2)", () => {
-	const composeData = load(composeFileTypeVolume) as ComposeSpecification;
+	const composeData = parse(composeFileTypeVolume) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 

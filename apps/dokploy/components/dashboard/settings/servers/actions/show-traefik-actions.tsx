@@ -1,5 +1,8 @@
+import { useTranslation } from "next-i18next";
+import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { DialogAction } from "@/components/shared/dialog-action";
 import { Button } from "@/components/ui/button";
-
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,8 +13,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
-import { useTranslation } from "next-i18next";
-import { toast } from "sonner";
 import { EditTraefikEnv } from "../../web-server/edit-traefik-env";
 import { ManageTraefikPorts } from "../../web-server/manage-traefik-ports";
 import { ShowModalLogs } from "../../web-server/show-modal-logs";
@@ -86,7 +87,26 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 						</DropdownMenuItem>
 					</EditTraefikEnv>
 
-					<DropdownMenuItem
+					<DialogAction
+						title={
+							haveTraefikDashboardPortEnabled
+								? "Disable Traefik Dashboard"
+								: "Enable Traefik Dashboard"
+						}
+						description={
+							<div className="space-y-4">
+								<AlertBlock type="warning">
+									The Traefik container will be recreated from scratch. This
+									means the container will be deleted and created again, which
+									may cause downtime in your applications.
+								</AlertBlock>
+								<p>
+									Are you sure you want to{" "}
+									{haveTraefikDashboardPortEnabled ? "disable" : "enable"} the
+									Traefik dashboard?
+								</p>
+							</div>
+						}
 						onClick={async () => {
 							await toggleDashboard({
 								enableDashboard: !haveTraefikDashboardPortEnabled,
@@ -98,18 +118,26 @@ export const ShowTraefikActions = ({ serverId }: Props) => {
 									);
 									refetchDashboard();
 								})
-								.catch(() => {
-									toast.error(
-										`${haveTraefikDashboardPortEnabled ? "Disabled" : "Enabled"} Dashboard`,
-									);
+								.catch((error) => {
+									const errorMessage =
+										error?.message ||
+										"Failed to toggle dashboard. Please check if port 8080 is available.";
+									toast.error(errorMessage);
 								});
 						}}
-						className="w-full cursor-pointer space-x-3"
+						disabled={toggleDashboardIsLoading}
+						type="default"
 					>
-						<span>
-							{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"} Dashboard
-						</span>
-					</DropdownMenuItem>
+						<DropdownMenuItem
+							onSelect={(e) => e.preventDefault()}
+							className="w-full cursor-pointer space-x-3"
+						>
+							<span>
+								{haveTraefikDashboardPortEnabled ? "Disable" : "Enable"}{" "}
+								Dashboard
+							</span>
+						</DropdownMenuItem>
+					</DialogAction>
 					<ManageTraefikPorts serverId={serverId}>
 						<DropdownMenuItem
 							onSelect={(e) => e.preventDefault()}

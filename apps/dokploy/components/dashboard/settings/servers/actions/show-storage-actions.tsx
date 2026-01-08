@@ -1,5 +1,6 @@
+import { useTranslation } from "next-i18next";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,8 +11,6 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { api } from "@/utils/api";
-import { useTranslation } from "next-i18next";
-import { toast } from "sonner";
 
 interface Props {
 	serverId?: string;
@@ -174,7 +173,7 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 								serverId: serverId,
 							})
 								.then(async () => {
-									toast.success("Cleaned all");
+									toast.success("Cleaning in progress... Please wait");
 								})
 								.catch(() => {
 									toast.error("Error cleaning all");

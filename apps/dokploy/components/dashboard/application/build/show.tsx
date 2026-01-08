@@ -1,7 +1,14 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Cog } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Form,
 	FormControl,
@@ -14,12 +21,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Cog } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 export enum BuildType {
 	dockerfile = "dockerfile",
@@ -63,10 +64,12 @@ const mySchema = z.discriminatedUnion("buildType", [
 		publishDirectory: z.string().optional(),
 	}),
 	z.object({
-		buildType: z.literal(BuildType.static),
+		buildType: z.literal(BuildType.railpack),
+		railpackVersion: z.string().nullable().default("0.2.2"),
 	}),
 	z.object({
-		buildType: z.literal(BuildType.railpack),
+		buildType: z.literal(BuildType.static),
+		isStaticSpa: z.boolean().default(false),
 	}),
 ]);
 
@@ -83,6 +86,8 @@ interface ApplicationData {
 	dockerBuildStage?: string | null;
 	herokuVersion?: string | null;
 	publishDirectory?: string | null;
+	isStaticSpa?: boolean | null;
+	railpackVersion?: string | null | undefined;
 }
 
 function isValidBuildType(value: string): value is BuildType {
@@ -115,16 +120,19 @@ const resetData = (data: ApplicationData): AddTemplate => {
 		case BuildType.static:
 			return {
 				buildType: BuildType.static,
+				isStaticSpa: data.isStaticSpa ?? false,
 			};
 		case BuildType.railpack:
 			return {
 				buildType: BuildType.railpack,
+				railpackVersion: data.railpackVersion || null,
 			};
-		default:
+		default: {
 			const buildType = data.buildType as BuildType;
 			return {
 				buildType,
 			} as AddTemplate;
+		}
 	}
 };
 
@@ -173,6 +181,12 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			herokuVersion:
 				data.buildType === BuildType.heroku_buildpacks
 					? data.herokuVersion
+					: null,
+			isStaticSpa:
+				data.buildType === BuildType.static ? data.isStaticSpa : null,
+			railpackVersion:
+				data.buildType === BuildType.railpack
+					? data.railpackVersion || "0.2.2"
 					: null,
 		})
 			.then(async () => {
@@ -355,6 +369,49 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 										<FormControl>
 											<Input
 												placeholder="Publish Directory"
+												{...field}
+												value={field.value ?? ""}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{buildType === BuildType.static && (
+							<FormField
+								control={form.control}
+								name="isStaticSpa"
+								render={({ field }) => (
+									<FormItem>
+										<FormControl>
+											<div className="flex items-center gap-x-2 p-2">
+												<Checkbox
+													id="checkboxIsStaticSpa"
+													value={String(field.value)}
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+												<FormLabel htmlFor="checkboxIsStaticSpa">
+													Single Page Application (SPA)
+												</FormLabel>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
+						{buildType === BuildType.railpack && (
+							<FormField
+								control={form.control}
+								name="railpackVersion"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Railpack Version</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="Railpack Version"
 												{...field}
 												value={field.value ?? ""}
 											/>

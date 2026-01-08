@@ -1,3 +1,5 @@
+import { format } from "date-fns";
+import { useEffect, useState } from "react";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
@@ -12,23 +14,24 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
 
 export const AddGithubProvider = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: activeOrganization } = authClient.useActiveOrganization();
+	const { data: session } = authClient.useSession();
 	const { data } = api.user.get.useQuery();
 	const [manifest, setManifest] = useState("");
 	const [isOrganization, setIsOrganization] = useState(false);
 	const [organizationName, setOrganization] = useState("");
 
+	const randomString = () => Math.random().toString(36).slice(2, 8);
+
 	useEffect(() => {
 		const url = document.location.origin;
 		const manifest = JSON.stringify(
 			{
-				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id}`,
-				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}`,
+				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id}&userId=${session?.user?.id}`,
+				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}-${randomString()}`,
 				url: origin,
 				hook_attributes: {
 					url: `${url}/api/deploy/github`,

@@ -1,12 +1,12 @@
-import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { appRouter } from "@/server/api/root";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { appRouter } from "@/server/api/root";
 
 const Dashboard = () => {
 	return <ShowContainers />;
@@ -72,7 +72,7 @@ export async function getServerSideProps(
 				trpcState: helpers.dehydrate(),
 			},
 		};
-	} catch (_error) {
+	} catch {
 		return {
 			props: {},
 		};

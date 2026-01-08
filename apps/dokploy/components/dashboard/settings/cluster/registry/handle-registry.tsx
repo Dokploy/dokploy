@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -28,12 +34,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const AddRegistrySchema = z.object({
 	registryName: z.string().min(1, {
@@ -42,12 +42,38 @@ const AddRegistrySchema = z.object({
 	username: z.string().min(1, {
 		message: "Username is required",
 	}),
-	password: z.string().min(1, {
-		message: "Password is required",
-	}),
-	registryUrl: z.string(),
+	password: z.string(),
+	registryUrl: z
+		.string()
+		.optional()
+		.refine(
+			(val) => {
+				// If empty or undefined, skip validation (field is optional)
+				if (!val || val.trim().length === 0) {
+					return true;
+				}
+				// Validate that it's a valid hostname (no protocol, no path, optional port)
+				// Valid formats: example.com, registry.example.com, [::1], example.com:5000
+				// Invalid: https://example.com, example.com/path
+				const trimmed = val.trim();
+				// Check for protocol or path - these are not allowed
+				if (/^https?:\/\//i.test(trimmed) || trimmed.includes("/")) {
+					return false;
+				}
+				// Basic hostname validation: allow alphanumeric, dots, hyphens, underscores, and IPv6 in brackets
+				// Allow optional port at the end
+				const hostnameRegex =
+					/^(?:\[[^\]]+\]|[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,253}[a-zA-Z0-9])?)(?::\d+)?$/;
+				return hostnameRegex.test(trimmed);
+			},
+			{
+				message:
+					"Invalid registry URL. Please enter only the hostname (e.g., example.com or registry.example.com). Do not include protocol (https://) or paths.",
+			},
+		),
 	imagePrefix: z.string(),
 	serverId: z.string().optional(),
+	isEditing: z.boolean().optional(),
 });
 
 type AddRegistry = z.infer<typeof AddRegistrySchema>;
@@ -74,13 +100,21 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const { mutateAsync, error, isError } = registryId
 		? api.registry.update.useMutation()
 		: api.registry.create.useMutation();
-	const { data: servers } = api.server.withSSHKey.useQuery();
+	const { data: deployServers } = api.server.withSSHKey.useQuery();
+	const { data: buildServers } = api.server.buildServers.useQuery();
+	const servers = [...(deployServers || []), ...(buildServers || [])];
 	const {
 		mutateAsync: testRegistry,
 		isLoading,
 		error: testRegistryError,
 		isError: testRegistryIsError,
 	} = api.registry.testRegistry.useMutation();
+	const {
+		mutateAsync: testRegistryById,
+		isLoading: isLoadingById,
+		error: testRegistryByIdError,
+		isError: testRegistryByIdIsError,
+	} = api.registry.testRegistryById.useMutation();
 	const form = useForm<AddRegistry>({
 		defaultValues: {
 			username: "",
@@ -89,8 +123,26 @@ export const HandleRegistry = ({ registryId }: Props) => {
 			imagePrefix: "",
 			registryName: "",
 			serverId: "",
+			isEditing: !!registryId,
 		},
-		resolver: zodResolver(AddRegistrySchema),
+		resolver: zodResolver(
+			AddRegistrySchema.refine(
+				(data) => {
+					// When creating a new registry, password is required
+					if (
+						!data.isEditing &&
+						(!data.password || data.password.length === 0)
+					) {
+						return false;
+					}
+					return true;
+				},
+				{
+					message: "Password is required",
+					path: ["password"],
+				},
+			),
+		),
 	});
 
 	const password = form.watch("password");
@@ -99,6 +151,9 @@ export const HandleRegistry = ({ registryId }: Props) => {
 	const registryName = form.watch("registryName");
 	const imagePrefix = form.watch("imagePrefix");
 	const serverId = form.watch("serverId");
+	const selectedServer = servers?.find(
+		(server) => server.serverId === serverId,
+	);
 
 	useEffect(() => {
 		if (registry) {
@@ -108,6 +163,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				registryUrl: registry.registryUrl,
 				imagePrefix: registry.imagePrefix || "",
 				registryName: registry.registryName,
+				isEditing: true,
 			});
 		} else {
 			form.reset({
@@ -116,21 +172,29 @@ export const HandleRegistry = ({ registryId }: Props) => {
 				registryUrl: "",
 				imagePrefix: "",
 				serverId: "",
+				isEditing: false,
 			});
 		}
 	}, [form, form.reset, form.formState.isSubmitSuccessful, registry]);
 
 	const onSubmit = async (data: AddRegistry) => {
-		await mutateAsync({
-			password: data.password,
+		const payload: any = {
 			registryName: data.registryName,
 			username: data.username,
-			registryUrl: data.registryUrl,
+			registryUrl: data.registryUrl || "",
 			registryType: "cloud",
 			imagePrefix: data.imagePrefix,
 			serverId: data.serverId,
 			registryId: registryId || "",
-		})
+		};
+
+		// Only include password if it's been provided (not empty)
+		// When editing, empty password means "keep the existing password"
+		if (data.password && data.password.length > 0) {
+			payload.password = data.password;
+		}
+
+		await mutateAsync(payload)
 			.then(async (_data) => {
 				await utils.registry.all.invalidate();
 				toast.success(registryId ? "Registry updated" : "Registry added");
@@ -161,18 +225,21 @@ export const HandleRegistry = ({ registryId }: Props) => {
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl max-h-screen overflow-y-auto">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add a external registry</DialogTitle>
 					<DialogDescription>
 						Fill the next fields to add a external registry.
 					</DialogDescription>
 				</DialogHeader>
-				{(isError || testRegistryIsError) && (
+				{(isError || testRegistryIsError || testRegistryByIdIsError) && (
 					<div className="flex flex-row gap-4 rounded-lg bg-red-50 p-2 dark:bg-red-950">
 						<AlertTriangle className="text-red-600 dark:text-red-400" />
 						<span className="text-sm text-red-600 dark:text-red-400">
-							{testRegistryError?.message || error?.message || ""}
+							{testRegistryError?.message ||
+								testRegistryByIdError?.message ||
+								error?.message ||
+								""}
 						</span>
 					</div>
 				)}
@@ -223,10 +290,20 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								name="password"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Password</FormLabel>
+										<FormLabel>Password{registryId && " (Optional)"}</FormLabel>
+										{registryId && (
+											<FormDescription>
+												Leave blank to keep existing password. Enter new
+												password to test or update it.
+											</FormDescription>
+										)}
 										<FormControl>
 											<Input
-												placeholder="Password"
+												placeholder={
+													registryId
+														? "Leave blank to keep existing"
+														: "Password"
+												}
 												autoComplete="one-time-code"
 												{...field}
 												type="password"
@@ -261,6 +338,10 @@ export const HandleRegistry = ({ registryId }: Props) => {
 								render={({ field }) => (
 									<FormItem>
 										<FormLabel>Registry URL</FormLabel>
+										<FormDescription>
+											Enter only the hostname (e.g.,
+											aws_account_id.dkr.ecr.us-west-2.amazonaws.com).
+										</FormDescription>
 										<FormControl>
 											<Input
 												placeholder="aws_account_id.dkr.ecr.us-west-2.amazonaws.com"
@@ -282,8 +363,40 @@ export const HandleRegistry = ({ registryId }: Props) => {
 									<FormItem>
 										<FormLabel>Server {!isCloud && "(Optional)"}</FormLabel>
 										<FormDescription>
-											Select a server to test the registry. this will run the
-											following command on the server
+											{!isCloud ? (
+												<>
+													{serverId && serverId !== "none" && selectedServer ? (
+														<>
+															Authentication will be performed on{" "}
+															<strong>{selectedServer.name}</strong>. This
+															registry will be available on this server.
+														</>
+													) : (
+														<>
+															Choose where to authenticate with the registry. By
+															default, authentication occurs on the Dokploy
+															server. Select a specific server to authenticate
+															from that server instead.
+														</>
+													)}
+												</>
+											) : (
+												<>
+													{serverId && serverId !== "none" && selectedServer ? (
+														<>
+															Authentication will be performed on{" "}
+															<strong>{selectedServer.name}</strong>. This
+															registry will be available on this server.
+														</>
+													) : (
+														<>
+															Select a server to authenticate with the registry.
+															The authentication will be performed from the
+															selected server.
+														</>
+													)}
+												</>
+											)}
 										</FormDescription>
 										<FormControl>
 											<Select
@@ -294,16 +407,33 @@ export const HandleRegistry = ({ registryId }: Props) => {
 													<SelectValue placeholder="Select a server" />
 												</SelectTrigger>
 												<SelectContent>
+													{deployServers && deployServers.length > 0 && (
+														<SelectGroup>
+															<SelectLabel>Deploy Servers</SelectLabel>
+															{deployServers.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+														</SelectGroup>
+													)}
+													{buildServers && buildServers.length > 0 && (
+														<SelectGroup>
+															<SelectLabel>Build Servers</SelectLabel>
+															{buildServers.map((server) => (
+																<SelectItem
+																	key={server.serverId}
+																	value={server.serverId}
+																>
+																	{server.name}
+																</SelectItem>
+															))}
+														</SelectGroup>
+													)}
 													<SelectGroup>
-														<SelectLabel>Servers</SelectLabel>
-														{servers?.map((server) => (
-															<SelectItem
-																key={server.serverId}
-																value={server.serverId}
-															>
-																{server.name}
-															</SelectItem>
-														))}
 														<SelectItem value={"none"}>None</SelectItem>
 													</SelectGroup>
 												</SelectContent>
@@ -316,13 +446,42 @@ export const HandleRegistry = ({ registryId }: Props) => {
 							/>
 						</div>
 
-						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2 mt-6">
+						<DialogFooter className="flex flex-col w-full sm:justify-between gap-4 flex-wrap sm:flex-col col-span-2">
 							<div className="flex flex-row gap-2 justify-between">
 								<Button
 									type="button"
 									variant={"secondary"}
-									isLoading={isLoading}
+									isLoading={isLoading || isLoadingById}
 									onClick={async () => {
+										// When editing with empty password, use the existing password from DB
+										if (registryId && (!password || password.length === 0)) {
+											await testRegistryById({
+												registryId: registryId || "",
+												...(serverId && { serverId }),
+											})
+												.then((data) => {
+													if (data) {
+														toast.success("Registry Tested Successfully");
+													} else {
+														toast.error("Registry Test Failed");
+													}
+												})
+												.catch(() => {
+													toast.error("Error testing the registry");
+												});
+											return;
+										}
+
+										// When creating, password is required
+										if (!registryId && (!password || password.length === 0)) {
+											form.setError("password", {
+												type: "manual",
+												message: "Password is required",
+											});
+											return;
+										}
+
+										// When creating or editing with new password, validate and test with provided credentials
 										const validationResult = AddRegistrySchema.safeParse({
 											username,
 											password,
@@ -330,6 +489,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 											registryName: "Dokploy Registry",
 											imagePrefix,
 											serverId,
+											isEditing: !!registryId,
 										});
 
 										if (!validationResult.success) {
@@ -345,7 +505,7 @@ export const HandleRegistry = ({ registryId }: Props) => {
 										await testRegistry({
 											username: username,
 											password: password,
-											registryUrl: registryUrl,
+											registryUrl: registryUrl || "",
 											registryName: registryName,
 											registryType: "cloud",
 											imagePrefix: imagePrefix,

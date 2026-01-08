@@ -1,15 +1,15 @@
+import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
+import { eq } from "drizzle-orm";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/server/db";
 import { compose } from "@/server/db/schema";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import { myQueue } from "@/server/queues/queueSetup";
 import { deploy } from "@/server/utils/deploy";
-import { IS_CLOUD, shouldDeploy } from "@dokploy/server";
-import { eq } from "drizzle-orm";
-import type { NextApiRequest, NextApiResponse } from "next";
 import {
 	extractBranchName,
-	extractCommitMessage,
 	extractCommitedPaths,
+	extractCommitMessage,
 	extractHash,
 	getProviderByHeader,
 } from "../[refreshToken]";
@@ -27,7 +27,11 @@ export default async function handler(
 		const composeResult = await db.query.compose.findFirst({
 			where: eq(compose.refreshToken, refreshToken as string),
 			with: {
-				project: true,
+				environment: {
+					with: {
+						project: true,
+					},
+				},
 				bitbucket: true,
 			},
 		});
@@ -95,8 +99,7 @@ export default async function handler(
 
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
-				composeResult.bitbucketOwner,
-				composeResult.bitbucket?.appPassword || "",
+				composeResult.bitbucket,
 				composeResult.bitbucketRepository || "",
 			);
 
@@ -176,17 +179,19 @@ export default async function handler(
 
 			if (IS_CLOUD && composeResult.serverId) {
 				jobData.serverId = composeResult.serverId;
-				await deploy(jobData);
-				return true;
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
+			} else {
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
 		} catch (error) {
 			res.status(400).json({ message: "Error deploying Compose", error });
 			return;

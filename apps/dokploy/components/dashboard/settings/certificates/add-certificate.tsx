@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { HelpCircle, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,12 +40,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const certificateDataHolder =
 	"-----BEGIN CERTIFICATE-----\nMIIFRDCCAyygAwIBAgIUEPOR47ys6VDwMVB9tYoeEka83uQwDQYJKoZIhvcNAQELBQAwGTEXMBUGA1UEAwwObWktZG9taW5pby5jb20wHhcNMjQwMzExMDQyNzU3WhcN\n------END CERTIFICATE-----";
@@ -65,6 +65,11 @@ export const AddCertificate = () => {
 	const { mutateAsync, isError, error, isLoading } =
 		api.certificates.create.useMutation();
 	const { data: servers } = api.server.withSSHKey.useQuery();
+	const hasServers = servers && servers.length > 0;
+	// Show dropdown logic based on cloud environment
+	// Cloud: show only if there are remote servers (no Dokploy option)
+	// Self-hosted: show only if there are remote servers (Dokploy is default, hide if no remote servers)
+	const shouldShowServerDropdown = hasServers;
 
 	const form = useForm<AddCertificate>({
 		defaultValues: {
@@ -85,7 +90,7 @@ export const AddCertificate = () => {
 			certificateData: data.certificateData,
 			privateKey: data.privateKey,
 			autoRenew: data.autoRenew,
-			serverId: data.serverId,
+			serverId: data.serverId === "dokploy" ? undefined : data.serverId,
 			organizationId: "",
 		})
 			.then(async () => {
@@ -106,7 +111,7 @@ export const AddCertificate = () => {
 					Add Certificate
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Add New Certificate</DialogTitle>
 					<DialogDescription>
@@ -174,55 +179,73 @@ export const AddCertificate = () => {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="serverId"
-							render={({ field }) => (
-								<FormItem>
-									<TooltipProvider delayDuration={0}>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
-													Select a Server {!isCloud && "(Optional)"}
-													<HelpCircle className="size-4 text-muted-foreground" />
-												</FormLabel>
-											</TooltipTrigger>
-										</Tooltip>
-									</TooltipProvider>
+						{shouldShowServerDropdown && (
+							<FormField
+								control={form.control}
+								name="serverId"
+								render={({ field }) => (
+									<FormItem>
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<FormLabel className="break-all w-fit flex flex-row gap-1 items-center">
+														Select a Server {!isCloud && "(Optional)"}
+														<HelpCircle className="size-4 text-muted-foreground" />
+													</FormLabel>
+												</TooltipTrigger>
+											</Tooltip>
+										</TooltipProvider>
 
-									<Select
-										onValueChange={field.onChange}
-										defaultValue={field.value}
-									>
-										<SelectTrigger>
-											<SelectValue placeholder="Select a Server" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectGroup>
-												{servers?.map((server) => (
-													<SelectItem
-														key={server.serverId}
-														value={server.serverId}
-													>
-														<span className="flex items-center gap-2 justify-between w-full">
-															<span>{server.name}</span>
-															<span className="text-muted-foreground text-xs self-center">
-																{server.ipAddress}
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={
+												field.value || (!isCloud ? "dokploy" : undefined)
+											}
+										>
+											<SelectTrigger>
+												<SelectValue
+													placeholder={!isCloud ? "Dokploy" : "Select a Server"}
+												/>
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													{!isCloud && (
+														<SelectItem value="dokploy">
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>Dokploy</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	Default
+																</span>
 															</span>
-														</span>
-													</SelectItem>
-												))}
-												<SelectLabel>Servers ({servers?.length})</SelectLabel>
-											</SelectGroup>
-										</SelectContent>
-									</Select>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+														</SelectItem>
+													)}
+													{servers?.map((server) => (
+														<SelectItem
+															key={server.serverId}
+															value={server.serverId}
+														>
+															<span className="flex items-center gap-2 justify-between w-full">
+																<span>{server.name}</span>
+																<span className="text-muted-foreground text-xs self-center">
+																	{server.ipAddress}
+																</span>
+															</span>
+														</SelectItem>
+													))}
+													<SelectLabel>
+														Servers ({servers?.length + (!isCloud ? 1 : 0)})
+													</SelectLabel>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						)}
 					</form>
 
-					<DialogFooter className="flex w-full flex-row !justify-end pt-3">
+					<DialogFooter className="flex w-full flex-row !justify-end">
 						<Button
 							isLoading={isLoading}
 							form="hook-form-add-certificate"

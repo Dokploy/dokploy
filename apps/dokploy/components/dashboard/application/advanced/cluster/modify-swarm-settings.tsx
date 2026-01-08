@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { HelpCircle, Settings } from "lucide-react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -19,6 +25,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
 	Tooltip,
 	TooltipContent,
@@ -26,12 +33,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { HelpCircle, Settings } from "lucide-react";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const HealthCheckSwarmSchema = z
 	.object({
@@ -121,6 +122,22 @@ const NetworkSwarmSchema = z.array(
 
 const LabelsSwarmSchema = z.record(z.string());
 
+const EndpointPortConfigSwarmSchema = z
+	.object({
+		Protocol: z.string().optional(),
+		TargetPort: z.number().optional(),
+		PublishedPort: z.number().optional(),
+		PublishMode: z.string().optional(),
+	})
+	.strict();
+
+const EndpointSpecSwarmSchema = z
+	.object({
+		Mode: z.string().optional(),
+		Ports: z.array(EndpointPortConfigSwarmSchema).optional(),
+	})
+	.strict();
+
 const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
 	return z
 		.string()
@@ -130,7 +147,7 @@ const createStringToJSONSchema = (schema: z.ZodTypeAny) => {
 			}
 			try {
 				return JSON.parse(str);
-			} catch (_e) {
+			} catch {
 				ctx.addIssue({ code: "custom", message: "Invalid JSON format" });
 				return z.NEVER;
 			}
@@ -176,26 +193,54 @@ const addSwarmSettings = z.object({
 	modeSwarm: createStringToJSONSchema(ServiceModeSwarmSchema).nullable(),
 	labelsSwarm: createStringToJSONSchema(LabelsSwarmSchema).nullable(),
 	networkSwarm: createStringToJSONSchema(NetworkSwarmSchema).nullable(),
+	stopGracePeriodSwarm: z.bigint().nullable(),
+	endpointSpecSwarm: createStringToJSONSchema(
+		EndpointSpecSwarmSchema,
+	).nullable(),
 });
 
 type AddSwarmSettings = z.infer<typeof addSwarmSettings>;
 
+const hasStopGracePeriodSwarm = (
+	value: unknown,
+): value is { stopGracePeriodSwarm: bigint | number | string | null } =>
+	typeof value === "object" &&
+	value !== null &&
+	"stopGracePeriodSwarm" in value;
+
 interface Props {
-	applicationId: string;
+	id: string;
+	type: "postgres" | "mariadb" | "mongo" | "mysql" | "redis" | "application";
 }
 
-export const AddSwarmSettings = ({ applicationId }: Props) => {
-	const { data, refetch } = api.application.one.useQuery(
-		{
-			applicationId,
-		},
-		{
-			enabled: !!applicationId,
-		},
-	);
+export const AddSwarmSettings = ({ id, type }: Props) => {
+	const queryMap = {
+		postgres: () =>
+			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
+		redis: () => api.redis.one.useQuery({ redisId: id }, { enabled: !!id }),
+		mysql: () => api.mysql.one.useQuery({ mysqlId: id }, { enabled: !!id }),
+		mariadb: () =>
+			api.mariadb.one.useQuery({ mariadbId: id }, { enabled: !!id }),
+		application: () =>
+			api.application.one.useQuery({ applicationId: id }, { enabled: !!id }),
+		mongo: () => api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id }),
+	};
+	const { data, refetch } = queryMap[type]
+		? queryMap[type]()
+		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
 
-	const { mutateAsync, isError, error, isLoading } =
-		api.application.update.useMutation();
+	const mutationMap = {
+		postgres: () => api.postgres.update.useMutation(),
+		redis: () => api.redis.update.useMutation(),
+		mysql: () => api.mysql.update.useMutation(),
+		mariadb: () => api.mariadb.update.useMutation(),
+		application: () => api.application.update.useMutation(),
+		mongo: () => api.mongo.update.useMutation(),
+	};
+
+	const { mutateAsync, isError, error, isLoading } = mutationMap[type]
+		? mutationMap[type]()
+		: api.mongo.update.useMutation();
 
 	const form = useForm<AddSwarmSettings>({
 		defaultValues: {
@@ -207,12 +252,23 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			modeSwarm: null,
 			labelsSwarm: null,
 			networkSwarm: null,
+			stopGracePeriodSwarm: null,
+			endpointSpecSwarm: null,
 		},
 		resolver: zodResolver(addSwarmSettings),
 	});
 
 	useEffect(() => {
 		if (data) {
+			const stopGracePeriodValue = hasStopGracePeriodSwarm(data)
+				? data.stopGracePeriodSwarm
+				: null;
+			const normalizedStopGracePeriod =
+				stopGracePeriodValue === null || stopGracePeriodValue === undefined
+					? null
+					: typeof stopGracePeriodValue === "bigint"
+						? stopGracePeriodValue
+						: BigInt(stopGracePeriodValue);
 			form.reset({
 				healthCheckSwarm: data.healthCheckSwarm
 					? JSON.stringify(data.healthCheckSwarm, null, 2)
@@ -238,13 +294,22 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 				networkSwarm: data.networkSwarm
 					? JSON.stringify(data.networkSwarm, null, 2)
 					: null,
+				stopGracePeriodSwarm: normalizedStopGracePeriod,
+				endpointSpecSwarm: data.endpointSpecSwarm
+					? JSON.stringify(data.endpointSpecSwarm, null, 2)
+					: null,
 			});
 		}
 	}, [form, form.reset, data]);
 
 	const onSubmit = async (data: AddSwarmSettings) => {
 		await mutateAsync({
-			applicationId,
+			applicationId: id || "",
+			postgresId: id || "",
+			redisId: id || "",
+			mysqlId: id || "",
+			mariadbId: id || "",
+			mongoId: id || "",
 			healthCheckSwarm: data.healthCheckSwarm,
 			restartPolicySwarm: data.restartPolicySwarm,
 			placementSwarm: data.placementSwarm,
@@ -253,6 +318,8 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 			modeSwarm: data.modeSwarm,
 			labelsSwarm: data.labelsSwarm,
 			networkSwarm: data.networkSwarm,
+			stopGracePeriodSwarm: data.stopGracePeriodSwarm ?? null,
+			endpointSpecSwarm: data.endpointSpecSwarm,
 		})
 			.then(async () => {
 				toast.success("Swarm settings updated");
@@ -270,18 +337,18 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					Swarm Settings
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-[85vh]  overflow-y-auto sm:max-w-5xl p-0">
-				<DialogHeader className="p-6">
+			<DialogContent className="sm:max-w-5xl">
+				<DialogHeader>
 					<DialogTitle>Swarm Settings</DialogTitle>
 					<DialogDescription>
 						Update certain settings using a json object.
 					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
-				<div className="px-4">
+				<div>
 					<AlertBlock type="info">
-						Changing settings such as placements may cause the logs/monitoring
-						to be unavailable.
+						Changing settings such as placements may cause the logs/monitoring,
+						backups and other features to be unavailable.
 					</AlertBlock>
 				</div>
 
@@ -289,13 +356,13 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 					<form
 						id="hook-form-add-permissions"
 						onSubmit={form.handleSubmit(onSubmit)}
-						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative"
+						className="grid  grid-cols-1 md:grid-cols-2  w-full gap-4 relative mt-4"
 					>
 						<FormField
 							control={form.control}
 							name="healthCheckSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Health Check</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -330,9 +397,9 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 											language="json"
 											placeholder={`{
 	"Test" : ["CMD-SHELL", "curl -f http://localhost:3000/health"],
-	"Interval" : 10000,
-	"Timeout" : 10000,
-	"StartPeriod" : 10000,
+	"Interval" : 10000000000,
+	"Timeout" : 10000000000,
+	"StartPeriod" : 10000000000,
 	"Retries" : 10
 }`}
 											className="h-[12rem] font-mono"
@@ -351,7 +418,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="restartPolicySwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Restart Policy</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -385,9 +452,9 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 											language="json"
 											placeholder={`{
 	"Condition" : "on-failure",
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"MaxAttempts" : 10,
-	"Window" : 10000
+	"Window" : 10000000000
 }                                                  `}
 											className="h-[12rem] font-mono"
 											{...field}
@@ -405,7 +472,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="placementSwarm"
 							render={({ field }) => (
-								<FormItem className="relative   max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Placement</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -471,7 +538,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="updateConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Update Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -507,9 +574,9 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"FailureAction" : "continue",
-	"Monitor" : 10000,
+	"Monitor" : 10000000000,
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
@@ -529,7 +596,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="rollbackConfigSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Rollback Config</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -565,9 +632,9 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 											language="json"
 											placeholder={`{
 	"Parallelism" : 1,
-	"Delay" : 10000,
+	"Delay" : 10000000000,
 	"FailureAction" : "continue",
-	"Monitor" : 10000,
+	"Monitor" : 10000000000,
 	"MaxFailureRatio" : 10,
 	"Order" : "start-first"
 }`}
@@ -587,7 +654,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="modeSwarm"
 							render={({ field }) => (
-								<FormItem className="relative  max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Mode</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -650,7 +717,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="networkSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Network</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -709,7 +776,7 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 							control={form.control}
 							name="labelsSwarm"
 							render={({ field }) => (
-								<FormItem className="relative max-lg:px-4 lg:pr-6 ">
+								<FormItem className="relative ">
 									<FormLabel>Labels</FormLabel>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
@@ -752,8 +819,119 @@ export const AddSwarmSettings = ({ applicationId }: Props) => {
 								</FormItem>
 							)}
 						/>
+						<FormField
+							control={form.control}
+							name="stopGracePeriodSwarm"
+							render={({ field }) => (
+								<FormItem className="relative max-lg:px-4 lg:pl-6 ">
+									<FormLabel>Stop Grace Period (nanoseconds)</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Duration in nanoseconds
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`Enter duration in nanoseconds:
+														• 30000000000 - 30 seconds
+														• 120000000000 - 2 minutes  
+														• 3600000000000 - 1 hour
+														• 0 - no grace period`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+									<FormControl>
+										<Input
+											type="number"
+											placeholder="30000000000"
+											className="font-mono"
+											{...field}
+											value={field?.value?.toString() || ""}
+											onChange={(e) =>
+												field.onChange(
+													e.target.value ? BigInt(e.target.value) : null,
+												)
+											}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="endpointSpecSwarm"
+							render={({ field }) => (
+								<FormItem className="relative ">
+									<FormLabel>Endpoint Spec</FormLabel>
+									<TooltipProvider delayDuration={0}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<FormDescription className="break-all w-fit flex flex-row gap-1 items-center">
+													Check the interface
+													<HelpCircle className="size-4 text-muted-foreground" />
+												</FormDescription>
+											</TooltipTrigger>
+											<TooltipContent
+												className="w-full z-[999]"
+												align="start"
+												side="bottom"
+											>
+												<code>
+													<pre>
+														{`{
+	Mode?: string | undefined;
+	Ports?: Array<{
+		Protocol?: string | undefined;
+		TargetPort?: number | undefined;
+		PublishedPort?: number | undefined;
+		PublishMode?: string | undefined;
+	}> | undefined;
+}`}
+													</pre>
+												</code>
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
 
-						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border p-2 ">
+									<FormControl>
+										<CodeEditor
+											language="json"
+											placeholder={`{
+	"Mode": "dnsrr",
+	"Ports": [
+		{
+			"Protocol": "tcp",
+			"TargetPort": 5432,
+			"PublishedPort": 5432,
+			"PublishMode": "host"
+		}
+	]
+}`}
+											className="h-[17rem] font-mono"
+											{...field}
+											value={field?.value || ""}
+										/>
+									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
+						<DialogFooter className="flex w-full flex-row justify-end md:col-span-2 m-0 sticky bottom-0 right-0 bg-muted border">
 							<Button
 								isLoading={isLoading}
 								form="hook-form-add-permissions"

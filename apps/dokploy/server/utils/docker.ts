@@ -6,7 +6,7 @@ export const isWSL = async () => {
 		const { stdout } = await execAsync("uname -r");
 		const isWSL = stdout.includes("microsoft");
 		return isWSL;
-	} catch (_error) {
+	} catch {
 		return false;
 	}
 };

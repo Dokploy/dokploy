@@ -1,3 +1,7 @@
+import { Copy, HelpCircle, Server } from "lucide-react";
+import { toast } from "sonner";
+import { AlertBlock } from "@/components/shared/alert-block";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -6,10 +10,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { Copy, HelpCircle, Server } from "lucide-react";
-import { toast } from "sonner";
 
 interface Props {
 	domain: {
@@ -33,7 +33,7 @@ export const DnsHelperModal = ({ domain, serverIp }: Props) => {
 					<HelpCircle className="size-4" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<Server className="size-5" />

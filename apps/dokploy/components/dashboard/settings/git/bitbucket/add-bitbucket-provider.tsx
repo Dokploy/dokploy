@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { BitbucketIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -19,26 +26,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { useUrl } from "@/utils/hooks/use-url";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const Schema = z.object({
-	name: z.string().min(1, {
-		message: "Name is required",
-	}),
-	username: z.string().min(1, {
-		message: "Username is required",
-	}),
-	password: z.string().min(1, {
-		message: "App Password is required",
-	}),
+	name: z.string().min(1, { message: "Name is required" }),
+	username: z.string().min(1, { message: "Username is required" }),
+	email: z.string().email().optional(),
+	apiToken: z.string().min(1, { message: "API Token is required" }),
 	workspaceName: z.string().optional(),
 });
 
@@ -47,14 +40,12 @@ type Schema = z.infer<typeof Schema>;
 export const AddBitbucketProvider = () => {
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const _url = useUrl();
 	const { mutateAsync, error, isError } = api.bitbucket.create.useMutation();
 	const { data: auth } = api.user.get.useQuery();
-	const _router = useRouter();
 	const form = useForm<Schema>({
 		defaultValues: {
 			username: "",
-			password: "",
+			apiToken: "",
 			workspaceName: "",
 		},
 		resolver: zodResolver(Schema),
@@ -63,7 +54,8 @@ export const AddBitbucketProvider = () => {
 	useEffect(() => {
 		form.reset({
 			username: "",
-			password: "",
+			email: "",
+			apiToken: "",
 			workspaceName: "",
 		});
 	}, [form, isOpen]);
@@ -71,10 +63,11 @@ export const AddBitbucketProvider = () => {
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
 			bitbucketUsername: data.username,
-			appPassword: data.password,
+			apiToken: data.apiToken,
 			bitbucketWorkspaceName: data.workspaceName || "",
 			authId: auth?.id || "",
 			name: data.name || "",
+			bitbucketEmail: data.email || "",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -97,7 +90,7 @@ export const AddBitbucketProvider = () => {
 					<span>Bitbucket</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
+			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Bitbucket Provider <BitbucketIcon className="size-5" />
@@ -113,37 +106,46 @@ export const AddBitbucketProvider = () => {
 					>
 						<CardContent className="p-0">
 							<div className="flex flex-col gap-4">
+								<AlertBlock type="warning">
+									Bitbucket App Passwords are deprecated for new providers. Use
+									an API Token instead. Existing providers with App Passwords
+									will continue to work until 9th June 2026.
+								</AlertBlock>
+
+								<div className="mt-1 text-sm">
+									Manage tokens in
+									<Link
+										href="https://id.atlassian.com/manage-profile/security/api-tokens"
+										target="_blank"
+										className="inline-flex items-center gap-1 ml-1"
+									>
+										<span>Bitbucket settings</span>
+										<ExternalLink className="w-fit text-primary size-4" />
+									</Link>
+								</div>
+								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
+									<li className="text-muted-foreground text-sm">
+										Click on Create API token with scopes
+									</li>
+									<li className="text-muted-foreground text-sm">
+										Select the expiration date (Max 1 year)
+									</li>
+									<li className="text-muted-foreground text-sm">
+										Select Bitbucket product.
+									</li>
+								</ul>
 								<p className="text-muted-foreground text-sm">
-									To integrate your Bitbucket account, you need to create a new
-									App Password in your Bitbucket settings. Follow these steps:
+									Select the following scopes:
 								</p>
-								<ol className="list-decimal list-inside text-sm text-muted-foreground">
-									<li className="flex flex-row gap-2 items-center">
-										Create new App Password{" "}
-										<Link
-											href="https://bitbucket.org/account/settings/app-passwords/new"
-											target="_blank"
-										>
-											<ExternalLink className="w-fit text-primary size-4" />
-										</Link>
-									</li>
-									<li>
-										When creating the App Password, ensure you grant the
-										following permissions:
-										<ul className="list-disc list-inside ml-4">
-											<li>Account: Read</li>
-											<li>Workspace membership: Read</li>
-											<li>Projects: Read</li>
-											<li>Repositories: Read</li>
-											<li>Pull requests: Read</li>
-											<li>Webhooks: Read and write</li>
-										</ul>
-									</li>
-									<li>
-										After creating, you'll receive an App Password. Copy it and
-										paste it below along with your Bitbucket username.
-									</li>
-								</ol>
+
+								<ul className="list-disc list-inside ml-4 text-sm text-muted-foreground">
+									<li>read:repository:bitbucket</li>
+									<li>read:pullrequest:bitbucket</li>
+									<li>read:webhook:bitbucket</li>
+									<li>read:workspace:bitbucket</li>
+									<li>write:webhook:bitbucket</li>
+								</ul>
+
 								<FormField
 									control={form.control}
 									name="name"
@@ -152,7 +154,7 @@ export const AddBitbucketProvider = () => {
 											<FormLabel>Name</FormLabel>
 											<FormControl>
 												<Input
-													placeholder="Random Name eg(my-personal-account)"
+													placeholder="Your Bitbucket Provider, eg: my-personal-account"
 													{...field}
 												/>
 											</FormControl>
@@ -179,14 +181,27 @@ export const AddBitbucketProvider = () => {
 
 								<FormField
 									control={form.control}
-									name="password"
+									name="email"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>App Password</FormLabel>
+											<FormLabel>Bitbucket Email</FormLabel>
+											<FormControl>
+												<Input placeholder="Your Bitbucket email" {...field} />
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="apiToken"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>API Token</FormLabel>
 											<FormControl>
 												<Input
-													type="password"
-													placeholder="ATBBPDYUC94nR96Nj7Cqpp4pfwKk03573DD2"
+													placeholder="Paste your Bitbucket API token"
 													{...field}
 												/>
 											</FormControl>
@@ -200,7 +215,7 @@ export const AddBitbucketProvider = () => {
 									name="workspaceName"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Workspace Name (Optional)</FormLabel>
+											<FormLabel>Workspace Name (optional)</FormLabel>
 											<FormControl>
 												<Input
 													placeholder="For organization accounts"

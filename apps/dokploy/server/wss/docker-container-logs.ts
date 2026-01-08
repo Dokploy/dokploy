@@ -46,6 +46,14 @@ export const setupDockerContainerLogsWebSocketServer = (
 			ws.close();
 			return;
 		}
+
+		// Set up keep-alive ping mechanism to prevent timeout
+		// Send ping every 45 seconds to keep connection alive
+		const pingInterval = setInterval(() => {
+			if (ws.readyState === ws.OPEN) {
+				ws.ping();
+			}
+		}, 45000); // 45 seconds
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
@@ -63,7 +71,9 @@ export const setupDockerContainerLogsWebSocketServer = (
 						const command = search
 							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
 							: baseCommand;
-						client.exec(command, (err, stream) => {
+						// Use pty: true to ensure the remote process receives SIGHUP when SSH connection closes
+						// This is crucial for terminating docker logs processes when the connection is closed
+						client.exec(command, { pty: true }, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
 								ws.close();
@@ -86,6 +96,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					.on("error", (err) => {
 						console.error("SSH connection error:", err);
 						ws.send(`SSH error: ${err.message}`);
+						clearInterval(pingInterval);
 						ws.close(); // Cierra el WebSocket si hay un error con SSH
 						client.end();
 					})
@@ -96,6 +107,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 						privateKey: server.sshKey?.privateKey,
 					});
 				ws.on("close", () => {
+					clearInterval(pingInterval);
 					client.end();
 				});
 			} else {
@@ -121,6 +133,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					ws.send(data);
 				});
 				ws.on("close", () => {
+					clearInterval(pingInterval);
 					ptyProcess.kill();
 				});
 				ws.on("message", (message) => {

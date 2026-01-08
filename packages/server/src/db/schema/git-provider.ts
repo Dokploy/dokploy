@@ -8,6 +8,7 @@ import { bitbucket } from "./bitbucket";
 import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
+import { user } from "./user";
 
 export const gitProviderType = pgEnum("gitProviderType", [
 	"github",
@@ -29,6 +30,9 @@ export const gitProvider = pgTable("git_provider", {
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
 });
 
 export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
@@ -51,6 +55,10 @@ export const gitProviderRelations = relations(gitProvider, ({ one }) => ({
 	organization: one(organization, {
 		fields: [gitProvider.organizationId],
 		references: [organization.id],
+	}),
+	user: one(user, {
+		fields: [gitProvider.userId],
+		references: [user.id],
 	}),
 }));
 

@@ -1,3 +1,5 @@
+import { Loader2, PcCase, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,8 +10,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { Loader2, PcCase, RefreshCw } from "lucide-react";
-import { useState } from "react";
 import { StatusRow } from "./gpu-support";
 
 interface Props {
@@ -25,6 +25,13 @@ export const ValidateServer = ({ serverId }: Props) => {
 				enabled: !!serverId,
 			},
 		);
+	const { data: server } = api.server.one.useQuery(
+		{ serverId },
+		{
+			enabled: !!serverId,
+		},
+	);
+	const isBuildServer = server?.serverType === "build";
 	const _utils = api.useUtils();
 	return (
 		<CardContent className="p-0">
@@ -73,7 +80,9 @@ export const ValidateServer = ({ serverId }: Props) => {
 								<div className="border rounded-lg p-4">
 									<h3 className="text-lg font-semibold mb-1">Status</h3>
 									<p className="text-sm text-muted-foreground mb-4">
-										Shows the server configuration status
+										{isBuildServer
+											? "Shows the build server configuration status"
+											: "Shows the server configuration status"}
 									</p>
 									<div className="grid gap-2.5">
 										<StatusRow
@@ -85,15 +94,17 @@ export const ValidateServer = ({ serverId }: Props) => {
 													: undefined
 											}
 										/>
-										<StatusRow
-											label="RClone Installed"
-											isEnabled={data?.rclone?.enabled}
-											description={
-												data?.rclone?.enabled
-													? `Installed: ${data?.rclone?.version}`
-													: undefined
-											}
-										/>
+										{!isBuildServer && (
+											<StatusRow
+												label="RClone Installed"
+												isEnabled={data?.rclone?.enabled}
+												description={
+													data?.rclone?.enabled
+														? `Installed: ${data?.rclone?.version}`
+														: undefined
+												}
+											/>
+										)}
 										<StatusRow
 											label="Nixpacks Installed"
 											isEnabled={data?.nixpacks?.enabled}
@@ -113,23 +124,36 @@ export const ValidateServer = ({ serverId }: Props) => {
 											}
 										/>
 										<StatusRow
-											label="Docker Swarm Initialized"
-											isEnabled={data?.isSwarmInstalled}
+											label="Railpack Installed"
+											isEnabled={data?.railpack?.enabled}
 											description={
-												data?.isSwarmInstalled
-													? "Initialized"
-													: "Not Initialized"
+												data?.railpack?.enabled
+													? `Installed: ${data?.railpack?.version}`
+													: undefined
 											}
 										/>
-										<StatusRow
-											label="Dokploy Network Created"
-											isEnabled={data?.isDokployNetworkInstalled}
-											description={
-												data?.isDokployNetworkInstalled
-													? "Created"
-													: "Not Created"
-											}
-										/>
+										{!isBuildServer && (
+											<>
+												<StatusRow
+													label="Docker Swarm Initialized"
+													isEnabled={data?.isSwarmInstalled}
+													description={
+														data?.isSwarmInstalled
+															? "Initialized"
+															: "Not Initialized"
+													}
+												/>
+												<StatusRow
+													label="Dokploy Network Created"
+													isEnabled={data?.isDokployNetworkInstalled}
+													description={
+														data?.isDokployNetworkInstalled
+															? "Created"
+															: "Not Created"
+													}
+												/>
+											</>
+										)}
 										<StatusRow
 											label="Main Directory Created"
 											isEnabled={data?.isMainDirectoryInstalled}
@@ -137,15 +161,6 @@ export const ValidateServer = ({ serverId }: Props) => {
 												data?.isMainDirectoryInstalled
 													? "Created"
 													: "Not Created"
-											}
-										/>
-										<StatusRow
-											label="Railpack Installed"
-											isEnabled={data?.railpack?.enabled}
-											description={
-												data?.railpack?.enabled
-													? `Installed: ${data?.railpack?.version}`
-													: undefined
 											}
 										/>
 									</div>

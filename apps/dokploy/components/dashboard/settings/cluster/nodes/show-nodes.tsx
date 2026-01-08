@@ -1,3 +1,11 @@
+import {
+	Boxes,
+	HelpCircle,
+	Loader2,
+	LockIcon,
+	MoreHorizontal,
+} from "lucide-react";
+import { toast } from "sonner";
 import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -32,14 +40,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import {
-	Boxes,
-	HelpCircle,
-	Loader2,
-	LockIcon,
-	MoreHorizontal,
-} from "lucide-react";
-import { toast } from "sonner";
 import { AddNode } from "./add-node";
 import { ShowNodeData } from "./show-node-data";
 
@@ -87,7 +87,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 									</TableCaption>
 									<TableHeader>
 										<TableRow>
-											<TableHead className="w-[100px]">Hostname</TableHead>
+											<TableHead className="text-left">Hostname</TableHead>
 											<TableHead className="text-right">Status</TableHead>
 											<TableHead className="text-right">Role</TableHead>
 											<TableHead className="text-right">Availability</TableHead>
@@ -104,7 +104,7 @@ export const ShowNodes = ({ serverId }: Props) => {
 											const isManager = node.Spec.Role === "manager";
 											return (
 												<TableRow key={node.ID}>
-													<TableCell className="w-[100px]">
+													<TableCell className="text-left">
 														{node.Description.Hostname}
 													</TableCell>
 													<TableCell className="text-right">

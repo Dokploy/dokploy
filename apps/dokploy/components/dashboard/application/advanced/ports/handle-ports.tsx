@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon, PlusIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,15 +32,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const AddPortSchema = z.object({
 	publishedPort: z.number().int().min(1).max(65535),
+	publishMode: z.enum(["ingress", "host"], {
+		required_error: "Publish mode is required",
+	}),
 	targetPort: z.number().int().min(1).max(65535),
 	protocol: z.enum(["tcp", "udp"], {
 		required_error: "Protocol is required",
@@ -77,9 +80,15 @@ export const HandlePorts = ({
 		resolver: zodResolver(AddPortSchema),
 	});
 
+	const publishMode = useWatch({
+		control: form.control,
+		name: "publishMode",
+	});
+
 	useEffect(() => {
 		form.reset({
 			publishedPort: data?.publishedPort ?? 0,
+			publishMode: data?.publishMode ?? "ingress",
 			targetPort: data?.targetPort ?? 0,
 			protocol: data?.protocol ?? "tcp",
 		});
@@ -120,7 +129,7 @@ export const HandlePorts = ({
 					<Button>{children}</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-lg">
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>Ports</DialogTitle>
 					<DialogDescription>
@@ -164,6 +173,32 @@ export const HandlePorts = ({
 										<FormMessage />
 									</FormItem>
 								)}
+							/>
+							<FormField
+								control={form.control}
+								name="publishMode"
+								render={({ field }) => {
+									return (
+										<FormItem className="md:col-span-2">
+											<FormLabel>Published Port Mode</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value}
+											>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a publish mode for the port" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													<SelectItem value={"ingress"}>Ingress</SelectItem>
+													<SelectItem value={"host"}>Host</SelectItem>
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									);
+								}}
 							/>
 							<FormField
 								control={form.control}
@@ -222,6 +257,16 @@ export const HandlePorts = ({
 							/>
 						</div>
 					</form>
+
+					{publishMode === "host" && (
+						<AlertBlock type="warning" className="mt-4">
+							<strong>Host Mode Limitation:</strong> When using Host publish
+							mode, Docker Swarm has limitations that prevent proper container
+							updates during deployments. Old containers may not be replaced
+							automatically. Consider using Ingress mode instead, or be prepared
+							to manually stop/start the application after deployments.
+						</AlertBlock>
+					)}
 
 					<DialogFooter>
 						<Button

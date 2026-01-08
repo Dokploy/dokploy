@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { GitlabIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Badge } from "@/components/ui/badge";
@@ -40,13 +47,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckIcon, ChevronsUpDown, HelpCircle, Plus, X } from "lucide-react";
-import Link from "next/link";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const GitlabProviderSchema = z.object({
 	buildPath: z.string().min(1, "Path is required").default("/"),
@@ -96,6 +96,16 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 	const repository = form.watch("repository");
 	const gitlabId = form.watch("gitlabId");
 
+	const gitlabUrl = useMemo(() => {
+		const url = gitlabProviders?.find(
+			(provider) => provider.gitlabId === gitlabId,
+		)?.gitlabUrl;
+
+		const gitlabUrl = url?.replace(/\/$/, "");
+
+		return gitlabUrl || "https://gitlab.com";
+	}, [gitlabId, gitlabProviders]);
+
 	const {
 		data: repositories,
 		isLoading: isLoadingRepositories,
@@ -141,7 +151,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 				enableSubmodules: data.enableSubmodules ?? false,
 			});
 		}
-	}, [form.reset, data, form]);
+	}, [form.reset, data?.applicationId, form]);
 
 	const onSubmit = async (data: GitlabProvider) => {
 		await mutateAsync({
@@ -157,7 +167,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 			enableSubmodules: data.enableSubmodules,
 		})
 			.then(async () => {
-				toast.success("Service Provided Saved");
+				toast.success("Service Provider Saved");
 				await refetch();
 			})
 			.catch(() => {
@@ -224,7 +234,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 										<FormLabel>Repository</FormLabel>
 										{field.value.owner && field.value.repo && (
 											<Link
-												href={`https://gitlab.com/${field.value.owner}/${field.value.repo}`}
+												href={`${gitlabUrl}/${field.value.owner}/${field.value.repo}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
@@ -278,7 +288,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 														{repositories?.map((repo) => {
 															return (
 																<CommandItem
-																	value={repo.name}
+																	value={repo.url}
 																	key={repo.url}
 																	onSelect={() => {
 																		form.setValue("repository", {
@@ -299,7 +309,8 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 																	<CheckIcon
 																		className={cn(
 																			"ml-auto h-4 w-4",
-																			repo.name === field.value.repo
+																			repo.url ===
+																				field.value.gitlabPathNamespace
 																				? "opacity-100"
 																				: "opacity-0",
 																		)}
@@ -452,7 +463,7 @@ export const SaveGitlabProvider = ({ applicationId }: Props) => {
 									<div className="flex gap-2">
 										<FormControl>
 											<Input
-												placeholder="Enter a path to watch (e.g., src/*, dist/*)"
+												placeholder="Enter a path to watch (e.g., src/**, dist/*.js)"
 												onKeyDown={(e) => {
 													if (e.key === "Enter") {
 														e.preventDefault();

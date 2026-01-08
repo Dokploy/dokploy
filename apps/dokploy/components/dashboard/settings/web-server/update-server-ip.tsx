@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,12 +31,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const schema = z.object({
 	serverIp: z.string(),
@@ -46,15 +46,15 @@ interface Props {
 export const UpdateServerIp = ({ children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 
-	const { data } = api.user.get.useQuery();
+	const { data, refetch } = api.settings.getWebServerSettings.useQuery();
 	const { data: ip } = api.server.publicIp.useQuery();
 
 	const { mutateAsync, isLoading, error, isError } =
-		api.user.update.useMutation();
+		api.settings.updateServerIp.useMutation();
 
 	const form = useForm<Schema>({
 		defaultValues: {
-			serverIp: data?.user.serverIp || "",
+			serverIp: data?.serverIp || "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -62,12 +62,10 @@ export const UpdateServerIp = ({ children }: Props) => {
 	useEffect(() => {
 		if (data) {
 			form.reset({
-				serverIp: data.user.serverIp || "",
+				serverIp: data.serverIp || "",
 			});
 		}
 	}, [form, form.reset, data]);
-
-	const utils = api.useUtils();
 
 	const setCurrentIp = () => {
 		if (!ip) return;
@@ -80,7 +78,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 		})
 			.then(async () => {
 				toast.success("Server IP Updated");
-				await utils.user.get.invalidate();
+				await refetch();
 				setIsOpen(false);
 			})
 			.catch(() => {

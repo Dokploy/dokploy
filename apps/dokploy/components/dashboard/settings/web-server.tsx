@@ -1,3 +1,5 @@
+import { ServerIcon } from "lucide-react";
+import { useTranslation } from "next-i18next";
 import {
 	Card,
 	CardContent,
@@ -6,8 +8,6 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/utils/api";
-import { ServerIcon } from "lucide-react";
-import { useTranslation } from "next-i18next";
 import { ShowDokployActions } from "./servers/actions/show-dokploy-actions";
 import { ShowStorageActions } from "./servers/actions/show-storage-actions";
 import { ShowTraefikActions } from "./servers/actions/show-traefik-actions";
@@ -16,7 +16,8 @@ import { UpdateServer } from "./web-server/update-server";
 
 export const WebServer = () => {
 	const { t } = useTranslation("settings");
-	const { data } = api.user.get.useQuery();
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
 
 	const { data: dokployVersion } = api.settings.getDokployVersion.useQuery();
 
@@ -53,7 +54,7 @@ export const WebServer = () => {
 
 						<div className="flex items-center flex-wrap justify-between gap-4">
 							<span className="text-sm text-muted-foreground">
-								Server IP: {data?.user.serverIp}
+								Server IP: {webServerSettings?.serverIp}
 							</span>
 							<span className="text-sm text-muted-foreground">
 								Version: {dokployVersion}

@@ -13,11 +13,11 @@ import { removeDirectoryCode } from "../utils/filesystem/directory";
 import { authGithub } from "../utils/providers/github";
 import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
-import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
+import { getWebServerSettings } from "./web-server-settings";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 
@@ -31,7 +31,11 @@ export const findPreviewDeploymentById = async (
 			application: {
 				with: {
 					server: true,
-					project: true,
+					environment: {
+						with: {
+							project: true,
+						},
+					},
 				},
 			},
 		},
@@ -45,68 +49,43 @@ export const findPreviewDeploymentById = async (
 	return application;
 };
 
-export const findApplicationByPreview = async (applicationId: string) => {
-	const application = await db.query.applications.findFirst({
-		with: {
-			previewDeployments: {
-				where: eq(previewDeployments.applicationId, applicationId),
-			},
-			project: true,
-			domains: true,
-			deployments: true,
-			mounts: true,
-			redirects: true,
-			security: true,
-			ports: true,
-			registry: true,
-			gitlab: true,
-			github: true,
-			bitbucket: true,
-			gitea: true,
-			server: true,
-		},
-	});
-
-	if (!application) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Applicationnot found",
-		});
-	}
-	return application;
-};
-
 export const removePreviewDeployment = async (previewDeploymentId: string) => {
 	try {
-		const application = await findApplicationByPreview(previewDeploymentId);
 		const previewDeployment =
 			await findPreviewDeploymentById(previewDeploymentId);
-
-		const deployment = await db
-			.delete(previewDeployments)
-			.where(eq(previewDeployments.previewDeploymentId, previewDeploymentId))
-			.returning();
+		const application = await findApplicationById(
+			previewDeployment.applicationId,
+		);
 
 		application.appName = previewDeployment.appName;
 		const cleanupOperations = [
 			async () =>
+				await removeService(application?.appName, application?.serverId),
+			async () =>
 				await removeDeploymentsByPreviewDeploymentId(
 					previewDeployment,
-					application.serverId,
+					application?.serverId,
 				),
 			async () =>
-				await removeDirectoryCode(application.appName, application.serverId),
+				await removeDirectoryCode(application?.appName, application?.serverId),
 			async () =>
-				await removeTraefikConfig(application.appName, application.serverId),
+				await removeTraefikConfig(application?.appName, application?.serverId),
 			async () =>
-				await removeService(application?.appName, application.serverId),
+				await db
+					.delete(previewDeployments)
+					.where(
+						eq(previewDeployments.previewDeploymentId, previewDeploymentId),
+					)
+					.returning(),
 		];
 		for (const operation of cleanupOperations) {
 			try {
 				await operation();
-			} catch (_error) {}
+			} catch (error) {
+				console.error(error);
+			}
 		}
-		return deployment[0];
+		return previewDeployment;
 	} catch (error) {
 		const message =
 			error instanceof Error
@@ -157,7 +136,7 @@ export const createPreviewDeployment = async (
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
 	const org = await db.query.organization.findFirst({
-		where: eq(organization.id, application.project.organizationId),
+		where: eq(organization.id, application.environment.project.organizationId),
 	});
 	const generateDomain = await generateWildcardDomain(
 		application.previewWildcard || "*.traefik.me",
@@ -171,7 +150,7 @@ export const createPreviewDeployment = async (
 	const runningComment = getIssueComment(
 		application.name,
 		"initializing",
-		generateDomain,
+		`${application.previewHttps ? "https" : "http"}://${generateDomain}`,
 	);
 
 	const issue = await octokit.rest.issues.createComment({
@@ -274,8 +253,8 @@ const generateWildcardDomain = async (
 		}
 
 		if (!ip) {
-			const admin = await findUserById(userId);
-			ip = admin?.serverIp || "";
+			const settings = await getWebServerSettings();
+			ip = settings?.serverIp || "";
 		}
 
 		const slugIp = ip.replaceAll(".", "-");

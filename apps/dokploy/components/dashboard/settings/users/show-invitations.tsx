@@ -1,3 +1,7 @@
+import copy from "copy-to-clipboard";
+import { format, isPast } from "date-fns";
+import { Loader2, Mail, MoreHorizontal, Users } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,11 +29,6 @@ import {
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
-import copy from "copy-to-clipboard";
-import { format, isPast } from "date-fns";
-import { Mail, MoreHorizontal, Users } from "lucide-react";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { AddInvitation } from "./add-invitation";
 
 export const ShowInvitations = () => {
@@ -146,7 +145,7 @@ export const ShowInvitations = () => {
 																				{invitation.status === "pending" && (
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer"
-																						onSelect={(_e) => {
+																						onSelect={() => {
 																							copy(
 																								`${origin}/invitation?token=${invitation.id}`,
 																							);
@@ -162,7 +161,7 @@ export const ShowInvitations = () => {
 																				{invitation.status === "pending" && (
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer"
-																						onSelect={async (_e) => {
+																						onSelect={async () => {
 																							const result =
 																								await authClient.organization.cancelInvitation(
 																									{
@@ -185,24 +184,21 @@ export const ShowInvitations = () => {
 																						Cancel Invitation
 																					</DropdownMenuItem>
 																				)}
-
-																				<DropdownMenuItem
-																					className="w-full cursor-pointer"
-																					onSelect={async (_e) => {
-																						await removeInvitation({
-																							invitationId: invitation.id,
-																						}).then(() => {
-																							refetch();
-																							toast.success(
-																								"Invitation removed",
-																							);
-																						});
-																					}}
-																				>
-																					Remove Invitation
-																				</DropdownMenuItem>
 																			</>
 																		)}
+																		<DropdownMenuItem
+																			className="w-full cursor-pointer"
+																			onSelect={async () => {
+																				await removeInvitation({
+																					invitationId: invitation.id,
+																				}).then(() => {
+																					refetch();
+																					toast.success("Invitation removed");
+																				});
+																			}}
+																		>
+																			Remove Invitation
+																		</DropdownMenuItem>
 																	</DropdownMenuContent>
 																</DropdownMenu>
 															</TableCell>

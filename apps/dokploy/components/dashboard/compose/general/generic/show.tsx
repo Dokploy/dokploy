@@ -1,16 +1,18 @@
+import { CodeIcon, GitBranch, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
+import { UnauthorizedGitProvider } from "@/components/dashboard/application/general/generic/unauthorized-git-provider";
 import {
 	BitbucketIcon,
-	GitIcon,
 	GiteaIcon,
 	GithubIcon,
+	GitIcon,
 	GitlabIcon,
 } from "@/components/icons/data-tools-icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/utils/api";
-import { CodeIcon, GitBranch, Loader2 } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 import { ComposeFileEditor } from "../compose-file-editor";
 import { ShowConvertedCompose } from "../show-converted-compose";
 import { SaveBitbucketProviderCompose } from "./save-bitbucket-provider-compose";
@@ -34,11 +36,28 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 	const { data: giteaProviders, isLoading: isLoadingGitea } =
 		api.gitea.giteaProviders.useQuery();
 
-	const { data: compose } = api.compose.one.useQuery({ composeId });
+	const { mutateAsync: disconnectGitProvider } =
+		api.compose.disconnectGitProvider.useMutation();
+
+	const { data: compose, refetch } = api.compose.one.useQuery({ composeId });
 	const [tab, setSab] = useState<TabState>(compose?.sourceType || "github");
 
 	const isLoading =
 		isLoadingGithub || isLoadingGitlab || isLoadingBitbucket || isLoadingGitea;
+
+	const handleDisconnect = async () => {
+		try {
+			await disconnectGitProvider({ composeId });
+			toast.success("Repository disconnected successfully");
+			await refetch();
+		} catch (error) {
+			toast.error(
+				`Failed to disconnect repository: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`,
+			);
+		}
+	};
 
 	if (isLoading) {
 		return (
@@ -68,6 +87,37 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 		);
 	}
 
+	// Check if user doesn't have access to the current git provider
+	if (
+		compose &&
+		!compose.hasGitProviderAccess &&
+		compose.sourceType !== "raw"
+	) {
+		return (
+			<Card className="group relative w-full bg-transparent">
+				<CardHeader>
+					<CardTitle className="flex items-start justify-between">
+						<div className="flex flex-col gap-2">
+							<span className="flex flex-col space-y-0.5">Provider</span>
+							<p className="flex items-center text-sm font-normal text-muted-foreground">
+								Repository connection through unauthorized provider
+							</p>
+						</div>
+						<div className="hidden space-y-1 text-sm font-normal md:block">
+							<GitBranch className="size-6 text-muted-foreground" />
+						</div>
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<UnauthorizedGitProvider
+						service={compose}
+						onDisconnect={handleDisconnect}
+					/>
+				</CardContent>
+			</Card>
+		);
+	}
+
 	return (
 		<Card className="group relative w-full bg-transparent">
 			<CardHeader>
@@ -92,8 +142,8 @@ export const ShowProviderFormCompose = ({ composeId }: Props) => {
 						setSab(e as TabState);
 					}}
 				>
-					<div className="flex flex-row items-center justify-between w-full gap-4">
-						<TabsList className="md:grid md:w-fit md:grid-cols-6 max-md:overflow-x-scroll justify-start bg-transparent overflow-y-hidden">
+					<div className="flex flex-row items-center justify-between w-full overflow-auto">
+						<TabsList className="flex gap-4 justify-start bg-transparent">
 							<TabsTrigger
 								value="github"
 								className="rounded-none border-b-2 gap-2 border-b-transparent data-[state=active]:border-b-2 data-[state=active]:border-b-border"

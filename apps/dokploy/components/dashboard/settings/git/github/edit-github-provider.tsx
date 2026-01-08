@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { GithubIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -19,16 +25,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const Schema = z.object({
 	name: z.string().min(1, {
 		message: "Name is required",
+	}),
+	appName: z.string().min(1, {
+		message: "App Name is required",
 	}),
 });
 
@@ -55,6 +58,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 	const form = useForm<Schema>({
 		defaultValues: {
 			name: "",
+			appName: "",
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -62,6 +66,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 	useEffect(() => {
 		form.reset({
 			name: github?.gitProvider.name || "",
+			appName: github?.githubAppName || "",
 		});
 	}, [form, isOpen]);
 
@@ -70,6 +75,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 			githubId,
 			name: data.name || "",
 			gitProviderId: github?.gitProviderId || "",
+			githubAppName: data.appName || "",
 		})
 			.then(async () => {
 				await utils.gitProvider.getAll.invalidate();
@@ -92,7 +98,7 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl  overflow-y-auto max-h-screen">
+			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Update Github <GithubIcon className="size-5" />
@@ -117,6 +123,22 @@ export const EditGithubProvider = ({ githubId }: Props) => {
 											<FormControl>
 												<Input
 													placeholder="Random Name eg(my-personal-account)"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="appName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>App Name</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="pp Name eg(my-personal)"
 													{...field}
 												/>
 											</FormControl>

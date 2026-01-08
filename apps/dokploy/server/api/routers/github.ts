@@ -1,3 +1,12 @@
+import {
+	findGithubById,
+	getGithubBranches,
+	getGithubRepositories,
+	haveGithubRequirements,
+	updateGithub,
+	updateGitProvider,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
@@ -5,14 +14,6 @@ import {
 	apiFindOneGithub,
 	apiUpdateGithub,
 } from "@/server/db/schema";
-import {
-	findGithubById,
-	getGithubBranches,
-	getGithubRepositories,
-	haveGithubRequirements,
-	updateGitProvider,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
 
 export const githubRouter = createTRPCRouter({
 	one: protectedProcedure
@@ -21,7 +22,8 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId &&
+				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -36,7 +38,8 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId &&
+				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -51,7 +54,8 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId || "");
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId &&
+				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				//TODO: Remove this line when the cloud version is ready
 				throw new TRPCError({
@@ -71,7 +75,8 @@ export const githubRouter = createTRPCRouter({
 		result = result.filter(
 			(provider) =>
 				provider.gitProvider.organizationId ===
-				ctx.session.activeOrganizationId,
+					ctx.session.activeOrganizationId &&
+				provider.gitProvider.userId === ctx.session.userId,
 		);
 
 		const filtered = result
@@ -95,7 +100,8 @@ export const githubRouter = createTRPCRouter({
 				const githubProvider = await findGithubById(input.githubId);
 				if (
 					githubProvider.gitProvider.organizationId !==
-					ctx.session.activeOrganizationId
+						ctx.session.activeOrganizationId &&
+					githubProvider.gitProvider.userId === ctx.session.userId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -117,7 +123,8 @@ export const githubRouter = createTRPCRouter({
 			const githubProvider = await findGithubById(input.githubId);
 			if (
 				githubProvider.gitProvider.organizationId !==
-				ctx.session.activeOrganizationId
+					ctx.session.activeOrganizationId &&
+				githubProvider.gitProvider.userId === ctx.session.userId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -127,6 +134,10 @@ export const githubRouter = createTRPCRouter({
 			await updateGitProvider(input.gitProviderId, {
 				name: input.name,
 				organizationId: ctx.session.activeOrganizationId,
+			});
+
+			await updateGithub(input.githubId, {
+				...input,
 			});
 		}),
 });

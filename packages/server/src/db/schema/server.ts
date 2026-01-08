@@ -20,10 +20,11 @@ import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
 import { redis } from "./redis";
+import { schedules } from "./schedule";
 import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
-import { schedules } from "./schedule";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
+export const serverType = pgEnum("serverType", ["deploy", "build"]);
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -44,6 +45,7 @@ export const server = pgTable("server", {
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	serverStatus: serverStatus("serverStatus").notNull().default("active"),
+	serverType: serverType("serverType").notNull().default("deploy"),
 	command: text("command").notNull().default(""),
 	sshKeyId: text("sshKeyId").references(() => sshKeys.sshKeyId, {
 		onDelete: "set null",
@@ -97,12 +99,22 @@ export const server = pgTable("server", {
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({
-	deployments: many(deployments),
+	deployments: many(deployments, {
+		relationName: "deploymentServer",
+	}),
+	buildDeployments: many(deployments, {
+		relationName: "deploymentBuildServer",
+	}),
 	sshKey: one(sshKeys, {
 		fields: [server.sshKeyId],
 		references: [sshKeys.sshKeyId],
 	}),
-	applications: many(applications),
+	applications: many(applications, {
+		relationName: "applicationServer",
+	}),
+	buildApplications: many(applications, {
+		relationName: "applicationBuildServer",
+	}),
 	compose: many(compose),
 	redis: many(redis),
 	mariadb: many(mariadb),
@@ -131,6 +143,7 @@ export const apiCreateServer = createSchema
 		port: true,
 		username: true,
 		sshKeyId: true,
+		serverType: true,
 	})
 	.required();
 
@@ -155,6 +168,7 @@ export const apiUpdateServer = createSchema
 		port: true,
 		username: true,
 		sshKeyId: true,
+		serverType: true,
 	})
 	.required()
 	.extend({

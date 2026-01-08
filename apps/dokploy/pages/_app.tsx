@@ -1,23 +1,22 @@
 import "@/styles/globals.css";
 
+import type { NextPage } from "next";
+import type { AppProps } from "next/app";
+import { Inter } from "next/font/google";
+import Head from "next/head";
+import { appWithTranslation } from "next-i18next";
+import { ThemeProvider } from "next-themes";
+import NextTopLoader from "nextjs-toploader";
+import type { ReactElement, ReactNode } from "react";
 import { SearchCommand } from "@/components/dashboard/search-command";
 import { Toaster } from "@/components/ui/sonner";
 import { Languages } from "@/lib/languages";
 import { api } from "@/utils/api";
-import type { NextPage } from "next";
-import { appWithTranslation } from "next-i18next";
-import { ThemeProvider } from "next-themes";
-import type { AppProps } from "next/app";
-import { Inter } from "next/font/google";
-import Head from "next/head";
-import Script from "next/script";
-import type { ReactElement, ReactNode } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
 	getLayout?: (page: ReactElement) => ReactNode;
-	// session: Session | null;
 	theme?: string;
 };
 
@@ -33,22 +32,16 @@ const MyApp = ({
 
 	return (
 		<>
-			<style jsx global>{`
-        :root {
-          --font-inter: ${inter.style.fontFamily};
-        }
-      `}</style>
+			<style jsx global>
+				{`
+					:root {
+						--font-inter: ${inter.style.fontFamily};
+					}
+				`}
+			</style>
 			<Head>
 				<title>Dokploy</title>
 			</Head>
-			{process.env.NEXT_PUBLIC_UMAMI_HOST &&
-				process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
-					<Script
-						src={process.env.NEXT_PUBLIC_UMAMI_HOST}
-						data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
-					/>
-				)}
-
 			<ThemeProvider
 				attribute="class"
 				defaultTheme="system"
@@ -56,6 +49,7 @@ const MyApp = ({
 				disableTransitionOnChange
 				forcedTheme={Component.theme}
 			>
+				<NextTopLoader color="hsl(var(--sidebar-ring))" />
 				<Toaster richColors />
 				<SearchCommand />
 				{getLayout(<Component {...pageProps} />)}

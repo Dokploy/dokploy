@@ -13,6 +13,7 @@ export type Bitbucket = typeof bitbucket.$inferSelect;
 export const createBitbucket = async (
 	input: typeof apiCreateBitbucket._type,
 	organizationId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -21,6 +22,7 @@ export const createBitbucket = async (
 				providerType: "bitbucket",
 				organizationId: organizationId,
 				name: input.name,
+				userId: userId,
 			})
 			.returning()
 			.then((response) => response[0]);
@@ -66,10 +68,26 @@ export const updateBitbucket = async (
 	input: typeof apiUpdateBitbucket._type,
 ) => {
 	return await db.transaction(async (tx) => {
+		// First get the current bitbucket provider to get gitProviderId
+		const currentProvider = await tx.query.bitbucket.findFirst({
+			where: eq(bitbucket.bitbucketId, bitbucketId),
+		});
+
+		if (!currentProvider) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Bitbucket provider not found",
+			});
+		}
+
 		const result = await tx
 			.update(bitbucket)
 			.set({
-				...input,
+				bitbucketUsername: input.bitbucketUsername,
+				bitbucketEmail: input.bitbucketEmail,
+				appPassword: input.appPassword,
+				apiToken: input.apiToken,
+				bitbucketWorkspaceName: input.bitbucketWorkspaceName,
 			})
 			.where(eq(bitbucket.bitbucketId, bitbucketId))
 			.returning();
@@ -81,7 +99,7 @@ export const updateBitbucket = async (
 					name: input.name,
 					organizationId: input.organizationId,
 				})
-				.where(eq(gitProvider.gitProviderId, input.gitProviderId))
+				.where(eq(gitProvider.gitProviderId, currentProvider.gitProviderId))
 				.returning();
 		}
 

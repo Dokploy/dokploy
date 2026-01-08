@@ -1,3 +1,5 @@
+import { Cpu, HardDrive, Loader2, MemoryStick, Network } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import {
 	Select,
@@ -7,8 +9,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/utils/api";
-import { Cpu, HardDrive, Loader2, MemoryStick, Network } from "lucide-react";
-import { useEffect, useState } from "react";
 import { ContainerBlockChart } from "./container-block-chart";
 import { ContainerCPUChart } from "./container-cpu-chart";
 import { ContainerMemoryChart } from "./container-memory-chart";
@@ -123,7 +123,7 @@ export const ContainerPaidMonitoring = ({ appName, baseUrl, token }: Props) => {
 							? queryError.message
 							: "Failed to fetch metrics, Please check your monitoring Instance is Configured correctly."}
 					</p>
-					<p className=" text-sm text-muted-foreground">URL: {baseUrl}</p>
+					<p className="text-sm text-muted-foreground">URL: {baseUrl}</p>
 				</div>
 			</div>
 		);

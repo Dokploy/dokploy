@@ -10,15 +10,18 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
+import { backups } from "./backups";
 import { compose } from "./compose";
 import { previewDeployments } from "./preview-deployments";
-import { server } from "./server";
+import { rollbacks } from "./rollbacks";
 import { schedules } from "./schedule";
-import { backups } from "./backups";
+import { server } from "./server";
+import { volumeBackups } from "./volume-backups";
 export const deploymentStatus = pgEnum("deploymentStatus", [
 	"running",
 	"done",
 	"error",
+	"cancelled",
 ]);
 
 export const deployments = pgTable("deployment", {
@@ -30,6 +33,7 @@ export const deployments = pgTable("deployment", {
 	description: text("description"),
 	status: deploymentStatus("status").default("running"),
 	logPath: text("logPath").notNull(),
+	pid: text("pid"),
 	applicationId: text("applicationId").references(
 		() => applications.applicationId,
 		{ onDelete: "cascade" },
@@ -58,6 +62,17 @@ export const deployments = pgTable("deployment", {
 	backupId: text("backupId").references((): AnyPgColumn => backups.backupId, {
 		onDelete: "cascade",
 	}),
+	rollbackId: text("rollbackId").references(
+		(): AnyPgColumn => rollbacks.rollbackId,
+		{ onDelete: "cascade" },
+	),
+	volumeBackupId: text("volumeBackupId").references(
+		(): AnyPgColumn => volumeBackups.volumeBackupId,
+		{ onDelete: "cascade" },
+	),
+	buildServerId: text("buildServerId").references(() => server.serverId, {
+		onDelete: "cascade",
+	}),
 });
 
 export const deploymentsRelations = relations(deployments, ({ one }) => ({
@@ -72,6 +87,12 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 	server: one(server, {
 		fields: [deployments.serverId],
 		references: [server.serverId],
+		relationName: "deploymentServer",
+	}),
+	buildServer: one(server, {
+		fields: [deployments.buildServerId],
+		references: [server.serverId],
+		relationName: "deploymentBuildServer",
 	}),
 	previewDeployment: one(previewDeployments, {
 		fields: [deployments.previewDeploymentId],
@@ -85,6 +106,14 @@ export const deploymentsRelations = relations(deployments, ({ one }) => ({
 		fields: [deployments.backupId],
 		references: [backups.backupId],
 	}),
+	rollback: one(rollbacks, {
+		fields: [deployments.deploymentId],
+		references: [rollbacks.deploymentId],
+	}),
+	volumeBackup: one(volumeBackups, {
+		fields: [deployments.volumeBackupId],
+		references: [volumeBackups.volumeBackupId],
+	}),
 }));
 
 const schema = createInsertSchema(deployments, {
@@ -95,6 +124,7 @@ const schema = createInsertSchema(deployments, {
 	composeId: z.string(),
 	description: z.string().optional(),
 	previewDeploymentId: z.string(),
+	buildServerId: z.string(),
 });
 
 export const apiCreateDeployment = schema
@@ -169,6 +199,17 @@ export const apiCreateDeploymentSchedule = schema
 		scheduleId: z.string().min(1),
 	});
 
+export const apiCreateDeploymentVolumeBackup = schema
+	.pick({
+		title: true,
+		status: true,
+		logPath: true,
+		description: true,
+	})
+	.extend({
+		volumeBackupId: z.string().min(1),
+	});
+
 export const apiFindAllByApplication = schema
 	.pick({
 		applicationId: true,
@@ -206,6 +247,7 @@ export const apiFindAllByType = z
 			"schedule",
 			"previewDeployment",
 			"backup",
+			"volumeBackup",
 		]),
 	})
 	.required();

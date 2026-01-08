@@ -7,7 +7,7 @@ export const getPostgresRestoreCommand = (
 	database: string,
 	databaseUser: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "pg_restore -U ${databaseUser} -d ${database} --clean --if-exists"`;
+	return `docker exec -i $CONTAINER_ID sh -c "pg_restore -U '${databaseUser}' -d ${database} -O --clean --if-exists"`;
 };
 
 export const getMariadbRestoreCommand = (
@@ -15,14 +15,14 @@ export const getMariadbRestoreCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mariadb -u ${databaseUser} -p${databasePassword} ${database}"`;
+	return `docker exec -i $CONTAINER_ID sh -c "mariadb -u '${databaseUser}' -p'${databasePassword}' ${database}"`;
 };
 
 export const getMysqlRestoreCommand = (
 	database: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mysql -u root -p${databasePassword} ${database}"`;
+	return `docker exec -i $CONTAINER_ID sh -c "mysql -u root -p'${databasePassword}' ${database}"`;
 };
 
 export const getMongoRestoreCommand = (
@@ -30,7 +30,7 @@ export const getMongoRestoreCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mongorestore --username ${databaseUser} --password ${databasePassword} --authenticationDatabase admin --db ${database} --archive"`;
+	return `docker exec -i $CONTAINER_ID sh -c "mongorestore --username '${databaseUser}' --password '${databasePassword}' --authenticationDatabase admin --db ${database} --archive"`;
 };
 
 export const getComposeSearchCommand = (
@@ -81,7 +81,7 @@ const getMongoSpecificCommand = (
 	backupFile: string,
 ): string => {
 	const tempDir = "/tmp/dokploy-restore";
-	const fileName = backupFile.split("/").pop() || "backup.dump.gz";
+	const fileName = backupFile.split("/").pop() || "backup.sql.gz";
 	const decompressedName = fileName.replace(".gz", "");
 	return `
 rm -rf ${tempDir} && \

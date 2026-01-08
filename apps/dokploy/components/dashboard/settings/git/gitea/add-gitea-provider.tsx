@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { GiteaIcon } from "@/components/icons/data-tools-icons";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -24,13 +31,6 @@ import {
 	getGiteaOAuthUrl,
 } from "@/utils/gitea-utils";
 import { useUrl } from "@/utils/hooks/use-url";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const Schema = z.object({
 	name: z.string().min(1, {
@@ -143,7 +143,7 @@ export const AddGiteaProvider = () => {
 					<span>Gitea</span>
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-2xl overflow-y-auto max-h-screen">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						Gitea Provider <GiteaIcon className="size-5" />

@@ -1,3 +1,5 @@
+import { FancyAnsi } from "fancy-ansi";
+import _ from "lodash";
 import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
@@ -7,9 +9,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { FancyAnsi } from "fancy-ansi";
-import { escapeRegExp } from "lodash";
-import { type LogLine, getLogType } from "./utils";
+import { getLogType, type LogLine } from "./utils";
 
 interface LogLineProps {
 	log: LogLine;
@@ -47,7 +47,7 @@ export function TerminalLine({ log, noTimestamp, searchTerm }: LogLineProps) {
 		}
 
 		const htmlContent = fancyAnsi.toHtml(text);
-		const searchRegex = new RegExp(`(${escapeRegExp(term)})`, "gi");
+		const searchRegex = new RegExp(`(${_.escapeRegExp(term)})`, "gi");
 
 		const modifiedContent = htmlContent.replace(
 			searchRegex,

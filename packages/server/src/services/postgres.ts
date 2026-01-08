@@ -2,17 +2,29 @@ import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePostgres,
 	backups,
+	buildAppName,
 	postgres,
 } from "@dokploy/server/db/schema";
-import { buildAppName } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
+import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
 import { validUniqueServerAppName } from "./project";
 
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+export function getMountPath(dockerImage: string): string {
+	const versionMatch = dockerImage.match(/postgres:(\d+)/);
+
+	if (versionMatch?.[1]) {
+		const version = Number.parseInt(versionMatch[1], 10);
+		if (version >= 18) {
+			// PostgreSQL 18+ uses /var/lib/postgresql/{version}/docker as the default PGDATA
+			return `/var/lib/postgresql/${version}/docker`;
+		}
+	}
+	return "/var/lib/postgresql/data";
+}
 
 export type Postgres = typeof postgres.$inferSelect;
 
@@ -52,7 +64,11 @@ export const findPostgresById = async (postgresId: string) => {
 	const result = await db.query.postgres.findFirst({
 		where: eq(postgres.postgresId, postgresId),
 		with: {
-			project: true,
+			environment: {
+				with: {
+					project: true,
+				},
+			},
 			mounts: true,
 			server: true,
 			backups: {

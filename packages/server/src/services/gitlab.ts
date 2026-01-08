@@ -1,8 +1,8 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreateGitlab,
-	gitProvider,
 	gitlab,
+	gitProvider,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -12,6 +12,7 @@ export type Gitlab = typeof gitlab.$inferSelect;
 export const createGitlab = async (
 	input: typeof apiCreateGitlab._type,
 	organizationId: string,
+	userId: string,
 ) => {
 	return await db.transaction(async (tx) => {
 		const newGitProvider = await tx
@@ -20,6 +21,7 @@ export const createGitlab = async (
 				providerType: "gitlab",
 				organizationId: organizationId,
 				name: input.name,
+				userId: userId,
 			})
 			.returning()
 			.then((response) => response[0]);

@@ -1,30 +1,43 @@
-import type { Domain } from "@dokploy/server";
-import type { Redirect } from "@dokploy/server";
-import type { ApplicationNested } from "@dokploy/server";
+import type { ApplicationNested, Domain, Redirect } from "@dokploy/server";
 import { createRouterConfig } from "@dokploy/server";
 import { expect, test } from "vitest";
 
 const baseApp: ApplicationNested = {
+	railpackVersion: "0.2.2",
+	rollbackActive: false,
 	applicationId: "",
+	previewLabels: [],
+	createEnvFile: true,
 	herokuVersion: "",
 	giteaRepository: "",
 	giteaOwner: "",
 	giteaBranch: "",
+	buildServerId: "",
+	buildRegistryId: "",
+	buildRegistry: null,
 	giteaBuildPath: "",
 	giteaId: "",
+	args: [],
+	rollbackRegistryId: "",
+	rollbackRegistry: null,
+	deployments: [],
 	cleanCache: false,
 	applicationStatus: "done",
+	endpointSpecSwarm: null,
 	appName: "",
 	autoDeploy: true,
 	enableSubmodules: false,
+	previewRequireCollaboratorPermissions: false,
 	serverId: "",
 	branch: null,
 	dockerBuildStage: "",
 	registryUrl: "",
 	watchPaths: [],
 	buildArgs: null,
+	buildSecrets: null,
 	isPreviewDeploymentsActive: false,
 	previewBuildArgs: null,
+	previewBuildSecrets: null,
 	triggerType: "push",
 	previewCertificateType: "none",
 	previewEnv: null,
@@ -34,13 +47,23 @@ const baseApp: ApplicationNested = {
 	previewLimit: 0,
 	previewCustomCertResolver: null,
 	previewWildcard: "",
-	project: {
+	environmentId: "",
+	environment: {
 		env: "",
-		organizationId: "",
+		isDefault: false,
+		environmentId: "",
 		name: "",
-		description: "",
 		createdAt: "",
+		description: "",
 		projectId: "",
+		project: {
+			env: "",
+			organizationId: "",
+			name: "",
+			description: "",
+			createdAt: "",
+			projectId: "",
+		},
 	},
 	buildPath: "/",
 	gitlabPathNamespace: "",
@@ -83,8 +106,8 @@ const baseApp: ApplicationNested = {
 	password: null,
 	placementSwarm: null,
 	ports: [],
-	projectId: "",
 	publishDirectory: null,
+	isStaticSpa: null,
 	redirects: [],
 	refreshToken: "",
 	registry: null,
@@ -100,6 +123,7 @@ const baseApp: ApplicationNested = {
 	updateConfigSwarm: null,
 	username: null,
 	dockerContextPath: null,
+	stopGracePeriodSwarm: null,
 };
 
 const baseDomain: Domain = {
@@ -117,6 +141,8 @@ const baseDomain: Domain = {
 	domainType: "application",
 	uniqueConfigKey: 1,
 	previewDeploymentId: "",
+	internalPath: "/",
+	stripPath: false,
 };
 
 const baseRedirect: Redirect = {

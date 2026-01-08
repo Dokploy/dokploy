@@ -1,3 +1,15 @@
+import { loadStripe } from "@stripe/stripe-js";
+import clsx from "clsx";
+import {
+	AlertTriangle,
+	CheckIcon,
+	CreditCard,
+	Loader2,
+	MinusIcon,
+	PlusIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,18 +24,6 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-import { loadStripe } from "@stripe/stripe-js";
-import clsx from "clsx";
-import {
-	AlertTriangle,
-	CheckIcon,
-	CreditCard,
-	Loader2,
-	MinusIcon,
-	PlusIcon,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 
 const stripePromise = loadStripe(
 	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
@@ -171,7 +171,7 @@ export const ShowBilling = () => {
 													)}
 													{isAnnual ? (
 														<div className="flex flex-row gap-2 items-center">
-															<p className=" text-2xl font-semibold tracking-tight text-primary ">
+															<p className="text-2xl font-semibold tracking-tight text-primary ">
 																${" "}
 																{calculatePrice(
 																	serverQuantity,
@@ -180,7 +180,7 @@ export const ShowBilling = () => {
 																USD
 															</p>
 															|
-															<p className=" text-base font-semibold tracking-tight text-muted-foreground">
+															<p className="text-base font-semibold tracking-tight text-muted-foreground">
 																${" "}
 																{(
 																	calculatePrice(serverQuantity, isAnnual) / 12
@@ -189,7 +189,7 @@ export const ShowBilling = () => {
 															</p>
 														</div>
 													) : (
-														<p className=" text-2xl font-semibold tracking-tight text-primary ">
+														<p className="text-2xl font-semibold tracking-tight text-primary ">
 															${" "}
 															{calculatePrice(serverQuantity, isAnnual).toFixed(
 																2,

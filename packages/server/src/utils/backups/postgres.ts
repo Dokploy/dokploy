@@ -1,20 +1,22 @@
 import type { BackupSchedule } from "@dokploy/server/services/backup";
+import {
+	createDeploymentBackup,
+	updateDeploymentStatus,
+} from "@dokploy/server/services/deployment";
+import { findEnvironmentById } from "@dokploy/server/services/environment";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
-import {
-	createDeploymentBackup,
-	updateDeploymentStatus,
-} from "@dokploy/server/services/deployment";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
 	backup: BackupSchedule,
 ) => {
-	const { name, projectId } = postgres;
-	const project = await findProjectById(projectId);
+	const { name, environmentId } = postgres;
+	const environment = await findEnvironmentById(environmentId);
+	const project = await findProjectById(environment.projectId);
 
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
@@ -50,6 +52,7 @@ export const runPostgresBackup = async (
 			databaseType: "postgres",
 			type: "success",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "done");
@@ -62,6 +65,7 @@ export const runPostgresBackup = async (
 			// @ts-ignore
 			errorMessage: error?.message || "Error message not provided",
 			organizationId: project.organizationId,
+			databaseName: backup.database,
 		});
 
 		await updateDeploymentStatus(deployment.deploymentId, "error");

@@ -19,6 +19,12 @@ type QueueJob =
 			type: "schedule";
 			cronSchedule: string;
 			scheduleId: string;
+			timezone?: string | null;
+	  }
+	| {
+			type: "volume-backup";
+			cronSchedule: string;
+			volumeBackupId: string;
 	  };
 export const schedule = async (job: QueueJob) => {
 	try {

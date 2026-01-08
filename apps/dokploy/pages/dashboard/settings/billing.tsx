@@ -1,13 +1,12 @@
-import { ShowBilling } from "@/components/dashboard/settings/billing/show-billing";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-
-import { appRouter } from "@/server/api/root";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
+import { ShowBilling } from "@/components/dashboard/settings/billing/show-billing";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { appRouter } from "@/server/api/root";
 
 const Page = () => {
 	return <ShowBilling />;
@@ -31,7 +30,7 @@ export async function getServerSideProps(
 	}
 	const { req, res } = ctx;
 	const { user, session } = await validateRequest(req);
-	if (!user || user.role === "member") {
+	if (!user || user.role !== "owner") {
 		return {
 			redirect: {
 				permanent: true,

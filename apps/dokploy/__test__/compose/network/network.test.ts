@@ -1,12 +1,12 @@
-import { generateRandomHash } from "@dokploy/server";
+import type { ComposeSpecification } from "@dokploy/server";
 import {
 	addSuffixToAllNetworks,
+	addSuffixToNetworksRoot,
 	addSuffixToServiceNetworks,
+	generateRandomHash,
 } from "@dokploy/server";
-import { addSuffixToNetworksRoot } from "@dokploy/server";
-import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 const composeFileCombined = `
 version: "3.8"
@@ -39,7 +39,7 @@ networks:
 `;
 
 test("Add suffix to networks in services and root (combined case)", () => {
-	const composeData = load(composeFileCombined) as ComposeSpecification;
+	const composeData = parse(composeFileCombined) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -89,7 +89,7 @@ test("Add suffix to networks in services and root (combined case)", () => {
 	expect(redisNetworks).not.toHaveProperty("backend");
 });
 
-const expectedComposeFile = load(`
+const expectedComposeFile = parse(`
 version: "3.8"
 
 services:
@@ -120,7 +120,7 @@ networks:
 `);
 
 test("Add suffix to networks in compose file", () => {
-	const composeData = load(composeFileCombined) as ComposeSpecification;
+	const composeData = parse(composeFileCombined) as ComposeSpecification;
 
 	const suffix = "testhash";
 	if (!composeData?.networks) {
@@ -156,7 +156,7 @@ networks:
     driver: bridge
 `;
 
-const expectedComposeFile2 = load(`
+const expectedComposeFile2 = parse(`
 version: "3.8"
 
 services:
@@ -182,7 +182,7 @@ networks:
 `);
 
 test("Add suffix to networks in compose file with external and internal networks", () => {
-	const composeData = load(composeFile2) as ComposeSpecification;
+	const composeData = parse(composeFile2) as ComposeSpecification;
 
 	const suffix = "testhash";
 	const updatedComposeData = addSuffixToAllNetworks(composeData, suffix);
@@ -218,7 +218,7 @@ networks:
       com.docker.network.bridge.enable_icc: "true"
 `;
 
-const expectedComposeFile3 = load(`
+const expectedComposeFile3 = parse(`
 version: "3.8"
 
 services:
@@ -247,7 +247,7 @@ networks:
 `);
 
 test("Add suffix to networks in compose file with multiple services and complex network configurations", () => {
-	const composeData = load(composeFile3) as ComposeSpecification;
+	const composeData = parse(composeFile3) as ComposeSpecification;
 
 	const suffix = "testhash";
 	const updatedComposeData = addSuffixToAllNetworks(composeData, suffix);
@@ -289,7 +289,7 @@ networks:
 
 `;
 
-const expectedComposeFile4 = load(`
+const expectedComposeFile4 = parse(`
 version: "3.8"
 
 services:
@@ -326,7 +326,7 @@ networks:
 `);
 
 test("Expect don't add suffix to dokploy-network in compose file with multiple services and complex network configurations", () => {
-	const composeData = load(composeFile4) as ComposeSpecification;
+	const composeData = parse(composeFile4) as ComposeSpecification;
 
 	const suffix = "testhash";
 	const updatedComposeData = addSuffixToAllNetworks(composeData, suffix);

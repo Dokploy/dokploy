@@ -1,17 +1,14 @@
-import { slugify } from "@/lib/slug";
-import {
-	adminProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
-import { generatePassword } from "@/templates/utils";
 import { IS_CLOUD } from "@dokploy/server/constants";
 import {
 	apiCreateAi,
 	apiUpdateAi,
 	deploySuggestionSchema,
 } from "@dokploy/server/db/schema/ai";
-import { createDomain, createMount } from "@dokploy/server/index";
+import {
+	createDomain,
+	createMount,
+	findEnvironmentById,
+} from "@dokploy/server/index";
 import {
 	deleteAiSettings,
 	getAiSettingById,
@@ -26,11 +23,19 @@ import {
 	checkServiceAccess,
 } from "@dokploy/server/services/user";
 import {
-	type Model,
 	getProviderHeaders,
+	getProviderName,
+	type Model,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { slugify } from "@/lib/slug";
+import {
+	adminProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
+import { generatePassword } from "@/templates/utils";
 
 export const aiRouter = createTRPCRouter({
 	one: protectedProcedure
@@ -47,11 +52,64 @@ export const aiRouter = createTRPCRouter({
 		}),
 
 	getModels: protectedProcedure
-		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string().min(1) }))
+		.input(z.object({ apiUrl: z.string().min(1), apiKey: z.string() }))
 		.query(async ({ input }) => {
 			try {
+				const providerName = getProviderName(input.apiUrl);
 				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
-				const response = await fetch(`${input.apiUrl}/models`, { headers });
+				let response = null;
+				switch (providerName) {
+					case "ollama":
+						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
+						break;
+					case "gemini":
+						response = await fetch(
+							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
+							{ headers: {} },
+						);
+						break;
+					case "perplexity":
+						// Perplexity doesn't have a /models endpoint, return hardcoded list
+						return [
+							{
+								id: "sonar-deep-research",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar-reasoning-pro",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar-reasoning",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar-pro",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+							{
+								id: "sonar",
+								object: "model",
+								created: Date.now(),
+								owned_by: "perplexity",
+							},
+						] as Model[];
+					default:
+						if (!input.apiKey)
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "API key must contain at least 1 character(s)",
+							});
+						response = await fetch(`${input.apiUrl}/models`, { headers });
+				}
 
 				if (!response.ok) {
 					const errorText = await response.text();
@@ -163,10 +221,12 @@ export const aiRouter = createTRPCRouter({
 	deploy: protectedProcedure
 		.input(deploySuggestionSchema)
 		.mutation(async ({ ctx, input }) => {
+			const environment = await findEnvironmentById(input.environmentId);
+			const project = await findProjectById(environment.projectId);
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.session.activeOrganizationId,
-					input.projectId,
+					environment.projectId,
 					"create",
 				);
 			}
@@ -177,8 +237,6 @@ export const aiRouter = createTRPCRouter({
 					message: "You need to use a server to create a compose",
 				});
 			}
-
-			const project = await findProjectById(input.projectId);
 
 			const projectName = slugify(`${project.name} ${input.id}`);
 
@@ -191,6 +249,7 @@ export const aiRouter = createTRPCRouter({
 				sourceType: "raw",
 				appName: `${projectName}-${generatePassword(6)}`,
 				isolatedDeployment: true,
+				environmentId: input.environmentId,
 			});
 
 			if (input.domains && input.domains?.length > 0) {

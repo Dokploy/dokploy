@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Dices } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import type z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,15 +39,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-
 import { domain } from "@/server/db/validations/domain";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Dices } from "lucide-react";
-import type z from "zod";
+import { api } from "@/utils/api";
 
 type Domain = z.infer<typeof domain>;
 
@@ -86,6 +85,9 @@ export const AddPreviewDomain = ({
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
 	});
+
+	const host = form.watch("host");
+	const isTraefikMeDomain = host?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -138,7 +140,7 @@ export const AddPreviewDomain = ({
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
@@ -158,6 +160,13 @@ export const AddPreviewDomain = ({
 									name="host"
 									render={({ field }) => (
 										<FormItem>
+											{isTraefikMeDomain && (
+												<AlertBlock type="info">
+													<strong>Note:</strong> traefik.me is a public HTTP
+													service and does not support SSL/HTTPS. HTTPS and
+													certificate options will not have any effect.
+												</AlertBlock>
+											)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>

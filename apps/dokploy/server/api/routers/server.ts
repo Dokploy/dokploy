@@ -1,3 +1,24 @@
+import {
+	createServer,
+	defaultCommand,
+	deleteServer,
+	findServerById,
+	findServersByUserId,
+	findUserById,
+	getPublicIpWithFallback,
+	haveActiveServices,
+	IS_CLOUD,
+	removeDeploymentsByServerId,
+	serverAudit,
+	serverSetup,
+	serverValidate,
+	setupMonitoring,
+	updateServerById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import { updateServersBasedOnQuantity } from "@/pages/api/stripe/webhook";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
@@ -17,27 +38,6 @@ import {
 	redis,
 	server,
 } from "@/server/db/schema";
-import {
-	IS_CLOUD,
-	createServer,
-	defaultCommand,
-	deleteServer,
-	findServerById,
-	findServersByUserId,
-	findUserById,
-	getPublicIpWithFallback,
-	haveActiveServices,
-	removeDeploymentsByServerId,
-	serverAudit,
-	serverSetup,
-	serverValidate,
-	setupMonitoring,
-	updateServerById,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { and, desc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
-import { z } from "zod";
 
 export const serverRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -81,8 +81,10 @@ export const serverRouter = createTRPCRouter({
 		}),
 	getDefaultCommand: protectedProcedure
 		.input(apiFindOneServer)
-		.query(async () => {
-			return defaultCommand();
+		.query(async ({ input }) => {
+			const server = await findServerById(input.serverId);
+			const isBuildServer = server.serverType === "build";
+			return defaultCommand(isBuildServer);
 		}),
 	all: protectedProcedure.query(async ({ ctx }) => {
 		const result = await db
@@ -124,10 +126,30 @@ export const serverRouter = createTRPCRouter({
 						isNotNull(server.sshKeyId),
 						eq(server.organizationId, ctx.session.activeOrganizationId),
 						eq(server.serverStatus, "active"),
+						eq(server.serverType, "deploy"),
 					)
 				: and(
 						isNotNull(server.sshKeyId),
 						eq(server.organizationId, ctx.session.activeOrganizationId),
+						eq(server.serverType, "deploy"),
+					),
+		});
+		return result;
+	}),
+	buildServers: protectedProcedure.query(async ({ ctx }) => {
+		const result = await db.query.server.findMany({
+			orderBy: desc(server.createdAt),
+			where: IS_CLOUD
+				? and(
+						isNotNull(server.sshKeyId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
+						eq(server.serverStatus, "active"),
+						eq(server.serverType, "build"),
+					)
+				: and(
+						isNotNull(server.sshKeyId),
+						eq(server.organizationId, ctx.session.activeOrganizationId),
+						eq(server.serverType, "build"),
 					),
 		});
 		return result;
@@ -382,6 +404,15 @@ export const serverRouter = createTRPCRouter({
 		}
 		const ip = await getPublicIpWithFallback();
 		return ip;
+	}),
+	getServerTime: protectedProcedure.query(() => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		return {
+			time: new Date(),
+			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+		};
 	}),
 	getServerMetrics: protectedProcedure
 		.input(

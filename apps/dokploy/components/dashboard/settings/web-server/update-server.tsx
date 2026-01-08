@@ -1,3 +1,16 @@
+import type { IUpdateData } from "@dokploy/server/index";
+import {
+	Bug,
+	Download,
+	Info,
+	RefreshCcw,
+	Server,
+	Sparkles,
+	Stars,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -12,19 +25,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import type { IUpdateData } from "@dokploy/server/index";
-import {
-	Bug,
-	Download,
-	Info,
-	RefreshCcw,
-	Server,
-	Sparkles,
-	Stars,
-} from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
 import { ToggleAutoCheckUpdates } from "./toggle-auto-check-updates";
 import { UpdateWebServer } from "./update-webserver";
 
@@ -126,7 +126,7 @@ export const UpdateServer = ({
 					</TooltipProvider>
 				)}
 			</DialogTrigger>
-			<DialogContent className="max-w-lg p-6">
+			<DialogContent className="max-w-lg">
 				<div className="flex items-center justify-between mb-8">
 					<DialogTitle className="text-2xl font-semibold">
 						Web Server Update
@@ -253,7 +253,7 @@ export const UpdateServer = ({
 					<ToggleAutoCheckUpdates disabled={isLoading} />
 				</div>
 
-				<div className="space-y-4 flex items-center justify-end">
+				<div className="space-y-4 flex items-center justify-end mt-4	">
 					<div className="flex items-center gap-2">
 						<Button variant="outline" onClick={() => onOpenChange?.(false)}>
 							Cancel

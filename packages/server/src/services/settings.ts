@@ -5,6 +5,11 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import {
+	initializeStandaloneTraefik,
+	initializeTraefikService,
+	type TraefikOptions,
+} from "../setup/traefik-setup";
 
 export interface IUpdateData {
 	latestVersion: string | null;
@@ -54,10 +59,8 @@ export const getUpdateData = async (): Promise<IUpdateData> => {
 	let currentDigest: string;
 	try {
 		currentDigest = await getServiceImageDigest();
-	} catch {
-		// Docker service might not exist locally
-		// You can run the # Installation command for docker service create mentioned in the below docs to test it locally:
-		// https://docs.dokploy.com/docs/core/manual-installation
+	} catch (error) {
+		// TODO: Docker versions 29.0.0 change the way to get the service image digest, so we need to update this in the future we upgrade to that version.
 		return DEFAULT_UPDATE_DATA;
 	}
 
@@ -212,34 +215,200 @@ echo "$json_output"
 	return result;
 };
 
-export const cleanupFullDocker = async (serverId?: string | null) => {
-	const cleanupImages = "docker image prune --force";
-	const cleanupVolumes = "docker volume prune --force";
-	const cleanupContainers = "docker container prune --force";
-	const cleanupSystem = "docker system prune  --force --volumes";
-	const cleanupBuilder = "docker builder prune  --force";
-
+export const getDockerResourceType = async (
+	resourceName: string,
+	serverId?: string,
+) => {
 	try {
+		let result = "";
+		const command = `
+RESOURCE_NAME="${resourceName}"
+if docker service inspect "$RESOURCE_NAME" >/dev/null 2>&1; then
+	echo "service"
+elif docker inspect "$RESOURCE_NAME" >/dev/null 2>&1; then
+	echo "standalone"
+else
+	echo "unknown"
+fi`;
+
 		if (serverId) {
-			await execAsyncRemote(
-				serverId,
-				`
-	${cleanupImages}
-	${cleanupVolumes}
-	${cleanupContainers}
-	${cleanupSystem}
-	${cleanupBuilder}
-			`,
-			);
+			const { stdout } = await execAsyncRemote(serverId, command);
+			result = stdout.trim();
+		} else {
+			const { stdout } = await execAsync(command);
+			result = stdout.trim();
 		}
-		await execAsync(`
-			${cleanupImages}
-			${cleanupVolumes}
-			${cleanupContainers}
-			${cleanupSystem}
-			${cleanupBuilder}
-					`);
+		if (result === "service") {
+			return "service";
+		}
+		if (result === "standalone") {
+			return "standalone";
+		}
+		return "unknown";
 	} catch (error) {
-		console.log(error);
+		console.error(error);
+		return "unknown";
+	}
+};
+
+export const reloadDockerResource = async (
+	resourceName: string,
+	serverId?: string,
+) => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service update --force ${resourceName}`;
+	} else if (resourceType === "standalone") {
+		command = `docker restart ${resourceName}`;
+	} else {
+		throw new Error("Resource type not found");
+	}
+	if (serverId) {
+		await execAsyncRemote(serverId, command);
+	} else {
+		await execAsync(command);
+	}
+};
+
+export const readEnvironmentVariables = async (
+	resourceName: string,
+	serverId?: string,
+) => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service inspect ${resourceName} --format '{{json .Spec.TaskTemplate.ContainerSpec.Env}}'`;
+	} else if (resourceType === "standalone") {
+		command = `docker container inspect ${resourceName} --format '{{json .Config.Env}}'`;
+	}
+	let result = "";
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, command);
+		result = stdout.trim();
+	} else {
+		const { stdout } = await execAsync(command);
+		result = stdout.trim();
+	}
+	if (result === "null") {
+		return "";
+	}
+	return JSON.parse(result)?.join("\n");
+};
+
+export const readPorts = async (
+	resourceName: string,
+	serverId?: string,
+): Promise<
+	{ targetPort: number; publishedPort: number; protocol?: string }[]
+> => {
+	const resourceType = await getDockerResourceType(resourceName, serverId);
+	let command = "";
+	if (resourceType === "service") {
+		command = `docker service inspect ${resourceName} --format '{{json .Spec.EndpointSpec.Ports}}'`;
+	} else if (resourceType === "standalone") {
+		command = `docker container inspect ${resourceName} --format '{{json .NetworkSettings.Ports}}'`;
+	} else {
+		throw new Error("Resource type not found");
+	}
+	let result = "";
+	if (serverId) {
+		const { stdout } = await execAsyncRemote(serverId, command);
+		result = stdout.trim();
+	} else {
+		const { stdout } = await execAsync(command);
+		result = stdout.trim();
+	}
+
+	if (result === "null") {
+		return [];
+	}
+
+	const parsedResult = JSON.parse(result);
+
+	if (resourceType === "service") {
+		return parsedResult
+			.map((port: any) => ({
+				targetPort: port.TargetPort,
+				publishedPort: port.PublishedPort,
+				protocol: port.Protocol,
+			}))
+			.filter((port: any) => port.targetPort !== 80 && port.targetPort !== 443);
+	}
+	const ports: {
+		targetPort: number;
+		publishedPort: number;
+		protocol?: string;
+	}[] = [];
+	const seenPorts = new Set<string>();
+	for (const key in parsedResult) {
+		if (Object.hasOwn(parsedResult, key)) {
+			const containerPortMapppings = parsedResult[key];
+			const protocol = key.split("/")[1];
+			const targetPort = Number.parseInt(key.split("/")[0] ?? "0", 10);
+
+			// Take only the first mapping to avoid duplicates (IPv4 and IPv6)
+			const firstMapping = containerPortMapppings[0];
+			if (firstMapping) {
+				const publishedPort = Number.parseInt(firstMapping.HostPort, 10);
+				const portKey = `${targetPort}-${publishedPort}-${protocol}`;
+				if (!seenPorts.has(portKey)) {
+					seenPorts.add(portKey);
+					ports.push({
+						targetPort: targetPort,
+						publishedPort: publishedPort,
+						protocol: protocol,
+					});
+				}
+			}
+		}
+	}
+	return ports.filter(
+		(port: any) => port.targetPort !== 80 && port.targetPort !== 443,
+	);
+};
+
+export const checkPortInUse = async (
+	port: number,
+	serverId?: string,
+): Promise<{ isInUse: boolean; conflictingContainer?: string }> => {
+	try {
+		const command = `docker ps -a --format '{{.Names}}' | grep -v '^dokploy-traefik$' | while read name; do docker port "$name" 2>/dev/null | grep -q ':${port}' && echo "$name" && break; done || true`;
+		const { stdout } = serverId
+			? await execAsyncRemote(serverId, command)
+			: await execAsync(command);
+
+		const container = stdout.trim();
+
+		return {
+			isInUse: !!container,
+			conflictingContainer: container || undefined,
+		};
+	} catch (error) {
+		console.error("Error checking port availability:", error);
+		return { isInUse: false };
+	}
+};
+
+export const writeTraefikSetup = async (input: TraefikOptions) => {
+	const resourceType = await getDockerResourceType(
+		"dokploy-traefik",
+		input.serverId,
+	);
+
+	if (resourceType === "service") {
+		await initializeTraefikService({
+			env: input.env,
+			additionalPorts: input.additionalPorts,
+			serverId: input.serverId,
+		});
+	} else if (resourceType === "standalone") {
+		await initializeStandaloneTraefik({
+			env: input.env,
+			additionalPorts: input.additionalPorts,
+			serverId: input.serverId,
+		});
+	} else {
+		throw new Error("Traefik resource type not found");
 	}
 };

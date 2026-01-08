@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { parse, stringify, YAMLParseError } from "yaml";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -19,12 +25,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import jsyaml from "js-yaml";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const UpdateTraefikConfigSchema = z.object({
 	traefikConfig: z.string(),
@@ -38,11 +38,11 @@ interface Props {
 
 export const validateAndFormatYAML = (yamlText: string) => {
 	try {
-		const obj = jsyaml.load(yamlText);
-		const formattedYaml = jsyaml.dump(obj, { indent: 4 });
+		const obj = parse(yamlText);
+		const formattedYaml = stringify(obj, { indent: 4 });
 		return { valid: true, formattedYaml, error: null };
 	} catch (error) {
-		if (error instanceof jsyaml.YAMLException) {
+		if (error instanceof YAMLParseError) {
 			return {
 				valid: false,
 				formattedYaml: yamlText,
@@ -89,7 +89,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 		if (!valid) {
 			form.setError("traefikConfig", {
 				type: "manual",
-				message: error || "Invalid YAML",
+				message: (error as string) || "Invalid YAML",
 			});
 			return;
 		}
@@ -122,7 +122,7 @@ export const UpdateTraefikConfig = ({ applicationId }: Props) => {
 			<DialogTrigger asChild>
 				<Button isLoading={isLoading}>Modify</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-4xl">
+			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
 					<DialogTitle>Update traefik config</DialogTitle>
 					<DialogDescription>Update the traefik config</DialogDescription>

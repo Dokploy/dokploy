@@ -1,3 +1,10 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import z from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,21 +41,21 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { DatabaseZap, Dices, RefreshCw } from "lucide-react";
-import Link from "next/link";
-import z from "zod";
 
 export type CacheType = "fetch" | "cache";
 
 export const domain = z
 	.object({
-		host: z.string().min(1, { message: "Add a hostname" }),
+		host: z
+			.string()
+			.min(1, { message: "Add a hostname" })
+			.refine((val) => val === val.trim(), {
+				message: "Domain name cannot have leading or trailing spaces",
+			})
+			.transform((val) => val.trim()),
 		path: z.string().min(1).optional(),
+		internalPath: z.string().optional(),
+		stripPath: z.boolean().optional(),
 		port: z
 			.number()
 			.min(1, { message: "Port must be at least 1" })
@@ -84,6 +91,29 @@ export const domain = z
 				message: "Required",
 			});
 		}
+
+		// Validate stripPath requires a valid path
+		if (input.stripPath && (!input.path || input.path === "/")) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["stripPath"],
+				message:
+					"Strip path can only be enabled when a path other than '/' is specified",
+			});
+		}
+
+		// Validate internalPath starts with /
+		if (
+			input.internalPath &&
+			input.internalPath !== "/" &&
+			!input.internalPath.startsWith("/")
+		) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["internalPath"],
+				message: "Internal path must start with '/'",
+			});
+		}
 	});
 
 type Domain = z.infer<typeof domain>;
@@ -98,6 +128,7 @@ interface Props {
 export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [cacheType, setCacheType] = useState<CacheType>("cache");
+	const [isManualInput, setIsManualInput] = useState(false);
 
 	const utils = api.useUtils();
 	const { data, refetch } = api.domain.one.useQuery(
@@ -162,6 +193,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 		defaultValues: {
 			host: "",
 			path: undefined,
+			internalPath: undefined,
+			stripPath: false,
 			port: undefined,
 			https: false,
 			certificateType: undefined,
@@ -175,6 +208,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const certificateType = form.watch("certificateType");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
+	const host = form.watch("host");
+	const isTraefikMeDomain = host?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -182,6 +217,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 				...data,
 				/* Convert null to undefined */
 				path: data?.path || undefined,
+				internalPath: data?.internalPath || undefined,
+				stripPath: data?.stripPath || false,
 				port: data?.port || undefined,
 				certificateType: data?.certificateType || undefined,
 				customCertResolver: data?.customCertResolver || undefined,
@@ -194,6 +231,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			form.reset({
 				host: "",
 				path: undefined,
+				internalPath: undefined,
+				stripPath: false,
 				port: undefined,
 				https: false,
 				certificateType: undefined,
@@ -261,12 +300,19 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 			<DialogTrigger className="" asChild>
 				{children}
 			</DialogTrigger>
-			<DialogContent className="max-h-screen overflow-y-auto sm:max-w-2xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Domain</DialogTitle>
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+
+				{type === "compose" && (
+					<AlertBlock type="info" className="mb-4">
+						Whenever you make changes to domains, remember to redeploy your
+						compose to apply the changes.
+					</AlertBlock>
+				)}
 
 				<Form {...form}>
 					<form
@@ -294,46 +340,126 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 													<FormItem className="w-full">
 														<FormLabel>Service Name</FormLabel>
 														<div className="flex gap-2">
-															<Select
-																onValueChange={field.onChange}
-																defaultValue={field.value || ""}
-															>
+															{isManualInput ? (
 																<FormControl>
-																	<SelectTrigger>
-																		<SelectValue placeholder="Select a service name" />
-																	</SelectTrigger>
+																	<Input
+																		placeholder="Enter service name manually"
+																		{...field}
+																		className="w-full"
+																	/>
 																</FormControl>
+															) : (
+																<Select
+																	onValueChange={field.onChange}
+																	defaultValue={field.value || ""}
+																>
+																	<FormControl>
+																		<SelectTrigger>
+																			<SelectValue placeholder="Select a service name" />
+																		</SelectTrigger>
+																	</FormControl>
 
-																<SelectContent>
-																	{services?.map((service, index) => (
-																		<SelectItem
-																			value={service}
-																			key={`${service}-${index}`}
-																		>
-																			{service}
+																	<SelectContent>
+																		{services?.map((service, index) => (
+																			<SelectItem
+																				value={service}
+																				key={`${service}-${index}`}
+																			>
+																				{service}
+																			</SelectItem>
+																		))}
+																		<SelectItem value="none" disabled>
+																			Empty
 																		</SelectItem>
-																	))}
-																	<SelectItem value="none" disabled>
-																		Empty
-																	</SelectItem>
-																</SelectContent>
-															</Select>
+																	</SelectContent>
+																</Select>
+															)}
+															{!isManualInput && (
+																<>
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<Button
+																					variant="secondary"
+																					type="button"
+																					isLoading={isLoadingServices}
+																					onClick={() => {
+																						if (cacheType === "fetch") {
+																							refetchServices();
+																						} else {
+																							setCacheType("fetch");
+																						}
+																					}}
+																				>
+																					<RefreshCw className="size-4 text-muted-foreground" />
+																				</Button>
+																			</TooltipTrigger>
+																			<TooltipContent
+																				side="left"
+																				sideOffset={5}
+																				className="max-w-[10rem]"
+																			>
+																				<p>
+																					Fetch: Will clone the repository and
+																					load the services
+																				</p>
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+																	<TooltipProvider delayDuration={0}>
+																		<Tooltip>
+																			<TooltipTrigger asChild>
+																				<Button
+																					variant="secondary"
+																					type="button"
+																					isLoading={isLoadingServices}
+																					onClick={() => {
+																						if (cacheType === "cache") {
+																							refetchServices();
+																						} else {
+																							setCacheType("cache");
+																						}
+																					}}
+																				>
+																					<DatabaseZap className="size-4 text-muted-foreground" />
+																				</Button>
+																			</TooltipTrigger>
+																			<TooltipContent
+																				side="left"
+																				sideOffset={5}
+																				className="max-w-[10rem]"
+																			>
+																				<p>
+																					Cache: If you previously deployed this
+																					compose, it will read the services
+																					from the last deployment/fetch from
+																					the repository
+																				</p>
+																			</TooltipContent>
+																		</Tooltip>
+																	</TooltipProvider>
+																</>
+															)}
 															<TooltipProvider delayDuration={0}>
 																<Tooltip>
 																	<TooltipTrigger asChild>
 																		<Button
 																			variant="secondary"
 																			type="button"
-																			isLoading={isLoadingServices}
 																			onClick={() => {
-																				if (cacheType === "fetch") {
-																					refetchServices();
-																				} else {
-																					setCacheType("fetch");
+																				setIsManualInput(!isManualInput);
+																				if (!isManualInput) {
+																					field.onChange("");
 																				}
 																			}}
 																		>
-																			<RefreshCw className="size-4 text-muted-foreground" />
+																			{isManualInput ? (
+																				<RefreshCw className="size-4 text-muted-foreground" />
+																			) : (
+																				<span className="text-xs text-muted-foreground">
+																					Manual
+																				</span>
+																			)}
 																		</Button>
 																	</TooltipTrigger>
 																	<TooltipContent
@@ -342,40 +468,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 																		className="max-w-[10rem]"
 																	>
 																		<p>
-																			Fetch: Will clone the repository and load
-																			the services
-																		</p>
-																	</TooltipContent>
-																</Tooltip>
-															</TooltipProvider>
-															<TooltipProvider delayDuration={0}>
-																<Tooltip>
-																	<TooltipTrigger asChild>
-																		<Button
-																			variant="secondary"
-																			type="button"
-																			isLoading={isLoadingServices}
-																			onClick={() => {
-																				if (cacheType === "cache") {
-																					refetchServices();
-																				} else {
-																					setCacheType("cache");
-																				}
-																			}}
-																		>
-																			<DatabaseZap className="size-4 text-muted-foreground" />
-																		</Button>
-																	</TooltipTrigger>
-																	<TooltipContent
-																		side="left"
-																		sideOffset={5}
-																		className="max-w-[10rem]"
-																	>
-																		<p>
-																			Cache: If you previously deployed this
-																			compose, it will read the services from
-																			the last deployment/fetch from the
-																			repository
+																			{isManualInput
+																				? "Switch to service selection"
+																				: "Enter service name manually"}
 																		</p>
 																	</TooltipContent>
 																</Tooltip>
@@ -409,6 +504,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														to make your traefik.me domain work.
 													</AlertBlock>
 												)}
+											{isTraefikMeDomain && (
+												<AlertBlock type="info">
+													<strong>Note:</strong> traefik.me is a public HTTP
+													service and does not support SSL/HTTPS. HTTPS and
+													certificate options will not have any effect.
+												</AlertBlock>
+											)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>
@@ -467,6 +569,49 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 											</FormItem>
 										);
 									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="internalPath"
+									render={({ field }) => {
+										return (
+											<FormItem>
+												<FormLabel>Internal Path</FormLabel>
+												<FormDescription>
+													The path where your application expects to receive
+													requests internally (defaults to "/")
+												</FormDescription>
+												<FormControl>
+													<Input placeholder={"/"} {...field} />
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										);
+									}}
+								/>
+
+								<FormField
+									control={form.control}
+									name="stripPath"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between p-3 border rounded-lg shadow-sm">
+											<div className="space-y-0.5">
+												<FormLabel>Strip Path</FormLabel>
+												<FormDescription>
+													Remove the external path from the request before
+													forwarding to the application
+												</FormDescription>
+												<FormMessage />
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
 								/>
 
 								<FormField

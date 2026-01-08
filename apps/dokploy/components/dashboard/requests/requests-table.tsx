@@ -1,3 +1,27 @@
+import {
+	type ColumnFiltersState,
+	flexRender,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getSortedRowModel,
+	type PaginationState,
+	type SortingState,
+	useReactTable,
+	type VisibilityState,
+} from "@tanstack/react-table";
+import copy from "copy-to-clipboard";
+import {
+	CheckCircle2Icon,
+	ChevronDown,
+	Copy,
+	Download,
+	Globe,
+	InfoIcon,
+	Server,
+	TrendingUpIcon,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,30 +48,6 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { api } from "@/utils/api";
-import {
-	type ColumnFiltersState,
-	type PaginationState,
-	type SortingState,
-	type VisibilityState,
-	flexRender,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getSortedRowModel,
-	useReactTable,
-} from "@tanstack/react-table";
-import copy from "copy-to-clipboard";
-import {
-	CheckCircle2Icon,
-	ChevronDown,
-	Copy,
-	Download,
-	Globe,
-	InfoIcon,
-	Server,
-	TrendingUpIcon,
-} from "lucide-react";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import { columns, getStatusColor } from "./columns";
 import type { LogEntry } from "./show-requests";
 import { DataTableFacetedFilter } from "./status-request-filter";

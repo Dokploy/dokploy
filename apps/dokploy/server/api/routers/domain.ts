@@ -1,11 +1,3 @@
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import {
-	apiCreateDomain,
-	apiFindCompose,
-	apiFindDomain,
-	apiFindOneApplication,
-	apiUpdateDomain,
-} from "@/server/db/schema";
 import {
 	createDomain,
 	findApplicationById,
@@ -17,6 +9,7 @@ import {
 	findPreviewDeploymentById,
 	findServerById,
 	generateTraefikMeDomain,
+	getWebServerSettings,
 	manageDomain,
 	removeDomain,
 	removeDomainById,
@@ -25,6 +18,14 @@ import {
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	apiCreateDomain,
+	apiFindCompose,
+	apiFindDomain,
+	apiFindOneApplication,
+	apiUpdateDomain,
+} from "@/server/db/schema";
 
 export const domainRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -34,7 +35,8 @@ export const domainRouter = createTRPCRouter({
 				if (input.domainType === "compose" && input.composeId) {
 					const compose = await findComposeById(input.composeId);
 					if (
-						compose.project.organizationId !== ctx.session.activeOrganizationId
+						compose.environment.project.organizationId !==
+						ctx.session.activeOrganizationId
 					) {
 						throw new TRPCError({
 							code: "UNAUTHORIZED",
@@ -44,7 +46,7 @@ export const domainRouter = createTRPCRouter({
 				} else if (input.domainType === "application" && input.applicationId) {
 					const application = await findApplicationById(input.applicationId);
 					if (
-						application.project.organizationId !==
+						application.environment.project.organizationId !==
 						ctx.session.activeOrganizationId
 					) {
 						throw new TRPCError({
@@ -70,7 +72,8 @@ export const domainRouter = createTRPCRouter({
 		.query(async ({ input, ctx }) => {
 			const application = await findApplicationById(input.applicationId);
 			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -83,7 +86,10 @@ export const domainRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
-			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
@@ -102,16 +108,13 @@ export const domainRouter = createTRPCRouter({
 		}),
 	canGenerateTraefikMeDomains: protectedProcedure
 		.input(z.object({ serverId: z.string() }))
-		.query(async ({ input, ctx }) => {
-			const organization = await findOrganizationById(
-				ctx.session.activeOrganizationId,
-			);
-
+		.query(async ({ input }) => {
 			if (input.serverId) {
 				const server = await findServerById(input.serverId);
 				return server.ipAddress;
 			}
-			return organization?.owner.serverIp;
+			const settings = await getWebServerSettings();
+			return settings?.serverIp || "";
 		}),
 
 	update: protectedProcedure
@@ -122,7 +125,8 @@ export const domainRouter = createTRPCRouter({
 			if (currentDomain.applicationId) {
 				const newApp = await findApplicationById(currentDomain.applicationId);
 				if (
-					newApp.project.organizationId !== ctx.session.activeOrganizationId
+					newApp.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -132,7 +136,8 @@ export const domainRouter = createTRPCRouter({
 			} else if (currentDomain.composeId) {
 				const newCompose = await findComposeById(currentDomain.composeId);
 				if (
-					newCompose.project.organizationId !== ctx.session.activeOrganizationId
+					newCompose.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -144,8 +149,8 @@ export const domainRouter = createTRPCRouter({
 					currentDomain.previewDeploymentId,
 				);
 				if (
-					newPreviewDeployment.application.project.organizationId !==
-					ctx.session.activeOrganizationId
+					newPreviewDeployment.application.environment.project
+						.organizationId !== ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -175,7 +180,8 @@ export const domainRouter = createTRPCRouter({
 		if (domain.applicationId) {
 			const application = await findApplicationById(domain.applicationId);
 			if (
-				application.project.organizationId !== ctx.session.activeOrganizationId
+				application.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -184,7 +190,10 @@ export const domainRouter = createTRPCRouter({
 			}
 		} else if (domain.composeId) {
 			const compose = await findComposeById(domain.composeId);
-			if (compose.project.organizationId !== ctx.session.activeOrganizationId) {
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You are not authorized to access this compose",
@@ -200,7 +209,7 @@ export const domainRouter = createTRPCRouter({
 			if (domain.applicationId) {
 				const application = await findApplicationById(domain.applicationId);
 				if (
-					application.project.organizationId !==
+					application.environment.project.organizationId !==
 					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
@@ -211,7 +220,8 @@ export const domainRouter = createTRPCRouter({
 			} else if (domain.composeId) {
 				const compose = await findComposeById(domain.composeId);
 				if (
-					compose.project.organizationId !== ctx.session.activeOrganizationId
+					compose.environment.project.organizationId !==
+					ctx.session.activeOrganizationId
 				) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",

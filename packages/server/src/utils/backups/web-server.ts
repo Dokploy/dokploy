@@ -1,16 +1,16 @@
-import type { BackupSchedule } from "@dokploy/server/services/backup";
-import { execAsync } from "../process/execAsync";
-import { getS3Credentials, normalizeS3Path } from "./utils";
-import { findDestinationById } from "@dokploy/server/services/destination";
-import { IS_CLOUD, paths } from "@dokploy/server/constants";
-import { mkdtemp } from "node:fs/promises";
-import { join } from "node:path";
+import { createWriteStream } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { IS_CLOUD, paths } from "@dokploy/server/constants";
+import type { BackupSchedule } from "@dokploy/server/services/backup";
 import {
 	createDeploymentBackup,
 	updateDeploymentStatus,
 } from "@dokploy/server/services/deployment";
-import { createWriteStream } from "node:fs";
+import { findDestinationById } from "@dokploy/server/services/destination";
+import { execAsync } from "../process/execAsync";
+import { getS3Credentials, normalizeS3Path } from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
@@ -51,13 +51,23 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 
 			const postgresContainerId = containerId.trim();
 
-			const postgresCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy > '${tempDir}/database.sql'`;
+			// First dump the database inside the container
+			const dumpCommand = `docker exec ${postgresContainerId} pg_dump -v -Fc -U dokploy -d dokploy -f /tmp/database.sql`;
+			writeStream.write(`Running dump command: ${dumpCommand}\n`);
+			await execAsync(dumpCommand);
 
-			writeStream.write(`Running command: ${postgresCommand}\n`);
-			await execAsync(postgresCommand);
+			// Then copy the file from the container to host
+			const copyCommand = `docker cp ${postgresContainerId}:/tmp/database.sql ${tempDir}/database.sql`;
+			writeStream.write(`Copying database dump: ${copyCommand}\n`);
+			await execAsync(copyCommand);
+
+			// Clean up the temp file in the container
+			const cleanupCommand = `docker exec ${postgresContainerId} rm -f /tmp/database.sql`;
+			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
+			await execAsync(cleanupCommand);
 
 			await execAsync(
-				`rsync -av --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
+				`rsync -a --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
 			);
 
 			writeStream.write("Copied filesystem to temp directory\n");
@@ -70,14 +80,18 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write("Zipped database and filesystem\n");
 
 			const uploadCommand = `rclone copyto ${rcloneFlags.join(" ")} "${tempDir}/${backupFileName}" "${s3Path}"`;
-			writeStream.write(`Running command: ${uploadCommand}\n`);
+			writeStream.write("Running command to upload backup to S3\n");
 			await execAsync(uploadCommand);
 			writeStream.write("Uploaded backup to S3 ✅\n");
 			writeStream.end();
 			await updateDeploymentStatus(deployment.deploymentId, "done");
 			return true;
 		} finally {
-			await execAsync(`rm -rf ${tempDir}`);
+			try {
+				await rm(tempDir, { recursive: true, force: true });
+			} catch (cleanupError) {
+				console.error("Cleanup error:", cleanupError);
+			}
 		}
 	} catch (error) {
 		console.error("Backup error:", error);

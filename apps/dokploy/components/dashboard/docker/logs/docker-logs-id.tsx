@@ -1,13 +1,22 @@
+import copy from "copy-to-clipboard";
+import {
+	Check,
+	Copy,
+	Download as DownloadIcon,
+	Loader2,
+	Pause,
+	Play,
+} from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { Download as DownloadIcon, Loader2 } from "lucide-react";
-import React, { useEffect, useRef } from "react";
 import { LineCountFilter } from "./line-count-filter";
 import { SinceLogsFilter, type TimeFilter } from "./since-logs-filter";
 import { StatusLogsFilter } from "./status-logs-filter";
 import { TerminalLine } from "./terminal-line";
-import { type LogLine, getLogType, parseLogs } from "./utils";
+import { getLogType, type LogLine, parseLogs } from "./utils";
 
 interface Props {
 	containerId: string;
@@ -61,8 +70,12 @@ export const DockerLogsId: React.FC<Props> = ({
 	const [showTimestamp, setShowTimestamp] = React.useState(true);
 	const [since, setSince] = React.useState<TimeFilter>("all");
 	const [typeFilter, setTypeFilter] = React.useState<string[]>([]);
+	const [isPaused, setIsPaused] = React.useState(false);
+	const [messageBuffer, setMessageBuffer] = React.useState<string[]>([]);
+	const isPausedRef = useRef(false);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [isLoading, setIsLoading] = React.useState(false);
+	const [copied, setCopied] = React.useState(false);
 
 	const scrollToBottom = () => {
 		if (autoScroll && scrollRef.current) {
@@ -85,13 +98,36 @@ export const DockerLogsId: React.FC<Props> = ({
 	const handleLines = (lines: number) => {
 		setRawLogs("");
 		setFilteredLogs([]);
+		setMessageBuffer([]);
 		setLines(lines);
 	};
 
 	const handleSince = (value: TimeFilter) => {
 		setRawLogs("");
 		setFilteredLogs([]);
+		setMessageBuffer([]);
 		setSince(value);
+	};
+
+	const handlePauseResume = () => {
+		if (isPaused) {
+			// Resume: Apply all buffered messages
+			if (messageBuffer.length > 0) {
+				const bufferedContent = messageBuffer.join("");
+				setRawLogs((prev) => {
+					const updated = prev + bufferedContent;
+					const splitLines = updated.split("\n");
+					if (splitLines.length > lines) {
+						return splitLines.slice(-lines).join("\n");
+					}
+					return updated;
+				});
+				setMessageBuffer([]);
+			}
+		}
+		const newPausedState = !isPaused;
+		setIsPaused(newPausedState);
+		isPausedRef.current = newPausedState;
 	};
 
 	useEffect(() => {
@@ -102,6 +138,10 @@ export const DockerLogsId: React.FC<Props> = ({
 		setIsLoading(true);
 		setRawLogs("");
 		setFilteredLogs([]);
+		setMessageBuffer([]);
+		// Reset pause state when container changes
+		setIsPaused(false);
+		isPausedRef.current = false;
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const params = new globalThis.URLSearchParams({
@@ -140,14 +180,22 @@ export const DockerLogsId: React.FC<Props> = ({
 
 		ws.onmessage = (e) => {
 			if (!isCurrentConnection) return;
-			setRawLogs((prev) => {
-				const updated = prev + e.data;
-				const splitLines = updated.split("\n");
-				if (splitLines.length > lines) {
-					return splitLines.slice(-lines).join("\n");
-				}
-				return updated;
-			});
+
+			if (isPausedRef.current) {
+				// When paused, buffer the messages instead of displaying them
+				setMessageBuffer((prev) => [...prev, e.data]);
+			} else {
+				// When not paused, display messages normally
+				setRawLogs((prev) => {
+					const updated = prev + e.data;
+					const splitLines = updated.split("\n");
+					if (splitLines.length > lines) {
+						return splitLines.slice(-lines).join("\n");
+					}
+					return updated;
+				});
+			}
+
 			setIsLoading(false);
 			if (noDataTimeout) clearTimeout(noDataTimeout);
 		};
@@ -198,6 +246,29 @@ export const DockerLogsId: React.FC<Props> = ({
 		URL.revokeObjectURL(url);
 	};
 
+	const handleCopy = async () => {
+		const logContent = filteredLogs
+			.map(
+				({
+					timestamp,
+					message,
+				}: {
+					timestamp: Date | null;
+					message: string;
+				}) =>
+					showTimestamp
+						? `${timestamp?.toISOString() || "No timestamp"} ${message}`
+						: message,
+			)
+			.join("\n");
+
+		const success = copy(logContent);
+		if (success) {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		}
+	};
+
 	const handleFilter = (logs: LogLine[]) => {
 		return logs.filter((log) => {
 			const logType = getLogType(log.message).type;
@@ -210,9 +281,15 @@ export const DockerLogsId: React.FC<Props> = ({
 		});
 	};
 
+	// Sync isPausedRef with isPaused state
+	useEffect(() => {
+		isPausedRef.current = isPaused;
+	}, [isPaused]);
+
 	useEffect(() => {
 		setRawLogs("");
 		setFilteredLogs([]);
+		setMessageBuffer([]);
 	}, [containerId]);
 
 	useEffect(() => {
@@ -260,17 +337,63 @@ export const DockerLogsId: React.FC<Props> = ({
 							/>
 						</div>
 
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-9 sm:w-auto w-full"
-							onClick={handleDownload}
-							disabled={filteredLogs.length === 0 || !data?.Name}
-						>
-							<DownloadIcon className="mr-2 h-4 w-4" />
-							Download logs
-						</Button>
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9"
+								onClick={handlePauseResume}
+								title={isPaused ? "Resume logs" : "Pause logs"}
+							>
+								{isPaused ? (
+									<Play className="mr-2 h-4 w-4" />
+								) : (
+									<Pause className="mr-2 h-4 w-4" />
+								)}
+								{isPaused ? "Resume" : "Pause"}
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9"
+								onClick={handleCopy}
+								disabled={filteredLogs.length === 0}
+								title="Copy logs to clipboard"
+							>
+								{copied ? (
+									<Check className="mr-2 h-4 w-4" />
+								) : (
+									<Copy className="mr-2 h-4 w-4" />
+								)}
+								Copy
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9 sm:w-auto w-full"
+								onClick={handleDownload}
+								disabled={filteredLogs.length === 0 || !data?.Name}
+							>
+								<DownloadIcon className="mr-2 h-4 w-4" />
+								Download logs
+							</Button>
+						</div>
 					</div>
+					{isPaused && (
+						<AlertBlock type="warning">
+							<div className="flex items-center gap-2">
+								<Pause className="h-4 w-4" />
+								<span>
+									Logs paused
+									{messageBuffer.length > 0 && (
+										<span className="ml-1 font-medium">
+											({messageBuffer.length} messages buffered)
+										</span>
+									)}
+								</span>
+							</div>
+						</AlertBlock>
+					)}
 					<div
 						ref={scrollRef}
 						onScroll={handleScroll}

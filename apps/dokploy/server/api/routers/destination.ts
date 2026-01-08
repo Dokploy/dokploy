@@ -1,4 +1,15 @@
 import {
+	createDestintation,
+	execAsync,
+	execAsyncRemote,
+	findDestinationById,
+	IS_CLOUD,
+	removeDestinationById,
+	updateDestinationById,
+} from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { desc, eq } from "drizzle-orm";
+import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
@@ -11,17 +22,6 @@ import {
 	apiUpdateDestination,
 	destinations,
 } from "@/server/db/schema";
-import {
-	IS_CLOUD,
-	createDestintation,
-	execAsync,
-	execAsyncRemote,
-	findDestinationById,
-	removeDestinationById,
-	updateDestinationById,
-} from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
 
 export const destinationRouter = createTRPCRouter({
 	create: adminProcedure
@@ -47,15 +47,19 @@ export const destinationRouter = createTRPCRouter({
 				input;
 			try {
 				const rcloneFlags = [
-					`--s3-access-key-id=${accessKey}`,
-					`--s3-secret-access-key=${secretAccessKey}`,
-					`--s3-region=${region}`,
-					`--s3-endpoint=${endpoint}`,
+					`--s3-access-key-id="${accessKey}"`,
+					`--s3-secret-access-key="${secretAccessKey}"`,
+					`--s3-region="${region}"`,
+					`--s3-endpoint="${endpoint}"`,
 					"--s3-no-check-bucket",
 					"--s3-force-path-style",
+					"--retries 1",
+					"--low-level-retries 1",
+					"--timeout 10s",
+					"--contimeout 5s",
 				];
 				if (provider) {
-					rcloneFlags.unshift(`--s3-provider=${provider}`);
+					rcloneFlags.unshift(`--s3-provider="${provider}"`);
 				}
 				const rcloneDestination = `:s3:${bucket}`;
 				const rcloneCommand = `rclone ls ${rcloneFlags.join(" ")} "${rcloneDestination}"`;

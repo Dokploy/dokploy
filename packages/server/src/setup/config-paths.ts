@@ -19,6 +19,7 @@ export const setupDirectories = () => {
 		MONITORING_PATH,
 		SSH_PATH,
 		SCHEDULES_PATH,
+		VOLUME_BACKUPS_PATH,
 	} = paths();
 	const directories = [
 		BASE_PATH,
@@ -30,6 +31,7 @@ export const setupDirectories = () => {
 		CERTIFICATES_PATH,
 		MONITORING_PATH,
 		SCHEDULES_PATH,
+		VOLUME_BACKUPS_PATH,
 	];
 
 	for (const dir of directories) {

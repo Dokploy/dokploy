@@ -1,3 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PenBoxIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
@@ -20,12 +26,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PenBoxIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { z } from "zod";
 
 const mountSchema = z.object({
 	mountPath: z.string().min(1, "Mount path required"),
@@ -41,7 +41,13 @@ const mySchema = z.discriminatedUnion("type", [
 	z
 		.object({
 			type: z.literal("volume"),
-			volumeName: z.string().min(1, "Volume name required"),
+			volumeName: z
+				.string()
+				.min(1, "Volume name required")
+				.regex(
+					/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+					"Invalid volume name. Use letters, numbers, '._-' and start with a letter/number.",
+				),
 		})
 		.merge(mountSchema),
 	z
@@ -186,7 +192,7 @@ export const UpdateVolume = ({
 					<PenBoxIcon className="size-3.5  text-primary group-hover:text-blue-500" />
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="max-h-screen  overflow-y-auto sm:max-w-3xl">
+			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle>Update</DialogTitle>
 					<DialogDescription>Update the mount</DialogDescription>
@@ -247,7 +253,7 @@ export const UpdateVolume = ({
 										control={form.control}
 										name="content"
 										render={({ field }) => (
-											<FormItem>
+											<FormItem className="max-w-full max-w-[45rem]">
 												<FormLabel>Content</FormLabel>
 												<FormControl>
 													<FormControl>
@@ -256,7 +262,7 @@ export const UpdateVolume = ({
 															placeholder={`NODE_ENV=production
 PORT=3000
 `}
-															className="h-96 font-mono"
+															className="h-96 font-mono w-full"
 															{...field}
 														/>
 													</FormControl>

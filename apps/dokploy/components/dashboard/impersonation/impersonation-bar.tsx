@@ -1,24 +1,28 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import copy from "copy-to-clipboard";
+import { format } from "date-fns";
 import {
+	Building2,
+	Calendar,
 	CheckIcon,
 	ChevronsUpDown,
+	Copy,
+	CreditCard,
+	Fingerprint,
+	Key,
+	Server,
 	Settings2,
+	Shield,
 	UserIcon,
 	XIcon,
-	Shield,
-	Calendar,
-	Key,
-	Copy,
-	Fingerprint,
-	Building2,
-	CreditCard,
-	Server,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Logo } from "@/components/shared/logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Command,
 	CommandEmpty,
@@ -32,18 +36,14 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Logo } from "@/components/shared/logo";
-import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipTrigger,
 	TooltipProvider,
+	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { format } from "date-fns";
-import copy from "copy-to-clipboard";
+import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
 type User = typeof authClient.$Infer.Session.user;
@@ -103,7 +103,7 @@ export const ImpersonationBar = () => {
 			setOpen(false);
 
 			toast.success("Successfully impersonating user", {
-				description: `You are now viewing as ${selectedUser.name || selectedUser.email}`,
+				description: `You are now viewing as ${`${selectedUser.name} ${selectedUser.lastName}`.trim() || selectedUser.email}`,
 			});
 			window.location.reload();
 		} catch (error) {
@@ -195,7 +195,8 @@ export const ImpersonationBar = () => {
 													<UserIcon className="mr-2 h-4 w-4 flex-shrink-0" />
 													<span className="truncate flex flex-col items-start">
 														<span className="text-sm font-medium">
-															{selectedUser.name || ""}
+															{`${selectedUser.name} ${selectedUser.lastName}`.trim() ||
+																""}
 														</span>
 														<span className="text-xs text-muted-foreground">
 															{selectedUser.email}
@@ -242,7 +243,8 @@ export const ImpersonationBar = () => {
 																		<UserIcon className="h-4 w-4 flex-shrink-0" />
 																		<span className="flex flex-col items-start">
 																			<span className="text-sm font-medium">
-																				{user.name || ""}
+																				{`${user.name} ${user.lastName}`.trim() ||
+																					""}
 																			</span>
 																			<span className="text-xs text-muted-foreground">
 																				{user.email} • {user.role}
@@ -281,11 +283,16 @@ export const ImpersonationBar = () => {
 								<div className="flex items-center gap-4 flex-1 flex-wrap">
 									<Avatar className="h-10 w-10">
 										<AvatarImage
+											className="object-cover"
 											src={data?.user?.image || ""}
-											alt={data?.user?.name || ""}
+											alt={
+												`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
+												""
+											}
 										/>
 										<AvatarFallback>
-											{data?.user?.name?.slice(0, 2).toUpperCase() || "U"}
+											{`${data?.user?.firstName?.[0] || ""}${data?.user?.lastName?.[0] || ""}`.toUpperCase() ||
+												"U"}
 										</AvatarFallback>
 									</Avatar>
 									<div className="flex flex-col gap-1">
@@ -298,7 +305,8 @@ export const ImpersonationBar = () => {
 												Impersonating
 											</Badge>
 											<span className="font-medium">
-												{data?.user?.name || ""}
+												{`${data?.user?.firstName} ${data?.user?.lastName}`.trim() ||
+													""}
 											</span>
 										</div>
 										<div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">

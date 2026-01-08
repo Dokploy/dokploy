@@ -1,87 +1,25 @@
-import type { WriteStream } from "node:fs";
-import { prepareEnvironmentVariables } from "@dokploy/server/utils/docker/utils";
-import type { ApplicationNested } from ".";
+import {
+	getEnviromentVariablesObject,
+	prepareEnvironmentVariablesForShell,
+} from "@dokploy/server/utils/docker/utils";
+import { quote } from "shell-quote";
 import {
 	getBuildAppDirectory,
 	getDockerContextPath,
 } from "../filesystem/directory";
-import { spawnAsync } from "../process/spawnAsync";
-import { createEnvFile, createEnvFileCommand } from "./utils";
+import type { ApplicationNested } from ".";
+import { createEnvFileCommand } from "./utils";
 
-export const buildCustomDocker = async (
-	application: ApplicationNested,
-	writeStream: WriteStream,
-) => {
+export const getDockerCommand = (application: ApplicationNested) => {
 	const {
 		appName,
 		env,
 		publishDirectory,
 		buildArgs,
+		buildSecrets,
 		dockerBuildStage,
 		cleanCache,
-	} = application;
-	const dockerFilePath = getBuildAppDirectory(application);
-	try {
-		const image = `${appName}`;
-
-		const defaultContextPath =
-			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
-		const args = prepareEnvironmentVariables(
-			buildArgs,
-			application.project.env,
-		);
-
-		const dockerContextPath = getDockerContextPath(application);
-
-		const commandArgs = ["build", "-t", image, "-f", dockerFilePath, "."];
-
-		if (cleanCache) {
-			commandArgs.push("--no-cache");
-		}
-
-		if (dockerBuildStage) {
-			commandArgs.push("--target", dockerBuildStage);
-		}
-
-		for (const arg of args) {
-			commandArgs.push("--build-arg", arg);
-		}
-		/*
-			Do not generate an environment file when publishDirectory is specified,
-			as it could be publicly exposed.
-		*/
-		if (!publishDirectory) {
-			createEnvFile(dockerFilePath, env, application.project.env);
-		}
-
-		await spawnAsync(
-			"docker",
-			commandArgs,
-			(data) => {
-				if (writeStream.writable) {
-					writeStream.write(data);
-				}
-			},
-			{
-				cwd: dockerContextPath || defaultContextPath,
-			},
-		);
-	} catch (error) {
-		throw error;
-	}
-};
-
-export const getDockerCommand = (
-	application: ApplicationNested,
-	logPath: string,
-) => {
-	const {
-		appName,
-		env,
-		publishDirectory,
-		buildArgs,
-		dockerBuildStage,
-		cleanCache,
+		createEnvFile,
 	} = application;
 	const dockerFilePath = getBuildAppDirectory(application);
 
@@ -90,10 +28,6 @@ export const getDockerCommand = (
 
 		const defaultContextPath =
 			dockerFilePath.substring(0, dockerFilePath.lastIndexOf("/") + 1) || ".";
-		const args = prepareEnvironmentVariables(
-			buildArgs,
-			application.project.env,
-		);
 
 		const dockerContextPath =
 			getDockerContextPath(application) || defaultContextPath;
@@ -108,35 +42,60 @@ export const getDockerCommand = (
 			commandArgs.push("--no-cache");
 		}
 
+		const args = prepareEnvironmentVariablesForShell(
+			buildArgs,
+			application.environment.project.env,
+			application.environment.env,
+		);
+
 		for (const arg of args) {
-			commandArgs.push("--build-arg", `'${arg}'`);
+			commandArgs.push("--build-arg", arg);
 		}
+
+		const secrets = getEnviromentVariablesObject(
+			buildSecrets,
+			application.environment.project.env,
+			application.environment.env,
+		);
+
+		const joinedSecrets = Object.entries(secrets)
+			.map(([key, value]) => `${key}=${quote([value])}`)
+			.join(" ");
 
 		/*
 			Do not generate an environment file when publishDirectory is specified,
 			as it could be publicly exposed.
+			Also respect the createEnvFile flag.
 		*/
 		let command = "";
-		if (!publishDirectory) {
+		if (!publishDirectory && createEnvFile) {
 			command += createEnvFileCommand(
 				dockerFilePath,
 				env,
-				application.project.env,
+				application.environment.project.env,
+				application.environment.env,
 			);
 		}
 
+		for (const key in secrets) {
+			// Although buildx is smart enough to know we may be referring to an environment variable name,
+			// we still make sure it doesn't fall back to `type=file`.
+			// See: https://docs.docker.com/reference/cli/docker/buildx/build/#secret
+			commandArgs.push("--secret", `type=env,id=${key}`);
+		}
+
 		command += `
-echo "Building ${appName}" >> ${logPath};
-cd ${dockerContextPath} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ The path ${dockerContextPath} does not exist" >> ${logPath};
+echo "Building ${appName}" ;
+cd ${dockerContextPath} || { 
+  echo "❌ The path ${dockerContextPath} does not exist" ;
   exit 1;
 }
 
-docker ${commandArgs.join(" ")} >> ${logPath} 2>> ${logPath} || { 
-  echo "❌ Docker build failed" >> ${logPath};
+${joinedSecrets} docker ${commandArgs.join(" ")} || { 
+  echo "❌ Docker build failed" ;
   exit 1;
 }
-echo "✅ Docker build completed." >> ${logPath};
+echo "✅ Docker build completed." ;
 		`;
 
 		return command;

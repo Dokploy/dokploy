@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
 import { normalizeS3Path } from "@dokploy/server/utils/backups/utils";
+import { describe, expect, test } from "vitest";
 
 describe("normalizeS3Path", () => {
 	test("should handle empty and whitespace-only prefix", () => {

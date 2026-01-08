@@ -1,3 +1,4 @@
+import { Settings } from "lucide-react";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,6 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "@/utils/api";
-import { Settings } from "lucide-react";
 
 interface Props {
 	nodeId: string;
@@ -29,7 +29,7 @@ export const ShowNodeConfig = ({ nodeId, serverId }: Props) => {
 					Config
 				</Button>
 			</DialogTrigger>
-			<DialogContent className={"sm:max-w-5xl overflow-y-auto max-h-screen"}>
+			<DialogContent className={"sm:max-w-5xl"}>
 				<DialogHeader>
 					<DialogTitle>Node Config</DialogTitle>
 					<DialogDescription>

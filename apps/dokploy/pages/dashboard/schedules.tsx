@@ -1,11 +1,12 @@
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import type { ReactElement } from "react";
-import type { GetServerSidePropsContext } from "next";
-import { validateRequest } from "@dokploy/server/lib/auth";
 import { IS_CLOUD } from "@dokploy/server/constants";
-import { api } from "@/utils/api";
+import { validateRequest } from "@dokploy/server/lib/auth";
+import type { GetServerSidePropsContext } from "next";
+import type { ReactElement } from "react";
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
+import { api } from "@/utils/api";
+
 function SchedulesPage() {
 	const { data: user } = api.user.get.useQuery();
 	return (
@@ -39,7 +40,7 @@ export async function getServerSideProps(
 		};
 	}
 	const { user } = await validateRequest(ctx.req);
-	if (!user || user.role !== "owner") {
+	if (!user || (user.role !== "owner" && user.role !== "admin")) {
 		return {
 			redirect: {
 				permanent: true,

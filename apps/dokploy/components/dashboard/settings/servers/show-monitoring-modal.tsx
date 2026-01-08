@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 import { ShowPaidMonitoring } from "../../monitoring/paid/servers/show-paid-monitoring";
 
 interface Props {
@@ -21,7 +21,7 @@ export const ShowMonitoringModal = ({ url, token }: Props) => {
 					Show Monitoring
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-7xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="sm:max-w-7xl  ">
 				<div className="flex gap-4 py-4 w-full">
 					<ShowPaidMonitoring BASE_URL={url} token={token} />
 				</div>

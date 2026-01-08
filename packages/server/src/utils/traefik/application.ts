@@ -1,8 +1,9 @@
-import fs, { writeFileSync } from "node:fs";
+import fs, { createReadStream, writeFileSync } from "node:fs";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { paths } from "@dokploy/server/constants";
 import type { Domain } from "@dokploy/server/services/domain";
-import { dump, load } from "js-yaml";
+import { parse, stringify } from "yaml";
 import { encodeBase64 } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import type { FileConfig, HttpLoadBalancerService } from "./file-types";
@@ -39,7 +40,7 @@ export const createTraefikConfig = (appName: string) => {
 			},
 		},
 	};
-	const yamlStr = dump(config);
+	const yamlStr = stringify(config);
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	fs.mkdirSync(DYNAMIC_TRAEFIK_PATH, { recursive: true });
 	writeFileSync(
@@ -67,7 +68,7 @@ export const removeTraefikConfig = async (
 		if (fs.existsSync(configPath)) {
 			await fs.promises.unlink(configPath);
 		}
-	} catch (_error) {}
+	} catch {}
 };
 
 export const removeTraefikConfigRemote = async (
@@ -78,7 +79,7 @@ export const removeTraefikConfigRemote = async (
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 		await execAsyncRemote(serverId, `rm ${configPath}`);
-	} catch (_error) {}
+	} catch {}
 };
 
 export const loadOrCreateConfig = (appName: string): FileConfig => {
@@ -86,7 +87,7 @@ export const loadOrCreateConfig = (appName: string): FileConfig => {
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
 	if (fs.existsSync(configPath)) {
 		const yamlStr = fs.readFileSync(configPath, "utf8");
-		const parsedConfig = (load(yamlStr) as FileConfig) || {
+		const parsedConfig = (parse(yamlStr) as FileConfig) || {
 			http: { routers: {}, services: {} },
 		};
 		return parsedConfig;
@@ -106,11 +107,11 @@ export const loadOrCreateConfigRemote = async (
 
 		if (!stdout) return fileConfig;
 
-		const parsedConfig = (load(stdout) as FileConfig) || {
+		const parsedConfig = (parse(stdout) as FileConfig) || {
 			http: { routers: {}, services: {} },
 		};
 		return parsedConfig;
-	} catch (_err) {
+	} catch {
 		return fileConfig;
 	}
 };
@@ -132,44 +133,46 @@ export const readRemoteConfig = async (serverId: string, appName: string) => {
 		const { stdout } = await execAsyncRemote(serverId, `cat ${configPath}`);
 		if (!stdout) return null;
 		return stdout;
-	} catch (_err) {
+	} catch {
 		return null;
 	}
 };
 
-export const readMonitoringConfig = (readAll = false) => {
+export const readMonitoringConfig = async (readAll = false) => {
 	const { DYNAMIC_TRAEFIK_PATH } = paths();
 	const configPath = path.join(DYNAMIC_TRAEFIK_PATH, "access.log");
 	if (fs.existsSync(configPath)) {
 		if (!readAll) {
-			// Read first 500 lines
+			// Read first 500 lines using streams
 			let content = "";
-			let chunk = "";
 			let validCount = 0;
 
-			for (const char of fs.readFileSync(configPath, "utf8")) {
-				chunk += char;
-				if (char === "\n") {
-					try {
-						const trimmed = chunk.trim();
-						if (
-							trimmed !== "" &&
-							trimmed.startsWith("{") &&
-							trimmed.endsWith("}")
-						) {
-							const log = JSON.parse(trimmed);
-							if (log.ServiceName !== "dokploy-service-app@file") {
-								content += chunk;
-								validCount++;
-								if (validCount >= 500) {
-									break;
-								}
+			const fileStream = createReadStream(configPath, { encoding: "utf8" });
+			const readline = createInterface({
+				input: fileStream,
+				crlfDelay: Number.POSITIVE_INFINITY,
+			});
+
+			for await (const line of readline) {
+				try {
+					const trimmed = line.trim();
+					if (
+						trimmed !== "" &&
+						trimmed.startsWith("{") &&
+						trimmed.endsWith("}")
+					) {
+						const log = JSON.parse(trimmed);
+						// Exclude Dokploy service app and Dashboard requests
+						if (log.ServiceName !== "dokploy-service-app@file") {
+							content += `${line}\n`;
+							validCount++;
+							if (validCount >= 500) {
+								break;
 							}
 						}
-					} catch {
-						// Ignore invalid JSON
 					}
-					chunk = "";
+				} catch {
+					// Ignore invalid JSON
 				}
 			}
 			return content;
@@ -234,7 +237,6 @@ export const writeTraefikConfigInPath = async (
 		} else {
 			fs.writeFileSync(configPath, traefikConfig, "utf8");
 		}
-		fs.writeFileSync(configPath, traefikConfig, "utf8");
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
 	}
@@ -247,7 +249,7 @@ export const writeTraefikConfig = (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths();
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const yamlStr = dump(traefikConfig);
+		const yamlStr = stringify(traefikConfig);
 		fs.writeFileSync(configPath, yamlStr, "utf8");
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);
@@ -262,7 +264,7 @@ export const writeTraefikConfigRemote = async (
 	try {
 		const { DYNAMIC_TRAEFIK_PATH } = paths(true);
 		const configPath = path.join(DYNAMIC_TRAEFIK_PATH, `${appName}.yml`);
-		const yamlStr = dump(traefikConfig);
+		const yamlStr = stringify(traefikConfig);
 		await execAsyncRemote(serverId, `echo '${yamlStr}' > ${configPath}`);
 	} catch (e) {
 		console.error("Error saving the YAML config file:", e);

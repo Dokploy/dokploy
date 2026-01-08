@@ -1,9 +1,9 @@
+import { findGitProviderById, removeGitProvider } from "@dokploy/server";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq } from "drizzle-orm";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import { apiRemoveGitProvider, gitProvider } from "@/server/db/schema";
-import { findGitProviderById, removeGitProvider } from "@dokploy/server";
-import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
 
 export const gitProviderRouter = createTRPCRouter({
 	getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -15,7 +15,10 @@ export const gitProviderRouter = createTRPCRouter({
 				gitea: true,
 			},
 			orderBy: desc(gitProvider.createdAt),
-			where: eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
+			where: and(
+				eq(gitProvider.userId, ctx.session.userId),
+				eq(gitProvider.organizationId, ctx.session.activeOrganizationId),
+			),
 		});
 	}),
 	remove: protectedProcedure

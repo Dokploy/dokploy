@@ -4,11 +4,11 @@ import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { applications } from "./application";
-import { deployments } from "./deployment";
-import { generateAppName } from "./utils";
 import { compose } from "./compose";
+import { deployments } from "./deployment";
 import { server } from "./server";
-import { users_temp } from "./user";
+import { user } from "./user";
+import { generateAppName } from "./utils";
 export const shellTypes = pgEnum("shellType", ["bash", "sh"]);
 
 export const scheduleType = pgEnum("scheduleType", [
@@ -45,10 +45,11 @@ export const schedules = pgTable("schedule", {
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
-	userId: text("userId").references(() => users_temp.id, {
+	userId: text("userId").references(() => user.id, {
 		onDelete: "cascade",
 	}),
 	enabled: boolean("enabled").notNull().default(true),
+	timezone: text("timezone"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -69,9 +70,9 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
 		fields: [schedules.serverId],
 		references: [server.serverId],
 	}),
-	user: one(users_temp, {
+	user: one(user, {
 		fields: [schedules.userId],
-		references: [users_temp.id],
+		references: [user.id],
 	}),
 	deployments: many(deployments),
 }));

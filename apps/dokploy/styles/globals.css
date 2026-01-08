@@ -242,3 +242,23 @@
 	background-color: var(--terminal-paste) !important;
 	color: currentColor !important;
 }
+
+.cm-content,
+.cm-lineWrapping {
+	@apply font-mono;
+}
+
+/* HubSpot Widget - Force light color-scheme to prevent white background */
+#hubspot-messages-iframe-container,
+#hubspot-messages-iframe-container * {
+	background-color: transparent !important;
+	color-scheme: light !important;
+}
+
+#hubspot-messages-iframe-container .hs-shadow-container {
+	display: none !important;
+}
+
+#hubspot-conversations-iframe {
+	color-scheme: light !important;
+}

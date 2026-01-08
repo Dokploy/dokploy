@@ -11,15 +11,15 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
+import { generateAppName } from ".";
+import { compose } from "./compose";
+import { deployments } from "./deployment";
 import { destinations } from "./destination";
 import { mariadb } from "./mariadb";
 import { mongo } from "./mongo";
 import { mysql } from "./mysql";
 import { postgres } from "./postgres";
-import { users_temp } from "./user";
-import { compose } from "./compose";
-import { deployments } from "./deployment";
-import { generateAppName } from ".";
+import { user } from "./user";
 export const databaseType = pgEnum("databaseType", [
 	"postgres",
 	"mariadb",
@@ -74,7 +74,7 @@ export const backups = pgTable("backup", {
 	mongoId: text("mongoId").references((): AnyPgColumn => mongo.mongoId, {
 		onDelete: "cascade",
 	}),
-	userId: text("userId").references(() => users_temp.id),
+	userId: text("userId").references(() => user.id),
 	// Only for compose backups
 	metadata: jsonb("metadata").$type<
 		| {
@@ -118,9 +118,9 @@ export const backupsRelations = relations(backups, ({ one, many }) => ({
 		fields: [backups.mongoId],
 		references: [mongo.mongoId],
 	}),
-	user: one(users_temp, {
+	user: one(user, {
 		fields: [backups.userId],
-		references: [users_temp.id],
+		references: [user.id],
 	}),
 	compose: one(compose, {
 		fields: [backups.composeId],

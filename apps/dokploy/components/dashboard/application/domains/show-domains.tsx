@@ -1,13 +1,3 @@
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
 import {
 	CheckCircle2,
 	ExternalLink,
@@ -21,17 +11,27 @@ import {
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { toast } from "sonner";
-import { AddDomain } from "./handle-domain";
 import { useState } from "react";
+import { toast } from "sonner";
+import { DialogAction } from "@/components/shared/dialog-action";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { api } from "@/utils/api";
 import { DnsHelperModal } from "./dns-helper-modal";
-import { Badge } from "@/components/ui/badge";
+import { AddDomain } from "./handle-domain";
 
 export type ValidationState = {
 	isLoading: boolean;
@@ -39,6 +39,7 @@ export type ValidationState = {
 	error?: string;
 	resolvedIp?: string;
 	message?: string;
+	cdnProvider?: string;
 };
 
 export type ValidationStates = Record<string, ValidationState>;
@@ -119,6 +120,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 					isValid: result.isValid,
 					error: result.error,
 					resolvedIp: result.resolvedIp,
+					cdnProvider: result.cdnProvider,
 					message: result.error && result.isValid ? result.error : undefined,
 				},
 			}));
@@ -186,30 +188,19 @@ export const ShowDomains = ({ id, type }: Props) => {
 								return (
 									<Card
 										key={item.domainId}
-										className="relative overflow-hidden w-full border bg-card transition-all hover:shadow-md bg-transparent h-fit"
+										className="relative overflow-hidden w-full border transition-all hover:shadow-md bg-transparent h-fit"
 									>
 										<CardContent className="p-6">
 											<div className="flex flex-col gap-4">
 												{/* Service & Domain Info */}
-												<div className="flex items-start justify-between">
-													<div className="flex flex-col gap-2">
-														{item.serviceName && (
-															<Badge variant="outline" className="w-fit">
-																<Server className="size-3 mr-1" />
-																{item.serviceName}
-															</Badge>
-														)}
-
-														<Link
-															className="flex items-center gap-2 text-base font-medium hover:underline"
-															target="_blank"
-															href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
-														>
-															{item.host}
-															<ExternalLink className="size-4" />
-														</Link>
-													</div>
-													<div className="flex gap-2">
+												<div className="flex items-center justify-between flex-wrap gap-y-2">
+													{item.serviceName && (
+														<Badge variant="outline" className="w-fit">
+															<Server className="size-3 mr-1" />
+															{item.serviceName}
+														</Badge>
+													)}
+													<div className="flex gap-2 flex-wrap">
 														{!item.host.includes("traefik.me") && (
 															<DnsHelperModal
 																domain={{
@@ -265,6 +256,16 @@ export const ShowDomains = ({ id, type }: Props) => {
 															</Button>
 														</DialogAction>
 													</div>
+												</div>
+												<div className="w-full break-all">
+													<Link
+														className="flex items-center gap-2 text-base font-medium hover:underline"
+														target="_blank"
+														href={`${item.https ? "https" : "http"}://${item.host}${item.path}`}
+													>
+														{item.host}
+														<ExternalLink className="size-4 min-w-4" />
+													</Link>
 												</div>
 
 												{/* Domain Details */}
@@ -355,8 +356,9 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	) : validationState?.isValid ? (
 																		<>
 																			<CheckCircle2 className="size-3 mr-1" />
-																			{validationState.message
-																				? "Behind Cloudflare"
+																			{validationState.message &&
+																			validationState.cdnProvider
+																				? `Behind ${validationState.cdnProvider}`
 																				: "DNS Valid"}
 																		</>
 																	) : validationState?.error ? (

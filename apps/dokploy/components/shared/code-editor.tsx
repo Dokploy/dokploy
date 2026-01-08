@@ -1,20 +1,19 @@
-import { cn } from "@/lib/utils";
-import { json } from "@codemirror/lang-json";
-import { yaml } from "@codemirror/lang-yaml";
-import { StreamLanguage } from "@codemirror/language";
-
 import {
+	autocompletion,
 	type Completion,
 	type CompletionContext,
 	type CompletionResult,
-	autocompletion,
 } from "@codemirror/autocomplete";
+import { json } from "@codemirror/lang-json";
+import { yaml } from "@codemirror/lang-yaml";
+import { StreamLanguage } from "@codemirror/language";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { EditorView } from "@codemirror/view";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import CodeMirror, { type ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 // Docker Compose completion options
 const dockerComposeServices = [
@@ -101,9 +100,7 @@ function dockerComposeComplete(
 	context: CompletionContext,
 ): CompletionResult | null {
 	const word = context.matchBefore(/\w*/);
-	if (!word) return null;
-
-	if (!word.text && !context.explicit) return null;
+	if (!word || (!word.text && !context.explicit)) return null;
 
 	// Check if we're at the root level
 	const line = context.state.doc.lineAt(context.pos);
@@ -147,7 +144,7 @@ export const CodeEditor = ({
 }: Props) => {
 	const { resolvedTheme } = useTheme();
 	return (
-		<div className={cn("relative overflow-auto", wrapperClassName)}>
+		<div className={cn("overflow-auto", wrapperClassName)}>
 			<CodeMirror
 				basicSetup={{
 					lineNumbers,
@@ -175,14 +172,15 @@ export const CodeEditor = ({
 				{...props}
 				editable={!props.disabled}
 				className={cn(
-					"w-full h-full text-sm leading-relaxed",
+					"w-full h-full text-sm leading-relaxed relative",
 					`cm-theme-${resolvedTheme}`,
 					className,
 				)}
-			/>
-			{props.disabled && (
-				<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)] h-full" />
-			)}
+			>
+				{props.disabled && (
+					<div className="absolute top-0 rounded-md left-0 w-full h-full  flex items-center justify-center z-[10] [background:var(--overlay)] h-full" />
+				)}
+			</CodeMirror>
 		</div>
 	);
 };

@@ -1,8 +1,7 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToConfigsRoot } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import { addSuffixToConfigsRoot, generateRandomHash } from "@dokploy/server";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();
@@ -24,7 +23,7 @@ configs:
 `;
 
 test("Add suffix to configs in root property", () => {
-	const composeData = load(composeFile) as ComposeSpecification;
+	const composeData = parse(composeFile) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -60,7 +59,7 @@ configs:
 `;
 
 test("Add suffix to multiple configs in root property", () => {
-	const composeData = load(composeFileMultipleConfigs) as ComposeSpecification;
+	const composeData = parse(composeFileMultipleConfigs) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -93,7 +92,7 @@ configs:
 `;
 
 test("Add suffix to configs with different properties in root property", () => {
-	const composeData = load(
+	const composeData = parse(
 		composeFileDifferentProperties,
 	) as ComposeSpecification;
 
@@ -138,7 +137,7 @@ configs:
 `;
 
 // Expected compose file con el prefijo `testhash`
-const expectedComposeFileConfigRoot = load(`
+const expectedComposeFileConfigRoot = parse(`
 version: "3.8"
 
 services:
@@ -163,7 +162,7 @@ configs:
 `) as ComposeSpecification;
 
 test("Add suffix to configs in root property", () => {
-	const composeData = load(composeFileConfigRoot) as ComposeSpecification;
+	const composeData = parse(composeFileConfigRoot) as ComposeSpecification;
 
 	const suffix = "testhash";
 

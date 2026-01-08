@@ -1,3 +1,5 @@
+import { ChevronsUpDown } from "lucide-react";
+import { useRouter } from "next/router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -17,10 +19,9 @@ import {
 } from "@/components/ui/select";
 import { authClient } from "@/lib/auth-client";
 import { Languages } from "@/lib/languages";
+import { getFallbackAvatarInitials } from "@/lib/utils";
 import { api } from "@/utils/api";
 import useLocale from "@/utils/hooks/use-locale";
-import { ChevronsUpDown } from "lucide-react";
-import { useRouter } from "next/router";
 import { ModeToggle } from "../ui/modeToggle";
 import { SidebarMenuButton } from "../ui/sidebar";
 
@@ -43,10 +44,15 @@ export const UserNav = () => {
 				>
 					<Avatar className="h-8 w-8 rounded-lg">
 						<AvatarImage
+							className="object-cover"
 							src={data?.user?.image || ""}
 							alt={data?.user?.image || ""}
 						/>
-						<AvatarFallback className="rounded-lg">CN</AvatarFallback>
+						<AvatarFallback className="rounded-lg">
+							{getFallbackAvatarInitials(
+								`${data?.user?.firstName} ${data?.user?.lastName}`.trim(),
+							)}
+						</AvatarFallback>
 					</Avatar>
 					<div className="grid flex-1 text-left text-sm leading-tight">
 						<span className="truncate font-semibold">Account</span>
@@ -98,7 +104,9 @@ export const UserNav = () => {
 							>
 								Monitoring
 							</DropdownMenuItem>
-							{(data?.role === "owner" || data?.canAccessToTraefikFiles) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToTraefikFiles) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -108,7 +116,9 @@ export const UserNav = () => {
 									Traefik
 								</DropdownMenuItem>
 							)}
-							{(data?.role === "owner" || data?.canAccessToDocker) && (
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
+								data?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
 									onClick={() => {
@@ -122,18 +132,16 @@ export const UserNav = () => {
 							)}
 						</>
 					) : (
-						<>
-							{data?.role === "owner" && (
-								<DropdownMenuItem
-									className="cursor-pointer"
-									onClick={() => {
-										router.push("/dashboard/settings/servers");
-									}}
-								>
-									Servers
-								</DropdownMenuItem>
-							)}
-						</>
+						(data?.role === "owner" || data?.role === "admin") && (
+							<DropdownMenuItem
+								className="cursor-pointer"
+								onClick={() => {
+									router.push("/dashboard/settings/servers");
+								}}
+							>
+								Servers
+							</DropdownMenuItem>
+						)
 					)}
 				</DropdownMenuGroup>
 				{isCloud && data?.role === "owner" && (

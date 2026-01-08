@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
 import { ShowNodes } from "./show-nodes";
 
 interface Props {
@@ -20,7 +20,7 @@ export const ShowNodesModal = ({ serverId }: Props) => {
 					Show Swarm Nodes
 				</DropdownMenuItem>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-5xl  overflow-y-auto max-h-screen ">
+			<DialogContent className="min-w-[70vw]">
 				<div className="grid w-full gap-1">
 					<ShowNodes serverId={serverId} />
 				</div>

@@ -1,8 +1,7 @@
-import { generateRandomHash } from "@dokploy/server";
-import { addSuffixToServiceNames } from "@dokploy/server";
 import type { ComposeSpecification } from "@dokploy/server";
-import { load } from "js-yaml";
+import { addSuffixToServiceNames, generateRandomHash } from "@dokploy/server";
 import { expect, test } from "vitest";
+import { parse } from "yaml";
 
 test("Generate random hash with 8 characters", () => {
 	const hash = generateRandomHash();
@@ -33,7 +32,7 @@ networks:
 `;
 
 test("Add suffix to service names with depends_on (array) in compose file", () => {
-	const composeData = load(composeFile4) as ComposeSpecification;
+	const composeData = parse(composeFile4) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 
@@ -103,7 +102,7 @@ networks:
 `;
 
 test("Add suffix to service names with depends_on (object) in compose file", () => {
-	const composeData = load(composeFile5) as ComposeSpecification;
+	const composeData = parse(composeFile5) as ComposeSpecification;
 
 	const suffix = generateRandomHash();
 

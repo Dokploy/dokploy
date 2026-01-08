@@ -1,8 +1,8 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { ArrowUpDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { LogEntry } from "./show-requests";
 
 export const getStatusColor = (status: number) => {
@@ -47,7 +47,7 @@ export const columns: ColumnDef<LogEntry>[] = [
 		cell: ({ row }) => {
 			const log = row.original;
 			return (
-				<div className=" flex flex-col gap-2">
+				<div className="flex flex-col gap-2">
 					<div className="flex items-center flex-row gap-3 ">
 						{log.RequestMethod}{" "}
 						<div className="inline-flex items-center gap-2 bg-muted px-1.5 py-1 rounded-lg">
@@ -86,7 +86,7 @@ export const columns: ColumnDef<LogEntry>[] = [
 		cell: ({ row }) => {
 			const log = row.original;
 			return (
-				<div className=" flex flex-col gap-2">
+				<div className="flex flex-col gap-2">
 					<div className="flex flex-row gap-3 w-full">
 						{format(new Date(log.StartUTC), "yyyy-MM-dd HH:mm:ss")}
 					</div>

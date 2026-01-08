@@ -1,14 +1,15 @@
+import dns from "node:dns";
+import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
-import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
+import { detectCDNProvider } from "./cdn";
 import { findServerById } from "./server";
-import dns from "node:dns";
-import { promisify } from "node:util";
 
 export type Domain = typeof domains.$inferSelect;
 
@@ -18,6 +19,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			.insert(domains)
 			.values({
 				...input,
+				host: input.host?.trim(),
 			})
 			.returning()
 			.then((response) => response[0]);
@@ -59,9 +61,9 @@ export const generateTraefikMeDomain = async (
 			projectName: appName,
 		});
 	}
-	const admin = await findUserById(userId);
+	const settings = await getWebServerSettings();
 	return generateRandomDomain({
-		serverIp: admin?.serverIp || "",
+		serverIp: settings?.serverIp || "",
 		projectName: appName,
 	});
 };
@@ -119,6 +121,7 @@ export const updateDomainById = async (
 		.update(domains)
 		.set({
 			...domainData,
+			...(domainData.host && { host: domainData.host.trim() }),
 		})
 		.where(eq(domains.domainId, domainId))
 		.returning();
@@ -142,28 +145,6 @@ export const getDomainHost = (domain: Domain) => {
 
 const resolveDns = promisify(dns.resolve4);
 
-// Cloudflare IP ranges (simplified - these are some common ones)
-const CLOUDFLARE_IPS = [
-	"172.67.",
-	"104.21.",
-	"104.16.",
-	"104.17.",
-	"104.18.",
-	"104.19.",
-	"104.20.",
-	"104.22.",
-	"104.23.",
-	"104.24.",
-	"104.25.",
-	"104.26.",
-	"104.27.",
-	"104.28.",
-];
-
-const isCloudflareIp = (ip: string) => {
-	return CLOUDFLARE_IPS.some((range) => ip.startsWith(range));
-};
-
 export const validateDomain = async (
 	domain: string,
 	expectedIp?: string,
@@ -172,6 +153,7 @@ export const validateDomain = async (
 	resolvedIp?: string;
 	error?: string;
 	isCloudflare?: boolean;
+	cdnProvider?: string;
 }> => {
 	try {
 		// Remove protocol and path if present
@@ -182,17 +164,18 @@ export const validateDomain = async (
 
 		const resolvedIps = ips.map((ip) => ip.toString());
 
-		// Check if it's a Cloudflare IP
-		const behindCloudflare = ips.some((ip) => isCloudflareIp(ip));
+		// Check if any IP belongs to a CDN provider
+		const cdnProvider = ips
+			.map((ip) => detectCDNProvider(ip))
+			.find((provider) => provider !== null);
 
-		// If behind Cloudflare, we consider it valid but inform the user
-		if (behindCloudflare) {
+		// If behind a CDN, we consider it valid but inform the user
+		if (cdnProvider) {
 			return {
 				isValid: true,
 				resolvedIp: resolvedIps.join(", "),
-				isCloudflare: true,
-				error:
-					"Domain is behind Cloudflare - actual IP is masked by Cloudflare proxy",
+				cdnProvider: cdnProvider.displayName,
+				error: cdnProvider.warningMessage,
 			};
 		}
 

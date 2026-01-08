@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import type { User } from "@dokploy/server/services/user";
-import { dump, load } from "js-yaml";
+import type { webServerSettings } from "@dokploy/server/db/schema/web-server-settings";
+import { parse, stringify } from "yaml";
 import {
 	loadOrCreateConfig,
 	removeTraefikConfig,
@@ -12,10 +12,10 @@ import type { FileConfig } from "./file-types";
 import type { MainTraefikConfig } from "./types";
 
 export const updateServerTraefik = (
-	user: User | null,
+	settings: typeof webServerSettings.$inferSelect | null,
 	newHost: string | null,
 ) => {
-	const { https, certificateType } = user || {};
+	const { https, certificateType } = settings || {};
 	const appName = "dokploy";
 	const config: FileConfig = loadOrCreateConfig(appName);
 
@@ -23,11 +23,18 @@ export const updateServerTraefik = (
 	config.http.routers = config.http.routers || {};
 	config.http.services = config.http.services || {};
 
+	// Get or create router config, but always update the rule with newHost
 	const currentRouterConfig = config.http.routers[`${appName}-router-app`] || {
-		rule: `Host(\`${newHost}\`)`,
 		service: `${appName}-service-app`,
 		entryPoints: ["web"],
+		rule: `Host(\`${newHost}\`)`,
 	};
+
+	// Always update the rule with the new host
+	if (newHost) {
+		currentRouterConfig.rule = `Host(\`${newHost}\`)`;
+	}
+
 	config.http.routers[`${appName}-router-app`] = currentRouterConfig;
 
 	config.http.services = {
@@ -79,13 +86,13 @@ export const updateLetsEncryptEmail = (newEmail: string | null) => {
 		const { MAIN_TRAEFIK_PATH } = paths();
 		const configPath = join(MAIN_TRAEFIK_PATH, "traefik.yml");
 		const configContent = readFileSync(configPath, "utf8");
-		const config = load(configContent) as MainTraefikConfig;
+		const config = parse(configContent) as MainTraefikConfig;
 		if (config?.certificatesResolvers?.letsencrypt?.acme) {
 			config.certificatesResolvers.letsencrypt.acme.email = newEmail;
 		} else {
 			throw new Error("Invalid Let's Encrypt configuration structure.");
 		}
-		const newYamlContent = dump(config);
+		const newYamlContent = stringify(config);
 		writeFileSync(configPath, newYamlContent, "utf8");
 	} catch (error) {
 		throw error;

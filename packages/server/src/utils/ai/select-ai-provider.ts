@@ -5,18 +5,18 @@ import { createDeepInfra } from "@ai-sdk/deepinfra";
 import { createMistral } from "@ai-sdk/mistral";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { createOllama } from "ollama-ai-provider";
+import { createOllama } from "ai-sdk-ollama";
 
-function getProviderName(apiUrl: string) {
+export function getProviderName(apiUrl: string) {
 	if (apiUrl.includes("api.openai.com")) return "openai";
 	if (apiUrl.includes("azure.com")) return "azure";
 	if (apiUrl.includes("api.anthropic.com")) return "anthropic";
 	if (apiUrl.includes("api.cohere.ai")) return "cohere";
 	if (apiUrl.includes("api.perplexity.ai")) return "perplexity";
 	if (apiUrl.includes("api.mistral.ai")) return "mistral";
-	if (apiUrl.includes("localhost:11434") || apiUrl.includes("ollama"))
-		return "ollama";
+	if (apiUrl.includes(":11434") || apiUrl.includes("ollama")) return "ollama";
 	if (apiUrl.includes("api.deepinfra.com")) return "deepinfra";
+	if (apiUrl.includes("generativelanguage.googleapis.com")) return "gemini";
 	return "custom";
 }
 
@@ -66,6 +66,13 @@ export function selectAIProvider(config: { apiUrl: string; apiKey: string }) {
 			return createDeepInfra({
 				baseURL: config.apiUrl,
 				apiKey: config.apiKey,
+			});
+		case "gemini":
+			return createOpenAICompatible({
+				name: "gemini",
+				baseURL: config.apiUrl,
+				queryParams: { key: config.apiKey },
+				headers: {},
 			});
 		case "custom":
 			return createOpenAICompatible({
