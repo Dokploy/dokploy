@@ -1,13 +1,13 @@
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
-import { ChevronDown } from "lucide-react";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
-	BreadcrumbSeparator,
 	BreadcrumbPage,
+	BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
 	DropdownMenu,

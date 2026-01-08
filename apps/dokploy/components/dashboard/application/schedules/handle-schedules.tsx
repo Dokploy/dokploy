@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+	CheckIcon,
+	ChevronsUpDown,
 	DatabaseZap,
 	Info,
 	PenBoxIcon,
@@ -13,6 +15,14 @@ import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { CodeEditor } from "@/components/shared/code-editor";
 import { Button } from "@/components/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@/components/ui/command";
 import {
 	Dialog,
 	DialogContent,
@@ -32,6 +42,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -48,6 +64,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 import type { CacheType } from "../domains/handle-domain";
+import { getTimezoneLabel, TIMEZONES } from "./timezones";
 
 export const commonCronExpressions = [
 	{ label: "Every minute", value: "* * * * *" },
@@ -58,30 +75,6 @@ export const commonCronExpressions = [
 	{ label: "Every 15 minutes", value: "*/15 * * * *" },
 	{ label: "Every weekday at midnight", value: "0 0 * * 1-5" },
 	{ label: "Custom", value: "custom" },
-];
-
-export const commonTimezones = [
-	{ label: "UTC (Coordinated Universal Time)", value: "UTC" },
-	{ label: "America/New_York (Eastern Time)", value: "America/New_York" },
-	{ label: "America/Chicago (Central Time)", value: "America/Chicago" },
-	{ label: "America/Denver (Mountain Time)", value: "America/Denver" },
-	{ label: "America/Los_Angeles (Pacific Time)", value: "America/Los_Angeles" },
-	{
-		label: "America/Mexico_City (Central Mexico)",
-		value: "America/Mexico_City",
-	},
-	{ label: "America/Sao_Paulo (Brasilia Time)", value: "America/Sao_Paulo" },
-	{ label: "Europe/London (Greenwich Mean Time)", value: "Europe/London" },
-	{ label: "Europe/Paris (Central European Time)", value: "Europe/Paris" },
-	{ label: "Europe/Berlin (Central European Time)", value: "Europe/Berlin" },
-	{ label: "Asia/Tokyo (Japan Standard Time)", value: "Asia/Tokyo" },
-	{ label: "Asia/Shanghai (China Standard Time)", value: "Asia/Shanghai" },
-	{ label: "Asia/Dubai (Gulf Standard Time)", value: "Asia/Dubai" },
-	{ label: "Asia/Kolkata (India Standard Time)", value: "Asia/Kolkata" },
-	{
-		label: "Australia/Sydney (Australian Eastern Time)",
-		value: "Australia/Sydney",
-	},
 ];
 
 const formSchema = z
@@ -512,25 +505,60 @@ export const HandleSchedules = ({ id, scheduleId, scheduleType }: Props) => {
 											</Tooltip>
 										</TooltipProvider>
 									</FormLabel>
-									<Select
-										onValueChange={(value) => {
-											field.onChange(value);
-										}}
-										value={field.value}
-									>
-										<FormControl>
-											<SelectTrigger>
-												<SelectValue placeholder="UTC (default)" />
-											</SelectTrigger>
-										</FormControl>
-										<SelectContent>
-											{commonTimezones.map((tz) => (
-												<SelectItem key={tz.value} value={tz.value}>
-													{tz.label}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+									<Popover>
+										<PopoverTrigger asChild>
+											<FormControl>
+												<Button
+													variant="outline"
+													className={cn(
+														"w-full justify-between !bg-input",
+														!field.value && "text-muted-foreground",
+													)}
+												>
+													{getTimezoneLabel(field.value)}
+													<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+												</Button>
+											</FormControl>
+										</PopoverTrigger>
+										<PopoverContent className="w-[400px] p-0" align="start">
+											<Command>
+												<CommandInput
+													placeholder="Search timezone..."
+													className="h-9"
+												/>
+												<CommandList>
+													<CommandEmpty>No timezone found.</CommandEmpty>
+													<ScrollArea className="h-72">
+														{Object.entries(TIMEZONES).map(
+															([region, zones]) => (
+																<CommandGroup key={region} heading={region}>
+																	{zones.map((tz) => (
+																		<CommandItem
+																			key={tz.value}
+																			value={`${region} ${tz.label} ${tz.value}`}
+																			onSelect={() => {
+																				field.onChange(tz.value);
+																			}}
+																		>
+																			{tz.value}
+																			<CheckIcon
+																				className={cn(
+																					"ml-auto h-4 w-4",
+																					field.value === tz.value
+																						? "opacity-100"
+																						: "opacity-0",
+																				)}
+																			/>
+																		</CommandItem>
+																	))}
+																</CommandGroup>
+															),
+														)}
+													</ScrollArea>
+												</CommandList>
+											</Command>
+										</PopoverContent>
+									</Popover>
 									<FormDescription>
 										Optional: Choose a timezone for the schedule execution time
 									</FormDescription>

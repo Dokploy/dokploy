@@ -5,6 +5,7 @@ import {
 	findUserById,
 	getDokployUrl,
 	getUserByToken,
+	getWebServerSettings,
 	IS_CLOUD,
 	removeUserById,
 	sendEmailNotification,
@@ -214,10 +215,11 @@ export const userRouter = createTRPCRouter({
 		}),
 	getMetricsToken: protectedProcedure.query(async ({ ctx }) => {
 		const user = await findUserById(ctx.user.ownerId);
+		const settings = await getWebServerSettings();
 		return {
-			serverIp: user.serverIp,
+			serverIp: settings?.serverIp,
 			enabledFeatures: user.enablePaidFeatures,
-			metricsConfig: user?.metricsConfig,
+			metricsConfig: settings?.metricsConfig,
 		};
 	}),
 	remove: protectedProcedure
