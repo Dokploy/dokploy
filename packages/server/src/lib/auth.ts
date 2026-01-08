@@ -9,7 +9,10 @@ import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
-import { updateUser } from "../services/user";
+import {
+	getWebServerSettings,
+	updateWebServerSettings,
+} from "../services/web-server-settings";
 import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
@@ -35,22 +38,14 @@ const { handler, api } = betterAuth({
 	},
 	...(!IS_CLOUD && {
 		async trustedOrigins() {
-			const admin = await db.query.member.findFirst({
-				where: eq(schema.member.role, "owner"),
-				with: {
-					user: true,
-				},
-			});
-
-			if (admin?.user) {
-				return [
-					...(admin.user.serverIp
-						? [`http://${admin.user.serverIp}:3000`]
-						: []),
-					...(admin.user.host ? [`https://${admin.user.host}`] : []),
-				];
+			const settings = await getWebServerSettings();
+			if (!settings) {
+				return [];
 			}
-			return [];
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+			];
 		},
 	}),
 	emailVerification: {
@@ -122,7 +117,7 @@ const { handler, api } = betterAuth({
 					});
 
 					if (!IS_CLOUD) {
-						await updateUser(user.id, {
+						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
 						});
 					}
