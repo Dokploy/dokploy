@@ -2,6 +2,7 @@ import path from "node:path";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { getAllServers } from "@dokploy/server/services/server";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
@@ -25,7 +26,9 @@ export const initCronJobs = async () => {
 		return;
 	}
 
-	if (admin?.user?.enableDockerCleanup) {
+	const webServerSettings = await getWebServerSettings();
+
+	if (webServerSettings?.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
@@ -82,9 +85,12 @@ export const initCronJobs = async () => {
 		}
 	}
 
-	if (admin?.user?.logCleanupCron) {
-		console.log("Starting log requests cleanup", admin.user.logCleanupCron);
-		await startLogCleanup(admin.user.logCleanupCron);
+	if (webServerSettings?.logCleanupCron) {
+		console.log(
+			"Starting log requests cleanup",
+			webServerSettings.logCleanupCron,
+		);
+		await startLogCleanup(webServerSettings.logCleanupCron);
 	}
 };
 

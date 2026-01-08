@@ -17,6 +17,7 @@ import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
 import { createDomain, generatePreviewDeploymentDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
+import { getWebServerSettings } from "./web-server-settings";
 
 export type PreviewDeployment = typeof previewDeployments.$inferSelect;
 
@@ -134,16 +135,16 @@ export const createPreviewDeployment = async (
 	const application = await findApplicationById(schema.applicationId);
 	const appName = `preview-${application.appName}-${generatePassword(6)}`;
 
-        const org = await db.query.organization.findFirst({
-                where: eq(organization.id, application.environment.project.organizationId),
-        });
-        const generateDomain = await generatePreviewDeploymentDomain(
-                appName,
-                org?.ownerId || "",
-                application.environment.projectId,
-                application.serverId || undefined,
-                application.previewWildcard,
-        );
+	const org = await db.query.organization.findFirst({
+		where: eq(organization.id, application.environment.project.organizationId),
+	});
+	const generateDomain = await generatePreviewDeploymentDomain(
+		appName,
+		org?.ownerId || "",
+		application.environment.projectId,
+		application.serverId || undefined,
+		application.previewWildcard,
+	);
 
 	const octokit = authGithub(application?.github as Github);
 
@@ -204,7 +205,7 @@ export const createPreviewDeployment = async (
 			),
 		);
 
-        return previewDeployment;
+	return previewDeployment;
 };
 
 export const findPreviewDeploymentsByPullRequestId = async (
@@ -231,3 +232,38 @@ export const findPreviewDeploymentByApplicationId = async (
 	return previewDeploymentResult;
 };
 
+const generateWildcardDomain = async (
+	baseDomain: string,
+	appName: string,
+	serverIp: string,
+	userId: string,
+): Promise<string> => {
+	if (!baseDomain.startsWith("*.")) {
+		throw new Error('The base domain must start with "*."');
+	}
+	const hash = `${appName}`;
+	if (baseDomain.includes("traefik.me")) {
+		let ip = "";
+
+		if (process.env.NODE_ENV === "development") {
+			ip = "127.0.0.1";
+		}
+
+		if (serverIp) {
+			ip = serverIp;
+		}
+
+		if (!ip) {
+			const settings = await getWebServerSettings();
+			ip = settings?.serverIp || "";
+		}
+
+		const slugIp = ip.replaceAll(".", "-");
+		return baseDomain.replace(
+			"*",
+			`${hash}${slugIp === "" ? "" : `-${slugIp}`}`,
+		);
+	}
+
+	return baseDomain.replace("*", hash);
+};
