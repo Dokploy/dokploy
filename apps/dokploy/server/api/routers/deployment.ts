@@ -37,7 +37,7 @@ export const deploymentRouter = createTRPCRouter({
 					message: "You are not authorized to access this application",
 				});
 			}
-			return await findAllDeploymentsByApplicationId(input.applicationId);
+			return await findAllDeploymentsByApplicationId(input.applicationId, input.limit);
 		}),
 
 	allByCompose: protectedProcedure
@@ -53,7 +53,7 @@ export const deploymentRouter = createTRPCRouter({
 					message: "You are not authorized to access this compose",
 				});
 			}
-			return await findAllDeploymentsByComposeId(input.composeId);
+			return await findAllDeploymentsByComposeId(input.composeId, input.limit);
 		}),
 	allByServer: protectedProcedure
 		.input(apiFindAllByServer)
@@ -65,7 +65,7 @@ export const deploymentRouter = createTRPCRouter({
 					message: "You are not authorized to access this server",
 				});
 			}
-			return await findAllDeploymentsByServerId(input.serverId);
+			return await findAllDeploymentsByServerId(input.serverId, input.limit);
 		}),
 
 	allByType: protectedProcedure
@@ -74,11 +74,11 @@ export const deploymentRouter = createTRPCRouter({
 			const deploymentsList = await db.query.deployments.findMany({
 				where: eq(deployments[`${input.type}Id`], input.id),
 				orderBy: desc(deployments.createdAt),
+				limit: input.limit,
 				with: {
 					rollback: true,
 				},
 			});
-
 			return deploymentsList;
 		}),
 
