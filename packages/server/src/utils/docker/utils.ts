@@ -272,7 +272,7 @@ export const cleanupAll = async (serverId?: string) => {
 			} else {
 				await execAsync(command);
 			}
-		} catch {
+		} catch (error) {
 			console.error(error);
 		}
 	}
