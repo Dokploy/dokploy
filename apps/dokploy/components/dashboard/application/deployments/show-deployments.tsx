@@ -149,12 +149,14 @@ export const ShowDeployments = ({
 				<div className="flex flex-col gap-2">
 					<CardTitle className="text-xl">Deployments</CardTitle>
 					<CardDescription>
-					See the last {deploymentLimit} deployments for this {type}
+						See the last {deploymentLimit} deployments for this {type}
 					</CardDescription>
 				</div>
 				<div className="flex flex-row items-center flex-wrap gap-2">
 					<div className="flex items-center gap-2">
-						<span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
+						<span className="text-sm text-muted-foreground whitespace-nowrap">
+							Show:
+						</span>
 						<Select
 							value={deploymentLimit.toString()}
 							onValueChange={(value) => setDeploymentLimit(Number(value))}

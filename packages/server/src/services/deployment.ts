@@ -328,7 +328,11 @@ export const createDeploymentBackup = async (
 		serverId = backup.compose?.serverId;
 	}
 	try {
-		await removeLastOneHundredDeployments(deployment.backupId, "backup", serverId);
+		await removeLastOneHundredDeployments(
+			deployment.backupId,
+			"backup",
+			serverId,
+		);
 		const { LOGS_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${backup.appName}-${formattedDateTime}.log`;
@@ -402,7 +406,11 @@ export const createDeploymentSchedule = async (
 			schedule.application?.serverId ||
 			schedule.compose?.serverId ||
 			schedule.server?.serverId;
-		await removeLastOneHundredDeployments(deployment.scheduleId, "schedule", serverId);
+		await removeLastOneHundredDeployments(
+			deployment.scheduleId,
+			"schedule",
+			serverId,
+		);
 		const { SCHEDULES_PATH } = paths(!!serverId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${schedule.appName}-${formattedDateTime}.log`;

@@ -37,7 +37,10 @@ export const deploymentRouter = createTRPCRouter({
 					message: "You are not authorized to access this application",
 				});
 			}
-			return await findAllDeploymentsByApplicationId(input.applicationId, input.limit);
+			return await findAllDeploymentsByApplicationId(
+				input.applicationId,
+				input.limit,
+			);
 		}),
 
 	allByCompose: protectedProcedure
