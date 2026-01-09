@@ -173,11 +173,11 @@ echo "Execution completed."
 `;
 
 const cleanupCommands = {
-	containers: "docker container prune --force",
-	images: "docker image prune --all --force",
-	volumes: "docker volume prune --all --force",
-	builders: "docker builder prune --all --force",
-	system: "docker system prune --all --force",
+	containers: dockerSafeExec("docker container prune --force"),
+	images: dockerSafeExec("docker image prune --all --force"),
+	volumes: dockerSafeExec("docker volume prune --all --force"),
+	builders: dockerSafeExec("docker builder prune --all --force"),
+	system: dockerSafeExec("docker system prune --all --force"),
 };
 
 export const cleanupContainers = async (serverId?: string) => {
@@ -185,9 +185,9 @@ export const cleanupContainers = async (serverId?: string) => {
 		const command = cleanupCommands.containers;
 
 		if (serverId) {
-			await execAsyncRemote(serverId, dockerSafeExec(command));
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(dockerSafeExec(command));
+			await execAsync(command);
 		}
 	} catch (error) {
 		console.error(error);
@@ -201,8 +201,8 @@ export const cleanupImages = async (serverId?: string) => {
 		const command = cleanupCommands.images;
 
 		if (serverId) {
-			await execAsyncRemote(serverId, dockerSafeExec(command));
-		} else await execAsync(dockerSafeExec(command));
+			await execAsyncRemote(serverId, command);
+		} else await execAsync(command);
 	} catch (error) {
 		console.error(error);
 
@@ -215,9 +215,9 @@ export const cleanupVolumes = async (serverId?: string) => {
 		const command = cleanupCommands.volumes;
 
 		if (serverId) {
-			await execAsyncRemote(serverId, dockerSafeExec(command));
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(dockerSafeExec(command));
+			await execAsync(command);
 		}
 	} catch (error) {
 		console.error(error);
@@ -231,9 +231,9 @@ export const cleanupBuilders = async (serverId?: string) => {
 		const command = cleanupCommands.builders;
 
 		if (serverId) {
-			await execAsyncRemote(serverId, dockerSafeExec(command));
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(dockerSafeExec(command));
+			await execAsync(command);
 		}
 	} catch (error) {
 		console.error(error);
@@ -247,9 +247,9 @@ export const cleanupSystem = async (serverId?: string) => {
 		const command = cleanupCommands.system;
 
 		if (serverId) {
-			await execAsyncRemote(serverId, dockerSafeExec(command));
+			await execAsyncRemote(serverId, command);
 		} else {
-			await execAsync(dockerSafeExec(command));
+			await execAsync(command);
 		}
 	} catch (error) {
 		console.error(error);
@@ -276,9 +276,9 @@ export const cleanupAll = async (serverId?: string) => {
 
 		try {
 			if (serverId) {
-				await execAsyncRemote(serverId, dockerSafeExec(command));
+				await execAsyncRemote(serverId, command);
 			} else {
-				await execAsync(dockerSafeExec(command));
+				await execAsync(command);
 			}
 		} catch {}
 	}
