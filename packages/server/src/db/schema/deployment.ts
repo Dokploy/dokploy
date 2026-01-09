@@ -211,14 +211,17 @@ export const apiCreateDeploymentVolumeBackup = schema
 
 export const apiFindAllByApplication = z.object({
 	applicationId: z.string().min(1),
+	limit: z.number().min(1).max(100).optional().default(10),
 });
 
 export const apiFindAllByCompose = z.object({
 	composeId: z.string().min(1),
+	limit: z.number().min(1).max(100).optional().default(10),
 });
 
 export const apiFindAllByServer = z.object({
 	serverId: z.string().min(1),
+	limit: z.number().min(1).max(100).optional().default(10),
 });
 
 export const apiFindAllByType = z.object({
@@ -232,4 +235,5 @@ export const apiFindAllByType = z.object({
 		"backup",
 		"volumeBackup",
 	]),
+	limit: z.number().min(1).max(100).optional().default(10),
 });
