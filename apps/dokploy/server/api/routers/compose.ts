@@ -20,6 +20,8 @@ import {
 	getComposeContainer,
 	getWebServerSettings,
 	IS_CLOUD,
+	loadDockerCompose,
+	loadDockerComposeRemote,
 	loadServices,
 	randomizeComposeFile,
 	randomizeIsolatedDeploymentComposeFile,
@@ -336,6 +338,48 @@ export const composeRouter = createTRPCRouter({
 					message: "Error fetching source type",
 					cause: err,
 				});
+			}
+		}),
+
+	/**
+	 * Load volumes defined in the docker-compose file
+	 */
+	loadDefinedVolumes: protectedProcedure
+		.input(apiFindCompose)
+		.query(async ({ input, ctx }) => {
+			const compose = await findComposeById(input.composeId);
+			
+			if (
+				compose.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to load this compose",
+				});
+			}
+
+			try {
+				// Clone and load the docker-compose file
+				const command = await cloneCompose(compose);
+				if (compose.serverId) {
+					await execAsyncRemote(compose.serverId, command);
+				} else {
+					await execAsync(command);
+				}
+
+				// Load and parse the docker-compose.yml file
+				let composeData;
+				if (compose.serverId) {
+					composeData = await loadDockerComposeRemote(compose);
+				} else {
+					composeData = await loadDockerCompose(compose);
+				}
+
+				return composeData?.volumes || {};
+			} catch (err) {
+				console.error("Error loading defined volumes:", err);
+				return {};
 			}
 		}),
 
