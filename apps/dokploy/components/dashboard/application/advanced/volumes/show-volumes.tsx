@@ -13,6 +13,7 @@ import {
 import { api } from "@/utils/api";
 import type { ServiceType } from "../show-resources";
 import { AddVolumes } from "./add-volumes";
+import { ComposeVolumes } from "./compose-volumes";
 import { UpdateVolume } from "./update-volume";
 
 interface Props {
@@ -41,7 +42,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 	// Get volumes in docker-compose.yml for compose services
 	const { data: composeVolumes } = api.compose.loadDefinedVolumes.useQuery(
 		{ composeId: id },
-		{ enabled: type === "compose" && !!id }
+		{ enabled: type === "compose" && !!id },
 	);
 
 	const { mutateAsync: deleteVolume, isLoading: isRemoving } =
@@ -57,42 +58,42 @@ export const ShowVolumes = ({ id, type }: Props) => {
 					</CardDescription>
 				</div>
 
-				{data && data?.mounts?.length > 0 && (
-					<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
-						Add Volume
-					</AddVolumes>
-				)}
+				<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
+					Add Volume
+				</AddVolumes>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				{data?.mounts?.length === 0 && 
-				 (type !== "compose" || !composeVolumes || Object.keys(composeVolumes).length === 0) ? (
+				{!data?.mounts?.length &&
+				!Object.keys(composeVolumes || {}).length && (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Package className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
 							No volumes/mounts configured
 						</span>
-						<AddVolumes serviceId={id} refetch={refetch} serviceType={type}>
-							Add Volume
-						</AddVolumes>
 					</div>
-				) : (
+				)}
+				{((data?.mounts?.length ?? 0) > 0 ||
+					Object.keys(composeVolumes || {}).length > 0) && (
 					<div className="flex flex-col pt-2 gap-4">
-						{data?.mounts?.length > 0 && (
+						{(data?.mounts?.length ?? 0) > 0 && (
 							<AlertBlock type="warning">
 								Please remember to click Redeploy after adding, editing, or
 								deleting a mount to apply the changes.
 							</AlertBlock>
 						)}
-						{data?.mounts?.length > 0 && type === "compose" && composeVolumes && Object.keys(composeVolumes).length > 0 && (
-							<div className="border-t pt-4">
-								<div>
-									<h3 className="text-lg font-semibold">File Mounts</h3>
-									<p className="text-sm text-muted-foreground">
-										File mounts configured through Dokploy interface
-									</p>
+						{(data?.mounts?.length ?? 0) > 0 &&
+							type === "compose" &&
+							composeVolumes &&
+							Object.keys(composeVolumes).length > 0 && (
+								<div className="border-t pt-4">
+									<div>
+										<h3 className="text-lg font-semibold">File Mounts</h3>
+										<p className="text-sm text-muted-foreground">
+											File mounts configured through Dokploy interface
+										</p>
+									</div>
 								</div>
-							</div>
-						)}
+							)}
 						<div className="flex flex-col gap-6">
 							{data?.mounts?.map((mount) => (
 								<div key={mount.mountId}>
@@ -100,7 +101,6 @@ export const ShowVolumes = ({ id, type }: Props) => {
 										key={mount.mountId}
 										className="flex w-full flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-10 border rounded-lg p-4"
 									>
-										{/* <Package className="size-8 self-center text-muted-foreground" /> */}
 										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 flex-col gap-4 sm:gap-8">
 											<div className="flex flex-col gap-1">
 												<span className="font-medium">Mount Type</span>
@@ -190,47 +190,8 @@ export const ShowVolumes = ({ id, type }: Props) => {
 					</div>
 				)}
 				{/* Show defined volumes from docker-compose.yml for compose services */}
-				{type === "compose" && composeVolumes && Object.keys(composeVolumes).length > 0 && (
-					<div className="space-y-4">
-						<div>
-							<h3 className="text-lg font-semibold">Defined Volumes</h3>
-							<p className="text-sm text-muted-foreground">
-								Volumes defined in your docker-compose.yml file
-							</p>
-						</div>
-						<div className="grid gap-3">
-							{Object.entries(composeVolumes).map(([volumeName, volumeConfig]) => (
-								<div key={volumeName} className="border rounded-lg p-4">
-									<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-										<div className="flex flex-col gap-1">
-											<span className="font-medium">Volume Name</span>
-											<span className="text-sm text-muted-foreground">
-												{volumeName}
-											</span>
-										</div>
-										<div className="flex flex-col gap-1">
-											<span className="font-medium">Driver</span>
-											<span className="text-sm text-muted-foreground">
-												{typeof volumeConfig === 'object' && volumeConfig !== null 
-													? (volumeConfig as any)?.driver || 'default'
-													: 'default'
-												}
-											</span>
-										</div>
-										<div className="flex flex-col gap-1">
-											<span className="font-medium">External</span>
-											<span className="text-sm text-muted-foreground">
-												{typeof volumeConfig === 'object' && volumeConfig !== null 
-													? (volumeConfig as any)?.external ? 'Yes' : 'No'
-													: 'No'
-												}
-											</span>
-										</div>
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
+				{type === "compose" && composeVolumes && (
+					<ComposeVolumes composeVolumes={composeVolumes} />
 				)}
 			</CardContent>
 		</Card>
