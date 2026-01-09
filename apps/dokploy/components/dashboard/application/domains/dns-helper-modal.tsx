@@ -18,9 +18,10 @@ interface Props {
 		path?: string;
 	};
 	serverIp?: string;
+	children?: React.ReactNode;
 }
 
-export const DnsHelperModal = ({ domain, serverIp }: Props) => {
+export const DnsHelperModal = ({ domain, serverIp, children }: Props) => {
 	const copyToClipboard = (text: string) => {
 		navigator.clipboard.writeText(text);
 		toast.success("Copied to clipboard!");
@@ -28,10 +29,12 @@ export const DnsHelperModal = ({ domain, serverIp }: Props) => {
 
 	return (
 		<Dialog>
-			<DialogTrigger>
-				<Button variant="ghost" size="icon" className="group">
-					<HelpCircle className="size-4" />
-				</Button>
+			<DialogTrigger asChild>
+				{children ?? (
+					<Button variant="ghost" size="icon" className="group">
+						<HelpCircle className="size-4" />
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>

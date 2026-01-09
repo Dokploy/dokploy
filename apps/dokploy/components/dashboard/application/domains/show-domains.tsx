@@ -1,8 +1,22 @@
 import {
+	type ColumnFiltersState,
+	flexRender,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getPaginationRowModel,
+	getSortedRowModel,
+	type SortingState,
+	useReactTable,
+	type VisibilityState,
+} from "@tanstack/react-table";
+import {
 	CheckCircle2,
+	ChevronDown,
 	ExternalLink,
 	GlobeIcon,
 	InfoIcon,
+	LayoutGrid,
+	LayoutList,
 	Loader2,
 	PenBoxIcon,
 	RefreshCw,
@@ -24,12 +38,29 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { api } from "@/utils/api";
+import { createColumns, type Domain } from "./columns";
 import { DnsHelperModal } from "./dns-helper-modal";
 import { AddDomain } from "./handle-domain";
 
@@ -43,6 +74,16 @@ export type ValidationState = {
 };
 
 export type ValidationStates = Record<string, ValidationState>;
+
+const columnLabels: Record<string, string> = {
+	host: "Host",
+	serviceName: "Service",
+	path: "Path",
+	port: "Port",
+	https: "Protocol",
+	certificateType: "Certificate",
+	dnsStatus: "DNS Status",
+};
 
 interface Props {
 	id: string;
@@ -71,6 +112,10 @@ export const ShowDomains = ({ id, type }: Props) => {
 	const [validationStates, setValidationStates] = useState<ValidationStates>(
 		{},
 	);
+	const [isGridView, setIsGridView] = useLocalStorage("domain-view-mode", true);
+	const [sorting, setSorting] = useState<SortingState>([]);
+	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 	const { data: ip } = api.settings.getIp.useQuery();
 
 	const {
@@ -137,6 +182,59 @@ export const ShowDomains = ({ id, type }: Props) => {
 		}
 	};
 
+	const handleDeleteDomain = async (domainId: string) => {
+		await deleteDomain({ domainId })
+			.then(() => {
+				refetch();
+				toast.success("Domain deleted successfully");
+			})
+			.catch(() => {
+				toast.error("Error deleting domain");
+			});
+	};
+
+	const serverIp = application?.server?.ipAddress?.toString() || ip?.toString();
+
+	const columns = createColumns({
+		id,
+		type,
+		validationStates,
+		handleValidateDomain,
+		handleDeleteDomain,
+		isRemoving,
+		serverIp,
+	});
+
+	const tableData: Domain[] =
+		data?.map((item) => ({
+			domainId: item.domainId,
+			host: item.host,
+			https: item.https,
+			port: item.port,
+			path: item.path,
+			serviceName: item.serviceName,
+			certificateType: item.certificateType,
+			domainType: item.domainType,
+			createdAt: item.createdAt,
+		})) ?? [];
+
+	const table = useReactTable({
+		data: tableData,
+		columns,
+		onSortingChange: setSorting,
+		onColumnFiltersChange: setColumnFilters,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
+		onColumnVisibilityChange: setColumnVisibility,
+		state: {
+			sorting,
+			columnFilters,
+			columnVisibility,
+		},
+	});
+
 	return (
 		<div className="flex w-full flex-col gap-5 ">
 			<Card className="bg-background">
@@ -148,13 +246,29 @@ export const ShowDomains = ({ id, type }: Props) => {
 						</CardDescription>
 					</div>
 
-					<div className="flex flex-row gap-4 flex-wrap">
+					<div className="flex flex-row gap-2 flex-wrap">
 						{data && data?.length > 0 && (
-							<AddDomain id={id} type={type}>
-								<Button>
-									<GlobeIcon className="size-4" /> Add Domain
+							<>
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() => setIsGridView(!isGridView)}
+									title={
+										isGridView ? "Switch to table view" : "Switch to grid view"
+									}
+								>
+									{isGridView ? (
+										<LayoutList className="size-4" />
+									) : (
+										<LayoutGrid className="size-4" />
+									)}
 								</Button>
-							</AddDomain>
+								<AddDomain id={id} type={type}>
+									<Button>
+										<GlobeIcon className="size-4" /> Add Domain
+									</Button>
+								</AddDomain>
+							</>
 						)}
 					</div>
 				</CardHeader>
@@ -181,7 +295,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 								</AddDomain>
 							</div>
 						</div>
-					) : (
+					) : isGridView ? (
 						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full min-h-[40vh] ">
 							{data?.map((item) => {
 								const validationState = validationStates[item.host];
@@ -208,10 +322,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 																	https: item.https,
 																	path: item.path || undefined,
 																}}
-																serverIp={
-																	application?.server?.ipAddress?.toString() ||
-																	ip?.toString()
-																}
+																serverIp={serverIp}
 															/>
 														)}
 														<AddDomain
@@ -231,20 +342,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 															title="Delete Domain"
 															description="Are you sure you want to delete this domain?"
 															type="destructive"
-															onClick={async () => {
-																await deleteDomain({
-																	domainId: item.domainId,
-																})
-																	.then((_data) => {
-																		refetch();
-																		toast.success(
-																			"Domain deleted successfully",
-																		);
-																	})
-																	.catch(() => {
-																		toast.error("Error deleting domain");
-																	});
-															}}
+															onClick={() => handleDeleteDomain(item.domainId)}
 														>
 															<Button
 																variant="ghost"
@@ -289,7 +387,7 @@ export const ShowDomains = ({ id, type }: Props) => {
 															<TooltipTrigger asChild>
 																<Badge variant="secondary">
 																	<InfoIcon className="size-3 mr-1" />
-																	Port: {item.port}
+																	Port: {item.port ?? "-"}
 																</Badge>
 															</TooltipTrigger>
 															<TooltipContent>
@@ -394,6 +492,121 @@ export const ShowDomains = ({ id, type }: Props) => {
 									</Card>
 								);
 							})}
+						</div>
+					) : (
+						<div className="flex flex-col gap-4 w-full overflow-auto">
+							<div className="flex items-center gap-2 max-sm:flex-wrap">
+								<Input
+									placeholder="Filter by host..."
+									value={
+										(table.getColumn("host")?.getFilterValue() as string) ?? ""
+									}
+									onChange={(event) =>
+										table.getColumn("host")?.setFilterValue(event.target.value)
+									}
+									className="md:max-w-sm"
+								/>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											className="sm:ml-auto max-sm:w-full"
+										>
+											Columns <ChevronDown className="ml-2 h-4 w-4" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										{table
+											.getAllColumns()
+											.filter((column) => column.getCanHide())
+											.map((column) => {
+												return (
+													<DropdownMenuCheckboxItem
+														key={column.id}
+														checked={column.getIsVisible()}
+														onCheckedChange={(value) =>
+															column.toggleVisibility(!!value)
+														}
+													>
+														{columnLabels[column.id] ?? column.id}
+													</DropdownMenuCheckboxItem>
+												);
+											})}
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</div>
+							<div className="rounded-md border">
+								<Table>
+									<TableHeader>
+										{table.getHeaderGroups().map((headerGroup) => (
+											<TableRow key={headerGroup.id}>
+												{headerGroup.headers.map((header) => {
+													return (
+														<TableHead key={header.id}>
+															{header.isPlaceholder
+																? null
+																: flexRender(
+																		header.column.columnDef.header,
+																		header.getContext(),
+																	)}
+														</TableHead>
+													);
+												})}
+											</TableRow>
+										))}
+									</TableHeader>
+									<TableBody>
+										{table?.getRowModel()?.rows?.length ? (
+											table.getRowModel().rows.map((row) => (
+												<TableRow
+													key={row.id}
+													data-state={row.getIsSelected() && "selected"}
+												>
+													{row.getVisibleCells().map((cell) => (
+														<TableCell key={cell.id}>
+															{flexRender(
+																cell.column.columnDef.cell,
+																cell.getContext(),
+															)}
+														</TableCell>
+													))}
+												</TableRow>
+											))
+										) : (
+											<TableRow>
+												<TableCell
+													colSpan={columns.length}
+													className="h-24 text-center"
+												>
+													No results.
+												</TableCell>
+											</TableRow>
+										)}
+									</TableBody>
+								</Table>
+							</div>
+							{data && data.length > 0 && (
+								<div className="flex items-center justify-end space-x-2 py-4">
+									<div className="space-x-2 flex flex-wrap">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => table.previousPage()}
+											disabled={!table.getCanPreviousPage()}
+										>
+											Previous
+										</Button>
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() => table.nextPage()}
+											disabled={!table.getCanNextPage()}
+										>
+											Next
+										</Button>
+									</div>
+								</div>
+							)}
 						</div>
 					)}
 				</CardContent>
