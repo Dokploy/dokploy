@@ -260,13 +260,14 @@ export const ShowDeployments = ({
 								deployment.deploymentId,
 							);
 							const lastSuccessfulDeployment = deployments?.find(
-								(d) => d.status === "done"
+								(d) => d.status === "done",
 							);
-							const isLastSuccessfulDeployment = 
-								lastSuccessfulDeployment?.deploymentId === deployment.deploymentId;
-							const canDelete = 
-								deployments && 
-								deployments.length > 1 && 
+							const isLastSuccessfulDeployment =
+								lastSuccessfulDeployment?.deploymentId ===
+								deployment.deploymentId;
+							const canDelete =
+								deployments &&
+								deployments.length > 1 &&
 								!isLastSuccessfulDeployment;
 							return (
 								<div
