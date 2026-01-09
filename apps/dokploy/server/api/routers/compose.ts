@@ -20,6 +20,7 @@ import {
 	getComposeContainer,
 	getWebServerSettings,
 	IS_CLOUD,
+	loadDefinedVolumes,
 	loadDockerCompose,
 	loadDockerComposeRemote,
 	loadServices,
@@ -348,7 +349,7 @@ export const composeRouter = createTRPCRouter({
 		.input(apiFindCompose)
 		.query(async ({ input, ctx }) => {
 			const compose = await findComposeById(input.composeId);
-			
+
 			if (
 				compose.environment.project.organizationId !==
 				ctx.session.activeOrganizationId
@@ -359,28 +360,7 @@ export const composeRouter = createTRPCRouter({
 				});
 			}
 
-			try {
-				// Clone and load the docker-compose file
-				const command = await cloneCompose(compose);
-				if (compose.serverId) {
-					await execAsyncRemote(compose.serverId, command);
-				} else {
-					await execAsync(command);
-				}
-
-				// Load and parse the docker-compose.yml file
-				let composeData;
-				if (compose.serverId) {
-					composeData = await loadDockerComposeRemote(compose);
-				} else {
-					composeData = await loadDockerCompose(compose);
-				}
-
-				return composeData?.volumes || {};
-			} catch (err) {
-				console.error("Error loading defined volumes:", err);
-				return {};
-			}
+			return await loadDefinedVolumes(input.composeId);
 		}),
 
 	randomizeCompose: protectedProcedure

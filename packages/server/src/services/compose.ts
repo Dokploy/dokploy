@@ -185,6 +185,143 @@ export const loadServices = async (
 	return [...services];
 };
 
+export const loadDefinedVolumes = async (composeId: string) => {
+	const compose = await findComposeById(composeId);
+
+	try {
+		// Clone and load the docker-compose file
+		const command = await cloneCompose(compose);
+		if (compose.serverId) {
+			await execAsyncRemote(compose.serverId, command);
+		} else {
+			await execAsync(command);
+		}
+
+		// Load and parse the docker-compose.yml file
+		let composeData: ComposeSpecification | null;
+		if (compose.serverId) {
+			composeData = await loadDockerComposeRemote(compose);
+		} else {
+			composeData = await loadDockerCompose(compose);
+		}
+
+		const volumesDefinition = composeData?.volumes || {};
+		const services = composeData?.services || {};
+
+		// Build a map of volume usage across services
+		const volumeUsage: Record<
+			string,
+			Array<{ service: string; mountPath: string }>
+		> = {};
+
+		// Track bind mounts (paths starting with / or .) that are not in volumes section
+		const bindMounts: Record<
+			string,
+			{
+				hostPath: string;
+				usage: Array<{ service: string; mountPath: string }>;
+			}
+		> = {};
+
+		// Iterate through all services to find volume usage
+		for (const [serviceName, serviceConfig] of Object.entries(services)) {
+			const serviceVolumes = (serviceConfig as any)?.volumes || [];
+
+			for (const volumeEntry of serviceVolumes) {
+				let volumeName: string | undefined;
+				let mountPath: string | undefined;
+				let hostPath: string | undefined;
+
+				if (typeof volumeEntry === "string") {
+					// Format: "volume_name:/path" or "/host/path:/container/path"
+					const parts = volumeEntry.split(":");
+					if (parts.length >= 2 && parts[0]) {
+						// Check if it's a named volume (not a path starting with / or .)
+						if (!parts[0].startsWith("/") && !parts[0].startsWith(".")) {
+							volumeName = parts[0];
+							mountPath = parts[1];
+						} else {
+							// It's a bind mount (path starting with / or .)
+							hostPath = parts[0];
+							mountPath = parts[1];
+						}
+					}
+				} else if (typeof volumeEntry === "object" && volumeEntry !== null) {
+					// Long syntax: { type: 'volume', source: 'volume_name', target: '/path' }
+					if (
+						(volumeEntry as any).type === "volume" ||
+						!(volumeEntry as any).type
+					) {
+						volumeName = (volumeEntry as any).source;
+						mountPath = (volumeEntry as any).target;
+					} else if ((volumeEntry as any).type === "bind") {
+						hostPath = (volumeEntry as any).source;
+						mountPath = (volumeEntry as any).target;
+					}
+				}
+
+				if (volumeName && mountPath) {
+					if (!volumeUsage[volumeName]) {
+						volumeUsage[volumeName] = [];
+					}
+					volumeUsage[volumeName]!.push({
+						service: serviceName,
+						mountPath: mountPath,
+					});
+				} else if (hostPath && mountPath) {
+					// Track bind mount
+					const bindKey = `${hostPath}:${mountPath}`;
+					if (!bindMounts[bindKey]) {
+						bindMounts[bindKey] = {
+							hostPath: hostPath,
+							usage: [],
+						};
+					}
+					bindMounts[bindKey]!.usage.push({
+						service: serviceName,
+						mountPath: mountPath,
+					});
+				}
+			}
+		}
+
+		// Combine volume definitions with usage information
+		const result: Record<
+			string,
+			{
+				config: any;
+				usage: Array<{ service: string; mountPath: string }>;
+				hostPath?: string;
+				isBindMount?: boolean;
+			}
+		> = {};
+
+		for (const [volumeName, volumeConfig] of Object.entries(
+			volumesDefinition,
+		)) {
+			result[volumeName] = {
+				config: volumeConfig,
+				usage: volumeUsage[volumeName] || [],
+			};
+		}
+
+		// Add bind mounts to the result
+		for (const [bindKey, bindData] of Object.entries(bindMounts)) {
+			result[bindKey] = {
+				config: null,
+				usage: bindData.usage,
+				hostPath: bindData.hostPath,
+				isBindMount: true,
+			};
+		}
+
+		return result;
+	} catch (err) {
+		console.error("Error loading defined volumes:", err);
+		return {};
+	}
+};
+
 export const updateCompose = async (
 	composeId: string,
 	composeData: Partial<Compose>,
