@@ -930,11 +930,11 @@ export const settingsRouter = createTRPCRouter({
 			if (IS_CLOUD) {
 				return null;
 			}
-			
+
 			const settings = await updateUserInterfaceSettings({
 				loginPageImage: input.loginPageImage,
 			});
-			
+
 			return {
 				loginPageImage: settings?.loginPageImage || null,
 			};
