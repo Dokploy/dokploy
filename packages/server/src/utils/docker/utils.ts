@@ -191,8 +191,6 @@ export const cleanupContainers = async (serverId?: string) => {
 		}
 	} catch (error) {
 		console.error(error);
-
-		throw error;
 	}
 };
 
@@ -202,11 +200,11 @@ export const cleanupImages = async (serverId?: string) => {
 
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
-		} else await execAsync(command);
+		} else {
+			await execAsync(command);
+		}
 	} catch (error) {
 		console.error(error);
-
-		throw error;
 	}
 };
 
@@ -221,8 +219,6 @@ export const cleanupVolumes = async (serverId?: string) => {
 		}
 	} catch (error) {
 		console.error(error);
-
-		throw error;
 	}
 };
 
@@ -237,8 +233,6 @@ export const cleanupBuilders = async (serverId?: string) => {
 		}
 	} catch (error) {
 		console.error(error);
-
-		throw error;
 	}
 };
 
@@ -253,8 +247,6 @@ export const cleanupSystem = async (serverId?: string) => {
 		}
 	} catch (error) {
 		console.error(error);
-
-		throw error;
 	}
 };
 
@@ -280,7 +272,9 @@ export const cleanupAll = async (serverId?: string) => {
 			} else {
 				await execAsync(command);
 			}
-		} catch {}
+		} catch {
+			console.error(error);
+		}
 	}
 };
 
