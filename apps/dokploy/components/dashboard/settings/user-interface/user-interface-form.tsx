@@ -33,8 +33,10 @@ const userInterfaceSchema = z.object({
 type UserInterfaceForm = z.infer<typeof userInterfaceSchema>;
 
 export const UserInterfaceForm = () => {
-	const { data, refetch, isLoading } = api.settings.getUserInterfaceSettings.useQuery();
-	const { mutateAsync, isLoading: isUpdating } = api.settings.updateUserInterfaceSettings.useMutation();
+	const { data, refetch, isLoading } =
+		api.settings.getUserInterfaceSettings.useQuery();
+	const { mutateAsync, isLoading: isUpdating } =
+		api.settings.updateUserInterfaceSettings.useMutation();
 
 	const form = useForm<UserInterfaceForm>({
 		defaultValues: {
@@ -56,7 +58,7 @@ export const UserInterfaceForm = () => {
 			await mutateAsync({
 				loginPageImage: values.loginPageImage || null,
 			});
-			
+
 			toast.success("User interface settings updated successfully");
 			await refetch();
 		} catch (error) {
@@ -79,7 +81,10 @@ export const UserInterfaceForm = () => {
 					</CardHeader>
 					<CardContent className="space-y-6 py-8 border-t">
 						<Form {...form}>
-							<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+							<form
+								onSubmit={form.handleSubmit(onSubmit)}
+								className="space-y-6"
+							>
 								<FormField
 									control={form.control}
 									name="loginPageImage"
@@ -94,29 +99,32 @@ export const UserInterfaceForm = () => {
 												/>
 											</FormControl>
 											<FormDescription>
-												URL of the background image to display on login page. Leave empty to use default.
+												URL of the background image to display on login page.
+												Leave empty to use default.
 											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
 								/>
-								
+
 								{form.watch("loginPageImage") && (
 									<div className="rounded-md border p-4">
-										<p className="text-sm text-muted-foreground mb-2">Preview:</p>
+										<p className="text-sm text-muted-foreground mb-2">
+											Preview:
+										</p>
 										<div className="relative w-20 rounded-sm overflow-hidden bg-muted">
 											<img
 												src={form.watch("loginPageImage")}
 												alt="Login page background preview"
 												className="h-full w-full object-cover"
 												onError={(e) => {
-													e.currentTarget.style.display = 'none';
-													(e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+													e.currentTarget.style.display = "none";
+													(
+														e.currentTarget.nextElementSibling as HTMLElement
+													).style.display = "flex";
 												}}
 											/>
-											<div 
-												className="hidden h-full w-full items-center justify-center text-sm text-muted-foreground"
-											>
+											<div className="hidden h-full w-full items-center justify-center text-sm text-muted-foreground">
 												Failed to load image
 											</div>
 										</div>
@@ -124,8 +132,8 @@ export const UserInterfaceForm = () => {
 								)}
 
 								<div className="flex justify-end">
-									<Button 
-										type="submit" 
+									<Button
+										type="submit"
 										isLoading={isUpdating}
 										disabled={isLoading}
 									>
