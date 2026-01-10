@@ -13,10 +13,7 @@ interface ComposeVolumesProps {
 /**
  * Generates a display string for the mount path of a volume.
  */
-const getMountPathDisplay = (
-	volumeName: string,
-	volumeData: any,
-): string => {
+const getMountPathDisplay = (volumeName: string, volumeData: any): string => {
 	const hasUsage = volumeData?.usage && volumeData.usage.length > 0;
 
 	if (!hasUsage) {
@@ -25,9 +22,7 @@ const getMountPathDisplay = (
 
 	return volumeData.usage
 		.map((usage: { service: string; mountPath: string }) => {
-			const source = volumeData?.isBindMount
-				? volumeData.hostPath
-				: volumeName;
+			const source = volumeData?.isBindMount ? volumeData.hostPath : volumeName;
 			return `${source}:${usage.mountPath}`;
 		})
 		.join(", ");
@@ -58,7 +53,11 @@ const VolumeField = ({
 	label,
 	value,
 	breakText = false,
-}: { label: string; value: string; breakText?: boolean }) => (
+}: {
+	label: string;
+	value: string;
+	breakText?: boolean;
+}) => (
 	<div className="flex flex-col gap-1 min-w-0">
 		<span className="font-medium">{label}</span>
 		<span
