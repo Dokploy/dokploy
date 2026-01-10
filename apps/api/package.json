@@ -13,7 +13,6 @@
 		"@dokploy/server": "workspace:*",
 		"@hono/node-server": "^1.14.3",
 		"@hono/zod-validator": "0.3.0",
-		"@nerimity/mimiqueue": "1.2.3",
 		"dotenv": "^16.4.5",
 		"hono": "^4.7.10",
 		"pino": "9.4.0",

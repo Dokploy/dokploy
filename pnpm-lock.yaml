@@ -51,9 +51,6 @@ importers:
       '@hono/zod-validator':
         specifier: 0.3.0
         version: 0.3.0(hono@4.7.10)(zod@3.25.32)
-      '@nerimity/mimiqueue':
-        specifier: 1.2.3
-        version: 1.2.3(redis@4.7.0)
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
@@ -1938,11 +1935,6 @@ packages:
     resolution: {integrity: sha512-x0fWaQtYp4E6sktbsdAqnehxDgEc/VwM7uLsRCYWaiGu0ykYdZPiS8zCWdnjHwyiumousxfBm4SO31eXqwEZhQ==}
     cpu: [x64]
     os: [win32]
-
-  '@nerimity/mimiqueue@1.2.3':
-    resolution: {integrity: sha512-WPoGe417P+S0FLfl3psRBI5adcAWXb917vCF1qD2yGZ1ggBEnMH6UrUK464gzJEOpAlGt8BBbIp0tgCEazZ47A==}
-    peerDependencies:
-      redis: ^4.7.0
 
   '@next/env@16.0.10':
     resolution: {integrity: sha512-8tuaQkyDVgeONQ1MeT9Mkk8pQmZapMKFh5B+OrFUlG3rVmYTXcXlBetBgTurKXGaIZvkoqRT9JL5K3phXcgang==}
@@ -4289,9 +4281,6 @@ packages:
 
   assertion-error@1.1.0:
     resolution: {integrity: sha512-jgsaNduz+ndvGyFt3uSuWqvy4lCnIJiovtouQN5JZHOKCS2QuhEdbcQHFhVksz2N2U9hXJo8odG7ETyWlEeuDw==}
-
-  async-await-queue@2.1.4:
-    resolution: {integrity: sha512-3DpDtxkKO0O/FPlWbk/CrbexjuSxWm1CH1bXlVNVyMBIkKHhT5D85gzHmGJokG3ibNGWQ7pHBmStxUW/z/0LYQ==}
 
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
@@ -8744,11 +8733,6 @@ snapshots:
   '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
     optional: true
 
-  '@nerimity/mimiqueue@1.2.3(redis@4.7.0)':
-    dependencies:
-      async-await-queue: 2.1.4
-      redis: 4.7.0
-
   '@next/env@16.0.10': {}
 
   '@next/swc-darwin-arm64@16.0.10':
@@ -11654,8 +11638,6 @@ snapshots:
       tslib: 2.8.1
 
   assertion-error@1.1.0: {}
-
-  async-await-queue@2.1.4: {}
 
   asynckit@0.4.0: {}
 
