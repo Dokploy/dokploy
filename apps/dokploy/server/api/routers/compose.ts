@@ -180,7 +180,9 @@ export const composeRouter = createTRPCRouter({
 			}
 
 			// Load volumes defined in docker-compose.yml if exists
-			const definedVolumesInComposeFile = await loadDefinedVolumesInComposeFile(input.composeId);
+			const definedVolumesInComposeFile = await loadDefinedVolumesInComposeFile(
+				input.composeId,
+			);
 
 			return {
 				...compose,
