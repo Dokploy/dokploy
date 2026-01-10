@@ -217,10 +217,12 @@ export const ShowVolumes = ({ id, type }: Props) => {
 					</div>
 				)}
 				{/* Show defined volumes from docker-compose.yml for compose services */}
-			{(() => {
-				const composeVolumes = getComposeVolumes(data, type);
-				return composeVolumes && <ComposeVolumes composeVolumes={composeVolumes} />;
-			})()}
+				{(() => {
+					const composeVolumes = getComposeVolumes(data, type);
+					return (
+						composeVolumes && <ComposeVolumes composeVolumes={composeVolumes} />
+					);
+				})()}
 			</CardContent>
 		</Card>
 	);

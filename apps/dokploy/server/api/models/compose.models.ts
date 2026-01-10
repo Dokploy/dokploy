@@ -71,7 +71,14 @@ export interface Compose {
 		volumeName: string | null;
 		filePath: string | null;
 		content: string | null;
-		serviceType: "application" | "postgres" | "mysql" | "mariadb" | "mongo" | "redis" | "compose";
+		serviceType:
+			| "application"
+			| "postgres"
+			| "mysql"
+			| "mariadb"
+			| "mongo"
+			| "redis"
+			| "compose";
 		mountPath: string;
 		applicationId: string | null;
 		postgresId: string | null;
@@ -101,13 +108,16 @@ export interface Compose {
 		composeId: string | null;
 		destination: any;
 		deployments: any[];
-	}>;	
+	}>;
 	hasGitProviderAccess: boolean;
 	unauthorizedProvider: string | null;
-	definedVolumesInComposeFile?: Record<string, {
-		config: any;
-		usage: Array<{ service: string; mountPath: string }>;
-		hostPath?: string;
-		isBindMount?: boolean;
-	}>;
-};
+	definedVolumesInComposeFile?: Record<
+		string,
+		{
+			config: any;
+			usage: Array<{ service: string; mountPath: string }>;
+			hostPath?: string;
+			isBindMount?: boolean;
+		}
+	>;
+}

@@ -110,7 +110,7 @@ export const createComposeByTemplate = async (
 
 /**
  * Find compose by ID
- * 
+ *
  * @param composeId ID of the compose service
  */
 export const findComposeById = async (composeId: string) => {
@@ -192,7 +192,7 @@ export const loadServices = async (
 
 /**
  * Load defined volumes from a docker-compose.yml file
- * 
+ *
  * @param composeId ID of the compose service
  */
 export const loadDefinedVolumesInComposeFile = async (composeId: string) => {
@@ -207,18 +207,20 @@ export const loadDefinedVolumesInComposeFile = async (composeId: string) => {
 			} else {
 				composeData = await loadDockerCompose(compose);
 			}
-			
+
 			if (!composeData) {
 				return {};
 			}
-			
+
 			return extractVolumesFromComposeData(composeData);
 		}
 
 		// Validate that we have the necessary provider configuration
 		const hasValidProvider = validateComposeProvider(compose);
 		if (!hasValidProvider) {
-			console.warn(`No valid provider configuration for compose ${composeId}, returning empty volumes`);
+			console.warn(
+				`No valid provider configuration for compose ${composeId}, returning empty volumes`,
+			);
 			return {};
 		}
 
@@ -257,11 +259,21 @@ const validateComposeProvider = (compose: any): boolean => {
 		case "github":
 			return !!compose.repository && !!compose.owner && !!compose.githubId;
 		case "gitlab":
-			return !!compose.gitlabRepository && !!compose.gitlabOwner && !!compose.gitlabId;
+			return (
+				!!compose.gitlabRepository &&
+				!!compose.gitlabOwner &&
+				!!compose.gitlabId
+			);
 		case "bitbucket":
-			return !!compose.bitbucketRepository && !!compose.bitbucketOwner && !!compose.bitbucketId;
+			return (
+				!!compose.bitbucketRepository &&
+				!!compose.bitbucketOwner &&
+				!!compose.bitbucketId
+			);
 		case "gitea":
-			return !!compose.giteaRepository && !!compose.giteaOwner && !!compose.giteaId;
+			return (
+				!!compose.giteaRepository && !!compose.giteaOwner && !!compose.giteaId
+			);
 		case "git":
 			return !!compose.customGitUrl;
 		case "raw":
@@ -366,9 +378,7 @@ const extractVolumesFromComposeData = (composeData: ComposeSpecification) => {
 		}
 	> = {};
 
-	for (const [volumeName, volumeConfig] of Object.entries(
-		volumesDefinition,
-	)) {
+	for (const [volumeName, volumeConfig] of Object.entries(volumesDefinition)) {
 		result[volumeName] = {
 			config: volumeConfig,
 			usage: volumeUsage[volumeName] || [],
