@@ -21,7 +21,43 @@ interface Props {
 	type: ServiceType | "compose";
 }
 
+/**
+ * Check if the service is a compose service with defined volumes in docker-compose.yml
+ */
+const isComposeWithVolumes = (data: any, type: string) => {
+	return type === "compose" && data && "definedVolumesInComposeFile" in data;
+};
+
+/**
+ * Get the count of defined volumes in docker-compose.yml
+ */
+const getComposeVolumesCount = (data: any, type: string) => {
+	if (!isComposeWithVolumes(data, type)) return 0;
+	return Object.keys(data.definedVolumesInComposeFile || {}).length;
+};
+
+/**
+ * Check if the service has any volumes/mounts configured
+ */
+const hasAnyVolumes = (data: any, type: string) => {
+	const mountsCount = data?.mounts?.length ?? 0;
+	const composeVolumesCount = getComposeVolumesCount(data, type);
+	return mountsCount > 0 || composeVolumesCount > 0;
+};
+
+/**
+ * Get the defined volumes in docker-compose.yml
+ */
+const getComposeVolumes = (data: any, type: string) => {
+	if (!isComposeWithVolumes(data, type)) return null;
+	return data.definedVolumesInComposeFile;
+};
+
+/**
+ * Show Volumes component
+ */
 export const ShowVolumes = ({ id, type }: Props) => {
+	console.log("Rendering ShowVolumes with id:", id, "and type:", type);
 	const queryMap = {
 		postgres: () =>
 			api.postgres.one.useQuery({ postgresId: id }, { enabled: !!id }),
@@ -38,12 +74,6 @@ export const ShowVolumes = ({ id, type }: Props) => {
 	const { data, refetch } = queryMap[type]
 		? queryMap[type]()
 		: api.mongo.one.useQuery({ mongoId: id }, { enabled: !!id });
-
-	// Get volumes in docker-compose.yml for compose services
-	const { data: composeVolumes } = api.compose.loadDefinedVolumes.useQuery(
-		{ composeId: id },
-		{ enabled: type === "compose" && !!id },
-	);
 
 	const { mutateAsync: deleteVolume, isLoading: isRemoving } =
 		api.mounts.remove.useMutation();
@@ -63,8 +93,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 				</AddVolumes>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-4">
-				{!data?.mounts?.length &&
-				!Object.keys(composeVolumes || {}).length && (
+				{!hasAnyVolumes(data, type) && (
 					<div className="flex w-full flex-col items-center justify-center gap-3 pt-10">
 						<Package className="size-8 text-muted-foreground" />
 						<span className="text-base text-muted-foreground">
@@ -72,8 +101,7 @@ export const ShowVolumes = ({ id, type }: Props) => {
 						</span>
 					</div>
 				)}
-				{((data?.mounts?.length ?? 0) > 0 ||
-					Object.keys(composeVolumes || {}).length > 0) && (
+				{hasAnyVolumes(data, type) && (
 					<div className="flex flex-col pt-2 gap-4">
 						{(data?.mounts?.length ?? 0) > 0 && (
 							<AlertBlock type="warning">
@@ -82,9 +110,8 @@ export const ShowVolumes = ({ id, type }: Props) => {
 							</AlertBlock>
 						)}
 						{(data?.mounts?.length ?? 0) > 0 &&
-							type === "compose" &&
-							composeVolumes &&
-							Object.keys(composeVolumes).length > 0 && (
+							isComposeWithVolumes(data, type) &&
+							getComposeVolumesCount(data, type) > 0 && (
 								<div className="border-t pt-4">
 									<div>
 										<h3 className="text-lg font-semibold">File Mounts</h3>
@@ -190,9 +217,10 @@ export const ShowVolumes = ({ id, type }: Props) => {
 					</div>
 				)}
 				{/* Show defined volumes from docker-compose.yml for compose services */}
-				{type === "compose" && composeVolumes && (
-					<ComposeVolumes composeVolumes={composeVolumes} />
-				)}
+			{(() => {
+				const composeVolumes = getComposeVolumes(data, type);
+				return composeVolumes && <ComposeVolumes composeVolumes={composeVolumes} />;
+			})()}
 			</CardContent>
 		</Card>
 	);

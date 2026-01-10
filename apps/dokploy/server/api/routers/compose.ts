@@ -20,7 +20,7 @@ import {
 	getComposeContainer,
 	getWebServerSettings,
 	IS_CLOUD,
-	loadDefinedVolumes,
+	loadDefinedVolumesInComposeFile,
 	loadDockerCompose,
 	loadDockerComposeRemote,
 	loadServices,
@@ -61,6 +61,7 @@ import {
 	apiUpdateCompose,
 	compose as composeTable,
 } from "@/server/db/schema";
+import type { Compose } from "@/server/api/models/compose.models";
 import type { DeploymentJob } from "@/server/queues/queue-types";
 import {
 	cleanQueuesByCompose,
@@ -119,9 +120,12 @@ export const composeRouter = createTRPCRouter({
 			}
 		}),
 
+	/**
+	 * Get a compose by ID
+	 */
 	one: protectedProcedure
 		.input(apiFindCompose)
-		.query(async ({ input, ctx }) => {
+		.query(async ({ input, ctx }): Promise<Compose> => {
 			if (ctx.user.role === "member") {
 				await checkServiceAccess(
 					ctx.user.id,
@@ -175,10 +179,14 @@ export const composeRouter = createTRPCRouter({
 				}
 			}
 
+			// Load volumes defined in docker-compose.yml if exists
+			const definedVolumesInComposeFile = await loadDefinedVolumesInComposeFile(input.composeId);
+
 			return {
 				...compose,
 				hasGitProviderAccess,
 				unauthorizedProvider,
+				definedVolumesInComposeFile,
 			};
 		}),
 
@@ -340,27 +348,6 @@ export const composeRouter = createTRPCRouter({
 					cause: err,
 				});
 			}
-		}),
-
-	/**
-	 * Load volumes defined in the docker-compose file
-	 */
-	loadDefinedVolumes: protectedProcedure
-		.input(apiFindCompose)
-		.query(async ({ input, ctx }) => {
-			const compose = await findComposeById(input.composeId);
-
-			if (
-				compose.environment.project.organizationId !==
-				ctx.session.activeOrganizationId
-			) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "You are not authorized to load this compose",
-				});
-			}
-
-			return await loadDefinedVolumes(input.composeId);
 		}),
 
 	randomizeCompose: protectedProcedure
