@@ -81,7 +81,9 @@ For detailed documentation, visit [docs.dokploy.com](https://docs.dokploy.com).
         <a href="https://www.lambdatest.com/?utm_source=dokploy&utm_medium=sponsor" target="_blank">
             <img src="https://www.lambdatest.com/blue-logo.png"  width="450" height="100" />
         </a>
-
+        <a href="https://awesome.tools/" target="_blank">
+            <img src=".github/sponsors/awesome.png"  width="200" height="150" />
+        </a>
 </div>
 
 <!-- Premium Supporters 🥇 -->

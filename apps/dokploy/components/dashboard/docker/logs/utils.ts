@@ -49,7 +49,7 @@ export function parseLogs(logString: string): LogLine[] {
 	// { timestamp: new Date("2024-12-10T10:00:00.000Z"),
 	// message: "The server is running on port 8080" }
 	const logRegex =
-		/^(?:(\d+)\s+)?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC)?\s*(.*)$/;
+		/^(?:(?<lineNumber>\d+)\s+)?(?<timestamp>(?:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC))?\s*(?<message>[\s\S]*)$/;
 
 	return logString
 		.split("\n")
@@ -59,7 +59,7 @@ export function parseLogs(logString: string): LogLine[] {
 			const match = line.match(logRegex);
 			if (!match) return null;
 
-			const [, , timestamp, message] = match;
+			const { timestamp, message } = match.groups ?? {};
 
 			if (!message?.trim()) return null;
 
@@ -108,7 +108,8 @@ export const getLogType = (message: string): LogStyle => {
 		/(?:might|may|could)\s+(?:not|cause|lead\s+to)/i.test(lowerMessage) ||
 		/(?:!+\s*(?:warning|caution|attention)\s*!+)/i.test(lowerMessage) ||
 		/\b(?:deprecated|obsolete)\b/i.test(lowerMessage) ||
-		/\b(?:unstable|experimental)\b/i.test(lowerMessage)
+		/\b(?:unstable|experimental)\b/i.test(lowerMessage) ||
+		/⚠|⚠️/i.test(lowerMessage)
 	) {
 		return LOG_STYLES.warning;
 	}

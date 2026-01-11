@@ -8,6 +8,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
+import { getWebServerSettings } from "./web-server-settings";
 
 export const findUserById = async (userId: string) => {
 	const userResult = await db.query.user.findFirst({
@@ -46,7 +47,7 @@ export const isAdminPresent = async () => {
 	return true;
 };
 
-export const findAdmin = async () => {
+export const findOwner = async () => {
 	const admin = await db.query.member.findFirst({
 		where: eq(member.role, "owner"),
 		with: {
@@ -107,11 +108,11 @@ export const getDokployUrl = async () => {
 	if (IS_CLOUD) {
 		return "https://app.dokploy.com";
 	}
-	const admin = await findAdmin();
+	const settings = await getWebServerSettings();
 
-	if (admin.user.host) {
-		const protocol = admin.user.https ? "https" : "http";
-		return `${protocol}://${admin.user.host}`;
+	if (settings?.host) {
+		const protocol = settings?.https ? "https" : "http";
+		return `${protocol}://${settings?.host}`;
 	}
-	return `http://${admin.user.serverIp}:${process.env.PORT}`;
+	return `http://${settings?.serverIp}:${process.env.PORT}`;
 };

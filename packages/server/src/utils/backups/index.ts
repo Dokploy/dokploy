@@ -2,15 +2,12 @@ import path from "node:path";
 import { member } from "@dokploy/server/db/schema";
 import type { BackupSchedule } from "@dokploy/server/services/backup";
 import { getAllServers } from "@dokploy/server/services/server";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { eq } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import { startLogCleanup } from "../access-log/handler";
-import {
-	cleanUpDockerBuilder,
-	cleanUpSystemPrune,
-	cleanUpUnusedImages,
-} from "../docker/utils";
+import { cleanupAll } from "../docker/utils";
 import { sendDockerCleanupNotifications } from "../notifications/docker-cleanup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getS3Credentials, scheduleBackup } from "./utils";
@@ -29,14 +26,16 @@ export const initCronJobs = async () => {
 		return;
 	}
 
-	if (admin.user.enableDockerCleanup) {
+	const webServerSettings = await getWebServerSettings();
+
+	if (webServerSettings?.enableDockerCleanup) {
 		scheduleJob("docker-cleanup", "0 0 * * *", async () => {
 			console.log(
 				`Docker Cleanup ${new Date().toLocaleString()}]  Running docker cleanup`,
 			);
-			await cleanUpUnusedImages();
-			await cleanUpDockerBuilder();
-			await cleanUpSystemPrune();
+
+			await cleanupAll();
+
 			await sendDockerCleanupNotifications(admin.user.id);
 		});
 	}
@@ -50,9 +49,9 @@ export const initCronJobs = async () => {
 				console.log(
 					`SERVER-BACKUP[${new Date().toLocaleString()}] Running Cleanup ${name}`,
 				);
-				await cleanUpUnusedImages(serverId);
-				await cleanUpDockerBuilder(serverId);
-				await cleanUpSystemPrune(serverId);
+
+				await cleanupAll(serverId);
+
 				await sendDockerCleanupNotifications(
 					admin.user.id,
 					`Docker cleanup for Server ${name} (${serverId})`,
@@ -86,9 +85,12 @@ export const initCronJobs = async () => {
 		}
 	}
 
-	if (admin?.user.logCleanupCron) {
-		console.log("Starting log requests cleanup", admin.user.logCleanupCron);
-		await startLogCleanup(admin.user.logCleanupCron);
+	if (webServerSettings?.logCleanupCron) {
+		console.log(
+			"Starting log requests cleanup",
+			webServerSettings.logCleanupCron,
+		);
+		await startLogCleanup(webServerSettings.logCleanupCron);
 	}
 };
 

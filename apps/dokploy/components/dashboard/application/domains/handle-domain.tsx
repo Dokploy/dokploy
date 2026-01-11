@@ -46,7 +46,13 @@ export type CacheType = "fetch" | "cache";
 
 export const domain = z
 	.object({
-		host: z.string().min(1, { message: "Add a hostname" }),
+		host: z
+			.string()
+			.min(1, { message: "Add a hostname" })
+			.refine((val) => val === val.trim(), {
+				message: "Domain name cannot have leading or trailing spaces",
+			})
+			.transform((val) => val.trim()),
 		path: z.string().min(1).optional(),
 		internalPath: z.string().optional(),
 		stripPath: z.boolean().optional(),
@@ -202,6 +208,8 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const certificateType = form.watch("certificateType");
 	const https = form.watch("https");
 	const domainType = form.watch("domainType");
+	const host = form.watch("host");
+	const isTraefikMeDomain = host?.includes("traefik.me") || false;
 
 	useEffect(() => {
 		if (data) {
@@ -298,6 +306,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 					<DialogDescription>{dictionary.dialogDescription}</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+
+				{type === "compose" && (
+					<AlertBlock type="info" className="mb-4">
+						Whenever you make changes to domains, remember to redeploy your
+						compose to apply the changes.
+					</AlertBlock>
+				)}
 
 				<Form {...form}>
 					<form
@@ -489,6 +504,13 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 														to make your traefik.me domain work.
 													</AlertBlock>
 												)}
+											{isTraefikMeDomain && (
+												<AlertBlock type="info">
+													<strong>Note:</strong> traefik.me is a public HTTP
+													service and does not support SSL/HTTPS. HTTPS and
+													certificate options will not have any effect.
+												</AlertBlock>
+											)}
 											<FormLabel>Host</FormLabel>
 											<div className="flex gap-2">
 												<FormControl>

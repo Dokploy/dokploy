@@ -16,8 +16,8 @@ import {
 	findGitProviderById,
 	findProjectById,
 	findServerById,
-	findUserById,
 	getComposeContainer,
+	getWebServerSettings,
 	IS_CLOUD,
 	loadServices,
 	randomizeComposeFile,
@@ -425,7 +425,9 @@ export const composeRouter = createTRPCRouter({
 
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 			await myQueue.add(
@@ -436,7 +438,11 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			return { success: true, message: "Deployment queued" };
+			return {
+				success: true,
+				message: "Deployment queued",
+				composeId: compose.composeId,
+			};
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -461,7 +467,9 @@ export const composeRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && compose.serverId) {
 				jobData.serverId = compose.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 			await myQueue.add(
@@ -472,7 +480,11 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			return { success: true, message: "Redeployment queued" };
+			return {
+				success: true,
+				message: "Redeployment queued",
+				composeId: compose.composeId,
+			};
 		}),
 	stop: protectedProcedure
 		.input(apiFindCompose)
@@ -698,8 +710,7 @@ export const composeRouter = createTRPCRouter({
 
 			const template = await fetchTemplateFiles(input.id, input.baseUrl);
 
-			const admin = await findUserById(ctx.user.ownerId);
-			let serverIp = admin.serverIp || "127.0.0.1";
+			let serverIp = "127.0.0.1";
 
 			const project = await findProjectById(environment.projectId);
 
@@ -708,6 +719,9 @@ export const composeRouter = createTRPCRouter({
 				serverIp = server.ipAddress;
 			} else if (process.env.NODE_ENV === "development") {
 				serverIp = "127.0.0.1";
+			} else {
+				const settings = await getWebServerSettings();
+				serverIp = settings?.serverIp || "127.0.0.1";
 			}
 
 			const projectName = slugify(`${project.name} ${input.id}`);
@@ -932,14 +946,16 @@ export const composeRouter = createTRPCRouter({
 				const decodedData = Buffer.from(input.base64, "base64").toString(
 					"utf-8",
 				);
-				const admin = await findUserById(ctx.user.ownerId);
-				let serverIp = admin.serverIp || "127.0.0.1";
+				let serverIp = "127.0.0.1";
 
 				if (compose.serverId) {
 					const server = await findServerById(compose.serverId);
 					serverIp = server.ipAddress;
 				} else if (process.env.NODE_ENV === "development") {
 					serverIp = "127.0.0.1";
+				} else {
+					const settings = await getWebServerSettings();
+					serverIp = settings?.serverIp || "127.0.0.1";
 				}
 				const templateData = JSON.parse(decodedData);
 				const config = parse(templateData.config) as CompleteTemplate;
@@ -1003,14 +1019,24 @@ export const composeRouter = createTRPCRouter({
 					});
 				}
 
-				const admin = await findUserById(ctx.user.ownerId);
-				let serverIp = admin.serverIp || "127.0.0.1";
+				for (const mount of compose.mounts) {
+					await deleteMount(mount.mountId);
+				}
+
+				for (const domain of compose.domains) {
+					await removeDomainById(domain.domainId);
+				}
+
+				let serverIp = "127.0.0.1";
 
 				if (compose.serverId) {
 					const server = await findServerById(compose.serverId);
 					serverIp = server.ipAddress;
 				} else if (process.env.NODE_ENV === "development") {
 					serverIp = "127.0.0.1";
+				} else {
+					const settings = await getWebServerSettings();
+					serverIp = settings?.serverIp || "127.0.0.1";
 				}
 
 				const templateData = JSON.parse(decodedData);

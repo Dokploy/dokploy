@@ -3,7 +3,6 @@ import { relations } from "drizzle-orm";
 import {
 	boolean,
 	integer,
-	jsonb,
 	pgTable,
 	text,
 	timestamp,
@@ -15,7 +14,6 @@ import { account, apikey, organization } from "./account";
 import { backups } from "./backups";
 import { projects } from "./project";
 import { schedules } from "./schedule";
-import { certificateType } from "./shared";
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
  * database instance for multiple projects.
@@ -31,7 +29,8 @@ export const user = pgTable("user", {
 		.notNull()
 		.primaryKey()
 		.$defaultFn(() => nanoid()),
-	name: text("name").notNull().default(""),
+	firstName: text("firstName").notNull().default(""),
+	lastName: text("lastName").notNull().default(""),
 	isRegistered: boolean("isRegistered").notNull().default(false),
 	expirationDate: text("expirationDate")
 		.notNull()
@@ -50,73 +49,10 @@ export const user = pgTable("user", {
 	banExpires: timestamp("ban_expires"),
 	updatedAt: timestamp("updated_at").notNull(),
 	// Admin
-	serverIp: text("serverIp"),
-	certificateType: certificateType("certificateType").notNull().default("none"),
-	https: boolean("https").notNull().default(false),
-	host: text("host"),
-	letsEncryptEmail: text("letsEncryptEmail"),
-	sshPrivateKey: text("sshPrivateKey"),
-	enableDockerCleanup: boolean("enableDockerCleanup").notNull().default(false),
-	logCleanupCron: text("logCleanupCron").default("0 0 * * *"),
 	role: text("role").notNull().default("user"),
 	// Metrics
 	enablePaidFeatures: boolean("enablePaidFeatures").notNull().default(false),
 	allowImpersonation: boolean("allowImpersonation").notNull().default(false),
-	metricsConfig: jsonb("metricsConfig")
-		.$type<{
-			server: {
-				type: "Dokploy" | "Remote";
-				refreshRate: number;
-				port: number;
-				token: string;
-				urlCallback: string;
-				retentionDays: number;
-				cronJob: string;
-				thresholds: {
-					cpu: number;
-					memory: number;
-				};
-			};
-			containers: {
-				refreshRate: number;
-				services: {
-					include: string[];
-					exclude: string[];
-				};
-			};
-		}>()
-		.notNull()
-		.default({
-			server: {
-				type: "Dokploy",
-				refreshRate: 60,
-				port: 4500,
-				token: "",
-				retentionDays: 2,
-				cronJob: "",
-				urlCallback: "",
-				thresholds: {
-					cpu: 0,
-					memory: 0,
-				},
-			},
-			containers: {
-				refreshRate: 60,
-				services: {
-					include: [],
-					exclude: [],
-				},
-			},
-		}),
-	cleanupCacheApplications: boolean("cleanupCacheApplications")
-		.notNull()
-		.default(false),
-	cleanupCacheOnPreviews: boolean("cleanupCacheOnPreviews")
-		.notNull()
-		.default(false),
-	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
-		.notNull()
-		.default(false),
 	stripeCustomerId: text("stripeCustomerId"),
 	stripeSubscriptionId: text("stripeSubscriptionId"),
 	serversQuantity: integer("serversQuantity").notNull().default(0),
@@ -202,33 +138,6 @@ export const apiFindOneUserByAuth = createSchema
 		// authId: true,
 	})
 	.required();
-export const apiSaveSSHKey = createSchema
-	.pick({
-		sshPrivateKey: true,
-	})
-	.required();
-
-export const apiAssignDomain = createSchema
-	.pick({
-		host: true,
-		certificateType: true,
-		letsEncryptEmail: true,
-		https: true,
-	})
-	.required()
-	.partial({
-		letsEncryptEmail: true,
-		https: true,
-	});
-
-export const apiUpdateDockerCleanup = createSchema
-	.pick({
-		enableDockerCleanup: true,
-	})
-	.required()
-	.extend({
-		serverId: z.string().optional(),
-	});
 
 export const apiTraefikConfig = z.object({
 	traefikConfig: z.string().min(1),
@@ -297,32 +206,6 @@ export const apiReadStatsLogs = z.object({
 		.optional(),
 });
 
-export const apiUpdateWebServerMonitoring = z.object({
-	metricsConfig: z
-		.object({
-			server: z.object({
-				refreshRate: z.number().min(2),
-				port: z.number().min(1),
-				token: z.string(),
-				urlCallback: z.string().url(),
-				retentionDays: z.number().min(1),
-				cronJob: z.string().min(1),
-				thresholds: z.object({
-					cpu: z.number().min(0),
-					memory: z.number().min(0),
-				}),
-			}),
-			containers: z.object({
-				refreshRate: z.number().min(2),
-				services: z.object({
-					include: z.array(z.string()).optional(),
-					exclude: z.array(z.string()).optional(),
-				}),
-			}),
-		})
-		.required(),
-});
-
 export const apiUpdateUser = createSchema.partial().extend({
 	email: z
 		.string()
@@ -332,29 +215,5 @@ export const apiUpdateUser = createSchema.partial().extend({
 	password: z.string().optional(),
 	currentPassword: z.string().optional(),
 	name: z.string().optional(),
-	metricsConfig: z
-		.object({
-			server: z.object({
-				type: z.enum(["Dokploy", "Remote"]),
-				refreshRate: z.number(),
-				port: z.number(),
-				token: z.string(),
-				urlCallback: z.string(),
-				retentionDays: z.number(),
-				cronJob: z.string(),
-				thresholds: z.object({
-					cpu: z.number(),
-					memory: z.number(),
-				}),
-			}),
-			containers: z.object({
-				refreshRate: z.number(),
-				services: z.object({
-					include: z.array(z.string()),
-					exclude: z.array(z.string()),
-				}),
-			}),
-		})
-		.optional(),
-	logCleanupCron: z.string().optional().nullable(),
+	lastName: z.string().optional(),
 });
