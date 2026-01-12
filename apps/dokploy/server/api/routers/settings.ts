@@ -88,7 +88,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		await reloadDockerResource("dokploy");
+		await reloadDockerResource("dokploy", undefined, packageInfo.version);
 		return true;
 	}),
 	cleanRedis: adminProcedure.mutation(async () => {

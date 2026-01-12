@@ -280,11 +280,16 @@ fi`;
 export const reloadDockerResource = async (
 	resourceName: string,
 	serverId?: string,
+	version?: string,
 ) => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
 	let command = "";
 	if (resourceType === "service") {
-		command = `docker service update --force ${resourceName}`;
+		if (resourceName === "dokploy") {
+			command = `docker service update --force --image dokploy/dokploy:${version} ${resourceName}`;
+		} else {
+			command = `docker service update --force ${resourceName}`;
+		}
 	} else if (resourceType === "standalone") {
 		command = `docker restart ${resourceName}`;
 	} else {
