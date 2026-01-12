@@ -263,7 +263,6 @@ export const Configure2FA = () => {
 													type="password"
 													placeholder="Enter your password"
 													{...field}
-													enablePasswordGenerator={false}
 												/>
 											</FormControl>
 											<FormDescription>

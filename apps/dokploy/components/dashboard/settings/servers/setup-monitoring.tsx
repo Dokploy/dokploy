@@ -568,7 +568,6 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 														type={showToken ? "text" : "password"}
 														placeholder="Enter your metrics token"
 														{...field}
-														enablePasswordGenerator={false}
 													/>
 													<Button
 														type="button"

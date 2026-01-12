@@ -16,7 +16,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 			className,
 			errorMessage,
 			type,
-			enablePasswordGenerator = true,
+			enablePasswordGenerator = false,
 			passwordGeneratorLength,
 			...props
 		},
