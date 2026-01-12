@@ -3,13 +3,6 @@ import type Stripe from "stripe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
 	Table,
 	TableBody,
 	TableCell,
@@ -63,97 +56,82 @@ export const ShowInvoices = () => {
 	const { data: invoices, isLoading } = api.stripe.getInvoices.useQuery();
 
 	return (
-		<Card className="bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
-			<div className="rounded-xl bg-background shadow-md">
-				<CardHeader>
-					<CardTitle className="text-xl flex flex-row gap-2">
-						<FileText className="size-6 text-muted-foreground self-center" />
-						Invoices
-					</CardTitle>
-					<CardDescription>
-						View and download your billing invoices
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-2 py-4 border-t">
-					{isLoading ? (
-						<div className="flex items-center justify-center min-h-[20vh]">
-							<span className="text-base text-muted-foreground flex flex-row gap-3 items-center">
-								Loading invoices...
-								<Loader2 className="animate-spin" />
-							</span>
-						</div>
-					) : invoices && invoices.length > 0 ? (
-						<div className="rounded-md border">
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Invoice</TableHead>
-										<TableHead>Date</TableHead>
-										<TableHead>Due Date</TableHead>
-										<TableHead>Amount</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead className="text-right">Actions</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{invoices.map((invoice) => (
-										<TableRow key={invoice.id}>
-											<TableCell className="font-medium">
-												{invoice.number || invoice.id.slice(0, 12)}
-											</TableCell>
-											<TableCell>{formatDate(invoice.created)}</TableCell>
-											<TableCell>{formatDate(invoice.dueDate)}</TableCell>
-											<TableCell>
-												{formatAmount(invoice.amountDue, invoice.currency)}
-											</TableCell>
-											<TableCell>{getStatusBadge(invoice.status)}</TableCell>
-											<TableCell className="text-right">
-												<div className="flex justify-end gap-2">
-													{invoice.hostedInvoiceUrl && (
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() =>
-																window.open(
-																	invoice.hostedInvoiceUrl || "",
-																	"_blank",
-																)
-															}
-														>
-															<ExternalLink className="h-4 w-4" />
-														</Button>
-													)}
-													{invoice.invoicePdf && (
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() =>
-																window.open(invoice.invoicePdf || "", "_blank")
-															}
-														>
-															<Download className="h-4 w-4" />
-														</Button>
-													)}
-												</div>
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						</div>
-					) : (
-						<div className="flex flex-col items-center justify-center min-h-[20vh] gap-2">
-							<FileText className="size-12 text-muted-foreground" />
-							<p className="text-base text-muted-foreground">
-								No invoices found
-							</p>
-							<p className="text-sm text-muted-foreground">
-								Your invoices will appear here once you have a subscription
-							</p>
-						</div>
-					)}
-				</CardContent>
-			</div>
-		</Card>
+		<div className="space-y-4">
+			{isLoading ? (
+				<div className="flex items-center justify-center min-h-[20vh]">
+					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center">
+						Loading invoices...
+						<Loader2 className="animate-spin" />
+					</span>
+				</div>
+			) : invoices && invoices.length > 0 ? (
+				<div className="rounded-md border">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Invoice</TableHead>
+								<TableHead>Date</TableHead>
+								<TableHead>Due Date</TableHead>
+								<TableHead>Amount</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead className="text-right">Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{invoices.map((invoice) => (
+								<TableRow key={invoice.id}>
+									<TableCell className="font-medium">
+										{invoice.number || invoice.id.slice(0, 12)}
+									</TableCell>
+									<TableCell>{formatDate(invoice.created)}</TableCell>
+									<TableCell>{formatDate(invoice.dueDate)}</TableCell>
+									<TableCell>
+										{formatAmount(invoice.amountDue, invoice.currency)}
+									</TableCell>
+									<TableCell>{getStatusBadge(invoice.status)}</TableCell>
+									<TableCell className="text-right">
+										<div className="flex justify-end gap-2">
+											{invoice.hostedInvoiceUrl && (
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() =>
+														window.open(
+															invoice.hostedInvoiceUrl || "",
+															"_blank",
+														)
+													}
+												>
+													<ExternalLink className="h-4 w-4" />
+												</Button>
+											)}
+											{invoice.invoicePdf && (
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() =>
+														window.open(invoice.invoicePdf || "", "_blank")
+													}
+												>
+													<Download className="h-4 w-4" />
+												</Button>
+											)}
+										</div>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</div>
+			) : (
+				<div className="flex flex-col items-center justify-center min-h-[20vh] gap-2">
+					<FileText className="size-12 text-muted-foreground" />
+					<p className="text-base text-muted-foreground">No invoices found</p>
+					<p className="text-sm text-muted-foreground">
+						Your invoices will appear here once you have a subscription
+					</p>
+				</div>
+			)}
+		</div>
 	);
 };
