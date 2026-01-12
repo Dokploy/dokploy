@@ -302,6 +302,11 @@ export const createDomainLabels = (
 		middlewares.push(middlewareName);
 	}
 
+	// Add custom middlewares
+	if (domain.middlewares?.length) {
+		middlewares.push(...domain.middlewares);
+	}
+
 	// Apply middlewares to router if any exist
 	if (middlewares.length > 0) {
 		labels.push(

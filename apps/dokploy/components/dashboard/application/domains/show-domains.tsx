@@ -332,6 +332,22 @@ export const ShowDomains = ({ id, type }: Props) => {
 														</TooltipProvider>
 													)}
 
+													{item.middlewares?.map((middleware, index) => (
+														<TooltipProvider key={`${middleware}-${index}`}>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Badge variant="secondary">
+																		<InfoIcon className="size-3 mr-1" />
+																		Middleware: {middleware}
+																	</Badge>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>Traefik middleware reference</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													))}
+
 													<TooltipProvider>
 														<Tooltip>
 															<TooltipTrigger asChild>

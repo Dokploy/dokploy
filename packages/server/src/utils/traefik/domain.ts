@@ -133,7 +133,7 @@ export const createRouterConfig = async (
 	}
 
 	if (entryPoint === "web" && https) {
-		routerConfig.middlewares = ["redirect-to-https"];
+		routerConfig.middlewares?.unshift("redirect-to-https");
 	}
 
 	if ((entryPoint === "websecure" && https) || !https) {
@@ -159,6 +159,11 @@ export const createRouterConfig = async (
 				)}`;
 			}
 			routerConfig.middlewares?.push(middlewareName);
+		}
+
+		// custom middlewares from domain
+		if (domain.middlewares && domain.middlewares.length > 0) {
+			routerConfig.middlewares?.push(...domain.middlewares);
 		}
 	}
 
