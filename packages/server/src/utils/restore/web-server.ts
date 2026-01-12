@@ -47,9 +47,7 @@ export const restoreWebServerBackup = async (
 
 			// Extract backup
 			emit("Extracting backup...");
-			await execAsync(
-				`cd ${tempDir} && unzip ${backupFile} > /dev/null 2>&1`,
-			);
+			await execAsync(`cd ${tempDir} && unzip ${backupFile} > /dev/null 2>&1`);
 
 			// Restore filesystem first
 			emit("Restoring filesystem...");

@@ -21,7 +21,9 @@ import { runWebServerBackup } from "./web-server";
  * @see https://rclone.org/crypt/
  * @see https://rclone.org/docs/#connection-strings
  */
-export const getRcloneS3Remote = (destination: Destination): {
+export const getRcloneS3Remote = (
+	destination: Destination,
+): {
 	remote: string;
 	envVars: string;
 } => {
@@ -37,7 +39,8 @@ export const getRcloneS3Remote = (destination: Destination): {
 	// If encryption enabled, wrap S3 remote with crypt
 	if (destination.encryptionEnabled && destination.encryptionKey) {
 		const filenameEncryption = destination.filenameEncryption || "off";
-		const directoryNameEncryption = destination.directoryNameEncryption ?? false;
+		const directoryNameEncryption =
+			destination.directoryNameEncryption ?? false;
 
 		// Crypt remote wraps S3 transparently
 		const cryptRemote = `:crypt,remote="${s3Remote}:${bucket}",filename_encryption=${filenameEncryption},directory_name_encryption=${directoryNameEncryption}:`;
@@ -46,7 +49,10 @@ export const getRcloneS3Remote = (destination: Destination): {
 		const escapedKey = destination.encryptionKey.replace(/'/g, "'\\''");
 		let envVars = `RCLONE_CRYPT_PASSWORD='${escapedKey}'`;
 		if (destination.encryptionPassword2) {
-			const escapedPassword2 = destination.encryptionPassword2.replace(/'/g, "'\\''");
+			const escapedPassword2 = destination.encryptionPassword2.replace(
+				/'/g,
+				"'\\''",
+			);
 			envVars = `RCLONE_CRYPT_PASSWORD='${escapedKey}' RCLONE_CRYPT_PASSWORD2='${escapedPassword2}'`;
 		}
 
@@ -61,7 +67,10 @@ export const getRcloneS3Remote = (destination: Destination): {
  * Build rclone command with optional encryption environment variables.
  * Prepends env vars to the command when provided.
  */
-export const buildRcloneCommand = (command: string, envVars?: string): string => {
+export const buildRcloneCommand = (
+	command: string,
+	envVars?: string,
+): string => {
 	if (envVars) {
 		return `${envVars} ${command}`;
 	}
@@ -74,7 +83,8 @@ export const buildRcloneCommand = (command: string, envVars?: string): string =>
  * @deprecated Use getRcloneS3Remote instead for encryption support.
  */
 export const getS3Credentials = (destination: Destination) => {
-	const { accessKey, secretAccessKey, region, endpoint, provider } = destination;
+	const { accessKey, secretAccessKey, region, endpoint, provider } =
+		destination;
 	const rcloneFlags = [
 		`--s3-access-key-id="${accessKey}"`,
 		`--s3-secret-access-key="${secretAccessKey}"`,
