@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Cog } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -20,7 +20,38 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/utils/api";
+
+// Railpack versions from https://github.com/railwayapp/railpack/releases
+export const RAILPACK_VERSIONS = [
+	"0.15.4",
+	"0.15.3",
+	"0.15.2",
+	"0.15.1",
+	"0.15.0",
+	"0.14.0",
+	"0.13.0",
+	"0.12.0",
+	"0.11.0",
+	"0.10.0",
+	"0.9.2",
+	"0.9.1",
+	"0.9.0",
+	"0.8.0",
+	"0.7.0",
+	"0.6.0",
+	"0.5.0",
+	"0.4.0",
+	"0.3.0",
+	"0.2.2",
+] as const;
 
 export enum BuildType {
 	dockerfile = "dockerfile",
@@ -152,6 +183,9 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 	});
 
 	const buildType = form.watch("buildType");
+	const railpackVersion = form.watch("railpackVersion");
+	const [isManualRailpackVersion, setIsManualRailpackVersion] =
+		useState(false);
 
 	useEffect(() => {
 		if (data) {
@@ -163,6 +197,14 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 			};
 
 			form.reset(resetData(typedData));
+
+			// Check if railpack version is manual (not in the predefined list)
+			if (
+				data.railpackVersion &&
+				!RAILPACK_VERSIONS.includes(data.railpackVersion as any)
+			) {
+				setIsManualRailpackVersion(true);
+			}
 		}
 	}, [data, form]);
 
@@ -403,23 +445,88 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 							/>
 						)}
 						{buildType === BuildType.railpack && (
-							<FormField
-								control={form.control}
-								name="railpackVersion"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Railpack Version</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="Railpack Version"
-												{...field}
-												value={field.value ?? ""}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+							<>
+								<FormField
+									control={form.control}
+									name="railpackVersion"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Railpack Version</FormLabel>
+											<FormControl>
+												{isManualRailpackVersion ? (
+													<div className="space-y-2">
+														<Input
+															placeholder="Enter custom version (e.g., 0.15.4)"
+															{...field}
+															value={field.value ?? ""}
+														/>
+														<Button
+															type="button"
+															variant="outline"
+															size="sm"
+															onClick={() => {
+																setIsManualRailpackVersion(false);
+																field.onChange("0.15.4");
+															}}
+														>
+															Use predefined versions
+														</Button>
+													</div>
+												) : (
+													<Select
+														onValueChange={(value) => {
+															if (value === "manual") {
+																setIsManualRailpackVersion(true);
+																field.onChange("");
+															} else {
+																field.onChange(value);
+															}
+														}}
+														value={field.value ?? "0.15.4"}
+													>
+														<SelectTrigger>
+															<SelectValue placeholder="Select Railpack version" />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="manual">
+																<span className="font-medium">
+																	✏️ Manual (Custom Version)
+																</span>
+															</SelectItem>
+															{RAILPACK_VERSIONS.map((version) => (
+																<SelectItem key={version} value={version}>
+																	v{version}
+																	{version === "0.15.4" && (
+																		<Badge
+																			variant="secondary"
+																			className="ml-2 px-1 text-xs"
+																		>
+																			Latest
+																		</Badge>
+																	)}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												)}
+											</FormControl>
+											<FormDescription>
+												Select a Railpack version or choose manual to enter a
+												custom version.{" "}
+												<a
+													href="https://github.com/railwayapp/railpack/releases"
+													target="_blank"
+													rel="noreferrer"
+													className="text-primary underline underline-offset-4"
+												>
+													View releases
+												</a>
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</>
 						)}
 						<div className="flex w-full justify-end">
 							<Button isLoading={isLoading} type="submit">
