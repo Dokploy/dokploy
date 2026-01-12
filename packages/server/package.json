@@ -78,9 +78,11 @@
     "ssh2": "1.15.0",
     "toml": "3.0.0",
     "ws": "8.16.0",
-    "zod": "^3.25.32"
+    "zod": "^3.25.32",
+    "semver": "7.7.3"
   },
   "devDependencies": {
+    "@types/semver": "7.7.1",
     "@types/adm-zip": "^0.5.7",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",

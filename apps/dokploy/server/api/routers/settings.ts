@@ -399,7 +399,7 @@ export const settingsRouter = createTRPCRouter({
 			return DEFAULT_UPDATE_DATA;
 		}
 
-		return await getUpdateData();
+		return await getUpdateData(packageInfo.version);
 	}),
 	updateServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
