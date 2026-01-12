@@ -184,8 +184,7 @@ export const ShowBuildChooseForm = ({ applicationId }: Props) => {
 
 	const buildType = form.watch("buildType");
 	const railpackVersion = form.watch("railpackVersion");
-	const [isManualRailpackVersion, setIsManualRailpackVersion] =
-		useState(false);
+	const [isManualRailpackVersion, setIsManualRailpackVersion] = useState(false);
 
 	useEffect(() => {
 		if (data) {
