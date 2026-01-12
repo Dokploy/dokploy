@@ -6,9 +6,10 @@ export const generateRandomPassword = (
 	length: number = DEFAULT_PASSWORD_LENGTH,
 	charset: string = DEFAULT_PASSWORD_CHARSET,
 ) => {
-	const safeLength = Number.isFinite(length) && length > 0
-		? Math.floor(length)
-		: DEFAULT_PASSWORD_LENGTH;
+	const safeLength =
+		Number.isFinite(length) && length > 0
+			? Math.floor(length)
+			: DEFAULT_PASSWORD_LENGTH;
 
 	if (safeLength <= 0 || charset.length === 0) {
 		return "";
