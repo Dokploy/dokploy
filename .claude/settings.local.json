@@ -1,7 +1,5 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(ls:*)"
-    ]
-  }
+	"permissions": {
+		"allow": ["Bash(ls:*)"]
+	}
 }
