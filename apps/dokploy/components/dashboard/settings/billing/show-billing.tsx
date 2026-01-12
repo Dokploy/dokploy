@@ -24,6 +24,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
+import { ShowInvoices } from "./show-invoices";
 
 const stripePromise = loadStripe(
 	process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
@@ -75,8 +76,8 @@ export const ShowBilling = () => {
 	const safePercentage = Math.min(percentage, 100);
 
 	return (
-		<div className="w-full">
-			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
+		<div className="w-full space-y-6">
+			<Card className="bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
@@ -319,6 +320,8 @@ export const ShowBilling = () => {
 					</CardContent>
 				</div>
 			</Card>
+
+			{admin?.user.stripeCustomerId && <ShowInvoices />}
 		</div>
 	);
 };

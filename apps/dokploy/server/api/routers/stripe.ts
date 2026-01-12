@@ -129,4 +129,39 @@ export const stripeRouter = createTRPCRouter({
 
 		return servers.length < user.serversQuantity;
 	}),
+
+	getInvoices: adminProcedure.query(async ({ ctx }) => {
+		const user = await findUserById(ctx.user.ownerId);
+		const stripeCustomerId = user.stripeCustomerId;
+
+		if (!stripeCustomerId) {
+			return [];
+		}
+
+		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+			apiVersion: "2024-09-30.acacia",
+		});
+
+		try {
+			const invoices = await stripe.invoices.list({
+				customer: stripeCustomerId,
+				limit: 100,
+			});
+
+			return invoices.data.map((invoice) => ({
+				id: invoice.id,
+				number: invoice.number,
+				status: invoice.status,
+				amountDue: invoice.amount_due,
+				amountPaid: invoice.amount_paid,
+				currency: invoice.currency,
+				created: invoice.created,
+				dueDate: invoice.due_date,
+				hostedInvoiceUrl: invoice.hosted_invoice_url,
+				invoicePdf: invoice.invoice_pdf,
+			}));
+		} catch (_) {
+			return [];
+		}
+	}),
 });
