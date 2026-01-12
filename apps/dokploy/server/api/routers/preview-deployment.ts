@@ -82,8 +82,7 @@ export const previewDeploymentRouter = createTRPCRouter({
 			) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
-					message:
-						"You are not authorized to redeploy this preview deployment",
+					message: "You are not authorized to redeploy this preview deployment",
 				});
 			}
 			const application = await findApplicationById(
