@@ -5,12 +5,12 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import semver from "semver";
 import {
 	initializeStandaloneTraefik,
 	initializeTraefikService,
 	type TraefikOptions,
 } from "../setup/traefik-setup";
-
 export interface IUpdateData {
 	latestVersion: string | null;
 	updateAvailable: boolean;
@@ -55,56 +55,95 @@ export const getServiceImageDigest = async () => {
 };
 
 /** Returns latest version number and information whether server update is available by comparing current image's digest against digest for provided image tag via Docker hub API. */
-export const getUpdateData = async (): Promise<IUpdateData> => {
-	let currentDigest: string;
+export const getUpdateData = async (
+	currentVersion: string,
+): Promise<IUpdateData> => {
 	try {
-		currentDigest = await getServiceImageDigest();
-	} catch (error) {
-		// TODO: Docker versions 29.0.0 change the way to get the service image digest, so we need to update this in the future we upgrade to that version.
-		return DEFAULT_UPDATE_DATA;
-	}
+		const baseUrl =
+			"https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
+		let url: string | null = `${baseUrl}?page_size=100`;
+		let allResults: { digest: string; name: string }[] = [];
 
-	const baseUrl = "https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
-	let url: string | null = `${baseUrl}?page_size=100`;
-	let allResults: { digest: string; name: string }[] = [];
-	while (url) {
-		const response = await fetch(url, {
-			method: "GET",
-			headers: { "Content-Type": "application/json" },
-		});
+		// Fetch all tags from Docker Hub
+		while (url) {
+			const response = await fetch(url, {
+				method: "GET",
+				headers: { "Content-Type": "application/json" },
+			});
 
-		const data = (await response.json()) as {
-			next: string | null;
-			results: { digest: string; name: string }[];
-		};
+			const data = (await response.json()) as {
+				next: string | null;
+				results: { digest: string; name: string }[];
+			};
 
-		allResults = allResults.concat(data.results);
-		url = data?.next;
-	}
+			allResults = allResults.concat(data.results);
+			url = data?.next;
+		}
 
-	const imageTag = getDokployImageTag();
-	const searchedDigest = allResults.find((t) => t.name === imageTag)?.digest;
+		const currentImageTag = getDokployImageTag();
 
-	if (!searchedDigest) {
-		return DEFAULT_UPDATE_DATA;
-	}
+		// Special handling for canary and feature branches
+		// For development versions (canary/feature), don't perform update checks
+		// These are unstable versions that change frequently, and users on these
+		// branches are expected to manually manage updates
+		if (currentImageTag === "canary" || currentImageTag === "feature") {
+			const currentDigest = await getServiceImageDigest();
+			const latestDigest = allResults.find(
+				(t) => t.name === currentImageTag,
+			)?.digest;
+			if (!latestDigest) {
+				return DEFAULT_UPDATE_DATA;
+			}
+			if (currentDigest !== latestDigest) {
+				return {
+					latestVersion: currentImageTag,
+					updateAvailable: true,
+				};
+			}
+			return {
+				latestVersion: currentImageTag,
+				updateAvailable: false,
+			};
+		}
 
-	if (imageTag === "latest") {
-		const versionedTag = allResults.find(
-			(t) => t.digest === searchedDigest && t.name.startsWith("v"),
-		);
+		// For stable versions, use semver comparison
+		// Find the "latest" tag and get its digest
+		const latestTag = allResults.find((t) => t.name === "latest");
 
-		if (!versionedTag) {
+		if (!latestTag) {
 			return DEFAULT_UPDATE_DATA;
 		}
 
-		const { name: latestVersion, digest } = versionedTag;
-		const updateAvailable = digest !== currentDigest;
+		// Find the versioned tag (v0.x.x) that has the same digest as "latest"
+		const latestVersionTag = allResults.find(
+			(t) => t.digest === latestTag.digest && t.name.startsWith("v"),
+		);
 
-		return { latestVersion, updateAvailable };
+		if (!latestVersionTag) {
+			return DEFAULT_UPDATE_DATA;
+		}
+
+		const latestVersion = latestVersionTag.name;
+
+		// Use semver to compare versions for stable releases
+		const cleanedCurrent = semver.clean(currentVersion);
+		const cleanedLatest = semver.clean(latestVersion);
+
+		if (!cleanedCurrent || !cleanedLatest) {
+			return DEFAULT_UPDATE_DATA;
+		}
+
+		// Check if the latest version is greater than the current version
+		const updateAvailable = semver.gt(cleanedLatest, cleanedCurrent);
+
+		return {
+			latestVersion,
+			updateAvailable,
+		};
+	} catch (error) {
+		console.error("Error fetching update data:", error);
+		return DEFAULT_UPDATE_DATA;
 	}
-	const updateAvailable = searchedDigest !== currentDigest;
-	return { latestVersion: imageTag, updateAvailable };
 };
 
 interface TreeDataItem {
@@ -254,11 +293,22 @@ fi`;
 export const reloadDockerResource = async (
 	resourceName: string,
 	serverId?: string,
+	version?: string,
 ) => {
 	const resourceType = await getDockerResourceType(resourceName, serverId);
 	let command = "";
 	if (resourceType === "service") {
-		command = `docker service update --force ${resourceName}`;
+		if (resourceName === "dokploy") {
+			const currentImageTag = getDokployImageTag();
+			let imageTag = version;
+			if (currentImageTag === "canary" || currentImageTag === "feature") {
+				imageTag = currentImageTag;
+			}
+
+			command = `docker service update --force --image dokploy/dokploy:${imageTag} ${resourceName}`;
+		} else {
+			command = `docker service update --force ${resourceName}`;
+		}
 	} else if (resourceType === "standalone") {
 		command = `docker restart ${resourceName}`;
 	} else {
