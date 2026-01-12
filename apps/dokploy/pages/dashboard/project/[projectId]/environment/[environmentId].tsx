@@ -909,7 +909,9 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									{(auth?.role === "owner" || auth?.canCreateServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canCreateServices) && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>
@@ -1032,6 +1034,7 @@ const EnvironmentPage = (
 													</Button>
 												</DialogAction>
 												{(auth?.role === "owner" ||
+													auth?.role === "admin" ||
 													auth?.canDeleteServices) && (
 													<>
 														<DialogAction
