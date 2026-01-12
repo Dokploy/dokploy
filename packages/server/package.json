@@ -57,7 +57,6 @@
     "drizzle-dbml-generator": "0.10.0",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "0.5.1",
-    "hi-base32": "^0.5.1",
     "yaml": "2.8.1",
     "lodash": "4.17.21",
     "micromatch": "4.0.8",
@@ -67,7 +66,6 @@
     "node-schedule": "2.1.1",
     "nodemailer": "6.9.14",
     "octokit": "3.1.2",
-    "otpauth": "^9.4.0",
     "pino": "9.4.0",
     "pino-pretty": "11.2.2",
     "postgres": "3.4.4",
@@ -80,9 +78,11 @@
     "ssh2": "1.15.0",
     "toml": "3.0.0",
     "ws": "8.16.0",
-    "zod": "^3.25.32"
+    "zod": "^3.25.32",
+    "semver": "7.7.3"
   },
   "devDependencies": {
+    "@types/semver": "7.7.1",
     "@types/adm-zip": "^0.5.7",
     "@types/bcrypt": "5.0.2",
     "@types/dockerode": "3.3.23",

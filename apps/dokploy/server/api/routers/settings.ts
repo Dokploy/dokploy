@@ -88,7 +88,7 @@ export const settingsRouter = createTRPCRouter({
 		if (IS_CLOUD) {
 			return true;
 		}
-		await reloadDockerResource("dokploy");
+		await reloadDockerResource("dokploy", undefined, packageInfo.version);
 		return true;
 	}),
 	cleanRedis: adminProcedure.mutation(async () => {
@@ -399,7 +399,7 @@ export const settingsRouter = createTRPCRouter({
 			return DEFAULT_UPDATE_DATA;
 		}
 
-		return await getUpdateData();
+		return await getUpdateData(packageInfo.version);
 	}),
 	updateServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
