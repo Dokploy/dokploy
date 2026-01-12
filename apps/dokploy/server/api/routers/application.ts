@@ -809,7 +809,6 @@ export const applicationRouter = createTRPCRouter({
 				path: "/drop-deployment",
 				method: "POST",
 				override: true,
-				enabled: false,
 			},
 		})
 		.input(z.instanceof(FormData))
