@@ -287,6 +287,7 @@ export const backupRouter = createTRPCRouter({
 		.mutation(async ({ input }) => {
 			const backup = await findBackupById(input.backupId);
 			await runWebServerBackup(backup);
+			await keepLatestNBackups(backup);
 			return true;
 		}),
 	listBackupFiles: protectedProcedure

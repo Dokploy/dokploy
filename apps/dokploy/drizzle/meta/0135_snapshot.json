@@ -1,5 +1,5 @@
 {
-  "id": "e3db98b3-00ba-4ee2-8143-639bccb258f2",
+  "id": "c6deec9a-f1cd-53ge-9a05-7710f783ff1e",
   "prevId": "b5cddb89-e0bc-42fd-8994-6609f672ee0c",
   "version": "7",
   "dialect": "postgresql",
@@ -1328,7 +1328,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'0.15.4'"
+          "default": "'0.2.2'"
         },
         "herokuVersion": {
           "name": "herokuVersion",
@@ -2675,6 +2675,39 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "encryptionEnabled": {
+          "name": "encryptionEnabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "encryptionKey": {
+          "name": "encryptionKey",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "encryptionPassword2": {
+          "name": "encryptionPassword2",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filenameEncryption": {
+          "name": "filenameEncryption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'off'"
+        },
+        "directoryNameEncryption": {
+          "name": "directoryNameEncryption",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {},

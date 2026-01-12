@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.26.3",
+	"version": "v0.26.4",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -153,9 +153,11 @@
 		"xterm-addon-fit": "^0.8.0",
 		"yaml": "2.8.1",
 		"zod": "^3.25.32",
-		"zod-form-data": "^2.0.7"
+		"zod-form-data": "^2.0.7",
+		"semver": "7.7.3"
 	},
 	"devDependencies": {
+		"@types/semver": "7.7.1",
 		"@types/shell-quote": "^1.7.5",
 		"@types/adm-zip": "^0.5.7",
 		"@types/bcrypt": "5.0.2",
