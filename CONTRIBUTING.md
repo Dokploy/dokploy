@@ -148,7 +148,7 @@ curl -sSL https://railpack.com/install.sh | sh
 
 ```bash
 # Install Buildpacks
-curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.35.0/pack-v0.35.0-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
+curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.39.1-linux.tgz" | tar -C /usr/local/bin/ --no-same-owner -xzv pack
 ```
 
 ## Pull Request

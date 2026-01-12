@@ -154,7 +154,9 @@ const Redis = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateRedis redisId={redisId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canDeleteServices) && (
 										<DeleteService id={redisId} type="redis" />
 									)}
 								</div>
