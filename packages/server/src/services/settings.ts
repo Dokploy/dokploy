@@ -87,6 +87,19 @@ export const getUpdateData = async (
 		// These are unstable versions that change frequently, and users on these
 		// branches are expected to manually manage updates
 		if (currentImageTag === "canary" || currentImageTag === "feature") {
+			const currentDigest = await getServiceImageDigest();
+			const latestDigest = allResults.find(
+				(t) => t.name === currentImageTag,
+			)?.digest;
+			if (!latestDigest) {
+				return DEFAULT_UPDATE_DATA;
+			}
+			if (currentDigest !== latestDigest) {
+				return {
+					latestVersion: currentImageTag,
+					updateAvailable: true,
+				};
+			}
 			return {
 				latestVersion: currentImageTag,
 				updateAvailable: false,
@@ -286,7 +299,13 @@ export const reloadDockerResource = async (
 	let command = "";
 	if (resourceType === "service") {
 		if (resourceName === "dokploy") {
-			command = `docker service update --force --image dokploy/dokploy:${version} ${resourceName}`;
+			const currentImageTag = getDokployImageTag();
+			let imageTag = version;
+			if (currentImageTag === "canary" || currentImageTag === "feature") {
+				imageTag = currentImageTag;
+			}
+
+			command = `docker service update --force --image dokploy/dokploy:${imageTag} ${resourceName}`;
 		} else {
 			command = `docker service update --force ${resourceName}`;
 		}
