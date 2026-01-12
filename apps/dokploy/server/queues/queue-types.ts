@@ -22,7 +22,7 @@ type DeployJob =
 			titleLog: string;
 			descriptionLog: string;
 			server?: boolean;
-			type: "deploy";
+			type: "deploy" | "redeploy";
 			applicationType: "application-preview";
 			previewDeploymentId: string;
 			serverId?: string;
