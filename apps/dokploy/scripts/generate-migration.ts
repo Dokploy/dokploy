@@ -85,7 +85,10 @@ Bad examples:
 `);
 }
 
-function validateMigrationName(name: string): { valid: boolean; error?: string } {
+function validateMigrationName(name: string): {
+	valid: boolean;
+	error?: string;
+} {
 	// Check if name is provided
 	if (!name || name.trim() === "") {
 		return { valid: false, error: "Migration name is required" };
@@ -93,15 +96,24 @@ function validateMigrationName(name: string): { valid: boolean; error?: string }
 
 	// Check length
 	if (name.length < 3) {
-		return { valid: false, error: "Migration name must be at least 3 characters" };
+		return {
+			valid: false,
+			error: "Migration name must be at least 3 characters",
+		};
 	}
 
 	if (name.length > 50) {
-		return { valid: false, error: "Migration name must be 50 characters or less" };
+		return {
+			valid: false,
+			error: "Migration name must be 50 characters or less",
+		};
 	}
 
 	// Check for kebab-case format (lowercase letters, numbers, and hyphens)
-	if (!/^[a-z][a-z0-9-]*[a-z0-9]$/.test(name) && !/^[a-z][a-z0-9]*$/.test(name)) {
+	if (
+		!/^[a-z][a-z0-9-]*[a-z0-9]$/.test(name) &&
+		!/^[a-z][a-z0-9]*$/.test(name)
+	) {
 		return {
 			valid: false,
 			error:
@@ -111,7 +123,10 @@ function validateMigrationName(name: string): { valid: boolean; error?: string }
 
 	// Check for double hyphens
 	if (name.includes("--")) {
-		return { valid: false, error: "Migration name cannot contain double hyphens" };
+		return {
+			valid: false,
+			error: "Migration name cannot contain double hyphens",
+		};
 	}
 
 	// Check for forbidden generic names

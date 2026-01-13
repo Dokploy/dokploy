@@ -174,8 +174,14 @@ async function convertMigrations(): Promise<void> {
 		// Rename snapshot file
 		// Drizzle uses just the index for snapshots: 0000_snapshot.json
 		const oldIndexOnly = oldTag.split("_")[0];
-		const oldSnapshotPath = path.join(META_DIR, `${oldIndexOnly}_snapshot.json`);
-		const newSnapshotPath = path.join(META_DIR, `${timestampPrefix}_snapshot.json`);
+		const oldSnapshotPath = path.join(
+			META_DIR,
+			`${oldIndexOnly}_snapshot.json`,
+		);
+		const newSnapshotPath = path.join(
+			META_DIR,
+			`${timestampPrefix}_snapshot.json`,
+		);
 
 		if (fs.existsSync(oldSnapshotPath)) {
 			fs.renameSync(oldSnapshotPath, newSnapshotPath);
