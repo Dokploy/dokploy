@@ -65,9 +65,7 @@ describe("generatePreviewDeploymentDomain", () => {
 			{ fallbackGenerator: traefikMock },
 		);
 
-		expect(domain).toMatch(
-			/preview-app-[0-9a-f]{6}-preview\.example\.com/,
-		);
+		expect(domain).toMatch(/preview-app-[0-9a-f]{6}-preview\.example\.com/);
 		expect(projectService.getProjectWildcardDomain).not.toHaveBeenCalled();
 		expect(traefikMock).not.toHaveBeenCalled();
 	});
