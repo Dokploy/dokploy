@@ -22,7 +22,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
@@ -89,15 +88,15 @@ export const SetupServer = ({ serverId, asButton = false }: Props) => {
 					</Button>
 				</DialogTrigger>
 			) : (
-				<DropdownMenuItem
+				<Button
 					className="w-full cursor-pointer "
-					onSelect={(e) => {
-						e.preventDefault();
+					size="sm"
+					onClick={() => {
 						setIsOpen(true);
 					}}
 				>
-					Setup Server
-				</DropdownMenuItem>
+					Setup Server <Settings className="size-4" />
+				</Button>
 			)}
 			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
