@@ -916,7 +916,9 @@ const EnvironmentPage = (
 											Wildcard Domain
 										</Button>
 									</ProjectWildcardDomain>
-									{(auth?.role === "owner" || auth?.canCreateServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canCreateServices) && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>

@@ -5,8 +5,8 @@ import {
 	generateCustomWildcardDomain,
 	generateRandomDomain,
 } from "@dokploy/server/templates";
-import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
+import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";

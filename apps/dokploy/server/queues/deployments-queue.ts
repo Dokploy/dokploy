@@ -4,6 +4,7 @@ import {
 	deployPreviewApplication,
 	rebuildApplication,
 	rebuildCompose,
+	rebuildPreviewApplication,
 	updateApplicationStatus,
 	updateCompose,
 	updatePreviewDeployment,
@@ -54,7 +55,14 @@ export const deploymentWorker = new Worker(
 					previewStatus: "running",
 				});
 
-				if (job.data.type === "deploy") {
+				if (job.data.type === "redeploy") {
+					await rebuildPreviewApplication({
+						applicationId: job.data.applicationId,
+						titleLog: job.data.titleLog,
+						descriptionLog: job.data.descriptionLog,
+						previewDeploymentId: job.data.previewDeploymentId,
+					});
+				} else if (job.data.type === "deploy") {
 					await deployPreviewApplication({
 						applicationId: job.data.applicationId,
 						titleLog: job.data.titleLog,

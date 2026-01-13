@@ -943,8 +943,15 @@
     {
       "idx": 134,
       "version": "7",
+      "when": 1767871040249,
+      "tag": "0134_strong_hercules",
+      "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
       "when": 1767884683492,
-      "tag": "0134_slippery_colossus",
+      "tag": "0135_slippery_colossus",
       "breakpoints": true
     }
   ]

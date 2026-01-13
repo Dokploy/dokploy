@@ -1,5 +1,5 @@
 {
-  "id": "1d0d639c-6b86-4c45-9aab-a6757e9847fc",
+  "id": "e3db98b3-00ba-4ee2-8143-639bccb258f2",
   "prevId": "b5cddb89-e0bc-42fd-8994-6609f672ee0c",
   "version": "7",
   "dialect": "postgresql",
@@ -607,12 +607,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "wildcardDomain": {
-          "name": "wildcardDomain",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -1334,7 +1328,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'0.2.2'"
+          "default": "'0.15.4'"
         },
         "herokuVersion": {
           "name": "herokuVersion",
@@ -5226,19 +5220,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "''"
-        },
-        "wildcardDomain": {
-          "name": "wildcardDomain",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "useOrganizationWildcard": {
-          "name": "useOrganizationWildcard",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         }
       },
       "indexes": {},

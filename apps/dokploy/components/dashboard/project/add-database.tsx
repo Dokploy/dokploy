@@ -559,6 +559,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													type="password"
 													placeholder="******************"
 													autoComplete="one-time-code"
+													enablePasswordGenerator={true}
 													{...field}
 												/>
 											</FormControl>
@@ -578,6 +579,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													<Input
 														type="password"
 														placeholder="******************"
+														enablePasswordGenerator={true}
 														{...field}
 													/>
 												</FormControl>

@@ -156,7 +156,9 @@ const MySql = (
 
 									<div className="flex flex-row gap-2 justify-end">
 										<UpdateMysql mysqlId={mysqlId} />
-										{(auth?.role === "owner" || auth?.canDeleteServices) && (
+										{(auth?.role === "owner" ||
+											auth?.role === "admin" ||
+											auth?.canDeleteServices) && (
 											<DeleteService id={mysqlId} type="mysql" />
 										)}
 									</div>

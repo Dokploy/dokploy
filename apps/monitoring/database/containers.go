@@ -58,7 +58,7 @@ func (db *DB) GetLastNContainerMetrics(containerName string, limit int) ([]Conta
 		WITH recent_metrics AS (
 			SELECT metrics_json
 			FROM container_metrics
-			WHERE container_name LIKE ? || '%'
+			WHERE container_name = ?
 			ORDER BY timestamp DESC
 			LIMIT ?
 		)
@@ -98,7 +98,7 @@ func (db *DB) GetAllMetricsContainer(containerName string) ([]ContainerMetric, e
 		WITH recent_metrics AS (
 			SELECT metrics_json
 			FROM container_metrics
-			WHERE container_name LIKE ? || '%'
+			WHERE container_name = ?
 			ORDER BY timestamp DESC
 		)
 		SELECT metrics_json FROM recent_metrics ORDER BY json_extract(metrics_json, '$.timestamp') ASC
