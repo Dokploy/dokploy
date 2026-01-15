@@ -430,7 +430,11 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			return { success: true, message: "Deployment queued" };
+			return {
+				success: true,
+				message: "Deployment queued",
+				composeId: compose.composeId,
+			};
 		}),
 	redeploy: protectedProcedure
 		.input(apiRedeployCompose)
@@ -468,7 +472,11 @@ export const composeRouter = createTRPCRouter({
 					removeOnFail: true,
 				},
 			);
-			return { success: true, message: "Redeployment queued" };
+			return {
+				success: true,
+				message: "Redeployment queued",
+				composeId: compose.composeId,
+			};
 		}),
 	stop: protectedProcedure
 		.input(apiFindCompose)
