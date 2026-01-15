@@ -75,13 +75,12 @@ export const stripeRouter = createTRPCRouter({
 			const session = await stripe.checkout.sessions.create({
 				mode: "subscription",
 				line_items: items,
-				...(stripeCustomerId && {
-					customer: stripeCustomerId,
-				}),
+				...(stripeCustomerId
+					? { customer: stripeCustomerId }
+					: { customer_email: owner.email }),
 				metadata: {
 					adminId: owner.id,
 				},
-				customer_email: owner.email,
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
 				cancel_url: `${WEBSITE_URL}/dashboard/settings/billing`,
