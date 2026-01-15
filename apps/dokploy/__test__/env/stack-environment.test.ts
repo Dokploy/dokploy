@@ -72,11 +72,7 @@ PASSWORD=secret123
 DATABASE_URL=postgresql://\${{environment.USERNAME}}:\${{environment.PASSWORD}}@\${{environment.HOST}}:\${{environment.PORT}}/mydb
 `;
 
-		const result = getEnviromentVariablesObject(
-			serviceEnv,
-			"",
-			multiRefEnv,
-		);
+		const result = getEnviromentVariablesObject(serviceEnv, "", multiRefEnv);
 
 		expect(result).toEqual({
 			DATABASE_URL: "postgresql://postgres:secret123@localhost:5432/mydb",
