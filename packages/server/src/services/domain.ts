@@ -84,10 +84,10 @@ export const generateTraefikMeDomain = async (
  * @returns The generated domain string
  */
 export const generateApplicationDomain = async (
-        appName: string,
-        userId: string,
-        projectId?: string,
-        serverId?: string,
+	appName: string,
+	userId: string,
+	projectId?: string,
+	serverId?: string,
 ): Promise<string> => {
 	// Check if the project has a custom wildcard domain configured
 	if (projectId) {
@@ -101,8 +101,8 @@ export const generateApplicationDomain = async (
 		}
 	}
 
-        // Fall back to traefik.me domain
-        return generateTraefikMeDomain(appName, userId, serverId);
+	// Fall back to traefik.me domain
+	return generateTraefikMeDomain(appName, userId, serverId);
 };
 
 /**
@@ -114,28 +114,28 @@ export const generateApplicationDomain = async (
  * 3. traefik.me fallback
  */
 export const generatePreviewDeploymentDomain = async (
-        appName: string,
-        userId: string,
-        projectId?: string,
-        serverId?: string,
-        previewWildcard?: string | null,
-        options?: {
-                fallbackGenerator?: typeof generateTraefikMeDomain;
-        },
+	appName: string,
+	userId: string,
+	projectId?: string,
+	serverId?: string,
+	previewWildcard?: string | null,
+	options?: {
+		fallbackGenerator?: typeof generateTraefikMeDomain;
+	},
 ): Promise<string> => {
-        const { fallbackGenerator = generateTraefikMeDomain } = options ?? {};
-        const effectiveWildcard =
-                previewWildcard ||
-                (projectId ? await getProjectWildcardDomain(projectId) : null);
+	const { fallbackGenerator = generateTraefikMeDomain } = options ?? {};
+	const effectiveWildcard =
+		previewWildcard ||
+		(projectId ? await getProjectWildcardDomain(projectId) : null);
 
-        if (effectiveWildcard) {
-                return generateCustomWildcardDomain({
-                        appName,
-                        wildcardDomain: effectiveWildcard,
-                });
-        }
+	if (effectiveWildcard) {
+		return generateCustomWildcardDomain({
+			appName,
+			wildcardDomain: effectiveWildcard,
+		});
+	}
 
-        return fallbackGenerator(appName, userId, serverId);
+	return fallbackGenerator(appName, userId, serverId);
 };
 
 export const findDomainById = async (domainId: string) => {

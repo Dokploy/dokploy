@@ -175,10 +175,11 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 	const projectId = application?.environment?.projectId;
 
 	// Fetch the effective wildcard domain for the project
-	const { data: effectiveWildcard } = api.domain.getEffectiveWildcardDomain.useQuery(
-		{ projectId: projectId || "" },
-		{ enabled: !!projectId },
-	);
+	const { data: effectiveWildcard } =
+		api.domain.getEffectiveWildcardDomain.useQuery(
+			{ projectId: projectId || "" },
+			{ enabled: !!projectId },
+		);
 
 	const {
 		data: services,
@@ -557,7 +558,9 @@ export const AddDomain = ({ id, type, domainId = "", children }: Props) => {
 															{effectiveWildcard ? (
 																<p>
 																	Generate domain using: <br />
-																	<code className="text-xs">{effectiveWildcard}</code>
+																	<code className="text-xs">
+																		{effectiveWildcard}
+																	</code>
 																</p>
 															) : (
 																<p>Generate traefik.me domain</p>
