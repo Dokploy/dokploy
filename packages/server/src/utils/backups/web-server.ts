@@ -10,7 +10,11 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { execAsync } from "../process/execAsync";
-import { buildRcloneCommand, getRcloneS3Remote, normalizeS3Path } from "./utils";
+import {
+	buildRcloneCommand,
+	getRcloneS3Remote,
+	normalizeS3Path,
+} from "./utils";
 
 export const runWebServerBackup = async (backup: BackupSchedule) => {
 	if (IS_CLOUD) {
