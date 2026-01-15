@@ -1,25 +1,61 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Laptop } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
+
+type Theme = "light" | "dark" | "system";
+
+const THEME_CYCLE: Record<Theme, Theme> = {
+	light: "dark",
+	dark: "system",
+	system: "light",
+} as const;
+
+const getThemeIcon = (theme: Theme) => {
+	const iconClass = "h-[1.2rem] w-[1.2rem]";
+
+	switch (theme) {
+		case "light":
+			return <Sun className={iconClass} />;
+		case "dark":
+			return <Moon className={iconClass} />;
+		case "system":
+			return <Laptop className={iconClass} />;
+	}
+};
 
 export function ModeToggle() {
 	const { theme, setTheme } = useTheme();
+	const [mounted, setMounted] = useState(false);
 
-	const toggleTheme = () => {
-		if (theme === "dark") {
-			setTheme("light");
-		} else {
-			setTheme("dark");
-		}
-	};
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	if (!mounted) {
+		return (
+			<Button variant="outline" size="icon" aria-label="Loading theme toggle">
+				<Laptop className="h-[1.2rem] w-[1.2rem]" />
+				<span className="sr-only">Toggle theme</span>
+			</Button>
+		);
+	}
+
+	const currentTheme = (theme as Theme | undefined) ?? "system";
+	const nextTheme = THEME_CYCLE[currentTheme];
 
 	return (
-		<Button variant="outline" size="icon" onClick={toggleTheme}>
-			<Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-			<Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-			<span className="sr-only">Toggle theme</span>
+		<Button
+			variant="outline"
+			size="icon"
+			onClick={() => setTheme(nextTheme)}
+			aria-label={`Switch to ${nextTheme} theme`}
+		>
+			{getThemeIcon(currentTheme)}
+			<span className="sr-only">Switch to ${nextTheme} theme</span>
 		</Button>
 	);
 }
