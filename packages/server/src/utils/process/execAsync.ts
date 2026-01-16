@@ -9,12 +9,19 @@ export { ExecError } from "./ExecError";
 
 const execAsyncBase = util.promisify(exec);
 
+// Set maxBuffer to 100MB to handle large backup restore operations
+// Default is 1MB which can cause "maxBuffer length exceeded" errors
+const MAX_EXEC_BUFFER_SIZE = 100 * 1024 * 1024;
+
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options?: ExecOptions & { shell?: string },
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
-		const result = await execAsyncBase(command, options);
+		const result = await execAsyncBase(command, {
+			...options,
+			maxBuffer: options?.maxBuffer ?? MAX_EXEC_BUFFER_SIZE,
+		});
 		return {
 			stdout: result.stdout.toString(),
 			stderr: result.stderr.toString(),
@@ -43,6 +50,7 @@ export const execAsync = async (
 interface ExecOptions {
 	cwd?: string;
 	env?: NodeJS.ProcessEnv;
+	maxBuffer?: number;
 }
 
 export const execAsyncStream = (
@@ -54,22 +62,26 @@ export const execAsyncStream = (
 		let stdoutComplete = "";
 		let stderrComplete = "";
 
-		const childProcess = exec(command, options, (error) => {
-			if (error) {
-				reject(
-					new ExecError(`Command execution failed: ${error.message}`, {
-						command,
-						stdout: stdoutComplete,
-						stderr: stderrComplete,
-						// @ts-ignore
-						exitCode: error.code,
-						originalError: error,
-					}),
-				);
-				return;
-			}
-			resolve({ stdout: stdoutComplete, stderr: stderrComplete });
-		});
+		const childProcess = exec(
+			command,
+			{ ...options, maxBuffer: options?.maxBuffer ?? MAX_EXEC_BUFFER_SIZE },
+			(error) => {
+				if (error) {
+					reject(
+						new ExecError(`Command execution failed: ${error.message}`, {
+							command,
+							stdout: stdoutComplete,
+							stderr: stderrComplete,
+							// @ts-ignore
+							exitCode: error.code,
+							originalError: error,
+						}),
+					);
+					return;
+				}
+				resolve({ stdout: stdoutComplete, stderr: stderrComplete });
+			},
+		);
 
 		childProcess.stdout?.on("data", (data: Buffer | string) => {
 			const stringData = data.toString();
