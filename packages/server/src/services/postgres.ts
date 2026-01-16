@@ -1,16 +1,23 @@
 import { db } from "@dokploy/server/db";
 import {
 	type apiCreatePostgres,
+	applications,
 	backups,
 	buildAppName,
+	environments,
 	postgres,
+	projects,
 } from "@dokploy/server/db/schema";
 import { generatePassword } from "@dokploy/server/templates";
 import { buildPostgres } from "@dokploy/server/utils/databases/postgres";
 import { pullImage } from "@dokploy/server/utils/docker/utils";
-import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import {
+	execAsync,
+	execAsyncRemote,
+} from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { eq, getTableColumns } from "drizzle-orm";
+import { updateApplication } from "./application";
 import { validUniqueServerAppName } from "./project";
 
 export function getMountPath(dockerImage: string): string {
@@ -172,4 +179,83 @@ export const deployPostgres = async (
 		});
 	}
 	return postgres;
+};
+
+export const changePostgresPassword = async (
+	postgresId: string,
+	newPassword: string,
+) => {
+	const postgres = await findPostgresById(postgresId);
+
+	// 1. Update in Docker Container
+	let command: string;
+	if (postgres.serverId) {
+		const { stdout: containerId } = await execAsyncRemote(
+			postgres.serverId,
+			`docker ps -q -f name=${postgres.appName}`,
+		);
+		if (!containerId) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Container not found for service: ${postgres.appName}`,
+			});
+		}
+		command = `docker exec ${containerId.trim()} psql -U ${postgres.databaseUser} -c "ALTER USER ${postgres.databaseUser} WITH PASSWORD '${newPassword}';"`;
+		await execAsyncRemote(postgres.serverId, command);
+	} else {
+		const { stdout: containerId } = await execAsync(
+			`docker ps -q -f name=${postgres.appName}`,
+		);
+		if (!containerId) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Container not found for service: ${postgres.appName}`,
+			});
+		}
+		command = `docker exec ${containerId.trim()} psql -U ${postgres.databaseUser} -c "ALTER USER ${postgres.databaseUser} WITH PASSWORD '${newPassword}';"`;
+		await execAsync(command);
+	}
+
+	// 2. Update in Dokploy Database
+	await updatePostgresById(postgresId, {
+		databasePassword: newPassword,
+	});
+
+	// 3. Update Dependent Applications
+	const project = postgres.environment.project;
+
+	// Find all applications in the same organization
+	const allApplications = await db
+		.select({
+			applicationId: applications.applicationId,
+			env: applications.env,
+			name: applications.name,
+		})
+		.from(applications)
+		.innerJoin(
+			environments,
+			eq(applications.environmentId, environments.environmentId),
+		)
+		.innerJoin(projects, eq(environments.projectId, projects.projectId))
+		.where(eq(projects.organizationId, project.organizationId));
+
+	// Update applications that have the old connection string
+	const oldPassword = postgres.databasePassword;
+	let updatedCount = 0;
+
+	for (const app of allApplications) {
+		if (app.env?.includes(oldPassword)) {
+			// Replace all occurrences of the old password in the env string if it's part of a connection string context ideally,
+			// but for now simple replacement as per requirement.
+			// To be safer we could look for the specific connection string format, but 'includes' check + replace is standard for this scope.
+			const newEnv = app.env.replace(new RegExp(oldPassword, "g"), newPassword);
+
+			await updateApplication(app.applicationId, {
+				env: newEnv,
+			});
+			updatedCount++;
+		}
+	}
+
+	return { success: true, updatedApplications: updatedCount };
 };

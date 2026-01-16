@@ -1,5 +1,6 @@
 import {
 	addNewService,
+	changePostgresPassword,
 	checkServiceAccess,
 	createMount,
 	createPostgres,
@@ -26,6 +27,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
+	apiChangePostgresPassword,
 	apiChangePostgresStatus,
 	apiCreatePostgres,
 	apiDeployPostgres,
@@ -453,5 +455,23 @@ export const postgresRouter = createTRPCRouter({
 			await rebuildDatabase(postgres.postgresId, "postgres");
 
 			return true;
+		}),
+	changePassword: protectedProcedure
+		.input(apiChangePostgresPassword)
+		.mutation(async ({ input, ctx }) => {
+			const postgres = await findPostgresById(input.postgresId);
+			if (
+				postgres.environment.project.organizationId !==
+				ctx.session.activeOrganizationId
+			) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not authorized to change this Postgres password",
+				});
+			}
+			return await changePostgresPassword(
+				input.postgresId,
+				input.databasePassword,
+			);
 		}),
 });
