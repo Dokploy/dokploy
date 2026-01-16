@@ -601,6 +601,44 @@ export const generateBindMounts = (mounts: ApplicationNested["mounts"]) => {
 		}));
 };
 
+export const generateNetworkMounts = (mounts: ApplicationNested["mounts"]) => {
+	if (!mounts || mounts.length === 0) {
+		return [];
+	}
+
+	return mounts
+		.filter((mount) => mount.type === "nfs" || mount.type === "smb")
+		.map((mount) => {
+			// Check mount method
+			const mountMethod = mount.mountMethod || "host-mount";
+
+			if (mountMethod === "docker-volume" && mount.type === "nfs") {
+				// Use Docker native volume
+				const volumeName =
+					mount.dockerVolumeName ||
+					`dokploy-nfs-${mount.mountId}`;
+
+				return {
+					Type: "volume" as const,
+					Source: volumeName,
+					Target: mount.mountPath,
+				};
+			}
+
+			// Host-level mount (default for SMB and NFS with host-mount method)
+			// Use mountPathOnHost if available, otherwise construct it
+			const sourcePath =
+				mount.mountPathOnHost ||
+				`/mnt/dokploy-${mount.type}-${mount.mountId}`;
+
+			return {
+				Type: "bind" as const,
+				Source: sourcePath,
+				Target: mount.mountPath,
+			};
+		});
+};
+
 export const generateFileMounts = (
 	appName: string,
 	service:
