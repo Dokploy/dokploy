@@ -1,0 +1,29 @@
+{
+	"name": "Dokploy Development container",
+	"build": {
+        "context": "..",
+        "dockerfile": "Dockerfile"
+    },
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"biomejs.biome",
+				"sleistner.vscode-fileutils",
+                "GitHub.copilot",
+                "GitHub.copilot-chat",
+                "eamodio.gitlens",
+                "shd101wyy.markdown-preview-enhanced",
+                "GitHub.vscode-github-actions",
+                "redhat.vscode-yaml",
+                "bradlc.vscode-tailwindcss"
+			]
+		}
+	},
+    "remoteEnv": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+    },
+    "runArgs": [
+        "--name", "dokploy-devcontainer",
+        "--network", "host"
+    ]
+}

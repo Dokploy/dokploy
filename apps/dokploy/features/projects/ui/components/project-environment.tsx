@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -25,7 +25,8 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { api } from "@/utils/api";
+
+import { useProjectsRepository } from "../../infrastructure/api/projects-api.repository";
 
 const updateProjectSchema = z.object({
 	env: z.string().optional(),
@@ -38,55 +39,53 @@ interface Props {
 	children?: React.ReactNode;
 }
 
+/**
+ * Project environment component.
+ */
 export const ProjectEnvironment = ({ projectId, children }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const utils = api.useUtils();
-	const { mutateAsync, error, isError, isLoading } =
-		api.project.update.useMutation();
-	const { data } = api.project.one.useQuery(
-		{
-			projectId,
-		},
-		{
-			enabled: !!projectId,
-		},
-	);
+	const [error, setError] = useState<string | null>(null);
+	
+	const projectsRepository = useProjectsRepository();
+	const { data } = projectsRepository.getOne(projectId, !!projectId);
+	const { mutateAsync: updateProject, isPending: isLoading } = projectsRepository.update();
 
 	const form = useForm<UpdateProject>({
 		defaultValues: {
 			env: data?.env ?? "",
 		},
+		values: {
+			env: data?.env ?? "",
+		},
 		resolver: zodResolver(updateProjectSchema),
 	});
-	useEffect(() => {
-		if (data) {
-			form.reset({
-				env: data.env ?? "",
-			});
-		}
-	}, [data, form, form.reset]);
 
-	const onSubmit = async (formData: UpdateProject) => {
-		await mutateAsync({
-			env: formData.env || "",
-			projectId: projectId,
-		})
-			.then(() => {
-				toast.success("Project env updated successfully");
-				utils.project.all.invalidate();
-			})
-			.catch(() => {
-				toast.error("Error updating the env");
-			})
-			.finally(() => {});
-	};
+	const onSubmit = useCallback(async (formData: UpdateProject) => {
+		try {
+			setError(null);
+
+			await updateProject({
+				projectId,
+				env: formData.env || "",
+			});
+
+			toast.success("Project env updated successfully");
+			await projectsRepository.invalidateAll();
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : "Error updating the env";
+			setError(errorMessage);
+			toast.error("Error updating the env");
+		}
+	}, [projectId, updateProject, projectsRepository.invalidateAll]);
 
 	// Add keyboard shortcut for Ctrl+S/Cmd+S
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if ((e.ctrlKey || e.metaKey) && e.key === "s" && !isLoading && isOpen) {
 				e.preventDefault();
-				form.handleSubmit(onSubmit)();
+				// Get current form values and call onSubmit directly
+				const currentValues = form.getValues();
+				onSubmit(currentValues);
 			}
 		};
 
@@ -94,7 +93,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 		return () => {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [form, onSubmit, isLoading, isOpen]);
+	}, [onSubmit, isLoading, isOpen]); // Remove form.handleSubmit dependency
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -117,7 +116,7 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 						services of this project.
 					</DialogDescription>
 				</DialogHeader>
-				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
+				{error && <AlertBlock type="error">{error}</AlertBlock>}
 				<AlertBlock type="info">
 					Use this syntax to reference project-level variables in your service
 					environments: <code>DATABASE_URL=${"{{project.DATABASE_URL}}"}</code>
@@ -137,14 +136,14 @@ export const ProjectEnvironment = ({ projectId, children }: Props) => {
 											<FormLabel>Environment variables</FormLabel>
 											<FormControl>
 												<CodeEditor
-													lineWrapping
 													language="properties"
 													wrapperClassName="h-[35rem] font-mono"
 													placeholder={`NODE_ENV=production
 PORT=3000
 
                                                     `}
-													{...field}
+													value={field.value}
+													onChange={field.onChange}
 												/>
 											</FormControl>
 
