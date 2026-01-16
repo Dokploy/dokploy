@@ -252,10 +252,13 @@ describe("deployApplication - Command Generation Tests", () => {
 		const execCalls = vi.mocked(execProcess.execAsync).mock.calls;
 		expect(execCalls.length).toBeGreaterThan(0);
 
-		const fullCommand = execCalls[0]?.[0];
-		expect(fullCommand).toContain("set -e");
-		expect(fullCommand).toContain("git clone");
-		expect(fullCommand).toContain("nixpacks build");
+		const cloneCommand = execCalls[0]?.[0];
+		expect(cloneCommand).toContain("set -e");
+		expect(cloneCommand).toContain("git clone");
+
+		const buildCommand = execCalls[1]?.[0];
+		expect(buildCommand).toContain("set -e");
+		expect(buildCommand).toContain("nixpacks build");
 	});
 
 	it("should include log redirection in command", async () => {

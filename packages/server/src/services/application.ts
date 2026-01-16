@@ -31,6 +31,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { encodeBase64 } from "../utils/docker/utils";
 import { getDokployUrl } from "./admin";
+import { setStatusCheck } from "./checks";
 import {
 	createDeployment,
 	createDeploymentPreview,
@@ -182,29 +183,53 @@ export const deployApplication = async ({
 		description: descriptionLog,
 	});
 
+	let commitInfo: {
+		message: string;
+		hash: string;
+	} | null = null;
+
 	try {
-		let command = "set -e;";
+		let cloneCommand = "set -e;";
 		if (application.sourceType === "github") {
-			command += await cloneGithubRepository(application);
+			cloneCommand += await cloneGithubRepository(application);
 		} else if (application.sourceType === "gitlab") {
-			command += await cloneGitlabRepository(application);
+			cloneCommand += await cloneGitlabRepository(application);
 		} else if (application.sourceType === "gitea") {
-			command += await cloneGiteaRepository(application);
+			cloneCommand += await cloneGiteaRepository(application);
 		} else if (application.sourceType === "bitbucket") {
-			command += await cloneBitbucketRepository(application);
+			cloneCommand += await cloneBitbucketRepository(application);
 		} else if (application.sourceType === "git") {
-			command += await cloneGitRepository(application);
+			cloneCommand += await cloneGitRepository(application);
 		} else if (application.sourceType === "docker") {
-			command += await buildRemoteDocker(application);
+			cloneCommand += await buildRemoteDocker(application);
 		}
 
-		command += await getBuildCommand(application);
-
-		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+		const cloneCommandWithLog = `(${cloneCommand}) >> ${deployment.logPath} 2>&1`;
 		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+			await execAsyncRemote(serverId, cloneCommandWithLog);
 		} else {
-			await execAsync(commandWithLog);
+			await execAsync(cloneCommandWithLog);
+		}
+
+		// Only extract commit info for non-docker sources
+		if (application.sourceType !== "docker") {
+			commitInfo = await getGitCommitInfo(application);
+		}
+
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "in_progress");
+		}
+
+		let buildCommand = "set -e;";
+		buildCommand += await getBuildCommand(application);
+
+		if (buildCommand) {
+			const buildCommandWithLog = `(${buildCommand}) >> ${deployment.logPath} 2>&1`;
+			if (serverId) {
+				await execAsyncRemote(serverId, buildCommandWithLog);
+			} else {
+				await execAsync(buildCommandWithLog);
+			}
 		}
 
 		await mechanizeDockerContainer(application);
@@ -220,6 +245,10 @@ export const deployApplication = async ({
 			domains: application.domains,
 			environmentName: application.environment.name,
 		});
+
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "success");
+		}
 	} catch (error) {
 		let command = "";
 
@@ -236,6 +265,10 @@ export const deployApplication = async ({
 		} else {
 			await execAsync(command);
 		}
+
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "failure");
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
 
@@ -251,16 +284,11 @@ export const deployApplication = async ({
 
 		throw error;
 	} finally {
-		// Only extract commit info for non-docker sources
-		if (application.sourceType !== "docker") {
-			const commitInfo = await getGitCommitInfo(application);
-
-			if (commitInfo) {
-				await updateDeployment(deployment.deploymentId, {
-					title: commitInfo.message,
-					description: `Commit: ${commitInfo.hash}`,
-				});
-			}
+		if (commitInfo) {
+			await updateDeployment(deployment.deploymentId, {
+				title: commitInfo.message,
+				description: `Commit: ${commitInfo.hash}`,
+			});
 		}
 	}
 	return true;
@@ -285,7 +313,21 @@ export const rebuildApplication = async ({
 		description: descriptionLog,
 	});
 
+	let commitInfo: {
+		message: string;
+		hash: string;
+	} | null = null;
+
 	try {
+		// Only extract commit info for non-docker sources
+		if (application.sourceType !== "docker") {
+			commitInfo = await getGitCommitInfo(application);
+		}
+
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "in_progress");
+		}
+
 		let command = "set -e;";
 		// Check case for docker only
 		command += await getBuildCommand(application);
@@ -308,6 +350,10 @@ export const rebuildApplication = async ({
 			domains: application.domains,
 			environmentName: application.environment.name,
 		});
+
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "success");
+		}
 	} catch (error) {
 		let command = "";
 
@@ -323,6 +369,10 @@ export const rebuildApplication = async ({
 			await execAsyncRemote(serverId, command);
 		} else {
 			await execAsync(command);
+		}
+
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "failure");
 		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updateApplicationStatus(applicationId, "error");
@@ -366,6 +416,12 @@ export const deployPreviewApplication = async ({
 		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
 		githubId: application?.githubId || "",
 	};
+
+	let commitInfo: {
+		message: string;
+		hash: string;
+	} | null = null;
+
 	try {
 		const commentExists = await issueCommentExists({
 			...issueParams,
@@ -406,20 +462,34 @@ export const deployPreviewApplication = async ({
 		application.rollbackRegistry = null;
 		application.registry = null;
 
-		let command = "set -e;";
 		if (application.sourceType === "github") {
-			command += await cloneGithubRepository({
+			let cloneCommand = "set -e;";
+			cloneCommand += await cloneGithubRepository({
 				...application,
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
-			command += await getBuildCommand(application);
-
-			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
+			const cloneCommandWithLog = `(${cloneCommand}) >> ${deployment.logPath} 2>&1`;
 			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+				await execAsyncRemote(application.serverId, cloneCommandWithLog);
 			} else {
-				await execAsync(commandWithLog);
+				await execAsync(cloneCommandWithLog);
+			}
+
+			commitInfo = await getGitCommitInfo(application);
+
+			if (commitInfo) {
+				await setStatusCheck(application, commitInfo.hash, "in_progress");
+			}
+
+			let buildCommand = "set -e;";
+			buildCommand += await getBuildCommand(application);
+
+			const buildCommandWithLog = `(${buildCommand}) >> ${deployment.logPath} 2>&1`;
+			if (application.serverId) {
+				await execAsyncRemote(application.serverId, buildCommandWithLog);
+			} else {
+				await execAsync(buildCommandWithLog);
 			}
 			await mechanizeDockerContainer(application);
 		}
@@ -436,12 +506,18 @@ export const deployPreviewApplication = async ({
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "done",
 		});
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "success");
+		}
 	} catch (error) {
 		const comment = getIssueComment(application.name, "error", previewDomain);
 		await updateIssueComment({
 			...issueParams,
 			body: `### Dokploy Preview Deployment\n\n${comment}`,
 		});
+		if (commitInfo) {
+			await setStatusCheck(application, commitInfo.hash, "failure");
+		}
 		await updateDeploymentStatus(deployment.deploymentId, "error");
 		await updatePreviewDeployment(previewDeploymentId, {
 			previewStatus: "error",

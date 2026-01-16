@@ -153,6 +153,83 @@ export const updateIssueComment = async ({
 	});
 };
 
+interface StatusCheckCreate {
+	owner: string;
+	repository: string;
+	issue_number?: string;
+	head_sha: string;
+	githubId: string;
+	name: string;
+	status: "queued" | "in_progress" | "success" | "failure";
+	details_url: string;
+}
+
+export const setStatusCheck = async ({
+	owner,
+	repository,
+	issue_number,
+	head_sha,
+	githubId,
+	name,
+	status,
+	details_url,
+}: StatusCheckCreate) => {
+	const github = await findGithubById(githubId);
+	const octokit = authGithub(github);
+
+	const existing_check = await octokit.rest.checks.listForRef({
+		owner,
+		repo: repository,
+		ref: head_sha,
+		check_name: name,
+	});
+
+	const data = {
+		owner,
+		repo: repository,
+		issue: issue_number ? Number.parseInt(issue_number) : undefined,
+		head_sha,
+		name,
+		status:
+			status === "queued"
+				? "queued"
+				: status === "in_progress"
+					? "in_progress"
+					: "completed",
+		conclusion:
+			status === "success"
+				? "success"
+				: status === "failure"
+					? "failure"
+					: undefined,
+		details_url,
+	} as const;
+
+	const existing = existing_check.data.check_runs[0];
+
+	if (existing) {
+		if (existing.status === "completed" && data.status !== "completed") {
+			await octokit.rest.checks.update({
+				check_run_id: existing.id,
+				...data,
+				conclusion: "neutral",
+				output: {
+					title: "Obsolete",
+					summary: "Superseded",
+				},
+			});
+		} else {
+			await octokit.rest.checks.update({
+				check_run_id: existing.id,
+				...data,
+			});
+			return;
+		}
+	}
+
+	await octokit.rest.checks.create(data);
+};
+
 interface CommentCreate {
 	appName: string;
 	owner: string;
