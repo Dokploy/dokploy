@@ -24,12 +24,9 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.1.1",
-		"@commitlint/cli": "^19.8.1",
-		"@commitlint/config-conventional": "^19.8.1",
 		"@types/node": "^18.19.104",
 		"dotenv": "16.4.5",
 		"esbuild": "0.20.2",
-		"lefthook": "1.8.4",
 		"lint-staged": "^15.5.2",
 		"tsx": "4.16.2"
 	},
@@ -41,11 +38,6 @@
 	"lint-staged": {
 		"*": [
 			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
-		]
-	},
-	"commitlint": {
-		"extends": [
-			"@commitlint/config-conventional"
 		]
 	},
 	"resolutions": {
