@@ -11,6 +11,7 @@ import {
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
+	sendPushoverNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -29,12 +30,22 @@ export const sendDokployRestartNotifications = async () => {
 			ntfy: true,
 			custom: true,
 			lark: true,
+			pushover: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+			pushover,
+		} = notification;
 
 		try {
 			if (email) {
@@ -218,6 +229,14 @@ export const sendDokployRestartNotifications = async () => {
 						},
 					},
 				});
+			}
+
+			if (pushover) {
+				await sendPushoverNotification(
+					pushover,
+					"Dokploy Server Restarted",
+					`Date: ${date.toLocaleString()}`,
+				);
 			}
 		} catch (error) {
 			console.log(error);

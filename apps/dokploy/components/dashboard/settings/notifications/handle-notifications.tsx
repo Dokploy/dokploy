@@ -15,6 +15,7 @@ import {
 	GotifyIcon,
 	LarkIcon,
 	NtfyIcon,
+	PushoverIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -116,6 +117,16 @@ export const notificationSchema = z.discriminatedUnion("type", [
 		.merge(notificationBaseSchema),
 	z
 		.object({
+			type: z.literal("pushover"),
+			userKey: z.string().min(1, { message: "User Key is required" }),
+			apiToken: z.string().min(1, { message: "API Token is required" }),
+			priority: z.number().min(-2).max(2).default(0),
+			retry: z.number().min(30).nullish(),
+			expire: z.number().min(1).max(10800).nullish(),
+		})
+		.merge(notificationBaseSchema),
+	z
+		.object({
 			type: z.literal("custom"),
 			endpoint: z.string().min(1, { message: "Endpoint URL is required" }),
 			headers: z
@@ -166,6 +177,10 @@ export const notificationsMap = {
 		icon: <NtfyIcon />,
 		label: "ntfy",
 	},
+	pushover: {
+		icon: <PushoverIcon />,
+		label: "Pushover",
+	},
 	custom: {
 		icon: <PenBoxIcon size={29} className="text-muted-foreground" />,
 		label: "Custom",
@@ -209,6 +224,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const { mutateAsync: testCustomConnection, isLoading: isLoadingCustom } =
 		api.notification.testCustomConnection.useMutation();
 
+	const { mutateAsync: testPushoverConnection, isLoading: isLoadingPushover } =
+		api.notification.testPushoverConnection.useMutation();
+
 	const customMutation = notificationId
 		? api.notification.updateCustom.useMutation()
 		: api.notification.createCustom.useMutation();
@@ -233,6 +251,9 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 	const larkMutation = notificationId
 		? api.notification.updateLark.useMutation()
 		: api.notification.createLark.useMutation();
+	const pushoverMutation = notificationId
+		? api.notification.updatePushover.useMutation()
+		: api.notification.createPushover.useMutation();
 
 	const form = useForm<NotificationSchema>({
 		defaultValues: {
@@ -393,6 +414,23 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 					dockerCleanup: notification.dockerCleanup,
 					serverThreshold: notification.serverThreshold,
 				});
+			} else if (notification.notificationType === "pushover") {
+				form.reset({
+					appBuildError: notification.appBuildError,
+					appDeploy: notification.appDeploy,
+					dokployRestart: notification.dokployRestart,
+					databaseBackup: notification.databaseBackup,
+					volumeBackup: notification.volumeBackup,
+					type: notification.notificationType,
+					userKey: notification.pushover?.userKey,
+					apiToken: notification.pushover?.apiToken,
+					priority: notification.pushover?.priority,
+					retry: notification.pushover?.retry ?? undefined,
+					expire: notification.pushover?.expire ?? undefined,
+					name: notification.name,
+					dockerCleanup: notification.dockerCleanup,
+					serverThreshold: notification.serverThreshold,
+				});
 			}
 		} else {
 			form.reset();
@@ -408,6 +446,7 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 		ntfy: ntfyMutation,
 		lark: larkMutation,
 		custom: customMutation,
+		pushover: pushoverMutation,
 	};
 
 	const onSubmit = async (data: NotificationSchema) => {
@@ -558,6 +597,28 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 				serverThreshold: serverThreshold,
 				notificationId: notificationId || "",
 				customId: notification?.customId || "",
+			});
+		} else if (data.type === "pushover") {
+			if (data.priority === 2 && (data.retry == null || data.expire == null)) {
+				toast.error("Retry and expire are required for emergency priority (2)");
+				return;
+			}
+			promise = pushoverMutation.mutateAsync({
+				appBuildError: appBuildError,
+				appDeploy: appDeploy,
+				dokployRestart: dokployRestart,
+				databaseBackup: databaseBackup,
+				volumeBackup: volumeBackup,
+				userKey: data.userKey,
+				apiToken: data.apiToken,
+				priority: data.priority,
+				retry: data.priority === 2 ? data.retry : undefined,
+				expire: data.priority === 2 ? data.expire : undefined,
+				name: data.name,
+				dockerCleanup: dockerCleanup,
+				serverThreshold: serverThreshold,
+				notificationId: notificationId || "",
+				pushoverId: notification?.pushoverId || "",
 			});
 		}
 
@@ -1255,6 +1316,147 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										/>
 									</>
 								)}
+								{type === "pushover" && (
+									<>
+										<FormField
+											control={form.control}
+											name="userKey"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>User Key</FormLabel>
+													<FormControl>
+														<Input placeholder="ub3de9kl2q..." {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="apiToken"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>API Token</FormLabel>
+													<FormControl>
+														<Input placeholder="a3d9k2q7m4..." {...field} />
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										<FormField
+											control={form.control}
+											name="priority"
+											defaultValue={0}
+											render={({ field }) => (
+												<FormItem className="w-full">
+													<FormLabel>Priority</FormLabel>
+													<FormControl>
+														<Input
+															placeholder="0"
+															value={field.value ?? 0}
+															onChange={(e) => {
+																const value = e.target.value;
+																if (value === "" || value === "-") {
+																	field.onChange(0);
+																} else {
+																	const priority = Number.parseInt(value);
+																	if (
+																		!Number.isNaN(priority) &&
+																		priority >= -2 &&
+																		priority <= 2
+																	) {
+																		field.onChange(priority);
+																	}
+																}
+															}}
+															type="number"
+															min={-2}
+															max={2}
+														/>
+													</FormControl>
+													<FormDescription>
+														Message priority (-2 to 2, default: 0, emergency: 2)
+													</FormDescription>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
+										{form.watch("priority") === 2 && (
+											<>
+												<FormField
+													control={form.control}
+													name="retry"
+													render={({ field }) => (
+														<FormItem className="w-full">
+															<FormLabel>Retry (seconds)</FormLabel>
+															<FormControl>
+																<Input
+																	placeholder="30"
+																	{...field}
+																	value={field.value ?? ""}
+																	onChange={(e) => {
+																		const value = e.target.value;
+																		if (value === "") {
+																			field.onChange(undefined);
+																		} else {
+																			const retry = Number.parseInt(value);
+																			if (!Number.isNaN(retry)) {
+																				field.onChange(retry);
+																			}
+																		}
+																	}}
+																	type="number"
+																	min={30}
+																/>
+															</FormControl>
+															<FormDescription>
+																How often (in seconds) to retry. Minimum 30
+																seconds.
+															</FormDescription>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+												<FormField
+													control={form.control}
+													name="expire"
+													render={({ field }) => (
+														<FormItem className="w-full">
+															<FormLabel>Expire (seconds)</FormLabel>
+															<FormControl>
+																<Input
+																	placeholder="3600"
+																	{...field}
+																	value={field.value ?? ""}
+																	onChange={(e) => {
+																		const value = e.target.value;
+																		if (value === "") {
+																			field.onChange(undefined);
+																		} else {
+																			const expire = Number.parseInt(value);
+																			if (!Number.isNaN(expire)) {
+																				field.onChange(expire);
+																			}
+																		}
+																	}}
+																	type="number"
+																	min={1}
+																	max={10800}
+																/>
+															</FormControl>
+															<FormDescription>
+																How long to keep retrying (max 10800 seconds / 3
+																hours).
+															</FormDescription>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											</>
+										)}
+									</>
+								)}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4">
@@ -1428,7 +1630,8 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 								isLoadingGotify ||
 								isLoadingNtfy ||
 								isLoadingLark ||
-								isLoadingCustom
+								isLoadingCustom ||
+								isLoadingPushover
 							}
 							variant="secondary"
 							type="button"
@@ -1496,6 +1699,22 @@ export const HandleNotifications = ({ notificationId }: Props) => {
 										await testCustomConnection({
 											endpoint: data.endpoint,
 											headers: headersRecord,
+										});
+									} else if (data.type === "pushover") {
+										if (
+											data.priority === 2 &&
+											(data.retry == null || data.expire == null)
+										) {
+											throw new Error(
+												"Retry and expire are required for emergency priority (2)",
+											);
+										}
+										await testPushoverConnection({
+											userKey: data.userKey,
+											apiToken: data.apiToken,
+											priority: data.priority,
+											retry: data.priority === 2 ? data.retry : undefined,
+											expire: data.priority === 2 ? data.expire : undefined,
 										});
 									}
 									toast.success("Connection Success");

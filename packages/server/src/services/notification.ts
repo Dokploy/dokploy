@@ -6,6 +6,7 @@ import {
 	type apiCreateGotify,
 	type apiCreateLark,
 	type apiCreateNtfy,
+	type apiCreatePushover,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateCustom,
@@ -14,6 +15,7 @@ import {
 	type apiUpdateGotify,
 	type apiUpdateLark,
 	type apiUpdateNtfy,
+	type apiUpdatePushover,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	custom,
@@ -23,6 +25,7 @@ import {
 	lark,
 	notifications,
 	ntfy,
+	pushover,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -694,6 +697,7 @@ export const findNotificationById = async (notificationId: string) => {
 			ntfy: true,
 			custom: true,
 			lark: true,
+			pushover: true,
 		},
 	});
 	if (!notification) {
@@ -816,4 +820,100 @@ export const updateNotificationById = async (
 		.returning();
 
 	return result[0];
+};
+
+export const createPushoverNotification = async (
+	input: typeof apiCreatePushover._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newPushover = await tx
+			.insert(pushover)
+			.values({
+				userKey: input.userKey,
+				apiToken: input.apiToken,
+				priority: input.priority,
+				retry: input.retry,
+				expire: input.expire,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newPushover) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting pushover",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				pushoverId: newPushover.pushoverId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				serverThreshold: input.serverThreshold,
+				notificationType: "pushover",
+				organizationId: organizationId,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updatePushoverNotification = async (
+	input: typeof apiUpdatePushover._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(pushover)
+			.set({
+				userKey: input.userKey,
+				apiToken: input.apiToken,
+				priority: input.priority,
+				retry: input.retry,
+				expire: input.expire,
+			})
+			.where(eq(pushover.pushoverId, input.pushoverId));
+
+		return newDestination;
+	});
 };

@@ -5,6 +5,7 @@ import type {
 	gotify,
 	lark,
 	ntfy,
+	pushover,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -221,5 +222,35 @@ export const sendLarkNotification = async (
 		});
 	} catch (err) {
 		console.log(err);
+	}
+};
+
+export const sendPushoverNotification = async (
+	connection: typeof pushover.$inferInsert,
+	title: string,
+	message: string,
+) => {
+	const formData = new URLSearchParams();
+	formData.append("token", connection.apiToken);
+	formData.append("user", connection.userKey);
+	formData.append("title", title);
+	formData.append("message", message);
+	formData.append("priority", connection.priority?.toString() || "0");
+
+	// For emergency priority (2), retry and expire are required
+	if (connection.priority === 2) {
+		formData.append("retry", connection.retry?.toString() || "30");
+		formData.append("expire", connection.expire?.toString() || "3600");
+	}
+
+	const response = await fetch("https://api.pushover.net/1/messages.json", {
+		method: "POST",
+		body: formData,
+	});
+
+	if (!response.ok) {
+		throw new Error(
+			`Failed to send Pushover notification: ${response.statusText}`,
+		);
 	}
 };

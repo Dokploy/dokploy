@@ -9,6 +9,7 @@ import {
 	sendEmailNotification,
 	sendGotifyNotification,
 	sendNtfyNotification,
+	sendPushoverNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -53,11 +54,13 @@ export const sendVolumeBackupNotifications = async ({
 			slack: true,
 			gotify: true,
 			ntfy: true,
+			pushover: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy } = notification;
+		const { email, discord, telegram, slack, gotify, ntfy, pushover } =
+			notification;
 
 		if (email) {
 			const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
@@ -269,6 +272,14 @@ export const sendVolumeBackupNotifications = async ({
 					},
 				],
 			});
+		}
+
+		if (pushover) {
+			await sendPushoverNotification(
+				pushover,
+				`Volume Backup ${type === "success" ? "Successful" : "Failed"}`,
+				`Project: ${projectName}\nApplication: ${applicationName}\nVolume: ${volumeName}\nService Type: ${serviceType}${backupSize ? `\nBackup Size: ${backupSize}` : ""}\nDate: ${date.toLocaleString()}${type === "error" && errorMessage ? `\nError: ${errorMessage}` : ""}`,
+			);
 		}
 	}
 };
