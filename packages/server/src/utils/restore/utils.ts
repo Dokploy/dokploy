@@ -15,14 +15,18 @@ export const getMariadbRestoreCommand = (
 	databaseUser: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mariadb -u '${databaseUser}' -p'${databasePassword}' ${database}"`;
+    // Use sed to replace any USE `database` statements with the target database
+    // This prevents restoring into wrong database when backup contains USE statements
+    return `sed "s/USE \\\`[^\\\`]*\\\`/USE \\\`${database}\\\`/g" | docker exec -i $CONTAINER_ID sh -c "mariadb -u '${databaseUser}' -p'${databasePassword}' ${database}"`;
 };
 
 export const getMysqlRestoreCommand = (
 	database: string,
 	databasePassword: string,
 ) => {
-	return `docker exec -i $CONTAINER_ID sh -c "mysql -u root -p'${databasePassword}' ${database}"`;
+    // Use sed to replace any USE `database` statements with the target database
+    // This prevents restoring into wrong database when backup contains USE statements
+    return `sed "s/USE \\\`[^\\\`]*\\\`/USE \\\`${database}\\\`/g" | docker exec -i $CONTAINER_ID sh -c "mysql -u root -p'${databasePassword}' ${database}"`;
 };
 
 export const getMongoRestoreCommand = (
