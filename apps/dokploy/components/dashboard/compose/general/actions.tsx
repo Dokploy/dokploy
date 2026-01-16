@@ -1,5 +1,12 @@
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { Ban, CheckCircle2, RefreshCcw, Rocket, Terminal } from "lucide-react";
+import {
+	Ban,
+	CheckCircle2,
+	Puzzle,
+	RefreshCcw,
+	Rocket,
+	Terminal,
+} from "lucide-react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -32,6 +39,18 @@ export const ComposeActions = ({ composeId }: Props) => {
 		api.compose.start.useMutation();
 	const { mutateAsync: stop, isLoading: isStopping } =
 		api.compose.stop.useMutation();
+
+	const { mutateAsync: loadTemplate, isLoading: isLoadingTemplate } =
+		api.compose.loadTemplateFromGit.useMutation();
+
+	const isGitSource = [
+		"github",
+		"gitlab",
+		"bitbucket",
+		"gitea",
+		"git",
+	].includes(data?.sourceType || "");
+
 	return (
 		<div className="flex flex-row gap-4 w-full flex-wrap ">
 			<TooltipProvider delayDuration={0} disableHoverableContent={false}>
@@ -112,6 +131,46 @@ export const ComposeActions = ({ composeId }: Props) => {
 						</Tooltip>
 					</Button>
 				</DialogAction>
+
+				{isGitSource && (
+					<DialogAction
+						title="Load Template"
+						description="This will clone the repository, parse template.toml, and update your configuration (Environment Variables, Mounts, Domains). Existing configurations might be overwritten."
+						onClick={async () => {
+							await loadTemplate({ composeId })
+								.then(() => {
+									toast.success("Template loaded and applied successfully");
+									refetch();
+								})
+								.catch((err) => {
+									toast.error("Error loading template: " + err.message);
+								});
+						}}
+					>
+						<Button
+							variant="secondary"
+							isLoading={isLoadingTemplate}
+							className="flex items-center gap-1.5 group focus-visible:ring-2 focus-visible:ring-offset-2"
+						>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<div className="flex items-center">
+										<Puzzle className="size-4 mr-1" />
+										Load Template
+									</div>
+								</TooltipTrigger>
+								<TooltipPrimitive.Portal>
+									<TooltipContent sideOffset={5} className="z-[60]">
+										<p>
+											Load configuration from template.toml in the repository
+										</p>
+									</TooltipContent>
+								</TooltipPrimitive.Portal>
+							</Tooltip>
+						</Button>
+					</DialogAction>
+				)}
+
 				{data?.composeType === "docker-compose" &&
 				data?.composeStatus === "idle" ? (
 					<DialogAction
