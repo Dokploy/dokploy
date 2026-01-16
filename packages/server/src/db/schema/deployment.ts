@@ -216,6 +216,7 @@ export const apiFindAllByApplication = schema
 	})
 	.extend({
 		applicationId: z.string().min(1),
+		limit: z.number().min(1).max(100).optional().default(10),
 	})
 	.required();
 
@@ -225,6 +226,7 @@ export const apiFindAllByCompose = schema
 	})
 	.extend({
 		composeId: z.string().min(1),
+		limit: z.number().min(1).max(100).optional().default(10),
 	})
 	.required();
 
@@ -234,6 +236,7 @@ export const apiFindAllByServer = schema
 	})
 	.extend({
 		serverId: z.string().min(1),
+		limit: z.number().min(1).max(100).optional().default(10),
 	})
 	.required();
 
@@ -249,5 +252,6 @@ export const apiFindAllByType = z
 			"backup",
 			"volumeBackup",
 		]),
+		limit: z.number().min(1).max(100).optional().default(10),
 	})
 	.required();
