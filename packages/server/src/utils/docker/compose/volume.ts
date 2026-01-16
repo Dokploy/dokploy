@@ -5,6 +5,13 @@ import type {
 	DefinitionsVolume,
 } from "../types";
 
+export type ServiceVolume = {
+	serviceName: string;
+	type: string;
+	source: string;
+	target: string;
+};
+
 // Función para agregar prefijo a volúmenes
 export const addSuffixToVolumesRoot = (
 	volumes: { [key: string]: DefinitionsVolume },
@@ -62,6 +69,85 @@ export const addSuffixToVolumesInServices = (
 	});
 
 	return newServices;
+};
+
+export const extractServiceVolumes = (
+	composeData: ComposeSpecification,
+): ServiceVolume[] => {
+	if (!composeData.services) {
+		return [];
+	}
+
+	const result: ServiceVolume[] = [];
+
+	_.forEach(composeData.services, (serviceConfig, serviceName) => {
+		if (!serviceConfig.volumes) {
+			return;
+		}
+		for (const vol of serviceConfig.volumes) {
+			if (_.isString(vol)) {
+				const parts = vol.split(":");
+				const source = parts[0] || "";
+				const target = parts[1] || "";
+				const isBind =
+					source.startsWith(".") ||
+					source.startsWith("/") ||
+					source.startsWith("$");
+				result.push({
+					serviceName,
+					type: isBind ? "bind" : "volume",
+					source,
+					target,
+				});
+			} else {
+				result.push({
+					serviceName,
+					type: vol.type,
+					source: vol.source || "",
+					target: vol.target || "",
+				});
+			}
+		}
+	});
+
+	return result;
+};
+
+export const addVolumeToService = (
+	composeData: ComposeSpecification,
+	serviceName: string,
+	volume: string,
+): ComposeSpecification => {
+	const updated = _.cloneDeep(composeData);
+	if (!updated.services?.[serviceName]) {
+		return updated;
+	}
+	if (!updated.services[serviceName].volumes) {
+		updated.services[serviceName].volumes = [];
+	}
+	updated.services[serviceName].volumes.push(volume);
+	return updated;
+};
+
+export const removeVolumeFromService = (
+	composeData: ComposeSpecification,
+	serviceName: string,
+	target: string,
+): ComposeSpecification => {
+	const updated = _.cloneDeep(composeData);
+	if (!updated.services?.[serviceName]?.volumes) {
+		return updated;
+	}
+	updated.services[serviceName].volumes = updated.services[
+		serviceName
+	].volumes.filter((vol) => {
+		if (_.isString(vol)) {
+			const parts = vol.split(":");
+			return parts[1] !== target;
+		}
+		return vol.target !== target;
+	});
+	return updated;
 };
 
 export const addSuffixToAllVolumes = (
