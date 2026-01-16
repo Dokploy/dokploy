@@ -167,9 +167,15 @@ while true; do
     fi
 done
 
+# Execute command and capture exit code
 ${exec}
+EXIT_CODE=$?
 
-echo "Execution completed."
+# Wait for all background processes to complete to prevent zombie processes
+wait
+
+echo "Execution completed with exit code: $EXIT_CODE"
+exit $EXIT_CODE
 `;
 
 const cleanupCommands = {
