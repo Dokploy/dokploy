@@ -22,6 +22,14 @@ import { Client } from "ssh2";
 import { recreateDirectory } from "../utils/filesystem/directory";
 import { setupMonitoring } from "./monitoring-setup";
 
+const generateToken = () => {
+	const array = new Uint8Array(64);
+	crypto.getRandomValues(array);
+	return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
+		"",
+	);
+};
+
 export const slugify = (text: string | undefined) => {
 	if (!text) {
 		return "";
@@ -66,15 +74,6 @@ export const serverSetup = async (
 
 		if (IS_CLOUD) {
 			onData?.("\nConfiguring Monitoring: 🔄\n");
-
-			// Generate token and configure monitoring
-			const generateToken = () => {
-				const array = new Uint8Array(64);
-				crypto.getRandomValues(array);
-				return Array.from(array, (byte) =>
-					byte.toString(16).padStart(2, "0"),
-				).join("");
-			};
 
 			const baseUrl = await getDokployUrl();
 			const token = generateToken();
