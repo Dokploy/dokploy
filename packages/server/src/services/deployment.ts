@@ -89,11 +89,12 @@ export const createDeployment = async (
 
 		if (serverId) {
 			const server = await findServerById(serverId);
+			const isBuildServer = !!application.buildServerId;
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${application.appName};
             	echo "Initializing deployment" >> ${logFilePath};
-			    echo "Building on ${serverId ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
+			    echo "Building on ${isBuildServer ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -157,27 +158,30 @@ export const createDeploymentPreview = async (
 	const previewDeployment = await findPreviewDeploymentById(
 		deployment.previewDeploymentId,
 	);
+	const buildServerId =
+		previewDeployment?.application?.buildServerId ||
+		previewDeployment?.application?.serverId;
 	try {
 		await removeLastTenDeployments(
 			deployment.previewDeploymentId,
 			"previewDeployment",
-			previewDeployment?.application?.serverId,
+			buildServerId,
 		);
 
 		const appName = `${previewDeployment.appName}`;
-		const { LOGS_PATH } = paths(!!previewDeployment?.application?.serverId);
+		const { LOGS_PATH } = paths(!!buildServerId);
 		const formattedDateTime = format(new Date(), "yyyy-MM-dd:HH:mm:ss");
 		const fileName = `${appName}-${formattedDateTime}.log`;
 		const logFilePath = path.join(LOGS_PATH, appName, fileName);
 
-		if (previewDeployment?.application?.serverId) {
-			const server = await findServerById(
-				previewDeployment?.application?.serverId,
-			);
+		if (buildServerId) {
+			const server = await findServerById(buildServerId);
+			const isBuildServer = !!previewDeployment?.application?.buildServerId;
 
 			const command = `
 				mkdir -p ${LOGS_PATH}/${appName};
             	echo "Initializing deployment" >> ${logFilePath};
+			    echo "Building on ${isBuildServer ? "Build Server" : "Dokploy Server"}" >> ${logFilePath};
 			`;
 
 			await execAsyncRemote(server.serverId, command);
@@ -197,6 +201,9 @@ export const createDeploymentPreview = async (
 				description: deployment.description || "",
 				previewDeploymentId: deployment.previewDeploymentId,
 				startedAt: new Date().toISOString(),
+				...(previewDeployment?.application?.buildServerId && {
+					buildServerId: previewDeployment.application.buildServerId,
+				}),
 			})
 			.returning();
 		if (deploymentCreate.length === 0 || !deploymentCreate[0]) {

@@ -173,7 +173,11 @@ export const deployApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
-	const serverId = application.buildServerId || application.serverId;
+	const buildServerId = application.buildServerId || application.serverId;
+	const buildApplication = {
+		...application,
+		serverId: buildServerId,
+	};
 
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 	const deployment = await createDeployment({
@@ -185,24 +189,24 @@ export const deployApplication = async ({
 	try {
 		let command = "set -e;";
 		if (application.sourceType === "github") {
-			command += await cloneGithubRepository(application);
+			command += await cloneGithubRepository(buildApplication);
 		} else if (application.sourceType === "gitlab") {
-			command += await cloneGitlabRepository(application);
+			command += await cloneGitlabRepository(buildApplication);
 		} else if (application.sourceType === "gitea") {
-			command += await cloneGiteaRepository(application);
+			command += await cloneGiteaRepository(buildApplication);
 		} else if (application.sourceType === "bitbucket") {
-			command += await cloneBitbucketRepository(application);
+			command += await cloneBitbucketRepository(buildApplication);
 		} else if (application.sourceType === "git") {
-			command += await cloneGitRepository(application);
+			command += await cloneGitRepository(buildApplication);
 		} else if (application.sourceType === "docker") {
-			command += await buildRemoteDocker(application);
+			command += await buildRemoteDocker(buildApplication);
 		}
 
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(buildApplication);
 
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+		if (buildServerId) {
+			await execAsyncRemote(buildServerId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -231,8 +235,8 @@ export const deployApplication = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
+		if (buildServerId) {
+			await execAsyncRemote(buildServerId, command);
 		} else {
 			await execAsync(command);
 		}
@@ -276,7 +280,11 @@ export const rebuildApplication = async ({
 	descriptionLog: string;
 }) => {
 	const application = await findApplicationById(applicationId);
-	const serverId = application.buildServerId || application.serverId;
+	const buildServerId = application.buildServerId || application.serverId;
+	const buildApplication = {
+		...application,
+		serverId: buildServerId,
+	};
 	const buildLink = `${await getDokployUrl()}/dashboard/project/${application.environment.projectId}/environment/${application.environmentId}/services/application/${application.applicationId}?tab=deployments`;
 
 	const deployment = await createDeployment({
@@ -288,10 +296,10 @@ export const rebuildApplication = async ({
 	try {
 		let command = "set -e;";
 		// Check case for docker only
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(buildApplication);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+		if (buildServerId) {
+			await execAsyncRemote(buildServerId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -319,8 +327,8 @@ export const rebuildApplication = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
+		if (buildServerId) {
+			await execAsyncRemote(buildServerId, command);
 		} else {
 			await execAsync(command);
 		}
@@ -406,18 +414,24 @@ export const deployPreviewApplication = async ({
 		application.rollbackRegistry = null;
 		application.registry = null;
 
+		const buildServerId = application.buildServerId || application.serverId;
+		const buildApplication = {
+			...application,
+			serverId: buildServerId,
+		};
+
 		let command = "set -e;";
 		if (application.sourceType === "github") {
 			command += await cloneGithubRepository({
-				...application,
+				...buildApplication,
 				appName: previewDeployment.appName,
 				branch: previewDeployment.branch,
 			});
-			command += await getBuildCommand(application);
+			command += await getBuildCommand(buildApplication);
 
 			const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-			if (application.serverId) {
-				await execAsyncRemote(application.serverId, commandWithLog);
+			if (buildServerId) {
+				await execAsyncRemote(buildServerId, commandWithLog);
 			} else {
 				await execAsync(commandWithLog);
 			}
@@ -481,6 +495,7 @@ export const rebuildPreviewApplication = async ({
 		comment_id: Number.parseInt(previewDeployment.pullRequestCommentId),
 		githubId: application?.githubId || "",
 	};
+	const buildServerId = application.buildServerId || application.serverId;
 
 	try {
 		const commentExists = await issueCommentExists({
@@ -525,13 +540,17 @@ export const rebuildPreviewApplication = async ({
 		application.rollbackRegistry = null;
 		application.registry = null;
 
-		const serverId = application.serverId;
+		const buildApplication = {
+			...application,
+			serverId: buildServerId,
+		};
+
 		let command = "set -e;";
 		// Only rebuild, don't clone repository
-		command += await getBuildCommand(application);
+		command += await getBuildCommand(buildApplication);
 		const commandWithLog = `(${command}) >> ${deployment.logPath} 2>&1`;
-		if (serverId) {
-			await execAsyncRemote(serverId, commandWithLog);
+		if (buildServerId) {
+			await execAsyncRemote(buildServerId, commandWithLog);
 		} else {
 			await execAsync(commandWithLog);
 		}
@@ -561,9 +580,8 @@ export const rebuildPreviewApplication = async ({
 		}
 
 		command += `echo "\nError occurred ❌, check the logs for details." >> ${deployment.logPath};`;
-		const serverId = application.buildServerId || application.serverId;
-		if (serverId) {
-			await execAsyncRemote(serverId, command);
+		if (buildServerId) {
+			await execAsyncRemote(buildServerId, command);
 		} else {
 			await execAsync(command);
 		}
