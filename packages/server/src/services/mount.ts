@@ -16,6 +16,8 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { shEscape } from "@dokploy/server/utils/security/shell-escape";
+import { validateFilePath } from "@dokploy/server/utils/security/path-validation";
 import { TRPCError } from "@trpc/server";
 import { eq, type SQL, sql } from "drizzle-orm";
 
@@ -292,10 +294,21 @@ export const updateFileMount = async (mountId: string) => {
 	const basePath = await getBaseFilesPath(mountId);
 	const fullPath = path.join(basePath, mount.filePath);
 
+	// Validate path is within allowed directory
+	if (!validateFilePath(mount.filePath, basePath)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid file path: path traversal detected",
+		});
+	}
+
 	try {
 		const serverId = await getServerId(mount);
 		const encodedContent = encodeBase64(mount.content || "");
-		const command = `echo "${encodedContent}" | base64 -d > ${fullPath}`;
+		// Escape fullPath for safe shell execution
+		const escapedFullPath = shEscape(fullPath);
+		const escapedEncodedContent = shEscape(encodedContent);
+		const command = `echo ${escapedEncodedContent} | base64 -d > ${escapedFullPath}`;
 		if (serverId) {
 			await execAsyncRemote(serverId, command);
 		} else {
@@ -312,10 +325,21 @@ export const deleteFileMount = async (mountId: string) => {
 	const basePath = await getBaseFilesPath(mountId);
 
 	const fullPath = path.join(basePath, mount.filePath);
+
+	// Validate path is within allowed directory
+	if (!validateFilePath(mount.filePath, basePath)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Invalid file path: path traversal detected",
+		});
+	}
+
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {
-			const command = `rm -rf ${fullPath}`;
+			// Escape fullPath for safe shell execution
+			const escapedFullPath = shEscape(fullPath);
+			const command = `rm -rf ${escapedFullPath}`;
 			await execAsyncRemote(serverId, command);
 		} else {
 			await removeFileOrDirectory(fullPath);

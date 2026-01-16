@@ -150,10 +150,11 @@ export const execAsyncRemote = async (
 
 	let stdout = "";
 	let stderr = "";
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		const conn = new Client();
 
-		sleep(1000);
+		// Add delay before connecting to avoid race conditions
+		await sleep(1000);
 		conn
 			.once("ready", () => {
 				conn.exec(command, (err, stream) => {
