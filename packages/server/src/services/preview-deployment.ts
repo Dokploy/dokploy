@@ -15,7 +15,7 @@ import { removeTraefikConfig } from "../utils/traefik/application";
 import { manageDomain } from "../utils/traefik/domain";
 import { findApplicationById } from "./application";
 import { removeDeploymentsByPreviewDeploymentId } from "./deployment";
-import { createDomain } from "./domain";
+import { createDomain, generatePreviewDeploymentDomain } from "./domain";
 import { type Github, getIssueComment } from "./github";
 import { getWebServerSettings } from "./web-server-settings";
 
@@ -138,11 +138,12 @@ export const createPreviewDeployment = async (
 	const org = await db.query.organization.findFirst({
 		where: eq(organization.id, application.environment.project.organizationId),
 	});
-	const generateDomain = await generateWildcardDomain(
-		application.previewWildcard || "*.traefik.me",
+	const generateDomain = await generatePreviewDeploymentDomain(
 		appName,
-		application.server?.ipAddress || "",
 		org?.ownerId || "",
+		application.environment.projectId,
+		application.serverId || undefined,
+		application.previewWildcard,
 	);
 
 	const octokit = authGithub(application?.github as Github);

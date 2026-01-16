@@ -8,7 +8,10 @@ import {
 	findOrganizationById,
 	findPreviewDeploymentById,
 	findServerById,
+	generateApplicationDomain,
+	generatePreviewDeploymentDomain,
 	generateTraefikMeDomain,
+	getProjectWildcardDomain,
 	getWebServerSettings,
 	manageDomain,
 	removeDomain,
@@ -98,11 +101,31 @@ export const domainRouter = createTRPCRouter({
 			return await findDomainsByComposeId(input.composeId);
 		}),
 	generateDomain: protectedProcedure
-		.input(z.object({ appName: z.string(), serverId: z.string().optional() }))
+		.input(
+			z.object({
+				appName: z.string(),
+				serverId: z.string().optional(),
+				projectId: z.string().optional(),
+				domainType: z.enum(["application", "preview"]).default("application"),
+				previewWildcard: z.string().optional().nullable(),
+			}),
+		)
 		.mutation(async ({ input, ctx }) => {
-			return generateTraefikMeDomain(
+			if (input.domainType === "preview") {
+				return generatePreviewDeploymentDomain(
+					input.appName,
+					ctx.user.ownerId,
+					input.projectId,
+					input.serverId,
+					input.previewWildcard ?? undefined,
+				);
+			}
+
+			// Use the new generateApplicationDomain which supports custom wildcard domains
+			return generateApplicationDomain(
 				input.appName,
 				ctx.user.ownerId,
+				input.projectId,
 				input.serverId,
 			);
 		}),
@@ -115,6 +138,12 @@ export const domainRouter = createTRPCRouter({
 			}
 			const settings = await getWebServerSettings();
 			return settings?.serverIp || "";
+		}),
+	// Get the effective wildcard domain for a project (project-level or inherited from organization)
+	getEffectiveWildcardDomain: protectedProcedure
+		.input(z.object({ projectId: z.string() }))
+		.query(async ({ input }) => {
+			return getProjectWildcardDomain(input.projectId);
 		}),
 
 	update: protectedProcedure

@@ -1,14 +1,18 @@
 import dns from "node:dns";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
+import {
+	generateCustomWildcardDomain,
+	generateRandomDomain,
+} from "@dokploy/server/templates";
 import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
-import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
+import { getProjectWildcardDomain } from "./project";
 import { findServerById } from "./server";
 
 export type Domain = typeof domains.$inferSelect;
@@ -68,11 +72,70 @@ export const generateTraefikMeDomain = async (
 	});
 };
 
-export const generateWildcardDomain = (
+/**
+ * Generates a domain for an application.
+ * If the project has a custom wildcard domain configured (at project or organization level),
+ * it will use that pattern. Otherwise, it falls back to the default traefik.me domain.
+ *
+ * @param appName - The name of the application
+ * @param userId - The user ID (used for traefik.me fallback)
+ * @param projectId - Optional project ID to check for custom wildcard domain
+ * @param serverId - Optional server ID for remote servers
+ * @returns The generated domain string
+ */
+export const generateApplicationDomain = async (
 	appName: string,
-	serverDomain: string,
-) => {
-	return `${appName}-${serverDomain}`;
+	userId: string,
+	projectId?: string,
+	serverId?: string,
+): Promise<string> => {
+	// Check if the project has a custom wildcard domain configured
+	if (projectId) {
+		const wildcardDomain = await getProjectWildcardDomain(projectId);
+
+		if (wildcardDomain) {
+			return generateCustomWildcardDomain({
+				appName,
+				wildcardDomain,
+			});
+		}
+	}
+
+	// Fall back to traefik.me domain
+	return generateTraefikMeDomain(appName, userId, serverId);
+};
+
+/**
+ * Generates a domain for preview deployments.
+ *
+ * Precedence:
+ * 1. Application-level preview wildcard (when provided)
+ * 2. Project/organization wildcard (via getProjectWildcardDomain)
+ * 3. traefik.me fallback
+ */
+export const generatePreviewDeploymentDomain = async (
+	appName: string,
+	userId: string,
+	projectId?: string,
+	serverId?: string,
+	previewWildcard?: string | null,
+	options?: {
+		fallbackGenerator?: typeof generateTraefikMeDomain;
+	},
+): Promise<string> => {
+	const { fallbackGenerator = generateTraefikMeDomain } = options ?? {};
+	const effectiveWildcard =
+		previewWildcard ||
+		(projectId ? await getProjectWildcardDomain(projectId) : null);
+
+	if (effectiveWildcard) {
+		return generateCustomWildcardDomain({
+			appName,
+			wildcardDomain: effectiveWildcard,
+		});
+	}
+
+	return fallbackGenerator(appName, userId, serverId);
 };
 
 export const findDomainById = async (domainId: string) => {

@@ -36,6 +36,7 @@ import { AdvancedEnvironmentSelector } from "@/components/dashboard/project/adva
 import { DuplicateProject } from "@/components/dashboard/project/duplicate-project";
 import { EnvironmentVariables } from "@/components/dashboard/project/environment-variables";
 import { ProjectEnvironment } from "@/components/dashboard/projects/project-environment";
+import { ProjectWildcardDomain } from "@/components/dashboard/projects/project-wildcard-domain";
 import {
 	MariadbIcon,
 	MongodbIcon,
@@ -909,6 +910,12 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
+									<ProjectWildcardDomain projectId={projectId}>
+										<Button variant="outline">
+											<GlobeIcon className="h-4 w-4 mr-2" />
+											Wildcard Domain
+										</Button>
+									</ProjectWildcardDomain>
 									{(auth?.role === "owner" ||
 										auth?.role === "admin" ||
 										auth?.canCreateServices) && (
@@ -1034,7 +1041,6 @@ const EnvironmentPage = (
 													</Button>
 												</DialogAction>
 												{(auth?.role === "owner" ||
-													auth?.role === "admin" ||
 													auth?.canDeleteServices) && (
 													<>
 														<DialogAction
