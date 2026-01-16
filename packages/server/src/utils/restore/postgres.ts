@@ -2,7 +2,7 @@ import type { apiRestoreBackup } from "@dokploy/server/db/schema";
 import type { Destination } from "@dokploy/server/services/destination";
 import type { Postgres } from "@dokploy/server/services/postgres";
 import type { z } from "zod";
-import { getS3Credentials } from "../backups/utils";
+import { buildRcloneCommand, getRcloneS3Remote } from "../backups/utils";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
 import { getRestoreCommand } from "./utils";
 
@@ -15,15 +15,18 @@ export const restorePostgresBackup = async (
 	try {
 		const { appName, databaseUser, serverId } = postgres;
 
-		const rcloneFlags = getS3Credentials(destination);
-		const bucketPath = `:s3:${destination.bucket}`;
+		// Get rclone remote (decryption is handled transparently if encryption is enabled)
+		const { remote, envVars } = getRcloneS3Remote(destination);
+		const backupPath = `${remote}/${backupInput.backupFile}`;
 
-		const backupPath = `${bucketPath}/${backupInput.backupFile}`;
-
-		const rcloneCommand = `rclone cat ${rcloneFlags.join(" ")} "${backupPath}" | gunzip`;
+		// With rclone crypt, decryption happens automatically when reading from the crypt remote
+		const rcloneCommand = buildRcloneCommand(
+			`rclone cat "${backupPath}" | gunzip`,
+			envVars,
+		);
 
 		emit("Starting restore...");
-		emit(`Backup path: ${backupPath}`);
+		emit(`Backup file: ${backupInput.backupFile}`);
 
 		const command = getRestoreCommand({
 			appName,
@@ -34,6 +37,7 @@ export const restorePostgresBackup = async (
 			type: "postgres",
 			rcloneCommand,
 			restoreType: "database",
+			backupFile: backupInput.backupFile,
 		});
 
 		emit(`Executing command: ${command}`);

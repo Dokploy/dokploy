@@ -2,7 +2,11 @@ import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { findComposeById } from "@dokploy/server/services/compose";
 import type { findVolumeBackupById } from "@dokploy/server/services/volume-backups";
-import { getS3Credentials, normalizeS3Path } from "../backups/utils";
+import {
+	buildRcloneCommand,
+	getRcloneS3Remote,
+	normalizeS3Path,
+} from "../backups/utils";
 
 export const backupVolume = async (
 	volumeBackup: Awaited<ReturnType<typeof findVolumeBackupById>>,
@@ -14,18 +18,23 @@ export const backupVolume = async (
 	const destination = volumeBackup.destination;
 	const backupFileName = `${volumeName}-${new Date().toISOString()}.tar`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
-	const rcloneFlags = getS3Credentials(volumeBackup.destination);
-	const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
+
+	// Get rclone remote (encryption is handled transparently if enabled)
+	const { remote, envVars } = getRcloneS3Remote(destination);
+	const rcloneDestination = `${remote}${bucketDestination}`;
 	const volumeBackupPath = path.join(VOLUME_BACKUPS_PATH, volumeBackup.appName);
 
-	const rcloneCommand = `rclone copyto ${rcloneFlags.join(" ")} "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`;
+	const rcloneCommand = buildRcloneCommand(
+		`rclone copyto "${volumeBackupPath}/${backupFileName}" "${rcloneDestination}"`,
+		envVars,
+	);
 
 	const baseCommand = `
 	set -e
 	echo "Volume name: ${volumeName}"
 	echo "Backup file name: ${backupFileName}"
 	echo "Turning off volume backup: ${turnOff ? "Yes" : "No"}"
-	echo "Starting volume backup" 
+	echo "Starting volume backup"
 	echo "Dir: ${volumeBackupPath}"
     docker run --rm \
   -v ${volumeName}:/volume_data \

@@ -48,6 +48,10 @@ Dokploy includes multiple features to make your life easier.
 - **Multi Server**: Deploy and manage your applications remotely to external servers.
 - **Self-Hosted**: Self-host Dokploy on your VPS.
 
+### 🔐 Encrypted Backups
+
+Backups can be encrypted at rest using [rclone crypt](https://rclone.org/crypt/). Configure encryption when creating an S3 Destination in **Dashboard → Settings → S3 Destinations** by enabling **Backup Encryption** and providing the primary password (and optional salt/password2). When enabled, Dokploy will automatically encrypt backup uploads and decrypt during restores.
+
 ## 🚀 Getting Started
 
 To get started, run the following command on a VPS:
