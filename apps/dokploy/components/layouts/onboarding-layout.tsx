@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type React from "react";
 import { cn } from "@/lib/utils";
+import { api } from "@/utils/api";
 import { GithubIcon } from "../icons/data-tools-icons";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
@@ -9,20 +10,51 @@ interface Props {
 	children: React.ReactNode;
 }
 export const OnboardingLayout = ({ children }: Props) => {
+	const { data: uiSettings } = api.settings.getUserInterfaceSettings.useQuery();
+	const backgroundImage = uiSettings?.loginPageImage;
+
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
 			<div className="relative hidden h-full flex-col  p-10 text-primary dark:border-r lg:flex">
-				<div className="absolute inset-0 bg-muted" />
+				<div
+					className="absolute inset-0"
+					style={{
+						backgroundImage: backgroundImage
+							? `url(${backgroundImage})`
+							: undefined,
+						backgroundSize: "cover",
+						backgroundPosition: "center",
+						backgroundRepeat: "no-repeat",
+					}}
+				>
+					<div
+						className={cn(
+							"absolute inset-0",
+							backgroundImage ? "bg-black/40" : "bg-muted",
+						)}
+					/>
+				</div>
 				<Link
 					href="https://dokploy.com"
-					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
+					className="relative z-20 flex items-center text-lg font-medium gap-4 text-primary"
 				>
 					<Logo className="size-10" />
-					Dokploy
+					<span
+						className={cn(
+							backgroundImage ? "text-white drop-shadow-lg" : "text-primary",
+						)}
+					>
+						Dokploy
+					</span>
 				</Link>
 				<div className="relative z-20 mt-auto">
 					<blockquote className="space-y-2">
-						<p className="text-lg text-primary">
+						<p
+							className={cn(
+								"text-lg",
+								backgroundImage ? "text-white drop-shadow-lg" : "text-primary",
+							)}
+						>
 							&ldquo;The Open Source alternative to Netlify, Vercel,
 							Heroku.&rdquo;
 						</p>
