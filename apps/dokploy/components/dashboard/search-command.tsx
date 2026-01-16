@@ -89,7 +89,7 @@ export const SearchCommand = () => {
 					<CommandGroup heading={"Projects"}>
 						<CommandList>
 							{data?.map((project) => {
-								// Find default environment, or fall back to first environment
+								// Find default environment from accessible environments, or fall back to first accessible environment
 								const defaultEnvironment =
 									project.environments.find(
 										(environment) => environment.isDefault,
