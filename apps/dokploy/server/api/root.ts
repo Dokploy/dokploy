@@ -26,6 +26,7 @@ import { portRouter } from "./routers/port";
 import { postgresRouter } from "./routers/postgres";
 import { previewDeploymentRouter } from "./routers/preview-deployment";
 import { projectRouter } from "./routers/project";
+import { proxyRouter } from "./routers/proxy";
 import { redirectsRouter } from "./routers/redirects";
 import { redisRouter } from "./routers/redis";
 import { registryRouter } from "./routers/registry";
@@ -64,6 +65,7 @@ export const appRouter = createTRPCRouter({
 	previewDeployment: previewDeploymentRouter,
 	mounts: mountRouter,
 	certificates: certificateRouter,
+	proxy: proxyRouter,
 	settings: settingsRouter,
 	security: securityRouter,
 	redirects: redirectsRouter,

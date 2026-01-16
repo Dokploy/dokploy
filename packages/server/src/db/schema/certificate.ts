@@ -1,11 +1,18 @@
 import { relations } from "drizzle-orm";
-import { boolean, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { organization } from "./account";
 import { server } from "./server";
 import { generateAppName } from "./utils";
+
+export const renewalStatus = pgEnum("renewalStatus", [
+	"pending",
+	"success",
+	"failed",
+	"not_configured",
+]);
 
 export const certificates = pgTable("certificate", {
 	certificateId: text("certificateId")
@@ -20,12 +27,25 @@ export const certificates = pgTable("certificate", {
 		.$defaultFn(() => generateAppName("certificate"))
 		.unique(),
 	autoRenew: boolean("autoRenew"),
+	domains: text("domains").array(),
+	expiresAt: timestamp("expiresAt"),
+	issuer: text("issuer"),
+	subject: text("subject"),
+	isWildcard: boolean("isWildcard").default(false),
+	autoRenewEnabled: boolean("autoRenewEnabled").default(false),
+	renewalStatus: renewalStatus("renewalStatus").default("not_configured"),
 	organizationId: text("organizationId")
 		.notNull()
 		.references(() => organization.id, { onDelete: "cascade" }),
 	serverId: text("serverId").references(() => server.serverId, {
 		onDelete: "cascade",
 	}),
+	createdAt: text("createdAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	updatedAt: text("updatedAt")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
 });
 
 export const certificatesRelations = relations(certificates, ({ one }) => ({
@@ -45,6 +65,13 @@ export const apiCreateCertificate = createInsertSchema(certificates, {
 	privateKey: z.string().min(1),
 	autoRenew: z.boolean().optional(),
 	serverId: z.string().optional(),
+	domains: z.array(z.string()).optional(),
+	expiresAt: z.date().optional(),
+	issuer: z.string().optional(),
+	subject: z.string().optional(),
+	isWildcard: z.boolean().optional(),
+	autoRenewEnabled: z.boolean().optional(),
+	renewalStatus: z.enum(["pending", "success", "failed", "not_configured"]).optional(),
 });
 
 export const apiFindCertificate = z.object({
@@ -57,6 +84,13 @@ export const apiUpdateCertificate = z.object({
 	certificateData: z.string().min(1).optional(),
 	privateKey: z.string().min(1).optional(),
 	autoRenew: z.boolean().optional(),
+	domains: z.array(z.string()).optional(),
+	expiresAt: z.date().optional(),
+	issuer: z.string().optional(),
+	subject: z.string().optional(),
+	isWildcard: z.boolean().optional(),
+	autoRenewEnabled: z.boolean().optional(),
+	renewalStatus: z.enum(["pending", "success", "failed", "not_configured"]).optional(),
 });
 
 export const apiDeleteCertificate = z.object({

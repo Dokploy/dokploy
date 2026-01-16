@@ -1,16 +1,20 @@
 import {
 	createCertificate,
 	findCertificateById,
+	findMatchingCertificates,
 	IS_CLOUD,
 	removeCertificateById,
+	updateCertificate,
 } from "@dokploy/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import {
 	apiCreateCertificate,
 	apiFindCertificate,
+	apiUpdateCertificate,
 	certificates,
 } from "@/server/db/schema";
 
@@ -57,4 +61,26 @@ export const certificateRouter = createTRPCRouter({
 			where: eq(certificates.organizationId, ctx.session.activeOrganizationId),
 		});
 	}),
+	
+	update: adminProcedure
+		.input(apiUpdateCertificate)
+		.mutation(async ({ input, ctx }) => {
+			const certificate = await findCertificateById(input.certificateId);
+			if (certificate.organizationId !== ctx.session.activeOrganizationId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You are not allowed to update this certificate",
+				});
+			}
+			return await updateCertificate(input);
+		}),
+	
+	findMatching: adminProcedure
+		.input(z.object({ domain: z.string().min(1) }))
+		.query(async ({ input, ctx }) => {
+			return await findMatchingCertificates(
+				input.domain,
+				ctx.session.activeOrganizationId,
+			);
+		}),
 });

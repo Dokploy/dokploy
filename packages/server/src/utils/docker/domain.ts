@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
 import type { Compose } from "@dokploy/server/services/compose";
 import type { Domain } from "@dokploy/server/services/domain";
+import { wildcardToHostRegexp } from "@dokploy/server/utils/domain/wildcard";
 import { parse, stringify } from "yaml";
 import { execAsyncRemote } from "../process/execAsync";
 import { cloneBitbucketRepository } from "../providers/bitbucket";
@@ -263,8 +264,20 @@ export const createDomainLabels = (
 		internalPath,
 	} = domain;
 	const routerName = `${appName}-${uniqueConfigKey}-${entrypoint}`;
+	
+	// Generate rule with wildcard support
+	let hostRule: string;
+	if (host.startsWith("*.")) {
+		// Use HostRegexp for wildcard domains
+		hostRule = wildcardToHostRegexp(host);
+	} else {
+		// Use regular Host rule for exact matches
+		hostRule = `Host(\`${host}\`)`;
+	}
+	
+	const pathRule = path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : "";
 	const labels = [
-		`traefik.http.routers.${routerName}.rule=Host(\`${host}\`)${path && path !== "/" ? ` && PathPrefix(\`${path}\`)` : ""}`,
+		`traefik.http.routers.${routerName}.rule=${hostRule}${pathRule}`,
 		`traefik.http.routers.${routerName}.entrypoints=${entrypoint}`,
 		`traefik.http.services.${routerName}.loadbalancer.server.port=${port}`,
 		`traefik.http.routers.${routerName}.service=${routerName}`,
