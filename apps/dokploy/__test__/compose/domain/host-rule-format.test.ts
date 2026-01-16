@@ -136,6 +136,51 @@ describe("Host rule format regression tests", () => {
 		});
 	});
 
+	describe("Wildcard domain support (Traefik v3)", () => {
+		/**
+		 * Traefik v3 requires HostRegexp for wildcard domains.
+		 * @see https://doc.traefik.io/traefik/v3.0/routing/routers/
+		 */
+		it("should generate HostRegexp rule for wildcard domain", async () => {
+			const labels = await createDomainLabels(
+				"test-app",
+				{ ...baseDomain, host: "*.example.com" },
+				"web",
+			);
+			const ruleLabel = labels.find((l) => l.includes(".rule="));
+
+			expect(ruleLabel).toBeDefined();
+			// Should use HostRegexp instead of Host for wildcards
+			expect(ruleLabel).toContain("HostRegexp(`^.+\\.example\\.com$`)");
+			expect(ruleLabel).not.toContain("Host(`*.example.com`)");
+		});
+
+		it("should generate HostRegexp rule for nested wildcard domain", async () => {
+			const labels = await createDomainLabels(
+				"test-app",
+				{ ...baseDomain, host: "*.app.example.com" },
+				"web",
+			);
+			const ruleLabel = labels.find((l) => l.includes(".rule="));
+
+			expect(ruleLabel).toBeDefined();
+			expect(ruleLabel).toContain("HostRegexp(`^.+\\.app\\.example\\.com$`)");
+		});
+
+		it("should combine HostRegexp with PathPrefix for wildcard domain", async () => {
+			const labels = await createDomainLabels(
+				"test-app",
+				{ ...baseDomain, host: "*.example.com", path: "/api" },
+				"web",
+			);
+			const ruleLabel = labels.find((l) => l.includes(".rule="));
+
+			expect(ruleLabel).toBeDefined();
+			expect(ruleLabel).toContain("HostRegexp(`^.+\\.example\\.com$`)");
+			expect(ruleLabel).toContain("PathPrefix(`/api`)");
+		});
+	});
+
 	describe("Edge cases for domain names", () => {
 		const domainCases = [
 			{ name: "simple domain", host: "example.com" },
