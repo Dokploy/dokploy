@@ -65,4 +65,23 @@ RUN curl -sSL https://railpack.com/install.sh | bash
 COPY --from=buildpacksio/pack:0.39.1 /usr/local/bin/pack /usr/local/bin/pack
 
 EXPOSE 3000
+
+# Install redis-tools: the Debian package that provides redis-cli.
+# This is a small, targeted addition (much smaller than adding full DB client stacks)
+RUN apt-get update && apt-get install -y --no-install-recommends redis-tools
+
+# Add a docker-entrypoint to manage startup dependencies
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Add Healthcheck to allow for service and container restart by orchestrator restart policies
+HEALTHCHECK \
+  --interval=10s \
+  --timeout=3s \
+  --start-period=30s \
+  --retries=5 \
+  CMD curl -fsS http://127.0.0.1:3000/api/health >/dev/null || exit 1
+
 CMD [ "pnpm", "start" ]
