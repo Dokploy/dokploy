@@ -6,6 +6,7 @@ import {
 	PenBoxIcon,
 	PlusIcon,
 	RefreshCw,
+	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -106,6 +107,8 @@ const Schema = z
 					.optional(),
 			})
 			.optional(),
+		includePaths: z.array(z.string()).optional(),
+		excludePaths: z.array(z.string()).optional(),
 	})
 	.superRefine((data, ctx) => {
 		if (data.backupType === "compose" && !data.databaseType) {
@@ -219,6 +222,8 @@ export const HandleBackup = ({
 			databaseType: backupType === "compose" ? undefined : databaseType,
 			backupType: backupType,
 			metadata: {},
+			includePaths: undefined,
+			excludePaths: databaseType === "web-server" ? ["/applications/**", "/compose/**"] : undefined,
 		},
 		resolver: zodResolver(Schema),
 	});
@@ -256,8 +261,10 @@ export const HandleBackup = ({
 			databaseType: backup?.databaseType ?? databaseType,
 			backupType: backup?.backupType ?? backupType,
 			metadata: backup?.metadata ?? {},
+			includePaths: backup?.includePaths ?? undefined,
+			excludePaths: backup?.excludePaths ?? (databaseType === "web-server" ? ["/applications/**", "/compose/**"] : undefined),
 		});
-	}, [form, form.reset, backupId, backup]);
+	}, [form, form.reset, backupId, backup, databaseType]);
 
 	const onSubmit = async (data: z.infer<typeof Schema>) => {
 		const getDatabaseId =
@@ -300,6 +307,8 @@ export const HandleBackup = ({
 			backupId: backupId ?? "",
 			backupType,
 			metadata: data.metadata,
+			includePaths: data.includePaths,
+			excludePaths: data.excludePaths,
 		})
 			.then(async () => {
 				toast.success(`Backup ${backupId ? "Updated" : "Created"}`);
@@ -624,6 +633,142 @@ export const HandleBackup = ({
 									);
 								}}
 							/>
+							{databaseType === "web-server" && (
+								<>
+									<FormField
+										control={form.control}
+										name="excludePaths"
+										render={({ field }) => {
+											const [inputValue, setInputValue] = useState("");
+											const paths = field.value || [];
+
+											const addPath = () => {
+												if (inputValue.trim() && !paths.includes(inputValue.trim())) {
+													field.onChange([...paths, inputValue.trim()]);
+													setInputValue("");
+												}
+											};
+
+											const removePath = (path: string) => {
+												field.onChange(paths.filter((p) => p !== path));
+											};
+
+											return (
+												<FormItem>
+													<FormLabel>Exclude Paths</FormLabel>
+													<FormDescription>
+														Specify paths to exclude from the backup using glob patterns (e.g., /applications/**, /compose/**)
+													</FormDescription>
+													<div className="flex gap-2">
+														<FormControl>
+															<Input
+																placeholder="/applications/**"
+																value={inputValue}
+																onChange={(e) => setInputValue(e.target.value)}
+																onKeyDown={(e) => {
+																	if (e.key === "Enter") {
+																		e.preventDefault();
+																		addPath();
+																	}
+																}}
+															/>
+														</FormControl>
+														<Button type="button" onClick={addPath} variant="secondary">
+															<PlusIcon className="h-4 w-4" />
+														</Button>
+													</div>
+													{paths.length > 0 && (
+														<div className="flex flex-wrap gap-2 mt-2">
+															{paths.map((path) => (
+																<div
+																	key={path}
+																	className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-sm"
+																>
+																	<span>{path}</span>
+																	<button
+																		type="button"
+																		onClick={() => removePath(path)}
+																		className="hover:text-destructive"
+																	>
+																		<X className="h-3 w-3" />
+																	</button>
+																</div>
+															))}
+														</div>
+													)}
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+									<FormField
+										control={form.control}
+										name="includePaths"
+										render={({ field }) => {
+											const [inputValue, setInputValue] = useState("");
+											const paths = field.value || [];
+
+											const addPath = () => {
+												if (inputValue.trim() && !paths.includes(inputValue.trim())) {
+													field.onChange([...paths, inputValue.trim()]);
+													setInputValue("");
+												}
+											};
+
+											const removePath = (path: string) => {
+												field.onChange(paths.filter((p) => p !== path));
+											};
+
+											return (
+												<FormItem>
+													<FormLabel>Include Paths (Optional)</FormLabel>
+													<FormDescription>
+														Specify specific paths to include. If specified, only these paths will be backed up (e.g., /traefik/**, /ssh/**)
+													</FormDescription>
+													<div className="flex gap-2">
+														<FormControl>
+															<Input
+																placeholder="/traefik/**"
+																value={inputValue}
+																onChange={(e) => setInputValue(e.target.value)}
+																onKeyDown={(e) => {
+																	if (e.key === "Enter") {
+																		e.preventDefault();
+																		addPath();
+																	}
+																}}
+															/>
+														</FormControl>
+														<Button type="button" onClick={addPath} variant="secondary">
+															<PlusIcon className="h-4 w-4" />
+														</Button>
+													</div>
+													{paths.length > 0 && (
+														<div className="flex flex-wrap gap-2 mt-2">
+															{paths.map((path) => (
+																<div
+																	key={path}
+																	className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-sm"
+																>
+																	<span>{path}</span>
+																	<button
+																		type="button"
+																		onClick={() => removePath(path)}
+																		className="hover:text-destructive"
+																	>
+																		<X className="h-3 w-3" />
+																	</button>
+																</div>
+															))}
+														</div>
+													)}
+													<FormMessage />
+												</FormItem>
+											);
+										}}
+									/>
+								</>
+							)}
 							<FormField
 								control={form.control}
 								name="enabled"

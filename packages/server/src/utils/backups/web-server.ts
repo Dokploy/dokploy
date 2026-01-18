@@ -66,9 +66,29 @@ export const runWebServerBackup = async (backup: BackupSchedule) => {
 			writeStream.write(`Cleaning up temp file: ${cleanupCommand}\n`);
 			await execAsync(cleanupCommand);
 
-			await execAsync(
-				`rsync -a --ignore-errors ${BASE_PATH}/ ${tempDir}/filesystem/`,
-			);
+			// Build rsync command with include/exclude patterns
+			let rsyncCommand = "rsync -a --ignore-errors";
+
+			// Add include patterns if specified
+			if (backup.includePaths && backup.includePaths.length > 0) {
+				for (const pattern of backup.includePaths) {
+					rsyncCommand += ` --include="${pattern}"`;
+				}
+				// When using --include, we need to exclude everything else
+				rsyncCommand += ' --exclude="*"';
+			}
+
+			// Add exclude patterns if specified
+			if (backup.excludePaths && backup.excludePaths.length > 0) {
+				for (const pattern of backup.excludePaths) {
+					rsyncCommand += ` --exclude="${pattern}"`;
+				}
+			}
+
+			rsyncCommand += ` ${BASE_PATH}/ ${tempDir}/filesystem/`;
+
+			writeStream.write(`Running rsync command: ${rsyncCommand}\n`);
+			await execAsync(rsyncCommand);
 
 			writeStream.write("Copied filesystem to temp directory\n");
 
