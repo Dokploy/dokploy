@@ -1,17 +1,15 @@
 import { format } from "date-fns";
 import {
+	Clock,
+	Key,
 	KeyIcon,
 	Loader2,
 	MoreHorizontal,
-	ServerIcon,
-	Clock,
-	User,
-	Key,
 	Network,
+	ServerIcon,
 	Terminal,
-	Settings,
-	Pencil,
 	Trash2,
+	User,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -31,9 +29,7 @@ import {
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuItem,
 	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -285,7 +281,32 @@ export const ShowServers = () => {
 
 																	{/* Compact Actions */}
 																	{isActive && (
-																		<div className="flex items-center gap-2 pt-3 border-t mt-auto">
+																		<div className="flex items-center  gap-2 pt-3 border-t mt-auto flex-wrap">
+																			<div className="flex items-center gap-2 w-full">
+																				<Tooltip>
+																					<TooltipTrigger asChild>
+																						<SetupServer
+																							serverId={server.serverId}
+																						/>
+																					</TooltipTrigger>
+																					<TooltipContent
+																						className="max-w-xs"
+																						side="bottom"
+																					>
+																						<div className="space-y-1">
+																							<p className="font-semibold">
+																								Setup Server
+																							</p>
+																							<p className="text-xs text-muted-foreground">
+																								Configure and initialize your
+																								server with Docker, Traefik, and
+																								other essential services
+																							</p>
+																						</div>
+																					</TooltipContent>
+																				</Tooltip>
+																			</div>
+
 																			<TooltipProvider>
 																				{server.sshKeyId && (
 																					<Tooltip>
@@ -310,20 +331,6 @@ export const ShowServers = () => {
 																						</TooltipContent>
 																					</Tooltip>
 																				)}
-
-																				<Tooltip>
-																					<TooltipTrigger asChild>
-																						<div>
-																							<SetupServer
-																								serverId={server.serverId}
-																								asButton={true}
-																							/>
-																						</div>
-																					</TooltipTrigger>
-																					<TooltipContent>
-																						<p>Setup Server</p>
-																					</TooltipContent>
-																				</Tooltip>
 
 																				<Tooltip>
 																					<TooltipTrigger asChild>

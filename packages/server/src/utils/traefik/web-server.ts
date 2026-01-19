@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { paths } from "@dokploy/server/constants";
-import type { User } from "@dokploy/server/services/user";
+import type { webServerSettings } from "@dokploy/server/db/schema/web-server-settings";
 import { parse, stringify } from "yaml";
 import {
 	loadOrCreateConfig,
@@ -12,10 +12,10 @@ import type { FileConfig } from "./file-types";
 import type { MainTraefikConfig } from "./types";
 
 export const updateServerTraefik = (
-	user: User | null,
+	settings: typeof webServerSettings.$inferSelect | null,
 	newHost: string | null,
 ) => {
-	const { https, certificateType } = user || {};
+	const { https, certificateType } = settings || {};
 	const appName = "dokploy";
 	const config: FileConfig = loadOrCreateConfig(appName);
 

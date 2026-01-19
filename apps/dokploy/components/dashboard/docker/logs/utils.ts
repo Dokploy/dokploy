@@ -108,7 +108,8 @@ export const getLogType = (message: string): LogStyle => {
 		/(?:might|may|could)\s+(?:not|cause|lead\s+to)/i.test(lowerMessage) ||
 		/(?:!+\s*(?:warning|caution|attention)\s*!+)/i.test(lowerMessage) ||
 		/\b(?:deprecated|obsolete)\b/i.test(lowerMessage) ||
-		/\b(?:unstable|experimental)\b/i.test(lowerMessage)
+		/\b(?:unstable|experimental)\b/i.test(lowerMessage) ||
+		/⚠|⚠️/i.test(lowerMessage)
 	) {
 		return LOG_STYLES.warning;
 	}
