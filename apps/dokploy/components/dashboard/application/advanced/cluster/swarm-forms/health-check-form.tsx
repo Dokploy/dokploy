@@ -90,7 +90,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 		setIsLoading(true);
 		try {
 			// Check if all values are empty, if so, send null to clear the database
-			const hasAnyValue = 
+			const hasAnyValue =
 				(formData.Test && formData.Test.length > 0) ||
 				formData.Interval !== undefined ||
 				formData.Timeout !== undefined ||

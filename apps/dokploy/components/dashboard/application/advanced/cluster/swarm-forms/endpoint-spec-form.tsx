@@ -82,7 +82,10 @@ export const EndpointSpecForm = ({ id, type }: EndpointSpecFormProps) => {
 		setIsLoading(true);
 		try {
 			// Check if all values are empty, if so, send null to clear the database
-			const hasAnyValue = formData.Mode !== undefined && formData.Mode !== null && formData.Mode !== "";
+			const hasAnyValue =
+				formData.Mode !== undefined &&
+				formData.Mode !== null &&
+				formData.Mode !== "";
 
 			await mutateAsync({
 				applicationId: id || "",

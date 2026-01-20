@@ -103,7 +103,7 @@ export const PlacementForm = ({ id, type }: PlacementFormProps) => {
 		setIsLoading(true);
 		try {
 			// Check if all values are empty, if so, send null to clear the database
-			const hasAnyValue = 
+			const hasAnyValue =
 				(formData.Constraints && formData.Constraints.length > 0) ||
 				(formData.Preferences && formData.Preferences.length > 0) ||
 				(formData.Platforms && formData.Platforms.length > 0) ||

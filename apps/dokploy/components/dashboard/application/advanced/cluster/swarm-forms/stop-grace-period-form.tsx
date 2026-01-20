@@ -119,9 +119,15 @@ export const StopGracePeriodForm = ({ id, type }: StopGracePeriodFormProps) => {
 									type="number"
 									placeholder="30000000000"
 									{...field}
-									value={field?.value !== null && field?.value !== undefined ? field.value.toString() : ""}
+									value={
+										field?.value !== null && field?.value !== undefined
+											? field.value.toString()
+											: ""
+									}
 									onChange={(e) =>
-										field.onChange(e.target.value ? BigInt(e.target.value) : null)
+										field.onChange(
+											e.target.value ? BigInt(e.target.value) : null,
+										)
 									}
 								/>
 							</FormControl>

@@ -99,7 +99,7 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 		try {
 			// Check if all values are empty, if so, send null to clear the database
 			const hasAnyValue = Object.values(formData).some(
-				value => value !== undefined && value !== null && value !== ""
+				(value) => value !== undefined && value !== null && value !== "",
 			);
 
 			await mutateAsync({
