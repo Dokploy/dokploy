@@ -1,4 +1,4 @@
-import { ExternalLink, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useState } from "react";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,7 @@ type MenuItem = {
 	id: string;
 	label: string;
 	description: string;
-	docUrl?: string;
-	docDescription?: string;
+	docDescription: string;
 };
 
 const menuItems: MenuItem[] = [
@@ -42,81 +41,64 @@ const menuItems: MenuItem[] = [
 		id: "health-check",
 		label: "Health Check",
 		description: "Configure health check settings",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#healthcheck",
 		docDescription:
-			"Configure HEALTHCHECK to test a container's health. Determines if a container is healthy by running a command inside the container.",
+			"Configure HEALTHCHECK to test a container's health. Determines if a container is healthy by running a command inside the container. Test, Interval, Timeout, StartPeriod, and Retries control health monitoring.",
 	},
 	{
 		id: "restart-policy",
 		label: "Restart Policy",
 		description: "Configure restart policy",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#restart-policy",
 		docDescription:
-			"Configure the restart policy for containers in the service. Controls when and how containers should be restarted.",
+			"Configure the restart policy for containers in the service. Condition (none, on-failure, any), Delay (nanoseconds between restarts), MaxAttempts, and Window control restart behavior.",
 	},
 	{
 		id: "placement",
 		label: "Placement",
 		description: "Configure placement constraints",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#placement-pref",
 		docDescription:
-			"Control which nodes service tasks can be scheduled on. Use constraints, preferences, and platform specifications.",
+			"Control which nodes service tasks can be scheduled on. Constraints (node.id==xyz), Preferences (spread.node.labels.zone), MaxReplicas, and Platforms specify task placement rules.",
 	},
 	{
 		id: "update-config",
 		label: "Update Config",
 		description: "Configure update strategy",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#update-config",
 		docDescription:
-			"Configure how the service should be updated. Controls parallelism, delay, failure action, and order of updates.",
+			"Configure how the service should be updated. Parallelism (tasks updated simultaneously), Delay, FailureAction (pause, continue, rollback), Monitor, MaxFailureRatio, and Order (stop-first, start-first) control updates.",
 	},
 	{
 		id: "rollback-config",
 		label: "Rollback Config",
 		description: "Configure rollback strategy",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#rollback-config",
 		docDescription:
-			"Configure automated rollback on update failure. Similar to update config but applies to rollback operations.",
+			"Configure automated rollback on update failure. Uses same parameters as UpdateConfig: Parallelism, Delay, FailureAction, Monitor, MaxFailureRatio, and Order.",
 	},
 	{
 		id: "mode",
 		label: "Mode",
 		description: "Configure service mode",
-		docUrl: "https://docs.docker.com/reference/cli/docker/service/create/#mode",
 		docDescription:
-			"Set service mode to either 'replicated' (default) with a specified number of tasks, or 'global' (one task per node).",
+			"Set service mode to either 'Replicated' with a specified number of tasks (Replicas), or 'Global' (one task per node).",
 	},
 	{
 		id: "labels",
 		label: "Labels",
 		description: "Configure service labels",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#label",
 		docDescription:
-			"Add metadata to services using labels. Labels are key-value pairs for organizing and filtering services.",
+			"Add metadata to services using labels. Labels are key-value pairs (e.g., com.example.foo=bar) for organizing and filtering services.",
 	},
 	{
 		id: "stop-grace-period",
 		label: "Stop Grace Period",
 		description: "Configure stop grace period",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#stop-grace-period",
 		docDescription:
-			"Time to wait before forcefully killing a container. Given in nanoseconds. Default is 10 seconds.",
+			"Time to wait before forcefully killing a container. Specified in nanoseconds (e.g., 10000000000 = 10 seconds). Allows containers to shutdown gracefully.",
 	},
 	{
 		id: "endpoint-spec",
 		label: "Endpoint Spec",
 		description: "Configure endpoint specification",
-		docUrl:
-			"https://docs.docker.com/reference/cli/docker/service/create/#endpoint-mode",
 		docDescription:
-			"Configure endpoint mode for service discovery. Choose between 'vip' (virtual IP) or 'dnsrr' (DNS round-robin).",
+			"Configure endpoint mode for service discovery. Mode 'vip' (virtual IP - default) uses a single virtual IP. Mode 'dnsrr' (DNS round-robin) returns DNS entries for all tasks.",
 	},
 ];
 
@@ -163,44 +145,28 @@ export const AddSwarmSettings = ({ id, type }: Props) => {
 						<nav className="space-y-1">
 							<TooltipProvider>
 								{menuItems.map((item) => (
-									<div key={item.id} className="relative group">
-										<button
-											type="button"
-											onClick={() => setActiveMenu(item.id)}
-											className={cn(
-												"w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
-												activeMenu === item.id
-													? "bg-primary text-primary-foreground"
-													: "hover:bg-muted",
-											)}
-										>
-											<div className="flex items-center justify-between gap-2">
-												<div className="flex-1">
-													<div className="font-medium">{item.label}</div>
-													<div className="text-xs opacity-80">
-														{item.description}
-													</div>
-												</div>
-												{item.docUrl && (
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<a
-																href={item.docUrl}
-																target="_blank"
-																rel="noopener noreferrer"
-																onClick={(e) => e.stopPropagation()}
-															>
-																<ExternalLink className="size-3.5" />
-															</a>
-														</TooltipTrigger>
-														<TooltipContent side="right" className="max-w-xs">
-															<p className="text-xs">{item.docDescription}</p>
-														</TooltipContent>
-													</Tooltip>
+									<Tooltip key={item.id}>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												onClick={() => setActiveMenu(item.id)}
+												className={cn(
+													"w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+													activeMenu === item.id
+														? "bg-primary text-primary-foreground"
+														: "hover:bg-muted",
 												)}
-											</div>
-										</button>
-									</div>
+											>
+												<div className="font-medium">{item.label}</div>
+												<div className="text-xs opacity-80">
+													{item.description}
+												</div>
+											</button>
+										</TooltipTrigger>
+										<TooltipContent side="right" className="max-w-xs">
+											<p className="text-xs">{item.docDescription}</p>
+										</TooltipContent>
+									</Tooltip>
 								))}
 							</TooltipProvider>
 						</nav>
