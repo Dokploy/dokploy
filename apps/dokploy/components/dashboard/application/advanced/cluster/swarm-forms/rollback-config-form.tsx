@@ -103,7 +103,7 @@ export const RollbackConfigForm = ({ id, type }: RollbackConfigFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
-				rollbackConfigSwarm: hasAnyValue ? formData : null,
+				rollbackConfigSwarm: (hasAnyValue ? formData : null) as any,
 			});
 
 			toast.success("Rollback config updated successfully");

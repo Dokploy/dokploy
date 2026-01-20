@@ -109,7 +109,7 @@ export const UpdateConfigForm = ({ id, type }: UpdateConfigFormProps) => {
 				mysqlId: id || "",
 				mariadbId: id || "",
 				mongoId: id || "",
-				updateConfigSwarm: hasAnyValue ? formData : null,
+				updateConfigSwarm: (hasAnyValue ? formData : null) as any,
 			});
 
 			toast.success("Update config updated successfully");
