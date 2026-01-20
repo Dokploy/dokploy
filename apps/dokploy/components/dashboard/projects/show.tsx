@@ -419,7 +419,7 @@ export const ShowProjects = () => {
 															) : null}
 															<CardHeader>
 																<CardTitle className="flex items-center justify-between gap-2">
-																	<span className="flex flex-col gap-1.5 truncate">
+																	<span className="flex flex-col gap-1.5 ">
 																		<div className="flex items-center gap-2">
 																			<BookIcon className="size-4 text-muted-foreground" />
 																			<span className="text-base font-medium leading-none">
@@ -427,7 +427,7 @@ export const ShowProjects = () => {
 																			</span>
 																		</div>
 
-																		<span className="text-sm font-medium text-muted-foreground">
+																		<span className="text-sm font-medium text-muted-foreground break-all">
 																			{project.description}
 																		</span>
 																	</span>
