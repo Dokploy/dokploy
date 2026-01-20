@@ -102,7 +102,8 @@ export const LabelsForm = ({ id, type }: LabelsFormProps) => {
 				) || {};
 
 			// If no labels, send null to clear the database
-			const labelsToSend = Object.keys(labelsObject).length > 0 ? labelsObject : null;
+			const labelsToSend =
+				Object.keys(labelsObject).length > 0 ? labelsObject : null;
 
 			await mutateAsync({
 				applicationId: id || "",
