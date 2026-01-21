@@ -32,7 +32,7 @@ if (DATABASE_URL) {
 		This mode WILL BE REMOVED in a future release.
 		
 		Please migrate to Docker Secrets using POSTGRES_PASSWORD_FILE.
-		Please execute this guide: https://dokploy.com/SECURITY_MIGRATION.md
+		Please execute this command in your server: curl -sSL https://dokploy.com/security/0.26.6.sh | bash
 		`);
 	dbUrl =
 		"postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
