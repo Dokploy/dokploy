@@ -24,7 +24,7 @@ const {
 	POSTGRES_PORT = "5432",
 } = process.env;
 
-let dbUrl: string;
+export let dbUrl: string;
 
 if (DATABASE_URL) {
 	// Compatibilidad legacy / overrides
