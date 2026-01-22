@@ -156,15 +156,17 @@ CHECK_INTERVAL=10
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "^.*docker [a-zA-Z]" | grep -v grep)
+  PROCESSES=$(ps aux | grep -E "^.*docker [a-zA-Z]" | grep -v grep)
 
-    if [ -z "$PROCESSES" ]; then
-        echo "Docker is idle. Starting execution..."
-        break
-    else
-        echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
-        sleep $CHECK_INTERVAL
-    fi
+  if [ -z "$PROCESSES" ]; then
+    echo "Docker is idle. Starting execution..."
+
+    break
+  else
+    echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+
+    sleep $CHECK_INTERVAL
+  fi
 done
 
 ${exec}
