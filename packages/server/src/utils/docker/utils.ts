@@ -150,7 +150,7 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
  *
  * https://github.com/Dokploy/dokploy/pull/3064
  */
-export const dockerSafeExec = (exec: string) => `
+export const dockerIdleExec = (exec: string) => `
 check_interval=10
 
 echo "Preparing for execution..."
@@ -175,11 +175,11 @@ echo "Execution completed."
 `;
 
 const cleanupCommands = {
-	containers: dockerSafeExec("docker container prune --force"),
-	images: dockerSafeExec("docker image prune --all --force"),
-	volumes: dockerSafeExec("docker volume prune --all --force"),
-	builders: dockerSafeExec("docker builder prune --all --force"),
-	system: dockerSafeExec("docker system prune --all --force"),
+	containers: dockerIdleExec("docker container prune --force"),
+	images: dockerIdleExec("docker image prune --all --force"),
+	volumes: dockerIdleExec("docker volume prune --all --force"),
+	builders: dockerIdleExec("docker builder prune --all --force"),
+	system: dockerIdleExec("docker system prune --all --force"),
 };
 
 export const cleanupContainers = async (serverId?: string) => {
