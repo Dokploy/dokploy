@@ -1,4 +1,5 @@
 import {
+	containerRemove,
 	containerRestart,
 	findServerById,
 	getConfig,
@@ -142,5 +143,18 @@ export const dockerRouter = createTRPCRouter({
 				}
 			}
 			return await getServiceContainersByAppName(input.appName, input.serverId);
+		}),
+
+	removeContainer: protectedProcedure
+		.input(
+			z.object({
+				containerId: z
+					.string()
+					.min(1)
+					.regex(containerIdRegex, "Invalid container id."),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			return await containerRemove(input.containerId);
 		}),
 });
