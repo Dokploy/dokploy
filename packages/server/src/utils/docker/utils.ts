@@ -156,7 +156,7 @@ check_interval=10
 echo "Preparing for execution..."
 
 while true; do
-  docker_processes=$(ps aux | grep -E "^.*docker [a-zA-Z]" | grep -v grep)
+  docker_processes=$(ps aux | grep -E "^.*(docker|podman) [a-zA-Z]" | grep -v grep)
 
   if [ -z "$docker_processes" ]; then
     echo "Docker is idle. Starting execution..."
