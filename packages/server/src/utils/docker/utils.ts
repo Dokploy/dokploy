@@ -151,21 +151,21 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
  * https://github.com/Dokploy/dokploy/pull/3064
  */
 export const dockerSafeExec = (exec: string) => `
-CHECK_INTERVAL=10
+check_interval=10
 
 echo "Preparing for execution..."
 
 while true; do
-  PROCESSES=$(ps aux | grep -E "^.*docker [a-zA-Z]" | grep -v grep)
+  docker_processes=$(ps aux | grep -E "^.*docker [a-zA-Z]" | grep -v grep)
 
-  if [ -z "$PROCESSES" ]; then
+  if [ -z "$docker_processes" ]; then
     echo "Docker is idle. Starting execution..."
 
     break
   else
-    echo "Docker is busy. Will check again in $CHECK_INTERVAL seconds..."
+    echo "Docker is busy. Will check again in $check_interval seconds..."
 
-    sleep $CHECK_INTERVAL
+    sleep $check_interval
   fi
 done
 
