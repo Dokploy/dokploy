@@ -150,7 +150,7 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
  *
  * https://github.com/Dokploy/dokploy/pull/3064
  */
-export const dockerIdleExec = (exec: string) => `
+export const dockerIdleExec = (command: string) => `
 check_interval=10
 
 echo "Preparing for execution..."
@@ -169,7 +169,7 @@ while true; do
   fi
 done
 
-${exec}
+${command}
 
 echo "Execution completed."
 `;
