@@ -33,7 +33,7 @@ function validateShellType(shellType: string): void {
  * Docker container IDs are 64-character hexadecimal strings, but shortened versions (12 chars) are also common
  */
 function validateContainerId(containerId: string): void {
-	if (!containerId || !/^[a-f0-9]{12,64}$/.test(containerId)) {
+	if (!containerId || !/^[a-f0-9]{12,64}$/i.test(containerId)) {
 		throw new Error(`Invalid container ID: ${containerId}`);
 	}
 }
@@ -175,9 +175,19 @@ export const runCommand = async (scheduleId: string) => {
 			const { SCHEDULES_PATH } = paths();
 			const fullPath = path.join(SCHEDULES_PATH, appName || "");
 
+			// Validate that the script exists within the expected directory
+			const scriptPath = path.join(fullPath, "script.sh");
+			const fs = await import("node:fs/promises");
+			try {
+				await fs.access(scriptPath);
+			} catch {
+				throw new Error(`Script not found at expected location: ${scriptPath}`);
+			}
+
+			// Use absolute path to avoid path traversal
 			await spawnAsync(
 				"bash",
-				["-c", "./script.sh"],
+				[scriptPath],
 				async (data) => {
 					if (writeStream.writable) {
 						// we need to extract the PID and Schedule ID from the data
@@ -203,14 +213,21 @@ export const runCommand = async (scheduleId: string) => {
 		try {
 			const { SCHEDULES_PATH } = paths(true);
 			const fullPath = path.join(SCHEDULES_PATH, appName || "");
+
+			// Validate that the script exists within the expected directory
+			const scriptPath = path.join(fullPath, "script.sh");
+
+			// Use shell-quote to escape all parameters
+			const escapedLogPath = quote([deployment.logPath]);
+			const escapedScriptPath = quote([scriptPath]);
 			const command = `
 				set -e
-				echo "Running script" >> ${deployment.logPath};
-				bash -c ${fullPath}/script.sh 2>&1 | tee -a ${deployment.logPath} || { 
-					echo "❌ Command failed" >> ${deployment.logPath};
+				echo "Running script" >> ${escapedLogPath};
+				bash ${escapedScriptPath} 2>&1 | tee -a ${escapedLogPath} || { 
+					echo "❌ Command failed" >> ${escapedLogPath};
 					exit 1;
 				  }
-				echo "✅ Command executed successfully" >> ${deployment.logPath};
+				echo "✅ Command executed successfully" >> ${escapedLogPath};
 			`;
 			await execAsyncRemote(serverId, command, async (data) => {
 				// we need to extract the PID and Schedule ID from the data
