@@ -54,8 +54,17 @@ export const sendBuildErrorNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, resend, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			resend,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+		} = notification;
 		try {
 			if (email || resend) {
 				const template = await renderAsync(
