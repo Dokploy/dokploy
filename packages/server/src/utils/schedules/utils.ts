@@ -217,11 +217,19 @@ export const runCommand = async (scheduleId: string) => {
 			// Validate that the script exists within the expected directory
 			const scriptPath = path.join(fullPath, "script.sh");
 
+			// Note: For remote servers, we cannot validate file existence locally
+			// The validation will happen at execution time on the remote server
+			// Ensure path is properly escaped to prevent injection
+
 			// Use shell-quote to escape all parameters
 			const escapedLogPath = quote([deployment.logPath]);
 			const escapedScriptPath = quote([scriptPath]);
 			const command = `
 				set -e
+				if [ ! -f ${escapedScriptPath} ]; then
+					echo "❌ Script not found at ${escapedScriptPath}" >> ${escapedLogPath};
+					exit 1;
+				fi
 				echo "Running script" >> ${escapedLogPath};
 				bash ${escapedScriptPath} 2>&1 | tee -a ${escapedLogPath} || { 
 					echo "❌ Command failed" >> ${escapedLogPath};
