@@ -3,7 +3,6 @@ import {
 	Clock,
 	Key,
 	KeyIcon,
-	Loader2,
 	MoreHorizontal,
 	Network,
 	ServerIcon,
@@ -27,11 +26,20 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Tooltip,
 	TooltipContent,
@@ -89,36 +97,63 @@ export const ShowServers = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[25vh]">
+								{Array.from({ length: 3 }).map((_, index) => (
+									<Card
+										key={`server-skeleton-${index}`}
+										className="bg-background"
+									>
+										<CardHeader className="space-y-2">
+											<Skeleton className="h-5 w-32" />
+											<Skeleton className="h-4 w-44" />
+										</CardHeader>
+										<CardContent className="space-y-3">
+											<Skeleton className="h-4 w-40" />
+											<Skeleton className="h-4 w-28" />
+											<Skeleton className="h-4 w-36" />
+										</CardContent>
+									</Card>
+								))}
 							</div>
 						) : (
 							<>
 								{sshKeys?.length === 0 && data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
-										<KeyIcon className="size-8" />
-										<span className="text-base text-muted-foreground">
-											No SSH Keys found. Add a SSH Key to start adding servers.{" "}
-											<Link
-												href="/dashboard/settings/ssh-keys"
-												className="text-primary"
-											>
-												Add SSH Key
-											</Link>
-										</span>
-									</div>
+									<Empty className="min-h-[25vh]">
+										<EmptyHeader>
+											<EmptyMedia variant="icon">
+												<KeyIcon className="size-5 text-muted-foreground" />
+											</EmptyMedia>
+											<EmptyTitle>No SSH keys yet</EmptyTitle>
+											<EmptyDescription>
+												Add an SSH key to start connecting servers.
+											</EmptyDescription>
+										</EmptyHeader>
+										<EmptyContent>
+											<Button asChild>
+												<Link href="/dashboard/settings/ssh-keys">
+													Add SSH Key
+												</Link>
+											</Button>
+										</EmptyContent>
+									</Empty>
 								) : (
 									<>
 										{data?.length === 0 ? (
-											<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
-												<ServerIcon className="size-8 self-center text-muted-foreground" />
-												<span className="text-base text-muted-foreground">
-													Start adding servers to deploy your applications
-													remotely.
-												</span>
-												<HandleServers />
-											</div>
+											<Empty className="min-h-[25vh]">
+												<EmptyHeader>
+													<EmptyMedia variant="icon">
+														<ServerIcon className="size-5 text-muted-foreground" />
+													</EmptyMedia>
+													<EmptyTitle>No servers yet</EmptyTitle>
+													<EmptyDescription>
+														Start adding servers to deploy your applications
+														remotely.
+													</EmptyDescription>
+												</EmptyHeader>
+												<EmptyContent>
+													<HandleServers />
+												</EmptyContent>
+											</Empty>
 										) : (
 											<div className="flex flex-col gap-4 min-h-[25vh]">
 												<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

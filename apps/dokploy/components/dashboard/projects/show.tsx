@@ -4,7 +4,6 @@ import {
 	BookIcon,
 	ExternalLinkIcon,
 	FolderInput,
-	Loader2,
 	MoreHorizontalIcon,
 	Search,
 	TrashIcon,
@@ -38,6 +37,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuGroup,
@@ -53,6 +60,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TimeBadge } from "@/components/ui/time-badge";
 import { api } from "@/utils/api";
 import { useDebounce } from "@/utils/hooks/use-debounce";
@@ -201,9 +209,19 @@ export const ShowProjects = () => {
 
 						<CardContent className="space-y-2 py-8 border-t gap-4 flex flex-col min-h-[60vh]">
 							{isLoading ? (
-								<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
-									<span>Loading...</span>
-									<Loader2 className="animate-spin size-4" />
+								<div className="flex flex-col gap-6 min-h-[60vh]">
+									<div className="flex max-sm:flex-col gap-4 items-center w-full">
+										<Skeleton className="h-10 w-full" />
+										<Skeleton className="h-10 w-48 max-sm:w-full" />
+									</div>
+									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-5">
+										{Array.from({ length: 6 }).map((_, index) => (
+											<Skeleton
+												key={`project-skeleton-${index}`}
+												className="h-40 w-full rounded-xl"
+											/>
+										))}
+									</div>
 								</div>
 							) : (
 								<>
@@ -244,12 +262,31 @@ export const ShowProjects = () => {
 										</div>
 									</div>
 									{filteredProjects?.length === 0 && (
-										<div className="mt-6 flex h-[50vh] w-full flex-col items-center justify-center space-y-4">
-											<FolderInput className="size-8 self-center text-muted-foreground" />
-											<span className="text-center font-medium text-muted-foreground">
-												No projects found
-											</span>
-										</div>
+										<Empty className="mt-6 min-h-[50vh]">
+											<EmptyHeader>
+												<EmptyMedia variant="icon">
+													<FolderInput className="size-5 text-muted-foreground" />
+												</EmptyMedia>
+												<EmptyTitle>
+													{debouncedSearchQuery
+														? "No projects match your search"
+														: "No projects yet"}
+												</EmptyTitle>
+												<EmptyDescription>
+													{debouncedSearchQuery
+														? "Try a different keyword or clear the filter."
+														: "Create your first project to get started."}
+												</EmptyDescription>
+											</EmptyHeader>
+											{(auth?.role === "owner" ||
+												auth?.role === "admin" ||
+												auth?.canCreateProjects) &&
+												!debouncedSearchQuery && (
+													<EmptyContent>
+														<HandleProject />
+													</EmptyContent>
+												)}
+										</Empty>
 									)}
 									<div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 flex-wrap gap-5">
 										{filteredProjects?.map((project) => {
