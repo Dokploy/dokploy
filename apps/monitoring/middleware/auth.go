@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -28,7 +29,8 @@ func AuthMiddleware() fiber.Handler {
 		// Extract the token
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		if token != expectedToken {
+		// Use constant-time comparison to prevent timing attacks
+		if subtle.ConstantTimeCompare([]byte(token), []byte(expectedToken)) != 1 {
 			return c.Status(401).JSON(fiber.Map{
 				"error": "Invalid token",
 			})

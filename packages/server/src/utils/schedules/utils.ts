@@ -9,9 +9,42 @@ import {
 } from "@dokploy/server/services/deployment";
 import { findScheduleById } from "@dokploy/server/services/schedule";
 import { scheduledJobs, scheduleJob as scheduleJobNode } from "node-schedule";
+import { quote } from "shell-quote";
 import { getComposeContainer, getServiceContainer } from "../docker/utils";
 import { execAsyncRemote } from "../process/execAsync";
 import { spawnAsync } from "../process/spawnAsync";
+
+// Allowlist of permitted shell types
+const ALLOWED_SHELL_TYPES = ["sh", "bash", "ash", "dash"];
+
+/**
+ * Validates that the shell type is in the allowlist
+ */
+function validateShellType(shellType: string): void {
+	if (!ALLOWED_SHELL_TYPES.includes(shellType)) {
+		throw new Error(
+			`Invalid shell type: ${shellType}. Allowed types: ${ALLOWED_SHELL_TYPES.join(", ")}`,
+		);
+	}
+}
+
+/**
+ * Validates that the container ID is a valid format (alphanumeric and some special chars)
+ */
+function validateContainerId(containerId: string): void {
+	if (!containerId || !/^[a-zA-Z0-9_-]+$/.test(containerId)) {
+		throw new Error(`Invalid container ID: ${containerId}`);
+	}
+}
+
+/**
+ * Validates that the command is not empty
+ */
+function validateCommand(command: string): void {
+	if (!command || command.trim().length === 0) {
+		throw new Error("Command cannot be empty");
+	}
+}
 
 export const scheduleJob = (schedule: Schedule) => {
 	const { cronExpression, scheduleId, timezone } = schedule;
@@ -71,18 +104,28 @@ export const runCommand = async (scheduleId: string) => {
 			serverId = compose.serverId || "";
 		}
 
+		// Validate inputs to prevent command injection
+		validateContainerId(containerId);
+		validateShellType(shellType);
+		validateCommand(command);
+
+		// Use shell-quote to safely escape the command
+		const escapedCommand = quote([command]);
+
 		if (serverId) {
 			try {
+				// Use shell-quote to safely escape all parameters
+				const escapedLogPath = quote([deployment.logPath]);
 				await execAsyncRemote(
 					serverId,
 					`
 					set -e
-					echo "Running command: docker exec ${containerId} ${shellType} -c '${command}'" >> ${deployment.logPath};
-					docker exec ${containerId} ${shellType} -c '${command}' >> ${deployment.logPath} 2>> ${deployment.logPath} || { 
-						echo "❌ Command failed" >> ${deployment.logPath};
+					echo "Running command: docker exec ${containerId} ${shellType} -c ${escapedCommand}" >> ${escapedLogPath};
+					docker exec ${containerId} ${shellType} -c ${escapedCommand} >> ${escapedLogPath} 2>> ${escapedLogPath} || { 
+						echo "❌ Command failed" >> ${escapedLogPath};
 						exit 1;
 					}
-					echo "✅ Command executed successfully" >> ${deployment.logPath};
+					echo "✅ Command executed successfully" >> ${escapedLogPath};
 					`,
 				);
 			} catch (error) {
@@ -94,8 +137,10 @@ export const runCommand = async (scheduleId: string) => {
 
 			try {
 				writeStream.write(
-					`docker exec ${containerId} ${shellType} -c ${command}\n`,
+					`docker exec ${containerId} ${shellType} -c ${escapedCommand}\n`,
 				);
+				// spawnAsync uses an array of arguments, which is safe from injection
+				// The command is passed as a separate argument, not interpolated
 				await spawnAsync(
 					"docker",
 					["exec", containerId, shellType, "-c", command],

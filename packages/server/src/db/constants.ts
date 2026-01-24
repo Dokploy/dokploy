@@ -26,14 +26,12 @@ if (DATABASE_URL) {
 		password,
 	)}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}`;
 } else {
-	console.warn(`
-		⚠️  [DEPRECATED DATABASE CONFIG]
-		You are using the legacy hardcoded database credentials.
-		This mode WILL BE REMOVED in a future release.
+	throw new Error(`
+		❌ [DATABASE CONFIGURATION REQUIRED]
+		No database credentials configured. You must set one of:
+		- DATABASE_URL environment variable, or
+		- POSTGRES_PASSWORD_FILE environment variable (recommended for Docker Secrets)
 		
-		Please migrate to Docker Secrets using POSTGRES_PASSWORD_FILE.
-		Please execute this command in your server: curl -sSL https://dokploy.com/security/0.26.6.sh | bash
+		For migration instructions, visit: https://dokploy.com/security/database-config
 		`);
-	dbUrl =
-		"postgres://dokploy:amukds4wi9001583845717ad2@dokploy-postgres:5432/dokploy";
 }

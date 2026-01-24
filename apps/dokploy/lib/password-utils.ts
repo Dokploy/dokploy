@@ -19,11 +19,9 @@ export const generateRandomPassword = (
 		typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
 
 	if (!cryptoApi?.getRandomValues) {
-		let fallback = "";
-		for (let i = 0; i < safeLength; i += 1) {
-			fallback += charset[Math.floor(Math.random() * charset.length)];
-		}
-		return fallback;
+		throw new Error(
+			"crypto.getRandomValues is not available. Secure random password generation requires a cryptographically secure random number generator.",
+		);
 	}
 
 	const values = new Uint32Array(safeLength);
