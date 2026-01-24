@@ -43,10 +43,7 @@ export const AiForm = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<ListSkeleton
-								items={3}
-								gridClassName="grid grid-cols-1 gap-3"
-							/>
+							<ListSkeleton items={3} gridClassName="grid grid-cols-1 gap-3" />
 						) : (
 							<>
 								{aiConfigs?.length === 0 ? (

@@ -49,7 +49,10 @@ export default function SwarmMonitorCard({ serverId }: Props) {
 					</div>
 					<div className="grid gap-6 lg:grid-cols-3">
 						{Array.from({ length: 3 }).map((_, index) => (
-							<Card key={`swarm-stat-skeleton-${index}`} className="bg-background">
+							<Card
+								key={`swarm-stat-skeleton-${index}`}
+								className="bg-background"
+							>
 								<CardHeader className="space-y-2">
 									<Skeleton className="h-4 w-24" />
 									<Skeleton className="h-8 w-16" />

@@ -105,10 +105,7 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 							</span>
 						</div>
 						{isLoadingPreviewDeployments ? (
-							<ListSkeleton
-								items={3}
-								gridClassName="grid grid-cols-1 gap-3"
-							/>
+							<ListSkeleton items={3} gridClassName="grid grid-cols-1 gap-3" />
 						) : !previewDeployments?.length ? (
 							<Empty className="min-h-[35vh]">
 								<EmptyHeader>
@@ -117,7 +114,8 @@ export const ShowPreviewDeployments = ({ applicationId }: Props) => {
 									</EmptyMedia>
 									<EmptyTitle>No preview deployments yet</EmptyTitle>
 									<EmptyDescription>
-										Preview deployments will appear when you open a pull request.
+										Preview deployments will appear when you open a pull
+										request.
 									</EmptyDescription>
 								</EmptyHeader>
 							</Empty>

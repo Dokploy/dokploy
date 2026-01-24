@@ -63,13 +63,10 @@ const getStatusBadge = (status: Stripe.Invoice.Status | null) => {
 export const ShowInvoices = () => {
 	const { data: invoices, isLoading } = api.stripe.getInvoices.useQuery();
 
-		return (
+	return (
 		<div className="space-y-4">
 			{isLoading ? (
-				<ListSkeleton
-					items={4}
-					gridClassName="grid grid-cols-1 gap-3"
-				/>
+				<ListSkeleton items={4} gridClassName="grid grid-cols-1 gap-3" />
 			) : invoices && invoices.length > 0 ? (
 				<div className="rounded-md border">
 					<Table>

@@ -1,10 +1,4 @@
-import {
-	ClipboardList,
-	Clock,
-	Play,
-	Terminal,
-	Trash2,
-} from "lucide-react";
+import { ClipboardList, Clock, Play, Terminal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";

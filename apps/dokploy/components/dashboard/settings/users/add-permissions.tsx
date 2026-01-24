@@ -617,7 +617,9 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																	{project.environments.length === 0 && (
 																		<Empty className="border-none p-2">
 																			<EmptyHeader>
-																				<EmptyTitle>No environments found</EmptyTitle>
+																				<EmptyTitle>
+																					No environments found
+																				</EmptyTitle>
 																				<EmptyDescription>
 																					Add an environment to grant access.
 																				</EmptyDescription>
@@ -726,9 +728,12 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																						{services.length === 0 && (
 																							<Empty className="border-none p-2">
 																								<EmptyHeader>
-																									<EmptyTitle>No services found</EmptyTitle>
+																									<EmptyTitle>
+																										No services found
+																									</EmptyTitle>
 																									<EmptyDescription>
-																										Add a service to grant access.
+																										Add a service to grant
+																										access.
 																									</EmptyDescription>
 																								</EmptyHeader>
 																							</Empty>

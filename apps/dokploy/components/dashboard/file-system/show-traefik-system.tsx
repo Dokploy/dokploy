@@ -88,7 +88,8 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 											</EmptyMedia>
 											<EmptyTitle>No files found</EmptyTitle>
 											<EmptyDescription>
-												No directories or files detected in {"'/etc/dokploy/traefik'"}.
+												No directories or files detected in{" "}
+												{"'/etc/dokploy/traefik'"}.
 											</EmptyDescription>
 										</EmptyHeader>
 										<EmptyContent />
@@ -114,7 +115,8 @@ export const ShowTraefikSystem = ({ serverId }: Props) => {
 														</EmptyMedia>
 														<EmptyTitle>No file selected</EmptyTitle>
 														<EmptyDescription>
-															Choose a file from the tree to view and edit its content.
+															Choose a file from the tree to view and edit its
+															content.
 														</EmptyDescription>
 													</EmptyHeader>
 												</Empty>

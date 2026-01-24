@@ -328,7 +328,8 @@ export const SaveBitbucketProvider = ({ applicationId }: Props) => {
 														!field.value && "text-muted-foreground",
 													)}
 												>
-													{status === "loading" && fetchStatus === "fetching" ? (
+													{status === "loading" &&
+													fetchStatus === "fetching" ? (
 														<Skeleton className="h-4 w-24" />
 													) : field.value ? (
 														branches?.find(

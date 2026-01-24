@@ -1,10 +1,5 @@
 import { formatDate } from "date-fns";
-import {
-	ExternalLinkIcon,
-	GitBranch,
-	ImportIcon,
-	Trash2,
-} from "lucide-react";
+import { ExternalLinkIcon, GitBranch, ImportIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -75,10 +70,7 @@ export const ShowGitProviders = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<ListSkeleton
-								items={3}
-								gridClassName="grid grid-cols-1 gap-3"
-							/>
+							<ListSkeleton items={3} gridClassName="grid grid-cols-1 gap-3" />
 						) : (
 							<>
 								{data?.length === 0 ? (

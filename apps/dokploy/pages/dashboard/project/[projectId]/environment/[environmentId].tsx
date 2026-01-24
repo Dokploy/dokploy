@@ -1471,7 +1471,8 @@ const EnvironmentPage = (
 												</EmptyMedia>
 												<EmptyTitle>No services yet</EmptyTitle>
 												<EmptyDescription>
-													Create a service to start deploying workloads in this environment.
+													Create a service to start deploying workloads in this
+													environment.
 												</EmptyDescription>
 											</EmptyHeader>
 										</Empty>

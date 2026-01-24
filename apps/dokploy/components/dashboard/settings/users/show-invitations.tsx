@@ -62,10 +62,7 @@ export const ShowInvitations = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<ListSkeleton
-								items={4}
-								gridClassName="grid grid-cols-1 gap-3"
-							/>
+							<ListSkeleton items={4} gridClassName="grid grid-cols-1 gap-3" />
 						) : (
 							<>
 								{data?.length === 0 ? (
