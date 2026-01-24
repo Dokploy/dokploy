@@ -11,6 +11,7 @@ import {
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
+	sendResendNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -44,6 +45,7 @@ export const sendDatabaseBackupNotifications = async ({
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
 			custom: true,
@@ -52,10 +54,10 @@ export const sendDatabaseBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
+		const { email, resend, discord, telegram, slack, gotify, ntfy, custom, lark } =
 			notification;
 		try {
-			if (email) {
+			if (email || resend) {
 				const template = await renderAsync(
 					DatabaseBackupEmail({
 						projectName,
@@ -66,11 +68,22 @@ export const sendDatabaseBackupNotifications = async ({
 						date: date.toLocaleString(),
 					}),
 				).catch();
-				await sendEmailNotification(
-					email,
-					"Database backup for dokploy",
-					template,
-				);
+
+				if (email) {
+					await sendEmailNotification(
+						email,
+						"Database backup for dokploy",
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						"Database backup for dokploy",
+						template,
+					);
+				}
 			}
 
 			if (discord) {

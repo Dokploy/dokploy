@@ -11,6 +11,7 @@ import {
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
+	sendResendNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -31,6 +32,7 @@ export const sendDockerCleanupNotifications = async (
 			discord: true,
 			telegram: true,
 			slack: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
 			custom: true,
@@ -39,19 +41,29 @@ export const sendDockerCleanupNotifications = async (
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
+		const { email, resend, discord, telegram, slack, gotify, ntfy, custom, lark } =
 			notification;
 		try {
-			if (email) {
+			if (email || resend) {
 				const template = await renderAsync(
 					DockerCleanupEmail({ message, date: date.toLocaleString() }),
 				).catch();
 
-				await sendEmailNotification(
-					email,
-					"Docker cleanup for dokploy",
-					template,
-				);
+				if (email) {
+					await sendEmailNotification(
+						email,
+						"Docker cleanup for dokploy",
+						template,
+					);
+				}
+
+				if (resend) {
+					await sendResendNotification(
+						resend,
+						"Docker cleanup for dokploy",
+						template,
+					);
+				}
 			}
 
 			if (discord) {
