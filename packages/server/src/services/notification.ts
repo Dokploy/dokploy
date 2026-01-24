@@ -7,6 +7,7 @@ import {
 	type apiCreateLark,
 	type apiCreateNtfy,
 	type apiCreatePushover,
+	type apiCreateResend,
 	type apiCreateSlack,
 	type apiCreateTelegram,
 	type apiUpdateCustom,
@@ -16,6 +17,7 @@ import {
 	type apiUpdateLark,
 	type apiUpdateNtfy,
 	type apiUpdatePushover,
+	type apiUpdateResend,
 	type apiUpdateSlack,
 	type apiUpdateTelegram,
 	custom,
@@ -26,6 +28,7 @@ import {
 	notifications,
 	ntfy,
 	pushover,
+	resend,
 	slack,
 	telegram,
 } from "@dokploy/server/db/schema";
@@ -412,6 +415,100 @@ export const updateEmailNotification = async (
 	});
 };
 
+export const createResendNotification = async (
+	input: typeof apiCreateResend._type,
+	organizationId: string,
+) => {
+	await db.transaction(async (tx) => {
+		const newResend = await tx
+			.insert(resend)
+			.values({
+				apiKey: input.apiKey,
+				fromAddress: input.fromAddress,
+				toAddresses: input.toAddresses,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newResend) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting resend",
+			});
+		}
+
+		const newDestination = await tx
+			.insert(notifications)
+			.values({
+				resendId: newResend.resendId,
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				notificationType: "resend",
+				organizationId: organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error input: Inserting notification",
+			});
+		}
+
+		return newDestination;
+	});
+};
+
+export const updateResendNotification = async (
+	input: typeof apiUpdateResend._type,
+) => {
+	await db.transaction(async (tx) => {
+		const newDestination = await tx
+			.update(notifications)
+			.set({
+				name: input.name,
+				appDeploy: input.appDeploy,
+				appBuildError: input.appBuildError,
+				databaseBackup: input.databaseBackup,
+				volumeBackup: input.volumeBackup,
+				dokployRestart: input.dokployRestart,
+				dockerCleanup: input.dockerCleanup,
+				organizationId: input.organizationId,
+				serverThreshold: input.serverThreshold,
+			})
+			.where(eq(notifications.notificationId, input.notificationId))
+			.returning()
+			.then((value) => value[0]);
+
+		if (!newDestination) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Error Updating notification",
+			});
+		}
+
+		await tx
+			.update(resend)
+			.set({
+				apiKey: input.apiKey,
+				fromAddress: input.fromAddress,
+				toAddresses: input.toAddresses,
+			})
+			.where(eq(resend.resendId, input.resendId))
+			.returning()
+			.then((value) => value[0]);
+
+		return newDestination;
+	});
+};
+
 export const createGotifyNotification = async (
 	input: typeof apiCreateGotify._type,
 	organizationId: string,
@@ -693,6 +790,7 @@ export const findNotificationById = async (notificationId: string) => {
 			telegram: true,
 			discord: true,
 			email: true,
+			resend: true,
 			gotify: true,
 			ntfy: true,
 			custom: true,

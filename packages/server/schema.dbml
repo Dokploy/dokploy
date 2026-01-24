@@ -69,6 +69,7 @@ enum notificationType {
   telegram
   discord
   email
+  resend
   gotify
   ntfy
   custom
@@ -456,6 +457,13 @@ table email {
   toAddress text[] [not null]
 }
 
+table resend {
+  resendId text [pk, not null]
+  apiKey text [not null]
+  fromAddress text [not null]
+  toAddress text[] [not null]
+}
+
 table environment {
   environmentId text [pk, not null]
   name text [not null]
@@ -695,6 +703,7 @@ table notification {
   telegramId text
   discordId text
   emailId text
+  resendId text
   gotifyId text
   ntfyId text
   customId text
@@ -1138,6 +1147,8 @@ ref: notification.telegramId - telegram.telegramId
 ref: notification.discordId - discord.discordId
 
 ref: notification.emailId - email.emailId
+
+ref: notification.resendId - resend.resendId
 
 ref: notification.gotifyId - gotify.gotifyId
 

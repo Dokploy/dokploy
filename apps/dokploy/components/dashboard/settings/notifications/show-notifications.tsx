@@ -5,6 +5,7 @@ import {
 	GotifyIcon,
 	LarkIcon,
 	NtfyIcon,
+	ResendIcon,
 	SlackIcon,
 	TelegramIcon,
 } from "@/components/icons/notification-icons";
@@ -36,7 +37,7 @@ export const ShowNotifications = () => {
 						</CardTitle>
 						<CardDescription>
 							Add your providers to receive notifications, like Discord, Slack,
-							Telegram, Email, Lark.
+							Telegram, Email, Resend, Lark.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
@@ -84,6 +85,11 @@ export const ShowNotifications = () => {
 															{notification.notificationType === "email" && (
 																<div className="flex  items-center justify-center rounded-lg ">
 																	<Mail className="size-6 text-muted-foreground" />
+																</div>
+															)}
+															{notification.notificationType === "resend" && (
+																<div className="flex  items-center justify-center rounded-lg ">
+																	<ResendIcon className="size-6 text-muted-foreground" />
 																</div>
 															)}
 															{notification.notificationType === "gotify" && (
