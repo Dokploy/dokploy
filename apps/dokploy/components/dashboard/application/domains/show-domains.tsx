@@ -3,6 +3,7 @@ import {
 	ExternalLink,
 	GlobeIcon,
 	InfoIcon,
+	Loader2,
 	PenBoxIcon,
 	RefreshCw,
 	Server,
