@@ -31,6 +31,13 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import {
 	Popover,
@@ -247,15 +254,20 @@ export const HandleAi = ({ aiId }: Props) => {
 						)}
 
 						{isLoadingServerModels && (
-							<span className="text-sm text-muted-foreground">
-								Loading models...
-							</span>
+							<div className="py-2">
+								<Skeleton className="h-4 w-32" />
+							</div>
 						)}
 
 						{!isLoadingServerModels && !models?.length && (
-							<span className="text-sm text-muted-foreground">
-								No models available
-							</span>
+							<Empty className="border-none p-2">
+								<EmptyHeader>
+									<EmptyTitle>No models available</EmptyTitle>
+									<EmptyDescription>
+										Check your API key or provider settings.
+									</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
 						)}
 
 						{!isLoadingServerModels && models && models.length > 0 && (

@@ -1,6 +1,7 @@
-import { Loader2, Package, Trash2 } from "lucide-react";
+import { Package, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,6 +10,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { api } from "@/utils/api";
 import { HandleRegistry } from "./handle-registry";
 
@@ -32,20 +41,27 @@ export const ShowRegistry = () => {
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
-							</div>
+							<ListSkeleton
+								items={3}
+								gridClassName="grid grid-cols-1 gap-3"
+							/>
 						) : (
 							<>
 								{data?.length === 0 ? (
-									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
-										<Package className="size-8 self-center text-muted-foreground" />
-										<span className="text-base text-muted-foreground text-center">
-											You don't have any registry configurations
-										</span>
-										<HandleRegistry />
-									</div>
+									<Empty className="min-h-[25vh]">
+										<EmptyHeader>
+											<EmptyMedia variant="icon">
+												<Package className="size-5 text-muted-foreground" />
+											</EmptyMedia>
+											<EmptyTitle>No registries yet</EmptyTitle>
+											<EmptyDescription>
+												Add a registry to authenticate private image pulls.
+											</EmptyDescription>
+										</EmptyHeader>
+										<EmptyContent>
+											<HandleRegistry />
+										</EmptyContent>
+									</Empty>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										<div className="flex flex-col gap-4 rounded-lg ">

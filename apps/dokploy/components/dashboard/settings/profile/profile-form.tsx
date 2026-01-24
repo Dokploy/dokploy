@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Palette, User } from "lucide-react";
+import { Palette, User } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -25,6 +25,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { getAvatarType, isSolidColorAvatar } from "@/lib/avatar-utils";
@@ -170,9 +171,13 @@ export const ProfileForm = () => {
 					<CardContent className="space-y-2 py-8 border-t">
 						{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 						{isLoading ? (
-							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[35vh]">
-								<span>Loading...</span>
-								<Loader2 className="animate-spin size-4" />
+							<div className="flex flex-col gap-4 min-h-[35vh]">
+								<Skeleton className="h-6 w-40" />
+								<div className="space-y-3">
+									<Skeleton className="h-10 w-full" />
+									<Skeleton className="h-10 w-full" />
+									<Skeleton className="h-10 w-full" />
+								</div>
 							</div>
 						) : (
 							<>

@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -16,6 +15,7 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/utils/api";
 import { validateAndFormatYAML } from "../application/advanced/traefik/update-traefik-config";
 
@@ -99,11 +99,10 @@ export const ShowTraefikFile = ({ path, serverId }: Props) => {
 				>
 					<div className="flex flex-col overflow-auto">
 						{isLoadingFile ? (
-							<div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-								<span className="text-muted-foreground text-lg font-medium">
-									Loading...
-								</span>
-								<Loader2 className="animate-spin size-8 text-muted-foreground" />
+							<div className="w-full flex flex-col gap-4 h-[55vh]">
+								<Skeleton className="h-4 w-40" />
+								<Skeleton className="h-3 w-64" />
+								<Skeleton className="h-[35rem] w-full" />
 							</div>
 						) : (
 							<FormField

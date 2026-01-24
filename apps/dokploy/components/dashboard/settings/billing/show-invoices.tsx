@@ -1,7 +1,8 @@
-import { Download, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { Download, ExternalLink, FileText } from "lucide-react";
 import type Stripe from "stripe";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import {
 	Table,
 	TableBody,
@@ -10,6 +11,13 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { api } from "@/utils/api";
 
 const formatDate = (timestamp: number | null) => {
@@ -55,15 +63,13 @@ const getStatusBadge = (status: Stripe.Invoice.Status | null) => {
 export const ShowInvoices = () => {
 	const { data: invoices, isLoading } = api.stripe.getInvoices.useQuery();
 
-	return (
+		return (
 		<div className="space-y-4">
 			{isLoading ? (
-				<div className="flex items-center justify-center min-h-[20vh]">
-					<span className="text-base text-muted-foreground flex flex-row gap-3 items-center">
-						Loading invoices...
-						<Loader2 className="animate-spin" />
-					</span>
-				</div>
+				<ListSkeleton
+					items={4}
+					gridClassName="grid grid-cols-1 gap-3"
+				/>
 			) : invoices && invoices.length > 0 ? (
 				<div className="rounded-md border">
 					<Table>
@@ -124,13 +130,17 @@ export const ShowInvoices = () => {
 					</Table>
 				</div>
 			) : (
-				<div className="flex flex-col items-center justify-center min-h-[20vh] gap-2">
-					<FileText className="size-12 text-muted-foreground" />
-					<p className="text-base text-muted-foreground">No invoices found</p>
-					<p className="text-sm text-muted-foreground">
-						Your invoices will appear here once you have a subscription
-					</p>
-				</div>
+				<Empty className="min-h-[20vh]">
+					<EmptyHeader>
+						<EmptyMedia variant="icon">
+							<FileText className="size-6 text-muted-foreground" />
+						</EmptyMedia>
+						<EmptyTitle>No invoices yet</EmptyTitle>
+						<EmptyDescription>
+							Your invoices will appear here once you have a subscription.
+						</EmptyDescription>
+					</EmptyHeader>
+				</Empty>
 			)}
 		</div>
 	);

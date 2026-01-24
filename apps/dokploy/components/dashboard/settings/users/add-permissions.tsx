@@ -25,6 +25,12 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { Switch } from "@/components/ui/switch";
 import { api, type RouterOutputs } from "@/utils/api";
 
@@ -510,9 +516,14 @@ export const AddUserPermissions = ({ userId }: Props) => {
 										</FormDescription>
 									</div>
 									{projects?.length === 0 && (
-										<p className="text-sm text-muted-foreground">
-											No projects found
-										</p>
+										<Empty className="border-none p-4">
+											<EmptyHeader>
+												<EmptyTitle>No projects found</EmptyTitle>
+												<EmptyDescription>
+													Add a project before assigning access.
+												</EmptyDescription>
+											</EmptyHeader>
+										</Empty>
 									)}
 									<div className="grid md:grid-cols-1 gap-4">
 										{projects?.map((project, projectIndex) => {
@@ -604,9 +615,14 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																{/* Environments */}
 																<div className="ml-6 w-full space-y-3">
 																	{project.environments.length === 0 && (
-																		<p className="text-sm text-muted-foreground">
-																			No environments found
-																		</p>
+																		<Empty className="border-none p-2">
+																			<EmptyHeader>
+																				<EmptyTitle>No environments found</EmptyTitle>
+																				<EmptyDescription>
+																					Add an environment to grant access.
+																				</EmptyDescription>
+																			</EmptyHeader>
+																		</Empty>
 																	)}
 																	{project.environments.map(
 																		(environment, envIndex) => {
@@ -708,9 +724,14 @@ export const AddUserPermissions = ({ userId }: Props) => {
 																					{/* Services */}
 																					<div className="ml-4 space-y-2">
 																						{services.length === 0 && (
-																							<p className="text-xs text-muted-foreground">
-																								No services found
-																							</p>
+																							<Empty className="border-none p-2">
+																								<EmptyHeader>
+																									<EmptyTitle>No services found</EmptyTitle>
+																									<EmptyDescription>
+																										Add a service to grant access.
+																									</EmptyDescription>
+																								</EmptyHeader>
+																							</Empty>
 																						)}
 																						{services.map(
 																							(service, serviceIndex) => (

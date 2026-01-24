@@ -50,6 +50,7 @@ import { DateTooltip } from "@/components/shared/date-tooltip";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { FocusShortcutInput } from "@/components/shared/focus-shortcut-input";
 import { StatusTooltip } from "@/components/shared/status-tooltip";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -59,6 +60,13 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Command,
@@ -846,20 +854,25 @@ const EnvironmentPage = (
 
 	if (isLoading) {
 		return (
-			<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[60vh]">
-				<span>Loading...</span>
-				<Loader2 className="animate-spin size-4" />
+			<div className="py-8">
+				<ListSkeleton
+					items={6}
+					gridClassName="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5"
+				/>
 			</div>
 		);
 	}
 
 	if (!currentEnvironment) {
 		return (
-			<div className="flex flex-col items-center justify-center min-h-[60vh]">
-				<span className="text-lg font-medium text-muted-foreground">
-					Environment not found
-				</span>
-			</div>
+			<Empty className="min-h-[60vh]">
+				<EmptyHeader>
+					<EmptyTitle>Environment not found</EmptyTitle>
+					<EmptyDescription>
+						This environment may have been removed or you don't have access.
+					</EmptyDescription>
+				</EmptyHeader>
+			</Empty>
 		);
 	}
 
@@ -1451,22 +1464,29 @@ const EnvironmentPage = (
 
 								<div className="flex w-full gap-8">
 									{emptyServices ? (
-										<div className="flex h-[70vh] w-full flex-col items-center justify-center">
-											<FolderInput className="size-8 self-center text-muted-foreground" />
-											<span className="text-center font-medium text-muted-foreground">
-												No services added yet. Click on Create Service.
-											</span>
-										</div>
+										<Empty className="min-h-[70vh] w-full">
+											<EmptyHeader>
+												<EmptyMedia variant="icon">
+													<FolderInput className="size-5 text-muted-foreground" />
+												</EmptyMedia>
+												<EmptyTitle>No services yet</EmptyTitle>
+												<EmptyDescription>
+													Create a service to start deploying workloads in this environment.
+												</EmptyDescription>
+											</EmptyHeader>
+										</Empty>
 									) : filteredServices.length === 0 ? (
-										<div className="flex h-[70vh] w-full flex-col items-center justify-center">
-											<Search className="size-8 self-center text-muted-foreground" />
-											<span className="text-center font-medium text-muted-foreground">
-												No services found with the current filters
-											</span>
-											<span className="text-sm text-muted-foreground">
-												Try adjusting your search or filters
-											</span>
-										</div>
+										<Empty className="min-h-[70vh] w-full">
+											<EmptyHeader>
+												<EmptyMedia variant="icon">
+													<Search className="size-5 text-muted-foreground" />
+												</EmptyMedia>
+												<EmptyTitle>No services match your filters</EmptyTitle>
+												<EmptyDescription>
+													Try adjusting your search terms or filters.
+												</EmptyDescription>
+											</EmptyHeader>
+										</Empty>
 									) : (
 										<div className="flex w-full flex-col gap-4">
 											<div className="gap-5 pb-10 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">

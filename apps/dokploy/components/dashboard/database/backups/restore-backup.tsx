@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { DrawerLogs } from "@/components/shared/drawer-logs";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,12 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import {
+	Empty,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import {
 	Popover,
@@ -455,17 +462,31 @@ export const RestoreBackup = ({
 													className="h-9"
 												/>
 												{isLoading ? (
-													<div className="py-6 text-center text-sm">
-														Loading backup files...
+													<div className="p-4">
+														<ListSkeleton
+															items={4}
+															gridClassName="grid grid-cols-1 gap-2"
+															itemClassName="border-none bg-transparent p-0"
+														/>
 													</div>
 												) : files.length === 0 && search ? (
-													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files found for "{search}"
-													</div>
+													<Empty className="border-none p-4">
+														<EmptyHeader>
+															<EmptyTitle>No backup files found</EmptyTitle>
+															<EmptyDescription>
+																No matches for "{search}".
+															</EmptyDescription>
+														</EmptyHeader>
+													</Empty>
 												) : files.length === 0 ? (
-													<div className="py-6 text-center text-sm text-muted-foreground">
-														No backup files available
-													</div>
+													<Empty className="border-none p-4">
+														<EmptyHeader>
+															<EmptyTitle>No backup files available</EmptyTitle>
+															<EmptyDescription>
+																Create a backup to see files here.
+															</EmptyDescription>
+														</EmptyHeader>
+													</Empty>
 												) : (
 													<ScrollArea className="h-64">
 														<CommandGroup className="w-96">

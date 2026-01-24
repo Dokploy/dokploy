@@ -153,15 +153,6 @@ export function DataTable<TData, TValue>({
 									className="h-24 text-center"
 								>
 									No results.
-									{/* {isLoading ? (
-                    <div className="w-full flex-col gap-2 flex items-center justify-center h-[55vh]">
-                      <span className="text-muted-foreground text-lg font-medium">
-                        Loading...
-                      </span>
-                    </div>
-                  ) : (
-                    <>No results.</>
-                  )} */}
 								</TableCell>
 							</TableRow>
 						)}

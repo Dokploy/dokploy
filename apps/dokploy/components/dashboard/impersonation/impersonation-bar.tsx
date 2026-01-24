@@ -20,6 +20,7 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Logo } from "@/components/shared/logo";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -222,8 +223,12 @@ export const ImpersonationBar = () => {
 												className="h-9"
 											/>
 											{isLoading ? (
-												<div className="py-6 text-center text-sm">
-													Loading users...
+												<div className="p-4">
+													<ListSkeleton
+														items={4}
+														gridClassName="grid grid-cols-1 gap-2"
+														itemClassName="border-none bg-transparent p-0"
+													/>
 												</div>
 											) : (
 												<>

@@ -3,7 +3,6 @@ import {
 	ExternalLink,
 	GlobeIcon,
 	InfoIcon,
-	Loader2,
 	PenBoxIcon,
 	RefreshCw,
 	Server,
@@ -14,6 +13,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@/components/ui/empty";
 import {
 	Tooltip,
 	TooltipContent,
@@ -160,27 +168,30 @@ export const ShowDomains = ({ id, type }: Props) => {
 				</CardHeader>
 				<CardContent className="flex w-full flex-row gap-4">
 					{isLoadingDomains ? (
-						<div className="flex w-full flex-row gap-4 min-h-[40vh] justify-center items-center">
-							<Loader2 className="size-5 animate-spin text-muted-foreground" />
-							<span className="text-base text-muted-foreground">
-								Loading domains...
-							</span>
-						</div>
+						<ListSkeleton
+							items={4}
+							gridClassName="grid grid-cols-1 xl:grid-cols-2 gap-4 w-full"
+							className="min-h-[40vh]"
+						/>
 					) : data?.length === 0 ? (
-						<div className="flex w-full flex-col items-center justify-center gap-3 min-h-[40vh]">
-							<GlobeIcon className="size-8 text-muted-foreground" />
-							<span className="text-base text-muted-foreground">
-								To access the application it is required to set at least 1
-								domain
-							</span>
-							<div className="flex flex-row gap-4 flex-wrap">
+						<Empty className="min-h-[40vh] w-full">
+							<EmptyHeader>
+								<EmptyMedia variant="icon">
+									<GlobeIcon className="size-5 text-muted-foreground" />
+								</EmptyMedia>
+								<EmptyTitle>No domains yet</EmptyTitle>
+								<EmptyDescription>
+									Add at least one domain to access your application.
+								</EmptyDescription>
+							</EmptyHeader>
+							<EmptyContent>
 								<AddDomain id={id} type={type}>
 									<Button>
 										<GlobeIcon className="size-4" /> Add Domain
 									</Button>
 								</AddDomain>
-							</div>
-						</div>
+							</EmptyContent>
+						</Empty>
 					) : (
 						<div className="grid grid-cols-1 gap-4 xl:grid-cols-2 w-full min-h-[40vh] ">
 							{data?.map((item) => {

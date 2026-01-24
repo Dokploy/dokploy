@@ -12,7 +12,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AlertBlock } from "@/components/shared/alert-block";
+import { ListSkeleton } from "@/components/shared/list-skeleton";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Command,
 	CommandEmpty,
@@ -396,14 +398,16 @@ export const HandleBackup = ({
 															!field.value && "text-muted-foreground",
 														)}
 													>
-														{isLoading
-															? "Loading...."
-															: field.value
-																? data?.find(
-																		(destination) =>
-																			destination.destinationId === field.value,
-																	)?.name
-																: "Select Destination"}
+														{isLoading ? (
+															<Skeleton className="h-4 w-24" />
+														) : field.value ? (
+															data?.find(
+																(destination) =>
+																	destination.destinationId === field.value,
+															)?.name
+														) : (
+															"Select Destination"
+														)}
 
 														<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 													</Button>
@@ -416,9 +420,13 @@ export const HandleBackup = ({
 														className="h-9"
 													/>
 													{isLoading && (
-														<span className="py-6 text-center text-sm">
-															Loading Destinations....
-														</span>
+														<div className="p-4">
+															<ListSkeleton
+																items={4}
+																gridClassName="grid grid-cols-1 gap-2"
+																itemClassName="border-none bg-transparent p-0"
+															/>
+														</div>
 													)}
 													<CommandEmpty>No destinations found.</CommandEmpty>
 													<ScrollArea className="h-64">
