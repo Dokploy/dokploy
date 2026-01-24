@@ -29,10 +29,11 @@ function validateShellType(shellType: string): void {
 }
 
 /**
- * Validates that the container ID is a valid format (alphanumeric and some special chars)
+ * Validates that the container ID is a valid Docker container ID format
+ * Docker container IDs are 64-character hexadecimal strings, but shortened versions (12 chars) are also common
  */
 function validateContainerId(containerId: string): void {
-	if (!containerId || !/^[a-zA-Z0-9_-]+$/.test(containerId)) {
+	if (!containerId || !/^[a-f0-9]{12,64}$/.test(containerId)) {
 		throw new Error(`Invalid container ID: ${containerId}`);
 	}
 }
@@ -114,14 +115,16 @@ export const runCommand = async (scheduleId: string) => {
 
 		if (serverId) {
 			try {
-				// Use shell-quote to safely escape all parameters
+				// Use shell-quote to safely escape all parameters including containerId and shellType
+				const escapedContainerId = quote([containerId]);
+				const escapedShellType = quote([shellType]);
 				const escapedLogPath = quote([deployment.logPath]);
 				await execAsyncRemote(
 					serverId,
 					`
 					set -e
-					echo "Running command: docker exec ${containerId} ${shellType} -c ${escapedCommand}" >> ${escapedLogPath};
-					docker exec ${containerId} ${shellType} -c ${escapedCommand} >> ${escapedLogPath} 2>> ${escapedLogPath} || { 
+					echo "Running command: docker exec ${escapedContainerId} ${escapedShellType} -c ${escapedCommand}" >> ${escapedLogPath};
+					docker exec ${escapedContainerId} ${escapedShellType} -c ${escapedCommand} >> ${escapedLogPath} 2>> ${escapedLogPath} || { 
 						echo "❌ Command failed" >> ${escapedLogPath};
 						exit 1;
 					}
@@ -136,11 +139,15 @@ export const runCommand = async (scheduleId: string) => {
 			const writeStream = createWriteStream(deployment.logPath, { flags: "a" });
 
 			try {
+				// Use escaped values for logging
+				const escapedContainerId = quote([containerId]);
+				const escapedShellType = quote([shellType]);
 				writeStream.write(
-					`docker exec ${containerId} ${shellType} -c ${escapedCommand}\n`,
+					`docker exec ${escapedContainerId} ${escapedShellType} -c ${escapedCommand}\n`,
 				);
-				// spawnAsync uses an array of arguments, which is safe from injection
-				// The command is passed as a separate argument, not interpolated
+				// spawnAsync uses an array of arguments, which is inherently safe from shell injection
+				// Each argument is passed separately to the process, not through shell interpolation
+				// The original unescaped command is safe here because it's not passed through a shell
 				await spawnAsync(
 					"docker",
 					["exec", containerId, shellType, "-c", command],
