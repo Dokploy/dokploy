@@ -293,6 +293,7 @@ export const getServiceExistsCommand = (appName: string) => {
 export const getCreateDatabaseBackupTempService = (
 	backup: BackupSchedule,
 	appName: string,
+	databaseUser: string,
 	node: string,
 	rcloneCommand: string,
 ) => {
@@ -314,7 +315,7 @@ export const getCreateDatabaseBackupTempService = (
 		'echo "Executing backup test...";',
 		`${backupCommand} > /dev/null || { echo "❌ Error: Backup process failed"; exit 1; };`,
 		'echo "Starting upload to S3...";',
-		`docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U postgres --no-password ${backup.database} | gzip" |`,
+		`docker exec -i $CONTAINER_ID bash -c "set -o pipefail; pg_dump -Fc --no-acl --no-owner -h localhost -U ${databaseUser} --no-password ${backup.database} | gzip" |`,
 		`${rcloneCommand} || { echo "❌ Error: Upload to S3 failed"; exit 1; };`,
 		"sleep 6;",
 		'echo "Backup done ✅"',

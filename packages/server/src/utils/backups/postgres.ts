@@ -23,7 +23,7 @@ export const runPostgresBackup = async (
 	postgres: Postgres,
 	backup: BackupSchedule,
 ) => {
-	const { name, environmentId } = postgres;
+	const { name, environmentId, databaseUser, appName } = postgres;
 	const environment = await findEnvironmentById(environmentId);
 	const project = await findProjectById(environment.projectId);
 
@@ -85,7 +85,8 @@ export const runPostgresBackup = async (
 			const createDatabaseBackupTempService =
 				getCreateDatabaseBackupTempService(
 					backup,
-					postgres.appName,
+					appName,
+					databaseUser,
 					node,
 					rcloneCommand,
 				);
