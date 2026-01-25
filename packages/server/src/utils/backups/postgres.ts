@@ -8,7 +8,16 @@ import type { Postgres } from "@dokploy/server/services/postgres";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	getBackupCommand,
+	getContainerSearchCommand,
+	getCreateDatabaseBackupTempService,
+	getRemoveServiceCommand,
+	getS3Credentials,
+	getServiceExistsCommand,
+	getServiceNodeCommand,
+	normalizeS3Path,
+} from "./utils";
 
 export const runPostgresBackup = async (
 	postgres: Postgres,
@@ -30,18 +39,58 @@ export const runPostgresBackup = async (
 	try {
 		const rcloneFlags = getS3Credentials(destination);
 		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-
 		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		const searchCommand = getContainerSearchCommand(backup);
+
+		if (!searchCommand) {
+			throw new Error("searchCommand is empty");
+		}
+
+		const { stdout: serviceId } = await execAsync(searchCommand, {
+			shell: "/bin/bash",
+		});
 
 		const backupCommand = getBackupCommand(
 			backup,
 			rcloneCommand,
 			deployment.logPath,
 		);
-		if (postgres.serverId) {
-			await execAsyncRemote(postgres.serverId, backupCommand);
+
+		if (serviceId) {
+			if (postgres.serverId) {
+				await execAsyncRemote(postgres.serverId, backupCommand);
+			} else {
+				await execAsync(backupCommand, {
+					shell: "/bin/bash",
+				});
+			}
 		} else {
-			await execAsync(backupCommand, {
+			const serviceNodeCommend = getServiceNodeCommand(postgres.appName);
+			const { stdout: node } = await execAsync(serviceNodeCommend, {
+				shell: "/bin/bash",
+			});
+
+			const serviceExistCommand = getServiceExistsCommand(postgres.appName);
+			const { stdout: exist } = await execAsync(serviceExistCommand, {
+				shell: "/bin/bash",
+			});
+
+			if (exist.trim() === "true") {
+				const removeServiceCommand = getRemoveServiceCommand(postgres.appName);
+				await execAsync(removeServiceCommand, {
+					shell: "/bin/bash",
+				});
+			}
+
+			const createDatabaseBackupTempService =
+				getCreateDatabaseBackupTempService(
+					backup,
+					postgres.appName,
+					node,
+					rcloneCommand,
+				);
+
+			await execAsync(createDatabaseBackupTempService, {
 				shell: "/bin/bash",
 			});
 		}
