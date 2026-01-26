@@ -145,6 +145,12 @@ const MENU: Menu = {
 		},
 		{
 			isSingle: true,
+			title: "Proxies",
+			url: "/dashboard/proxy",
+			icon: Forward,
+		},
+		{
+			isSingle: true,
 			title: "Monitoring",
 			url: "/dashboard/monitoring",
 			icon: BarChartHorizontalBigIcon,
