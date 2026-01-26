@@ -4,16 +4,15 @@ import {
 	execAsync,
 	execAsyncRemote,
 } from "@dokploy/server/utils/process/execAsync";
+import { shEscape } from "@dokploy/server/utils/security/shell-escape";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { IS_CLOUD } from "../constants";
 
 export type Registry = typeof registry.$inferSelect;
 
-function shEscape(s: string | undefined): string {
-	if (!s) return "''";
-	return `'${s.replace(/'/g, `'\\''`)}'`;
-}
+// Re-export shEscape for backward compatibility
+export { shEscape };
 
 function safeDockerLoginCommand(
 	registry: string | undefined,

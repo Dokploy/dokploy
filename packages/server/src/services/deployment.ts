@@ -14,6 +14,8 @@ import {
 } from "@dokploy/server/db/schema";
 import { removeDirectoryIfExistsContent } from "@dokploy/server/utils/filesystem/directory";
 import { execAsyncRemote } from "@dokploy/server/utils/process/execAsync";
+import { shEscape } from "@dokploy/server/utils/security/shell-escape";
+import { validateLogPath } from "@dokploy/server/utils/security/path-validation";
 import { TRPCError } from "@trpc/server";
 import { format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
@@ -627,31 +629,55 @@ const removeLastTenDeployments = async (
 			let command = "";
 			for (const oldDeployment of deploymentsToDelete) {
 				const logPath = path.join(oldDeployment.logPath);
-				if (oldDeployment.rollbackId) {
-					await removeRollbackById(oldDeployment.rollbackId);
-				}
 
-				if (logPath !== ".") {
+				// Validate log path before deletion to prevent path traversal
+				if (logPath !== "." && validateLogPath(logPath, serverId)) {
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
+					// Escape logPath for safe shell execution
+					const escapedLogPath = shEscape(logPath);
 					command += `
-					rm -rf ${logPath};
+					rm -rf ${escapedLogPath};
 					`;
+					await removeDeployment(oldDeployment.deploymentId);
+				} else if (logPath === ".") {
+					// Handle rollback removal even if logPath is invalid
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
+					await removeDeployment(oldDeployment.deploymentId);
+				} else {
+					// Invalid path - skip deletion but still remove from DB
+					console.warn(`Skipping deletion of invalid log path: ${logPath}`);
+					if (oldDeployment.rollbackId) {
+						await removeRollbackById(oldDeployment.rollbackId);
+					}
+					await removeDeployment(oldDeployment.deploymentId);
 				}
-				await removeDeployment(oldDeployment.deploymentId);
 			}
 
-			await execAsyncRemote(serverId, command);
+			if (command.trim()) {
+				await execAsyncRemote(serverId, command);
+			}
 		} else {
 			for (const oldDeployment of deploymentsToDelete) {
 				if (oldDeployment.rollbackId) {
 					await removeRollbackById(oldDeployment.rollbackId);
 				}
 				const logPath = path.join(oldDeployment.logPath);
+
+				// Validate log path before deletion to prevent path traversal
 				if (
+					logPath !== "." &&
+					validateLogPath(logPath, null) &&
 					existsSync(logPath) &&
-					!oldDeployment.errorMessage &&
-					logPath !== "."
+					!oldDeployment.errorMessage
 				) {
 					await fsPromises.unlink(logPath);
+				} else if (logPath !== "." && !validateLogPath(logPath, null)) {
+					// Invalid path - log warning but continue
+					console.warn(`Skipping deletion of invalid log path: ${logPath}`);
 				}
 				await removeDeployment(oldDeployment.deploymentId);
 			}

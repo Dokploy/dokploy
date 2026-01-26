@@ -309,9 +309,17 @@ export const validateRequest = async (request: IncomingMessage) => {
 				};
 			}
 
-			const organizationId = JSON.parse(
-				apiKeyRecord.metadata || "{}",
-			).organizationId;
+			let organizationId: string | undefined;
+			try {
+				const metadata = JSON.parse(apiKeyRecord.metadata || "{}");
+				organizationId = metadata?.organizationId;
+			} catch (error) {
+				console.error("Error parsing API key metadata", error);
+				return {
+					session: null,
+					user: null,
+				};
+			}
 
 			if (!organizationId) {
 				return {
