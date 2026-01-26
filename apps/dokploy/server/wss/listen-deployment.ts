@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById, validateRequest } from "@dokploy/server";
+import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
 
@@ -108,6 +108,11 @@ export const setupDeploymentLogsWebSocketServer = (
 					}
 				});
 			} else {
+				if (IS_CLOUD) {
+					ws.send("This feature is not available in the cloud version.");
+					ws.close();
+					return;
+				}
 				tailProcess = spawn("tail", ["-n", "+1", "-f", logPath]);
 
 				const stdout = tailProcess.stdout;
