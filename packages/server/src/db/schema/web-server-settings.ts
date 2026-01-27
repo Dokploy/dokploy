@@ -131,7 +131,10 @@ export const apiAssignDomain = z
 	.object({
 		host: z.string(),
 		certificateType: z.enum(["letsencrypt", "none", "custom"]),
-		letsEncryptEmail: z.string().email().optional().nullable(),
+		letsEncryptEmail: z
+			.union([z.string().email(), z.literal("")])
+			.optional()
+			.nullable(),
 		https: z.boolean().optional(),
 	})
 	.required()
