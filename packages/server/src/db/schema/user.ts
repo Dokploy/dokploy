@@ -214,6 +214,6 @@ export const apiUpdateUser = createSchema.partial().extend({
 		.optional(),
 	password: z.string().optional(),
 	currentPassword: z.string().optional(),
-	name: z.string().optional(),
+	firstName: z.string().optional(),
 	lastName: z.string().optional(),
 });
