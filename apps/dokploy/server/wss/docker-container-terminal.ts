@@ -1,9 +1,9 @@
 import type http from "node:http";
-import { findServerById, validateRequest } from "@dokploy/server";
+import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { getShell } from "./utils";
+import { isValidContainerId, isValidShell } from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -35,9 +35,24 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		const { user, session } = await validateRequest(req);
 
 		if (!containerId) {
-			ws.close(4000, "containerId no provided");
+			ws.close(4000, "containerId not provided");
 			return;
 		}
+
+		// Security: Validate containerId to prevent command injection
+		if (!isValidContainerId(containerId)) {
+			ws.close(4000, "Invalid container ID format");
+			return;
+		}
+
+		// Security: Validate shell to prevent command injection
+		if (activeWay && !isValidShell(activeWay)) {
+			ws.close(4000, "Invalid shell specified");
+			return;
+		}
+
+		// Default to 'sh' if no shell specified
+		const shell = activeWay || "sh";
 
 		if (!user || !session) {
 			ws.close();
@@ -54,55 +69,61 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				let _stderr = "";
 				conn
 					.once("ready", () => {
-						conn.exec(
-							`docker exec -it -w / ${containerId} ${activeWay}`,
-							{ pty: true },
-							(err, stream) => {
-								if (err) {
-									console.error("SSH exec error:", err);
-									ws.close();
+						// Use array-style arguments to prevent shell injection
+						const dockerCommand = [
+							"docker",
+							"exec",
+							"-it",
+							"-w",
+							"/",
+							containerId,
+							shell,
+						].join(" ");
+						conn.exec(dockerCommand, { pty: true }, (err, stream) => {
+							if (err) {
+								console.error("SSH exec error:", err);
+								ws.close();
+								conn.end();
+								return;
+							}
+
+							stream
+								.on("close", (code: number, _signal: string) => {
+									ws.send(`\nContainer closed with code: ${code}\n`);
 									conn.end();
-									return;
-								}
+								})
+								.on("data", (data: string) => {
+									_stdout += data.toString();
+									ws.send(data.toString());
+								})
+								.stderr.on("data", (data) => {
+									_stderr += data.toString();
+									ws.send(data.toString());
+									console.error("Error: ", data.toString());
+								});
 
-								stream
-									.on("close", (code: number, _signal: string) => {
-										ws.send(`\nContainer closed with code: ${code}\n`);
-										conn.end();
-									})
-									.on("data", (data: string) => {
-										_stdout += data.toString();
-										ws.send(data.toString());
-									})
-									.stderr.on("data", (data) => {
-										_stderr += data.toString();
-										ws.send(data.toString());
-										console.error("Error: ", data.toString());
-									});
-
-								ws.on("message", (message) => {
-									try {
-										let command: string | Buffer[] | Buffer | ArrayBuffer;
-										if (Buffer.isBuffer(message)) {
-											command = message.toString("utf8");
-										} else {
-											command = message;
-										}
-										stream.write(command.toString());
-									} catch (error) {
-										// @ts-ignore
-										const errorMessage = error?.message as unknown as string;
-										ws.send(errorMessage);
+							ws.on("message", (message) => {
+								try {
+									let command: string | Buffer[] | Buffer | ArrayBuffer;
+									if (Buffer.isBuffer(message)) {
+										command = message.toString("utf8");
+									} else {
+										command = message;
 									}
-								});
+									stream.write(command.toString());
+								} catch (error) {
+									// @ts-ignore
+									const errorMessage = error?.message as unknown as string;
+									ws.send(errorMessage);
+								}
+							});
 
-								ws.on("close", () => {
-									stream.end();
-									// Ensure SSH connection is closed when WebSocket closes
-									conn.end();
-								});
-							},
-						);
+							ws.on("close", () => {
+								stream.end();
+								// Ensure SSH connection is closed when WebSocket closes
+								conn.end();
+							});
+						});
 					})
 					.on("error", (err) => {
 						console.error("SSH connection error:", err);
@@ -119,10 +140,14 @@ export const setupDockerContainerTerminalWebSocketServer = (
 						privateKey: server.sshKey?.privateKey,
 					});
 			} else {
-				const shell = getShell();
+				if (IS_CLOUD) {
+					ws.send("This feature is not available in the cloud version.");
+					ws.close();
+					return;
+				}
 				const ptyProcess = spawn(
-					shell,
-					["-c", `docker exec -it -w / ${containerId} ${activeWay}`],
+					"docker",
+					["exec", "-it", "-w", "/", containerId, shell],
 					{},
 				);
 
