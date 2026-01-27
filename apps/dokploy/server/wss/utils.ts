@@ -34,7 +34,7 @@ export const isValidShell = (shell: string): boolean => {
 
 export const getShell = () => {
 	if (IS_CLOUD) {
-		return "CLOUD_VERSION";
+		return "NO_AVAILABLE";
 	}
 	switch (os.platform()) {
 		case "win32":
