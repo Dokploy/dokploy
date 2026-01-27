@@ -1624,9 +1624,39 @@ export async function getServerSideProps(
 				projectId: params.projectId,
 			});
 
-			await helpers.environment.one.fetch({
-				environmentId: params.environmentId,
-			});
+			// Try to fetch the requested environment
+			try {
+				await helpers.environment.one.fetch({
+					environmentId: params.environmentId,
+				});
+			} catch (error) {
+				// If user doesn't have access to requested environment, redirect to accessible one
+				const accessibleEnvironments =
+					await helpers.environment.byProjectId.fetch({
+						projectId: params.projectId,
+					});
+
+				if (accessibleEnvironments.length > 0) {
+					// Try to find default, otherwise use first accessible
+					const targetEnv =
+						accessibleEnvironments.find((env) => env.isDefault) ||
+						accessibleEnvironments[0];
+
+					return {
+						redirect: {
+							permanent: false,
+							destination: `/dashboard/project/${params.projectId}/environment/${targetEnv.environmentId}`,
+						},
+					};
+				}
+				// No accessible environments, redirect to home
+				return {
+					redirect: {
+						permanent: false,
+						destination: "/",
+					},
+				};
+			}
 
 			await helpers.environment.byProjectId.fetch({
 				projectId: params.projectId,

@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.26.5",
+	"version": "v0.26.6",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -195,11 +195,6 @@
 	"lint-staged": {
 		"*": [
 			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
-		]
-	},
-	"commitlint": {
-		"extends": [
-			"@commitlint/config-conventional"
 		]
 	}
 }
