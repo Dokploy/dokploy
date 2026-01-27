@@ -32,6 +32,17 @@ export const isValidShell = (shell: string): boolean => {
 	return allowedShells.includes(shell);
 };
 
+export const readValidDirectory = (directory: string) => {
+	const { BASE_PATH } = paths();
+
+	const resolvedBase = path.resolve(BASE_PATH);
+	const resolvedDir = path.resolve(directory);
+
+	return (
+		resolvedDir === resolvedBase ||
+		resolvedDir.startsWith(resolvedBase + path.sep)
+	);
+};
 export const getShell = () => {
 	if (IS_CLOUD) {
 		return "NO_AVAILABLE";

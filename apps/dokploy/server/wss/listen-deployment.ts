@@ -3,6 +3,7 @@ import type http from "node:http";
 import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { readValidDirectory } from "./utils";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -37,6 +38,11 @@ export const setupDeploymentLogsWebSocketServer = (
 		if (!logPath) {
 			console.log(`[${connectionId}] logPath no provided`);
 			ws.close(4000, "logPath no provided");
+			return;
+		}
+
+		if (!readValidDirectory(logPath)) {
+			ws.close(4000, "Invalid log path");
 			return;
 		}
 
