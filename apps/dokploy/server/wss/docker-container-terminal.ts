@@ -3,7 +3,7 @@ import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { getShell, isValidContainerId, isValidShell } from "./utils";
+import { isValidContainerId, isValidShell } from "./utils";
 
 export const setupDockerContainerTerminalWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -33,11 +33,6 @@ export const setupDockerContainerTerminalWebSocketServer = (
 		const activeWay = url.searchParams.get("activeWay");
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);
-
-		if (!containerId) {
-			ws.close(4000, "containerId no provided");
-			return;
-		}
 
 		if (!containerId) {
 			ws.close(4000, "containerId not provided");
@@ -150,10 +145,9 @@ export const setupDockerContainerTerminalWebSocketServer = (
 					ws.close();
 					return;
 				}
-				const shell = getShell();
 				const ptyProcess = spawn(
-					shell,
-					["-c", `docker exec -it -w / ${containerId} ${activeWay}`],
+					"docker",
+					["exec", "-it", "-w", "/", containerId, shell],
 					{},
 				);
 
