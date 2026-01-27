@@ -152,8 +152,8 @@ export const setupDockerContainerTerminalWebSocketServer = (
 				}
 				const shell = getShell();
 				const ptyProcess = spawn(
-					"docker",
-					["exec", "-it", "-w", "/", containerId, shell],
+					shell,
+					["-c", `docker exec -it -w / ${containerId} ${activeWay}`],
 					{},
 				);
 
