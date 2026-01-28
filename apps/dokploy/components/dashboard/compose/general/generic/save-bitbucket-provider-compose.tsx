@@ -120,7 +120,10 @@ export const SaveBitbucketProviderCompose = ({ composeId }: Props) => {
 			bitbucketId,
 		},
 		{
-			enabled: !!repository?.owner && !!(repository?.slug || repository?.repo) && !!bitbucketId,
+			enabled:
+				!!repository?.owner &&
+				!!(repository?.slug || repository?.repo) &&
+				!!bitbucketId,
 		},
 	);
 
