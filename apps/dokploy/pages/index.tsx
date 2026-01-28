@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 
 const LoginSchema = z.object({
 	email: z.string().email(),
@@ -52,6 +53,29 @@ type LoginForm = z.infer<typeof LoginSchema>;
 interface Props {
 	IS_CLOUD: boolean;
 }
+
+const LoginHeader = () => {
+	const { data: settings } = api.settings.getWebServerSettings.useQuery(undefined, {
+		refetchOnWindowFocus: false,
+	});
+
+	const logoUrl = settings?.whitelabelLogoUrl;
+
+	return (
+		<div className="flex flex-col space-y-2 text-center">
+			<h1 className="text-2xl font-semibold tracking-tight">
+				<div className="flex flex-row items-center justify-center gap-2">
+					<Logo className="size-12" logoUrl={logoUrl || undefined} />
+					Sign in
+				</div>
+			</h1>
+			<p className="text-sm text-muted-foreground">
+				Enter your email and password to sign in
+			</p>
+		</div>
+	);
+};
+
 export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
@@ -202,17 +226,7 @@ export default function Home({ IS_CLOUD }: Props) {
 	};
 	return (
 		<>
-			<div className="flex flex-col space-y-2 text-center">
-				<h1 className="text-2xl font-semibold tracking-tight">
-					<div className="flex flex-row items-center justify-center gap-2">
-						<Logo className="size-12" />
-						Sign in
-					</div>
-				</h1>
-				<p className="text-sm text-muted-foreground">
-					Enter your email and password to sign in
-				</p>
-			</div>
+			<LoginHeader />
 			{error && (
 				<AlertBlock type="error" className="my-2">
 					<span>{error}</span>

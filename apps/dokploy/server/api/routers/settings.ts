@@ -907,4 +907,23 @@ export const settingsRouter = createTRPCRouter({
 		const ips = process.env.DOKPLOY_CLOUD_IPS?.split(",");
 		return ips;
 	}),
+	updateWhitelabel: adminProcedure
+		.input(
+			z.object({
+				whitelabelLogoUrl: z.string().url().optional().nullable(),
+				whitelabelBrandName: z.string().optional().nullable(),
+				whitelabelTagline: z.string().optional().nullable(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return true;
+			}
+			await updateWebServerSettings({
+				whitelabelLogoUrl: input.whitelabelLogoUrl,
+				whitelabelBrandName: input.whitelabelBrandName,
+				whitelabelTagline: input.whitelabelTagline,
+			});
+			return true;
+		}),
 });

@@ -76,6 +76,10 @@ export const webServerSettings = pgTable("webServerSettings", {
 	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
 		.notNull()
 		.default(false),
+	// Whitelabel Configuration
+	whitelabelLogoUrl: text("whitelabelLogoUrl"),
+	whitelabelBrandName: text("whitelabelBrandName"),
+	whitelabelTagline: text("whitelabelTagline"),
 	createdAt: timestamp("created_at").defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -125,6 +129,9 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheApplications: z.boolean().optional(),
 	cleanupCacheOnPreviews: z.boolean().optional(),
 	cleanupCacheOnCompose: z.boolean().optional(),
+	whitelabelLogoUrl: z.string().url().optional().nullable(),
+	whitelabelBrandName: z.string().optional().nullable(),
+	whitelabelTagline: z.string().optional().nullable(),
 });
 
 export const apiAssignDomain = z

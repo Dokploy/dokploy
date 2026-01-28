@@ -54,5 +54,17 @@
 	"settings.terminal.connectionSettings": "Connection settings",
 	"settings.terminal.ipAddress": "IP Address",
 	"settings.terminal.port": "Port",
-	"settings.terminal.username": "Username"
+	"settings.terminal.username": "Username",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "Customize the login page with your logo and branding.",
+	"settings.whitelabel.logoUrl": "Logo URL",
+	"settings.whitelabel.logoUrlDescription": "Enter the URL of your logo image",
+	"settings.whitelabel.brandName": "Brand Name",
+	"settings.whitelabel.brandNameDescription": "Your company or product name",
+	"settings.whitelabel.tagline": "Tagline",
+	"settings.whitelabel.taglineDescription": "A short description or slogan",
+	"settings.whitelabel.success": "Whitelabel settings updated successfully",
+	"settings.whitelabel.error": "Failed to update whitelabel settings",
+	"settings.common.loading": "Loading..."
 }
