@@ -56,6 +56,7 @@ export const compose = pgTable("compose", {
 	gitlabPathNamespace: text("gitlabPathNamespace"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketRepositorySlug: text("bitbucketRepositorySlug"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
 	// Gitea

@@ -136,6 +136,7 @@ export const applications = pgTable("application", {
 	giteaBuildPath: text("giteaBuildPath").default("/"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketRepositorySlug: text("bitbucketRepositorySlug"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
 	bitbucketBuildPath: text("bitbucketBuildPath").default("/"),
@@ -451,6 +452,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketBuildPath: true,
 		bitbucketOwner: true,
 		bitbucketRepository: true,
+		bitbucketRepositorySlug: true,
 		bitbucketId: true,
 		applicationId: true,
 		watchPaths: true,
