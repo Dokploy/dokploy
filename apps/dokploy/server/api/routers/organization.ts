@@ -4,9 +4,51 @@ import { and, desc, eq, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { db } from "@/server/db";
-import { invitation, member, organization } from "@/server/db/schema";
+import { invitation, member, organization, user } from "@/server/db/schema";
 import { adminProcedure, createTRPCRouter, protectedProcedure } from "../trpc";
 export const organizationRouter = createTRPCRouter({
+	getEnterpriseSettings: adminProcedure.query(async ({ ctx }) => {
+		const currentUserId = ctx.user.id;
+		const currentUser = await db.query.user.findFirst({
+			where: eq(user.id, currentUserId),
+		});
+
+		if (!currentUser) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "User not found",
+			});
+		}
+
+		return {
+			enableEnterpriseFeatures: !!currentUser.enableEnterpriseFeatures,
+			licenseKey: currentUser.licenseKey ?? "",
+		};
+	}),
+
+	updateEnterpriseSettings: adminProcedure
+		.input(
+			z.object({
+				enableEnterpriseFeatures: z.boolean().optional(),
+				licenseKey: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const currentUserId = ctx.user.id;
+
+			await db
+				.update(user)
+				.set({
+					...(input.enableEnterpriseFeatures === undefined
+						? {}
+						: { enableEnterpriseFeatures: input.enableEnterpriseFeatures }),
+					...(input.licenseKey === undefined ? {} : { licenseKey: input.licenseKey }),
+				})
+				.where(eq(user.id, currentUserId));
+
+			return true;
+		}),
+
 	create: protectedProcedure
 		.input(
 			z.object({

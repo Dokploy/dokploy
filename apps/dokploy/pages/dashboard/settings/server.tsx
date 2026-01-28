@@ -6,6 +6,7 @@ import superjson from "superjson";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
 import { WebDomain } from "@/components/dashboard/settings/web-domain";
 import { WebServer } from "@/components/dashboard/settings/web-server";
+import { LicenseKeySettings } from "@/components/dashboard/settings/web-server/license-key";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
@@ -28,6 +29,13 @@ const Page = () => {
 						/>
 					</Card>
 				</div>
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+					<div className="rounded-xl bg-background shadow-md">
+						<div className="p-6">
+							<LicenseKeySettings />
+						</div>
+					</div>
+				</Card>
 			</div>
 		</div>
 	);
