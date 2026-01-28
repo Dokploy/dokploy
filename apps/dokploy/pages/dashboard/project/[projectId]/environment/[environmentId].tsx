@@ -279,6 +279,16 @@ const EnvironmentPage = (
 	const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
 	const { projectId, environmentId } = props;
 	const { data: auth } = api.user.get.useQuery();
+
+	const { data: environments } = api.environment.byProjectId.useQuery({
+		projectId: projectId,
+	});
+	const environmentDropdownItems =
+		environments?.map((env) => ({
+			name: env.name,
+			href: `/dashboard/project/${projectId}/environment/${env.environmentId}`,
+		})) || [];
+
 	const [sortBy, setSortBy] = useState<string>(() => {
 		if (typeof window !== "undefined") {
 			return localStorage.getItem("servicesSort") || "lastDeploy-desc";
@@ -863,6 +873,7 @@ const EnvironmentPage = (
 					},
 					{
 						name: currentEnvironment.name,
+						dropdownItems: environmentDropdownItems,
 					},
 				]}
 			/>
@@ -898,7 +909,9 @@ const EnvironmentPage = (
 									<ProjectEnvironment projectId={projectId}>
 										<Button variant="outline">Project Environment</Button>
 									</ProjectEnvironment>
-									{(auth?.role === "owner" || auth?.canCreateServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canCreateServices) && (
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button>
@@ -1021,6 +1034,7 @@ const EnvironmentPage = (
 													</Button>
 												</DialogAction>
 												{(auth?.role === "owner" ||
+													auth?.role === "admin" ||
 													auth?.canDeleteServices) && (
 													<>
 														<DialogAction
@@ -1610,9 +1624,39 @@ export async function getServerSideProps(
 				projectId: params.projectId,
 			});
 
-			await helpers.environment.one.fetch({
-				environmentId: params.environmentId,
-			});
+			// Try to fetch the requested environment
+			try {
+				await helpers.environment.one.fetch({
+					environmentId: params.environmentId,
+				});
+			} catch (error) {
+				// If user doesn't have access to requested environment, redirect to accessible one
+				const accessibleEnvironments =
+					await helpers.environment.byProjectId.fetch({
+						projectId: params.projectId,
+					});
+
+				if (accessibleEnvironments.length > 0) {
+					// Try to find default, otherwise use first accessible
+					const targetEnv =
+						accessibleEnvironments.find((env) => env.isDefault) ||
+						accessibleEnvironments[0];
+
+					return {
+						redirect: {
+							permanent: false,
+							destination: `/dashboard/project/${params.projectId}/environment/${targetEnv.environmentId}`,
+						},
+					};
+				}
+				// No accessible environments, redirect to home
+				return {
+					redirect: {
+						permanent: false,
+						destination: "/",
+					},
+				};
+			}
 
 			await helpers.environment.byProjectId.fetch({
 				projectId: params.projectId,

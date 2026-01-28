@@ -60,6 +60,14 @@ const Postgresql = (
 	const { data: auth } = api.user.get.useQuery();
 
 	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: environments } = api.environment.byProjectId.useQuery({
+		projectId: data?.environment?.projectId || "",
+	});
+	const environmentDropdownItems =
+		environments?.map((env) => ({
+			name: env.name,
+			href: `/dashboard/project/${projectId}/environment/${env.environmentId}`,
+		})) || [];
 
 	return (
 		<div className="pb-10">
@@ -69,10 +77,11 @@ const Postgresql = (
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
 						name: data?.environment?.project?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.environment?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
+						dropdownItems: environmentDropdownItems,
 					},
 					{
 						name: data?.name || "",
@@ -146,7 +155,9 @@ const Postgresql = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdatePostgres postgresId={postgresId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canDeleteServices) && (
 										<DeleteService id={postgresId} type="postgres" />
 									)}
 								</div>

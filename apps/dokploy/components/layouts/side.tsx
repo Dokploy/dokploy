@@ -18,7 +18,6 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
-	HeartIcon,
 	KeyRound,
 	Loader2,
 	type LucideIcon,
@@ -409,18 +408,6 @@ const MENU: Menu = {
 			name: "Support",
 			url: "https://discord.gg/2tBnJ3jDJc",
 			icon: CircleHelp,
-		},
-		{
-			name: "Sponsor",
-			url: "https://opencollective.com/dokploy",
-			icon: ({ className }) => (
-				<HeartIcon
-					className={cn(
-						"text-red-500 fill-red-600 animate-heartbeat",
-						className,
-					)}
-				/>
-			),
 		},
 	],
 } as const;

@@ -1,0 +1,11 @@
+The Dokploy Source Available license (DSAL) version 1.0
+
+Copyright (c) 2026-present Dokploy Technology, Inc.
+
+With regard to the Dokploy Software:This software and associated documentation files (the "Software") may only beused in production, if you (and any entity that you represent) have agreed to, and are in compliance with, a valid commercial agreement from Dokploy.Subject to the foregoing sentence, you are free to modify this Software and publish patches to the Software. You agree that Dokploy and/or its licensors (as applicable) retain all right, title and interest in and to all such modifications and/or patches, and all such modifications and/or patches may only be used, copied, modified, displayed, distributed, or otherwise exploited with a valid Dokploy Source Available License.  Notwithstanding the foregoing, you may copy and modify the Software for development and testing purposes, without requiring a subscription.  You agree that Dokploy and/or its licensors (as applicable) retain all right, title and interest in and to all such modifications.  You are not granted any other rights beyond what is expressly stated herein.  Subject to theforegoing, it is forbidden to copy, merge, publish, distribute, sublicense,and/or sell the Software.
+
+This Dokploy Source Available license applies only to the part of this Software that is in a /proprietary folder. The full text of this License shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS ORIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THEAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHERLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THESOFTWARE.
+
+For all third party components incorporated into the Dokploy Software, thosecomponents are licensed under the original license provided by the owner of the applicable component.

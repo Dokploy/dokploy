@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckIcon, ChevronsUpDown, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -96,6 +96,16 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 
 	const repository = form.watch("repository");
 	const gitlabId = form.watch("gitlabId");
+
+	const gitlabUrl = useMemo(() => {
+		const url = gitlabProviders?.find(
+			(provider) => provider.gitlabId === gitlabId,
+		)?.gitlabUrl;
+
+		const gitlabUrl = url?.replace(/\/$/, "");
+
+		return gitlabUrl || "https://gitlab.com";
+	}, [gitlabId, gitlabProviders]);
 
 	const {
 		data: repositories,
@@ -224,9 +234,9 @@ export const SaveGitlabProviderCompose = ({ composeId }: Props) => {
 								<FormItem className="md:col-span-2 flex flex-col">
 									<div className="flex items-center justify-between">
 										<FormLabel>Repository</FormLabel>
-										{field.value.owner && field.value.repo && (
+										{field.value.gitlabPathNamespace && (
 											<Link
-												href={`https://gitlab.com/${field.value.owner}/${field.value.repo}`}
+												href={`${gitlabUrl}/${field.value.gitlabPathNamespace}`}
 												target="_blank"
 												rel="noopener noreferrer"
 												className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"
