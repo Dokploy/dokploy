@@ -253,7 +253,11 @@ export const deployApplication = async ({
 	} finally {
 		// Only extract commit info for non-docker sources
 		if (application.sourceType !== "docker") {
-			const commitInfo = await getGitCommitInfo(application);
+			const commitInfo = await getGitCommitInfo({
+				appName: application.appName,
+				type: "application",
+				serverId: serverId,
+			});
 
 			if (commitInfo) {
 				await updateDeployment(deployment.deploymentId, {
