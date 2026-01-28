@@ -146,17 +146,17 @@ export const getContainerByName = (name: string): Promise<ContainerInfo> => {
 };
 
 /**
- * Docker commands passed through this method are held during Docker's build or pull process.
+ * Docker commands sent using this method are held in a hold when Docker is busy.
  *
  * https://github.com/Dokploy/dokploy/pull/3064
- * https://github.com/fir4tozden
  */
-export const dockerSafeExec = (exec: string) => `CHECK_INTERVAL=10
+export const dockerSafeExec = (exec: string) => `
+CHECK_INTERVAL=10
 
 echo "Preparing for execution..."
 
 while true; do
-    PROCESSES=$(ps aux | grep -E "docker build|docker pull" | grep -v grep)
+    PROCESSES=$(ps aux | grep -E "^.*docker [A-Za-z]" | grep -v grep)
 
     if [ -z "$PROCESSES" ]; then
         echo "Docker is idle. Starting execution..."
@@ -169,11 +169,20 @@ done
 
 ${exec}
 
-echo "Execution completed."`;
+echo "Execution completed."
+`;
+
+const cleanupCommands = {
+	containers: "docker container prune --force",
+	images: "docker image prune --all --force",
+	volumes: "docker volume prune --all --force",
+	builders: "docker builder prune --all --force",
+	system: "docker system prune --all --force",
+};
 
 export const cleanupContainers = async (serverId?: string) => {
 	try {
-		const command = "docker container prune --force";
+		const command = cleanupCommands.containers;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -189,7 +198,7 @@ export const cleanupContainers = async (serverId?: string) => {
 
 export const cleanupImages = async (serverId?: string) => {
 	try {
-		const command = "docker image prune --all --force";
+		const command = cleanupCommands.images;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -203,7 +212,7 @@ export const cleanupImages = async (serverId?: string) => {
 
 export const cleanupVolumes = async (serverId?: string) => {
 	try {
-		const command = "docker volume prune --all --force";
+		const command = cleanupCommands.volumes;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -219,7 +228,7 @@ export const cleanupVolumes = async (serverId?: string) => {
 
 export const cleanupBuilders = async (serverId?: string) => {
 	try {
-		const command = "docker builder prune --all --force";
+		const command = cleanupCommands.builders;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -235,7 +244,7 @@ export const cleanupBuilders = async (serverId?: string) => {
 
 export const cleanupSystem = async (serverId?: string) => {
 	try {
-		const command = "docker system prune --all --force";
+		const command = cleanupCommands.system;
 
 		if (serverId) {
 			await execAsyncRemote(serverId, dockerSafeExec(command));
@@ -249,11 +258,63 @@ export const cleanupSystem = async (serverId?: string) => {
 	}
 };
 
+/**
+ * Volume cleanup should always be performed manually by the user. The reason is that during automatic cleanup, a volume may be deleted due to a stopped container, which is a dangerous situation.
+ *
+ * https://github.com/Dokploy/dokploy/pull/3267
+ */
+const excludedCleanupAllCommands: (keyof typeof cleanupCommands)[] = [
+	"volumes",
+];
+
 export const cleanupAll = async (serverId?: string) => {
-	await cleanupContainers(serverId);
-	await cleanupImages(serverId);
-	await cleanupBuilders(serverId);
-	await cleanupSystem(serverId);
+	for (const [key, command] of Object.entries(cleanupCommands) as [
+		keyof typeof cleanupCommands,
+		string,
+	][]) {
+		if (excludedCleanupAllCommands.includes(key)) continue;
+
+		try {
+			if (serverId) {
+				await execAsyncRemote(serverId, dockerSafeExec(command));
+			} else {
+				await execAsync(dockerSafeExec(command));
+			}
+		} catch {}
+	}
+};
+
+export const cleanupAllBackground = async (serverId?: string) => {
+	Promise.allSettled(
+		(
+			Object.entries(cleanupCommands) as [
+				keyof typeof cleanupCommands,
+				string,
+			][]
+		)
+			.filter(([key]) => !excludedCleanupAllCommands.includes(key))
+			.map(async ([, command]) => {
+				if (serverId) {
+					await execAsyncRemote(serverId, dockerSafeExec(command));
+				} else {
+					await execAsync(dockerSafeExec(command));
+				}
+			}),
+	)
+		.then((results) => {
+			const failed = results.filter((r) => r.status === "rejected");
+			if (failed.length > 0) {
+				console.error(`Docker cleanup: ${failed.length} operations failed`);
+			} else {
+				console.log("Docker cleanup completed successfully");
+			}
+		})
+		.catch((error) => console.error("Error in cleanup:", error));
+
+	return {
+		status: "scheduled",
+		message: "Docker cleanup has been initiated in the background",
+	};
 };
 
 export const startService = async (appName: string) => {

@@ -91,6 +91,15 @@ const Service = (
 	const { data: isCloud } = api.settings.isCloud.useQuery();
 	const { data: auth } = api.user.get.useQuery();
 
+	const { data: environments } = api.environment.byProjectId.useQuery({
+		projectId: data?.environment?.project?.projectId || "",
+	});
+	const environmentDropdownItems =
+		environments?.map((env) => ({
+			name: env.name,
+			href: `/dashboard/project/${projectId}/environment/${env.environmentId}`,
+		})) || [];
+
 	return (
 		<div className="pb-10">
 			<UseKeyboardNav forPage="application" />
@@ -98,11 +107,12 @@ const Service = (
 				list={[
 					{ name: "Projects", href: "/dashboard/projects" },
 					{
-						name: data?.environment.project.name || "",
+						name: data?.environment?.project?.name || "",
+						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
 					},
 					{
 						name: data?.environment?.name || "",
-						href: `/dashboard/project/${projectId}/environment/${environmentId}`,
+						dropdownItems: environmentDropdownItems,
 					},
 					{
 						name: data?.name || "",
@@ -183,7 +193,9 @@ const Service = (
 
 								<div className="flex flex-row gap-2 justify-end">
 									<UpdateApplication applicationId={applicationId} />
-									{(auth?.role === "owner" || auth?.canDeleteServices) && (
+									{(auth?.role === "owner" ||
+										auth?.role === "admin" ||
+										auth?.canDeleteServices) && (
 										<DeleteService id={applicationId} type="application" />
 									)}
 								</div>

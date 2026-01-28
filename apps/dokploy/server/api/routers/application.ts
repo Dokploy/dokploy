@@ -336,7 +336,9 @@ export const applicationRouter = createTRPCRouter({
 
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 			await myQueue.add(
@@ -467,6 +469,7 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
+				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
 				bitbucketOwner: input.bitbucketOwner,
 				bitbucketBranch: input.bitbucketBranch,
 				bitbucketBuildPath: input.bitbucketBuildPath,
@@ -701,7 +704,9 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 
 				return true;
 			}
@@ -813,7 +818,9 @@ export const applicationRouter = createTRPCRouter({
 			};
 			if (IS_CLOUD && app.serverId) {
 				jobData.serverId = app.serverId;
-				await deploy(jobData);
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
 				return true;
 			}
 

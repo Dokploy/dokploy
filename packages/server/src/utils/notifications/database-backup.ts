@@ -11,6 +11,7 @@ import {
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
+	sendPushoverNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -48,12 +49,22 @@ export const sendDatabaseBackupNotifications = async ({
 			ntfy: true,
 			custom: true,
 			lark: true,
+			pushover: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+			pushover,
+		} = notification;
 		try {
 			if (email) {
 				const template = await renderAsync(
@@ -376,6 +387,14 @@ export const sendDatabaseBackupNotifications = async ({
 						},
 					},
 				});
+			}
+
+			if (pushover) {
+				await sendPushoverNotification(
+					pushover,
+					`Database Backup ${type === "success" ? "Successful" : "Failed"}`,
+					`Project: ${projectName}\nApplication: ${applicationName}\nDatabase: ${databaseType}\nDatabase Name: ${databaseName}\nDate: ${date.toLocaleString()}${type === "error" && errorMessage ? `\nError: ${errorMessage}` : ""}`,
+				);
 			}
 		} catch (error) {
 			console.log(error);

@@ -195,7 +195,9 @@ export default async function handler(
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
 				application.bitbucket,
-				application.bitbucketRepository || "",
+				application.bitbucketRepositorySlug ||
+					application.bitbucketRepository ||
+					"",
 			);
 
 			const shouldDeployPaths = shouldDeploy(
@@ -242,17 +244,19 @@ export default async function handler(
 
 			if (IS_CLOUD && application.serverId) {
 				jobData.serverId = application.serverId;
-				await deploy(jobData);
-				return true;
+				deploy(jobData).catch((error) => {
+					console.error("Background deployment failed:", error);
+				});
+			} else {
+				await myQueue.add(
+					"deployments",
+					{ ...jobData },
+					{
+						removeOnComplete: true,
+						removeOnFail: true,
+					},
+				);
 			}
-			await myQueue.add(
-				"deployments",
-				{ ...jobData },
-				{
-					removeOnComplete: true,
-					removeOnFail: true,
-				},
-			);
 		} catch (error) {
 			res.status(400).json({ message: "Error deploying Application", error });
 			return;

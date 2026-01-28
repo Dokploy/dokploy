@@ -136,6 +136,7 @@ export const applications = pgTable("application", {
 	giteaBuildPath: text("giteaBuildPath").default("/"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketRepositorySlug: text("bitbucketRepositorySlug"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
 	bitbucketBuildPath: text("bitbucketBuildPath").default("/"),
@@ -177,7 +178,7 @@ export const applications = pgTable("application", {
 		.notNull()
 		.default("idle"),
 	buildType: buildType("buildType").notNull().default("nixpacks"),
-	railpackVersion: text("railpackVersion").default("0.2.2"),
+	railpackVersion: text("railpackVersion").default("0.15.4"),
 	herokuVersion: text("herokuVersion").default("24"),
 	publishDirectory: text("publishDirectory"),
 	isStaticSpa: boolean("isStaticSpa"),
@@ -451,6 +452,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketBuildPath: true,
 		bitbucketOwner: true,
 		bitbucketRepository: true,
+		bitbucketRepositorySlug: true,
 		bitbucketId: true,
 		applicationId: true,
 		watchPaths: true,

@@ -1,5 +1,5 @@
 import copy from "copy-to-clipboard";
-import { CopyIcon, ExternalLinkIcon, ServerIcon } from "lucide-react";
+import { CopyIcon, ExternalLinkIcon, ServerIcon, Settings } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +22,6 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
@@ -36,9 +35,10 @@ import { ValidateServer } from "./validate-server";
 
 interface Props {
 	serverId: string;
+	asButton?: boolean;
 }
 
-export const SetupServer = ({ serverId }: Props) => {
+export const SetupServer = ({ serverId, asButton = false }: Props) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const { data: server } = api.server.one.useQuery(
 		{
@@ -81,14 +81,23 @@ export const SetupServer = ({ serverId }: Props) => {
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<DropdownMenuItem
+			{asButton ? (
+				<DialogTrigger asChild>
+					<Button variant="outline" size="icon" className="h-9 w-9">
+						<Settings className="h-4 w-4" />
+					</Button>
+				</DialogTrigger>
+			) : (
+				<Button
 					className="w-full cursor-pointer "
-					onSelect={(e) => e.preventDefault()}
+					size="sm"
+					onClick={() => {
+						setIsOpen(true);
+					}}
 				>
-					Setup Server
-				</DropdownMenuItem>
-			</DialogTrigger>
+					Setup Server <Settings className="size-4" />
+				</Button>
+			)}
 			<DialogContent className="sm:max-w-4xl  ">
 				<DialogHeader>
 					<div className="flex flex-col gap-1.5">
