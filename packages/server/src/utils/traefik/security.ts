@@ -20,7 +20,7 @@ import {
 	writeMiddleware,
 } from "./middleware";
 
-export const createSecurityMiddleware = async (
+export const updateSecurityMiddleware = async (
 	application: ApplicationNested,
 	data: Security,
 ) => {
@@ -39,10 +39,12 @@ export const createSecurityMiddleware = async (
 	if (config.http?.middlewares) {
 		const currentMiddleware = config.http.middlewares[middlewareName];
 		if (isBasicAuthMiddleware(currentMiddleware)) {
-			currentMiddleware.basicAuth.users = [
-				...(currentMiddleware.basicAuth.users || []),
-				user,
-			];
+			const users = currentMiddleware.basicAuth.users;
+			const filteredUsers = users?.filter((user) => {
+				const [username] = user.split(":");
+				return username !== data.username;
+			});
+			currentMiddleware.basicAuth.users = [...(filteredUsers || []), user];
 		} else {
 			config.http.middlewares[middlewareName] = {
 				basicAuth: {

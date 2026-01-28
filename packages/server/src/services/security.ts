@@ -1,8 +1,8 @@
 import { db } from "@dokploy/server/db";
 import { type apiCreateSecurity, security } from "@dokploy/server/db/schema";
 import {
-	createSecurityMiddleware,
 	removeSecurityMiddleware,
+	updateSecurityMiddleware,
 } from "@dokploy/server/utils/traefik/security";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
@@ -44,7 +44,7 @@ export const createSecurity = async (
 					message: "Error creating the security",
 				});
 			}
-			await createSecurityMiddleware(application, securityResponse);
+			await updateSecurityMiddleware(application, securityResponse);
 			return true;
 		});
 	} catch (error) {
@@ -90,15 +90,29 @@ export const updateSecurityById = async (
 	data: Partial<Security>,
 ) => {
 	try {
-		const response = await db
-			.update(security)
-			.set({
-				...data,
-			})
-			.where(eq(security.securityId, securityId))
-			.returning();
+		await db.transaction(async (tx) => {
+			const result = await tx
+				.update(security)
+				.set({
+					...data,
+				})
+				.where(eq(security.securityId, securityId))
+				.returning()
+				.then((res) => res[0]);
 
-		return response[0];
+			if (!result) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Security not found",
+				});
+			}
+
+			const application = await findApplicationById(result.applicationId);
+
+			await updateSecurityMiddleware(application, result);
+
+			return result;
+		});
 	} catch (error) {
 		const message =
 			error instanceof Error ? error.message : "Error updating this security";
