@@ -61,16 +61,8 @@ export const sendVolumeBackupNotifications = async ({
 	});
 
 	for (const notification of notificationList) {
-		const {
-			email,
-			resend,
-			discord,
-			telegram,
-			slack,
-			gotify,
-			ntfy,
-			pushover,
-		} = notification;
+		const { email, resend, discord, telegram, slack, gotify, ntfy, pushover } =
+			notification;
 
 		if (email || resend) {
 			const subject = `Volume Backup ${type === "success" ? "Successful" : "Failed"} - ${applicationName}`;
