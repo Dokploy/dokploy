@@ -81,7 +81,8 @@ const getMongoSpecificCommand = (
 	backupFile: string,
 ): string => {
 	const tempDir = "/tmp/dokploy-restore";
-	const fileName = backupFile.split("/").pop() || "backup.sql.gz";
+	const fileName = backupFile.split("/").pop() || "backup.archive.gz";
+	// With rclone crypt, decryption happens automatically when reading from the crypt remote
 	const decompressedName = fileName.replace(".gz", "");
 	return `
 rm -rf ${tempDir} && \
@@ -121,7 +122,9 @@ export const getRestoreCommand = ({
 	const restoreCommand = generateRestoreCommand(type, credentials);
 	let cmd = `CONTAINER_ID=$(${containerSearch})`;
 
+	// With rclone crypt, decryption happens automatically when reading from the crypt remote
 	if (type !== "mongo") {
+		// For non-mongo databases: rclone cat | gunzip | restore
 		cmd += ` && ${rcloneCommand} | ${restoreCommand}`;
 	} else {
 		cmd += ` && ${getMongoSpecificCommand(rcloneCommand, restoreCommand, backupFile || "")}`;

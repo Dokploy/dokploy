@@ -8,7 +8,12 @@ import type { Mongo } from "@dokploy/server/services/mongo";
 import { findProjectById } from "@dokploy/server/services/project";
 import { sendDatabaseBackupNotifications } from "../notifications/database-backup";
 import { execAsync, execAsyncRemote } from "../process/execAsync";
-import { getBackupCommand, getS3Credentials, normalizeS3Path } from "./utils";
+import {
+	buildRcloneCommand,
+	getBackupCommand,
+	getRcloneS3Remote,
+	normalizeS3Path,
+} from "./utils";
 
 export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const { environmentId, name } = mongo;
@@ -16,7 +21,7 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 	const project = await findProjectById(environment.projectId);
 	const { prefix } = backup;
 	const destination = backup.destination;
-	const backupFileName = `${new Date().toISOString()}.sql.gz`;
+	const backupFileName = `${new Date().toISOString()}.archive.gz`;
 	const bucketDestination = `${normalizeS3Path(prefix)}${backupFileName}`;
 	const deployment = await createDeploymentBackup({
 		backupId: backup.backupId,
@@ -24,9 +29,13 @@ export const runMongoBackup = async (mongo: Mongo, backup: BackupSchedule) => {
 		description: "MongoDB Backup",
 	});
 	try {
-		const rcloneFlags = getS3Credentials(destination);
-		const rcloneDestination = `:s3:${destination.bucket}/${bucketDestination}`;
-		const rcloneCommand = `rclone rcat ${rcloneFlags.join(" ")} "${rcloneDestination}"`;
+		// Get rclone remote (encryption is handled transparently if enabled)
+		const { remote, envVars } = getRcloneS3Remote(destination);
+		const rcloneDestination = `${remote}/${bucketDestination}`;
+		const rcloneCommand = buildRcloneCommand(
+			`rclone rcat "${rcloneDestination}"`,
+			envVars,
+		);
 
 		const backupCommand = getBackupCommand(
 			backup,
