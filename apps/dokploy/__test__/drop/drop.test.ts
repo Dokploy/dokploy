@@ -29,6 +29,7 @@ const baseApp: ApplicationNested = {
 	applicationId: "",
 	previewLabels: [],
 	createEnvFile: true,
+	bitbucketRepositorySlug: "",
 	herokuVersion: "",
 	giteaBranch: "",
 	buildServerId: "",
