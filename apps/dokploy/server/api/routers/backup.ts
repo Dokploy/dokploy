@@ -1,5 +1,7 @@
 import {
 	createBackup,
+	execAsync,
+	execAsyncRemote,
 	findBackupById,
 	findComposeByBackupId,
 	findComposeById,
@@ -23,17 +25,16 @@ import {
 	runWebServerBackup,
 	scheduleBackup,
 	updateBackupById,
+	updateDeploymentStatus,
 } from "@dokploy/server";
+import { db } from "@dokploy/server/db";
+import { deployments } from "@dokploy/server/db/schema/deployment";
 import { findDestinationById } from "@dokploy/server/services/destination";
 import { runComposeBackup } from "@dokploy/server/utils/backups/compose";
 import {
 	getS3Credentials,
 	normalizeS3Path,
 } from "@dokploy/server/utils/backups/utils";
-import {
-	execAsync,
-	execAsyncRemote,
-} from "@dokploy/server/utils/process/execAsync";
 import {
 	restoreComposeBackup,
 	restoreMariadbBackup,
@@ -44,6 +45,7 @@ import {
 } from "@dokploy/server/utils/restore";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
@@ -428,5 +430,88 @@ export const backupRouter = createTRPCRouter({
 				});
 			}
 			return true;
+		}),
+
+	stop: protectedProcedure
+		.input(z.object({ backupId: z.string().min(1) }))
+		.mutation(async ({ input }) => {
+			// Find the running deployment for this backup
+			const runningDeployment = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.backupId, input.backupId),
+					eq(deployments.status, "running"),
+				),
+				with: {
+					backup: {
+						with: {
+							postgres: true,
+							mysql: true,
+							mariadb: true,
+							mongo: true,
+							compose: true,
+						},
+					},
+				},
+				orderBy: [desc(deployments.createdAt)],
+			});
+
+			if (!runningDeployment) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No running backup found",
+				});
+			}
+
+			if (!runningDeployment.pid) {
+				// If no PID, just mark as cancelled
+				await updateDeploymentStatus(
+					runningDeployment.deploymentId,
+					"cancelled",
+				);
+				return {
+					success: true,
+					message: "Backup stopped successfully",
+				};
+			}
+
+			// Determine server ID for remote execution
+			const backup = runningDeployment.backup;
+			let serverId: string | undefined;
+			if (backup?.backupType === "database") {
+				const postgresId = backup.postgres?.serverId;
+				const mysqlId = backup.mysql?.serverId;
+				const mariadbId = backup.mariadb?.serverId;
+				const mongoId = backup.mongo?.serverId;
+				serverId =
+					(postgresId && postgresId) ||
+					(mysqlId && mysqlId) ||
+					(mariadbId && mariadbId) ||
+					(mongoId && mongoId) ||
+					undefined;
+			} else if (backup?.backupType === "compose") {
+				const composeId = backup.compose?.serverId;
+				serverId = (composeId && composeId) || undefined;
+			}
+
+			// Kill the process
+			const command = `kill -9 ${runningDeployment.pid}`;
+			try {
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command);
+				}
+			} catch (error) {
+				// If kill fails, still mark as cancelled
+				console.error("Error killing process:", error);
+			}
+
+			// Update deployment status to cancelled
+			await updateDeploymentStatus(runningDeployment.deploymentId, "cancelled");
+
+			return {
+				success: true,
+				message: "Backup stopped successfully",
+			};
 		}),
 });

@@ -8,20 +8,23 @@ import {
 	runVolumeBackup,
 	scheduleVolumeBackup,
 	updateVolumeBackup,
+	updateDeploymentStatus,
 } from "@dokploy/server";
 import { db } from "@dokploy/server/db";
+import { deployments } from "@dokploy/server/db/schema/deployment";
 import {
 	createVolumeBackupSchema,
 	updateVolumeBackupSchema,
 	volumeBackups,
 } from "@dokploy/server/db/schema";
 import {
+	execAsync,
 	execAsyncRemote,
 	execAsyncStream,
 } from "@dokploy/server/utils/process/execAsync";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { removeJob, schedule, updateJob } from "@/server/utils/backup";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
@@ -53,6 +56,9 @@ export const volumeBackupsRouter = createTRPCRouter({
 					mongo: true,
 					redis: true,
 					compose: true,
+					deployments: {
+						orderBy: [desc(deployments.createdAt)],
+					},
 				},
 			});
 		}),
@@ -214,5 +220,71 @@ export const volumeBackupsRouter = createTRPCRouter({
 				// Start the restore process
 				runRestore();
 			});
+		}),
+
+	stop: protectedProcedure
+		.input(z.object({ volumeBackupId: z.string().min(1) }))
+		.mutation(async ({ input }) => {
+			// Find the running deployment for this volume backup
+			const runningDeployment = await db.query.deployments.findFirst({
+				where: and(
+					eq(deployments.volumeBackupId, input.volumeBackupId),
+					eq(deployments.status, "running"),
+				),
+				with: {
+					volumeBackup: {
+						with: {
+							application: true,
+							compose: true,
+						},
+					},
+				},
+				orderBy: [desc(deployments.createdAt)],
+			});
+
+			if (!runningDeployment) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No running volume backup found",
+				});
+			}
+
+			if (!runningDeployment.pid) {
+				// If no PID, just mark as cancelled
+				await updateDeploymentStatus(
+					runningDeployment.deploymentId,
+					"cancelled",
+				);
+				return {
+					success: true,
+					message: "Volume backup stopped successfully",
+				};
+			}
+
+			// Determine server ID for remote execution
+			const serverId =
+				runningDeployment.volumeBackup?.application?.serverId ||
+				runningDeployment.volumeBackup?.compose?.serverId;
+
+			// Kill the process
+			const command = `kill -9 ${runningDeployment.pid}`;
+			try {
+				if (serverId) {
+					await execAsyncRemote(serverId, command);
+				} else {
+					await execAsync(command);
+				}
+			} catch (error) {
+				// If kill fails, still mark as cancelled
+				console.error("Error killing process:", error);
+			}
+
+			// Update deployment status to cancelled
+			await updateDeploymentStatus(runningDeployment.deploymentId, "cancelled");
+
+			return {
+				success: true,
+				message: "Volume backup stopped successfully",
+			};
 		}),
 });

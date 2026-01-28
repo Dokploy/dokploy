@@ -3,6 +3,7 @@ import {
 	DatabaseBackup,
 	Loader2,
 	Play,
+	Square,
 	Trash2,
 } from "lucide-react";
 import { useState } from "react";
@@ -39,7 +40,6 @@ export const ShowVolumeBackups = ({
 	type = "application",
 	serverId,
 }: Props) => {
-	const [runningBackups, setRunningBackups] = useState<Set<string>>(new Set());
 	const {
 		data: volumeBackups,
 		isLoading: isLoadingVolumeBackups,
@@ -51,30 +51,27 @@ export const ShowVolumeBackups = ({
 		},
 		{
 			enabled: !!id,
+			refetchInterval: 3000,
+			refetchOnWindowFocus: false,
 		},
 	);
+
 	const utils = api.useUtils();
+
 	const { mutateAsync: deleteVolumeBackup, isLoading: isDeleting } =
 		api.volumeBackups.delete.useMutation();
-	const { mutateAsync: runManually } =
+
+	const { mutateAsync: runManually, isLoading: isRunningManually } =
 		api.volumeBackups.runManually.useMutation();
 
-	const handleRunManually = async (volumeBackupId: string) => {
-		setRunningBackups((prev) => new Set(prev).add(volumeBackupId));
-		try {
-			await runManually({ volumeBackupId });
-			toast.success("Volume backup run successfully");
-			await refetchVolumeBackups();
-		} catch {
-			toast.error("Error running volume backup");
-		} finally {
-			setRunningBackups((prev) => {
-				const newSet = new Set(prev);
-				newSet.delete(volumeBackupId);
-				return newSet;
-			});
-		}
-	};
+	const { mutateAsync: stopVolumeBackup } =
+		api.volumeBackups.stop.useMutation();
+	const [stoppingVolumeBackupId, setStoppingVolumeBackupId] = useState<
+		string | null
+	>(null);
+	const [runningVolumeBackupId, setRunningVolumeBackupId] = useState<
+		string | null
+	>(null);
 
 	return (
 		<Card className="border px-6 shadow-none bg-transparent h-full min-h-[50vh]">
@@ -124,6 +121,15 @@ export const ShowVolumeBackups = ({
 								volumeBackup.mongo?.serverId ||
 								volumeBackup.redis?.serverId ||
 								volumeBackup.compose?.serverId;
+
+							// Check if volume backup has a running deployment
+							const runningDeployment = volumeBackup.deployments?.find(
+								(deployment) => deployment.status === "running",
+							);
+							const isRunning =
+								!!runningDeployment ||
+								runningVolumeBackupId === volumeBackup.volumeBackupId;
+
 							return (
 								<div
 									key={volumeBackup.volumeBackupId}
@@ -146,6 +152,14 @@ export const ShowVolumeBackups = ({
 												>
 													{volumeBackup.enabled ? "Enabled" : "Disabled"}
 												</Badge>
+												{isRunning && (
+													<Badge
+														variant="default"
+														className="text-[10px] px-1 py-0 bg-green-500 hover:bg-green-600"
+													>
+														Running
+													</Badge>
+												)}
 											</div>
 											<div className="flex items-center gap-2 text-sm text-muted-foreground">
 												<Badge
@@ -167,32 +181,114 @@ export const ShowVolumeBackups = ({
 												<ClipboardList className="size-4 transition-colors" />
 											</Button>
 										</ShowDeploymentsModal>
-										<TooltipProvider delayDuration={0}>
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														disabled={runningBackups.has(
-															volumeBackup.volumeBackupId,
-														)}
-														onClick={() =>
-															handleRunManually(volumeBackup.volumeBackupId)
-														}
-													>
-														{runningBackups.has(volumeBackup.volumeBackupId) ? (
-															<Loader2 className="size-4 animate-spin" />
-														) : (
+
+										{isRunning ||
+										stoppingVolumeBackupId === volumeBackup.volumeBackupId ? (
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<DialogAction
+															title="Stop Running Volume Backup"
+															description="Are you sure you want to stop this running volume backup? The current execution will be interrupted."
+															type="default"
+															onClick={async () => {
+																const volumeBackupId =
+																	volumeBackup.volumeBackupId;
+																setStoppingVolumeBackupId(volumeBackupId);
+																try {
+																	await stopVolumeBackup({
+																		volumeBackupId,
+																	});
+																	setStoppingVolumeBackupId(null);
+																	toast.success(
+																		"Volume backup stopped successfully",
+																	);
+																	refetchVolumeBackups();
+																	utils.volumeBackups.list
+																		.invalidate({
+																			id,
+																			volumeBackupType: type,
+																		})
+																		.catch(() => {});
+																} catch (error) {
+																	setStoppingVolumeBackupId(null);
+																	toast.error(
+																		error instanceof Error
+																			? error.message
+																			: "Error stopping volume backup",
+																	);
+																}
+															}}
+														>
+															<Button
+																type="button"
+																variant="destructive"
+																size="icon"
+																isLoading={
+																	stoppingVolumeBackupId ===
+																	volumeBackup.volumeBackupId
+																}
+															>
+																<Square className="size-4" />
+															</Button>
+														</DialogAction>
+													</TooltipTrigger>
+													<TooltipContent>
+														Stop Running Volume Backup
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										) : (
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															isLoading={
+																isRunningManually &&
+																runningVolumeBackupId ===
+																	volumeBackup.volumeBackupId
+															}
+															onClick={async () => {
+																setRunningVolumeBackupId(
+																	volumeBackup.volumeBackupId,
+																);
+																try {
+																	await runManually({
+																		volumeBackupId: volumeBackup.volumeBackupId,
+																	});
+																	setRunningVolumeBackupId(null);
+																	toast.success(
+																		"Volume backup run successfully",
+																	);
+																	refetchVolumeBackups();
+																	utils.volumeBackups.list
+																		.invalidate({
+																			id,
+																			volumeBackupType: type,
+																		})
+																		.catch(() => {});
+																} catch (error) {
+																	setRunningVolumeBackupId(null);
+																	toast.error(
+																		error instanceof Error
+																			? error.message
+																			: "Error running volume backup",
+																	);
+																}
+															}}
+														>
 															<Play className="size-4 transition-colors" />
-														)}
-													</Button>
-												</TooltipTrigger>
-												<TooltipContent>
-													Run Manual Volume Backup
-												</TooltipContent>
-											</Tooltip>
-										</TooltipProvider>
+														</Button>
+													</TooltipTrigger>
+													<TooltipContent>
+														Run Manual Volume Backup
+													</TooltipContent>
+												</Tooltip>
+											</TooltipProvider>
+										)}
 										<HandleVolumeBackups
 											volumeBackupId={volumeBackup.volumeBackupId}
 											id={id}
