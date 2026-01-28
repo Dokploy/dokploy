@@ -41,12 +41,15 @@ Dokploy includes multiple features to make your life easier.
 - **Multi Node**: Scale applications to multiple nodes using Docker Swarm to manage the cluster.
 - **Templates**: Deploy open-source templates (Plausible, Pocketbase, Calcom, etc.) with a single click.
 - **Traefik Integration**: Automatically integrates with Traefik for routing and load balancing.
+- **Custom Wildcard Domains**: Configure wildcard domains at the organization or project level for generated application and preview URLs.
 - **Real-time Monitoring**: Monitor CPU, memory, storage, and network usage for every resource.
 - **Docker Management**: Easily deploy and manage Docker containers.
 - **CLI/API**: Manage your applications and databases using the command line or through the API.
 - **Notifications**: Get notified when your deployments succeed or fail (via Slack, Discord, Telegram, Email, etc.).
 - **Multi Server**: Deploy and manage your applications remotely to external servers.
 - **Self-Hosted**: Self-host Dokploy on your VPS.
+
+Custom wildcard domains cascade from organizations down to projects, and preview deployments automatically pick up those settings unless an application-level preview wildcard override is configured. Domain suggestions in the dashboard also respect these wildcard settings when generating preview URLs.
 
 ## 🚀 Getting Started
 

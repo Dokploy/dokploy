@@ -75,12 +75,21 @@ export const AddPreviewDomain = ({
 		},
 	);
 
+	const projectId =
+		previewDeployment?.application.environment.projectId ?? undefined;
+
 	const { mutateAsync, isError, error, isLoading } = domainId
 		? api.domain.update.useMutation()
 		: api.domain.create.useMutation();
 
 	const { mutateAsync: generateDomain, isLoading: isLoadingGenerate } =
 		api.domain.generateDomain.useMutation();
+
+	const { data: effectiveWildcard } =
+		api.domain.getEffectiveWildcardDomain.useQuery(
+			{ projectId: projectId || "" },
+			{ enabled: !!projectId },
+		);
 
 	const form = useForm<Domain>({
 		resolver: zodResolver(domain),
@@ -185,6 +194,11 @@ export const AddPreviewDomain = ({
 																		serverId:
 																			previewDeployment?.application
 																				?.serverId || "",
+																		projectId,
+																		domainType: "preview",
+																		previewWildcard:
+																			previewDeployment?.application
+																				?.previewWildcard || undefined,
 																	})
 																		.then((domain) => {
 																			field.onChange(domain);
@@ -200,9 +214,18 @@ export const AddPreviewDomain = ({
 														<TooltipContent
 															side="left"
 															sideOffset={5}
-															className="max-w-[10rem]"
+															className="max-w-[12rem]"
 														>
-															<p>Generate traefik.me domain</p>
+															{effectiveWildcard ? (
+																<p>
+																	Generate domain using: <br />
+																	<code className="text-xs">
+																		{effectiveWildcard}
+																	</code>
+																</p>
+															) : (
+																<p>Generate traefik.me domain</p>
+															)}
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
