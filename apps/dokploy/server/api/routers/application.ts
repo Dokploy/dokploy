@@ -469,6 +469,7 @@ export const applicationRouter = createTRPCRouter({
 			}
 			await updateApplication(input.applicationId, {
 				bitbucketRepository: input.bitbucketRepository,
+				bitbucketRepositorySlug: input.bitbucketRepositorySlug,
 				bitbucketOwner: input.bitbucketOwner,
 				bitbucketBranch: input.bitbucketBranch,
 				bitbucketBuildPath: input.bitbucketBuildPath,

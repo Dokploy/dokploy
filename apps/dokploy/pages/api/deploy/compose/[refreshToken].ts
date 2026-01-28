@@ -100,7 +100,7 @@ export default async function handler(
 			const commitedPaths = await extractCommitedPaths(
 				req.body,
 				composeResult.bitbucket,
-				composeResult.bitbucketRepository || "",
+				composeResult.bitbucketRepositorySlug || composeResult.bitbucketRepository || "",
 			);
 
 			const shouldDeployPaths = shouldDeploy(
