@@ -12,6 +12,7 @@ import {
 	sendGotifyNotification,
 	sendLarkNotification,
 	sendNtfyNotification,
+	sendPushoverNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -51,12 +52,22 @@ export const sendBuildSuccessNotifications = async ({
 			ntfy: true,
 			custom: true,
 			lark: true,
+			pushover: true,
 		},
 	});
 
 	for (const notification of notificationList) {
-		const { email, discord, telegram, slack, gotify, ntfy, custom, lark } =
-			notification;
+		const {
+			email,
+			discord,
+			telegram,
+			slack,
+			gotify,
+			ntfy,
+			custom,
+			lark,
+			pushover,
+		} = notification;
 		try {
 			if (email) {
 				const template = await renderAsync(
@@ -362,6 +373,14 @@ export const sendBuildSuccessNotifications = async ({
 						},
 					},
 				});
+			}
+
+			if (pushover) {
+				await sendPushoverNotification(
+					pushover,
+					"Build Success",
+					`Project: ${projectName}\nApplication: ${applicationName}\nEnvironment: ${environmentName}\nType: ${applicationType}\nDate: ${date.toLocaleString()}`,
+				);
 			}
 		} catch (error) {
 			console.log(error);

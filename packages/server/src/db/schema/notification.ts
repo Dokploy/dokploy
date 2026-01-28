@@ -19,6 +19,7 @@ export const notificationType = pgEnum("notificationType", [
 	"email",
 	"gotify",
 	"ntfy",
+	"pushover",
 	"custom",
 	"lark",
 ]);
@@ -62,6 +63,9 @@ export const notifications = pgTable("notification", {
 		onDelete: "cascade",
 	}),
 	larkId: text("larkId").references(() => lark.larkId, {
+		onDelete: "cascade",
+	}),
+	pushoverId: text("pushoverId").references(() => pushover.pushoverId, {
 		onDelete: "cascade",
 	}),
 	organizationId: text("organizationId")
@@ -149,6 +153,18 @@ export const lark = pgTable("lark", {
 	webhookUrl: text("webhookUrl").notNull(),
 });
 
+export const pushover = pgTable("pushover", {
+	pushoverId: text("pushoverId")
+		.notNull()
+		.primaryKey()
+		.$defaultFn(() => nanoid()),
+	userKey: text("userKey").notNull(),
+	apiToken: text("apiToken").notNull(),
+	priority: integer("priority").notNull().default(0),
+	retry: integer("retry"),
+	expire: integer("expire"),
+});
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
 	slack: one(slack, {
 		fields: [notifications.slackId],
@@ -181,6 +197,10 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 	lark: one(lark, {
 		fields: [notifications.larkId],
 		references: [lark.larkId],
+	}),
+	pushover: one(pushover, {
+		fields: [notifications.pushoverId],
+		references: [pushover.pushoverId],
 	}),
 	organization: one(organization, {
 		fields: [notifications.organizationId],
@@ -438,6 +458,69 @@ export const apiUpdateLark = apiCreateLark.partial().extend({
 export const apiTestLarkConnection = apiCreateLark.pick({
 	webhookUrl: true,
 });
+
+export const apiCreatePushover = notificationsSchema
+	.pick({
+		appBuildError: true,
+		databaseBackup: true,
+		volumeBackup: true,
+		dokployRestart: true,
+		name: true,
+		appDeploy: true,
+		dockerCleanup: true,
+		serverThreshold: true,
+	})
+	.extend({
+		userKey: z.string().min(1),
+		apiToken: z.string().min(1),
+		priority: z.number().min(-2).max(2).default(0),
+		retry: z.number().min(30).nullish(),
+		expire: z.number().min(1).max(10800).nullish(),
+	})
+	.refine(
+		(data) =>
+			data.priority !== 2 || (data.retry != null && data.expire != null),
+		{
+			message: "Retry and expire are required for emergency priority (2)",
+			path: ["retry"],
+		},
+	);
+
+export const apiUpdatePushover = z.object({
+	notificationId: z.string().min(1),
+	pushoverId: z.string().min(1),
+	organizationId: z.string().optional(),
+	userKey: z.string().min(1).optional(),
+	apiToken: z.string().min(1).optional(),
+	priority: z.number().min(-2).max(2).optional(),
+	retry: z.number().min(30).nullish(),
+	expire: z.number().min(1).max(10800).nullish(),
+	appBuildError: z.boolean().optional(),
+	databaseBackup: z.boolean().optional(),
+	volumeBackup: z.boolean().optional(),
+	dokployRestart: z.boolean().optional(),
+	name: z.string().optional(),
+	appDeploy: z.boolean().optional(),
+	dockerCleanup: z.boolean().optional(),
+	serverThreshold: z.boolean().optional(),
+});
+
+export const apiTestPushoverConnection = z
+	.object({
+		userKey: z.string().min(1),
+		apiToken: z.string().min(1),
+		priority: z.number().min(-2).max(2),
+		retry: z.number().min(30).nullish(),
+		expire: z.number().min(1).max(10800).nullish(),
+	})
+	.refine(
+		(data) =>
+			data.priority !== 2 || (data.retry != null && data.expire != null),
+		{
+			message: "Retry and expire are required for emergency priority (2)",
+			path: ["retry"],
+		},
+	);
 
 export const apiSendTest = notificationsSchema
 	.extend({
