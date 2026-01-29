@@ -105,7 +105,7 @@ export function LicenseKeySettings() {
 								description="Are you sure you want to deactivate this license key? This will disable enterprise features."
 								onClick={async () => {
 									try {
-										await deactivateLicenseKey({ licenseKey });
+										await deactivateLicenseKey();
 										await utils.licenseKey.getEnterpriseSettings.invalidate();
 										setIsValid(false);
 										toast.success("License key deactivated");

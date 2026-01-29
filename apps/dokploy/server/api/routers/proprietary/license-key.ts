@@ -79,28 +79,35 @@ export const licenseKeyRouter = createTRPCRouter({
 				});
 			}
 		}),
-	deactivate: adminProcedure
-		.input(z.object({ licenseKey: z.string() }))
-		.mutation(async ({ input }) => {
-			try {
-				const isValidLicenseKey = await validateLicenseKey(input.licenseKey);
-				if (!isValidLicenseKey) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "License key is invalid",
-					});
-				}
-				return await deactivateLicenseKey(input.licenseKey);
-			} catch (error) {
+	deactivate: adminProcedure.mutation(async ({ ctx }) => {
+		try {
+			const currentUserId = ctx.user.id;
+			const currentUser = await db.query.user.findFirst({
+				where: eq(user.id, currentUserId),
+			});
+			if (!currentUser) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						error instanceof Error
-							? error.message
-							: "Failed to deactivate license key",
+					code: "NOT_FOUND",
+					message: "User not found",
 				});
 			}
-		}),
+			if (!currentUser.licenseKey) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No license key found",
+				});
+			}
+			return await deactivateLicenseKey(currentUser.licenseKey);
+		} catch (error) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message:
+					error instanceof Error
+						? error.message
+						: "Failed to deactivate license key",
+			});
+		}
+	}),
 	getEnterpriseSettings: adminProcedure.query(async ({ ctx }) => {
 		const currentUserId = ctx.user.id;
 		const currentUser = await db.query.user.findFirst({
