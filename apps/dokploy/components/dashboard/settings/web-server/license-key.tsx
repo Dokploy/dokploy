@@ -10,9 +10,9 @@ import { api } from "@/utils/api";
 
 export function LicenseKeySettings() {
 	const utils = api.useUtils();
-	const { data, isLoading } = api.organization.getEnterpriseSettings.useQuery();
+	const { data, isLoading } = api.licenseKey.getEnterpriseSettings.useQuery();
 	const { mutateAsync: updateEnterpriseSettings, isLoading: isSaving } =
-		api.organization.updateEnterpriseSettings.useMutation();
+		api.licenseKey.updateEnterpriseSettings.useMutation();
 
 	const [licenseKey, setLicenseKey] = useState("");
 
@@ -45,7 +45,7 @@ export function LicenseKeySettings() {
 									await updateEnterpriseSettings({
 										enableEnterpriseFeatures: next,
 									});
-									await utils.organization.getEnterpriseSettings.invalidate();
+									await utils.licenseKey.getEnterpriseSettings.invalidate();
 									toast.success("Enterprise features updated");
 								} catch (error) {
 									console.error(error);
@@ -57,7 +57,8 @@ export function LicenseKeySettings() {
 				</div>
 
 				<p className="text-sm text-muted-foreground">
-					To unlock extra features you need an enterprise license key. Contact us{" "}
+					To unlock extra features you need an enterprise license key. Contact
+					us{" "}
 					<Link
 						href="http://localhost:3001/contact"
 						target="_blank"
@@ -90,7 +91,7 @@ export function LicenseKeySettings() {
 							onClick={async () => {
 								try {
 									await updateEnterpriseSettings({ licenseKey });
-									await utils.organization.getEnterpriseSettings.invalidate();
+									await utils.licenseKey.getEnterpriseSettings.invalidate();
 									toast.success("License key saved");
 								} catch (error) {
 									console.error(error);
