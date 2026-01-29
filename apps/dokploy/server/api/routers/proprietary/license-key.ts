@@ -126,6 +126,23 @@ export const licenseKeyRouter = createTRPCRouter({
 			licenseKey: currentUser.licenseKey ?? "",
 		};
 	}),
+	haveValidLicenseKey: adminProcedure.query(async ({ ctx }) => {
+		const currentUserId = ctx.user.id;
+		const currentUser = await db.query.user.findFirst({
+			where: eq(user.id, currentUserId),
+		});
+		if (!currentUser?.enableEnterpriseFeatures) {
+			return false;
+		}
+		if (!currentUser.licenseKey) {
+			return false;
+		}
+		try {
+			return await validateLicenseKey(currentUser.licenseKey ?? "");
+		} catch (error) {
+			return false;
+		}
+	}),
 
 	updateEnterpriseSettings: adminProcedure
 		.input(
