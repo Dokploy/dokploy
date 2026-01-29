@@ -19,10 +19,11 @@ export const validateLicenseKey = async (licenseKey: string) => {
 		}
 
 		const data = await result.json();
-		console.log("data", data);
 		return data.valid;
 	} catch (error) {
-		console.error(error);
+		console.error(
+			error instanceof Error ? error.message : "Failed to validate license key",
+		);
 		throw error;
 	}
 };
@@ -46,7 +47,9 @@ export const activateLicenseKey = async (licenseKey: string) => {
 		const data = await result.json();
 		return data;
 	} catch (error) {
-		console.error(error);
+		console.error(
+			error instanceof Error ? error.message : "Failed to activate license key",
+		);
 		throw error;
 	}
 };
@@ -70,7 +73,11 @@ export const deactivateLicenseKey = async (licenseKey: string) => {
 		const data = await result.json();
 		return data;
 	} catch (error) {
-		console.error(error);
+		console.error(
+			error instanceof Error
+				? error.message
+				: "Failed to deactivate license key",
+		);
 		throw error;
 	}
 };
