@@ -194,3 +194,10 @@ export const apiRebuildPostgres = createSchema
 		postgresId: true,
 	})
 	.required();
+
+export const apiChangePostgresPassword = createSchema
+	.pick({
+		postgresId: true,
+		databasePassword: true,
+	})
+	.required();
