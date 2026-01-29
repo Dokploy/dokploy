@@ -28,21 +28,56 @@ import {
 import { Input } from "@/components/ui/input";
 import { api } from "@/utils/api";
 
-const whitelabelSchema = z.object({
-	whitelabelLogoUrl: z.string().url("Geçerli bir URL girin").optional().nullable(),
-	whitelabelBrandName: z.string().optional().nullable(),
-	whitelabelTagline: z.string().optional().nullable(),
-});
-
-type WhitelabelForm = z.infer<typeof whitelabelSchema>;
+type WhitelabelForm = {
+	whitelabelLogoUrl: string | null;
+	whitelabelBrandName: string | null;
+	whitelabelTagline: string | null;
+};
 
 export const WhitelabelForm = () => {
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data: settings, refetch, isLoading } = api.settings.getWebServerSettings.useQuery(undefined, {
-		enabled: !isCloud,
-	});
+	const { data: settings, refetch, isLoading } = api.settings.getWebServerSettings.useQuery();
 	const { mutateAsync, isError, error, isLoading: isUpdating } = api.settings.updateWhitelabel.useMutation();
 	const { t } = useTranslation("settings");
+
+	const whitelabelSchema = z.object({
+		whitelabelLogoUrl: z
+			.string()
+			.optional()
+			.nullable()
+			.refine(
+				(url) => {
+					if (!url || url.trim() === "") return true;
+					try {
+						const parsedUrl = new URL(url);
+						return parsedUrl.protocol === "https:";
+					} catch {
+						return false;
+					}
+				},
+				(url) => {
+					if (!url || url.trim() === "") return true;
+					try {
+						new URL(url);
+						return t("settings.whitelabel.validation.httpsRequired");
+					} catch {
+						return t("settings.whitelabel.validation.invalidUrl");
+					}
+				},
+			)
+			.transform((val) => (val && val.trim() !== "" ? val.trim() : null)),
+		whitelabelBrandName: z
+			.string()
+			.max(100, t("settings.whitelabel.validation.maxLength", { max: 100 }))
+			.optional()
+			.nullable()
+			.transform((val) => (val && val.trim() !== "" ? val.trim() : null)),
+		whitelabelTagline: z
+			.string()
+			.max(200, t("settings.whitelabel.validation.maxLength", { max: 200 }))
+			.optional()
+			.nullable()
+			.transform((val) => (val && val.trim() !== "" ? val.trim() : null)),
+	});
 
 	const form = useForm<WhitelabelForm>({
 		resolver: zodResolver(whitelabelSchema),
@@ -77,30 +112,6 @@ export const WhitelabelForm = () => {
 		}
 	};
 
-	if (isCloud) {
-		return (
-			<div className="w-full">
-				<Card className="h-full bg-sidebar p-2.5 rounded-xl max-w-5xl mx-auto">
-					<div className="rounded-xl bg-background shadow-md">
-						<CardHeader>
-							<CardTitle className="text-xl flex flex-row gap-2">
-								<ImageIcon className="size-6 text-muted-foreground self-center" />
-								{t("settings.whitelabel.title")}
-							</CardTitle>
-							<CardDescription>
-								{t("settings.whitelabel.description")}
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-2 py-8 border-t">
-							<AlertBlock type="info">
-								Whitelabel özelliği sadece self-hosted kurulumlarda kullanılabilir.
-							</AlertBlock>
-						</CardContent>
-					</div>
-				</Card>
-			</div>
-		);
-	}
 
 	return (
 		<div className="w-full">
@@ -139,9 +150,10 @@ export const WhitelabelForm = () => {
 												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder="https://example.com/logo.png"
+														placeholder={t("settings.whitelabel.logoUrlPlaceholder")}
 														{...field}
 														value={field.value || ""}
+														maxLength={500}
 													/>
 												</FormControl>
 												<FormDescription>
@@ -162,9 +174,10 @@ export const WhitelabelForm = () => {
 												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder="Şirket Adı"
+														placeholder={t("settings.whitelabel.brandNamePlaceholder")}
 														{...field}
 														value={field.value || ""}
+														maxLength={100}
 													/>
 												</FormControl>
 												<FormDescription>
@@ -185,9 +198,10 @@ export const WhitelabelForm = () => {
 												</FormLabel>
 												<FormControl>
 													<Input
-														placeholder="Sloganınız"
+														placeholder={t("settings.whitelabel.taglinePlaceholder")}
 														{...field}
 														value={field.value || ""}
+														maxLength={200}
 													/>
 												</FormControl>
 												<FormDescription>

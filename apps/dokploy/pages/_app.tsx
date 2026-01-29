@@ -16,7 +16,14 @@ import { api } from "@/utils/api";
 const inter = Inter({ subsets: ["latin"] });
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
-	getLayout?: (page: ReactElement) => ReactNode;
+	getLayout?: (
+		page: ReactElement,
+		whitelabelProps?: {
+			whitelabelLogoUrl?: string | null;
+			whitelabelBrandName?: string | null;
+			whitelabelTagline?: string | null;
+		},
+	) => ReactNode;
 	theme?: string;
 };
 
@@ -29,6 +36,13 @@ const MyApp = ({
 	pageProps: { ...pageProps },
 }: AppPropsWithLayout) => {
 	const getLayout = Component.getLayout ?? ((page) => page);
+	
+	// Extract whitelabel props for OnboardingLayout
+	const whitelabelProps = {
+		whitelabelLogoUrl: pageProps.whitelabelLogoUrl,
+		whitelabelBrandName: pageProps.whitelabelBrandName,
+		whitelabelTagline: pageProps.whitelabelTagline,
+	};
 
 	return (
 		<>
@@ -52,7 +66,7 @@ const MyApp = ({
 				<NextTopLoader color="hsl(var(--sidebar-ring))" />
 				<Toaster richColors />
 				<SearchCommand />
-				{getLayout(<Component {...pageProps} />)}
+				{getLayout(<Component {...pageProps} />, whitelabelProps)}
 			</ThemeProvider>
 		</>
 	);

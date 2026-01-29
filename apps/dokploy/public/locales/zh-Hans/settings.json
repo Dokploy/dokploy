@@ -63,5 +63,24 @@
 	"settings.backups": "备份",
 	"settings.logs": "日志",
 	"settings.updates": "更新",
-	"settings.network": "网络"
+	"settings.network": "网络",
+
+	"settings.whitelabel.title": "白标",
+	"settings.whitelabel.description": "使用您的徽标和品牌自定义登录页面。",
+	"settings.whitelabel.logoUrl": "徽标 URL",
+	"settings.whitelabel.logoUrlDescription": "输入您的徽标图片 URL（仅 HTTPS）",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "品牌名称",
+	"settings.whitelabel.brandNameDescription": "您的公司或产品名称",
+	"settings.whitelabel.brandNamePlaceholder": "公司名称",
+	"settings.whitelabel.tagline": "标语",
+	"settings.whitelabel.taglineDescription": "简短的描述或标语",
+	"settings.whitelabel.taglinePlaceholder": "您的标语",
+	"settings.whitelabel.success": "白标设置已成功更新",
+	"settings.whitelabel.error": "更新白标设置失败",
+	"settings.whitelabel.cloudOnly": "白标功能仅适用于自托管安装。",
+	"settings.whitelabel.validation.invalidUrl": "请输入有效的 URL",
+	"settings.whitelabel.validation.httpsRequired": "徽标 URL 必须使用 HTTPS 协议",
+	"settings.whitelabel.validation.maxLength": "最多允许 {max} 个字符",
+	"settings.common.loading": "加载中..."
 }

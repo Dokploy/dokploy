@@ -740,6 +740,17 @@ export const settingsRouter = createTRPCRouter({
 	isCloud: publicProcedure.query(async () => {
 		return IS_CLOUD;
 	}),
+	getWhitelabelSettings: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getWebServerSettings();
+		return {
+			whitelabelLogoUrl: settings?.whitelabelLogoUrl || null,
+			whitelabelBrandName: settings?.whitelabelBrandName || null,
+			whitelabelTagline: settings?.whitelabelTagline || null,
+		};
+	}),
 	isUserSubscribed: protectedProcedure.query(async ({ ctx }) => {
 		const haveServers = await db.query.server.findMany({
 			where: eq(server.organizationId, ctx.session?.activeOrganizationId || ""),

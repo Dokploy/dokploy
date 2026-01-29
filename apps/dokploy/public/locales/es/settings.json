@@ -48,5 +48,24 @@
 	"settings.appearance.themes.dark": "Oscuro",
 	"settings.appearance.themes.system": "Sistema",
 	"settings.appearance.language": "Idioma",
-	"settings.appearance.languageDescription": "Selecciona un idioma para tu panel"
+	"settings.appearance.languageDescription": "Selecciona un idioma para tu panel",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "Personaliza la página de inicio de sesión con tu logo y marca.",
+	"settings.whitelabel.logoUrl": "URL del Logo",
+	"settings.whitelabel.logoUrlDescription": "Ingresa la URL de la imagen de tu logo (solo HTTPS)",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "Nombre de la Marca",
+	"settings.whitelabel.brandNameDescription": "El nombre de tu empresa o producto",
+	"settings.whitelabel.brandNamePlaceholder": "Nombre de la Empresa",
+	"settings.whitelabel.tagline": "Eslogan",
+	"settings.whitelabel.taglineDescription": "Una breve descripción o eslogan",
+	"settings.whitelabel.taglinePlaceholder": "Tu eslogan",
+	"settings.whitelabel.success": "Configuración de whitelabel actualizada correctamente",
+	"settings.whitelabel.error": "Error al actualizar la configuración de whitelabel",
+	"settings.whitelabel.cloudOnly": "La función de whitelabel solo está disponible para instalaciones self-hosted.",
+	"settings.whitelabel.validation.invalidUrl": "Por favor ingresa una URL válida",
+	"settings.whitelabel.validation.httpsRequired": "La URL del logo debe usar el protocolo HTTPS",
+	"settings.whitelabel.validation.maxLength": "Se permiten máximo {max} caracteres",
+	"settings.common.loading": "Cargando..."
 }
