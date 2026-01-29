@@ -35,15 +35,22 @@ export const licenseKeyRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const currentUserId = ctx.user.id;
 
+			if (
+				input.enableEnterpriseFeatures === undefined &&
+				input.licenseKey === undefined
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"At least one of enableEnterpriseFeatures or licenseKey must be provided",
+				});
+			}
+
 			await db
 				.update(user)
 				.set({
-					...(input.enableEnterpriseFeatures === undefined
-						? {}
-						: { enableEnterpriseFeatures: input.enableEnterpriseFeatures }),
-					...(input.licenseKey === undefined
-						? {}
-						: { licenseKey: input.licenseKey }),
+					// enableEnterpriseFeatures: input.enableEnterpriseFeatures ?? false,
+					licenseKey: input.licenseKey ?? "",
 				})
 				.where(eq(user.id, currentUserId));
 

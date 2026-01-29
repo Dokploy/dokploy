@@ -48,7 +48,7 @@
     "ai": "^5.0.17",
     "ai-sdk-ollama": "^0.5.1",
     "bcrypt": "5.1.1",
-    "better-auth": "v1.2.8-beta.7",
+    "better-auth": "v1.2.8",
     "bl": "6.0.11",
     "boxen": "^7.1.1",
     "date-fns": "3.6.0",
