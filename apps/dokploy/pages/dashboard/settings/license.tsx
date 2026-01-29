@@ -3,31 +3,23 @@ import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
 import superjson from "superjson";
-import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
-import { WebDomain } from "@/components/dashboard/settings/web-domain";
-import { WebServer } from "@/components/dashboard/settings/web-server";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { LicenseKeySettings } from "@/components/proprietary/license-keys/license-key";
 import { Card } from "@/components/ui/card";
 import { appRouter } from "@/server/api/root";
-import { api } from "@/utils/api";
 import { getLocale, serverSideTranslations } from "@/utils/i18n";
 
 const Page = () => {
-	const { data: user } = api.user.get.useQuery();
 	return (
 		<div className="w-full">
-			<div className="h-full rounded-xl  max-w-5xl mx-auto flex flex-col gap-4">
-				<WebDomain />
-				<WebServer />
-				<div className="w-full flex flex-col gap-4">
-					<Card className="h-full bg-sidebar  p-2.5 rounded-xl  mx-auto w-full">
-						<ShowBackups
-							id={user?.userId ?? ""}
-							databaseType="web-server"
-							backupType="database"
-						/>
-					</Card>
-				</div>
+			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
+				<Card className="h-full bg-sidebar p-2.5 rounded-xl mx-auto w-full">
+					<div className="rounded-xl bg-background shadow-md">
+						<div className="p-6">
+							<LicenseKeySettings />
+						</div>
+					</div>
+				</Card>
 			</div>
 		</div>
 	);
@@ -36,8 +28,9 @@ const Page = () => {
 export default Page;
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout metaName="Server">{page}</DashboardLayout>;
+	return <DashboardLayout metaName="License">{page}</DashboardLayout>;
 };
+
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
