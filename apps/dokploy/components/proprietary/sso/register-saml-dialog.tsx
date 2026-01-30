@@ -27,73 +27,82 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-const DEFAULT_SCOPES = ["openid", "email", "profile"];
-
-const oidcProviderSchema = z.object({
+const samlProviderSchema = z.object({
 	providerId: z.string().min(1, "Provider ID is required").trim(),
 	issuer: z.string().min(1, "Issuer URL is required").url("Invalid URL").trim(),
 	domain: z.string().min(1, "Domain is required").trim(),
-	clientId: z.string().min(1, "Client ID is required").trim(),
-	clientSecret: z.string().min(1, "Client secret is required"),
-	scopes: z.string().optional(),
+	entryPoint: z
+		.string()
+		.min(1, "IdP SSO URL is required")
+		.url("Invalid URL")
+		.trim(),
+	cert: z.string().min(1, "IdP signing certificate is required"),
+	callbackUrl: z
+		.string()
+		.min(1, "Callback URL is required")
+		.url("Invalid URL")
+		.trim(),
+	audience: z.string().min(1, "Audience (Entity ID) is required").trim(),
 });
 
-type OidcProviderForm = z.infer<typeof oidcProviderSchema>;
+type SamlProviderForm = z.infer<typeof samlProviderSchema>;
 
-interface RegisterOidcDialogProps {
+interface RegisterSamlDialogProps {
 	children: React.ReactNode;
 	onSuccess?: () => void;
 }
 
-const formDefaultValues: OidcProviderForm = {
+const formDefaultValues: SamlProviderForm = {
 	providerId: "",
 	issuer: "",
 	domain: "",
-	clientId: "",
-	clientSecret: "",
-	scopes: DEFAULT_SCOPES.join(" "),
+	entryPoint: "",
+	cert: "",
+	callbackUrl: "",
+	audience: "",
 };
 
-export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogProps) {
+export function RegisterSamlDialog({ children, onSuccess }: RegisterSamlDialogProps) {
 	const [open, setOpen] = useState(false);
 
-	const form = useForm<OidcProviderForm>({
-		resolver: zodResolver(oidcProviderSchema),
+	const form = useForm<SamlProviderForm>({
+		resolver: zodResolver(samlProviderSchema),
 		defaultValues: formDefaultValues,
 	});
 
 	const isSubmitting = form.formState.isSubmitting;
 
-	const onSubmit = async (data: OidcProviderForm) => {
+	const onSubmit = async (data: SamlProviderForm) => {
 		try {
-			const scopes = data.scopes?.trim()
-				? data.scopes.trim().split(/\s+/).filter(Boolean)
-				: DEFAULT_SCOPES;
 			const { error } = await authClient.sso.register({
 				providerId: data.providerId,
 				issuer: data.issuer,
 				domain: data.domain,
-				oidcConfig: {
-					clientId: data.clientId,
-					clientSecret: data.clientSecret,
-					scopes,
-					pkce: true,
+				samlConfig: {
+					entryPoint: data.entryPoint,
+					cert: data.cert,
+					callbackUrl: data.callbackUrl,
+					audience: data.audience,
+					wantAssertionsSigned: true,
+					signatureAlgorithm: "sha256",
+					digestAlgorithm: "sha256",
 				},
 			});
 
 			if (error) {
-				toast.error(error.message ?? "Failed to register SSO provider");
+				toast.error(error.message ?? "Failed to register SAML provider");
 				return;
 			}
 
-			toast.success("OIDC provider registered successfully");
+			toast.success("SAML provider registered successfully");
 			form.reset(formDefaultValues);
 			setOpen(false);
 			onSuccess?.();
 		} catch (err) {
 			toast.error(
-				err instanceof Error ? err.message : "Failed to register SSO provider",
+				err instanceof Error ? err.message : "Failed to register SAML provider",
 			);
 		}
 	};
@@ -101,13 +110,12 @@ export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogPr
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="sm:max-w-[500px]">
+			<DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Register OIDC provider</DialogTitle>
+					<DialogTitle>Register SAML provider</DialogTitle>
 					<DialogDescription>
-						Add any OIDC-compliant identity provider (e.g. Okta, Azure AD,
-						Google Workspace, Auth0, Keycloak). Discovery will fill endpoints
-						from the issuer URL when possible.
+						Add a SAML 2.0 identity provider (e.g. Okta SAML, Azure AD SAML,
+						OneLogin). You need the IdP&apos;s SSO URL and signing certificate.
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...form}>
@@ -120,13 +128,10 @@ export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogPr
 									<FormLabel>Provider ID</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="e.g. okta or my-idp"
+											placeholder="e.g. okta-saml or azure-saml"
 											{...field}
 										/>
 									</FormControl>
-									<FormDescription>
-										Unique identifier; used in callback URL path.
-									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -143,12 +148,6 @@ export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogPr
 											{...field}
 										/>
 									</FormControl>
-									<FormDescription>
-										Discovery document is fetched from{" "}
-										<code className="rounded bg-muted px-1">
-											{"{issuer}"}/.well-known/openid-configuration
-										</code>
-									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -162,9 +161,24 @@ export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogPr
 									<FormControl>
 										<Input placeholder="example.com" {...field} />
 									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="entryPoint"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>IdP SSO URL (Entry point)</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="https://idp.example.com/sso"
+											{...field}
+										/>
+									</FormControl>
 									<FormDescription>
-										Email domain(s) that use this provider (e.g. for sign-in by
-										email).
+										Single Sign-On URL from your IdP&apos;s SAML setup.
 									</FormDescription>
 									<FormMessage />
 								</FormItem>
@@ -172,27 +186,15 @@ export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogPr
 						/>
 						<FormField
 							control={form.control}
-							name="clientId"
+							name="cert"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Client ID</FormLabel>
+									<FormLabel>IdP signing certificate (X.509)</FormLabel>
 									<FormControl>
-										<Input placeholder="Client ID from IdP" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="clientSecret"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Client secret</FormLabel>
-									<FormControl>
-										<Input
-											type="password"
-											placeholder="Client secret from IdP"
+										<Textarea
+											placeholder="Paste IdP signing certificate (PEM, BEGIN CERTIFICATE / END CERTIFICATE)"
+											rows={4}
+											className="font-mono text-xs"
 											{...field}
 										/>
 									</FormControl>
@@ -202,15 +204,34 @@ export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogPr
 						/>
 						<FormField
 							control={form.control}
-							name="scopes"
+							name="callbackUrl"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Scopes (optional)</FormLabel>
+									<FormLabel>Callback URL (ACS)</FormLabel>
 									<FormControl>
 										<Input
-											placeholder="openid email profile"
+											placeholder="https://yourapp.com/api/auth/sso/saml2/callback/my-provider"
 											{...field}
-											value={field.value ?? ""}
+										/>
+									</FormControl>
+									<FormDescription>
+										Use the callback URL shown in your IdP app config for this
+										provider.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="audience"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Audience (Entity ID)</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="https://yourapp.com"
+											{...field}
 										/>
 									</FormControl>
 									<FormMessage />

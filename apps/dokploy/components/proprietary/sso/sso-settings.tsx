@@ -1,7 +1,6 @@
 "use client";
 
-import { Loader2, LogIn, ShieldCheck, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Loader2, LogIn, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -13,66 +12,15 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 import { RegisterOidcDialog } from "./register-oidc-dialog";
+import { RegisterSamlDialog } from "./register-saml-dialog";
 
 export function SSOSettings() {
 	const utils = api.useUtils();
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
 	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
 		api.sso.deleteProvider.useMutation();
-
-	const [verifyingId, setVerifyingId] = useState<string | null>(null);
-	const [requestingVerificationId, setRequestingVerificationId] = useState<
-		string | null
-	>(null);
-
-	const handleVerifyDomain = async (providerId: string) => {
-		setVerifyingId(providerId);
-		try {
-			const { data, error } = await authClient.sso.verifyDomain({
-				providerId,
-			});
-			if (error) {
-				toast.error(error.message ?? "Domain verification failed");
-				return;
-			}
-			toast.success("Domain verified successfully");
-			await utils.sso.listProviders.invalidate();
-		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Domain verification failed",
-			);
-		} finally {
-			setVerifyingId(null);
-		}
-	};
-
-	const handleRequestDomainVerification = async (providerId: string) => {
-		setRequestingVerificationId(providerId);
-		try {
-			const { data, error } = await authClient.sso.requestDomainVerification({
-				providerId,
-			});
-			if (error) {
-				toast.error(error.message ?? "Failed to request domain verification");
-				return;
-			}
-			toast.success(
-				"Verification token created. Add the TXT DNS record and verify.",
-			);
-			await utils.sso.listProviders.invalidate();
-		} catch (err) {
-			toast.error(
-				err instanceof Error
-					? err.message
-					: "Failed to request domain verification",
-			);
-		} finally {
-			setRequestingVerificationId(null);
-		}
-	};
 
 	return (
 		<div className="flex flex-col gap-4 rounded-lg border p-4">
@@ -106,9 +54,14 @@ export function SSOSettings() {
 									Add OIDC provider
 								</Button>
 							</RegisterOidcDialog>
-							<span className="text-xs text-muted-foreground">
-								SAML support can be added via API or future UI.
-							</span>
+							<RegisterSamlDialog
+								onSuccess={() => utils.sso.listProviders.invalidate()}
+							>
+								<Button variant="secondary" size="sm">
+									<LogIn className="mr-2 size-4" />
+									Add SAML provider
+								</Button>
+							</RegisterSamlDialog>
 						</div>
 					)}
 
@@ -119,7 +72,6 @@ export function SSOSettings() {
 								{providers.map((provider) => {
 									const isOidc = !!provider.oidcConfig;
 									const isSaml = !!provider.samlConfig;
-									const verified = !!provider.domainVerified;
 
 									return (
 										<Card key={provider.id} className="overflow-hidden">
@@ -146,56 +98,11 @@ export function SSOSettings() {
 																	SAML
 																</Badge>
 															)}
-															{verified && (
-																<Badge
-																	variant="default"
-																	className="text-xs bg-green-600"
-																>
-																	Verified
-																</Badge>
-															)}
 														</div>
 													</div>
 												</div>
 											</CardHeader>
 											<CardContent className="flex flex-wrap gap-2 pt-0">
-												{!verified && (
-													<>
-														<Button
-															variant="outline"
-															size="sm"
-															disabled={verifyingId === provider.providerId}
-															onClick={() =>
-																handleVerifyDomain(provider.providerId)
-															}
-														>
-															{verifyingId === provider.providerId ? (
-																<Loader2 className="mr-1 size-3 animate-spin" />
-															) : (
-																<ShieldCheck className="mr-1 size-3" />
-															)}
-															Verify domain
-														</Button>
-														<Button
-															variant="ghost"
-															size="sm"
-															disabled={
-																requestingVerificationId === provider.providerId
-															}
-															onClick={() =>
-																handleRequestDomainVerification(
-																	provider.providerId,
-																)
-															}
-														>
-															{requestingVerificationId ===
-															provider.providerId ? (
-																<Loader2 className="mr-1 size-3 animate-spin" />
-															) : null}
-															New verification token
-														</Button>
-													</>
-												)}
 												<DialogAction
 													title="Remove SSO provider"
 													description={`Remove provider "${provider.providerId}"? Users will no longer be able to sign in with this IdP.`}
@@ -241,19 +148,29 @@ export function SSOSettings() {
 								<div className="space-y-1">
 									<h3 className="text-lg font-semibold">No SSO providers</h3>
 									<p className="text-sm text-muted-foreground">
-										Add an OIDC provider to allow users to sign in with their
-										organization&apos;s identity provider (e.g. Okta, Azure AD).
+										Add an OIDC or SAML provider so users can sign in with their
+										organization&apos;s IdP (e.g. Okta, Azure AD).
 									</p>
 								</div>
 							</div>
-							<RegisterOidcDialog
-								onSuccess={() => utils.sso.listProviders.invalidate()}
-							>
-								<Button variant="secondary">
-									<LogIn className="mr-2 size-4" />
-									Add OIDC provider
-								</Button>
-							</RegisterOidcDialog>
+							<div className="flex flex-wrap gap-2 justify-center">
+								<RegisterOidcDialog
+									onSuccess={() => utils.sso.listProviders.invalidate()}
+								>
+									<Button variant="secondary">
+										<LogIn className="mr-2 size-4" />
+										Add OIDC provider
+									</Button>
+								</RegisterOidcDialog>
+								<RegisterSamlDialog
+									onSuccess={() => utils.sso.listProviders.invalidate()}
+								>
+									<Button variant="outline">
+										<LogIn className="mr-2 size-4" />
+										Add SAML provider
+									</Button>
+								</RegisterSamlDialog>
+							</div>
 						</div>
 					)}
 				</>
