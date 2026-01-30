@@ -46,17 +46,13 @@ export function SSOSettings() {
 				<>
 					{providers && providers.length > 0 && (
 						<div className="flex flex-wrap items-center gap-2">
-							<RegisterOidcDialog
-								onSuccess={() => utils.sso.listProviders.invalidate()}
-							>
+							<RegisterOidcDialog>
 								<Button variant="secondary" size="sm">
 									<LogIn className="mr-2 size-4" />
 									Add OIDC provider
 								</Button>
 							</RegisterOidcDialog>
-							<RegisterSamlDialog
-								onSuccess={() => utils.sso.listProviders.invalidate()}
-							>
+							<RegisterSamlDialog>
 								<Button variant="secondary" size="sm">
 									<LogIn className="mr-2 size-4" />
 									Add SAML provider
@@ -154,17 +150,13 @@ export function SSOSettings() {
 								</div>
 							</div>
 							<div className="flex flex-wrap gap-2 justify-center">
-								<RegisterOidcDialog
-									onSuccess={() => utils.sso.listProviders.invalidate()}
-								>
+								<RegisterOidcDialog>
 									<Button variant="secondary">
 										<LogIn className="mr-2 size-4" />
 										Add OIDC provider
 									</Button>
 								</RegisterOidcDialog>
-								<RegisterSamlDialog
-									onSuccess={() => utils.sso.listProviders.invalidate()}
-								>
+								<RegisterSamlDialog>
 									<Button variant="outline">
 										<LogIn className="mr-2 size-4" />
 										Add SAML provider

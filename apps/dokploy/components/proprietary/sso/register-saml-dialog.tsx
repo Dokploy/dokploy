@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -51,7 +52,6 @@ type SamlProviderForm = z.infer<typeof samlProviderSchema>;
 
 interface RegisterSamlDialogProps {
 	children: React.ReactNode;
-	onSuccess?: () => void;
 }
 
 const formDefaultValues: SamlProviderForm = {
@@ -64,7 +64,8 @@ const formDefaultValues: SamlProviderForm = {
 	audience: "",
 };
 
-export function RegisterSamlDialog({ children, onSuccess }: RegisterSamlDialogProps) {
+export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
+	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 
 	const form = useForm<SamlProviderForm>({
@@ -99,7 +100,7 @@ export function RegisterSamlDialog({ children, onSuccess }: RegisterSamlDialogPr
 			toast.success("SAML provider registered successfully");
 			form.reset(formDefaultValues);
 			setOpen(false);
-			onSuccess?.();
+			await utils.sso.listProviders.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to register SAML provider",

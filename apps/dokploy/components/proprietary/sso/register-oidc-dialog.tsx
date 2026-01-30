@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -43,7 +44,6 @@ type OidcProviderForm = z.infer<typeof oidcProviderSchema>;
 
 interface RegisterOidcDialogProps {
 	children: React.ReactNode;
-	onSuccess?: () => void;
 }
 
 const formDefaultValues: OidcProviderForm = {
@@ -55,7 +55,8 @@ const formDefaultValues: OidcProviderForm = {
 	scopes: DEFAULT_SCOPES.join(" "),
 };
 
-export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogProps) {
+export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
+	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 
 	const form = useForm<OidcProviderForm>({
@@ -90,7 +91,7 @@ export function RegisterOidcDialog({ children, onSuccess }: RegisterOidcDialogPr
 			toast.success("OIDC provider registered successfully");
 			form.reset(formDefaultValues);
 			setOpen(false);
-			onSuccess?.();
+			await utils.sso.listProviders.invalidate();
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to register SSO provider",
