@@ -1,22 +1,28 @@
-import { member } from "@dokploy/server/db/schema";
 import { getPublicIpWithFallback } from "@dokploy/server/wss/utils";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { scheduleJob } from "node-schedule";
 import { db } from "../../db/index";
 import { user as userSchema } from "../../db/schema/user";
 
 export const initEnterpriseBackupCronJobs = async () => {
-	console.log("Setting up enterprise backup cron jobs....");
-
-	const admins = await db.query.member.findMany({
-		where: eq(member.role, "owner"),
-		with: {
-			user: true,
-		},
+	const users = await db.query.user.findMany({
+		where: and(
+			isNotNull(userSchema.licenseKey),
+			isNotNull(userSchema.enableEnterpriseFeatures),
+			eq(userSchema.isValidEnterpriseLicense, true),
+		),
 	});
 
-	for (const admin of admins) {
-		const { user } = admin;
+	if (users.length === 0) {
+		return;
+	}
+
+	console.log(
+		"Setting up enterprise backup cron jobs for users....",
+		users.length,
+	);
+
+	for (const user of users) {
 		if (user.isValidEnterpriseLicense) {
 			scheduleJob(`enterprise-backup-${user.id}`, "0 0 */14 * *", async () => {
 				try {
