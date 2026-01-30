@@ -12,6 +12,7 @@ import {
 	createDefaultServerTraefikConfig,
 	createDefaultTraefikConfig,
 	initializeStandaloneTraefik,
+	TRAEFIK_VERSION,
 } from "@dokploy/server/setup/traefik-setup";
 
 (async () => {
@@ -22,7 +23,7 @@ import {
 		await initializeNetwork();
 		createDefaultTraefikConfig();
 		createDefaultServerTraefikConfig();
-		await execAsync("docker pull traefik:v3.6.7");
+		await execAsync(`docker pull traefik:v${TRAEFIK_VERSION}`);
 		await initializeStandaloneTraefik();
 		await initializeRedis();
 		await initializePostgres();
