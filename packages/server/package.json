@@ -26,7 +26,8 @@
     "dev": "rm -rf ./dist && pnpm esbuild && tsc --emitDeclarationOnly --outDir dist -p tsconfig.server.json",
     "esbuild": "tsx ./esbuild.config.ts && tsc --project tsconfig.server.json --emitDeclarationOnly ",
     "typecheck": "tsc --noEmit",
-    "dbml:generate": "npx tsx src/db/schema/dbml.ts"
+    "dbml:generate": "npx tsx src/db/schema/dbml.ts",
+    "generate:drizzle": "pnpm dlx  @better-auth/cli generate --output auth-schema2.ts --config src/lib/auth.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.5",
@@ -43,12 +44,13 @@
     "@oslojs/crypto": "1.0.1",
     "@oslojs/encoding": "1.1.0",
     "@react-email/components": "^0.0.21",
+    "@better-auth/sso":"1.4.18",
     "@trpc/server": "^10.45.2",
     "adm-zip": "^0.5.16",
     "ai": "^5.0.17",
     "ai-sdk-ollama": "^0.5.1",
     "bcrypt": "5.1.1",
-    "better-auth": "v1.2.8",
+    "better-auth": "1.4.18",
     "bl": "6.0.11",
     "boxen": "^7.1.1",
     "date-fns": "3.6.0",
@@ -82,6 +84,7 @@
     "semver": "7.7.3"
   },
   "devDependencies": {
+		"@better-auth/cli": "1.4.18",
     "@types/semver": "7.7.1",
     "@types/adm-zip": "^0.5.7",
     "@types/bcrypt": "5.0.2",

@@ -1,4 +1,5 @@
 import type { IncomingMessage } from "node:http";
+import { sso } from "@better-auth/sso";
 import * as bcrypt from "bcrypt";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -17,7 +18,7 @@ import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
-const { handler, api } = betterAuth({
+export const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
@@ -240,6 +241,7 @@ const { handler, api } = betterAuth({
 		apiKey({
 			enableMetadata: true,
 		}),
+		sso(),
 		twoFactor(),
 		organization({
 			async sendInvitationEmail(data, _request) {

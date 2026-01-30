@@ -37,6 +37,7 @@
 		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
 	},
 	"dependencies": {
+		"@better-auth/sso": "1.4.18",
 		"@ai-sdk/anthropic": "^2.0.5",
 		"@ai-sdk/azure": "^2.0.16",
 		"@ai-sdk/cohere": "^2.0.4",
@@ -94,7 +95,7 @@
 		"ai": "^5.0.17",
 		"ai-sdk-ollama": "^0.5.1",
 		"bcrypt": "5.1.1",
-		"better-auth": "v1.2.8",
+		"better-auth": "1.4.18",
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
 		"bullmq": "5.4.2",

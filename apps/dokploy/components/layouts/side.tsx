@@ -30,6 +30,7 @@ import {
 	Trash2,
 	User,
 	Users,
+	LogIn,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -403,6 +404,15 @@ const MENU: Menu = {
 			url: "/dashboard/settings/license",
 			icon: Key,
 			// Only enabled for admins in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+		},
+		{
+			isSingle: true,
+			title: "SSO",
+			url: "/dashboard/settings/sso",
+			icon: LogIn,
+			// Only enabled for admins in non-cloud environments (enterprise)
 			isEnabled: ({ auth, isCloud }) =>
 				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
 		},
