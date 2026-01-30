@@ -5,32 +5,22 @@ import { db } from "../../db/index";
 import { user as userSchema } from "../../db/schema/user";
 
 export const initEnterpriseBackupCronJobs = async () => {
-	const users = await db.query.user.findMany({
-		where: and(
-			isNotNull(userSchema.licenseKey),
-			isNotNull(userSchema.enableEnterpriseFeatures),
-			eq(userSchema.isValidEnterpriseLicense, true),
-		),
-	});
-
-	if (users.length === 0) {
-		return;
-	}
-
-	console.log(
-		"Setting up enterprise backup cron jobs for users....",
-		users.length,
-	);
-
-	for (const user of users) {
-		if (user.isValidEnterpriseLicense) {
-			scheduleJob(`enterprise-backup-${user.id}`, "0 0 */14 * *", async () => {
+	scheduleJob("enterprise-check", "0 0 */3 * *", async () => {
+		const users = await db.query.user.findMany({
+			where: and(
+				isNotNull(userSchema.licenseKey),
+				isNotNull(userSchema.enableEnterpriseFeatures),
+				eq(userSchema.isValidEnterpriseLicense, true),
+			),
+		});
+		for (const user of users) {
+			if (user.isValidEnterpriseLicense) {
+				console.log(
+					"Validating license key....",
+					user.firstName,
+					user.lastName,
+				);
 				try {
-					console.log(
-						"Validating license key....",
-						user.firstName,
-						user.lastName,
-					);
 					const isValid = await validateLicenseKey(user.licenseKey || "");
 					if (!isValid) {
 						throw new Error("License key is invalid");
@@ -41,9 +31,9 @@ export const initEnterpriseBackupCronJobs = async () => {
 						.set({ isValidEnterpriseLicense: false })
 						.where(eq(userSchema.id, user.id));
 				}
-			});
+			}
 		}
-	}
+	});
 };
 
 export const validateLicenseKey = async (licenseKey: string) => {
