@@ -42,6 +42,9 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 		isLoading: cleanStoppedContainersIsLoading,
 	} = api.settings.cleanStoppedContainers.useMutation();
 
+	const { mutateAsync: cleanPatchRepos, isLoading: cleanPatchReposIsLoading } =
+		api.patch.cleanPatchRepos.useMutation();
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger
@@ -51,7 +54,8 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 					cleanDockerBuilderIsLoading ||
 					cleanUnusedImagesIsLoading ||
 					cleanUnusedVolumesIsLoading ||
-					cleanStoppedContainersIsLoading
+					cleanStoppedContainersIsLoading ||
+					cleanPatchReposIsLoading
 				}
 			>
 				<Button
@@ -60,7 +64,8 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 						cleanDockerBuilderIsLoading ||
 						cleanUnusedImagesIsLoading ||
 						cleanUnusedVolumesIsLoading ||
-						cleanStoppedContainersIsLoading
+						cleanStoppedContainersIsLoading ||
+						cleanPatchReposIsLoading
 					}
 					variant="outline"
 				>
@@ -127,6 +132,23 @@ export const ShowStorageActions = ({ serverId }: Props) => {
 						<span>
 							{t("settings.server.webServer.storage.cleanStoppedContainers")}
 						</span>
+					</DropdownMenuItem>
+
+					<DropdownMenuItem
+						className="w-full cursor-pointer"
+						onClick={async () => {
+							await cleanPatchRepos({
+								serverId: serverId,
+							})
+								.then(async () => {
+									toast.success("Cleaned Patch Caches");
+								})
+								.catch(() => {
+									toast.error("Error cleaning Patch Caches");
+								});
+						}}
+					>
+						<span>Clean Patch Caches</span>
 					</DropdownMenuItem>
 
 					<DropdownMenuItem

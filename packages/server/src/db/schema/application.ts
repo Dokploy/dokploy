@@ -19,6 +19,7 @@ import { gitea } from "./gitea";
 import { github } from "./github";
 import { gitlab } from "./gitlab";
 import { mounts } from "./mount";
+import { patch } from "./patch";
 import { ports } from "./port";
 import { previewDeployments } from "./preview-deployments";
 import { redirects } from "./redirects";
@@ -286,6 +287,7 @@ export const applicationsRelations = relations(
 			references: [registry.registryId],
 			relationName: "applicationRollbackRegistry",
 		}),
+		patches: many(patch),
 	}),
 );
 

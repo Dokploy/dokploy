@@ -30,6 +30,7 @@ import { ShowPreviewDeployments } from "@/components/dashboard/application/previ
 import { ShowSchedules } from "@/components/dashboard/application/schedules/show-schedules";
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
+import { ShowPatches } from "@/components/dashboard/application/patches/show-patches";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
@@ -248,6 +249,9 @@ const Service = (
 												Volume Backups
 											</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											{data?.sourceType !== "docker" && (
+												<TabsTrigger value="patches">Patches</TabsTrigger>
+											)}
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -357,6 +361,11 @@ const Service = (
 									<TabsContent value="domains" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">
 											<ShowDomains id={applicationId} type="application" />
+										</div>
+									</TabsContent>
+									<TabsContent value="patches" className="w-full">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowPatches applicationId={applicationId} />
 										</div>
 									</TabsContent>
 									<TabsContent value="advanced">

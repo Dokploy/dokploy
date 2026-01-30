@@ -1,3 +1,4 @@
+
 import { existsSync } from "node:fs";
 import path from "node:path";
 import type { ApplicationNested } from "@dokploy/server";
@@ -7,6 +8,17 @@ import { format } from "date-fns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const REAL_TEST_TIMEOUT = 180000; // 3 minutes
+
+// Mock constants to avoid load error
+vi.mock("@dokploy/server/constants", () => ({
+	paths: () => ({
+		LOGS_PATH: "/tmp/dokploy-test-real/logs",
+		APPLICATIONS_PATH: "/tmp/dokploy-test-real/applications",
+		PATCH_REPOS_PATH: "/tmp/dokploy-test-real/patch-repos",
+	}),
+	IS_CLOUD: false,
+	docker: {},
+}));
 
 // Mock ONLY database and notifications
 vi.mock("@dokploy/server/db", () => {
@@ -67,6 +79,16 @@ vi.mock("@dokploy/server/services/rollbacks", () => ({
 	createRollback: vi.fn(),
 }));
 
+vi.mock("@dokploy/server/services/patch", async (importOriginal) => {
+	const actual = await importOriginal<
+		typeof import("@dokploy/server/services/patch")
+	>();
+	return {
+		...actual,
+		findPatchesByApplicationId: vi.fn().mockResolvedValue([]),
+	};
+});
+
 // NOT mocked (executed for real):
 // - execAsync
 // - cloneGitRepository
@@ -78,6 +100,11 @@ import * as adminService from "@dokploy/server/services/admin";
 import * as applicationService from "@dokploy/server/services/application";
 import { deployApplication } from "@dokploy/server/services/application";
 import * as deploymentService from "@dokploy/server/services/deployment";
+import * as patchService from "@dokploy/server/services/patch";
+import { generatePatch } from "@dokploy/server/services/patch";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const createMockApplication = (
 	overrides: Partial<ApplicationNested> = {},
@@ -471,6 +498,105 @@ describe(
 				console.log("dockerImages", dockerImages);
 				expect(dockerImages.trim()).toBe(currentAppName);
 				console.log(`✅ Docker image created: ${currentAppName}`);
+			},
+			REAL_TEST_TIMEOUT,
+		);
+		it(
+			"should REALLY apply patches from database during deployment",
+			async () => {
+				// 1. Setup local temporary git repo
+				const tempRepo = await mkdtemp(join(tmpdir(), "real-patch-repo-"));
+				// Helper for local git commands
+				const execLocal = async (cmd: string) => execAsync(cmd, { cwd: tempRepo });
+
+				await execLocal("git init");
+				await execLocal("git config user.email 'test@dokploy.com'");
+				await execLocal("git config user.name 'Dokploy Test'");
+
+				// Create a simple Dockerfile and server script
+				// We use a simple python server to verify output
+				await writeFile(join(tempRepo, "app.py"), "print('Original App')\n");
+				await writeFile(
+					join(tempRepo, "Dockerfile"),
+					"FROM python:3.9-slim\nCOPY app.py .\nCMD [\"python\", \"app.py\"]\n",
+				);
+
+				await execLocal("git add .");
+				await execLocal("git commit -m 'Initial commit'");
+				// Ensure master/main branch exists (git init might create master or main depending on config)
+				// We force create a branch named 'main' to be consistent
+				await execLocal("git checkout -b main || git checkout main");
+
+				// 2. Mock Application to use this local repo
+				const patchAppName = `real-patch-app-${Date.now()}`;
+				const patchApp = createMockApplication({
+					appName: patchAppName,
+					buildType: "dockerfile",
+					customGitUrl: `file://${tempRepo}`,
+					customGitBranch: "main",
+					dockerfile: "Dockerfile",
+				});
+				currentAppName = patchAppName;
+				allTestAppNames.push(patchAppName);
+
+				// Setup standard mocks
+				vi.mocked(db.query.applications.findFirst).mockResolvedValue(
+					patchApp as any,
+				);
+				vi.mocked(applicationService.findApplicationById).mockResolvedValue(
+					patchApp as any,
+				);
+
+				// 3. Generate a patch
+				// We modify the file, generate patch, and then reset.
+				const newContent = "print('Patched App')\n";
+				const patchContent = await generatePatch({
+					codePath: tempRepo,
+					filePath: "app.py",
+					newContent,
+					serverId: null,
+				});
+
+				// 4. Mock patch service to return this patch
+				vi.mocked(patchService.findPatchesByApplicationId).mockResolvedValue([
+					{
+						patchId: "test-patch-1",
+						applicationId: "test-app-id",
+						composeId: null,
+						filePath: "app.py",
+						content: patchContent,
+						enabled: true,
+						createdAt: new Date().toISOString(),
+					} as any,
+				]);
+
+				console.log(`\n🚀 Testing deployment with patch: ${currentAppName}`);
+
+				// 5. Deploy
+				const result = await deployApplication({
+					applicationId: "test-app-id",
+					titleLog: "Real Patch Test",
+					descriptionLog: "Testing patch application",
+				});
+
+				expect(result).toBe(true);
+
+				// 6. Verify Log contains "Applying patch"
+				const { stdout: logContent } = await execAsync(
+					`cat ${currentDeployment.logPath}`,
+				);
+				// The implementation logs "Applying patch: ..."
+				expect(logContent).toContain("Applying patch");
+				expect(logContent).toContain("app.py");
+				console.log("✅ Verified patch execution logs");
+
+				// 7. Verify the deployed image contains the patched code
+				// We run the image and check output
+				const { stdout: runOutput } = await execAsync(
+					`docker run --rm ${patchAppName}`,
+				);
+				expect(runOutput.trim()).toBe("Patched App");
+				console.log("✅ Verified patched output:", runOutput.trim());
 			},
 			REAL_TEST_TIMEOUT,
 		);
