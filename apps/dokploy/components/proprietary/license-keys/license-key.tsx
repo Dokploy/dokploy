@@ -113,6 +113,7 @@ export function LicenseKeySettings() {
 													await deactivateLicenseKey();
 													await utils.licenseKey.getEnterpriseSettings.invalidate();
 													await utils.licenseKey.haveValidLicenseKey.invalidate();
+													setLicenseKey("");
 													toast.success("License key deactivated");
 												} catch (error) {
 													console.error(error);
@@ -143,10 +144,7 @@ export function LicenseKeySettings() {
 											isLoading={isValidating}
 											onClick={async () => {
 												try {
-													const valid = await validateLicenseKey({
-														licenseKey,
-													});
-													console.log("valid", valid);
+													const valid = await validateLicenseKey();
 													if (valid) {
 														toast.success("License key is valid");
 													} else {

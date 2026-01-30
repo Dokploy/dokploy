@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "isValidEnterpriseLicense" boolean DEFAULT false NOT NULL;

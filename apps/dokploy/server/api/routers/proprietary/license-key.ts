@@ -1,4 +1,5 @@
 import { user } from "@dokploy/server/db/schema";
+import { validateLicenseKey } from "@dokploy/server/index";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -7,7 +8,6 @@ import { db } from "@/server/db";
 import {
 	activateLicenseKey,
 	deactivateLicenseKey,
-	validateLicenseKey,
 } from "@/server/utils/enterprise";
 
 export const licenseKeyRouter = createTRPCRouter({
@@ -34,7 +34,15 @@ export const licenseKeyRouter = createTRPCRouter({
 					});
 				}
 
-				return await activateLicenseKey(input.licenseKey);
+				await activateLicenseKey(input.licenseKey);
+				await db
+					.update(user)
+					.set({
+						licenseKey: input.licenseKey,
+						isValidEnterpriseLicense: true,
+					})
+					.where(eq(user.id, currentUserId));
+				return { success: true };
 			} catch (error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
@@ -46,39 +54,51 @@ export const licenseKeyRouter = createTRPCRouter({
 				});
 			}
 		}),
-	validate: adminProcedure
-		.input(z.object({ licenseKey: z.string() }))
-		.mutation(async ({ input, ctx }) => {
-			try {
-				const currentUserId = ctx.user.id;
-				const currentUser = await db.query.user.findFirst({
-					where: eq(user.id, currentUserId),
-				});
-				if (!currentUser) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "User not found",
-					});
-				}
-
-				if (!currentUser.enableEnterpriseFeatures) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message:
-							"Please activate enterprise features to validate license key",
-					});
-				}
-				return await validateLicenseKey(input.licenseKey);
-			} catch (error) {
+	validate: adminProcedure.mutation(async ({ ctx }) => {
+		try {
+			const currentUserId = ctx.user.id;
+			const currentUser = await db.query.user.findFirst({
+				where: eq(user.id, currentUserId),
+			});
+			if (!currentUser) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						error instanceof Error
-							? error.message
-							: "Failed to validate license key",
+					code: "NOT_FOUND",
+					message: "User not found",
 				});
 			}
-		}),
+
+			if (!currentUser.licenseKey) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No license key found",
+				});
+			}
+
+			if (!currentUser.enableEnterpriseFeatures) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"Please activate enterprise features to validate license key",
+				});
+			}
+			const valid = await validateLicenseKey(currentUser.licenseKey);
+			if (valid) {
+				await db
+					.update(user)
+					.set({ isValidEnterpriseLicense: true })
+					.where(eq(user.id, currentUserId));
+			}
+			return valid;
+		} catch (error) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message:
+					error instanceof Error
+						? error.message
+						: "Failed to validate license key",
+			});
+		}
+	}),
 	deactivate: adminProcedure.mutation(async ({ ctx }) => {
 		try {
 			const currentUserId = ctx.user.id;
@@ -97,7 +117,15 @@ export const licenseKeyRouter = createTRPCRouter({
 					message: "No license key found",
 				});
 			}
-			return await deactivateLicenseKey(currentUser.licenseKey);
+			await deactivateLicenseKey(currentUser.licenseKey);
+			await db
+				.update(user)
+				.set({
+					licenseKey: null,
+					isValidEnterpriseLicense: false,
+				})
+				.where(eq(user.id, currentUserId));
+			return { success: true };
 		} catch (error) {
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
@@ -130,18 +158,15 @@ export const licenseKeyRouter = createTRPCRouter({
 		const currentUserId = ctx.user.id;
 		const currentUser = await db.query.user.findFirst({
 			where: eq(user.id, currentUserId),
+			columns: {
+				enableEnterpriseFeatures: true,
+				isValidEnterpriseLicense: true,
+			},
 		});
-		if (!currentUser?.enableEnterpriseFeatures) {
-			return false;
-		}
-		if (!currentUser.licenseKey) {
-			return false;
-		}
-		try {
-			return await validateLicenseKey(currentUser.licenseKey ?? "");
-		} catch (error) {
-			return false;
-		}
+		return !!(
+			currentUser?.enableEnterpriseFeatures &&
+			currentUser?.isValidEnterpriseLicense
+		);
 	}),
 
 	updateEnterpriseSettings: adminProcedure

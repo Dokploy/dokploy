@@ -2,11 +2,11 @@ import { ssoProvider } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { adminProcedure, createTRPCRouter } from "@/server/api/trpc";
+import { createTRPCRouter, enterpriseProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 
 export const ssoRouter = createTRPCRouter({
-	listProviders: adminProcedure.query(async ({ ctx }) => {
+	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
 			where: eq(ssoProvider.userId, ctx.user.id),
 			columns: {
@@ -22,7 +22,7 @@ export const ssoRouter = createTRPCRouter({
 		return providers;
 	}),
 
-	deleteProvider: adminProcedure
+	deleteProvider: enterpriseProcedure
 		.input(z.object({ providerId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
 			const [deleted] = await db

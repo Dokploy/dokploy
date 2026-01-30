@@ -7,8 +7,10 @@
  * need to use are documented accordingly near the end.
  */
 
+import { user as userSchema } from "@dokploy/server/db/schema";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
+import { eq } from "drizzle-orm";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import {
@@ -214,6 +216,43 @@ export const adminProcedure = t.procedure.use(({ ctx, next }) => {
 			session: ctx.session,
 			user: ctx.user,
 			// session: { ...ctx.session, user: ctx.user },
+		},
+	});
+});
+
+/**
+ * Requires admin/owner role AND enterprise enabled with a license key in DB.
+ * Does NOT call the license server on every request; full validation (haveValidLicenseKey)
+ * is used in the UI gate and when activating/validating keys.
+ */
+export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
+	if (
+		!ctx.session ||
+		!ctx.user ||
+		(ctx.user.role !== "owner" && ctx.user.role !== "admin")
+	) {
+		throw new TRPCError({ code: "UNAUTHORIZED" });
+	}
+
+	const currentUser = await ctx.db.query.user.findFirst({
+		where: eq(userSchema.id, ctx.user.id),
+		columns: {
+			enableEnterpriseFeatures: true,
+			isValidEnterpriseLicense: true,
+		},
+	});
+
+	if (!currentUser?.enableEnterpriseFeatures || !currentUser.isValidEnterpriseLicense) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Valid enterprise license required",
+		});
+	}
+
+	return next({
+		ctx: {
+			session: ctx.session,
+			user: ctx.user,
 		},
 	});
 });
