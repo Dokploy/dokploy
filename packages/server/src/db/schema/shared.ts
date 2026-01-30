@@ -74,6 +74,18 @@ export interface LabelsSwarm {
 	[name: string]: string;
 }
 
+export interface EndpointPortConfigSwarm {
+	Protocol?: string | undefined;
+	TargetPort?: number | undefined;
+	PublishedPort?: number | undefined;
+	PublishMode?: string | undefined;
+}
+
+export interface EndpointSpecSwarm {
+	Mode?: string | undefined;
+	Ports?: EndpointPortConfigSwarm[] | undefined;
+}
+
 export const HealthCheckSwarmSchema = z
 	.object({
 		Test: z.array(z.string()).optional(),
@@ -161,3 +173,19 @@ export const NetworkSwarmSchema = z.array(
 );
 
 export const LabelsSwarmSchema = z.record(z.string());
+
+export const EndpointPortConfigSwarmSchema = z
+	.object({
+		Protocol: z.string().optional(),
+		TargetPort: z.number().optional(),
+		PublishedPort: z.number().optional(),
+		PublishMode: z.string().optional(),
+	})
+	.strict();
+
+export const EndpointSpecSwarmSchema = z
+	.object({
+		Mode: z.string().optional(),
+		Ports: z.array(EndpointPortConfigSwarmSchema).optional(),
+	})
+	.strict();

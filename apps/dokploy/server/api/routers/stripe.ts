@@ -56,15 +56,16 @@ export const stripeRouter = createTRPCRouter({
 			});
 
 			const items = getStripeItems(input.serverQuantity, input.isAnnual);
-			const user = await findUserById(ctx.user.id);
+			// Always operate on the organization owner's Stripe customer
+			const owner = await findUserById(ctx.user.ownerId);
 
-			let stripeCustomerId = user.stripeCustomerId;
+			let stripeCustomerId = owner.stripeCustomerId;
 
 			if (stripeCustomerId) {
 				const customer = await stripe.customers.retrieve(stripeCustomerId);
 
 				if (customer.deleted) {
-					await updateUser(user.id, {
+					await updateUser(owner.id, {
 						stripeCustomerId: null,
 					});
 					stripeCustomerId = null;
@@ -74,11 +75,11 @@ export const stripeRouter = createTRPCRouter({
 			const session = await stripe.checkout.sessions.create({
 				mode: "subscription",
 				line_items: items,
-				...(stripeCustomerId && {
-					customer: stripeCustomerId,
-				}),
+				...(stripeCustomerId
+					? { customer: stripeCustomerId }
+					: { customer_email: owner.email }),
 				metadata: {
-					adminId: user.id,
+					adminId: owner.id,
 				},
 				allow_promotion_codes: true,
 				success_url: `${WEBSITE_URL}/dashboard/settings/servers?success=true`,
@@ -88,15 +89,16 @@ export const stripeRouter = createTRPCRouter({
 			return { sessionId: session.id };
 		}),
 	createCustomerPortalSession: adminProcedure.mutation(async ({ ctx }) => {
-		const user = await findUserById(ctx.user.id);
+		// Use the organization's owner account for billing portal
+		const owner = await findUserById(ctx.user.ownerId);
 
-		if (!user.stripeCustomerId) {
+		if (!owner.stripeCustomerId) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Stripe Customer ID not found",
 			});
 		}
-		const stripeCustomerId = user.stripeCustomerId;
+		const stripeCustomerId = owner.stripeCustomerId;
 
 		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 			apiVersion: "2024-09-30.acacia",
@@ -125,5 +127,40 @@ export const stripeRouter = createTRPCRouter({
 		}
 
 		return servers.length < user.serversQuantity;
+	}),
+
+	getInvoices: adminProcedure.query(async ({ ctx }) => {
+		const user = await findUserById(ctx.user.ownerId);
+		const stripeCustomerId = user.stripeCustomerId;
+
+		if (!stripeCustomerId) {
+			return [];
+		}
+
+		const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+			apiVersion: "2024-09-30.acacia",
+		});
+
+		try {
+			const invoices = await stripe.invoices.list({
+				customer: stripeCustomerId,
+				limit: 100,
+			});
+
+			return invoices.data.map((invoice) => ({
+				id: invoice.id,
+				number: invoice.number,
+				status: invoice.status,
+				amountDue: invoice.amount_due,
+				amountPaid: invoice.amount_paid,
+				currency: invoice.currency,
+				created: invoice.created,
+				dueDate: invoice.due_date,
+				hostedInvoiceUrl: invoice.hosted_invoice_url,
+				invoicePdf: invoice.invoice_pdf,
+			}));
+		} catch (_) {
+			return [];
+		}
 	}),
 });

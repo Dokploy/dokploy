@@ -80,7 +80,7 @@ const Schema = z.object({
 type Schema = z.infer<typeof Schema>;
 
 export const SetupMonitoring = ({ serverId }: Props) => {
-	const { data } = serverId
+	const { data: serverData } = serverId
 		? api.server.one.useQuery(
 				{
 					serverId: serverId || "",
@@ -89,7 +89,14 @@ export const SetupMonitoring = ({ serverId }: Props) => {
 					enabled: !!serverId,
 				},
 			)
-		: api.user.getServerMetrics.useQuery();
+		: { data: null };
+
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery(undefined, {
+			enabled: !serverId,
+		});
+
+	const data = serverId ? serverData : webServerSettings;
 
 	const url = useUrl();
 

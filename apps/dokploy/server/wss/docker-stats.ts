@@ -2,7 +2,9 @@ import type http from "node:http";
 import {
 	docker,
 	execAsync,
+	getHostSystemStats,
 	getLastAdvancedStatsFile,
+	IS_CLOUD,
 	recordAdvancedStats,
 	validateRequest,
 } from "@dokploy/server";
@@ -31,6 +33,12 @@ export const setupDockerStatsMonitoringSocketServer = (
 
 	wssTerm.on("connection", async (ws, req) => {
 		const url = new URL(req.url || "", `http://${req.headers.host}`);
+
+		if (IS_CLOUD) {
+			ws.send("This feature is not available in the cloud version.");
+			ws.close();
+			return;
+		}
 		const appName = url.searchParams.get("appName");
 		const appType = (url.searchParams.get("appType") || "application") as
 			| "application"
@@ -49,6 +57,21 @@ export const setupDockerStatsMonitoringSocketServer = (
 		}
 		const intervalId = setInterval(async () => {
 			try {
+				// Special case: when monitoring "dokploy", get host system stats instead of container stats
+				if (appName === "dokploy") {
+					const stat = await getHostSystemStats();
+
+					await recordAdvancedStats(stat, appName);
+					const data = await getLastAdvancedStatsFile(appName);
+
+					ws.send(
+						JSON.stringify({
+							data,
+						}),
+					);
+					return;
+				}
+
 				const filter = {
 					status: ["running"],
 					...(appType === "application" && {

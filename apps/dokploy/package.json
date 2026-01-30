@@ -1,6 +1,6 @@
 {
 	"name": "dokploy",
-	"version": "v0.25.6",
+	"version": "v0.26.6",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
@@ -13,7 +13,6 @@
 		"reset-password": "node -r dotenv/config dist/reset-password.mjs",
 		"reset-2fa": "node -r dotenv/config dist/reset-2fa.mjs",
 		"dev": "tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json ",
-		"dev-turbopack": "TURBOPACK=1 tsx -r dotenv/config ./server/server.ts  --project tsconfig.server.json",
 		"studio": "drizzle-kit studio --config ./server/db/drizzle.config.ts",
 		"migration:generate": "drizzle-kit generate --config ./server/db/drizzle.config.ts",
 		"migration:run": "tsx -r dotenv/config migration.ts",
@@ -34,7 +33,8 @@
 		"docker:build:canary": "./docker/build.sh canary",
 		"docker:push:canary": "./docker/push.sh canary",
 		"version": "echo $(node -p \"require('./package.json').version\")",
-		"test": "vitest --config __test__/vitest.config.ts"
+		"test": "vitest --config __test__/vitest.config.ts",
+		"generate:openapi": "tsx -r dotenv/config scripts/generate-openapi.ts"
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^2.0.5",
@@ -98,6 +98,7 @@
 		"bl": "6.0.11",
 		"boxen": "^7.1.1",
 		"bullmq": "5.4.2",
+		"shell-quote": "^1.8.1",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^0.2.1",
@@ -108,24 +109,22 @@
 		"drizzle-orm": "^0.39.3",
 		"drizzle-zod": "0.5.1",
 		"fancy-ansi": "^0.1.3",
-		"hi-base32": "^0.5.1",
 		"i18next": "^23.16.8",
 		"input-otp": "^1.4.2",
 		"js-cookie": "^3.0.5",
-		"yaml": "2.8.1",
 		"lodash": "4.17.21",
 		"lucide-react": "^0.469.0",
 		"micromatch": "4.0.8",
 		"nanoid": "3.3.11",
-		"next": "^15.3.2",
+		"next": "^16.0.10",
 		"next-i18next": "^15.4.2",
 		"next-themes": "^0.2.1",
-		"node-os-utils": "1.3.7",
+		"nextjs-toploader": "^3.9.17",
+		"node-os-utils": "2.0.1",
 		"node-pty": "1.0.0",
 		"node-schedule": "2.1.1",
 		"nodemailer": "6.9.14",
 		"octokit": "3.1.2",
-		"otpauth": "^9.4.0",
 		"pino": "9.4.0",
 		"pino-pretty": "11.2.2",
 		"postgres": "3.4.4",
@@ -139,7 +138,6 @@
 		"react-i18next": "^15.5.2",
 		"react-markdown": "^9.1.0",
 		"recharts": "^2.15.3",
-		"rotating-file-stream": "3.2.3",
 		"slugify": "^1.6.6",
 		"sonner": "^1.7.4",
 		"ssh2": "1.15.0",
@@ -153,17 +151,20 @@
 		"use-resize-observer": "9.1.0",
 		"ws": "8.16.0",
 		"xterm-addon-fit": "^0.8.0",
+		"yaml": "2.8.1",
 		"zod": "^3.25.32",
-		"zod-form-data": "^2.0.7"
+		"zod-form-data": "^2.0.7",
+		"semver": "7.7.3"
 	},
 	"devDependencies": {
+		"@types/semver": "7.7.1",
+		"@types/shell-quote": "^1.7.5",
 		"@types/adm-zip": "^0.5.7",
 		"@types/bcrypt": "5.0.2",
 		"@types/js-cookie": "^3.0.6",
 		"@types/lodash": "4.17.4",
 		"@types/micromatch": "4.0.9",
 		"@types/node": "^18.19.104",
-		"@types/node-os-utils": "1.3.4",
 		"@types/node-schedule": "2.1.6",
 		"@types/nodemailer": "^6.4.17",
 		"@types/qrcode": "^1.5.5",
@@ -194,11 +195,6 @@
 	"lint-staged": {
 		"*": [
 			"biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
-		]
-	},
-	"commitlint": {
-		"extends": [
-			"@commitlint/config-conventional"
 		]
 	}
 }

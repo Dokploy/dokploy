@@ -1,9 +1,9 @@
 import type http from "node:http";
-import { findServerById, validateRequest } from "@dokploy/server";
+import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { spawn } from "node-pty";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
-import { getShell } from "./utils";
+import { getShell, isValidContainerId } from "./utils";
 
 export const setupDockerContainerLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -42,10 +42,24 @@ export const setupDockerContainerLogsWebSocketServer = (
 			return;
 		}
 
+		// Security: Validate containerId to prevent command injection
+		if (!isValidContainerId(containerId)) {
+			ws.close(4000, "Invalid container ID format");
+			return;
+		}
+
 		if (!user || !session) {
 			ws.close();
 			return;
 		}
+
+		// Set up keep-alive ping mechanism to prevent timeout
+		// Send ping every 45 seconds to keep connection alive
+		const pingInterval = setInterval(() => {
+			if (ws.readyState === ws.OPEN) {
+				ws.ping();
+			}
+		}, 45000); // 45 seconds
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
@@ -63,7 +77,9 @@ export const setupDockerContainerLogsWebSocketServer = (
 						const command = search
 							? `${baseCommand} 2>&1 | grep --line-buffered -iF "${escapedSearch}"`
 							: baseCommand;
-						client.exec(command, (err, stream) => {
+						// Use pty: true to ensure the remote process receives SIGHUP when SSH connection closes
+						// This is crucial for terminating docker logs processes when the connection is closed
+						client.exec(command, { pty: true }, (err, stream) => {
 							if (err) {
 								console.error("Execution error:", err);
 								ws.close();
@@ -86,6 +102,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					.on("error", (err) => {
 						console.error("SSH connection error:", err);
 						ws.send(`SSH error: ${err.message}`);
+						clearInterval(pingInterval);
 						ws.close(); // Cierra el WebSocket si hay un error con SSH
 						client.end();
 					})
@@ -96,9 +113,15 @@ export const setupDockerContainerLogsWebSocketServer = (
 						privateKey: server.sshKey?.privateKey,
 					});
 				ws.on("close", () => {
+					clearInterval(pingInterval);
 					client.end();
 				});
 			} else {
+				if (IS_CLOUD) {
+					ws.send("This feature is not available in the cloud version.");
+					ws.close();
+					return;
+				}
 				const shell = getShell();
 				const baseCommand = `docker ${runType === "swarm" ? "service" : "container"} logs --timestamps ${
 					runType === "swarm" ? "--raw" : ""
@@ -121,6 +144,7 @@ export const setupDockerContainerLogsWebSocketServer = (
 					ws.send(data);
 				});
 				ws.on("close", () => {
+					clearInterval(pingInterval);
 					ptyProcess.kill();
 				});
 				ws.on("message", (message) => {

@@ -21,7 +21,10 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import {
+	createConverter,
+	NumberInputWithSteps,
+} from "@/components/ui/number-input";
 import {
 	Tooltip,
 	TooltipContent,
@@ -29,6 +32,23 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
+
+const CPU_STEP = 0.25;
+const MEMORY_STEP_MB = 256;
+
+const formatNumber = (value: number, decimals = 2): string =>
+	Number.isInteger(value) ? String(value) : value.toFixed(decimals);
+
+const cpuConverter = createConverter(1_000_000_000, (cpu) =>
+	cpu <= 0 ? "" : `${formatNumber(cpu)} CPU`,
+);
+
+const memoryConverter = createConverter(1024 * 1024, (mb) => {
+	if (mb <= 0) return "";
+	return mb >= 1024
+		? `${formatNumber(mb / 1024)} GB`
+		: `${formatNumber(mb)} MB`;
+});
 
 const addResourcesSchema = z.object({
 	memoryReservation: z.string().optional(),
@@ -51,6 +71,7 @@ interface Props {
 }
 
 type AddResources = z.infer<typeof addResourcesSchema>;
+
 export const ShowResources = ({ id, type }: Props) => {
 	const queryMap = {
 		postgres: () =>
@@ -163,16 +184,20 @@ export const ShowResources = ({ id, type }: Props) => {
 														<TooltipContent>
 															<p>
 																Memory hard limit in bytes. Example: 1GB =
-																1073741824 bytes
+																1073741824 bytes. Use +/- buttons to adjust by
+																256 MB.
 															</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
 											</div>
 											<FormControl>
-												<Input
+												<NumberInputWithSteps
+													value={field.value}
+													onChange={field.onChange}
 													placeholder="1073741824 (1GB in bytes)"
-													{...field}
+													step={MEMORY_STEP_MB}
+													converter={memoryConverter}
 												/>
 											</FormControl>
 											<FormMessage />
@@ -198,16 +223,20 @@ export const ShowResources = ({ id, type }: Props) => {
 													<TooltipContent>
 														<p>
 															Memory soft limit in bytes. Example: 256MB =
-															268435456 bytes
+															268435456 bytes. Use +/- buttons to adjust by 256
+															MB.
 														</p>
 													</TooltipContent>
 												</Tooltip>
 											</TooltipProvider>
 										</div>
 										<FormControl>
-											<Input
+											<NumberInputWithSteps
+												value={field.value}
+												onChange={field.onChange}
 												placeholder="268435456 (256MB in bytes)"
-												{...field}
+												step={MEMORY_STEP_MB}
+												converter={memoryConverter}
 											/>
 										</FormControl>
 										<FormMessage />
@@ -234,17 +263,20 @@ export const ShowResources = ({ id, type }: Props) => {
 														<TooltipContent>
 															<p>
 																CPU quota in units of 10^-9 CPUs. Example: 2
-																CPUs = 2000000000
+																CPUs = 2000000000. Use +/- buttons to adjust by
+																0.25 CPU.
 															</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
 											</div>
 											<FormControl>
-												<Input
+												<NumberInputWithSteps
+													value={field.value}
+													onChange={field.onChange}
 													placeholder="2000000000 (2 CPUs)"
-													{...field}
-													value={field.value?.toString() || ""}
+													step={CPU_STEP}
+													converter={cpuConverter}
 												/>
 											</FormControl>
 											<FormMessage />
@@ -271,14 +303,21 @@ export const ShowResources = ({ id, type }: Props) => {
 														<TooltipContent>
 															<p>
 																CPU shares (relative weight). Example: 1 CPU =
-																1000000000
+																1000000000. Use +/- buttons to adjust by 0.25
+																CPU.
 															</p>
 														</TooltipContent>
 													</Tooltip>
 												</TooltipProvider>
 											</div>
 											<FormControl>
-												<Input placeholder="1000000000 (1 CPU)" {...field} />
+												<NumberInputWithSteps
+													value={field.value}
+													onChange={field.onChange}
+													placeholder="1000000000 (1 CPU)"
+													step={CPU_STEP}
+													converter={cpuConverter}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>

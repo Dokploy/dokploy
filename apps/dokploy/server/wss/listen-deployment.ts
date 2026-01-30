@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import type http from "node:http";
-import { findServerById, validateRequest } from "@dokploy/server";
+import { findServerById, IS_CLOUD, validateRequest } from "@dokploy/server";
 import { Client } from "ssh2";
 import { WebSocketServer } from "ws";
+import { readValidDirectory } from "./utils";
 
 export const setupDeploymentLogsWebSocketServer = (
 	server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
@@ -31,9 +32,17 @@ export const setupDeploymentLogsWebSocketServer = (
 		const serverId = url.searchParams.get("serverId");
 		const { user, session } = await validateRequest(req);
 
+		// Generate unique connection ID for tracking
+		const connectionId = `deployment-logs-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
 		if (!logPath) {
-			console.log("logPath no provided");
+			console.log(`[${connectionId}] logPath no provided`);
 			ws.close(4000, "logPath no provided");
+			return;
+		}
+
+		if (!readValidDirectory(logPath)) {
+			ws.close(4000, "Invalid log path");
 			return;
 		}
 
@@ -42,40 +51,55 @@ export const setupDeploymentLogsWebSocketServer = (
 			return;
 		}
 
+		let tailProcess: ReturnType<typeof spawn> | null = null;
+		let sshClient: Client | null = null;
+
 		try {
 			if (serverId) {
 				const server = await findServerById(serverId);
 
-				if (!server.sshKeyId) return;
-				const client = new Client();
-				client
+				if (!server.sshKeyId) {
+					ws.close();
+					return;
+				}
+
+				sshClient = new Client();
+				sshClient
 					.on("ready", () => {
 						const command = `
 						tail -n +1 -f ${logPath};
 					`;
-						client.exec(command, (err, stream) => {
+						sshClient!.exec(command, (err, stream) => {
 							if (err) {
-								console.error("Execution error:", err);
+								sshClient!.end();
 								ws.close();
 								return;
 							}
 							stream
 								.on("close", () => {
-									client.end();
+									sshClient!.end();
 									ws.close();
 								})
 								.on("data", (data: string) => {
-									ws.send(data.toString());
+									if (ws.readyState === ws.OPEN) {
+										ws.send(data.toString());
+									}
 								})
 								.stderr.on("data", (data) => {
-									ws.send(data.toString());
+									if (ws.readyState === ws.OPEN) {
+										ws.send(data.toString());
+									}
 								});
 						});
 					})
 					.on("error", (err) => {
-						console.error("SSH connection error:", err);
-						ws.send(`SSH error: ${err.message}`);
-						ws.close(); // Cierra el WebSocket si hay un error con SSH
+						if (ws.readyState === ws.OPEN) {
+							ws.send(`SSH error: ${err.message}`);
+							ws.close();
+						}
+						if (sshClient) {
+							sshClient.end();
+						}
 					})
 					.connect({
 						host: server.ipAddress,
@@ -85,26 +109,80 @@ export const setupDeploymentLogsWebSocketServer = (
 					});
 
 				ws.on("close", () => {
-					client.end();
+					if (sshClient) {
+						sshClient.end();
+					}
 				});
 			} else {
-				const tail = spawn("tail", ["-n", "+1", "-f", logPath]);
+				if (IS_CLOUD) {
+					ws.send("This feature is not available in the cloud version.");
+					ws.close();
+					return;
+				}
+				tailProcess = spawn("tail", ["-n", "+1", "-f", logPath]);
 
-				tail.stdout.on("data", (data) => {
-					ws.send(data.toString());
-				});
+				const stdout = tailProcess.stdout;
+				const stderr = tailProcess.stderr;
 
-				tail.stderr.on("data", (data) => {
-					ws.send(new Error(`tail error: ${data.toString()}`).message);
-				});
-				tail.on("close", () => {
+				if (stdout) {
+					stdout.on("data", (data) => {
+						if (ws.readyState === ws.OPEN) {
+							ws.send(data.toString());
+						}
+					});
+				}
+
+				if (stderr) {
+					stderr.on("data", (data) => {
+						if (ws.readyState === ws.OPEN) {
+							ws.send(new Error(`tail error: ${data.toString()}`).message);
+						}
+					});
+				}
+
+				tailProcess.on("close", () => {
 					ws.close();
 				});
+
+				tailProcess.on("error", () => {
+					if (ws.readyState === ws.OPEN) {
+						ws.close();
+					}
+				});
+
+				ws.on("close", () => {
+					if (tailProcess && !tailProcess.killed) {
+						tailProcess.kill("SIGTERM");
+						// Force kill after a timeout if it doesn't terminate
+						setTimeout(() => {
+							if (tailProcess && !tailProcess.killed) {
+								tailProcess.kill("SIGKILL");
+							} else {
+							}
+						}, 1000);
+					} else {
+					}
+				});
 			}
-		} catch {
-			// @ts-ignore
-			// const errorMessage = error?.message as unknown as string;
-			// ws.send(errorMessage);
+		} catch (error) {
+			// Clean up resources on error
+			if (tailProcess && !tailProcess.killed) {
+				tailProcess.kill("SIGTERM");
+				setTimeout(() => {
+					if (tailProcess && !tailProcess.killed) {
+						tailProcess.kill("SIGKILL");
+					}
+				}, 1000);
+			}
+			if (sshClient) {
+				sshClient.end();
+			}
+			if (ws.readyState === ws.OPEN) {
+				// @ts-ignore
+				const errorMessage = error?.message as unknown as string;
+				ws.send(errorMessage || "An error occurred");
+				ws.close();
+			}
 		}
 	});
 };

@@ -34,13 +34,43 @@ export const findEnvironmentById = async (environmentId: string) => {
 	const environment = await db.query.environments.findFirst({
 		where: eq(environments.environmentId, environmentId),
 		with: {
-			applications: true,
-			mariadb: true,
-			mongo: true,
-			mysql: true,
-			postgres: true,
-			redis: true,
-			compose: true,
+			applications: {
+				with: {
+					deployments: true,
+					server: true,
+				},
+			},
+			mariadb: {
+				with: {
+					server: true,
+				},
+			},
+			mongo: {
+				with: {
+					server: true,
+				},
+			},
+			mysql: {
+				with: {
+					server: true,
+				},
+			},
+			postgres: {
+				with: {
+					server: true,
+				},
+			},
+			redis: {
+				with: {
+					server: true,
+				},
+			},
+			compose: {
+				with: {
+					deployments: true,
+					server: true,
+				},
+			},
 			project: true,
 		},
 	});
@@ -73,10 +103,10 @@ export const findEnvironmentsByProjectId = async (projectId: string) => {
 
 export const deleteEnvironment = async (environmentId: string) => {
 	const currentEnvironment = await findEnvironmentById(environmentId);
-	if (currentEnvironment.name === "production") {
+	if (currentEnvironment.isDefault) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: "You cannot delete the production environment",
+			message: "You cannot delete the default environment",
 		});
 	}
 	const deletedEnvironment = await db
@@ -132,9 +162,23 @@ export const duplicateEnvironment = async (
 };
 
 export const createProductionEnvironment = async (projectId: string) => {
-	return createEnvironment({
-		name: "production",
-		description: "Production environment",
-		projectId,
-	});
+	const newEnvironment = await db
+		.insert(environments)
+		.values({
+			name: "production",
+			description: "Production environment",
+			projectId,
+			isDefault: true,
+		})
+		.returning()
+		.then((value) => value[0]);
+
+	if (!newEnvironment) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Error creating the production environment",
+		});
+	}
+
+	return newEnvironment;
 };

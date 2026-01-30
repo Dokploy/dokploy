@@ -1,12 +1,12 @@
 import dns from "node:dns";
 import { promisify } from "node:util";
 import { db } from "@dokploy/server/db";
+import { getWebServerSettings } from "@dokploy/server/services/web-server-settings";
 import { generateRandomDomain } from "@dokploy/server/templates";
 import { manageDomain } from "@dokploy/server/utils/traefik/domain";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { type apiCreateDomain, domains } from "../db/schema";
-import { findUserById } from "./admin";
 import { findApplicationById } from "./application";
 import { detectCDNProvider } from "./cdn";
 import { findServerById } from "./server";
@@ -19,6 +19,7 @@ export const createDomain = async (input: typeof apiCreateDomain._type) => {
 			.insert(domains)
 			.values({
 				...input,
+				host: input.host?.trim(),
 			})
 			.returning()
 			.then((response) => response[0]);
@@ -60,9 +61,9 @@ export const generateTraefikMeDomain = async (
 			projectName: appName,
 		});
 	}
-	const admin = await findUserById(userId);
+	const settings = await getWebServerSettings();
 	return generateRandomDomain({
-		serverIp: admin?.serverIp || "",
+		serverIp: settings?.serverIp || "",
 		projectName: appName,
 	});
 };
@@ -120,6 +121,7 @@ export const updateDomainById = async (
 		.update(domains)
 		.set({
 			...domainData,
+			...(domainData.host && { host: domainData.host.trim() }),
 		})
 		.where(eq(domains.domainId, domainId))
 		.returning();

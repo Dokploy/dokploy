@@ -58,7 +58,7 @@ const dockerImageDefaultPlaceholder: Record<DbType, string> = {
 	mongo: "mongo:7",
 	mariadb: "mariadb:11",
 	mysql: "mysql:8",
-	postgres: "postgres:15",
+	postgres: "postgres:18",
 	redis: "redis:7",
 };
 
@@ -395,8 +395,8 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													placeholder="Name"
 													{...field}
 													onChange={(e) => {
-														const val = e.target.value?.trim() || "";
-														const serviceName = slugify(val);
+														const val = e.target.value || "";
+														const serviceName = slugify(val.trim());
 														form.setValue("appName", `${slug}-${serviceName}`);
 														field.onChange(val);
 													}}
@@ -559,6 +559,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													type="password"
 													placeholder="******************"
 													autoComplete="one-time-code"
+													enablePasswordGenerator={true}
 													{...field}
 												/>
 											</FormControl>
@@ -578,6 +579,7 @@ export const AddDatabase = ({ environmentId, projectName }: Props) => {
 													<Input
 														type="password"
 														placeholder="******************"
+														enablePasswordGenerator={true}
 														{...field}
 													/>
 												</FormControl>
