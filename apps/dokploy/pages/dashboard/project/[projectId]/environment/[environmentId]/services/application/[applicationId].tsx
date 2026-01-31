@@ -31,6 +31,7 @@ import { ShowSchedules } from "@/components/dashboard/application/schedules/show
 import { UpdateApplication } from "@/components/dashboard/application/update-application";
 import { ShowVolumeBackups } from "@/components/dashboard/application/volume-backups/show-volume-backups";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ShowServiceFileManager } from "@/components/dashboard/file-system/show-service-file-manager";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -62,6 +63,7 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
+	| "files"
 	| "monitoring"
 	| "preview-deployments"
 	| "volume-backups";
@@ -247,6 +249,7 @@ const Service = (
 											<TabsTrigger value="volume-backups">
 												Volume Backups
 											</TabsTrigger>
+											<TabsTrigger value="files">Files</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
@@ -348,6 +351,12 @@ const Service = (
 												serverId={data?.serverId || ""}
 											/>
 										</div>
+									</TabsContent>
+									<TabsContent value="files" className="w-full pt-2.5">
+										<ShowServiceFileManager
+											serviceId={applicationId}
+											serviceType="application"
+										/>
 									</TabsContent>
 									<TabsContent value="preview-deployments" className="w-full">
 										<div className="flex flex-col gap-4 pt-2.5">

@@ -13,6 +13,7 @@ import superjson from "superjson";
 import { ShowEnvironment } from "@/components/dashboard/application/environment/show-enviroment";
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
+import { ShowServiceFileManager } from "@/components/dashboard/file-system/show-service-file-manager";
 import { ContainerFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-container-monitoring";
 import { ContainerPaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-container-monitoring";
 import { ShowExternalRedisCredentials } from "@/components/dashboard/redis/general/show-external-redis-credentials";
@@ -45,7 +46,12 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
-type TabState = "projects" | "monitoring" | "settings" | "advanced";
+type TabState =
+	| "projects"
+	| "monitoring"
+	| "settings"
+	| "advanced"
+	| "files";
 
 const Redis = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -202,15 +208,16 @@ const Redis = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-5"
+													? "md:grid-cols-6"
 													: data?.serverId
-														? "md:grid-cols-4"
-														: "md:grid-cols-5",
+														? "md:grid-cols-5"
+														: "md:grid-cols-6",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="files">Files</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -280,6 +287,15 @@ const Redis = (
 											<ShowDockerLogs
 												serverId={data?.serverId || ""}
 												appName={data?.appName || ""}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="files">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowServiceFileManager
+												serviceId={redisId}
+												serviceType="redis"
+												title="Database File Manager"
 											/>
 										</div>
 									</TabsContent>

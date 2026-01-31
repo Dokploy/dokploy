@@ -27,6 +27,7 @@ import { ShowDockerLogsCompose } from "@/components/dashboard/compose/logs/show"
 import { ShowDockerLogsStack } from "@/components/dashboard/compose/logs/show-stack";
 import { UpdateCompose } from "@/components/dashboard/compose/update-compose";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { ShowServiceFileManager } from "@/components/dashboard/file-system/show-service-file-manager";
 import { ComposeFreeMonitoring } from "@/components/dashboard/monitoring/free/container/show-free-compose-monitoring";
 import { ComposePaidMonitoring } from "@/components/dashboard/monitoring/paid/container/show-paid-compose-monitoring";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
@@ -58,6 +59,7 @@ type TabState =
 	| "advanced"
 	| "deployments"
 	| "domains"
+	| "files"
 	| "monitoring"
 	| "volumeBackups";
 
@@ -236,6 +238,7 @@ const Service = (
 											<TabsTrigger value="volumeBackups">
 												Volume Backups
 											</TabsTrigger>
+											<TabsTrigger value="files">Files</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
@@ -273,6 +276,13 @@ const Service = (
 												serverId={data?.serverId || ""}
 											/>
 										</div>
+									</TabsContent>
+									<TabsContent value="files" className="w-full pt-2.5">
+										<ShowServiceFileManager
+											serviceId={composeId}
+											serviceType="compose"
+											title="Compose File Manager"
+										/>
 									</TabsContent>
 									<TabsContent value="monitoring">
 										<div className="pt-2.5">

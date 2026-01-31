@@ -14,6 +14,7 @@ import { ShowEnvironment } from "@/components/dashboard/application/environment/
 import { ShowDockerLogs } from "@/components/dashboard/application/logs/show";
 import { DeleteService } from "@/components/dashboard/compose/delete-service";
 import { ShowBackups } from "@/components/dashboard/database/backups/show-backups";
+import { ShowServiceFileManager } from "@/components/dashboard/file-system/show-service-file-manager";
 import { ShowExternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-external-mariadb-credentials";
 import { ShowGeneralMariadb } from "@/components/dashboard/mariadb/general/show-general-mariadb";
 import { ShowInternalMariadbCredentials } from "@/components/dashboard/mariadb/general/show-internal-mariadb-credentials";
@@ -46,7 +47,13 @@ import { cn } from "@/lib/utils";
 import { appRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
 
-type TabState = "projects" | "monitoring" | "settings" | "backups" | "advanced";
+type TabState =
+	| "projects"
+	| "monitoring"
+	| "settings"
+	| "backups"
+	| "advanced"
+	| "files";
 
 const Mariadb = (
 	props: InferGetServerSidePropsType<typeof getServerSideProps>,
@@ -204,15 +211,16 @@ const Mariadb = (
 											className={cn(
 												"md:grid md:w-fit max-md:overflow-y-scroll justify-start",
 												isCloud && data?.serverId
-													? "md:grid-cols-6"
+													? "md:grid-cols-7"
 													: data?.serverId
-														? "md:grid-cols-5"
-														: "md:grid-cols-6",
+														? "md:grid-cols-6"
+														: "md:grid-cols-7",
 											)}
 										>
 											<TabsTrigger value="general">General</TabsTrigger>
 											<TabsTrigger value="environment">Environment</TabsTrigger>
 											<TabsTrigger value="logs">Logs</TabsTrigger>
+											<TabsTrigger value="files">Files</TabsTrigger>
 											{((data?.serverId && isCloud) || !data?.server) && (
 												<TabsTrigger value="monitoring">Monitoring</TabsTrigger>
 											)}
@@ -283,6 +291,15 @@ const Mariadb = (
 											<ShowDockerLogs
 												serverId={data?.serverId || ""}
 												appName={data?.appName || ""}
+											/>
+										</div>
+									</TabsContent>
+									<TabsContent value="files">
+										<div className="flex flex-col gap-4 pt-2.5">
+											<ShowServiceFileManager
+												serviceId={mariadbId}
+												serviceType="mariadb"
+												title="Database File Manager"
 											/>
 										</div>
 									</TabsContent>
