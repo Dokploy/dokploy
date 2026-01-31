@@ -172,6 +172,8 @@ export const ShowServiceFileManager = ({
 	const [editorContent, setEditorContent] = useState("");
 	const [originalContent, setOriginalContent] = useState("");
 	const [overwriteUpload, setOverwriteUpload] = useState(false);
+	const trimmedSearchValue = searchValue.trim();
+	const hasSearch = trimmedSearchValue.length > 0;
 
 	const listQuery = api.fileManager.list.useQuery(
 		{
@@ -181,7 +183,7 @@ export const ShowServiceFileManager = ({
 			includeHidden,
 		},
 		{
-			enabled: !searchValue,
+			enabled: !hasSearch,
 		},
 	);
 
@@ -189,16 +191,16 @@ export const ShowServiceFileManager = ({
 		{
 			serviceId,
 			serviceType,
-			query: searchValue,
+			query: trimmedSearchValue,
 			path: currentPath || undefined,
 			includeHidden,
 		},
 		{
-			enabled: searchValue.length > 0,
+			enabled: hasSearch,
 		},
 	);
 
-	const entries = searchValue ? searchQuery.data || [] : listQuery.data || [];
+	const entries = hasSearch ? searchQuery.data || [] : listQuery.data || [];
 	const selectedEntry = useMemo(
 		() => entries.find((entry) => entry.path === selectedPath) || null,
 		[entries, selectedPath],
@@ -246,8 +248,14 @@ export const ShowServiceFileManager = ({
 	};
 
 	const refresh = async () => {
-		await Promise.all([listQuery.refetch(), searchQuery.refetch()]);
+		if (hasSearch) {
+			await searchQuery.refetch();
+		} else {
+			await listQuery.refetch();
+		}
 	};
+	const isLoading = hasSearch ? searchQuery.isLoading : listQuery.isLoading;
+	const activeError = hasSearch ? searchQuery.error : listQuery.error;
 
 	const handleUpload = async (files: FileList | null) => {
 		if (!files || files.length === 0) return;
@@ -316,11 +324,9 @@ export const ShowServiceFileManager = ({
 					Editing files here updates the service files directory. Apply changes by
 					redeploying your service if file mounts are used.
 				</AlertBlock>
-				{(listQuery.error || searchQuery.error) && (
+				{activeError && (
 					<AlertBlock type="error">
-						{listQuery.error?.message ||
-							searchQuery.error?.message ||
-							"Unable to load files."}
+						{activeError?.message || "Unable to load files."}
 					</AlertBlock>
 				)}
 				<div className="flex flex-col gap-4">
@@ -492,7 +498,7 @@ export const ShowServiceFileManager = ({
 										</TableRow>
 									</TableHeader>
 									<TableBody>
-										{listQuery.isLoading || searchQuery.isLoading ? (
+										{isLoading ? (
 											<TableRow>
 												<TableCell colSpan={4} className="text-center">
 													Loading...
