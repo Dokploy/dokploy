@@ -54,7 +54,10 @@ export const ssoRouter = createTRPCRouter({
 	}),
 	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
-			where: eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
+			where: and(
+				eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
+				eq(ssoProvider.userId, ctx.session.userId),
+			),
 			columns: {
 				id: true,
 				providerId: true,
@@ -76,6 +79,7 @@ export const ssoRouter = createTRPCRouter({
 					and(
 						eq(ssoProvider.providerId, input.providerId),
 						eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
+						eq(ssoProvider.userId, ctx.session.userId),
 					),
 				)
 				.returning({ id: ssoProvider.id });
