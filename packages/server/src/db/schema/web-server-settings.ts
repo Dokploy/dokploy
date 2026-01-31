@@ -76,6 +76,14 @@ export const webServerSettings = pgTable("webServerSettings", {
 	cleanupCacheOnCompose: boolean("cleanupCacheOnCompose")
 		.notNull()
 		.default(false),
+	// Whitelabel (Enterprise)
+	whitelabelAppName: text("whitelabelAppName").default("Dokploy"),
+	whitelabelLogoUrl: text("whitelabelLogoUrl"),
+	whitelabelLoginLogoUrl: text("whitelabelLoginLogoUrl"),
+	whitelabelFaviconUrl: text("whitelabelFaviconUrl"),
+	whitelabelLoginTitle: text("whitelabelLoginTitle"),
+	whitelabelLoginSubtitle: text("whitelabelLoginSubtitle"),
+	whitelabelLoginBackgroundImageUrl: text("whitelabelLoginBackgroundImageUrl"),
 	createdAt: timestamp("created_at").defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -125,6 +133,18 @@ export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	cleanupCacheApplications: z.boolean().optional(),
 	cleanupCacheOnPreviews: z.boolean().optional(),
 	cleanupCacheOnCompose: z.boolean().optional(),
+	whitelabelAppName: z.string().optional().nullable(),
+	whitelabelLogoUrl: z.string().url().optional().nullable().or(z.literal("")),
+	whitelabelLoginLogoUrl: z.string().url().optional().nullable().or(z.literal("")),
+	whitelabelFaviconUrl: z.string().url().optional().nullable().or(z.literal("")),
+	whitelabelLoginTitle: z.string().optional().nullable(),
+	whitelabelLoginSubtitle: z.string().optional().nullable(),
+	whitelabelLoginBackgroundImageUrl: z
+		.string()
+		.url()
+		.optional()
+		.nullable()
+		.or(z.literal("")),
 });
 
 export const apiAssignDomain = z
@@ -152,6 +172,21 @@ export const apiSaveSSHKey = z
 export const apiUpdateDockerCleanup = z.object({
 	enableDockerCleanup: z.boolean(),
 	serverId: z.string().optional(),
+});
+
+export const apiUpdateWhitelabel = z.object({
+	whitelabelAppName: z.string().min(1).max(100).optional().nullable(),
+	whitelabelLogoUrl: z.string().url().optional().nullable().or(z.literal("")),
+	whitelabelLoginLogoUrl: z.string().url().optional().nullable().or(z.literal("")),
+	whitelabelFaviconUrl: z.string().url().optional().nullable().or(z.literal("")),
+	whitelabelLoginTitle: z.string().max(200).optional().nullable(),
+	whitelabelLoginSubtitle: z.string().max(500).optional().nullable(),
+	whitelabelLoginBackgroundImageUrl: z
+		.string()
+		.url()
+		.optional()
+		.nullable()
+		.or(z.literal("")),
 });
 
 export const apiUpdateWebServerMonitoring = z.object({

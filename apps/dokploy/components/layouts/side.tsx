@@ -21,8 +21,10 @@ import {
 	Key,
 	KeyRound,
 	Loader2,
+	LogIn,
 	type LucideIcon,
 	Package,
+	Palette,
 	PieChart,
 	Server,
 	ShieldCheck,
@@ -30,7 +32,6 @@ import {
 	Trash2,
 	User,
 	Users,
-	LogIn,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -416,6 +417,15 @@ const MENU: Menu = {
 			isEnabled: ({ auth }) =>
 				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
+		{
+			isSingle: true,
+			title: "Whitelabeling",
+			url: "/dashboard/settings/whitelabelling",
+			icon: Palette,
+			// Enterprise only – page shows gate if no license
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
+		},
 	],
 
 	help: [
@@ -546,6 +556,7 @@ function SidebarLogo() {
 		refetch,
 		isLoading,
 	} = api.organization.all.useQuery();
+	const { data: whitelabel } = api.settings.getWhitelabelSettings.useQuery();
 	const { mutateAsync: deleteOrganization, isLoading: isRemoving } =
 		api.organization.delete.useMutation();
 	const { mutateAsync: setDefaultOrganization, isLoading: isSettingDefault } =
@@ -611,7 +622,11 @@ function SidebarLogo() {
 													"transition-all",
 													state === "collapsed" ? "size-4" : "size-5",
 												)}
-												logoUrl={activeOrganization?.logo || undefined}
+												logoUrl={
+													activeOrganization?.logo ||
+													whitelabel?.whitelabelLogoUrl ||
+													undefined
+												}
 											/>
 										</div>
 										<div
@@ -621,7 +636,9 @@ function SidebarLogo() {
 											)}
 										>
 											<p className="text-sm font-medium leading-none">
-												{activeOrganization?.name ?? "Select Organization"}
+												{activeOrganization?.name ??
+													whitelabel?.whitelabelAppName ??
+													"Select Organization"}
 											</p>
 										</div>
 									</div>

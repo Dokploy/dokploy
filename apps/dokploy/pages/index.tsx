@@ -59,6 +59,7 @@ interface Props {
 export default function Home({ IS_CLOUD }: Props) {
 	const router = useRouter();
 	const { data: showSignInWithSSO } = api.sso.showSignInWithSSO.useQuery();
+	const { data: whitelabel } = api.settings.getWhitelabelSettings.useQuery();
 	const [isLoginLoading, setIsLoginLoading] = useState(false);
 	const [isTwoFactorLoading, setIsTwoFactorLoading] = useState(false);
 	const [isBackupCodeLoading, setIsBackupCodeLoading] = useState(false);
@@ -212,17 +213,27 @@ export default function Home({ IS_CLOUD }: Props) {
 		</>
 	);
 
+	const loginLogoUrl =
+		whitelabel?.whitelabelLoginLogoUrl ?? whitelabel?.whitelabelLogoUrl;
+	const loginTitle = whitelabel?.whitelabelLoginTitle ?? "Sign in";
+	const loginSubtitle =
+		whitelabel?.whitelabelLoginSubtitle ??
+		"Enter your email and password to sign in";
+
 	return (
 		<>
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
 					<div className="flex flex-row items-center justify-center gap-2">
-						<Logo className="size-12" />
-						Sign in
+						<Logo
+							className="size-12"
+							logoUrl={loginLogoUrl ?? undefined}
+						/>
+						{loginTitle}
 					</div>
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					Enter your email and password to sign in
+					{loginSubtitle}
 				</p>
 			</div>
 			{error && (

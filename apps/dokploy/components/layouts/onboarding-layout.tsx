@@ -4,21 +4,35 @@ import { cn } from "@/lib/utils";
 import { GithubIcon } from "../icons/data-tools-icons";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
+import { api } from "@/utils/api";
 
 interface Props {
 	children: React.ReactNode;
 }
 export const OnboardingLayout = ({ children }: Props) => {
+	const { data: whitelabel } = api.settings.getWhitelabelSettings.useQuery();
+	const appName = whitelabel?.whitelabelAppName ?? "Dokploy";
+	const logoUrl =
+		whitelabel?.whitelabelLogoUrl ?? whitelabel?.whitelabelLoginLogoUrl;
+
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
 			<div className="relative hidden h-full flex-col  p-10 text-primary dark:border-r lg:flex">
 				<div className="absolute inset-0 bg-muted" />
+				{whitelabel?.whitelabelLoginBackgroundImageUrl && (
+					<div
+						className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+						style={{
+							backgroundImage: `url(${whitelabel.whitelabelLoginBackgroundImageUrl})`,
+						}}
+					/>
+				)}
 				<Link
 					href="https://dokploy.com"
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
-					<Logo className="size-10" />
-					Dokploy
+					<Logo className="size-10" logoUrl={logoUrl ?? undefined} />
+					{appName}
 				</Link>
 				<div className="relative z-20 mt-auto">
 					<blockquote className="space-y-2">

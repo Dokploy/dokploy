@@ -63,6 +63,7 @@ import {
 	apiServerSchema,
 	apiTraefikConfig,
 	apiUpdateDockerCleanup,
+	apiUpdateWhitelabel,
 	projects,
 	server,
 } from "@/server/db/schema";
@@ -72,6 +73,7 @@ import { appRouter } from "../root";
 import {
 	adminProcedure,
 	createTRPCRouter,
+	enterpriseProcedure,
 	protectedProcedure,
 	publicProcedure,
 } from "../trpc";
@@ -84,6 +86,57 @@ export const settingsRouter = createTRPCRouter({
 		const settings = await getWebServerSettings();
 		return settings;
 	}),
+	getWhitelabelSettings: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return null;
+		}
+		const settings = await getWebServerSettings();
+		if (!settings) return null;
+		return {
+			whitelabelAppName: settings.whitelabelAppName ?? "Dokploy",
+			whitelabelLogoUrl: settings.whitelabelLogoUrl ?? null,
+			whitelabelLoginLogoUrl: settings.whitelabelLoginLogoUrl ?? null,
+			whitelabelFaviconUrl: settings.whitelabelFaviconUrl ?? null,
+			whitelabelLoginTitle: settings.whitelabelLoginTitle ?? null,
+			whitelabelLoginSubtitle: settings.whitelabelLoginSubtitle ?? null,
+			whitelabelLoginBackgroundImageUrl:
+				settings.whitelabelLoginBackgroundImageUrl ?? null,
+		};
+	}),
+	updateWhitelabelSettings: enterpriseProcedure
+		.input(apiUpdateWhitelabel)
+		.mutation(async ({ input }) => {
+			if (IS_CLOUD) {
+				return null;
+			}
+			const updates: Record<string, unknown> = {};
+			if (input.whitelabelAppName !== undefined)
+				updates.whitelabelAppName = input.whitelabelAppName;
+			if (input.whitelabelLogoUrl !== undefined)
+				updates.whitelabelLogoUrl =
+					input.whitelabelLogoUrl === "" ? null : input.whitelabelLogoUrl;
+			if (input.whitelabelLoginLogoUrl !== undefined)
+				updates.whitelabelLoginLogoUrl =
+					input.whitelabelLoginLogoUrl === ""
+						? null
+						: input.whitelabelLoginLogoUrl;
+			if (input.whitelabelFaviconUrl !== undefined)
+				updates.whitelabelFaviconUrl =
+					input.whitelabelFaviconUrl === ""
+						? null
+						: input.whitelabelFaviconUrl;
+			if (input.whitelabelLoginTitle !== undefined)
+				updates.whitelabelLoginTitle = input.whitelabelLoginTitle;
+			if (input.whitelabelLoginSubtitle !== undefined)
+				updates.whitelabelLoginSubtitle = input.whitelabelLoginSubtitle;
+			if (input.whitelabelLoginBackgroundImageUrl !== undefined)
+				updates.whitelabelLoginBackgroundImageUrl =
+					input.whitelabelLoginBackgroundImageUrl === ""
+						? null
+						: input.whitelabelLoginBackgroundImageUrl;
+			const updated = await updateWebServerSettings(updates as any);
+			return updated;
+		}),
 	reloadServer: adminProcedure.mutation(async () => {
 		if (IS_CLOUD) {
 			return true;
