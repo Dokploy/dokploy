@@ -7,6 +7,7 @@ import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
 import { clusterRouter } from "./routers/cluster";
 import { composeRouter } from "./routers/compose";
+import { containerFileManagerRouter } from "./routers/container-file-manager";
 import { deploymentRouter } from "./routers/deployment";
 import { destinationRouter } from "./routers/destination";
 import { dockerRouter } from "./routers/docker";
@@ -88,6 +89,7 @@ export const appRouter = createTRPCRouter({
 	volumeBackups: volumeBackupsRouter,
 	environment: environmentRouter,
 	fileManager: fileManagerRouter,
+	containerFileManager: containerFileManagerRouter,
 });
 
 // export type definition of API

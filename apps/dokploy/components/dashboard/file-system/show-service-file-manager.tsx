@@ -7,6 +7,7 @@ import {
 	Pencil,
 	RefreshCcw,
 	Search,
+	ShieldAlert,
 	Trash2,
 	Upload,
 } from "lucide-react";
@@ -15,8 +16,21 @@ import { toast } from "sonner";
 import { AlertBlock } from "@/components/shared/alert-block";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { CodeEditor } from "@/components/shared/code-editor";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -29,6 +43,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Table,
 	TableBody,
@@ -48,6 +63,7 @@ type ServiceType =
 	| "mongo"
 	| "redis"
 	| "compose";
+type FileManagerScope = "mounts" | "container";
 
 interface Props {
 	serviceId: string;
@@ -165,6 +181,7 @@ export const ShowServiceFileManager = ({
 	description = "Manage files available to this service. Only the files directory is exposed to containers via file mounts.",
 }: Props) => {
 	const utils = api.useUtils();
+	const [scope, setScope] = useState<FileManagerScope>("mounts");
 	const [currentPath, setCurrentPath] = useState("");
 	const [selectedPath, setSelectedPath] = useState<string | null>(null);
 	const [searchValue, setSearchValue] = useState("");
@@ -172,10 +189,27 @@ export const ShowServiceFileManager = ({
 	const [editorContent, setEditorContent] = useState("");
 	const [originalContent, setOriginalContent] = useState("");
 	const [overwriteUpload, setOverwriteUpload] = useState(false);
+	const [containerWriteEnabled, setContainerWriteEnabled] = useState(false);
 	const trimmedSearchValue = searchValue.trim();
 	const hasSearch = trimmedSearchValue.length > 0;
+	const isContainerSupported = serviceType !== "compose";
+	const isContainerMode = scope === "container";
 
-	const listQuery = api.fileManager.list.useQuery(
+	useEffect(() => {
+		if (!isContainerSupported && isContainerMode) {
+			setScope("mounts");
+		}
+	}, [isContainerSupported, isContainerMode]);
+
+	useEffect(() => {
+		setCurrentPath("");
+		setSelectedPath(null);
+		setSearchValue("");
+		setEditorContent("");
+		setOriginalContent("");
+	}, [scope]);
+
+	const mountListQuery = api.fileManager.list.useQuery(
 		{
 			serviceId,
 			serviceType,
@@ -183,11 +217,23 @@ export const ShowServiceFileManager = ({
 			includeHidden,
 		},
 		{
-			enabled: !hasSearch,
+			enabled: !hasSearch && !isContainerMode,
 		},
 	);
 
-	const searchQuery = api.fileManager.search.useQuery(
+	const containerListQuery = api.containerFileManager.list.useQuery(
+		{
+			serviceId,
+			serviceType,
+			path: currentPath || undefined,
+			includeHidden,
+		},
+		{
+			enabled: !hasSearch && isContainerMode && isContainerSupported,
+		},
+	);
+
+	const mountSearchQuery = api.fileManager.search.useQuery(
 		{
 			serviceId,
 			serviceType,
@@ -196,9 +242,25 @@ export const ShowServiceFileManager = ({
 			includeHidden,
 		},
 		{
-			enabled: hasSearch,
+			enabled: hasSearch && !isContainerMode,
 		},
 	);
+
+	const containerSearchQuery = api.containerFileManager.search.useQuery(
+		{
+			serviceId,
+			serviceType,
+			query: trimmedSearchValue,
+			path: currentPath || undefined,
+			includeHidden,
+		},
+		{
+			enabled: hasSearch && isContainerMode && isContainerSupported,
+		},
+	);
+
+	const listQuery = isContainerMode ? containerListQuery : mountListQuery;
+	const searchQuery = isContainerMode ? containerSearchQuery : mountSearchQuery;
 
 	const entries = hasSearch ? searchQuery.data || [] : listQuery.data || [];
 	const selectedEntry = useMemo(
@@ -214,7 +276,7 @@ export const ShowServiceFileManager = ({
 		return "properties";
 	}, [selectedEntry?.extension]);
 
-	const readQuery = api.fileManager.read.useQuery(
+	const mountReadQuery = api.fileManager.read.useQuery(
 		{
 			serviceId,
 			serviceType,
@@ -222,14 +284,58 @@ export const ShowServiceFileManager = ({
 			encoding: "utf8",
 		},
 		{
-			enabled: !!selectedPath && selectedEntry?.type === "file",
+			enabled: !!selectedPath && selectedEntry?.type === "file" && !isContainerMode,
 		},
 	);
 
-	const writeMutation = api.fileManager.write.useMutation();
-	const mkdirMutation = api.fileManager.mkdir.useMutation();
-	const deleteMutation = api.fileManager.delete.useMutation();
-	const moveMutation = api.fileManager.move.useMutation();
+	const containerReadQuery = api.containerFileManager.read.useQuery(
+		{
+			serviceId,
+			serviceType,
+			path: selectedPath || "",
+			encoding: "utf8",
+		},
+		{
+			enabled:
+				!!selectedPath &&
+				selectedEntry?.type === "file" &&
+				isContainerMode &&
+				isContainerSupported,
+		},
+	);
+
+	const readQuery = isContainerMode ? containerReadQuery : mountReadQuery;
+
+	const containerStatusQuery = api.containerFileManager.status.useQuery(
+		{
+			serviceId,
+			serviceType,
+		},
+		{
+			enabled: isContainerMode && isContainerSupported,
+		},
+	);
+
+	const mountWriteMutation = api.fileManager.write.useMutation();
+	const containerWriteMutation = api.containerFileManager.write.useMutation();
+	const writeMutation = isContainerMode
+		? containerWriteMutation
+		: mountWriteMutation;
+	const mountMkdirMutation = api.fileManager.mkdir.useMutation();
+	const containerMkdirMutation = api.containerFileManager.mkdir.useMutation();
+	const mkdirMutation = isContainerMode
+		? containerMkdirMutation
+		: mountMkdirMutation;
+	const mountDeleteMutation = api.fileManager.delete.useMutation();
+	const containerDeleteMutation = api.containerFileManager.delete.useMutation();
+	const deleteMutation = isContainerMode
+		? containerDeleteMutation
+		: mountDeleteMutation;
+	const mountMoveMutation = api.fileManager.move.useMutation();
+	const containerMoveMutation = api.containerFileManager.move.useMutation();
+	const moveMutation = isContainerMode
+		? containerMoveMutation
+		: mountMoveMutation;
 
 	useEffect(() => {
 		if (readQuery.data && selectedEntry?.type === "file") {
@@ -239,6 +345,10 @@ export const ShowServiceFileManager = ({
 	}, [readQuery.data, selectedEntry?.type]);
 
 	const isDirty = editorContent !== originalContent;
+	const writesDisabled = isContainerMode && !containerWriteEnabled;
+	const scopeDescription = isContainerMode
+		? "Browse and edit the live filesystem inside the running container. Changes can be lost on redeploy or reschedule."
+		: description;
 
 	const breadcrumbs = pathToBreadcrumbs(currentPath);
 
@@ -258,6 +368,10 @@ export const ShowServiceFileManager = ({
 	const activeError = hasSearch ? searchQuery.error : listQuery.error;
 
 	const handleUpload = async (files: FileList | null) => {
+		if (writesDisabled) {
+			toast.error("Enable write operations to upload files.");
+			return;
+		}
 		if (!files || files.length === 0) return;
 		for (const file of Array.from(files)) {
 			if (file.size > MAX_UPLOAD_BYTES) {
@@ -286,12 +400,19 @@ export const ShowServiceFileManager = ({
 
 	const handleDownload = async (pathValue: string, name: string) => {
 		try {
-			const data = await utils.fileManager.read.fetch({
-				serviceId,
-				serviceType,
-				path: pathValue,
-				encoding: "base64",
-			});
+			const data = isContainerMode
+				? await utils.containerFileManager.read.fetch({
+						serviceId,
+						serviceType,
+						path: pathValue,
+						encoding: "base64",
+					})
+				: await utils.fileManager.read.fetch({
+						serviceId,
+						serviceType,
+						path: pathValue,
+						encoding: "base64",
+					});
 			const base64 = data?.content || "";
 			const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 			const blob = new Blob([bytes]);
@@ -317,17 +438,198 @@ export const ShowServiceFileManager = ({
 					<FileIcon className="size-5 text-muted-foreground" />
 					{title}
 				</CardTitle>
-				<CardDescription>{description}</CardDescription>
+				<CardDescription>{scopeDescription}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				<AlertBlock type="warning">
-					Editing files here updates the service files directory. Apply changes by
-					redeploying your service if file mounts are used.
-				</AlertBlock>
+				<div className="flex flex-col gap-3">
+					<div className="flex flex-wrap items-center gap-3">
+						<Label className="text-sm text-muted-foreground">Scope</Label>
+						<Tabs
+							value={scope}
+							onValueChange={(value) => setScope(value as FileManagerScope)}
+							className="w-fit"
+						>
+							<TabsList>
+								<TabsTrigger value="mounts">Mounted files</TabsTrigger>
+								<TabsTrigger value="container" disabled={!isContainerSupported}>
+									Container filesystem
+								</TabsTrigger>
+							</TabsList>
+						</Tabs>
+						{!isContainerSupported && (
+							<span className="text-xs text-muted-foreground">
+								Container filesystem access is not available for compose services
+								yet.
+							</span>
+						)}
+					</div>
+					{isContainerMode ? (
+						<AlertBlock type="warning">
+							You are viewing the live container filesystem. Changes may be lost on
+							redeploy, scale, crash recovery, or node rescheduling.
+						</AlertBlock>
+					) : (
+						<AlertBlock type="warning">
+							Editing files here updates the service files directory. Apply changes
+							by redeploying your service if file mounts are used.
+						</AlertBlock>
+					)}
+				</div>
 				{activeError && (
 					<AlertBlock type="error">
 						{activeError?.message || "Unable to load files."}
 					</AlertBlock>
+				)}
+				{isContainerMode && (
+					<Card className="border-dashed">
+						<CardHeader className="space-y-1">
+							<CardTitle className="text-base flex items-center gap-2">
+								<ShieldAlert className="size-4 text-muted-foreground" />
+								Container Filesystem Control Panel
+							</CardTitle>
+							<CardDescription>
+								Advanced access to the running container. Use for emergency fixes
+								and diagnostics only.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div className="flex flex-wrap items-center gap-2 text-xs">
+								<Badge variant="outline">
+									Container:{" "}
+									{containerStatusQuery.data?.containerName || "unknown"}
+								</Badge>
+								<Badge variant="secondary">
+									Image:{" "}
+									{containerStatusQuery.data?.containerImage || "unknown"}
+								</Badge>
+								<Badge variant="secondary">
+									State: {containerStatusQuery.data?.containerState || "unknown"}
+								</Badge>
+								<Badge variant="secondary">
+									Status: {containerStatusQuery.data?.containerStatus || "unknown"}
+								</Badge>
+								{containerWriteEnabled && (
+									<Badge variant="destructive">Write enabled</Badge>
+								)}
+							</div>
+							{containerStatusQuery.isLoading && (
+								<span className="text-xs text-muted-foreground">
+									Loading container details...
+								</span>
+							)}
+							{containerStatusQuery.error && (
+								<AlertBlock type="error">
+									{containerStatusQuery.error.message}
+								</AlertBlock>
+							)}
+							<AlertBlock type="warning">
+								Edits here change the container’s writable layer only. They do NOT
+								update your git repo or build source. Redeploying will erase these
+								changes.
+							</AlertBlock>
+							<div className="flex flex-wrap items-center justify-between gap-3">
+								<div className="flex items-center gap-2">
+									<Switch
+										id="enable-container-writes"
+										checked={containerWriteEnabled}
+										onCheckedChange={(checked) => setContainerWriteEnabled(checked)}
+									/>
+									<Label htmlFor="enable-container-writes">
+										Enable write operations (dangerous)
+									</Label>
+								</div>
+								{writesDisabled && (
+									<span className="text-xs text-muted-foreground">
+										Write actions are disabled until you explicitly enable them.
+									</span>
+								)}
+							</div>
+							<Accordion type="single" collapsible className="w-full">
+								<AccordionItem value="how-it-works">
+									<AccordionTrigger>How it works</AccordionTrigger>
+									<AccordionContent>
+										<ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+											<li>
+												This browser talks to the server, which uses{" "}
+												<code className="text-xs">docker exec</code> to read and
+												write files inside the running container.
+											</li>
+											<li>
+												Changes persist only for the current container. Any
+												redeploy or reschedule will replace the container and
+												remove these edits.
+											</li>
+											<li>
+												If your service has multiple replicas, edits are applied
+												to a single running task only.
+											</li>
+										</ul>
+									</AccordionContent>
+								</AccordionItem>
+								<AccordionItem value="recommended-workflow">
+									<AccordionTrigger>Recommended workflow</AccordionTrigger>
+									<AccordionContent>
+										<ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+											<li>
+												Use container edits only for short-lived hotfixes or
+												emergency inspection.
+											</li>
+											<li>
+												For persistent config, move files into mounts/volumes
+												and redeploy.
+											</li>
+											<li>
+												If you edit code, copy the change back to your repo and
+												redeploy so the build is reproducible.
+											</li>
+										</ul>
+									</AccordionContent>
+								</AccordionItem>
+								<AccordionItem value="prerequisites">
+									<AccordionTrigger>Container prerequisites</AccordionTrigger>
+									<AccordionContent>
+										<ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+											<li>
+												The container must have{" "}
+												<code className="text-xs">/bin/sh</code> and{" "}
+												<code className="text-xs">base64</code> available.
+											</li>
+											<li>
+												For full metadata (size/mtime),{" "}
+												<code className="text-xs">stat</code> should be present.
+											</li>
+											<li>
+												If a command is missing, install{" "}
+												<code className="text-xs">busybox</code> or{" "}
+												<code className="text-xs">coreutils</code> in the image.
+											</li>
+										</ul>
+									</AccordionContent>
+								</AccordionItem>
+								<AccordionItem value="safety">
+									<AccordionTrigger>Safety checklist</AccordionTrigger>
+									<AccordionContent>
+										<ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+											<li>
+												Avoid editing system paths like{" "}
+												<code className="text-xs">/usr</code>,{" "}
+												<code className="text-xs">/bin</code>, or{" "}
+												<code className="text-xs">/lib</code>.
+											</li>
+											<li>
+												Never store secrets here. Use environment variables or
+												secret mounts instead.
+											</li>
+											<li>
+												After finishing, disable write operations to reduce
+												risk.
+											</li>
+										</ul>
+									</AccordionContent>
+								</AccordionItem>
+							</Accordion>
+						</CardContent>
+					</Card>
 				)}
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
@@ -388,12 +690,14 @@ export const ShowServiceFileManager = ({
 								title="Create file"
 								placeholder="example.txt"
 								trigger={
-									<Button variant="outline">
+									<Button variant="outline" disabled={writesDisabled}>
 										<FileIcon className="size-4 mr-2" />
 										New File
 									</Button>
 								}
+								disabled={writesDisabled}
 								onSubmit={async (name) => {
+									if (writesDisabled) return;
 									await writeMutation
 										.mutateAsync({
 											serviceId,
@@ -418,12 +722,14 @@ export const ShowServiceFileManager = ({
 								title="Create folder"
 								placeholder="new-folder"
 								trigger={
-									<Button variant="outline">
+									<Button variant="outline" disabled={writesDisabled}>
 										<FolderPlus className="size-4 mr-2" />
 										New Folder
 									</Button>
 								}
+								disabled={writesDisabled}
 								onSubmit={async (name) => {
+									if (writesDisabled) return;
 									await mkdirMutation
 										.mutateAsync({
 											serviceId,
@@ -441,8 +747,15 @@ export const ShowServiceFileManager = ({
 										});
 								}}
 							/>
-							<label className="cursor-pointer">
-								<Button variant="outline" asChild>
+							<label
+								className={cn("cursor-pointer", writesDisabled && "opacity-60")}
+								onClick={(event) => {
+									if (writesDisabled) {
+										event.preventDefault();
+									}
+								}}
+							>
+								<Button variant="outline" asChild disabled={writesDisabled}>
 									<span>
 										<Upload className="size-4 mr-2" />
 										Upload
@@ -452,6 +765,7 @@ export const ShowServiceFileManager = ({
 									type="file"
 									className="hidden"
 									multiple
+									disabled={writesDisabled}
 									onChange={(event) => {
 										handleUpload(event.target.files);
 										event.currentTarget.value = "";
@@ -561,12 +875,15 @@ export const ShowServiceFileManager = ({
 																	<Button
 																		variant="ghost"
 																		size="icon"
+																		disabled={writesDisabled}
 																		onClick={(event) => event.stopPropagation()}
 																	>
 																		<Pencil className="size-4" />
 																	</Button>
 																}
+																disabled={writesDisabled}
 																onSubmit={async (name) => {
+																	if (writesDisabled) return;
 																	const parent = entry.path.split("/").slice(0, -1);
 																	const target = joinPath(...parent, name);
 																	await moveMutation
@@ -597,6 +914,7 @@ export const ShowServiceFileManager = ({
 																description={`Delete ${entry.name}?`}
 																type="destructive"
 																onClick={async () => {
+																	if (writesDisabled) return;
 																	await deleteMutation
 																		.mutateAsync({
 																			serviceId,
@@ -624,6 +942,7 @@ export const ShowServiceFileManager = ({
 																	variant="ghost"
 																	size="icon"
 																	className="text-red-500"
+																	disabled={writesDisabled}
 																	onClick={(event) => event.stopPropagation()}
 																>
 																	<Trash2 className="size-4" />
@@ -674,6 +993,7 @@ export const ShowServiceFileManager = ({
 										</div>
 										<Button
 											onClick={async () => {
+												if (writesDisabled) return;
 												await writeMutation
 													.mutateAsync({
 														serviceId,
@@ -696,7 +1016,7 @@ export const ShowServiceFileManager = ({
 														);
 													});
 											}}
-											disabled={!isDirty || writeMutation.isLoading}
+											disabled={writesDisabled || !isDirty || writeMutation.isLoading}
 										>
 											Save Changes
 										</Button>

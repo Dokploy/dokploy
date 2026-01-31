@@ -63,6 +63,7 @@ async function generateOpenAPI() {
 				"volumeBackups",
 				"environment",
 				"fileManager",
+				"containerFileManager",
 			],
 		});
 
