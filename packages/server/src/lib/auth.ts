@@ -10,6 +10,7 @@ import { IS_CLOUD } from "../constants";
 import { db } from "../db";
 import * as schema from "../db/schema";
 import { getUserByToken } from "../services/admin";
+import { getSSOProviders } from "../services/proprietary/sso";
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
@@ -43,14 +44,17 @@ export const { handler, api } = betterAuth({
 			if (!settings) {
 				return [];
 			}
+
+			const providers = await getSSOProviders();
+			const domains = providers.map((provider) => provider.issuer);
 			return [
 				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
 				...(settings?.host ? [`https://${settings?.host}`] : []),
+				...domains.map((domain) => domain),
 				...(process.env.NODE_ENV === "development"
 					? [
 							"http://localhost:3000",
 							"https://absolutely-handy-falcon.ngrok-free.app",
-							"https://keycloak.vesperfit.com",
 						]
 					: []),
 			];
