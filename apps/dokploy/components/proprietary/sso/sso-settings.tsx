@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, LogIn, Trash2, Eye } from "lucide-react";
+import { Eye, Loader2, LogIn, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
@@ -63,10 +63,11 @@ function parseSamlConfig(
 	}
 }
 
-export function SSOSettings() {
+export const SSOSettings = () => {
 	const utils = api.useUtils();
 	const [detailsProvider, setDetailsProvider] =
 		useState<ProviderForDetails | null>(null);
+
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
 	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
 		api.sso.deleteProvider.useMutation();
@@ -119,7 +120,10 @@ export function SSOSettings() {
 									const isSaml = !!provider.samlConfig;
 
 									return (
-										<Card key={provider.id} className="overflow-hidden">
+										<Card
+											key={provider.id}
+											className="overflow-hidden bg-background"
+										>
 											<CardHeader className="pb-2">
 												<div className="flex items-start justify-between gap-2">
 													<div className="flex flex-col gap-1">
@@ -352,4 +356,4 @@ export function SSOSettings() {
 			</Dialog>
 		</div>
 	);
-}
+};

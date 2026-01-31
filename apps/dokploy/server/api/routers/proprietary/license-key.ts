@@ -168,7 +168,6 @@ export const licenseKeyRouter = createTRPCRouter({
 			currentUser?.isValidEnterpriseLicense
 		);
 	}),
-
 	updateEnterpriseSettings: adminProcedure
 		.input(
 			z.object({

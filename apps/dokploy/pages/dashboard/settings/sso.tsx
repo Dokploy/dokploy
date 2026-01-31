@@ -1,4 +1,4 @@
-import { IS_CLOUD, validateRequest } from "@dokploy/server";
+import { validateRequest } from "@dokploy/server";
 import { createServerSideHelpers } from "@trpc/react-query/server";
 import type { GetServerSidePropsContext } from "next";
 import type { ReactElement } from "react";
@@ -44,14 +44,6 @@ Page.getLayout = (page: ReactElement) => {
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 	const { req, res } = ctx;
 	const locale = await getLocale(req.cookies);
-	if (IS_CLOUD) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: "/dashboard/projects",
-			},
-		};
-	}
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {

@@ -1,6 +1,7 @@
-import { ssoProvider } from "@dokploy/server/db/schema";
+import { IS_CLOUD } from "@dokploy/server/constants";
+import { member, ssoProvider } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
 	createTRPCRouter,
@@ -10,14 +11,31 @@ import {
 import { db } from "@/server/db";
 
 export const ssoRouter = createTRPCRouter({
-	/** Public list of SSO providers for the login page (providerId + issuer only). */
-	listLoginProviders: publicProcedure.query(async () => {
-		const providers = await db.query.ssoProvider.findMany({
-			columns: { providerId: true, issuer: true },
+	showSignInWithSSO: publicProcedure.query(async () => {
+		if (IS_CLOUD) {
+			return true;
+		}
+		const owner = await db.query.member.findFirst({
+			where: eq(member.role, "owner"),
+			with: {
+				user: {
+					columns: {
+						enableEnterpriseFeatures: true,
+						isValidEnterpriseLicense: true,
+					},
+				},
+			},
+			orderBy: [asc(member.createdAt)],
 		});
-		return providers;
-	}),
 
+		if (!owner) {
+			return false;
+		}
+
+		return (
+			owner.user.enableEnterpriseFeatures && owner.user.isValidEnterpriseLicense
+		);
+	}),
 	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
 			where: eq(ssoProvider.userId, ctx.user.id),
@@ -33,7 +51,6 @@ export const ssoRouter = createTRPCRouter({
 		});
 		return providers;
 	}),
-
 	deleteProvider: enterpriseProcedure
 		.input(z.object({ providerId: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {

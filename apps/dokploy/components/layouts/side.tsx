@@ -412,9 +412,9 @@ const MENU: Menu = {
 			title: "SSO",
 			url: "/dashboard/settings/sso",
 			icon: LogIn,
-			// Only enabled for admins in non-cloud environments (enterprise)
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+			// Enabled for admins in both cloud and self-hosted (enterprise)
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 	],
 
