@@ -285,7 +285,7 @@ export const getUpdateData = async (
 		}
 
 		versionTags.sort((a, b) => semver.rcompare(a.version, b.version));
-		const latestVersion = versionTags[0]?.tag;
+		const latestVersion = versionTags[0]?.tag ?? null;
 
 		// Use semver to compare versions for stable releases
 		const cleanedCurrent = semver.clean(currentVersion);
