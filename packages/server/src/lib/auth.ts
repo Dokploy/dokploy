@@ -62,6 +62,7 @@ export const { handler, api } = betterAuth({
 							"http://localhost:3000",
 							"https://absolutely-handy-falcon.ngrok-free.app",
 							"https://dev-pee8hhc3qbjlqedb.us.auth0.com",
+							"https://trial-2804699.okta.com",
 						]
 					: []),
 			];
@@ -120,7 +121,7 @@ export const { handler, api } = betterAuth({
 							}
 						} else {
 							const isSSORequest = context?.path.includes("/sso/callback");
-							if (!isSSORequest) {
+							if (isSSORequest) {
 								return;
 							}
 							const isAdminPresent = await db.query.member.findFirst({
