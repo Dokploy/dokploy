@@ -34,7 +34,9 @@ const getDokployImageBase = () =>
 	process.env.DOKPLOY_IMAGE || DEFAULT_IMAGE_REPOSITORY;
 
 const parseImageReference = (image: string): ImageRefParts => {
-	const [nameWithTag, digest] = image.split("@");
+	const fallbackImage = DEFAULT_IMAGE_REPOSITORY;
+	const rawImage = image.trim() || fallbackImage;
+	const [nameWithTag = fallbackImage, digest] = rawImage.split("@");
 	const lastColon = nameWithTag.lastIndexOf(":");
 	const lastSlash = nameWithTag.lastIndexOf("/");
 	let tag: string | null = null;
@@ -44,16 +46,17 @@ const parseImageReference = (image: string): ImageRefParts => {
 		name = nameWithTag.slice(0, lastColon);
 	}
 	const segments = name.split("/");
+	const firstSegment = segments[0] ?? "";
 	const hasRegistry =
 		segments.length > 1 &&
-		(segments[0].includes(".") ||
-			segments[0].includes(":") ||
-			segments[0] === "localhost");
-	const registry = hasRegistry ? segments[0] : "docker.io";
+		(firstSegment.includes(".") ||
+			firstSegment.includes(":") ||
+			firstSegment === "localhost");
+	const registry = hasRegistry ? firstSegment : "docker.io";
 	const repository = hasRegistry ? segments.slice(1).join("/") : name;
 	return {
 		registry,
-		repository,
+		repository: repository || fallbackImage,
 		tag,
 		digest: digest || null,
 	};
