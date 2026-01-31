@@ -5,6 +5,7 @@ import {
 	sendCustomNotification,
 	sendDiscordNotification,
 	sendLarkNotification,
+	sendPushoverNotification,
 	sendSlackNotification,
 	sendTelegramNotification,
 } from "./utils";
@@ -38,6 +39,7 @@ export const sendServerThresholdNotifications = async (
 			slack: true,
 			custom: true,
 			lark: true,
+			pushover: true,
 		},
 	});
 
@@ -45,7 +47,7 @@ export const sendServerThresholdNotifications = async (
 	const typeColor = 0xff0000; // Rojo para indicar alerta
 
 	for (const notification of notificationList) {
-		const { discord, telegram, slack, custom, lark } = notification;
+		const { discord, telegram, slack, custom, lark, pushover } = notification;
 
 		if (discord) {
 			const decorate = (decoration: string, text: string) =>
@@ -265,6 +267,14 @@ export const sendServerThresholdNotifications = async (
 					},
 				},
 			});
+		}
+
+		if (pushover) {
+			await sendPushoverNotification(
+				pushover,
+				`Server ${payload.Type} Alert`,
+				`Server: ${payload.ServerName}\nType: ${payload.Type}\nCurrent: ${payload.Value.toFixed(2)}%\nThreshold: ${payload.Threshold.toFixed(2)}%\nMessage: ${payload.Message}\nTime: ${date.toLocaleString()}`,
+			);
 		}
 	}
 };

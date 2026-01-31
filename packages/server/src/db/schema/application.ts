@@ -47,7 +47,7 @@ import {
 	UpdateConfigSwarmSchema,
 } from "./shared";
 import { sshKeys } from "./ssh-key";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 export const sourceType = pgEnum("sourceType", [
 	"docker",
 	"git",
@@ -136,6 +136,7 @@ export const applications = pgTable("application", {
 	giteaBuildPath: text("giteaBuildPath").default("/"),
 	// Bitbucket
 	bitbucketRepository: text("bitbucketRepository"),
+	bitbucketRepositorySlug: text("bitbucketRepositorySlug"),
 	bitbucketOwner: text("bitbucketOwner"),
 	bitbucketBranch: text("bitbucketBranch"),
 	bitbucketBuildPath: text("bitbucketBuildPath").default("/"),
@@ -286,7 +287,12 @@ export const applicationsRelations = relations(
 );
 
 const createSchema = createInsertSchema(applications, {
-	appName: z.string(),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	createdAt: z.string(),
 	applicationId: z.string(),
 	autoDeploy: z.boolean(),
@@ -451,6 +457,7 @@ export const apiSaveBitbucketProvider = createSchema
 		bitbucketBuildPath: true,
 		bitbucketOwner: true,
 		bitbucketRepository: true,
+		bitbucketRepositorySlug: true,
 		bitbucketId: true,
 		applicationId: true,
 		watchPaths: true,

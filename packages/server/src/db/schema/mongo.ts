@@ -33,7 +33,7 @@ import {
 	type UpdateConfigSwarm,
 	UpdateConfigSwarmSchema,
 } from "./shared";
-import { generateAppName } from "./utils";
+import { APP_NAME_MESSAGE, APP_NAME_REGEX, generateAppName } from "./utils";
 
 export const mongo = pgTable("mongo", {
 	mongoId: text("mongoId")
@@ -98,7 +98,12 @@ export const mongoRelations = relations(mongo, ({ one, many }) => ({
 }));
 
 const createSchema = createInsertSchema(mongo, {
-	appName: z.string().min(1),
+	appName: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(APP_NAME_REGEX, APP_NAME_MESSAGE)
+		.optional(),
 	createdAt: z.string(),
 	mongoId: z.string(),
 	name: z.string().min(1),
@@ -135,19 +140,17 @@ const createSchema = createInsertSchema(mongo, {
 	endpointSpecSwarm: EndpointSpecSwarmSchema.nullable(),
 });
 
-export const apiCreateMongo = createSchema
-	.pick({
-		name: true,
-		appName: true,
-		dockerImage: true,
-		environmentId: true,
-		description: true,
-		databaseUser: true,
-		databasePassword: true,
-		serverId: true,
-		replicaSets: true,
-	})
-	.required();
+export const apiCreateMongo = createSchema.pick({
+	name: true,
+	appName: true,
+	dockerImage: true,
+	environmentId: true,
+	description: true,
+	databaseUser: true,
+	databasePassword: true,
+	serverId: true,
+	replicaSets: true,
+});
 
 export const apiFindOneMongo = createSchema
 	.pick({
