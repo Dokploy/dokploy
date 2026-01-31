@@ -42,6 +42,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -190,9 +197,13 @@ export const ShowServiceFileManager = ({
 	const [originalContent, setOriginalContent] = useState("");
 	const [overwriteUpload, setOverwriteUpload] = useState(false);
 	const [containerWriteEnabled, setContainerWriteEnabled] = useState(false);
+	const [writeConfirmOpen, setWriteConfirmOpen] = useState(false);
+	const [writeConfirmValue, setWriteConfirmValue] = useState("");
+	const [composeServiceName, setComposeServiceName] = useState<string>("");
 	const trimmedSearchValue = searchValue.trim();
 	const hasSearch = trimmedSearchValue.length > 0;
-	const isContainerSupported = serviceType !== "compose";
+	const isComposeService = serviceType === "compose";
+	const isContainerSupported = true;
 	const isContainerMode = scope === "container";
 
 	useEffect(() => {
@@ -208,6 +219,64 @@ export const ShowServiceFileManager = ({
 		setEditorContent("");
 		setOriginalContent("");
 	}, [scope]);
+
+	useEffect(() => {
+		if (!isContainerMode) {
+			setContainerWriteEnabled(false);
+			setWriteConfirmOpen(false);
+			setWriteConfirmValue("");
+		}
+	}, [isContainerMode]);
+
+	useEffect(() => {
+		if (isContainerMode) {
+			setContainerWriteEnabled(false);
+		}
+	}, [containerServiceName, isContainerMode]);
+
+	useEffect(() => {
+		if (!isComposeService) {
+			setComposeServiceName("");
+		}
+	}, [isComposeService, serviceId]);
+
+	const composeServicesQuery = api.compose.loadServices.useQuery(
+		{
+			composeId: serviceId,
+			type: "cache",
+		},
+		{
+			enabled: isContainerMode && isComposeService,
+		},
+	);
+
+	useEffect(() => {
+		if (
+			isComposeService &&
+			isContainerMode &&
+			composeServicesQuery.data &&
+			composeServicesQuery.data.length > 0 &&
+			!composeServiceName
+		) {
+			setComposeServiceName(composeServicesQuery.data[0] || "");
+		}
+	}, [
+		isComposeService,
+		isContainerMode,
+		composeServicesQuery.data,
+		composeServiceName,
+	]);
+
+	const containerServiceName = isComposeService ? composeServiceName : undefined;
+	const containerModeReady =
+		isContainerMode && isContainerSupported && (!isComposeService || !!composeServiceName);
+	const mountTarget = { serviceId, serviceType };
+	const containerTarget = {
+		serviceId,
+		serviceType,
+		serviceName: containerServiceName,
+	};
+	const activeTarget = isContainerMode ? containerTarget : mountTarget;
 
 	const mountListQuery = api.fileManager.list.useQuery(
 		{
@@ -225,11 +294,12 @@ export const ShowServiceFileManager = ({
 		{
 			serviceId,
 			serviceType,
+			serviceName: containerServiceName,
 			path: currentPath || undefined,
 			includeHidden,
 		},
 		{
-			enabled: !hasSearch && isContainerMode && isContainerSupported,
+			enabled: !hasSearch && containerModeReady,
 		},
 	);
 
@@ -250,12 +320,13 @@ export const ShowServiceFileManager = ({
 		{
 			serviceId,
 			serviceType,
+			serviceName: containerServiceName,
 			query: trimmedSearchValue,
 			path: currentPath || undefined,
 			includeHidden,
 		},
 		{
-			enabled: hasSearch && isContainerMode && isContainerSupported,
+			enabled: hasSearch && containerModeReady,
 		},
 	);
 
@@ -292,6 +363,7 @@ export const ShowServiceFileManager = ({
 		{
 			serviceId,
 			serviceType,
+			serviceName: containerServiceName,
 			path: selectedPath || "",
 			encoding: "utf8",
 		},
@@ -299,8 +371,7 @@ export const ShowServiceFileManager = ({
 			enabled:
 				!!selectedPath &&
 				selectedEntry?.type === "file" &&
-				isContainerMode &&
-				isContainerSupported,
+				containerModeReady,
 		},
 	);
 
@@ -310,11 +381,13 @@ export const ShowServiceFileManager = ({
 		{
 			serviceId,
 			serviceType,
+			serviceName: containerServiceName,
 		},
 		{
-			enabled: isContainerMode && isContainerSupported,
+			enabled: containerModeReady,
 		},
 	);
+	const snapshotMutation = api.containerFileManager.snapshot.useMutation();
 
 	const mountWriteMutation = api.fileManager.write.useMutation();
 	const containerWriteMutation = api.containerFileManager.write.useMutation();
@@ -349,6 +422,12 @@ export const ShowServiceFileManager = ({
 	const scopeDescription = isContainerMode
 		? "Browse and edit the live filesystem inside the running container. Changes can be lost on redeploy or reschedule."
 		: description;
+	const writeConfirmPhrase = useMemo(() => {
+		const name =
+			containerStatusQuery.data?.containerName ||
+			(containerServiceName ? `service:${containerServiceName}` : "container");
+		return `EDITAR ${name.toUpperCase()}`;
+	}, [containerStatusQuery.data?.containerName, containerServiceName]);
 
 	const breadcrumbs = pathToBreadcrumbs(currentPath);
 
@@ -381,8 +460,7 @@ export const ShowServiceFileManager = ({
 			try {
 				const base64 = await readFileAsBase64(file);
 				await writeMutation.mutateAsync({
-					serviceId,
-					serviceType,
+					...activeTarget,
 					path: joinPath(currentPath, file.name),
 					content: base64,
 					encoding: "base64",
@@ -404,6 +482,7 @@ export const ShowServiceFileManager = ({
 				? await utils.containerFileManager.read.fetch({
 						serviceId,
 						serviceType,
+						serviceName: containerServiceName,
 						path: pathValue,
 						encoding: "base64",
 					})
@@ -427,6 +506,36 @@ export const ShowServiceFileManager = ({
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Download failed",
+			);
+		}
+	};
+
+	const handleSnapshot = async () => {
+		try {
+			if (!containerModeReady) {
+				toast.error("Container is not ready. Select a service first.");
+				return;
+			}
+			const data = await snapshotMutation.mutateAsync({
+				...containerTarget,
+				path: currentPath || undefined,
+			});
+			const base64 = data?.content || "";
+			const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+			const blob = new Blob([bytes], { type: "application/gzip" });
+			const fileName = data?.fileName || "snapshot.tar.gz";
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = url;
+			link.download = fileName;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(url);
+			toast.success("Snapshot exported");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Snapshot failed",
 			);
 		}
 	};
@@ -456,11 +565,37 @@ export const ShowServiceFileManager = ({
 								</TabsTrigger>
 							</TabsList>
 						</Tabs>
-						{!isContainerSupported && (
-							<span className="text-xs text-muted-foreground">
-								Container filesystem access is not available for compose services
-								yet.
-							</span>
+						{isContainerMode && isComposeService && (
+							<div className="flex flex-wrap items-center gap-2">
+								<Label className="text-xs text-muted-foreground">
+									Compose service
+								</Label>
+								<Select
+									value={composeServiceName}
+									onValueChange={(value) => setComposeServiceName(value)}
+								>
+									<SelectTrigger className="w-52">
+										<SelectValue placeholder="Select a service" />
+									</SelectTrigger>
+									<SelectContent>
+										{composeServicesQuery.data?.map((service) => (
+											<SelectItem key={service} value={service}>
+												{service}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								{composeServicesQuery.isLoading && (
+									<span className="text-xs text-muted-foreground">
+										Loading services...
+									</span>
+								)}
+								{composeServicesQuery.error && (
+									<span className="text-xs text-red-500">
+										{composeServicesQuery.error.message}
+									</span>
+								)}
+							</div>
 						)}
 					</div>
 					{isContainerMode ? (
@@ -486,6 +621,7 @@ export const ShowServiceFileManager = ({
 							<CardTitle className="text-base flex items-center gap-2">
 								<ShieldAlert className="size-4 text-muted-foreground" />
 								Container Filesystem Control Panel
+								<Badge variant="blue">Runtime FS v1</Badge>
 							</CardTitle>
 							<CardDescription>
 								Advanced access to the running container. Use for emergency fixes
@@ -522,17 +658,47 @@ export const ShowServiceFileManager = ({
 									{containerStatusQuery.error.message}
 								</AlertBlock>
 							)}
+							{isComposeService && !composeServiceName && (
+								<AlertBlock type="warning">
+									Select a compose service to access its container filesystem.
+								</AlertBlock>
+							)}
 							<AlertBlock type="warning">
 								Edits here change the container’s writable layer only. They do NOT
 								update your git repo or build source. Redeploying will erase these
 								changes.
 							</AlertBlock>
+							<div className="flex flex-wrap items-center gap-3">
+								<DialogAction
+									title="Export container snapshot"
+									description={`Create a compressed archive of ${
+										currentPath ? `/${currentPath}` : "/"
+									}. Snapshots are limited to 8 MB.`}
+									type="default"
+									onClick={handleSnapshot}
+								>
+									<Button variant="outline" disabled={!containerModeReady}>
+										Export snapshot
+									</Button>
+								</DialogAction>
+								<span className="text-xs text-muted-foreground">
+									Exports the current path as <code>.tar.gz</code> for audit or
+									rollback reference.
+								</span>
+							</div>
 							<div className="flex flex-wrap items-center justify-between gap-3">
 								<div className="flex items-center gap-2">
 									<Switch
 										id="enable-container-writes"
 										checked={containerWriteEnabled}
-										onCheckedChange={(checked) => setContainerWriteEnabled(checked)}
+										disabled={!containerModeReady}
+										onCheckedChange={(checked) => {
+											if (!checked) {
+												setContainerWriteEnabled(false);
+												return;
+											}
+											setWriteConfirmOpen(true);
+										}}
 									/>
 									<Label htmlFor="enable-container-writes">
 										Enable write operations (dangerous)
@@ -544,6 +710,62 @@ export const ShowServiceFileManager = ({
 									</span>
 								)}
 							</div>
+							<Dialog
+								open={writeConfirmOpen}
+								onOpenChange={(open) => {
+									setWriteConfirmOpen(open);
+									if (!open) {
+										setWriteConfirmValue("");
+									}
+								}}
+							>
+								<DialogContent>
+									<DialogHeader>
+										<DialogTitle>Confirm container write access</DialogTitle>
+									</DialogHeader>
+									<div className="space-y-3 text-sm text-muted-foreground">
+										<p>
+											This enables direct writes to the running container. These
+											changes are ephemeral and will be lost on redeploy or
+											reschedule.
+										</p>
+										<p className="text-foreground">
+											Type <strong>{writeConfirmPhrase}</strong> to continue.
+										</p>
+										<Input
+											value={writeConfirmValue}
+											onChange={(event) =>
+												setWriteConfirmValue(event.target.value)
+											}
+											placeholder={writeConfirmPhrase}
+										/>
+									</div>
+									<DialogFooter>
+										<Button
+											type="button"
+											variant="secondary"
+											onClick={() => setWriteConfirmOpen(false)}
+										>
+											Cancel
+										</Button>
+										<Button
+											type="button"
+											disabled={
+												writeConfirmValue.trim().toUpperCase() !==
+												writeConfirmPhrase
+											}
+											onClick={() => {
+												setContainerWriteEnabled(true);
+												setWriteConfirmOpen(false);
+												setWriteConfirmValue("");
+												toast.success("Container writes enabled for this session.");
+											}}
+										>
+											Enable writes
+										</Button>
+									</DialogFooter>
+								</DialogContent>
+							</Dialog>
 							<Accordion type="single" collapsible className="w-full">
 								<AccordionItem value="how-it-works">
 									<AccordionTrigger>How it works</AccordionTrigger>
@@ -700,8 +922,7 @@ export const ShowServiceFileManager = ({
 									if (writesDisabled) return;
 									await writeMutation
 										.mutateAsync({
-											serviceId,
-											serviceType,
+											...activeTarget,
 											path: joinPath(currentPath, name),
 											content: "",
 											encoding: "utf8",
@@ -732,8 +953,7 @@ export const ShowServiceFileManager = ({
 									if (writesDisabled) return;
 									await mkdirMutation
 										.mutateAsync({
-											serviceId,
-											serviceType,
+											...activeTarget,
 											path: joinPath(currentPath, name),
 										})
 										.then(() => {
@@ -888,8 +1108,7 @@ export const ShowServiceFileManager = ({
 																	const target = joinPath(...parent, name);
 																	await moveMutation
 																		.mutateAsync({
-																			serviceId,
-																			serviceType,
+																			...activeTarget,
 																			from: entry.path,
 																			to: target,
 																		})
@@ -917,8 +1136,7 @@ export const ShowServiceFileManager = ({
 																	if (writesDisabled) return;
 																	await deleteMutation
 																		.mutateAsync({
-																			serviceId,
-																			serviceType,
+																			...activeTarget,
 																			path: entry.path,
 																			recursive: true,
 																		})
@@ -996,8 +1214,7 @@ export const ShowServiceFileManager = ({
 												if (writesDisabled) return;
 												await writeMutation
 													.mutateAsync({
-														serviceId,
-														serviceType,
+														...activeTarget,
 														path: selectedEntry.path,
 														content: editorContent,
 														encoding: "utf8",

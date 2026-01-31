@@ -7,7 +7,7 @@ import {
 	type FileManagerEntryType,
 	type FileManagerServiceType,
 } from "./file-manager";
-import { getServiceContainer } from "../utils/docker/utils";
+import { getComposeContainer, getServiceContainer } from "../utils/docker/utils";
 import { execAsync, execAsyncRemote } from "../utils/process/execAsync";
 import { findApplicationById } from "./application";
 import { findComposeById } from "./compose";
@@ -23,6 +23,7 @@ export interface ContainerFileManagerContext {
 	organizationId: string;
 	appName: string;
 	serviceType: FileManagerServiceType;
+	serviceName?: string | null;
 	containerId: string;
 	containerName?: string | null;
 	containerImage?: string | null;
@@ -116,10 +117,13 @@ const ensureContainerTools = async (
 const resolveContainerContext = async (
 	serviceType: FileManagerServiceType,
 	serviceId: string,
+	options?: { serviceName?: string | null },
 ): Promise<{ context: ContainerFileManagerContext; container: ContainerInfo }> => {
 	let appName = "";
 	let serverId: string | null | undefined = null;
 	let organizationId = "";
+	let serviceName: string | null | undefined = options?.serviceName;
+	let compose: Awaited<ReturnType<typeof findComposeById>> | null = null;
 
 	if (serviceType === "application") {
 		const app = await findApplicationById(serviceId);
@@ -152,18 +156,30 @@ const resolveContainerContext = async (
 		serverId = redis.serverId;
 		organizationId = redis.environment.project.organizationId;
 	} else if (serviceType === "compose") {
-		const compose = await findComposeById(serviceId);
+		compose = await findComposeById(serviceId);
 		appName = compose.appName;
 		serverId = compose.serverId;
 		organizationId = compose.environment.project.organizationId;
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message:
-				"Container filesystem access for compose services is not supported yet.",
-		});
+		if (!serviceName) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Compose service name is required for container access.",
+			});
+		}
 	}
 
-	const container = await getServiceContainer(appName, serverId ?? null);
+	let container: ContainerInfo | null = null;
+	if (serviceType === "compose") {
+		if (!compose) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Compose service not found",
+			});
+		}
+		container = await getComposeContainer(compose, serviceName || "");
+	} else {
+		container = await getServiceContainer(appName, serverId ?? null);
+	}
 	if (!container) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
@@ -179,6 +195,7 @@ const resolveContainerContext = async (
 			organizationId,
 			appName,
 			serviceType,
+			serviceName: serviceName ?? null,
 			containerId: container.Id,
 			containerName: container.Names?.[0]?.replace(/^\//, "") ?? null,
 			containerImage: container.Image ?? null,
@@ -193,16 +210,26 @@ const resolveContainerContext = async (
 export const resolveContainerFileManagerContext = async (
 	serviceType: FileManagerServiceType,
 	serviceId: string,
+	options?: { serviceName?: string | null },
 ) => {
-	const { context } = await resolveContainerContext(serviceType, serviceId);
+	const { context } = await resolveContainerContext(
+		serviceType,
+		serviceId,
+		options,
+	);
 	return context;
 };
 
 export const getContainerFileManagerStatus = async (
 	serviceType: FileManagerServiceType,
 	serviceId: string,
+	options?: { serviceName?: string | null },
 ) => {
-	const { context } = await resolveContainerContext(serviceType, serviceId);
+	const { context } = await resolveContainerContext(
+		serviceType,
+		serviceId,
+		options,
+	);
 	return {
 		containerId: context.containerId,
 		containerName: context.containerName,
@@ -573,4 +600,67 @@ fi
 	}
 
 	return results;
+};
+
+const CONTAINER_SNAPSHOT_DEFAULT_LIMIT_BYTES = 8 * 1024 * 1024;
+
+export const snapshotContainerFileManager = async ({
+	context,
+	path: relativePath,
+	maxBytes = CONTAINER_SNAPSHOT_DEFAULT_LIMIT_BYTES,
+}: {
+	context: ContainerFileManagerContext;
+	path?: string;
+	maxBytes?: number;
+}) => {
+	if (maxBytes < 1 || maxBytes > 50 * 1024 * 1024) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Snapshot size limit must be between 1 byte and 50 MB.",
+		});
+	}
+
+	await ensureContainerTools(context, ["tar", "base64", "wc", "tr"]);
+	const { absolutePath } = resolveSafePath(context.basePath, relativePath);
+	const baseName =
+		absolutePath === "/" ? "root" : path.posix.basename(absolutePath);
+	const baseDir = path.posix.dirname(absolutePath);
+	const command = `
+TARGET=${shQuote(absolutePath)}
+if [ ! -e "$TARGET" ]; then
+	echo "__MISSING__"
+	exit 0
+fi
+SIZE=$(tar -C ${shQuote(baseDir)} -czf - ${shQuote(
+		baseName,
+	)} 2>/dev/null | wc -c)
+if [ "$SIZE" -gt ${Math.floor(maxBytes)} ]; then
+	echo "__TOO_LARGE__:$SIZE"
+	exit 0
+fi
+tar -C ${shQuote(baseDir)} -czf - ${shQuote(
+		baseName,
+	)} 2>/dev/null | base64 | tr -d '\\n'
+`;
+	const { stdout } = await execInContainer(context, command);
+	const trimmed = stdout.trim();
+	if (trimmed === "__MISSING__") {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Path not found in container",
+		});
+	}
+	if (trimmed.startsWith("__TOO_LARGE__:")) {
+		const size = Number.parseInt(trimmed.split(":")[1] || "0", 10) || 0;
+		throw new TRPCError({
+			code: "PAYLOAD_TOO_LARGE",
+			message: `Snapshot is ${size} bytes which exceeds the limit of ${maxBytes} bytes.`,
+		});
+	}
+
+	return {
+		fileName: `${baseName || "snapshot"}.tar.gz`,
+		content: trimmed,
+		encoding: "base64" as const,
+	};
 };

@@ -7,6 +7,7 @@ import {
 	moveContainerFileManagerEntry,
 	readContainerFileManagerFile,
 	resolveContainerFileManagerContext,
+	snapshotContainerFileManager,
 	searchContainerFileManagerEntries,
 	statContainerFileManagerEntry,
 	type FileManagerServiceType,
@@ -29,6 +30,7 @@ const serviceTypeSchema = z.enum([
 const serviceTargetSchema = z.object({
 	serviceId: z.string().min(1),
 	serviceType: serviceTypeSchema,
+	serviceName: z.string().min(1).optional(),
 });
 
 const getContext = async (
@@ -47,9 +49,19 @@ const getContext = async (
 		);
 	}
 
+	if (input.serviceType === "compose" && !input.serviceName) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Compose service name is required for container access.",
+		});
+	}
+
 	const context = await resolveContainerFileManagerContext(
 		input.serviceType as FileManagerServiceType,
 		input.serviceId,
+		{
+			serviceName: input.serviceName ?? null,
+		},
 	);
 	if (context.organizationId !== ctx.session.activeOrganizationId) {
 		throw new TRPCError({
@@ -73,6 +85,21 @@ export const containerFileManagerRouter = createTRPCRouter({
 				containerStatus: context.containerStatus,
 				containerCreatedAt: context.containerCreatedAt,
 			};
+		}),
+	snapshot: protectedProcedure
+		.input(
+			serviceTargetSchema.extend({
+				path: z.string().optional(),
+				maxBytes: z.number().int().min(1).max(50 * 1024 * 1024).optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const context = await getContext(input, ctx);
+			return snapshotContainerFileManager({
+				context,
+				path: input.path,
+				maxBytes: input.maxBytes,
+			});
 		}),
 	list: protectedProcedure
 		.input(
