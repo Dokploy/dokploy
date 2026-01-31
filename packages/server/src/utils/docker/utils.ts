@@ -623,13 +623,36 @@ export const generateFileMounts = (
 			const fileName = mount.filePath;
 			const absoluteBasePath = path.resolve(APPLICATIONS_PATH);
 			const directory = path.join(absoluteBasePath, appName, "files");
-			const sourcePath = path.join(directory, fileName || "");
+			const safeFileName = normalizeFileMountPath(fileName || "");
+			if (!safeFileName) return null;
+			const sourcePath = path.join(directory, safeFileName);
 			return {
 				Type: "bind" as const,
 				Source: sourcePath,
 				Target: mount.mountPath,
 			};
-		});
+		})
+		.filter((mount): mount is NonNullable<typeof mount> => mount !== null);
+};
+
+export const normalizeFileMountPath = (filePath: string) => {
+	const trimmed = filePath.trim().replace(/\\/g, "/");
+	if (!trimmed) return "";
+
+	const isDirectory = trimmed.endsWith("/");
+	const withoutLeading = trimmed.replace(/^\/+/, "");
+	const parts = withoutLeading
+		.split("/")
+		.map((part) => part.trim())
+		.filter((part) => part.length > 0 && part !== ".");
+
+	if (parts.some((part) => part === "..")) {
+		throw new Error("Invalid file path");
+	}
+
+	const normalized = parts.join("/");
+	if (!normalized) return "";
+	return isDirectory ? `${normalized}/` : normalized;
 };
 
 export const createFile = async (
@@ -638,8 +661,13 @@ export const createFile = async (
 	content: string,
 ) => {
 	try {
-		const fullPath = path.join(outputPath, filePath);
-		if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+		const isDirectory = /[\\/]$/.test(filePath);
+		const safeFilePath = normalizeFileMountPath(filePath);
+		if (!safeFilePath) {
+			throw new Error("Invalid file path");
+		}
+		const fullPath = path.join(outputPath, safeFilePath);
+		if (isDirectory) {
 			fs.mkdirSync(fullPath, { recursive: true });
 			return;
 		}
@@ -659,8 +687,13 @@ export const getCreateFileCommand = (
 	filePath: string,
 	content: string,
 ) => {
-	const fullPath = path.join(outputPath, filePath);
-	if (fullPath.endsWith(path.sep) || filePath.endsWith("/")) {
+	const isDirectory = /[\\/]$/.test(filePath);
+	const safeFilePath = normalizeFileMountPath(filePath);
+	if (!safeFilePath) {
+		throw new Error("Invalid file path");
+	}
+	const fullPath = path.join(outputPath, safeFilePath);
+	if (isDirectory) {
 		return `mkdir -p ${fullPath};`;
 	}
 

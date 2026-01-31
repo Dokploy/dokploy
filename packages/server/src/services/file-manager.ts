@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { paths } from "@dokploy/server/constants";
 import { TRPCError } from "@trpc/server";
+import { normalizeFileMountPath } from "@dokploy/server/utils/docker/utils";
 import { execAsyncRemote } from "../utils/process/execAsync";
 import { findApplicationById } from "./application";
 import { findComposeById } from "./compose";
@@ -90,6 +91,91 @@ const resolveSafePath = (
 	};
 };
 
+const migrateLegacyFileMounts = async ({
+	basePath,
+	serverId,
+	mounts,
+}: {
+	basePath: string;
+	serverId?: string | null;
+	mounts: Array<{ type?: string | null; filePath?: string | null }>;
+}) => {
+	const fileMounts = mounts.filter(
+		(mount) => mount.type === "file" && mount.filePath,
+	);
+	if (fileMounts.length === 0) return;
+
+	if (serverId) {
+		const commands = fileMounts
+			.map((mount) => {
+				const rawPath = mount.filePath ?? "";
+				const posixPath = toPosix(rawPath);
+				if (!posixPath.startsWith("/")) return null;
+				if (posixPath === basePath || posixPath.startsWith(`${basePath}/`)) {
+					return null;
+				}
+				let normalized = "";
+				try {
+					normalized = normalizeFileMountPath(rawPath);
+				} catch {
+					return null;
+				}
+				if (!normalized) return null;
+				const targetPath = path.posix.join(basePath, normalized);
+				if (posixPath === targetPath) return null;
+				return `LEGACY=${shQuote(posixPath)}; TARGET=${shQuote(
+					targetPath,
+				)}; if [ -e "$LEGACY" ] && [ ! -e "$TARGET" ]; then mkdir -p "$(dirname "$TARGET")"; mv "$LEGACY" "$TARGET"; fi`;
+			})
+			.filter(Boolean)
+			.join("\n");
+
+		if (commands) {
+			await execAsyncRemote(serverId, commands);
+		}
+		return;
+	}
+
+	const resolvedBase = path.resolve(basePath);
+	for (const mount of fileMounts) {
+		const rawPath = mount.filePath ?? "";
+		const posixPath = toPosix(rawPath);
+		const isAbsolute = path.isAbsolute(rawPath) || posixPath.startsWith("/");
+		if (!isAbsolute) continue;
+		const resolvedLegacy = path.resolve(rawPath);
+		if (
+			resolvedLegacy === resolvedBase ||
+			resolvedLegacy.startsWith(`${resolvedBase}${path.sep}`)
+		) {
+			continue;
+		}
+		let normalized = "";
+		try {
+			normalized = normalizeFileMountPath(rawPath);
+		} catch {
+			continue;
+		}
+		if (!normalized) continue;
+		const targetPath = path.join(basePath, normalized);
+		if (resolvedLegacy === path.resolve(targetPath)) continue;
+		if (!fs.existsSync(rawPath) || fs.existsSync(targetPath)) continue;
+
+		await fs.promises.mkdir(path.dirname(targetPath), { recursive: true });
+		try {
+			await fs.promises.rename(rawPath, targetPath);
+		} catch {
+			const stats = await fs.promises.stat(rawPath);
+			if (stats.isDirectory()) {
+				await fs.promises.cp(rawPath, targetPath, { recursive: true });
+				await fs.promises.rm(rawPath, { recursive: true, force: true });
+			} else {
+				await fs.promises.copyFile(rawPath, targetPath);
+				await fs.promises.unlink(rawPath);
+			}
+		}
+	}
+};
+
 const ensureBaseDirectory = async (
 	basePath: string,
 	serverId?: string | null,
@@ -141,42 +227,50 @@ export const resolveFileManagerContext = async (
 	let appName = "";
 	let serverId: string | null | undefined = null;
 	let organizationId = "";
+	let mounts: Array<{ type?: string | null; filePath?: string | null }> = [];
 
 	if (serviceType === "application") {
 		const app = await findApplicationById(serviceId);
 		appName = app.appName;
 		serverId = app.serverId;
 		organizationId = app.environment.project.organizationId;
+		mounts = app.mounts ?? [];
 	} else if (serviceType === "postgres") {
 		const postgres = await findPostgresById(serviceId);
 		appName = postgres.appName;
 		serverId = postgres.serverId;
 		organizationId = postgres.environment.project.organizationId;
+		mounts = postgres.mounts ?? [];
 	} else if (serviceType === "mysql") {
 		const mysql = await findMySqlById(serviceId);
 		appName = mysql.appName;
 		serverId = mysql.serverId;
 		organizationId = mysql.environment.project.organizationId;
+		mounts = mysql.mounts ?? [];
 	} else if (serviceType === "mariadb") {
 		const mariadb = await findMariadbById(serviceId);
 		appName = mariadb.appName;
 		serverId = mariadb.serverId;
 		organizationId = mariadb.environment.project.organizationId;
+		mounts = mariadb.mounts ?? [];
 	} else if (serviceType === "mongo") {
 		const mongo = await findMongoById(serviceId);
 		appName = mongo.appName;
 		serverId = mongo.serverId;
 		organizationId = mongo.environment.project.organizationId;
+		mounts = mongo.mounts ?? [];
 	} else if (serviceType === "redis") {
 		const redis = await findRedisById(serviceId);
 		appName = redis.appName;
 		serverId = redis.serverId;
 		organizationId = redis.environment.project.organizationId;
+		mounts = redis.mounts ?? [];
 	} else if (serviceType === "compose") {
 		const compose = await findComposeById(serviceId);
 		appName = compose.appName;
 		serverId = compose.serverId;
 		organizationId = compose.environment.project.organizationId;
+		mounts = compose.mounts ?? [];
 	}
 
 	const basePaths = paths(!!serverId);
@@ -188,6 +282,7 @@ export const resolveFileManagerContext = async (
 	const basePath = pathLib.join(rootPath, appName, "files");
 
 	await ensureBaseDirectory(basePath, serverId);
+	await migrateLegacyFileMounts({ basePath, serverId, mounts });
 
 	return {
 		basePath,

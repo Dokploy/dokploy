@@ -10,6 +10,7 @@ import {
 	createFile,
 	encodeBase64,
 	getCreateFileCommand,
+	normalizeFileMountPath,
 } from "@dokploy/server/utils/docker/utils";
 import { removeFileOrDirectory } from "@dokploy/server/utils/filesystem/directory";
 import {
@@ -24,10 +25,15 @@ export type Mount = typeof mounts.$inferSelect;
 export const createMount = async (input: typeof apiCreateMount._type) => {
 	try {
 		const { serviceId, ...rest } = input;
+		const filePath =
+			input.type === "file" && input.filePath
+				? normalizeFileMountPath(input.filePath)
+				: input.filePath;
 		const value = await db
 			.insert(mounts)
 			.values({
 				...rest,
+				filePath,
 				...(input.serviceType === "application" && {
 					applicationId: serviceId,
 				}),
@@ -211,6 +217,9 @@ export const updateMount = async (
 	mountId: string,
 	mountData: Partial<Mount>,
 ) => {
+	if (mountData.filePath) {
+		mountData.filePath = normalizeFileMountPath(mountData.filePath);
+	}
 	const mount = await db.transaction(async (tx) => {
 		const mount = await tx
 			.update(mounts)
@@ -290,7 +299,10 @@ export const updateFileMount = async (mountId: string) => {
 	const mount = await findMountById(mountId);
 	if (!mount || !mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
-	const fullPath = path.join(basePath, mount.filePath);
+	const fullPath = path.join(
+		basePath,
+		normalizeFileMountPath(mount.filePath),
+	);
 
 	try {
 		const serverId = await getServerId(mount);
@@ -311,7 +323,10 @@ export const deleteFileMount = async (mountId: string) => {
 	if (!mount.filePath) return;
 	const basePath = await getBaseFilesPath(mountId);
 
-	const fullPath = path.join(basePath, mount.filePath);
+	const fullPath = path.join(
+		basePath,
+		normalizeFileMountPath(mount.filePath),
+	);
 	try {
 		const serverId = await getServerId(mount);
 		if (serverId) {

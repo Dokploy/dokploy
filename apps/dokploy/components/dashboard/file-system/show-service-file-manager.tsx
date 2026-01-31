@@ -168,7 +168,7 @@ export const ShowServiceFileManager = ({
 	const [currentPath, setCurrentPath] = useState("");
 	const [selectedPath, setSelectedPath] = useState<string | null>(null);
 	const [searchValue, setSearchValue] = useState("");
-	const [includeHidden, setIncludeHidden] = useState(false);
+	const [includeHidden, setIncludeHidden] = useState(true);
 	const [editorContent, setEditorContent] = useState("");
 	const [originalContent, setOriginalContent] = useState("");
 	const [overwriteUpload, setOverwriteUpload] = useState(false);
@@ -360,7 +360,7 @@ export const ShowServiceFileManager = ({
 						</div>
 						<div className="flex flex-wrap items-center gap-2">
 							<div className="flex items-center gap-2">
-								<Label htmlFor="include-hidden">Hidden</Label>
+								<Label htmlFor="include-hidden">Show hidden</Label>
 								<Switch
 									id="include-hidden"
 									checked={includeHidden}
