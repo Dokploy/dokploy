@@ -120,10 +120,7 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 								<FormItem>
 									<FormLabel>Provider ID</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="e.g. okta or my-idp"
-											{...field}
-										/>
+										<Input placeholder="e.g. okta or my-idp" {...field} />
 									</FormControl>
 									<FormDescription>
 										Unique identifier; used in callback URL path.
@@ -139,10 +136,7 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 								<FormItem>
 									<FormLabel>Issuer URL</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="https://idp.example.com"
-											{...field}
-										/>
+										<Input placeholder="https://idp.example.com" {...field} />
 									</FormControl>
 									<FormDescription>
 										Discovery document is fetched from{" "}

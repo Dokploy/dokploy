@@ -242,7 +242,10 @@ export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 		},
 	});
 
-	if (!currentUser?.enableEnterpriseFeatures || !currentUser.isValidEnterpriseLicense) {
+	if (
+		!currentUser?.enableEnterpriseFeatures ||
+		!currentUser.isValidEnterpriseLicense
+	) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: "Valid enterprise license required",

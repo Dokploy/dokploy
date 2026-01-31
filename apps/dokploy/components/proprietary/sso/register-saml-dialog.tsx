@@ -144,10 +144,7 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 								<FormItem>
 									<FormLabel>Issuer URL</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="https://idp.example.com"
-											{...field}
-										/>
+										<Input placeholder="https://idp.example.com" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -230,10 +227,7 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 								<FormItem>
 									<FormLabel>Audience (Entity ID)</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="https://yourapp.com"
-											{...field}
-										/>
+										<Input placeholder="https://yourapp.com" {...field} />
 									</FormControl>
 									<FormMessage />
 								</FormItem>
