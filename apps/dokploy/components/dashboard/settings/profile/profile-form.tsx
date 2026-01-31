@@ -117,7 +117,9 @@ export const ProfileForm = () => {
 
 			if (data.user.email) {
 				generateSHA256Hash(data.user.email).then((hash) => {
-					setGravatarHash(hash);
+					if (hash) {
+						setGravatarHash(hash);
+					}
 				});
 			}
 		}

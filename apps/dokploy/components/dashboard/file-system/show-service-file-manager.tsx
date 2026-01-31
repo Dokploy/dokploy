@@ -205,6 +205,16 @@ export const ShowServiceFileManager = ({
 	const isComposeService = serviceType === "compose";
 	const isContainerSupported = true;
 	const isContainerMode = scope === "container";
+	const containerServiceName = isComposeService ? composeServiceName : undefined;
+	const containerModeReady =
+		isContainerMode && isContainerSupported && (!isComposeService || !!composeServiceName);
+	const mountTarget = { serviceId, serviceType };
+	const containerTarget = {
+		serviceId,
+		serviceType,
+		serviceName: containerServiceName,
+	};
+	const activeTarget = isContainerMode ? containerTarget : mountTarget;
 
 	useEffect(() => {
 		if (!isContainerSupported && isContainerMode) {
@@ -266,17 +276,6 @@ export const ShowServiceFileManager = ({
 		composeServicesQuery.data,
 		composeServiceName,
 	]);
-
-	const containerServiceName = isComposeService ? composeServiceName : undefined;
-	const containerModeReady =
-		isContainerMode && isContainerSupported && (!isComposeService || !!composeServiceName);
-	const mountTarget = { serviceId, serviceType };
-	const containerTarget = {
-		serviceId,
-		serviceType,
-		serviceName: containerServiceName,
-	};
-	const activeTarget = isContainerMode ? containerTarget : mountTarget;
 
 	const mountListQuery = api.fileManager.list.useQuery(
 		{
