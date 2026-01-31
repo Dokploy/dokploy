@@ -26,6 +26,7 @@ import {
 	getProviderHeaders,
 	getProviderName,
 	type Model,
+	normalizeAzureUrl,
 } from "@dokploy/server/utils/ai/select-ai-provider";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -58,14 +59,39 @@ export const aiRouter = createTRPCRouter({
 				const providerName = getProviderName(input.apiUrl);
 				const headers = getProviderHeaders(input.apiUrl, input.apiKey);
 				let response = null;
+				let apiUrl = input.apiUrl;
+
+				// Validate API key for providers that require it
+				if (
+					providerName !== "ollama" &&
+					providerName !== "gemini" &&
+					!input.apiKey
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "API key must contain at least 1 character(s)",
+					});
+				}
+
 				switch (providerName) {
 					case "ollama":
-						response = await fetch(`${input.apiUrl}/api/tags`, { headers });
+						response = await fetch(`${apiUrl}/api/tags`, { headers });
 						break;
 					case "gemini":
 						response = await fetch(
-							`${input.apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
+							`${apiUrl}/models?key=${encodeURIComponent(input.apiKey)}`,
 							{ headers: {} },
+						);
+						break;
+					case "azure":
+						// Azure OpenAI uses deployments endpoint
+						// Normalize the URL to remove trailing /openai/v1 or /v1
+						apiUrl = normalizeAzureUrl(apiUrl);
+
+						// Azure uses deployments endpoint to list models
+						response = await fetch(
+							`${apiUrl}/openai/deployments?api-version=2023-05-15`,
+							{ headers },
 						);
 						break;
 					case "perplexity":
@@ -103,12 +129,7 @@ export const aiRouter = createTRPCRouter({
 							},
 						] as Model[];
 					default:
-						if (!input.apiKey)
-							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: "API key must contain at least 1 character(s)",
-							});
-						response = await fetch(`${input.apiUrl}/models`, { headers });
+						response = await fetch(`${apiUrl}/models`, { headers });
 				}
 
 				if (!response.ok) {
