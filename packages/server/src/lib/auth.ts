@@ -112,6 +112,10 @@ export const { handler, api } = betterAuth({
 								});
 							}
 						} else {
+							const isSSORequest = context?.path.includes("/sso/callback");
+							if (isSSORequest) {
+								return;
+							}
 							const isAdminPresent = await db.query.member.findFirst({
 								where: eq(schema.member.role, "owner"),
 							});
@@ -124,6 +128,7 @@ export const { handler, api } = betterAuth({
 					}
 				},
 				after: async (user, context) => {
+					const isSSORequest = context?.path.includes("/sso/callback");
 					const isAdminPresent = await db.query.member.findFirst({
 						where: eq(schema.member.role, "owner"),
 					});
@@ -178,6 +183,31 @@ export const { handler, api } = betterAuth({
 								createdAt: new Date(),
 								isDefault: true, // Mark first organization as default
 							});
+						});
+					}
+
+					if (isSSORequest) {
+						const providerId = context?.params?.providerId;
+						if (!providerId) {
+							throw new APIError("BAD_REQUEST", {
+								message: "Provider ID is required",
+							});
+						}
+						const provider = await db.query.ssoProvider.findFirst({
+							where: eq(schema.ssoProvider.providerId, providerId),
+						});
+
+						if (!provider) {
+							throw new APIError("BAD_REQUEST", {
+								message: "Provider not found",
+							});
+						}
+						await db.insert(schema.member).values({
+							userId: user.id,
+							organizationId: provider?.organizationId || "",
+							role: "member",
+							createdAt: new Date(),
+							isDefault: true,
 						});
 					}
 				},
