@@ -129,7 +129,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 	const removeTestCommand = (index: number) => {
 		form.setValue(
 			"Test",
-			testCommands.filter((_, i) => i !== index),
+			testCommands.filter((_: string, i: number) => i !== index),
 		);
 	};
 
@@ -143,7 +143,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 						http://localhost:3000/health"])
 					</FormDescription>
 					<div className="space-y-2 mt-2">
-						{testCommands.map((cmd, index) => (
+						{testCommands.map((cmd: string, index: number) => (
 							<div key={index} className="flex gap-2">
 								<Input
 									value={cmd}
