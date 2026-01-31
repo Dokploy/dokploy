@@ -41,14 +41,19 @@ function parseOidcConfig(config: string | null): {
 } | null {
 	if (!config) return null;
 	try {
-		const parsed = JSON.parse(config) as { clientId?: string; scopes?: string[] };
+		const parsed = JSON.parse(config) as {
+			clientId?: string;
+			scopes?: string[];
+		};
 		return { clientId: parsed.clientId, scopes: parsed.scopes };
 	} catch {
 		return null;
 	}
 }
 
-function parseSamlConfig(config: string | null): { entryPoint?: string } | null {
+function parseSamlConfig(
+	config: string | null,
+): { entryPoint?: string } | null {
 	if (!config) return null;
 	try {
 		const parsed = JSON.parse(config) as { entryPoint?: string };
@@ -272,9 +277,7 @@ export function SSOSettings() {
 								{detailsProvider.oidcConfig && (
 									<>
 										{(() => {
-											const oidc = parseOidcConfig(
-												detailsProvider.oidcConfig,
-											);
+											const oidc = parseOidcConfig(detailsProvider.oidcConfig);
 											if (!oidc) return null;
 											return (
 												<>
@@ -306,9 +309,7 @@ export function SSOSettings() {
 								{detailsProvider.samlConfig && (
 									<>
 										{(() => {
-											const saml = parseSamlConfig(
-												detailsProvider.samlConfig,
-											);
+											const saml = parseSamlConfig(detailsProvider.samlConfig);
 											if (!saml?.entryPoint) return null;
 											return (
 												<div className="grid gap-1">

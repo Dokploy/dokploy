@@ -67,9 +67,12 @@ export default function Home({ IS_CLOUD }: Props) {
 	const [isGithubLoading, setIsGithubLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 	const [isSSOLoading, setIsSSOLoading] = useState(false);
-	const { data: ssoProviders } = api.sso.listLoginProviders.useQuery(undefined, {
-		enabled: !IS_CLOUD,
-	});
+	const { data: ssoProviders } = api.sso.listLoginProviders.useQuery(
+		undefined,
+		{
+			enabled: !IS_CLOUD,
+		},
+	);
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
@@ -298,34 +301,30 @@ export default function Home({ IS_CLOUD }: Props) {
 								Sign in with Google
 							</Button>
 						)}
-						{!IS_CLOUD &&
-							ssoProviders &&
-							ssoProviders.length > 0 && (
-								<div className="mb-4 space-y-2">
-									<p className="text-center text-xs text-muted-foreground">
-										Sign in with SSO
-									</p>
-									<div className="flex flex-col gap-2">
-										{ssoProviders.map((provider) => (
-											<Button
-												key={provider.providerId}
-												variant="outline"
-												type="button"
-												className="w-full"
-												onClick={() =>
-													handleSSOSignIn(provider.providerId)
-												}
-												disabled={isSSOLoading}
-											>
-												<LogIn className="mr-2 size-4" />
-												Sign in with{" "}
-												{provider.providerId.charAt(0).toUpperCase() +
-													provider.providerId.slice(1)}
-											</Button>
-										))}
-									</div>
+						{!IS_CLOUD && ssoProviders && ssoProviders.length > 0 && (
+							<div className="mb-4 space-y-2">
+								<p className="text-center text-xs text-muted-foreground">
+									Sign in with SSO
+								</p>
+								<div className="flex flex-col gap-2">
+									{ssoProviders.map((provider) => (
+										<Button
+											key={provider.providerId}
+											variant="outline"
+											type="button"
+											className="w-full"
+											onClick={() => handleSSOSignIn(provider.providerId)}
+											disabled={isSSOLoading}
+										>
+											<LogIn className="mr-2 size-4" />
+											Sign in with{" "}
+											{provider.providerId.charAt(0).toUpperCase() +
+												provider.providerId.slice(1)}
+										</Button>
+									))}
 								</div>
-							)}
+							</div>
+						)}
 						<Form {...loginForm}>
 							<form
 								onSubmit={loginForm.handleSubmit(onSubmit)}
