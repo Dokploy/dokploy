@@ -5,6 +5,14 @@ on:
     branches: [main, canary]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+
 jobs:
   build-and-push-cloud-image:
     runs-on: ubuntu-latest
@@ -13,11 +21,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -26,7 +35,7 @@ jobs:
           file: ./Dockerfile.cloud
           push: true
           tags: |
-            siumauricio/cloud:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/dokploy-cloud:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
           build-args: |
             NEXT_PUBLIC_UMAMI_HOST=${{ secrets.NEXT_PUBLIC_UMAMI_HOST }}
@@ -40,11 +49,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -53,7 +63,7 @@ jobs:
           file: ./Dockerfile.schedule
           push: true
           tags: |
-            siumauricio/schedule:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/dokploy-schedule:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
 
   build-and-push-server-image:
@@ -63,11 +73,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -76,5 +87,5 @@ jobs:
           file: ./Dockerfile.server
           push: true
           tags: |
-            siumauricio/server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/dokploy-server:${{ github.ref_name == 'main' && 'latest' || 'canary' }}
           platforms: linux/amd64
