@@ -24,7 +24,12 @@ export const { handler, api } = betterAuth({
 		provider: "pg",
 		schema: schema,
 	}),
-	disabledPaths: ["/sso/register"],
+	disabledPaths: [
+		"/sso/register",
+		"/organization/create",
+		"/organization/update",
+		"/organization/delete",
+	],
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
