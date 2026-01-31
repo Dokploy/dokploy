@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2, LogIn, Trash2 } from "lucide-react";
+import { Loader2, LogIn, Trash2, Eye } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +13,55 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { api } from "@/utils/api";
 import { RegisterOidcDialog } from "./register-oidc-dialog";
 import { RegisterSamlDialog } from "./register-saml-dialog";
 
+type ProviderForDetails = {
+	id: string | null;
+	providerId: string;
+	issuer: string;
+	domain: string;
+	oidcConfig: string | null;
+	samlConfig: string | null;
+	organizationId: string | null;
+};
+
+function parseOidcConfig(config: string | null): {
+	clientId?: string;
+	scopes?: string[];
+} | null {
+	if (!config) return null;
+	try {
+		const parsed = JSON.parse(config) as { clientId?: string; scopes?: string[] };
+		return { clientId: parsed.clientId, scopes: parsed.scopes };
+	} catch {
+		return null;
+	}
+}
+
+function parseSamlConfig(config: string | null): { entryPoint?: string } | null {
+	if (!config) return null;
+	try {
+		const parsed = JSON.parse(config) as { entryPoint?: string };
+		return { entryPoint: parsed.entryPoint };
+	} catch {
+		return null;
+	}
+}
+
 export function SSOSettings() {
 	const utils = api.useUtils();
+	const [detailsProvider, setDetailsProvider] =
+		useState<ProviderForDetails | null>(null);
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
 	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
 		api.sso.deleteProvider.useMutation();
@@ -99,6 +143,24 @@ export function SSOSettings() {
 												</div>
 											</CardHeader>
 											<CardContent className="flex flex-wrap gap-2 pt-0">
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() =>
+														setDetailsProvider({
+															id: provider.id,
+															providerId: provider.providerId,
+															issuer: provider.issuer,
+															domain: provider.domain,
+															oidcConfig: provider.oidcConfig,
+															samlConfig: provider.samlConfig,
+															organizationId: provider.organizationId,
+														})
+													}
+												>
+													<Eye className="mr-1 size-3" />
+													View details
+												</Button>
 												<DialogAction
 													title="Remove SSO provider"
 													description={`Remove provider "${provider.providerId}"? Users will no longer be able to sign in with this IdP.`}
@@ -167,6 +229,126 @@ export function SSOSettings() {
 					)}
 				</>
 			)}
+
+			<Dialog
+				open={!!detailsProvider}
+				onOpenChange={(open) => !open && setDetailsProvider(null)}
+			>
+				<DialogContent className="sm:max-w-[480px]">
+					{detailsProvider && (
+						<>
+							<DialogHeader>
+								<DialogTitle>SSO provider details</DialogTitle>
+								<DialogDescription>
+									View-only. To change settings, remove this provider and add it
+									again with the new values.
+								</DialogDescription>
+							</DialogHeader>
+							<div className="grid gap-3 py-2">
+								<div className="grid gap-1">
+									<span className="text-xs font-medium text-muted-foreground">
+										Provider ID
+									</span>
+									<p className="rounded-md bg-muted px-2 py-1.5 font-mono text-sm">
+										{detailsProvider.providerId}
+									</p>
+								</div>
+								<div className="grid gap-1">
+									<span className="text-xs font-medium text-muted-foreground">
+										Issuer URL
+									</span>
+									<p className="break-all rounded-md bg-muted px-2 py-1.5 text-sm">
+										{detailsProvider.issuer}
+									</p>
+								</div>
+								<div className="grid gap-1">
+									<span className="text-xs font-medium text-muted-foreground">
+										Domain
+									</span>
+									<p className="rounded-md bg-muted px-2 py-1.5 text-sm">
+										{detailsProvider.domain}
+									</p>
+								</div>
+								{detailsProvider.oidcConfig && (
+									<>
+										{(() => {
+											const oidc = parseOidcConfig(
+												detailsProvider.oidcConfig,
+											);
+											if (!oidc) return null;
+											return (
+												<>
+													{oidc.clientId && (
+														<div className="grid gap-1">
+															<span className="text-xs font-medium text-muted-foreground">
+																Client ID
+															</span>
+															<p className="rounded-md bg-muted px-2 py-1.5 font-mono text-sm">
+																{oidc.clientId}
+															</p>
+														</div>
+													)}
+													{oidc.scopes && oidc.scopes.length > 0 && (
+														<div className="grid gap-1">
+															<span className="text-xs font-medium text-muted-foreground">
+																Scopes
+															</span>
+															<p className="rounded-md bg-muted px-2 py-1.5 text-sm">
+																{oidc.scopes.join(" ")}
+															</p>
+														</div>
+													)}
+												</>
+											);
+										})()}
+									</>
+								)}
+								{detailsProvider.samlConfig && (
+									<>
+										{(() => {
+											const saml = parseSamlConfig(
+												detailsProvider.samlConfig,
+											);
+											if (!saml?.entryPoint) return null;
+											return (
+												<div className="grid gap-1">
+													<span className="text-xs font-medium text-muted-foreground">
+														Entry point
+													</span>
+													<p className="break-all rounded-md bg-muted px-2 py-1.5 text-sm">
+														{saml.entryPoint}
+													</p>
+												</div>
+											);
+										})()}
+									</>
+								)}
+								<div className="grid gap-1">
+									<span className="text-xs font-medium text-muted-foreground">
+										Callback URL (configure in your IdP)
+									</span>
+									<p className="break-all rounded-md bg-muted px-2 py-1.5 font-mono text-xs">
+										{"{baseURL}"}/api/auth/sso/callback/
+										{detailsProvider.providerId}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										Replace {"{baseURL}"} with your Dokploy URL (e.g. https://
+										your-domain.com).
+									</p>
+								</div>
+							</div>
+							<DialogFooter>
+								<Button
+									variant="outline"
+									onClick={() => setDetailsProvider(null)}
+								>
+									Close
+								</Button>
+							</DialogFooter>
+						</>
+					)}
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

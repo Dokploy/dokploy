@@ -80,6 +80,14 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 					clientSecret: data.clientSecret,
 					scopes,
 					pkce: true,
+					// Keycloak (and many IdPs) send preferred_username; better-auth expects name
+					mapping: {
+						id: "sub",
+						email: "email",
+						emailVerified: "email_verified",
+						name: "preferred_username",
+						image: "picture",
+					},
 				},
 			});
 

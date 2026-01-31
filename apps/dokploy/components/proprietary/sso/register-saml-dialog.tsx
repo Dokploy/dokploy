@@ -6,8 +6,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { authClient } from "@/lib/auth-client";
-import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -29,6 +27,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 
 const samlProviderSchema = z.object({
 	providerId: z.string().min(1, "Provider ID is required").trim(),
@@ -89,6 +89,9 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 					wantAssertionsSigned: true,
 					signatureAlgorithm: "sha256",
 					digestAlgorithm: "sha256",
+					spMetadata: {
+						entityID: data.audience,
+					},
 				},
 			});
 

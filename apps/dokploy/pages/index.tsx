@@ -3,6 +3,7 @@ import { validateRequest } from "@dokploy/server/lib/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import type { GetServerSidePropsContext } from "next";
+import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { type ReactElement, useState } from "react";
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 
 const LoginSchema = z.object({
 	email: z.string().email(),
@@ -64,6 +66,10 @@ export default function Home({ IS_CLOUD }: Props) {
 	const [backupCode, setBackupCode] = useState("");
 	const [isGithubLoading, setIsGithubLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+	const [isSSOLoading, setIsSSOLoading] = useState(false);
+	const { data: ssoProviders } = api.sso.listLoginProviders.useQuery(undefined, {
+		enabled: !IS_CLOUD,
+	});
 	const loginForm = useForm<LoginForm>({
 		resolver: zodResolver(LoginSchema),
 		defaultValues: {
@@ -200,6 +206,31 @@ export default function Home({ IS_CLOUD }: Props) {
 			setIsGoogleLoading(false);
 		}
 	};
+
+	const handleSSOSignIn = async (providerId: string) => {
+		setIsSSOLoading(true);
+		try {
+			const { data, error } = await authClient.signIn.sso({
+				providerId,
+				callbackURL: "/dashboard/projects",
+			});
+			if (error) {
+				toast.error(error.message ?? "Failed to sign in with SSO");
+				return;
+			}
+			if (data?.url) {
+				window.location.href = data.url;
+				return;
+			}
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to sign in with SSO",
+			);
+		} finally {
+			setIsSSOLoading(false);
+		}
+	};
+
 	return (
 		<>
 			<div className="flex flex-col space-y-2 text-center">
@@ -267,6 +298,34 @@ export default function Home({ IS_CLOUD }: Props) {
 								Sign in with Google
 							</Button>
 						)}
+						{!IS_CLOUD &&
+							ssoProviders &&
+							ssoProviders.length > 0 && (
+								<div className="mb-4 space-y-2">
+									<p className="text-center text-xs text-muted-foreground">
+										Sign in with SSO
+									</p>
+									<div className="flex flex-col gap-2">
+										{ssoProviders.map((provider) => (
+											<Button
+												key={provider.providerId}
+												variant="outline"
+												type="button"
+												className="w-full"
+												onClick={() =>
+													handleSSOSignIn(provider.providerId)
+												}
+												disabled={isSSOLoading}
+											>
+												<LogIn className="mr-2 size-4" />
+												Sign in with{" "}
+												{provider.providerId.charAt(0).toUpperCase() +
+													provider.providerId.slice(1)}
+											</Button>
+										))}
+									</div>
+								</div>
+							)}
 						<Form {...loginForm}>
 							<form
 								onSubmit={loginForm.handleSubmit(onSubmit)}
