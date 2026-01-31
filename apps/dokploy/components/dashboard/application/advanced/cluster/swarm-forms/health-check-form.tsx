@@ -31,7 +31,6 @@ interface HealthCheckFormProps {
 
 export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 	const [isLoading, setIsLoading] = useState(false);
-	const [testCommands, setTestCommands] = useState<string[]>([]);
 
 	const queryMap = {
 		postgres: () =>
@@ -72,6 +71,8 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 		},
 	});
 
+	const testCommands = form.watch("Test") || [];
+
 	useEffect(() => {
 		if (data?.healthCheckSwarm) {
 			const hc = data.healthCheckSwarm;
@@ -82,7 +83,6 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 				StartPeriod: hc.StartPeriod,
 				Retries: hc.Retries,
 			});
-			setTestCommands(hc.Test || []);
 		}
 	}, [data, form]);
 
@@ -117,17 +117,20 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 	};
 
 	const addTestCommand = () => {
-		setTestCommands([...testCommands, ""]);
+		form.setValue("Test", [...testCommands, ""]);
 	};
 
 	const updateTestCommand = (index: number, value: string) => {
 		const newCommands = [...testCommands];
 		newCommands[index] = value;
-		setTestCommands(newCommands);
+		form.setValue("Test", newCommands);
 	};
 
 	const removeTestCommand = (index: number) => {
-		setTestCommands(testCommands.filter((_, i) => i !== index));
+		form.setValue(
+			"Test",
+			testCommands.filter((_: string, i: number) => i !== index),
+		);
 	};
 
 	return (
@@ -140,7 +143,7 @@ export const HealthCheckForm = ({ id, type }: HealthCheckFormProps) => {
 						http://localhost:3000/health"])
 					</FormDescription>
 					<div className="space-y-2 mt-2">
-						{testCommands.map((cmd, index) => (
+						{testCommands.map((cmd: string, index: number) => (
 							<div key={index} className="flex gap-2">
 								<Input
 									value={cmd}
