@@ -9,6 +9,7 @@ import {
 import { nanoid } from "nanoid";
 import { projects } from "./project";
 import { server } from "./server";
+import { ssoProvider } from "./sso";
 import { user } from "./user";
 
 export const account = pgTable("account", {
@@ -78,6 +79,7 @@ export const organizationRelations = relations(
 		servers: many(server),
 		projects: many(projects),
 		members: many(member),
+		ssoProviders: many(ssoProvider),
 	}),
 );
 
@@ -200,24 +202,6 @@ export const apikey = pgTable("apikey", {
 export const apikeyRelations = relations(apikey, ({ one }) => ({
 	user: one(user, {
 		fields: [apikey.userId],
-		references: [user.id],
-	}),
-}));
-
-export const ssoProvider = pgTable("sso_provider", {
-	id: text("id").primaryKey(),
-	issuer: text("issuer").notNull(),
-	oidcConfig: text("oidc_config"),
-	samlConfig: text("saml_config"),
-	userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
-	providerId: text("provider_id").notNull().unique(),
-	organizationId: text("organization_id"),
-	domain: text("domain").notNull(),
-});
-
-export const ssoProviderRelations = relations(ssoProvider, ({ one }) => ({
-	user: one(user, {
-		fields: [ssoProvider.userId],
 		references: [user.id],
 	}),
 }));

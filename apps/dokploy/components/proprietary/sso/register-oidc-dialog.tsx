@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { FieldArrayPath } from "react-hook-form";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -27,7 +27,6 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 const DEFAULT_SCOPES = ["openid", "email", "profile"];
@@ -74,6 +73,7 @@ const formDefaultValues = {
 export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
+	const { mutateAsync, isLoading } = api.sso.register.useMutation();
 
 	const form = useForm<OidcProviderForm>({
 		resolver: zodResolver(oidcProviderSchema),
@@ -105,7 +105,7 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 				.map((d) => d.trim())
 				.filter(Boolean)
 				.join(",");
-			const { error } = await authClient.sso.register({
+			await mutateAsync({
 				providerId: data.providerId,
 				issuer: data.issuer,
 				domain,
@@ -124,11 +124,6 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 					},
 				},
 			});
-
-			if (error) {
-				toast.error(error.message ?? "Failed to register SSO provider");
-				return;
-			}
 
 			toast.success("OIDC provider registered successfully");
 			form.reset(formDefaultValues);
@@ -340,10 +335,7 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 							>
 								Cancel
 							</Button>
-							<Button type="submit" disabled={isSubmitting}>
-								{isSubmitting && (
-									<Loader2 className="mr-2 size-4 animate-spin" />
-								)}
+							<Button type="submit" isLoading={isLoading}>
 								Register provider
 							</Button>
 						</DialogFooter>

@@ -24,6 +24,7 @@ export const { handler, api } = betterAuth({
 		provider: "pg",
 		schema: schema,
 	}),
+	disabledPaths: ["/sso/register"],
 	appName: "Dokploy",
 	socialProviders: {
 		github: {
@@ -55,6 +56,7 @@ export const { handler, api } = betterAuth({
 					? [
 							"http://localhost:3000",
 							"https://absolutely-handy-falcon.ngrok-free.app",
+							"https://dev-pee8hhc3qbjlqedb.us.auth0.com",
 						]
 					: []),
 			];
@@ -113,7 +115,7 @@ export const { handler, api } = betterAuth({
 							}
 						} else {
 							const isSSORequest = context?.path.includes("/sso/callback");
-							if (isSSORequest) {
+							if (!isSSORequest) {
 								return;
 							}
 							const isAdminPresent = await db.query.member.findFirst({
@@ -184,9 +186,7 @@ export const { handler, api } = betterAuth({
 								isDefault: true, // Mark first organization as default
 							});
 						});
-					}
-
-					if (isSSORequest) {
+					} else if (isSSORequest) {
 						const providerId = context?.params?.providerId;
 						if (!providerId) {
 							throw new APIError("BAD_REQUEST", {
@@ -310,6 +310,7 @@ export const { handler, api } = betterAuth({
 export const auth = {
 	handler,
 	createApiKey: api.createApiKey,
+	registerSSOProvider: api.registerSSOProvider,
 };
 
 export const validateRequest = async (request: IncomingMessage) => {

@@ -1,5 +1,7 @@
 import { IS_CLOUD } from "@dokploy/server/constants";
 import { member, ssoProvider } from "@dokploy/server/db/schema";
+import { ssoProviderBodySchema } from "@dokploy/server/db/schema/sso";
+import { auth } from "@dokploy/server/lib/auth";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -9,6 +11,20 @@ import {
 	publicProcedure,
 } from "@/server/api/trpc";
 import { db } from "@/server/db";
+
+function requestToHeaders(req: {
+	headers?: Record<string, string | string[] | undefined>;
+}): Headers {
+	const headers = new Headers();
+	if (req?.headers) {
+		for (const [key, value] of Object.entries(req.headers)) {
+			if (value !== undefined && key.toLowerCase() !== "host") {
+				headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+			}
+		}
+	}
+	return headers;
+}
 
 export const ssoRouter = createTRPCRouter({
 	showSignInWithSSO: publicProcedure.query(async () => {
@@ -38,7 +54,7 @@ export const ssoRouter = createTRPCRouter({
 	}),
 	listProviders: enterpriseProcedure.query(async ({ ctx }) => {
 		const providers = await db.query.ssoProvider.findMany({
-			where: eq(ssoProvider.userId, ctx.user.id),
+			where: eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
 			columns: {
 				id: true,
 				providerId: true,
@@ -59,7 +75,7 @@ export const ssoRouter = createTRPCRouter({
 				.where(
 					and(
 						eq(ssoProvider.providerId, input.providerId),
-						eq(ssoProvider.userId, ctx.user.id),
+						eq(ssoProvider.organizationId, ctx.session.activeOrganizationId),
 					),
 				)
 				.returning({ id: ssoProvider.id });
@@ -71,6 +87,22 @@ export const ssoRouter = createTRPCRouter({
 						"SSO provider not found or you do not have permission to delete it",
 				});
 			}
+
+			return { success: true };
+		}),
+	register: enterpriseProcedure
+		.input(ssoProviderBodySchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = ctx.session.activeOrganizationId;
+
+			const result = await auth.registerSSOProvider({
+				body: {
+					...input,
+					organizationId,
+				},
+				headers: requestToHeaders(ctx.req),
+			});
+			console.log(result);
 
 			return { success: true };
 		}),

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { type FieldArrayPath, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
 const domainsArraySchema = z
@@ -80,6 +79,7 @@ const formDefaultValues: SamlProviderForm = {
 export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
+	const { mutateAsync, isLoading } = api.sso.register.useMutation();
 
 	const form = useForm<SamlProviderForm>({
 		resolver: zodResolver(samlProviderSchema),
@@ -99,7 +99,7 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 				.map((d) => d.trim())
 				.filter(Boolean)
 				.join(",");
-			const { error } = await authClient.sso.register({
+			await mutateAsync({
 				providerId: data.providerId,
 				issuer: data.issuer,
 				domain,
@@ -116,11 +116,6 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 					},
 				},
 			});
-
-			if (error) {
-				toast.error(error.message ?? "Failed to register SAML provider");
-				return;
-			}
 
 			toast.success("SAML provider registered successfully");
 			form.reset(formDefaultValues);
@@ -315,10 +310,7 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 							>
 								Cancel
 							</Button>
-							<Button type="submit" disabled={isSubmitting}>
-								{isSubmitting && (
-									<Loader2 className="mr-2 size-4 animate-spin" />
-								)}
+							<Button type="submit" isLoading={isLoading}>
 								Register provider
 							</Button>
 						</DialogFooter>
