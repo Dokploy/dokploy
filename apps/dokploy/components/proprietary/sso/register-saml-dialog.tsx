@@ -1,9 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { type FieldArrayPath, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { authClient } from "@/lib/auth-client";
 import { api } from "@/utils/api";
 
+const domainsArraySchema = z
+	.array(z.string().trim())
+	.superRefine((arr, ctx) => {
+		const filled = arr.filter((s) => s.length > 0);
+		if (filled.length < 1) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "At least one domain is required",
+				path: [],
+			});
+		}
+	});
+
 const samlProviderSchema = z.object({
 	providerId: z.string().min(1, "Provider ID is required").trim(),
 	issuer: z.string().min(1, "Issuer URL is required").url("Invalid URL").trim(),
-	domain: z.string().min(1, "Domain is required").trim(),
+	domains: domainsArraySchema,
 	entryPoint: z
 		.string()
 		.min(1, "IdP SSO URL is required")
@@ -57,7 +70,7 @@ interface RegisterSamlDialogProps {
 const formDefaultValues: SamlProviderForm = {
 	providerId: "",
 	issuer: "",
-	domain: "",
+	domains: [""],
 	entryPoint: "",
 	cert: "",
 	callbackUrl: "",
@@ -73,14 +86,23 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 		defaultValues: formDefaultValues,
 	});
 
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "domains" as FieldArrayPath<SamlProviderForm>,
+	});
+
 	const isSubmitting = form.formState.isSubmitting;
 
 	const onSubmit = async (data: SamlProviderForm) => {
 		try {
+			const domain = data.domains
+				.map((d) => d.trim())
+				.filter(Boolean)
+				.join(",");
 			const { error } = await authClient.sso.register({
 				providerId: data.providerId,
 				issuer: data.issuer,
-				domain: data.domain,
+				domain,
 				samlConfig: {
 					entryPoint: data.entryPoint,
 					cert: data.cert,
@@ -153,19 +175,67 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="domain"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Domain</FormLabel>
-									<FormControl>
-										<Input placeholder="example.com" {...field} />
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<div className="space-y-2">
+							<div className="flex items-center justify-between">
+								<FormLabel>Domains</FormLabel>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="h-8"
+									onClick={() => append("")}
+								>
+									<Plus className="mr-1 size-4" />
+									Add domain
+								</Button>
+							</div>
+							<FormDescription>
+								Email domains that use this provider (sign-in by email and org
+								assignment; subdomains matched automatically).
+							</FormDescription>
+							{fields.map((field, index) => (
+								<FormField
+									key={field.id}
+									control={form.control}
+									name={`domains.${index}`}
+									render={({ field: inputField }) => (
+										<FormItem>
+											<FormControl>
+												<div className="flex gap-2">
+													<Input
+														placeholder="company.com"
+														className="flex-1"
+														{...inputField}
+													/>
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														className="shrink-0 text-muted-foreground hover:text-destructive"
+														onClick={() => remove(index)}
+														disabled={fields.length <= 1}
+													>
+														<Trash2 className="size-4" />
+													</Button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							))}
+							{(() => {
+								const err = form.formState.errors.domains;
+								const msg =
+									typeof err?.message === "string"
+										? err.message
+										: (err as { root?: { message?: string } } | undefined)?.root
+												?.message;
+								return msg ? (
+									<p className="text-sm font-medium text-destructive">{msg}</p>
+								) : null;
+							})()}
+						</div>
 						<FormField
 							control={form.control}
 							name="entryPoint"

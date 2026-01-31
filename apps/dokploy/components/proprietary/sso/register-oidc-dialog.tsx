@@ -1,13 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import type { FieldArrayPath } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { authClient } from "@/lib/auth-client";
-import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -28,16 +27,33 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
+import { api } from "@/utils/api";
 
 const DEFAULT_SCOPES = ["openid", "email", "profile"];
+
+const domainsArraySchema = z
+	.array(z.string().trim())
+	.superRefine((arr, ctx) => {
+		const filled = arr.filter((s) => s.length > 0);
+		if (filled.length < 1) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "At least one domain is required",
+				path: [],
+			});
+		}
+	});
+
+const scopesArraySchema = z.array(z.string().trim());
 
 const oidcProviderSchema = z.object({
 	providerId: z.string().min(1, "Provider ID is required").trim(),
 	issuer: z.string().min(1, "Issuer URL is required").url("Invalid URL").trim(),
-	domain: z.string().min(1, "Domain is required").trim(),
+	domains: domainsArraySchema,
 	clientId: z.string().min(1, "Client ID is required").trim(),
 	clientSecret: z.string().min(1, "Client secret is required"),
-	scopes: z.string().optional(),
+	scopes: scopesArraySchema,
 });
 
 type OidcProviderForm = z.infer<typeof oidcProviderSchema>;
@@ -46,13 +62,13 @@ interface RegisterOidcDialogProps {
 	children: React.ReactNode;
 }
 
-const formDefaultValues: OidcProviderForm = {
+const formDefaultValues = {
 	providerId: "",
 	issuer: "",
-	domain: "",
+	domains: [""],
 	clientId: "",
 	clientSecret: "",
-	scopes: DEFAULT_SCOPES.join(" "),
+	scopes: [...DEFAULT_SCOPES],
 };
 
 export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
@@ -64,17 +80,35 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 		defaultValues: formDefaultValues,
 	});
 
+	const { fields, append, remove } = useFieldArray({
+		control: form.control,
+		name: "domains" as FieldArrayPath<OidcProviderForm>,
+	});
+
+	const {
+		fields: scopeFields,
+		append: appendScope,
+		remove: removeScope,
+	} = useFieldArray({
+		control: form.control,
+		name: "scopes" as FieldArrayPath<OidcProviderForm>,
+	});
+
 	const isSubmitting = form.formState.isSubmitting;
 
 	const onSubmit = async (data: OidcProviderForm) => {
 		try {
-			const scopes = data.scopes?.trim()
-				? data.scopes.trim().split(/\s+/).filter(Boolean)
+			const scopes = data.scopes.filter(Boolean).length
+				? data.scopes.filter(Boolean)
 				: DEFAULT_SCOPES;
+			const domain = data.domains
+				.map((d) => d.trim())
+				.filter(Boolean)
+				.join(",");
 			const { error } = await authClient.sso.register({
 				providerId: data.providerId,
 				issuer: data.issuer,
-				domain: data.domain,
+				domain,
 				oidcConfig: {
 					clientId: data.clientId,
 					clientSecret: data.clientSecret,
@@ -156,23 +190,67 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="domain"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Domain</FormLabel>
-									<FormControl>
-										<Input placeholder="example.com" {...field} />
-									</FormControl>
-									<FormDescription>
-										Email domain(s) that use this provider (e.g. for sign-in by
-										email).
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<div className="space-y-2">
+							<div className="flex items-center justify-between">
+								<FormLabel>Domains</FormLabel>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="h-8"
+									onClick={() => (append as (value: string) => void)("")}
+								>
+									<Plus className="mr-1 size-4" />
+									Add domain
+								</Button>
+							</div>
+							<p className="text-xs text-muted-foreground">
+								Email domains that use this provider (sign-in by email and org
+								assignment; subdomains matched automatically).
+							</p>
+							{fields.map((field, index) => (
+								<FormField
+									key={field.id}
+									control={form.control}
+									name={`domains.${index}`}
+									render={({ field: inputField }) => (
+										<FormItem>
+											<FormControl>
+												<div className="flex gap-2">
+													<Input
+														placeholder="company.com"
+														className="flex-1"
+														{...inputField}
+													/>
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														className="shrink-0 text-muted-foreground hover:text-destructive"
+														onClick={() => remove(index)}
+														disabled={fields.length <= 1}
+													>
+														<Trash2 className="size-4" />
+													</Button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							))}
+							{(() => {
+								const err = form.formState.errors.domains;
+								const msg =
+									typeof err?.message === "string"
+										? err.message
+										: (err as { root?: { message?: string } } | undefined)?.root
+												?.message;
+								return msg ? (
+									<p className="text-sm font-medium text-destructive">{msg}</p>
+								) : null;
+							})()}
+						</div>
 						<FormField
 							control={form.control}
 							name="clientId"
@@ -203,23 +281,56 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 								</FormItem>
 							)}
 						/>
-						<FormField
-							control={form.control}
-							name="scopes"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Scopes (optional)</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="openid email profile"
-											{...field}
-											value={field.value ?? ""}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<div className="space-y-2">
+							<div className="flex items-center justify-between">
+								<FormLabel>Scopes (optional)</FormLabel>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="h-8"
+									onClick={() => (appendScope as (value: string) => void)("")}
+								>
+									<Plus className="mr-1 size-4" />
+									Add scope
+								</Button>
+							</div>
+							<FormDescription>
+								OIDC scopes to request (e.g. openid, email, profile). If empty,
+								openid, email and profile are used.
+							</FormDescription>
+							{scopeFields.map((field, index) => (
+								<FormField
+									key={field.id}
+									control={form.control}
+									name={`scopes.${index}`}
+									render={({ field: inputField }) => (
+										<FormItem>
+											<FormControl>
+												<div className="flex gap-2">
+													<Input
+														placeholder="openid"
+														className="flex-1"
+														{...inputField}
+													/>
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														className="shrink-0 text-muted-foreground hover:text-destructive"
+														onClick={() => removeScope(index)}
+														disabled={scopeFields.length <= 1}
+													>
+														<Trash2 className="size-4" />
+													</Button>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							))}
+						</div>
 						<DialogFooter>
 							<Button
 								type="button"

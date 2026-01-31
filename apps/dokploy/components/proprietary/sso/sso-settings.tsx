@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, Loader2, LogIn, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DialogAction } from "@/components/shared/dialog-action";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,13 @@ export const SSOSettings = () => {
 	const utils = api.useUtils();
 	const [detailsProvider, setDetailsProvider] =
 		useState<ProviderForDetails | null>(null);
+	const [baseURL, setBaseURL] = useState("");
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			setBaseURL(window.location.origin);
+		}
+	}, []);
 
 	const { data: providers, isLoading } = api.sso.listProviders.useQuery();
 	const { mutateAsync: deleteProvider, isLoading: isDeleting } =
@@ -333,13 +340,15 @@ export const SSOSettings = () => {
 										Callback URL (configure in your IdP)
 									</span>
 									<p className="break-all rounded-md bg-muted px-2 py-1.5 font-mono text-xs">
-										{"{baseURL}"}/api/auth/sso/callback/
+										{baseURL || "{baseURL}"}/api/auth/sso/callback/
 										{detailsProvider.providerId}
 									</p>
-									<p className="text-xs text-muted-foreground">
-										Replace {"{baseURL}"} with your Dokploy URL (e.g. https://
-										your-domain.com).
-									</p>
+									{!baseURL && (
+										<p className="text-xs text-muted-foreground">
+											Replace {"{baseURL}"} with your Dokploy URL (e.g. https://
+											your-domain.com).
+										</p>
+									)}
 								</div>
 							</div>
 							<DialogFooter>
