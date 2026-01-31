@@ -251,6 +251,17 @@ create_dokploy() {
     return
   fi
 
+  local extra_env=(
+    -e "RELEASE_TAG=${TAG}"
+    -e "DOKPLOY_IMAGE=${IMAGE}"
+  )
+  if [[ -n "${GHCR_USER}" ]]; then
+    extra_env+=(-e "DOKPLOY_REGISTRY_USERNAME=${GHCR_USER}")
+  fi
+  if [[ -n "${GHCR_TOKEN}" ]]; then
+    extra_env+=(-e "DOKPLOY_REGISTRY_TOKEN=${GHCR_TOKEN}")
+  fi
+
   log "Criando serviço Dokploy: ${IMAGE}"
   docker service create \
     --name dokploy \
@@ -258,6 +269,7 @@ create_dokploy() {
     --network "$NETWORK_NAME" \
     --publish 3000:3000 \
     --with-registry-auth \
+    "${extra_env[@]}" \
     -e NODE_ENV=production \
     -e PORT=3000 \
     -e POSTGRES_USER=dokploy \

@@ -21,17 +21,206 @@ export const DEFAULT_UPDATE_DATA: IUpdateData = {
 	updateAvailable: false,
 };
 
+const DEFAULT_IMAGE_REPOSITORY = "dokploy/dokploy";
+
+type ImageRefParts = {
+	registry: string;
+	repository: string;
+	tag: string | null;
+	digest: string | null;
+};
+
+const getDokployImageBase = () =>
+	process.env.DOKPLOY_IMAGE || DEFAULT_IMAGE_REPOSITORY;
+
+const parseImageReference = (image: string): ImageRefParts => {
+	const [nameWithTag, digest] = image.split("@");
+	const lastColon = nameWithTag.lastIndexOf(":");
+	const lastSlash = nameWithTag.lastIndexOf("/");
+	let tag: string | null = null;
+	let name = nameWithTag;
+	if (lastColon > lastSlash) {
+		tag = nameWithTag.slice(lastColon + 1);
+		name = nameWithTag.slice(0, lastColon);
+	}
+	const segments = name.split("/");
+	const hasRegistry =
+		segments.length > 1 &&
+		(segments[0].includes(".") ||
+			segments[0].includes(":") ||
+			segments[0] === "localhost");
+	const registry = hasRegistry ? segments[0] : "docker.io";
+	const repository = hasRegistry ? segments.slice(1).join("/") : name;
+	return {
+		registry,
+		repository,
+		tag,
+		digest: digest || null,
+	};
+};
+
+const buildImageName = (registry: string, repository: string) =>
+	registry === "docker.io" ? repository : `${registry}/${repository}`;
+
 /** Returns current Dokploy docker image tag or `latest` by default. */
 export const getDokployImageTag = () => {
-	return process.env.RELEASE_TAG || "latest";
+	return (
+		process.env.RELEASE_TAG ||
+		parseImageReference(getDokployImageBase()).tag ||
+		"latest"
+	);
 };
 
 export const getDokployImage = () => {
-	return `dokploy/dokploy:${getDokployImageTag()}`;
+	const parts = parseImageReference(getDokployImageBase());
+	const imageName = buildImageName(parts.registry, parts.repository);
+	if (parts.digest) {
+		return `${imageName}@${parts.digest}`;
+	}
+	return `${imageName}:${getDokployImageTag()}`;
 };
 
-export const pullLatestRelease = async () => {
-	const stream = await docker.pull(getDokployImage());
+export const buildDokployImage = (tag: string) => {
+	const parts = parseImageReference(getDokployImageBase());
+	const imageName = buildImageName(parts.registry, parts.repository);
+	return `${imageName}:${tag}`;
+};
+
+const isChannelTag = (tag: string) => tag !== "latest" && !semver.clean(tag);
+
+type RegistryTag = { name: string; digest?: string };
+
+const listDockerHubTags = async (
+	repository: string,
+): Promise<RegistryTag[]> => {
+	let url: string | null = `https://hub.docker.com/v2/repositories/${repository}/tags?page_size=100`;
+	let allResults: RegistryTag[] = [];
+	while (url) {
+		const response = await fetch(url, {
+			method: "GET",
+			headers: { "Content-Type": "application/json" },
+		});
+		if (!response.ok) {
+			throw new Error(`Docker Hub tag fetch failed (${response.status})`);
+		}
+		const data = (await response.json()) as {
+			next: string | null;
+			results: { digest?: string; name: string }[];
+		};
+		allResults = allResults.concat(
+			(data.results || []).map((item) => ({
+				name: item.name,
+				digest: item.digest,
+			})),
+		);
+		url = data?.next;
+	}
+	return allResults;
+};
+
+const getGhcrAuthToken = async (repository: string) => {
+	const scope = `repository:${repository}:pull`;
+	const url = `https://ghcr.io/token?service=ghcr.io&scope=${encodeURIComponent(
+		scope,
+	)}`;
+	const headers: Record<string, string> = {};
+	const username = process.env.DOKPLOY_REGISTRY_USERNAME;
+	const token = process.env.DOKPLOY_REGISTRY_TOKEN;
+	if (username && token) {
+		headers.Authorization = `Basic ${Buffer.from(
+			`${username}:${token}`,
+		).toString("base64")}`;
+	}
+	const response = await fetch(url, { headers });
+	if (!response.ok) {
+		console.warn(
+			`GHCR token request failed (${response.status}) for ${repository}`,
+		);
+		return null;
+	}
+	const data = (await response.json()) as {
+		token?: string;
+		access_token?: string;
+	};
+	return data.token ?? data.access_token ?? null;
+};
+
+const listGhcrTags = async (repository: string): Promise<RegistryTag[]> => {
+	const token = await getGhcrAuthToken(repository);
+	const headers: Record<string, string> = {};
+	if (token) {
+		headers.Authorization = `Bearer ${token}`;
+	}
+	const response = await fetch(
+		`https://ghcr.io/v2/${repository}/tags/list`,
+		{
+			method: "GET",
+			headers,
+		},
+	);
+	if (!response.ok) {
+		throw new Error(`GHCR tag fetch failed (${response.status})`);
+	}
+	const data = (await response.json()) as { tags?: string[] };
+	return (data.tags || []).map((name) => ({ name }));
+};
+
+const getGhcrTagDigest = async (repository: string, tag: string) => {
+	const token = await getGhcrAuthToken(repository);
+	const headers: Record<string, string> = {
+		Accept:
+			"application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json",
+	};
+	if (token) {
+		headers.Authorization = `Bearer ${token}`;
+	}
+	const response = await fetch(
+		`https://ghcr.io/v2/${repository}/manifests/${tag}`,
+		{
+			method: "HEAD",
+			headers,
+		},
+	);
+	if (!response.ok) {
+		console.warn(
+			`GHCR manifest lookup failed (${response.status}) for ${repository}:${tag}`,
+		);
+		return null;
+	}
+	return response.headers.get("docker-content-digest");
+};
+
+const listRegistryTags = async (
+	registry: string,
+	repository: string,
+): Promise<RegistryTag[]> => {
+	if (registry === "docker.io") {
+		return await listDockerHubTags(repository);
+	}
+	if (registry === "ghcr.io") {
+		return await listGhcrTags(repository);
+	}
+	console.warn(`Unsupported registry for update checks: ${registry}`);
+	return [];
+};
+
+const getRegistryTagDigest = async (
+	registry: string,
+	repository: string,
+	tag: string,
+) => {
+	if (registry === "docker.io") {
+		const tags = await listDockerHubTags(repository);
+		return tags.find((item) => item.name === tag)?.digest || null;
+	}
+	if (registry === "ghcr.io") {
+		return await getGhcrTagDigest(repository, tag);
+	}
+	return null;
+};
+
+export const pullLatestRelease = async (image?: string) => {
+	const stream = await docker.pull(image ?? getDokployImage());
 	await new Promise((resolve, reject) => {
 		docker.modem.followProgress(stream, (err, res) =>
 			err ? reject(err) : resolve(res),
@@ -59,75 +248,48 @@ export const getUpdateData = async (
 	currentVersion: string,
 ): Promise<IUpdateData> => {
 	try {
-		const baseUrl =
-			"https://hub.docker.com/v2/repositories/dokploy/dokploy/tags";
-		let url: string | null = `${baseUrl}?page_size=100`;
-		let allResults: { digest: string; name: string }[] = [];
-
-		// Fetch all tags from Docker Hub
-		while (url) {
-			const response = await fetch(url, {
-				method: "GET",
-				headers: { "Content-Type": "application/json" },
-			});
-
-			const data = (await response.json()) as {
-				next: string | null;
-				results: { digest: string; name: string }[];
-			};
-
-			allResults = allResults.concat(data.results);
-			url = data?.next;
-		}
-
+		const imageParts = parseImageReference(getDokployImageBase());
 		const currentImageTag = getDokployImageTag();
-
-		// Special handling for canary and feature branches
-		// For development versions (canary/feature), don't perform update checks
-		// These are unstable versions that change frequently, and users on these
-		// branches are expected to manually manage updates
-		if (currentImageTag === "canary" || currentImageTag === "feature") {
+		if (isChannelTag(currentImageTag)) {
 			const currentDigest = await getServiceImageDigest();
-			const latestDigest = allResults.find(
-				(t) => t.name === currentImageTag,
-			)?.digest;
+			const latestDigest = await getRegistryTagDigest(
+				imageParts.registry,
+				imageParts.repository,
+				currentImageTag,
+			);
 			if (!latestDigest) {
 				return DEFAULT_UPDATE_DATA;
 			}
-			if (currentDigest !== latestDigest) {
-				return {
-					latestVersion: currentImageTag,
-					updateAvailable: true,
-				};
-			}
 			return {
 				latestVersion: currentImageTag,
-				updateAvailable: false,
+				updateAvailable: currentDigest !== latestDigest,
 			};
 		}
 
-		// For stable versions, use semver comparison
-		// Find the "latest" tag and get its digest
-		const latestTag = allResults.find((t) => t.name === "latest");
-
-		if (!latestTag) {
-			return DEFAULT_UPDATE_DATA;
-		}
-
-		// Find the versioned tag (v0.x.x) that has the same digest as "latest"
-		const latestVersionTag = allResults.find(
-			(t) => t.digest === latestTag.digest && t.name.startsWith("v"),
+		const allTags = await listRegistryTags(
+			imageParts.registry,
+			imageParts.repository,
 		);
+		const versionTags = allTags
+			.map((tag) => ({
+				tag: tag.name,
+				version: semver.clean(tag.name),
+			}))
+			.filter((entry) => entry.version !== null) as {
+			tag: string;
+			version: string;
+		}[];
 
-		if (!latestVersionTag) {
+		if (versionTags.length === 0) {
 			return DEFAULT_UPDATE_DATA;
 		}
 
-		const latestVersion = latestVersionTag.name;
+		versionTags.sort((a, b) => semver.rcompare(a.version, b.version));
+		const latestVersion = versionTags[0]?.tag;
 
 		// Use semver to compare versions for stable releases
 		const cleanedCurrent = semver.clean(currentVersion);
-		const cleanedLatest = semver.clean(latestVersion);
+		const cleanedLatest = latestVersion ? semver.clean(latestVersion) : null;
 
 		if (!cleanedCurrent || !cleanedLatest) {
 			return DEFAULT_UPDATE_DATA;
@@ -305,7 +467,9 @@ export const reloadDockerResource = async (
 				imageTag = currentImageTag;
 			}
 
-			command = `docker service update --force --image dokploy/dokploy:${imageTag} ${resourceName}`;
+			command = `docker service update --force --image ${buildDokployImage(
+				imageTag || currentImageTag,
+			)} ${resourceName}`;
 		} else {
 			command = `docker service update --force ${resourceName}`;
 		}

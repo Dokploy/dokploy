@@ -10,9 +10,9 @@ import {
 	cleanupSystem,
 	cleanupVolumes,
 	DEFAULT_UPDATE_DATA,
+	buildDokployImage,
 	execAsync,
 	findServerById,
-	getDokployImage,
 	getDokployImageTag,
 	getLogCleanupStatus,
 	getUpdateData,
@@ -406,7 +406,11 @@ export const settingsRouter = createTRPCRouter({
 			return true;
 		}
 
-		await pullLatestRelease();
+		const updateData = await getUpdateData(packageInfo.version);
+		const targetTag = updateData.latestVersion || getDokployImageTag();
+		const targetImage = buildDokployImage(targetTag);
+
+		await pullLatestRelease(targetImage);
 
 		// This causes restart of dokploy, thus it will not finish executing properly, so don't await it
 		// Status after restart is checked via frontend /api/health endpoint
@@ -415,7 +419,7 @@ export const settingsRouter = createTRPCRouter({
 			"update",
 			"--force",
 			"--image",
-			getDokployImage(),
+			targetImage,
 			"dokploy",
 		]);
 
