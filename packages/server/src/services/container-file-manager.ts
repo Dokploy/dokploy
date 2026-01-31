@@ -108,7 +108,7 @@ const ensureContainerTools = async (
 	const { stdout } = await execInContainer(context, command);
 	if (stdout.trim()) {
 		throw new TRPCError({
-			code: "FAILED_PRECONDITION",
+			code: "NOT_IMPLEMENTED",
 			message: `Container is missing required tools: ${stdout.trim()}. Install them or use mounts instead.`,
 		});
 	}
