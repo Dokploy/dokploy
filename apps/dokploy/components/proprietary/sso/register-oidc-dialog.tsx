@@ -101,14 +101,10 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 			const scopes = data.scopes.filter(Boolean).length
 				? data.scopes.filter(Boolean)
 				: DEFAULT_SCOPES;
-			const domain = data.domains
-				.map((d) => d.trim())
-				.filter(Boolean)
-				.join(",");
 			await mutateAsync({
 				providerId: data.providerId,
 				issuer: data.issuer,
-				domain,
+				domains: data.domains,
 				oidcConfig: {
 					clientId: data.clientId,
 					clientSecret: data.clientSecret,

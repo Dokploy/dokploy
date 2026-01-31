@@ -27,11 +27,22 @@ export const ssoProviderRelations = relations(ssoProvider, ({ one }) => ({
 		references: [user.id],
 	}),
 }));
-
+const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
 export const ssoProviderBodySchema = z.object({
 	providerId: z.string({}),
 	issuer: z.string({}),
-	domain: z.string({}),
+	domains: z
+		.string()
+		.array()
+		.transform((val) =>
+			Array.from(
+				new Set(val.map((d) => d.trim().toLowerCase()).filter(Boolean)),
+			),
+		)
+		.refine((val) => val.every((d) => domainRegex.test(d)), {
+			message: "Invalid domain",
+			path: ["domains"],
+		}),
 	oidcConfig: z
 		.object({
 			clientId: z.string({}),

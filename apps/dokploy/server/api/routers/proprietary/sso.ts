@@ -99,15 +99,34 @@ export const ssoRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.session.activeOrganizationId;
 
-			const result = await auth.registerSSOProvider({
+			const providers = await db.query.ssoProvider.findMany({
+				columns: {
+					domain: true,
+				},
+			});
+
+			for (const provider of providers) {
+				const providerDomains = provider.domain
+					.split(",")
+					.map((d) => d.trim().toLowerCase());
+				for (const domain of input.domains) {
+					if (providerDomains.includes(domain)) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Domain ${domain} is already registered for another provider`,
+						});
+					}
+				}
+			}
+			const domain = input.domains.join(",");
+			await auth.registerSSOProvider({
 				body: {
 					...input,
 					organizationId,
+					domain,
 				},
 				headers: requestToHeaders(ctx.req),
 			});
-			console.log(result);
-
 			return { success: true };
 		}),
 });

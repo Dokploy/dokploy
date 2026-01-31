@@ -95,14 +95,10 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 
 	const onSubmit = async (data: SamlProviderForm) => {
 		try {
-			const domain = data.domains
-				.map((d) => d.trim())
-				.filter(Boolean)
-				.join(",");
 			await mutateAsync({
 				providerId: data.providerId,
 				issuer: data.issuer,
-				domain,
+				domains: data.domains,
 				samlConfig: {
 					entryPoint: data.entryPoint,
 					cert: data.cert,
