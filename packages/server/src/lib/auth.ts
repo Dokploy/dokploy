@@ -111,11 +111,11 @@ export const { handler, api } = betterAuth({
 							const isAdminPresent = await db.query.member.findFirst({
 								where: eq(schema.member.role, "owner"),
 							});
-							// if (isAdminPresent) {
-							// 	throw new APIError("BAD_REQUEST", {
-							// 		message: "Admin is already created",
-							// 	});
-							// }
+							if (isAdminPresent) {
+								throw new APIError("BAD_REQUEST", {
+									message: "Admin is already created",
+								});
+							}
 						}
 					}
 				},
@@ -155,27 +155,27 @@ export const { handler, api } = betterAuth({
 						}
 					}
 
-					// if (IS_CLOUD || !isAdminPresent) {
-					await db.transaction(async (tx) => {
-						const organization = await tx
-							.insert(schema.organization)
-							.values({
-								name: "My Organization",
-								ownerId: user.id,
-								createdAt: new Date(),
-							})
-							.returning()
-							.then((res) => res[0]);
+					if (IS_CLOUD || !isAdminPresent) {
+						await db.transaction(async (tx) => {
+							const organization = await tx
+								.insert(schema.organization)
+								.values({
+									name: "My Organization",
+									ownerId: user.id,
+									createdAt: new Date(),
+								})
+								.returning()
+								.then((res) => res[0]);
 
-						await tx.insert(schema.member).values({
-							userId: user.id,
-							organizationId: organization?.id || "",
-							role: "owner",
-							createdAt: new Date(),
-							isDefault: true, // Mark first organization as default
+							await tx.insert(schema.member).values({
+								userId: user.id,
+								organizationId: organization?.id || "",
+								role: "owner",
+								createdAt: new Date(),
+								isDefault: true, // Mark first organization as default
+							});
 						});
-					});
-					// }
+					}
 				},
 			},
 		},
