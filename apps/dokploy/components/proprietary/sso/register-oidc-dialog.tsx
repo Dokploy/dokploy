@@ -101,6 +101,22 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 			const scopes = data.scopes.filter(Boolean).length
 				? data.scopes.filter(Boolean)
 				: DEFAULT_SCOPES;
+
+			const isAzure = data.issuer.includes("login.microsoftonline.com");
+			const mapping = isAzure
+				? {
+						id: "sub",
+						email: "preferred_username",
+						emailVerified: "email_verified",
+						name: "name",
+					}
+				: {
+						id: "sub",
+						email: "email",
+						emailVerified: "email_verified",
+						name: "preferred_username",
+						image: "picture",
+					};
 			await mutateAsync({
 				providerId: data.providerId,
 				issuer: data.issuer,
@@ -110,14 +126,7 @@ export function RegisterOidcDialog({ children }: RegisterOidcDialogProps) {
 					clientSecret: data.clientSecret,
 					scopes,
 					pkce: true,
-					// Keycloak (and many IdPs) send preferred_username; better-auth expects name
-					mapping: {
-						id: "sub",
-						email: "email",
-						emailVerified: "email_verified",
-						name: "preferred_username",
-						image: "picture",
-					},
+					mapping,
 				},
 			});
 

@@ -109,12 +109,12 @@ export const SSOSettings = () => {
 									Add OIDC provider
 								</Button>
 							</RegisterOidcDialog>
-							<RegisterSamlDialog>
+							{/* <RegisterSamlDialog>
 								<Button variant="secondary" size="sm">
 									<LogIn className="mr-2 size-4" />
 									Add SAML provider
 								</Button>
-							</RegisterSamlDialog>
+							</RegisterSamlDialog> */}
 						</div>
 					)}
 
@@ -234,12 +234,12 @@ export const SSOSettings = () => {
 										Add OIDC provider
 									</Button>
 								</RegisterOidcDialog>
-								<RegisterSamlDialog>
+								{/* <RegisterSamlDialog>
 									<Button variant="outline">
 										<LogIn className="mr-2 size-4" />
 										Add SAML provider
 									</Button>
-								</RegisterSamlDialog>
+								</RegisterSamlDialog> */}
 							</div>
 						</div>
 					)}
