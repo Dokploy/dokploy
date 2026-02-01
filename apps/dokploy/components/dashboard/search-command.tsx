@@ -194,6 +194,14 @@ export const SearchCommand = () => {
 								</CommandItem>
 								<CommandItem
 									onSelect={() => {
+										router.push("/dashboard/traefik-pages");
+										setOpen(false);
+									}}
+								>
+									Traefik Pages
+								</CommandItem>
+								<CommandItem
+									onSelect={() => {
 										router.push("/dashboard/docker");
 										setOpen(false);
 									}}

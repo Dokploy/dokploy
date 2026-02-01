@@ -39,6 +39,7 @@ import { settingsRouter } from "./routers/settings";
 import { sshRouter } from "./routers/ssh-key";
 import { stripeRouter } from "./routers/stripe";
 import { swarmRouter } from "./routers/swarm";
+import { traefikPagesRouter } from "./routers/traefik-pages";
 import { userRouter } from "./routers/user";
 import { volumeBackupsRouter } from "./routers/volume-backups";
 /**
@@ -83,6 +84,7 @@ export const appRouter = createTRPCRouter({
 	stripe: stripeRouter,
 	swarm: swarmRouter,
 	ai: aiRouter,
+	traefikPages: traefikPagesRouter,
 	organization: organizationRouter,
 	schedule: scheduleRouter,
 	rollback: rollbackRouter,

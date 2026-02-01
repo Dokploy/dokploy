@@ -11,11 +11,13 @@ export const paths = (isServer = false) => {
 			: path.join(process.cwd(), ".docker");
 	const MAIN_TRAEFIK_PATH = `${BASE_PATH}/traefik`;
 	const DYNAMIC_TRAEFIK_PATH = `${MAIN_TRAEFIK_PATH}/dynamic`;
+	const TRAEFIK_PAGES_PATH = `${MAIN_TRAEFIK_PATH}/pages`;
 
 	return {
 		BASE_PATH,
 		MAIN_TRAEFIK_PATH,
 		DYNAMIC_TRAEFIK_PATH,
+		TRAEFIK_PAGES_PATH,
 		LOGS_PATH: `${BASE_PATH}/logs`,
 		APPLICATIONS_PATH: `${BASE_PATH}/applications`,
 		COMPOSE_PATH: `${BASE_PATH}/compose`,

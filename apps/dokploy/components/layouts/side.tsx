@@ -17,6 +17,7 @@ import {
 	Folder,
 	Forward,
 	GalleryVerticalEnd,
+	LayoutTemplate,
 	GitBranch,
 	KeyRound,
 	Loader2,
@@ -165,6 +166,20 @@ const MENU: Menu = {
 			title: "Traefik File System",
 			url: "/dashboard/traefik",
 			icon: GalleryVerticalEnd,
+			// Only enabled for admins and users with access to Traefik files in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!(
+					(auth?.role === "owner" ||
+						auth?.role === "admin" ||
+						auth?.canAccessToTraefikFiles) &&
+					!isCloud
+				),
+		},
+		{
+			isSingle: true,
+			title: "Traefik Pages",
+			url: "/dashboard/traefik-pages",
+			icon: LayoutTemplate,
 			// Only enabled for admins and users with access to Traefik files in non-cloud environments
 			isEnabled: ({ auth, isCloud }) =>
 				!!(

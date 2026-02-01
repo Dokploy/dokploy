@@ -4,6 +4,8 @@ import {
 	type CompletionContext,
 	type CompletionResult,
 } from "@codemirror/autocomplete";
+import { css } from "@codemirror/lang-css";
+import { html } from "@codemirror/lang-html";
 import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { StreamLanguage } from "@codemirror/language";
@@ -130,7 +132,7 @@ function dockerComposeComplete(
 interface Props extends ReactCodeMirrorProps {
 	wrapperClassName?: string;
 	disabled?: boolean;
-	language?: "yaml" | "json" | "properties" | "shell";
+	language?: "yaml" | "json" | "properties" | "shell" | "html" | "css";
 	lineWrapping?: boolean;
 	lineNumbers?: boolean;
 }
@@ -159,6 +161,10 @@ export const CodeEditor = ({
 						? yaml()
 						: language === "json"
 							? json()
+							: language === "html"
+								? html()
+								: language === "css"
+									? css()
 							: language === "shell"
 								? StreamLanguage.define(shell)
 								: StreamLanguage.define(properties),

@@ -118,6 +118,18 @@ export const UserNav = () => {
 							)}
 							{(data?.role === "owner" ||
 								data?.role === "admin" ||
+								data?.canAccessToTraefikFiles) && (
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={() => {
+										router.push("/dashboard/traefik-pages");
+									}}
+								>
+									Traefik Pages
+								</DropdownMenuItem>
+							)}
+							{(data?.role === "owner" ||
+								data?.role === "admin" ||
 								data?.canAccessToDocker) && (
 								<DropdownMenuItem
 									className="cursor-pointer"
