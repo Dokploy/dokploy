@@ -3,6 +3,8 @@ import {
 	copyFileManagerEntry,
 	createFileManagerDirectory,
 	deleteFileManagerEntry,
+	extractFileManagerArchive,
+	FILE_MANAGER_LIMITS,
 	listFileManagerEntries,
 	readFileManagerFile,
 	resolveFileManagerContext,
@@ -202,6 +204,44 @@ export const fileManagerRouter = createTRPCRouter({
 				includeHidden: input.includeHidden,
 				limit: input.limit,
 				maxDepth: input.maxDepth,
+			});
+		}),
+	extract: protectedProcedure
+		.input(
+			serviceTargetSchema.extend({
+				path: z.string().min(1),
+				destinationPath: z.string().optional(),
+				onConflict: z.enum(["fail", "skip", "overwrite"]).optional(),
+				maxEntries: z
+					.number()
+					.int()
+					.min(1)
+					.max(FILE_MANAGER_LIMITS.maxExtractEntries)
+					.optional(),
+				maxTotalBytes: z
+					.number()
+					.int()
+					.min(1)
+					.max(FILE_MANAGER_LIMITS.maxExtractBytes)
+					.optional(),
+				maxArchiveBytes: z
+					.number()
+					.int()
+					.min(1)
+					.max(FILE_MANAGER_LIMITS.maxArchiveBytes)
+					.optional(),
+			}),
+		)
+		.mutation(async ({ input, ctx }) => {
+			const context = await getContext(input, ctx);
+			return extractFileManagerArchive({
+				context,
+				path: input.path,
+				destinationPath: input.destinationPath,
+				onConflict: input.onConflict,
+				maxEntries: input.maxEntries,
+				maxTotalBytes: input.maxTotalBytes,
+				maxArchiveBytes: input.maxArchiveBytes,
 			});
 		}),
 });

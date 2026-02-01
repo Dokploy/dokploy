@@ -1,4 +1,5 @@
 import {
+	Archive,
 	ArrowUp,
 	Download,
 	FileIcon,
@@ -71,6 +72,7 @@ type ServiceType =
 	| "redis"
 	| "compose";
 type FileManagerScope = "mounts" | "container";
+type ExtractConflictPolicy = "fail" | "skip" | "overwrite";
 
 interface Props {
 	serviceId: string;
@@ -87,6 +89,35 @@ const formatBytes = (bytes: number) => {
 	const order = Math.floor(Math.log(bytes) / Math.log(1024));
 	const value = bytes / 1024 ** order;
 	return `${value.toFixed(value >= 10 || order === 0 ? 0 : 1)} ${units[order]}`;
+};
+
+const isArchiveFile = (name: string) => {
+	const lower = name.toLowerCase();
+	return (
+		lower.endsWith(".zip") ||
+		lower.endsWith(".tar") ||
+		lower.endsWith(".tar.gz") ||
+		lower.endsWith(".tgz") ||
+		lower.endsWith(".tar.bz2") ||
+		lower.endsWith(".tbz") ||
+		lower.endsWith(".tbz2") ||
+		lower.endsWith(".tar.xz") ||
+		lower.endsWith(".txz")
+	);
+};
+
+const stripArchiveExtension = (name: string) => {
+	const lower = name.toLowerCase();
+	if (lower.endsWith(".tar.gz")) return name.slice(0, -7);
+	if (lower.endsWith(".tgz")) return name.slice(0, -4);
+	if (lower.endsWith(".tar.bz2")) return name.slice(0, -8);
+	if (lower.endsWith(".tbz2")) return name.slice(0, -5);
+	if (lower.endsWith(".tbz")) return name.slice(0, -4);
+	if (lower.endsWith(".tar.xz")) return name.slice(0, -7);
+	if (lower.endsWith(".txz")) return name.slice(0, -4);
+	if (lower.endsWith(".tar")) return name.slice(0, -4);
+	if (lower.endsWith(".zip")) return name.slice(0, -4);
+	return name;
 };
 
 const joinPath = (...parts: string[]) =>
@@ -200,6 +231,14 @@ export const ShowServiceFileManager = ({
 	const [writeConfirmOpen, setWriteConfirmOpen] = useState(false);
 	const [writeConfirmValue, setWriteConfirmValue] = useState("");
 	const [composeServiceName, setComposeServiceName] = useState<string>("");
+	const [extractOpen, setExtractOpen] = useState(false);
+	const [extractTarget, setExtractTarget] = useState<{
+		path: string;
+		name: string;
+	} | null>(null);
+	const [extractDestination, setExtractDestination] = useState("");
+	const [extractConflict, setExtractConflict] =
+		useState<ExtractConflictPolicy>("fail");
 	const trimmedSearchValue = searchValue.trim();
 	const hasSearch = trimmedSearchValue.length > 0;
 	const isComposeService = serviceType === "compose";
@@ -408,6 +447,7 @@ export const ShowServiceFileManager = ({
 	const moveMutation = isContainerMode
 		? containerMoveMutation
 		: mountMoveMutation;
+	const extractMutation = api.fileManager.extract.useMutation();
 
 	useEffect(() => {
 		if (readQuery.data && selectedEntry?.type === "file") {
@@ -539,6 +579,43 @@ export const ShowServiceFileManager = ({
 		}
 	};
 
+	const handleExtract = async () => {
+		if (!extractTarget) return;
+		if (writesDisabled) {
+			toast.error("Enable write operations to extract archives.");
+			return;
+		}
+		if (isContainerMode) {
+			toast.error("Archive extraction is only available for mounted files.");
+			return;
+		}
+		try {
+			const destination = extractDestination.trim();
+			const result = await extractMutation.mutateAsync({
+				serviceId,
+				serviceType,
+				path: extractTarget.path,
+				destinationPath: destination.length > 0 ? destination : undefined,
+				onConflict: extractConflict,
+			});
+			const skippedInfo =
+				result.skippedEntries > 0
+					? ` (${result.skippedEntries} skipped)`
+					: "";
+			toast.success(
+				`Extracted ${result.extractedEntries} items to /${result.destinationPath}${skippedInfo}`,
+			);
+			setExtractOpen(false);
+			setExtractTarget(null);
+			setExtractDestination("");
+			await refresh();
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Extraction failed",
+			);
+		}
+	};
+
 	return (
 		<Card className="bg-background">
 			<CardHeader className="flex flex-col gap-2">
@@ -549,6 +626,80 @@ export const ShowServiceFileManager = ({
 				<CardDescription>{scopeDescription}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
+				<Dialog
+					open={extractOpen}
+					onOpenChange={(open) => {
+						setExtractOpen(open);
+						if (!open) {
+							setExtractTarget(null);
+							setExtractDestination("");
+							setExtractConflict("fail");
+						}
+					}}
+				>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>Extract archive</DialogTitle>
+						</DialogHeader>
+						<div className="space-y-3 text-sm text-muted-foreground">
+							<div className="space-y-1">
+								<Label>Archive</Label>
+								<p className="text-xs text-foreground break-all">
+									{extractTarget?.name || "Select an archive"}
+								</p>
+							</div>
+							<div className="space-y-1">
+								<Label htmlFor="extract-destination">Destination path</Label>
+								<Input
+									id="extract-destination"
+									placeholder="folder-name"
+									value={extractDestination}
+									onChange={(event) =>
+										setExtractDestination(event.target.value)
+									}
+								/>
+								<p className="text-xs">
+									Relative to the mounted files root. Leave blank to use the
+									default archive name.
+								</p>
+							</div>
+							<div className="space-y-1">
+								<Label>On conflict</Label>
+								<Select
+									value={extractConflict}
+									onValueChange={(value) =>
+										setExtractConflict(value as ExtractConflictPolicy)
+									}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="Select policy" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="fail">Fail if exists</SelectItem>
+										<SelectItem value="skip">Skip existing</SelectItem>
+										<SelectItem value="overwrite">Overwrite existing</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
+						<DialogFooter>
+							<Button
+								type="button"
+								variant="secondary"
+								onClick={() => setExtractOpen(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								onClick={handleExtract}
+								disabled={!extractTarget || extractMutation.isLoading}
+							>
+								Extract
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 				<div className="flex flex-col gap-3">
 					<div className="flex flex-wrap items-center gap-3">
 						<Label className="text-sm text-muted-foreground">Scope</Label>
@@ -1084,9 +1235,36 @@ export const ShowServiceFileManager = ({
 																		handleDownload(entry.path, entry.name);
 																	}}
 																>
-																<Download className="size-4" />
+																	<Download className="size-4" />
 																</Button>
 															)}
+															{entry.type === "file" &&
+																!isContainerMode &&
+																isArchiveFile(entry.name) && (
+																	<Button
+																		variant="ghost"
+																		size="icon"
+																		disabled={writesDisabled}
+																		onClick={(event) => {
+																			event.stopPropagation();
+																			if (writesDisabled) return;
+																			const baseName =
+																				stripArchiveExtension(entry.name) ||
+																				"archive";
+																			setExtractTarget({
+																				path: entry.path,
+																				name: entry.name,
+																			});
+																			setExtractDestination(
+																				joinPath(currentPath, baseName),
+																			);
+																			setExtractConflict("fail");
+																			setExtractOpen(true);
+																		}}
+																	>
+																		<Archive className="size-4" />
+																	</Button>
+																)}
 															<NameDialog
 																title="Rename item"
 																defaultValue={entry.name}
