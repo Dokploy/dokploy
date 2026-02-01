@@ -61,8 +61,8 @@ export interface FileManagerExtractResult {
 }
 
 export const FILE_MANAGER_LIMITS = {
-	maxReadBytes: 2 * 1024 * 1024,
-	maxWriteBytes: 2 * 1024 * 1024,
+	maxReadBytes: 100 * 1024 * 1024,
+	maxWriteBytes: 100 * 1024 * 1024,
 	maxListEntries: 2000,
 	maxSearchResults: 500,
 	maxSearchDepth: 8,
