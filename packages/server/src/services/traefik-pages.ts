@@ -459,6 +459,11 @@ const buildTraefikPagesDynamicConfig = (config: TraefikPagesConfig) => {
 	if (statusCodes.size === 0) return null;
 
 	const serviceUrl = `http://dokploy:${process.env.PORT || 3000}`;
+	const hasEntryPoints = Array.isArray(config.entryPoints)
+		? config.entryPoints.length > 0
+		: false;
+	const enableFallback =
+		config.pages["404"]?.enabled !== false && hasEntryPoints;
 	const fileConfig = {
 		http: {
 			middlewares: {
@@ -469,6 +474,13 @@ const buildTraefikPagesDynamicConfig = (config: TraefikPagesConfig) => {
 						query: "/api/traefik-pages/{status}",
 					},
 				},
+				...(enableFallback
+					? {
+							"traefik-pages-fallback": {
+								replacePath: "/api/traefik-pages/404",
+							},
+						}
+					: {}),
 			},
 			services: {
 				"dokploy-error-pages": {
@@ -478,6 +490,19 @@ const buildTraefikPagesDynamicConfig = (config: TraefikPagesConfig) => {
 					},
 				},
 			},
+			...(enableFallback
+				? {
+						routers: {
+							"traefik-pages-fallback": {
+								rule: "HostRegexp(`{any:.+}`)",
+								entryPoints: config.entryPoints,
+								service: "dokploy-error-pages",
+								middlewares: ["traefik-pages-fallback"],
+								priority: 1,
+							},
+						},
+					}
+				: {}),
 		},
 	};
 
