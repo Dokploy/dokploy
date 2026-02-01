@@ -501,7 +501,18 @@ const updateEntryPoints = async (
 		};
 	}
 
-	const entryPoints = parsed.entryPoints ?? {};
+	type EntryPointHttp = {
+		middlewares?: string[] | string;
+		[key: string]: any;
+	};
+	type EntryPointConfig = {
+		http?: EntryPointHttp;
+		[key: string]: any;
+	};
+
+	const entryPoints = parsed.entryPoints as
+		| Record<string, EntryPointConfig>
+		| undefined;
 	if (!entryPoints || typeof entryPoints !== "object") {
 		return {
 			needsReload: false,
@@ -515,7 +526,7 @@ const updateEntryPoints = async (
 
 	for (const [name, entryPoint] of Object.entries(entryPoints)) {
 		const applyMiddleware = config.enabled && selectedEntryPoints.has(name);
-		const http = entryPoint.http ?? {};
+		const http = (entryPoint.http ?? {}) as EntryPointHttp;
 		const currentMiddlewares = Array.isArray(http.middlewares)
 			? [...http.middlewares]
 			: typeof http.middlewares === "string"
