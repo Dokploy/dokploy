@@ -1,0 +1,58 @@
+name: Sync pnpm lockfile
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - canary
+      - "fix/re-apply-database-migration-fix"
+    paths:
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "apps/**/package.json"
+      - "packages/**/package.json"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pnpm-lockfile-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.16.0
+          cache: "pnpm"
+
+      - name: Refresh lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: sync pnpm lockfile"
+          title: "chore: sync pnpm lockfile"
+          body: |
+            Automated update to keep `pnpm-lock.yaml` in sync with workspace package.json changes.
+          base: ${{ github.ref_name }}
+          branch: "chore/sync-pnpm-lockfile-${{ github.ref_name }}"
+          delete-branch: true
+          add-paths: |
+            pnpm-lock.yaml
