@@ -88,7 +88,7 @@ export type TraefikPagesConfig = {
 };
 
 export type TraefikPageRenderContext = {
-	status: TraefikPageStatus;
+	status: string;
 	requestId?: string;
 	timestamp: string;
 	host?: string;
@@ -102,10 +102,20 @@ export type TraefikPagesApplyResult = {
 	warnings: string[];
 };
 
-const STATUS_LABELS: Record<TraefikPageStatus, string> = {
+const STATUS_LABELS: Record<string, string> = {
 	"401": "Unauthorized",
 	"404": "Not Found",
+	"500": "Internal Server Error",
+	"502": "Bad Gateway",
 	"503": "Service Unavailable",
+	"504": "Gateway Timeout",
+};
+
+const resolvePageStatus = (status: string): TraefikPageStatus => {
+	if (status === "401") return "401";
+	if (status === "404") return "404";
+	if (status.startsWith("5")) return "503";
+	return "404";
 };
 
 const DEFAULT_CONFIG: TraefikPagesConfig = {
@@ -437,10 +447,16 @@ export const writeTraefikPagesConfig = async (
 
 const buildTraefikPagesDynamicConfig = (config: TraefikPagesConfig) => {
 	if (!config.enabled) return null;
-	const statusCodes = TRAEFIK_PAGE_STATUSES.filter(
-		(status) => config.pages[status]?.enabled !== false,
-	);
-	if (statusCodes.length === 0) return null;
+	const statusCodes = new Set<string>();
+	if (config.pages["401"]?.enabled !== false) statusCodes.add("401");
+	if (config.pages["404"]?.enabled !== false) statusCodes.add("404");
+	if (config.pages["503"]?.enabled !== false) {
+		statusCodes.add("500");
+		statusCodes.add("502");
+		statusCodes.add("503");
+		statusCodes.add("504");
+	}
+	if (statusCodes.size === 0) return null;
 
 	const serviceUrl = `http://dokploy:${process.env.PORT || 3000}`;
 	const fileConfig = {
@@ -448,7 +464,7 @@ const buildTraefikPagesDynamicConfig = (config: TraefikPagesConfig) => {
 			middlewares: {
 				"traefik-pages": {
 					errors: {
-						status: statusCodes,
+						status: Array.from(statusCodes),
 						service: "dokploy-error-pages",
 						query: "/api/traefik-pages/{status}",
 					},
@@ -788,11 +804,15 @@ const buildBaseStyles = (theme: TraefikPagesTheme) => {
 
 export const renderTraefikErrorPage = (
 	config: TraefikPagesConfig,
-	status: TraefikPageStatus,
+	status: string,
 	context: TraefikPageRenderContext,
 ) => {
-	const page = config.pages[status] ?? config.pages["503"];
-	const statusLabel = STATUS_LABELS[status] ?? "Error";
+	const pageStatus = resolvePageStatus(status);
+	const page = config.pages[pageStatus] ?? config.pages["503"];
+	const statusLabel =
+		STATUS_LABELS[status] ??
+		(status.startsWith("5") ? STATUS_LABELS["503"] : STATUS_LABELS["404"]) ??
+		"Error";
 	const title = page.title || statusLabel;
 	const subtitle = page.subtitle || statusLabel;
 	const message = page.message || "";

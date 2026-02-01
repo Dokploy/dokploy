@@ -1,9 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
-	TRAEFIK_PAGE_STATUSES,
 	readTraefikPagesConfig,
 	renderTraefikErrorPage,
-	type TraefikPageStatus,
 } from "@dokploy/server";
 
 const getHeaderValue = (value?: string | string[]) => {
@@ -19,12 +17,12 @@ export default async function handler(
 		? req.query.status[0]
 		: req.query.status;
 
-	if (!statusParam || !TRAEFIK_PAGE_STATUSES.includes(statusParam as any)) {
+	if (!statusParam || !/^\d{3}$/.test(statusParam)) {
 		res.status(404).send("Not found");
 		return;
 	}
 
-	const status = statusParam as TraefikPageStatus;
+	const status = statusParam;
 	const config = await readTraefikPagesConfig();
 
 	const requestId = getHeaderValue(req.headers["x-request-id"]);
