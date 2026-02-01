@@ -21,6 +21,7 @@ import {
 	Key,
 	KeyRound,
 	Loader2,
+	LogIn,
 	type LucideIcon,
 	Package,
 	PieChart,
@@ -30,7 +31,6 @@ import {
 	Trash2,
 	User,
 	Users,
-	LogIn,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -404,8 +404,8 @@ const MENU: Menu = {
 			url: "/dashboard/settings/license",
 			icon: Key,
 			// Only enabled for admins in non-cloud environments
-			isEnabled: ({ auth, isCloud }) =>
-				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
+			isEnabled: ({ auth }) =>
+				!!(auth?.role === "owner" || auth?.role === "admin"),
 		},
 		{
 			isSingle: true,

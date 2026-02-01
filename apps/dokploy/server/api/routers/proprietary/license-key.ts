@@ -26,6 +26,13 @@ export const licenseKeyRouter = createTRPCRouter({
 					});
 				}
 
+				if (ctx.user.role !== "owner") {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You are not authorized to activate a license key",
+					});
+				}
+
 				if (!currentUser.enableEnterpriseFeatures) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -117,6 +124,14 @@ export const licenseKeyRouter = createTRPCRouter({
 					message: "No license key found",
 				});
 			}
+
+			if (ctx.user.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not authorized to deactivate a license key",
+				});
+			}
+
 			await deactivateLicenseKey(currentUser.licenseKey);
 			await db
 				.update(user)
