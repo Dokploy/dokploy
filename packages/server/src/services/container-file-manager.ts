@@ -394,7 +394,9 @@ export const readContainerFileManagerFile = async ({
 	await ensureContainerTools(context, ["base64", "tr"]);
 	const { absolutePath } = resolveSafePath(context.basePath, relativePath);
 	const command = `base64 ${shQuote(absolutePath)} | tr -d '\\n'`;
-	const { stdout } = await execInContainer(context, command);
+	const { stdout } = await execInContainer(context, command, {
+		maxBuffer: FILE_MANAGER_LIMITS.maxReadBytes * 2,
+	});
 	const buffer = Buffer.from(stdout.trim(), "base64");
 	const isBinary = detectBinary(buffer);
 	const content =
