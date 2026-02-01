@@ -9,9 +9,16 @@ export { ExecError } from "./ExecError";
 
 const execAsyncBase = util.promisify(exec);
 
+interface ExecOptions {
+	cwd?: string;
+	env?: NodeJS.ProcessEnv;
+	shell?: string;
+	maxBuffer?: number;
+}
+
 export const execAsync = async (
 	command: string,
-	options?: { cwd?: string; env?: NodeJS.ProcessEnv; shell?: string },
+	options: ExecOptions = {},
 ): Promise<{ stdout: string; stderr: string }> => {
 	try {
 		const result = await execAsyncBase(command, options);
@@ -39,11 +46,6 @@ export const execAsync = async (
 		throw error;
 	}
 };
-
-interface ExecOptions {
-	cwd?: string;
-	env?: NodeJS.ProcessEnv;
-}
 
 export const execAsyncStream = (
 	command: string,

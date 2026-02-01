@@ -69,6 +69,7 @@ const resolveSafePath = (basePath: string, relativePath?: string) => {
 const execInContainer = async (
 	context: ContainerFileManagerContext,
 	command: string,
+	options?: { maxBuffer?: number },
 ) => {
 	const fullCommand = `docker exec ${context.containerId} sh -lc ${shQuote(
 		command,
@@ -76,7 +77,7 @@ const execInContainer = async (
 	if (context.serverId) {
 		return execAsyncRemote(context.serverId, fullCommand);
 	}
-	return execAsync(fullCommand);
+	return execAsync(fullCommand, options);
 };
 
 const formatEntry = (
@@ -105,7 +106,9 @@ const ensureContainerTools = async (
 	const command = `missing=""; for tool in ${tools
 		.map((tool) => shQuote(tool))
 		.join(" ")}; do if ! command -v "$tool" >/dev/null 2>&1; then missing="$missing $tool"; fi; done; echo "$missing"`;
-	const { stdout } = await execInContainer(context, command);
+	const { stdout } = await execInContainer(context, command, {
+		maxBuffer: FILE_MANAGER_LIMITS.maxReadBytes * 2,
+	});
 	if (stdout.trim()) {
 		throw new TRPCError({
 			code: "NOT_IMPLEMENTED",
