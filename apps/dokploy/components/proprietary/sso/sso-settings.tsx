@@ -109,12 +109,12 @@ export const SSOSettings = () => {
 									Add OIDC provider
 								</Button>
 							</RegisterOidcDialog>
-							{/* <RegisterSamlDialog>
+							<RegisterSamlDialog>
 								<Button variant="secondary" size="sm">
 									<LogIn className="mr-2 size-4" />
 									Add SAML provider
 								</Button>
-							</RegisterSamlDialog> */}
+							</RegisterSamlDialog>
 						</div>
 					)}
 
@@ -234,12 +234,12 @@ export const SSOSettings = () => {
 										Add OIDC provider
 									</Button>
 								</RegisterOidcDialog>
-								{/* <RegisterSamlDialog>
+								<RegisterSamlDialog>
 									<Button variant="outline">
 										<LogIn className="mr-2 size-4" />
 										Add SAML provider
 									</Button>
-								</RegisterSamlDialog> */}
+								</RegisterSamlDialog>
 							</div>
 						</div>
 					)}
@@ -340,7 +340,10 @@ export const SSOSettings = () => {
 										Callback URL (configure in your IdP)
 									</span>
 									<p className="break-all rounded-md bg-muted px-2 py-1.5 font-mono text-xs">
-										{baseURL || "{baseURL}"}/api/auth/sso/callback/
+										{baseURL || "{baseURL}"}
+										{detailsProvider.samlConfig
+											? "/api/auth/sso/saml2/callback/"
+											: "/api/auth/sso/callback/"}
 										{detailsProvider.providerId}
 									</p>
 									{!baseURL && (

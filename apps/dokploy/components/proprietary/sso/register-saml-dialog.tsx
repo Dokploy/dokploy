@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type FieldArrayPath, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -52,12 +52,7 @@ const samlProviderSchema = z.object({
 		.url("Invalid URL")
 		.trim(),
 	cert: z.string().min(1, "IdP signing certificate is required"),
-	callbackUrl: z
-		.string()
-		.min(1, "Callback URL is required")
-		.url("Invalid URL")
-		.trim(),
-	audience: z.string().min(1, "Audience (Entity ID) is required").trim(),
+	idpMetadataXml: z.string().optional(),
 });
 
 type SamlProviderForm = z.infer<typeof samlProviderSchema>;
@@ -72,14 +67,21 @@ const formDefaultValues: SamlProviderForm = {
 	domains: [""],
 	entryPoint: "",
 	cert: "",
-	callbackUrl: "",
-	audience: "",
+	idpMetadataXml: "",
 };
 
 export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 	const utils = api.useUtils();
 	const [open, setOpen] = useState(false);
 	const { mutateAsync, isLoading } = api.sso.register.useMutation();
+
+	const [baseURL, setBaseURL] = useState("");
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			setBaseURL(window.location.origin);
+		}
+	}, []);
 
 	const form = useForm<SamlProviderForm>({
 		resolver: zodResolver(samlProviderSchema),
@@ -95,6 +97,17 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 
 	const onSubmit = async (data: SamlProviderForm) => {
 		try {
+			// maybe add the /saml/metadata endpoint to the baseURL
+			const baseURLWithMetadata = `${baseURL}/saml/metadata`;
+			const generateSpMetadata = (providerId: string) => {
+				return `<?xml version="1.0" encoding="UTF-8"?>
+<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="${baseURL}">
+    <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+        <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="${baseURL}/api/auth/sso/saml2/callback/${providerId}" index="1"/>
+    </md:SPSSODescriptor>
+</md:EntityDescriptor>`;
+			};
+
 			await mutateAsync({
 				providerId: data.providerId,
 				issuer: data.issuer,
@@ -102,13 +115,20 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 				samlConfig: {
 					entryPoint: data.entryPoint,
 					cert: data.cert,
-					callbackUrl: data.callbackUrl,
-					audience: data.audience,
-					wantAssertionsSigned: true,
-					signatureAlgorithm: "sha256",
-					digestAlgorithm: "sha256",
+					callbackUrl: `${baseURL}/api/auth/sso/saml2/callback/${data.providerId}`,
+					audience: baseURL,
+					idpMetadata: data.idpMetadataXml?.trim()
+						? { metadata: data.idpMetadataXml.trim() }
+						: undefined,
 					spMetadata: {
-						entityID: data.audience,
+						metadata: generateSpMetadata(data.providerId),
+					},
+					mapping: {
+						id: "nameID",
+						email: "email",
+						name: "displayName",
+						firstName: "givenName",
+						lastName: "surname",
 					},
 				},
 			});
@@ -264,35 +284,25 @@ export function RegisterSamlDialog({ children }: RegisterSamlDialogProps) {
 								</FormItem>
 							)}
 						/>
+
 						<FormField
 							control={form.control}
-							name="callbackUrl"
+							name="idpMetadataXml"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>Callback URL (ACS)</FormLabel>
+									<FormLabel>IdP metadata XML (optional)</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="https://yourapp.com/api/auth/sso/saml2/callback/my-provider"
+										<Textarea
+											placeholder="Paste full IdP metadata XML if you have it (EntityDescriptor). Otherwise leave empty and use Issuer, IdP SSO URL and certificate above."
+											rows={5}
+											className="font-mono text-xs"
 											{...field}
 										/>
 									</FormControl>
 									<FormDescription>
-										Use the callback URL shown in your IdP app config for this
-										provider.
+										Some IdPs require full metadata; paste the XML here to
+										override issuer/entry point/cert.
 									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="audience"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Audience (Entity ID)</FormLabel>
-									<FormControl>
-										<Input placeholder="https://yourapp.com" {...field} />
-									</FormControl>
 									<FormMessage />
 								</FormItem>
 							)}
