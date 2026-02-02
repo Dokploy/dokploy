@@ -36,14 +36,6 @@ export async function getServerSideProps(
 ) {
 	const { req, res } = ctx;
 	const locale = await getLocale(req.cookies);
-	// if (IS_CLOUD) {
-	// 	return {
-	// 		redirect: {
-	// 			permanent: true,
-	// 			destination: "/dashboard/projects",
-	// 		},
-	// 	};
-	// }
 	const { user, session } = await validateRequest(ctx.req);
 	if (!user) {
 		return {
