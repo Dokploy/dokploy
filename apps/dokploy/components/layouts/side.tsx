@@ -18,6 +18,7 @@ import {
 	Forward,
 	GalleryVerticalEnd,
 	GitBranch,
+	ImageIcon,
 	KeyRound,
 	Loader2,
 	type LucideIcon,
@@ -395,6 +396,15 @@ const MENU: Menu = {
 			icon: CreditCard,
 			// Only enabled for admins in cloud environments
 			isEnabled: ({ auth, isCloud }) => !!(auth?.role === "owner" && isCloud),
+		},
+		{
+			isSingle: true,
+			title: "Whitelabel",
+			url: "/dashboard/settings/whitelabel",
+			icon: ImageIcon,
+			// Only enabled for admins in non-cloud environments
+			isEnabled: ({ auth, isCloud }) =>
+				!!((auth?.role === "owner" || auth?.role === "admin") && !isCloud),
 		},
 	],
 

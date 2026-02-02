@@ -54,5 +54,24 @@
 	"settings.terminal.connectionSettings": "Ustawienia połączenia",
 	"settings.terminal.ipAddress": "Adres IP",
 	"settings.terminal.port": "Port",
-	"settings.terminal.username": "Nazwa użytkownika"
+	"settings.terminal.username": "Nazwa użytkownika",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "Dostosuj stronę logowania za pomocą logo i marki.",
+	"settings.whitelabel.logoUrl": "URL Logo",
+	"settings.whitelabel.logoUrlDescription": "Wprowadź URL obrazu logo (tylko HTTPS)",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "Nazwa Marki",
+	"settings.whitelabel.brandNameDescription": "Nazwa Twojej firmy lub produktu",
+	"settings.whitelabel.brandNamePlaceholder": "Nazwa Firmy",
+	"settings.whitelabel.tagline": "Slogan",
+	"settings.whitelabel.taglineDescription": "Krótki opis lub slogan",
+	"settings.whitelabel.taglinePlaceholder": "Twój slogan",
+	"settings.whitelabel.success": "Ustawienia whitelabel zostały pomyślnie zaktualizowane",
+	"settings.whitelabel.error": "Nie udało się zaktualizować ustawień whitelabel",
+	"settings.whitelabel.cloudOnly": "Funkcja whitelabel jest dostępna tylko dla instalacji self-hosted.",
+	"settings.whitelabel.validation.invalidUrl": "Proszę wprowadzić prawidłowy URL",
+	"settings.whitelabel.validation.httpsRequired": "URL logo musi używać protokołu HTTPS",
+	"settings.whitelabel.validation.maxLength": "Dozwolone maksymalnie {max} znaków",
+	"settings.common.loading": "Ładowanie..."
 }

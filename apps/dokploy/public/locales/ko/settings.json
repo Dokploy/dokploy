@@ -40,5 +40,24 @@
 	"settings.appearance.themes.dark": "다크",
 	"settings.appearance.themes.system": "시스템",
 	"settings.appearance.language": "언어",
-	"settings.appearance.languageDescription": "대시보드에서 사용할 언어 선택"
+	"settings.appearance.languageDescription": "대시보드에서 사용할 언어 선택",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "로고와 브랜딩으로 로그인 페이지를 사용자 정의합니다.",
+	"settings.whitelabel.logoUrl": "로고 URL",
+	"settings.whitelabel.logoUrlDescription": "로고 이미지의 URL을 입력하세요 (HTTPS만)",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "브랜드 이름",
+	"settings.whitelabel.brandNameDescription": "회사 또는 제품 이름",
+	"settings.whitelabel.brandNamePlaceholder": "회사 이름",
+	"settings.whitelabel.tagline": "태그라인",
+	"settings.whitelabel.taglineDescription": "짧은 설명 또는 슬로건",
+	"settings.whitelabel.taglinePlaceholder": "태그라인",
+	"settings.whitelabel.success": "Whitelabel 설정이 성공적으로 업데이트되었습니다",
+	"settings.whitelabel.error": "Whitelabel 설정 업데이트 실패",
+	"settings.whitelabel.cloudOnly": "Whitelabel 기능은 셀프 호스팅 설치에서만 사용할 수 있습니다.",
+	"settings.whitelabel.validation.invalidUrl": "유효한 URL을 입력하세요",
+	"settings.whitelabel.validation.httpsRequired": "로고 URL은 HTTPS 프로토콜을 사용해야 합니다",
+	"settings.whitelabel.validation.maxLength": "최대 {max}자까지 허용됩니다",
+	"settings.common.loading": "로딩 중..."
 }

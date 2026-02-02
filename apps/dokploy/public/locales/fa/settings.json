@@ -40,5 +40,24 @@
 	"settings.appearance.themes.dark": "تاریک",
 	"settings.appearance.themes.system": "سیستم",
 	"settings.appearance.language": "زبان",
-	"settings.appearance.languageDescription": "یک زبان برای داشبورد خود انتخاب کنید"
+	"settings.appearance.languageDescription": "یک زبان برای داشبورد خود انتخاب کنید",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "صفحه ورود را با لوگو و برند خود سفارشی کنید.",
+	"settings.whitelabel.logoUrl": "URL لوگو",
+	"settings.whitelabel.logoUrlDescription": "URL تصویر لوگوی خود را وارد کنید (فقط HTTPS)",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "نام برند",
+	"settings.whitelabel.brandNameDescription": "نام شرکت یا محصول شما",
+	"settings.whitelabel.brandNamePlaceholder": "نام شرکت",
+	"settings.whitelabel.tagline": "شعار",
+	"settings.whitelabel.taglineDescription": "توضیحات کوتاه یا شعار",
+	"settings.whitelabel.taglinePlaceholder": "شعار شما",
+	"settings.whitelabel.success": "تنظیمات whitelabel با موفقیت به‌روزرسانی شد",
+	"settings.whitelabel.error": "به‌روزرسانی تنظیمات whitelabel ناموفق بود",
+	"settings.whitelabel.cloudOnly": "قابلیت whitelabel فقط برای نصب‌های self-hosted در دسترس است.",
+	"settings.whitelabel.validation.invalidUrl": "لطفاً یک URL معتبر وارد کنید",
+	"settings.whitelabel.validation.httpsRequired": "URL لوگو باید از پروتکل HTTPS استفاده کند",
+	"settings.whitelabel.validation.maxLength": "حداکثر {max} کاراکتر مجاز است",
+	"settings.common.loading": "در حال بارگذاری..."
 }

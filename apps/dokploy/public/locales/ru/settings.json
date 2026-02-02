@@ -54,5 +54,24 @@
 	"settings.terminal.connectionSettings": "Настройки подключения",
 	"settings.terminal.ipAddress": "IP адрес",
 	"settings.terminal.port": "Порт",
-	"settings.terminal.username": "Имя пользователя"
+	"settings.terminal.username": "Имя пользователя",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "Настройте страницу входа с вашим логотипом и брендингом.",
+	"settings.whitelabel.logoUrl": "URL логотипа",
+	"settings.whitelabel.logoUrlDescription": "Введите URL изображения вашего логотипа (только HTTPS)",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "Название бренда",
+	"settings.whitelabel.brandNameDescription": "Название вашей компании или продукта",
+	"settings.whitelabel.brandNamePlaceholder": "Название компании",
+	"settings.whitelabel.tagline": "Слоган",
+	"settings.whitelabel.taglineDescription": "Краткое описание или слоган",
+	"settings.whitelabel.taglinePlaceholder": "Ваш слоган",
+	"settings.whitelabel.success": "Настройки whitelabel успешно обновлены",
+	"settings.whitelabel.error": "Не удалось обновить настройки whitelabel",
+	"settings.whitelabel.cloudOnly": "Функция whitelabel доступна только для self-hosted установок.",
+	"settings.whitelabel.validation.invalidUrl": "Пожалуйста, введите действительный URL",
+	"settings.whitelabel.validation.httpsRequired": "URL логотипа должен использовать протокол HTTPS",
+	"settings.whitelabel.validation.maxLength": "Разрешено максимум {max} символов",
+	"settings.common.loading": "Загрузка..."
 }

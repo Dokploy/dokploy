@@ -7,8 +7,22 @@ import { Button } from "../ui/button";
 
 interface Props {
 	children: React.ReactNode;
+	whitelabelLogoUrl?: string | null;
+	whitelabelBrandName?: string | null;
+	whitelabelTagline?: string | null;
 }
-export const OnboardingLayout = ({ children }: Props) => {
+
+export const OnboardingLayout = ({
+	children,
+	whitelabelLogoUrl,
+	whitelabelBrandName,
+	whitelabelTagline,
+}: Props) => {
+	const brandName = whitelabelBrandName || "Dokploy";
+	const tagline =
+		whitelabelTagline ||
+		"The Open Source alternative to Netlify, Vercel, Heroku.";
+
 	return (
 		<div className="container relative min-h-svh flex-col items-center justify-center flex lg:max-w-none lg:grid lg:grid-cols-2 lg:px-0 w-full">
 			<div className="relative hidden h-full flex-col  p-10 text-primary dark:border-r lg:flex">
@@ -17,14 +31,20 @@ export const OnboardingLayout = ({ children }: Props) => {
 					href="https://dokploy.com"
 					className="relative z-20 flex items-center text-lg font-medium gap-4  text-primary"
 				>
-					<Logo className="size-10" />
-					Dokploy
+					<Logo className="size-10" logoUrl={whitelabelLogoUrl || undefined} />
+					<div className="flex flex-col">
+						<span>{brandName}</span>
+						{whitelabelBrandName && (
+							<span className="text-xs text-muted-foreground">
+								powered by Dokploy
+							</span>
+						)}
+					</div>
 				</Link>
 				<div className="relative z-20 mt-auto">
 					<blockquote className="space-y-2">
 						<p className="text-lg text-primary">
-							&ldquo;The Open Source alternative to Netlify, Vercel,
-							Heroku.&rdquo;
+							&ldquo;{tagline}&rdquo;
 						</p>
 					</blockquote>
 				</div>

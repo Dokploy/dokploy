@@ -54,5 +54,24 @@
 	"settings.terminal.connectionSettings": "終端機設定",
 	"settings.terminal.ipAddress": "IP 位址",
 	"settings.terminal.port": "埠",
-	"settings.terminal.username": "使用者名稱"
+	"settings.terminal.username": "使用者名稱",
+
+	"settings.whitelabel.title": "白標",
+	"settings.whitelabel.description": "使用您的徽標和品牌自訂登入頁面。",
+	"settings.whitelabel.logoUrl": "徽標 URL",
+	"settings.whitelabel.logoUrlDescription": "輸入您的徽標圖片 URL（僅 HTTPS）",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "品牌名稱",
+	"settings.whitelabel.brandNameDescription": "您的公司或產品名稱",
+	"settings.whitelabel.brandNamePlaceholder": "公司名稱",
+	"settings.whitelabel.tagline": "標語",
+	"settings.whitelabel.taglineDescription": "簡短的描述或標語",
+	"settings.whitelabel.taglinePlaceholder": "您的標語",
+	"settings.whitelabel.success": "白標設定已成功更新",
+	"settings.whitelabel.error": "更新白標設定失敗",
+	"settings.whitelabel.cloudOnly": "白標功能僅適用於自託管安裝。",
+	"settings.whitelabel.validation.invalidUrl": "請輸入有效的 URL",
+	"settings.whitelabel.validation.httpsRequired": "徽標 URL 必須使用 HTTPS 協議",
+	"settings.whitelabel.validation.maxLength": "最多允許 {max} 個字元",
+	"settings.common.loading": "載入中..."
 }

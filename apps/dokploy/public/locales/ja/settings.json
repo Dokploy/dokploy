@@ -40,5 +40,24 @@
 	"settings.appearance.themes.dark": "ダーク",
 	"settings.appearance.themes.system": "システム",
 	"settings.appearance.language": "言語",
-	"settings.appearance.languageDescription": "ダッシュボードの言語を選択してください"
+	"settings.appearance.languageDescription": "ダッシュボードの言語を選択してください",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "ロゴとブランディングでログインページをカスタマイズします。",
+	"settings.whitelabel.logoUrl": "ロゴURL",
+	"settings.whitelabel.logoUrlDescription": "ロゴ画像のURLを入力してください（HTTPSのみ）",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "ブランド名",
+	"settings.whitelabel.brandNameDescription": "会社または製品名",
+	"settings.whitelabel.brandNamePlaceholder": "会社名",
+	"settings.whitelabel.tagline": "タグライン",
+	"settings.whitelabel.taglineDescription": "短い説明またはスローガン",
+	"settings.whitelabel.taglinePlaceholder": "あなたのタグライン",
+	"settings.whitelabel.success": "Whitelabel設定が正常に更新されました",
+	"settings.whitelabel.error": "Whitelabel設定の更新に失敗しました",
+	"settings.whitelabel.cloudOnly": "Whitelabel機能はセルフホスト型インストールでのみ利用可能です。",
+	"settings.whitelabel.validation.invalidUrl": "有効なURLを入力してください",
+	"settings.whitelabel.validation.httpsRequired": "ロゴURLはHTTPSプロトコルを使用する必要があります",
+	"settings.whitelabel.validation.maxLength": "最大{max}文字まで許可されています",
+	"settings.common.loading": "読み込み中..."
 }

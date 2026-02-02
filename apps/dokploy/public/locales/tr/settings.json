@@ -40,5 +40,24 @@
 	"settings.appearance.themes.dark": "Koyu",
 	"settings.appearance.themes.system": "Sistem",
 	"settings.appearance.language": "Dil",
-	"settings.appearance.languageDescription": "Kontrol paneli için bir dil seçin"
+	"settings.appearance.languageDescription": "Kontrol paneli için bir dil seçin",
+
+	"settings.whitelabel.title": "Whitelabel",
+	"settings.whitelabel.description": "Giriş sayfasını logonuz ve markanızla özelleştirin.",
+	"settings.whitelabel.logoUrl": "Logo URL",
+	"settings.whitelabel.logoUrlDescription": "Logo görselinizin URL'sini girin (sadece HTTPS)",
+	"settings.whitelabel.logoUrlPlaceholder": "https://example.com/logo.png",
+	"settings.whitelabel.brandName": "Marka Adı",
+	"settings.whitelabel.brandNameDescription": "Şirket veya ürün adınız",
+	"settings.whitelabel.brandNamePlaceholder": "Şirket Adı",
+	"settings.whitelabel.tagline": "Slogan",
+	"settings.whitelabel.taglineDescription": "Kısa bir açıklama veya slogan",
+	"settings.whitelabel.taglinePlaceholder": "Sloganınız",
+	"settings.whitelabel.success": "Whitelabel ayarları başarıyla güncellendi",
+	"settings.whitelabel.error": "Whitelabel ayarları güncellenemedi",
+	"settings.whitelabel.cloudOnly": "Whitelabel özelliği sadece self-hosted kurulumlarda kullanılabilir.",
+	"settings.whitelabel.validation.invalidUrl": "Geçerli bir URL girin",
+	"settings.whitelabel.validation.httpsRequired": "Logo URL HTTPS protokolü kullanmalıdır",
+	"settings.whitelabel.validation.maxLength": "Maksimum {max} karakter izin verilir",
+	"settings.common.loading": "Yükleniyor..."
 }
