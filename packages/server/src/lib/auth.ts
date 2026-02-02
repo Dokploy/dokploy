@@ -279,6 +279,16 @@ const { handler, api } = betterAuth({
 				input: true,
 				defaultValue: "",
 			},
+			enableEnterpriseFeatures: {
+				type: "boolean",
+				required: false,
+				input: false,
+			},
+			isValidEnterpriseLicense: {
+				type: "boolean",
+				required: false,
+				input: false,
+			},
 		},
 	},
 	plugins: [
@@ -399,6 +409,8 @@ export const validateRequest = async (request: IncomingMessage) => {
 					twoFactorEnabled: userFromDb.twoFactorEnabled,
 					role: member?.role || "member",
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
+					enableEnterpriseFeatures: userFromDb.enableEnterpriseFeatures,
+					isValidEnterpriseLicense: userFromDb.isValidEnterpriseLicense,
 				},
 			};
 
@@ -437,10 +449,15 @@ export const validateRequest = async (request: IncomingMessage) => {
 			),
 			with: {
 				organization: true,
+				user: true,
 			},
 		});
 
 		session.user.role = member?.role || "member";
+		session.user.enableEnterpriseFeatures =
+			member?.user.enableEnterpriseFeatures || false;
+		session.user.isValidEnterpriseLicense =
+			member?.user.isValidEnterpriseLicense || false;
 		if (member) {
 			session.user.ownerId = member.organization.ownerId;
 		} else {

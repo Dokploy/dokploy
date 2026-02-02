@@ -7,10 +7,8 @@
  * need to use are documented accordingly near the end.
  */
 
-import { user as userSchema } from "@dokploy/server/db/schema";
 import { validateRequest } from "@dokploy/server/lib/auth";
 import type { OpenApiMeta } from "@dokploy/trpc-openapi";
-import { eq } from "drizzle-orm";
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import {
@@ -33,7 +31,14 @@ import { db } from "@/server/db";
  */
 
 interface CreateContextOptions {
-	user: (User & { role: "member" | "admin" | "owner"; ownerId: string }) | null;
+	user:
+		| (User & {
+				role: "member" | "admin" | "owner";
+				ownerId: string;
+				enableEnterpriseFeatures: boolean;
+				isValidEnterpriseLicense: boolean;
+		  })
+		| null;
 	session:
 		| (Session & { activeOrganizationId: string; impersonatedBy?: string })
 		| null;
@@ -234,17 +239,9 @@ export const enterpriseProcedure = t.procedure.use(async ({ ctx, next }) => {
 		throw new TRPCError({ code: "UNAUTHORIZED" });
 	}
 
-	const currentUser = await ctx.db.query.user.findFirst({
-		where: eq(userSchema.id, ctx.user.id),
-		columns: {
-			enableEnterpriseFeatures: true,
-			isValidEnterpriseLicense: true,
-		},
-	});
-
 	if (
-		!currentUser?.enableEnterpriseFeatures ||
-		!currentUser.isValidEnterpriseLicense
+		!ctx.user?.enableEnterpriseFeatures ||
+		!ctx.user.isValidEnterpriseLicense
 	) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
