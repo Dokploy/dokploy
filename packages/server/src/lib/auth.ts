@@ -19,13 +19,13 @@ import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
 import { sendEmail } from "../verification/send-verification-email";
 import { getPublicIpWithFallback } from "../wss/utils";
 
-export const { handler, api } = betterAuth({
+const { handler, api } = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: schema,
 	}),
 	disabledPaths: [
-		// "/sso/register",
+		"/sso/register",
 		"/organization/create",
 		"/organization/update",
 		"/organization/delete",
@@ -44,35 +44,33 @@ export const { handler, api } = betterAuth({
 	logger: {
 		disabled: process.env.NODE_ENV === "production",
 	},
-	// ...(!IS_CLOUD && {
-	async trustedOrigins() {
-		const settings = await getWebServerSettings();
-		if (!settings) {
-			return [];
-		}
+	...(!IS_CLOUD && {
+		async trustedOrigins() {
+			const settings = await getWebServerSettings();
+			if (!settings) {
+				return [];
+			}
 
-		const providers = await getSSOProviders();
-		const issuerOrigins = providers.map((provider) => provider.issuer);
+			const providers = await getSSOProviders();
+			const issuerOrigins = providers.map((provider) => provider.issuer);
 
-		return [
-			...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
-			...(settings?.host ? [`https://${settings?.host}`] : []),
-			...issuerOrigins,
-			...(process.env.NODE_ENV === "development"
-				? [
-						"http://localhost:3000",
-						"https://absolutely-handy-falcon.ngrok-free.app",
-						"https://dev-pee8hhc3qbjlqedb.us.auth0.com",
-						"https://trial-2804699.okta.com",
-						"https://login.microsoftonline.com",
-						"https://graph.microsoft.com",
-					]
-				: []),
-		];
-	},
-	// Untrusted OIDC discovery URL: The main discovery endpoint "https://login.microsoftonline.com/9f26c287-38e9-4731-9d1d-506365a6cc8e/.well-known/openid-configuration" is not trusted by your trusted origins configuration.
-
-	// }),
+			return [
+				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
+				...(settings?.host ? [`https://${settings?.host}`] : []),
+				...issuerOrigins,
+				...(process.env.NODE_ENV === "development"
+					? [
+							"http://localhost:3000",
+							"https://absolutely-handy-falcon.ngrok-free.app",
+							"https://dev-pee8hhc3qbjlqedb.us.auth0.com",
+							"https://trial-2804699.okta.com",
+							"https://login.microsoftonline.com",
+							"https://graph.microsoft.com",
+						]
+					: []),
+			];
+		},
+	}),
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
