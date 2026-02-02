@@ -71,22 +71,11 @@ export const buildRedis = async (redis: RedisNested) => {
 				Image: dockerImage,
 				Env: envVariables,
 				Mounts: [...volumesMount, ...bindsMount, ...filesMount],
-				...(StopGracePeriod !== null &&
-					StopGracePeriod !== undefined && { StopGracePeriod }),
-				...(command || args
-					? {
-							...(command && {
-								Command: command.split(" "),
-							}),
-							...(args &&
-								args.length > 0 && {
-									Args: args,
-								}),
-						}
-					: {
-							Command: ["/bin/sh"],
-							Args: ["-c", `redis-server --requirepass ${databasePassword}`],
-						}),
+				Command: [command ? "/bin/sh" : "docker-entrypoint.sh"],
+				Args: [
+					"-c",
+					command ? command : `redis-server --requirepass ${databasePassword}`,
+				],
 				Labels,
 			},
 			Networks,
@@ -114,6 +103,8 @@ export const buildRedis = async (redis: RedisNested) => {
 						: [],
 				},
 		UpdateConfig,
+		...(StopGracePeriod !== undefined &&
+			StopGracePeriod !== null && { StopGracePeriod }),
 	};
 
 	try {
