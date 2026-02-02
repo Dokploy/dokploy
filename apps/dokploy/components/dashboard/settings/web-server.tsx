@@ -57,6 +57,9 @@ export const WebServer = () => {
 								Server IP: {webServerSettings?.serverIp}
 							</span>
 							<span className="text-sm text-muted-foreground">
+								External Host: {webServerSettings?.externalHost || "—"}
+							</span>
+							<span className="text-sm text-muted-foreground">
 								Version: {dokployVersion}
 							</span>
 

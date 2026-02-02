@@ -189,9 +189,15 @@ export const mongoRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
-			await updateMongoById(input.mongoId, {
+			const externalHost =
+				input.externalHost === undefined
+					? undefined
+					: input.externalHost?.trim() || null;
+			const updatePayload = {
 				externalPort: input.externalPort,
-			});
+				...(externalHost !== undefined ? { externalHost } : {}),
+			};
+			await updateMongoById(input.mongoId, updatePayload);
 			await deployMongo(input.mongoId);
 			return mongo;
 		}),

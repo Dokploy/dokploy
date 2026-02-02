@@ -192,9 +192,15 @@ export const postgresRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
-			await updatePostgresById(input.postgresId, {
+			const externalHost =
+				input.externalHost === undefined
+					? undefined
+					: input.externalHost?.trim() || null;
+			const updatePayload = {
 				externalPort: input.externalPort,
-			});
+				...(externalHost !== undefined ? { externalHost } : {}),
+			};
+			await updatePostgresById(input.postgresId, updatePayload);
 			await deployPostgres(input.postgresId);
 			return postgres;
 		}),

@@ -172,9 +172,15 @@ export const mariadbRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
-			await updateMariadbById(input.mariadbId, {
+			const externalHost =
+				input.externalHost === undefined
+					? undefined
+					: input.externalHost?.trim() || null;
+			const updatePayload = {
 				externalPort: input.externalPort,
-			});
+				...(externalHost !== undefined ? { externalHost } : {}),
+			};
+			await updateMariadbById(input.mariadbId, updatePayload);
 			await deployMariadb(input.mariadbId);
 			return mongo;
 		}),

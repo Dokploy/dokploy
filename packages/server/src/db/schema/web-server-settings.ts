@@ -12,6 +12,7 @@ export const webServerSettings = pgTable("webServerSettings", {
 		.$defaultFn(() => nanoid()),
 	// Web Server Configuration
 	serverIp: text("serverIp"),
+	externalHost: text("externalHost"),
 	certificateType: certificateType("certificateType").notNull().default("none"),
 	https: boolean("https").notNull().default(false),
 	host: text("host"),
@@ -91,6 +92,7 @@ const createSchema = createInsertSchema(webServerSettings, {
 
 export const apiUpdateWebServerSettings = createSchema.partial().extend({
 	serverIp: z.string().optional(),
+	externalHost: z.string().optional().nullable(),
 	certificateType: z.enum(["letsencrypt", "none", "custom"]).optional(),
 	https: z.boolean().optional(),
 	host: z.string().optional(),

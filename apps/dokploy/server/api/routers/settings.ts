@@ -510,14 +510,20 @@ export const settingsRouter = createTRPCRouter({
 		.input(
 			z.object({
 				serverIp: z.string(),
+				externalHost: z.string().optional().nullable(),
 			}),
 		)
 		.mutation(async ({ input }) => {
 			if (IS_CLOUD) {
 				return true;
 			}
+			const externalHost =
+				input.externalHost === undefined
+					? undefined
+					: input.externalHost?.trim() || null;
 			const settings = await updateWebServerSettings({
 				serverIp: input.serverIp,
+				...(externalHost !== undefined ? { externalHost } : {}),
 			});
 			return settings;
 		}),

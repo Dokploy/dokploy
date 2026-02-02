@@ -21,6 +21,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -47,6 +48,7 @@ const Schema = z.object({
 	ipAddress: z.string().min(1, {
 		message: "IP Address is required",
 	}),
+	externalHost: z.string().optional(),
 	port: z.number().optional(),
 	username: z.string().optional(),
 	sshKeyId: z.string().min(1, {
@@ -88,6 +90,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			description: "",
 			name: "",
 			ipAddress: "",
+			externalHost: "",
 			port: 22,
 			username: "root",
 			sshKeyId: "",
@@ -101,6 +104,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			description: data?.description || "",
 			name: data?.name || "",
 			ipAddress: data?.ipAddress || "",
+			externalHost: data?.externalHost || "",
 			port: data?.port || 22,
 			username: data?.username || "root",
 			sshKeyId: data?.sshKeyId || "",
@@ -117,6 +121,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 			name: data.name,
 			description: data.description || "",
 			ipAddress: data.ipAddress?.trim() || "",
+			externalHost: data.externalHost?.trim() || null,
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
@@ -403,6 +408,27 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 								)}
 							/>
 						</div>
+						<FormField
+							control={form.control}
+							name="externalHost"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>External Hostname (optional)</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="db.example.com"
+											{...field}
+											value={field.value || ""}
+										/>
+									</FormControl>
+									<FormDescription>
+										Used as the default host for external database credentials
+										on this server.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
 						<FormField
 							control={form.control}

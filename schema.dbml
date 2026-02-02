@@ -553,6 +553,7 @@ table mariadb {
   cpuReservation text
   cpuLimit text
   externalPort integer
+  externalHost text
   applicationStatus applicationStatus [not null, default: 'idle']
   healthCheckSwarm json
   restartPolicySwarm json
@@ -608,6 +609,7 @@ table mongo {
   cpuReservation text
   cpuLimit text
   externalPort integer
+  externalHost text
   applicationStatus applicationStatus [not null, default: 'idle']
   healthCheckSwarm json
   restartPolicySwarm json
@@ -660,6 +662,7 @@ table mysql {
   cpuReservation text
   cpuLimit text
   externalPort integer
+  externalHost text
   applicationStatus applicationStatus [not null, default: 'idle']
   healthCheckSwarm json
   restartPolicySwarm json
@@ -738,6 +741,7 @@ table postgres {
   env text
   memoryReservation text
   externalPort integer
+  externalHost text
   memoryLimit text
   cpuReservation text
   cpuLimit text
@@ -806,6 +810,7 @@ table redis {
   cpuReservation text
   cpuLimit text
   externalPort integer
+  externalHost text
   createdAt text [not null]
   applicationStatus applicationStatus [not null, default: 'idle']
   healthCheckSwarm json
@@ -878,6 +883,7 @@ table server {
   name text [not null]
   description text
   ipAddress text [not null]
+  externalHost text
   port integer [not null]
   username text [not null, default: 'root']
   appName text [not null]

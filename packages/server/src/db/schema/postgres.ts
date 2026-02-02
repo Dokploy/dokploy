@@ -48,6 +48,7 @@ export const postgres = pgTable("postgres", {
 	env: text("env"),
 	memoryReservation: text("memoryReservation"),
 	externalPort: integer("externalPort"),
+	externalHost: text("externalHost"),
 	memoryLimit: text("memoryLimit"),
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
@@ -119,6 +120,7 @@ const createSchema = createInsertSchema(postgres, {
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
+	externalHost: z.string().optional().nullable(),
 	createdAt: z.string(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
@@ -171,7 +173,10 @@ export const apiSaveExternalPortPostgres = createSchema
 		postgresId: true,
 		externalPort: true,
 	})
-	.required();
+	.required()
+	.extend({
+		externalHost: z.string().optional().nullable(),
+	});
 
 export const apiDeployPostgres = createSchema
 	.pick({

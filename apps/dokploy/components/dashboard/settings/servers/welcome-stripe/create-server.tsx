@@ -11,6 +11,7 @@ import { DialogFooter } from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -37,6 +38,7 @@ const Schema = z.object({
 	ipAddress: z.string().min(1, {
 		message: "IP Address is required",
 	}),
+	externalHost: z.string().optional(),
 	port: z.number().optional(),
 	username: z.string().optional(),
 	sshKeyId: z.string().min(1, {
@@ -65,6 +67,7 @@ export const CreateServer = ({ stepper }: Props) => {
 			description: "Dokploy Cloud Server",
 			name: "My First Server",
 			ipAddress: "",
+			externalHost: "",
 			port: 22,
 			username: "root",
 			sshKeyId: cloudSSHKey?.sshKeyId || "",
@@ -77,6 +80,7 @@ export const CreateServer = ({ stepper }: Props) => {
 			description: "Dokploy Cloud Server",
 			name: "My First Server",
 			ipAddress: "",
+			externalHost: "",
 			port: 22,
 			username: "root",
 			sshKeyId: cloudSSHKey?.sshKeyId || "",
@@ -92,6 +96,7 @@ export const CreateServer = ({ stepper }: Props) => {
 			name: data.name,
 			description: data.description || "",
 			ipAddress: data.ipAddress?.trim() || "",
+			externalHost: data.externalHost?.trim() || null,
 			port: data.port || 22,
 			username: data.username || "root",
 			sshKeyId: data.sshKeyId || "",
@@ -249,6 +254,27 @@ export const CreateServer = ({ stepper }: Props) => {
 								)}
 							/>
 						</div>
+						<FormField
+							control={form.control}
+							name="externalHost"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>External Hostname (optional)</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="db.example.com"
+											{...field}
+											value={field.value || ""}
+										/>
+									</FormControl>
+									<FormDescription>
+										Used as the default host for external database credentials
+										on this server.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
 						<FormField
 							control={form.control}

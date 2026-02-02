@@ -187,9 +187,15 @@ export const mysqlRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
-			await updateMySqlById(input.mysqlId, {
+			const externalHost =
+				input.externalHost === undefined
+					? undefined
+					: input.externalHost?.trim() || null;
+			const updatePayload = {
 				externalPort: input.externalPort,
-			});
+				...(externalHost !== undefined ? { externalHost } : {}),
+			};
+			await updateMySqlById(input.mysqlId, updatePayload);
 			await deployMySql(input.mysqlId);
 			return mongo;
 		}),

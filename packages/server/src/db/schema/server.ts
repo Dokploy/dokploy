@@ -34,6 +34,7 @@ export const server = pgTable("server", {
 	name: text("name").notNull(),
 	description: text("description"),
 	ipAddress: text("ipAddress").notNull(),
+	externalHost: text("externalHost"),
 	port: integer("port").notNull(),
 	username: text("username").notNull().default("root"),
 	appName: text("appName")
@@ -133,6 +134,7 @@ const createSchema = createInsertSchema(server, {
 	serverId: z.string().min(1),
 	name: z.string().min(1),
 	description: z.string().optional(),
+	externalHost: z.string().optional().nullable(),
 });
 
 export const apiCreateServer = createSchema
@@ -145,7 +147,10 @@ export const apiCreateServer = createSchema
 		sshKeyId: true,
 		serverType: true,
 	})
-	.required();
+	.required()
+	.extend({
+		externalHost: z.string().optional().nullable(),
+	});
 
 export const apiFindOneServer = createSchema
 	.pick({
@@ -173,6 +178,7 @@ export const apiUpdateServer = createSchema
 	.required()
 	.extend({
 		command: z.string().optional(),
+		externalHost: z.string().optional().nullable(),
 	});
 
 export const apiUpdateServerMonitoring = createSchema

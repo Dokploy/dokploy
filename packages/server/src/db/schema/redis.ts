@@ -48,6 +48,7 @@ export const redis = pgTable("redis", {
 	cpuReservation: text("cpuReservation"),
 	cpuLimit: text("cpuLimit"),
 	externalPort: integer("externalPort"),
+	externalHost: text("externalHost"),
 	createdAt: text("createdAt")
 		.notNull()
 		.$defaultFn(() => new Date().toISOString()),
@@ -108,6 +109,7 @@ const createSchema = createInsertSchema(redis, {
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
+	externalHost: z.string().optional().nullable(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
@@ -157,7 +159,10 @@ export const apiSaveExternalPortRedis = createSchema
 		redisId: true,
 		externalPort: true,
 	})
-	.required();
+	.required()
+	.extend({
+		externalHost: z.string().optional().nullable(),
+	});
 
 export const apiDeployRedis = createSchema
 	.pick({

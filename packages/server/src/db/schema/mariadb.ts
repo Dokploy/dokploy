@@ -54,6 +54,7 @@ export const mariadb = pgTable("mariadb", {
 	cpuLimit: text("cpuLimit"),
 	//
 	externalPort: integer("externalPort"),
+	externalHost: text("externalHost"),
 	applicationStatus: applicationStatus("applicationStatus")
 		.notNull()
 		.default("idle"),
@@ -129,6 +130,7 @@ const createSchema = createInsertSchema(mariadb, {
 	environmentId: z.string(),
 	applicationStatus: z.enum(["idle", "running", "done", "error"]),
 	externalPort: z.number(),
+	externalHost: z.string().optional().nullable(),
 	description: z.string().optional(),
 	serverId: z.string().optional(),
 	healthCheckSwarm: HealthCheckSwarmSchema.nullable(),
@@ -181,7 +183,10 @@ export const apiSaveExternalPortMariaDB = createSchema
 		mariadbId: true,
 		externalPort: true,
 	})
-	.required();
+	.required()
+	.extend({
+		externalHost: z.string().optional().nullable(),
+	});
 
 export const apiDeployMariaDB = createSchema
 	.pick({

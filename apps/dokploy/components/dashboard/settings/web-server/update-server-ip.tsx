@@ -18,6 +18,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -34,6 +35,7 @@ import { api } from "@/utils/api";
 
 const schema = z.object({
 	serverIp: z.string(),
+	externalHost: z.string().optional(),
 });
 
 type Schema = z.infer<typeof schema>;
@@ -55,6 +57,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 	const form = useForm<Schema>({
 		defaultValues: {
 			serverIp: data?.serverIp || "",
+			externalHost: data?.externalHost || "",
 		},
 		resolver: zodResolver(schema),
 	});
@@ -63,6 +66,7 @@ export const UpdateServerIp = ({ children }: Props) => {
 		if (data) {
 			form.reset({
 				serverIp: data.serverIp || "",
+				externalHost: data.externalHost || "",
 			});
 		}
 	}, [form, form.reset, data]);
@@ -73,8 +77,10 @@ export const UpdateServerIp = ({ children }: Props) => {
 	};
 
 	const onSubmit = async (data: Schema) => {
+		const externalHost = data.externalHost?.trim() || null;
 		await mutateAsync({
 			serverIp: data.serverIp,
+			externalHost,
 		})
 			.then(async () => {
 				toast.success("Server IP Updated");
@@ -92,7 +98,9 @@ export const UpdateServerIp = ({ children }: Props) => {
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Update Server IP</DialogTitle>
-					<DialogDescription>Update the IP of the server</DialogDescription>
+					<DialogDescription>
+						Update the IP or external hostname of the server
+					</DialogDescription>
 				</DialogHeader>
 				{isError && <AlertBlock type="error">{error?.message}</AlertBlock>}
 
@@ -133,6 +141,29 @@ export const UpdateServerIp = ({ children }: Props) => {
 											</TooltipProvider>
 										</div>
 									</FormControl>
+									<pre>
+										<FormMessage />
+									</pre>
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="externalHost"
+							render={({ field }) => (
+								<FormItem className="mt-4">
+									<FormLabel>External Hostname (optional)</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="db.example.com"
+											{...field}
+											value={field.value || ""}
+										/>
+									</FormControl>
+									<FormDescription>
+										Used as the default host for external database credentials
+										(to avoid exposing the server IP).
+									</FormDescription>
 									<pre>
 										<FormMessage />
 									</pre>

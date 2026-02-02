@@ -211,9 +211,15 @@ export const redisRouter = createTRPCRouter({
 					message: "You are not authorized to save this external port",
 				});
 			}
-			await updateRedisById(input.redisId, {
+			const externalHost =
+				input.externalHost === undefined
+					? undefined
+					: input.externalHost?.trim() || null;
+			const updatePayload = {
 				externalPort: input.externalPort,
-			});
+				...(externalHost !== undefined ? { externalHost } : {}),
+			};
+			await updateRedisById(input.redisId, updatePayload);
 			await deployRedis(input.redisId);
 			return mongo;
 		}),

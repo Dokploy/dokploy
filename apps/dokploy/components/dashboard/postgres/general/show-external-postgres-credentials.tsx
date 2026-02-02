@@ -17,6 +17,7 @@ import {
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -38,6 +39,7 @@ const DockerProviderSchema = z.object({
 		.gte(0, "Range must be 0 - 65535")
 		.lte(65535, "Range must be 0 - 65535")
 		.nullable()),
+	externalHost: z.string().optional(),
 });
 
 type DockerProvider = z.infer<typeof DockerProviderSchema>;
@@ -47,28 +49,34 @@ interface Props {
 }
 export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 	const { data: ip } = api.settings.getIp.useQuery();
+	const { data: webServerSettings } =
+		api.settings.getWebServerSettings.useQuery();
 	const { data, refetch } = api.postgres.one.useQuery({ postgresId });
 	const { mutateAsync, isLoading } =
 		api.postgres.saveExternalPort.useMutation();
-	const getIp = data?.server?.ipAddress || ip;
 	const [connectionUrl, setConnectionUrl] = useState("");
+	const getIp = data?.server?.ipAddress || ip;
 
 	const form = useForm<DockerProvider>({
-		defaultValues: {},
+		defaultValues: {
+			externalHost: "",
+		},
 		resolver: zodResolver(DockerProviderSchema),
 	});
 
 	useEffect(() => {
-		if (data?.externalPort) {
-			form.reset({
-				externalPort: data.externalPort,
-			});
-		}
-	}, [form.reset, data, form]);
+		if (!data) return;
+		form.reset({
+			externalPort: data.externalPort ?? null,
+			externalHost: data.externalHost || "",
+		});
+	}, [form, form.reset, data]);
 
 	const onSubmit = async (values: DockerProvider) => {
+		const externalHost = values.externalHost?.trim() || null;
 		await mutateAsync({
 			externalPort: values.externalPort,
+			externalHost,
 			postgresId,
 		})
 			.then(async () => {
@@ -80,21 +88,30 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 			});
 	};
 
+	const externalHostInput = form.watch("externalHost");
+	const externalPort = form.watch("externalPort") || data?.externalPort;
+	const isRemoteServer = !!data?.serverId;
+	const resolvedHost =
+		externalHostInput?.trim() ||
+		data?.externalHost ||
+		data?.server?.externalHost ||
+		(!isRemoteServer ? webServerSettings?.externalHost : undefined) ||
+		getIp;
+
 	useEffect(() => {
-		const buildConnectionUrl = () => {
-			const port = form.watch("externalPort") || data?.externalPort;
-
-			return `postgresql://${data?.databaseUser}:${data?.databasePassword}@${getIp}:${port}/${data?.databaseName}`;
-		};
-
-		setConnectionUrl(buildConnectionUrl());
+		if (!externalPort || !resolvedHost) {
+			setConnectionUrl("");
+			return;
+		}
+		setConnectionUrl(
+			`postgresql://${data?.databaseUser}:${data?.databasePassword}@${resolvedHost}:${externalPort}/${data?.databaseName}`,
+		);
 	}, [
-		data?.appName,
-		data?.externalPort,
 		data?.databasePassword,
-		form,
 		data?.databaseName,
-		getIp,
+		data?.databaseUser,
+		externalPort,
+		resolvedHost,
 	]);
 
 	return (
@@ -106,20 +123,21 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 						<CardDescription>
 							In order to make the database reachable through the internet, you
 							must set a port and ensure that the port is not being used by
-							another application or database
+							another application or database. Optionally, set an external
+							hostname to hide the server IP behind DNS or Zero Trust.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="flex w-full flex-col gap-4">
-						{!getIp && (
+						{!resolvedHost && (
 							<AlertBlock type="warning">
-								You need to set an IP address in your{" "}
+								You need to set an IP address or external hostname in your{" "}
 								<Link
 									href="/dashboard/settings/server"
 									className="text-primary"
 								>
 									{data?.serverId
-										? "Remote Servers -> Server -> Edit Server -> Update IP Address"
-										: "Web Server -> Server -> Update Server IP"}
+										? "Remote Servers -> Server -> Edit Server -> Update IP/External Host"
+										: "Web Server -> Server -> Update Server IP/External Host"}
 								</Link>{" "}
 								to fix the database url connection.
 							</AlertBlock>
@@ -145,6 +163,31 @@ export const ShowExternalPostgresCredentials = ({ postgresId }: Props) => {
 																value={field.value || ""}
 															/>
 														</FormControl>
+														<FormMessage />
+													</FormItem>
+												);
+											}}
+										/>
+										<FormField
+											control={form.control}
+											name="externalHost"
+											render={({ field }) => {
+												return (
+													<FormItem>
+														<FormLabel>
+															External Hostname (optional)
+														</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="db.example.com"
+																{...field}
+																value={field.value || ""}
+															/>
+														</FormControl>
+														<FormDescription>
+															Overrides the server or global external host for
+															this database URL.
+														</FormDescription>
 														<FormMessage />
 													</FormItem>
 												);
