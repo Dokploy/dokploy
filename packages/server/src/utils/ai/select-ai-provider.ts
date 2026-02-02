@@ -103,7 +103,7 @@ export const getProviderHeaders = (
 	// Mistral
 	if (apiUrl.includes("mistral")) {
 		return {
-			Authorization: apiKey,
+			Authorization: `Bearer ${apiKey}`,
 		};
 	}
 
