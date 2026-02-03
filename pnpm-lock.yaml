@@ -38,19 +38,19 @@ importers:
         version: link:../../packages/server
       '@hono/node-server':
         specifier: ^1.14.3
-        version: 1.14.3(hono@4.7.10)
+        version: 1.14.3(hono@4.11.7)
       '@hono/zod-validator':
         specifier: 0.3.0
-        version: 0.3.0(hono@4.7.10)(zod@3.25.32)
+        version: 0.3.0(hono@4.11.7)(zod@3.25.32)
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
       hono:
-        specifier: ^4.7.10
-        version: 4.7.10
+        specifier: ^4.11.7
+        version: 4.11.7
       inngest:
         specifier: 3.40.1
-        version: 3.40.1(h3@1.15.3)(hono@4.7.10)(next@16.1.6(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(typescript@5.8.3)
+        version: 3.40.1(h3@1.15.3)(hono@4.11.7)(next@16.1.6(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(typescript@5.8.3)
       pino:
         specifier: 9.4.0
         version: 9.4.0
@@ -532,10 +532,10 @@ importers:
         version: link:../../packages/server
       '@hono/node-server':
         specifier: ^1.14.3
-        version: 1.14.3(hono@4.7.10)
+        version: 1.14.3(hono@4.11.7)
       '@hono/zod-validator':
         specifier: 0.3.0
-        version: 0.3.0(hono@4.7.10)(zod@3.25.32)
+        version: 0.3.0(hono@4.11.7)(zod@3.25.32)
       bullmq:
         specifier: 5.4.2
         version: 5.4.2
@@ -546,8 +546,8 @@ importers:
         specifier: ^0.41.0
         version: 0.41.0(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0(prisma@5.22.0))(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.6.2)(gel@2.1.0)(kysely@0.28.7)(pg@8.17.2)(postgres@3.4.4)(prisma@5.22.0)
       hono:
-        specifier: ^4.7.10
-        version: 4.7.10
+        specifier: ^4.11.7
+        version: 4.11.7
       ioredis:
         specifier: 5.4.1
         version: 5.4.1
@@ -5814,8 +5814,8 @@ packages:
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
-  hono@4.7.10:
-    resolution: {integrity: sha512-QkACju9MiN59CKSY5JsGZCYmPZkA6sIW6OFCUp7qDjZu6S6KHtJHhAc9Uy9mV9F8PJ1/HQ3ybZF2yjCa/73fvQ==}
+  hono@4.11.7:
+    resolution: {integrity: sha512-l7qMiNee7t82bH3SeyUCt9UF15EVmaBvsppY2zQtrbIhl/yzBTny+YUxsVjSjQ6gaqaeVtZmGocom8TzBlA4Yw==}
     engines: {node: '>=16.9.0'}
 
   html-parse-stringify@3.0.1:
@@ -9289,13 +9289,13 @@ snapshots:
 
   '@hapi/bourne@3.0.0': {}
 
-  '@hono/node-server@1.14.3(hono@4.7.10)':
+  '@hono/node-server@1.14.3(hono@4.11.7)':
     dependencies:
-      hono: 4.7.10
+      hono: 4.11.7
 
-  '@hono/zod-validator@0.3.0(hono@4.7.10)(zod@3.25.32)':
+  '@hono/zod-validator@0.3.0(hono@4.11.7)(zod@3.25.32)':
     dependencies:
-      hono: 4.7.10
+      hono: 4.11.7
       zod: 3.25.32
 
   '@hookform/resolvers@3.10.0(react-hook-form@7.56.4(react@18.2.0))':
@@ -13637,7 +13637,7 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono@4.7.10: {}
+  hono@4.11.7: {}
 
   html-parse-stringify@3.0.1:
     dependencies:
@@ -13735,7 +13735,7 @@ snapshots:
 
   inline-style-parser@0.2.4: {}
 
-  inngest@3.40.1(h3@1.15.3)(hono@4.7.10)(next@16.1.6(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(typescript@5.8.3):
+  inngest@3.40.1(h3@1.15.3)(hono@4.11.7)(next@16.1.6(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(typescript@5.8.3):
     dependencies:
       '@bufbuild/protobuf': 2.6.3
       '@inngest/ai': 0.1.5
@@ -13761,7 +13761,7 @@ snapshots:
       zod: 3.22.5
     optionalDependencies:
       h3: 1.15.3
-      hono: 4.7.10
+      hono: 4.11.7
       next: 16.1.6(@babel/core@7.28.6)(@opentelemetry/api@1.9.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       typescript: 5.8.3
     transitivePeerDependencies:
