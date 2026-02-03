@@ -75,6 +75,7 @@ export const backups = pgTable("backup", {
 		onDelete: "cascade",
 	}),
 	userId: text("userId").references(() => user.id),
+	rcloneExtraFlags: text("rcloneExtraFlags"),
 	// Only for compose backups
 	metadata: jsonb("metadata").$type<
 		| {
@@ -189,6 +190,7 @@ export const apiUpdateBackup = createSchema
 		serviceName: true,
 		metadata: true,
 		databaseType: true,
+		rcloneExtraFlags: true,
 	})
 	.required();
 

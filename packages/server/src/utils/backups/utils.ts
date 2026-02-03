@@ -68,6 +68,10 @@ export const getS3Credentials = (destination: Destination) => {
 		`--s3-endpoint="${endpoint}"`,
 		"--s3-no-check-bucket",
 		"--s3-force-path-style",
+		"--low-level-retries 10",
+		"--retries 5",
+		"--contimeout 60s",
+		"--timeout 300s",
 	];
 
 	if (provider) {
@@ -75,6 +79,12 @@ export const getS3Credentials = (destination: Destination) => {
 	}
 
 	return rcloneFlags;
+};
+
+export const scrubLogs = (input: string) => {
+	return input
+		.replace(/--s3-access-key-id="[^"]*"/g, '--s3-access-key-id="***"')
+		.replace(/--s3-secret-access-key="[^"]*"/g, '--s3-secret-access-key="***"');
 };
 
 export const getPostgresBackupCommand = (
@@ -227,8 +237,8 @@ export const getBackupCommand = (
 	logger.info(
 		{
 			containerSearch,
-			backupCommand,
-			rcloneCommand,
+			backupCommand: scrubLogs(backupCommand || ""),
+			rcloneCommand: scrubLogs(rcloneCommand),
 			logPath,
 		},
 		`Executing backup command: ${backup.databaseType} ${backup.backupType}`,
@@ -250,7 +260,7 @@ export const getBackupCommand = (
 	# Run the backup command and capture the exit status
 	BACKUP_OUTPUT=$(${backupCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Backup failed" >> ${logPath};
-		echo "Error: $BACKUP_OUTPUT" >> ${logPath};
+		echo "Error: $(echo "$BACKUP_OUTPUT" | sed 's/--s3-access-key-id=[^ ]*/--s3-access-key-id=***/g' | sed 's/--s3-secret-access-key=[^ ]*/--s3-secret-access-key=***/g')" >> ${logPath};
 		exit 1;
 	}
 
@@ -260,7 +270,7 @@ export const getBackupCommand = (
 	# Run the upload command and capture the exit status
 	UPLOAD_OUTPUT=$(${backupCommand} | ${rcloneCommand} 2>&1 >/dev/null) || {
 		echo "[$(date)] ❌ Error: Upload to S3 failed" >> ${logPath};
-		echo "Error: $UPLOAD_OUTPUT" >> ${logPath};
+		echo "Error: $(echo "$UPLOAD_OUTPUT" | sed 's/--s3-access-key-id=[^ ]*/--s3-access-key-id=***/g' | sed 's/--s3-secret-access-key=[^ ]*/--s3-secret-access-key=***/g')" >> ${logPath};
 		exit 1;
 	}
 
