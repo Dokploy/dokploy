@@ -101,31 +101,15 @@ export const NetworkForm = ({ id, type }: NetworkFormProps) => {
 			// If no networks, send null to clear the database
 			const networksToSend = networksArray.length > 0 ? networksArray : null;
 
-			const mutationPayload: any = { networkSwarm: networksToSend };
-
-			// Add the appropriate ID based on type
-			switch (type) {
-				case "application":
-					mutationPayload.applicationId = id;
-					break;
-				case "postgres":
-					mutationPayload.postgresId = id;
-					break;
-				case "redis":
-					mutationPayload.redisId = id;
-					break;
-				case "mysql":
-					mutationPayload.mysqlId = id;
-					break;
-				case "mariadb":
-					mutationPayload.mariadbId = id;
-					break;
-				case "mongo":
-					mutationPayload.mongoId = id;
-					break;
-			}
-
-			await mutateAsync(mutationPayload);
+			await mutateAsync({
+				applicationId: id || "",
+				postgresId: id || "",
+				redisId: id || "",
+				mysqlId: id || "",
+				mariadbId: id || "",
+				mongoId: id || "",
+				networkSwarm: networksToSend,
+			});
 
 			toast.success("Network configuration updated successfully");
 			refetch();
