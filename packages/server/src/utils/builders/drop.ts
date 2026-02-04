@@ -71,10 +71,7 @@ export const unzipDrop = async (zipFile: File, application: Application) => {
 					if (sftp === null) throw new Error("No SFTP connection available");
 					try {
 						const dirPath = path.dirname(fullPath);
-						await execAsyncRemote(
-							targetServerId,
-							`mkdir -p "${dirPath}"`,
-						);
+						await execAsyncRemote(targetServerId, `mkdir -p "${dirPath}"`);
 						await uploadFileToServer(sftp, entry.getData(), fullPath);
 					} catch (err) {
 						console.error(`Error uploading file ${fullPath}:`, err);
