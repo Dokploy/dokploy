@@ -8,7 +8,7 @@
 		"build": "npm run build-server && npm run build-next",
 		"start": "node -r dotenv/config dist/server.mjs",
 		"build-server": "tsx esbuild.config.ts",
-		"build-next": "next build",
+		"build-next": "next build --webpack",
 		"setup": "tsx -r dotenv/config setup.ts && sleep 5 && pnpm run migration:run",
 		"reset-password": "node -r dotenv/config dist/reset-password.mjs",
 		"reset-2fa": "node -r dotenv/config dist/reset-2fa.mjs",
