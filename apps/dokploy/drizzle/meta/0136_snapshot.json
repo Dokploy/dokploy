@@ -1,6 +1,6 @@
 {
-  "id": "3f56c8d0-1d0d-4791-9c4a-06be622dc244",
-  "prevId": "5958b029-1fb9-4a44-be24-c96b4e899b84",
+  "id": "5958b029-1fb9-4a44-be24-c96b4e899b84",
+  "prevId": "7b077373-c084-4232-864e-8d52adaa9258",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -4492,12 +4492,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "resendId": {
-          "name": "resendId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "gotifyId": {
           "name": "gotifyId",
           "type": "text",
@@ -4585,19 +4579,6 @@
           ],
           "columnsTo": [
             "emailId"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "notification_resendId_resend_resendId_fk": {
-          "name": "notification_resendId_resend_resendId_fk",
-          "tableFrom": "notification",
-          "tableTo": "resend",
-          "columnsFrom": [
-            "resendId"
-          ],
-          "columnsTo": [
-            "resendId"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -4771,43 +4752,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.resend": {
-      "name": "resend",
-      "schema": "",
-      "columns": {
-        "resendId": {
-          "name": "resendId",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "apiKey": {
-          "name": "apiKey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "fromAddress": {
-          "name": "fromAddress",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "toAddress": {
-          "name": "toAddress",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {},
@@ -7000,7 +6944,6 @@
         "telegram",
         "discord",
         "email",
-        "resend",
         "gotify",
         "ntfy",
         "pushover",
