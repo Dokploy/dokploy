@@ -960,34 +960,6 @@
       "when": 1769580434296,
       "tag": "0136_tidy_puff_adder",
       "breakpoints": true
-    },
-    {
-      "idx": 137,
-      "version": "7",
-      "when": 1769616589728,
-      "tag": "0137_naive_power_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 138,
-      "version": "7",
-      "when": 1769745328628,
-      "tag": "0138_common_mathemanic",
-      "breakpoints": true
-    },
-    {
-      "idx": 139,
-      "version": "7",
-      "when": 1769746948088,
-      "tag": "0139_smiling_havok",
-      "breakpoints": true
-    },
-    {
-      "idx": 140,
-      "version": "7",
-      "when": 1769854977685,
-      "tag": "0140_great_lightspeed",
-      "breakpoints": true
     }
   ]
 }
