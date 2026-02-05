@@ -6,6 +6,7 @@ import {
 	IS_CLOUD,
 	initCancelDeployments,
 	initCronJobs,
+	initEnterpriseBackupCronJobs,
 	initializeNetwork,
 	initSchedules,
 	initVolumeBackupsCronJobs,
@@ -15,6 +16,7 @@ import {
 import { config } from "dotenv";
 import next from "next";
 import { migration } from "@/server/db/migration";
+import packageInfo from "../package.json";
 import { setupDockerContainerLogsWebSocketServer } from "./wss/docker-container-logs";
 import { setupDockerContainerTerminalWebSocketServer } from "./wss/docker-container-terminal";
 import { setupDockerStatsMonitoringSocketServer } from "./wss/docker-stats";
@@ -33,13 +35,14 @@ if (process.env.NODE_ENV === "production" && !IS_CLOUD) {
 	setupDirectories();
 	createDefaultTraefikConfig();
 	createDefaultServerTraefikConfig();
-	console.log("✅ Critical initialization complete");
+	console.log("✅ initialization complete");
 }
 
 const app = next({ dev, turbopack: process.env.TURBOPACK === "1" });
 const handle = app.getRequestHandler();
 void app.prepare().then(async () => {
 	try {
+		console.log("Running DokployVersion: ", packageInfo.version);
 		const server = http.createServer((req, res) => {
 			handle(req, res);
 		});
@@ -71,6 +74,8 @@ void app.prepare().then(async () => {
 
 		server.listen(PORT, HOST);
 		console.log(`Server Started on: http://${HOST}:${PORT}`);
+		await initEnterpriseBackupCronJobs();
+
 		if (!IS_CLOUD) {
 			console.log("Starting Deployment Worker");
 			const { deploymentWorker } = await import("./queues/deployments-queue");
