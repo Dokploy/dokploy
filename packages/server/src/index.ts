@@ -104,6 +104,7 @@ export * from "./utils/notifications/server-threshold";
 export * from "./utils/notifications/utils";
 export * from "./utils/process/execAsync";
 export * from "./utils/process/spawnAsync";
+export * from "./utils/project/disk-usage";
 export * from "./utils/providers/bitbucket";
 export * from "./utils/providers/docker";
 export * from "./utils/providers/git";
